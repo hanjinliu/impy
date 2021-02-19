@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from .viewer_widget.drawer import RectangleDrawer, PolygonDrawer, LineDrawer, CurveDrawer, RectangleCropper
 from ..roi import ROI
 from .viewer_widget.widget import Widget
-from skimage import filters as skfil
 
 __all__ = ["imshowc", "imshowz", "imshow_comparewith", 
            "threshold", "threshold_manual",
@@ -286,63 +285,6 @@ def imshow_comparewith(self, other=None, titles=["image-1", "image-2"], **kwargs
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Thresholding and Labeling
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-def threshold(self, thr=None, method:str="otsu", light_bg=False, iters="c", **kwargs):
-    """
-    Parameters
-    ----------
-    thr: int or array or None, optional
-        Threshold value. If None, this will be determined by 'method'.
-    method: str, optional
-        Thresholding algorithm.
-    light_bg: bool, default is False
-        If background is brighter
-    iters: str, default is 'c'
-        Around which axes images will be iterated.
-    **kwargs:
-        Keyword arguments that will passed to function indicated in 'method'.
-
-    """
-
-    methods_ = {"isodata": skfil.threshold_isodata,
-                "li": skfil.threshold_li,
-                "local": skfil.threshold_local,
-                "mean": skfil.threshold_mean,
-                "min": skfil.threshold_minimum,
-                "minimum": skfil.threshold_minimum,
-                "multiotsu": skfil.threshold_multiotsu,
-                "niblack": skfil.threshold_niblack,
-                "otsu": skfil.threshold_otsu,
-                "sauvola": skfil.threshold_sauvola,
-                "triangle": skfil.threshold_triangle,
-                "yen": skfil.threshold_yen
-                }
-    if (thr is None):
-        method = method.lower()
-        try:
-            func = methods_[method]
-        except KeyError:
-            s = ", ".join(list(methods_.keys()))
-            raise KeyError(f"{method}\nmethod must be: {s}")
-        thr = func(self.view(np.ndarray), **kwargs)
-
-        out = np.zeros(self.shape, dtype=bool)
-        for t, img in self.as_uint16().iter(iters):
-            if (light_bg):
-                out[t] = img <= thr
-            else:
-                out[t] = img >= thr
-        out = out.view(self.__class__)
-
-    else:
-        if (light_bg):
-            out = self <= thr
-        else:
-            out = self >= thr
-    
-    out._set_info(self, "Thresholding")
-    out.temp = thr
-    return out
 
 def threshold_manual(self, light_bg=False, **kwargs):
     self_ = self.as_uint16()

@@ -240,6 +240,65 @@ class ImgArray(BaseArray):
         return out
     
     @record
+    def threshold(self, thr=None, method:str="otsu", light_bg=False, iters="c", **kwargs):
+        """
+        Parameters
+        ----------
+        thr: int or array or None, optional
+            Threshold value. If None, this will be determined by 'method'.
+        method: str, optional
+            Thresholding algorithm.
+        light_bg: bool, default is False
+            If background is brighter
+        iters: str, default is 'c'
+            Around which axes images will be iterated.
+        **kwargs:
+            Keyword arguments that will passed to function indicated in 'method'.
+
+        """
+
+        methods_ = {"isodata": skfil.threshold_isodata,
+                    "li": skfil.threshold_li,
+                    "local": skfil.threshold_local,
+                    "mean": skfil.threshold_mean,
+                    "min": skfil.threshold_minimum,
+                    "minimum": skfil.threshold_minimum,
+                    "multiotsu": skfil.threshold_multiotsu,
+                    "niblack": skfil.threshold_niblack,
+                    "otsu": skfil.threshold_otsu,
+                    "sauvola": skfil.threshold_sauvola,
+                    "triangle": skfil.threshold_triangle,
+                    "yen": skfil.threshold_yen
+                    }
+        if (thr is None):
+            method = method.lower()
+            try:
+                func = methods_[method]
+            except KeyError:
+                s = ", ".join(list(methods_.keys()))
+                raise KeyError(f"{method}\nmethod must be: {s}")
+            thr = func(self.view(np.ndarray), **kwargs)
+
+            out = np.zeros(self.shape, dtype=bool)
+            for t, img in self.as_uint16().iter(iters):
+                if (light_bg):
+                    out[t] = img <= thr
+                else:
+                    out[t] = img >= thr
+            out = out.view(self.__class__)
+            out._set_info(self, f"Thresholding({method})")
+
+        else:
+            if (light_bg):
+                out = self <= thr
+            else:
+                out = self >= thr
+            out._set_info(self, f"Thresholding({thr:.1f})")
+        
+        out.temp = thr
+        return out
+        
+    @record
     def crop_circle(self, radius=None, outzero=True):
         """
         Make a circular window function.
