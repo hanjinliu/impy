@@ -31,6 +31,8 @@ class Widget:
         name = f"range_{self.n_range + 1}"
         self.n_range += 1
         value0 = [np.percentile(img[img>0], 0.01), np.percentile(img[img>0], 99.99)]
+        if (value0[0] == 1 and value0[1] == 1):
+            value0[0] = 0
         slider = wds.IntRangeSlider(min=np.min(img), max=np.max(img), value=value0,
                                     description=name + ": ", **kw)
         self.dict[name] = slider

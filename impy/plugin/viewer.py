@@ -5,16 +5,12 @@ from ..roi import ROI
 from .viewer_widget.widget import Widget
 
 __all__ = ["imshowc", "imshowz", "imshow_comparewith", 
-           "threshold", "threshold_manual",
+           "threshold_manual",
            "measure_rectangles", "measure_polygons", "measure_lines", "measure",
            "crop_rectangles"]
 
 def _imshow2d(self, ax, **kwargs):
     # show image
-    if(self.max() == 1):
-        kwargs.pop("vmax", None)
-        kwargs.pop("vmin", None)
-        self = self.astype(bool)
     im = ax.imshow(self, **kwargs)
     return im
 
