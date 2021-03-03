@@ -440,10 +440,10 @@ class ImgArray(BaseArray):
             func = method
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
-        out = self.view(np.ndarray)
+        out = self
         for a in axis:
             axisint = out.axisof(a)
-            out = func(out, axis=axisint).view(self.__class__)
+            out = func(np.asarray(out), axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out.as_uint16()
 
