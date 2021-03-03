@@ -370,7 +370,7 @@ class ImgArray(BaseArray):
             y -= dy//2
         else:
             raise ValueError("'position' must be 'corner' or 'center'")
-        rect = Rectangle(x, y, x+dx, y+dy)
+        rect = Rectangle(x, x+dx, y, y+dy)
         if (hasattr(self, "rois") and type(self.rois) is list):
             self.rois.append(rect)
         else:
@@ -433,7 +433,6 @@ class ImgArray(BaseArray):
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
         """
-        axisint = self.axisof(axis)
         func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
         if (method in func_dict.keys()):
             func = func_dict[method]
@@ -441,7 +440,10 @@ class ImgArray(BaseArray):
             func = method
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
-        out = func(self.view(np.ndarray), axis=axisint).view(self.__class__)
+        out = self.view(np.ndarray)
+        for a in axis:
+            axisint = self.axisof(a)
+            out = func(out, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out.as_uint16()
 

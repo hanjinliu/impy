@@ -529,7 +529,8 @@ class BaseArray(np.ndarray):
             yield sl, selfview[sl]
             
         timer.toc()
-        print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
+        if (showprogress):
+            print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
     
     
     def parallel(self, func, axes:str, *args, n_cpu:int=4):
