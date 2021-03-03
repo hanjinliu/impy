@@ -1,5 +1,5 @@
 import numpy as np
-from skimage.morphology import white_tophat, black_tophat, disk
+from skimage.morphology import white_tophat, disk
 from skimage import transform as sktrans
 from skimage import filters as skfil
 from skimage import restoration as skres
@@ -29,6 +29,11 @@ def _rolling_ball(args):
         back = skres.rolling_ball(data, radius=radius)
     
     return (sl, data - back)
+
+def _tophat(args):
+    sl, data, selem = args
+    return (sl, white_tophat(data, selem))
+    
 
 
 class ImgArray(BaseArray):
@@ -166,7 +171,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def tophat(self, radius=50, light_bg=False, **kwargs):
+    def tophat(self, radius=50, n_cpu=4):
         """
         Subtract Background using top-hat algorithm.
 
@@ -174,23 +179,16 @@ class ImgArray(BaseArray):
         ----------
         radius : int, optional
             Radius of hat, by default 50
-        light_bg : bool, optional
-            If light background, by default False
+        n_cpu : int, optional
+            Number of CPU to use
 
         Returns
         -------
         ImgArray
             Background subtracted image.
         """        
-        if (light_bg): func = black_tophat
-        else: func = white_tophat
-
         disk_ = disk(radius)
-        out = np.zeros(self.shape)
-        for t, img in self.as_uint16().iter("tzc"):
-            out[t] = func(img, disk_, **kwargs)
-        out = out.view(self.__class__)
-
+        out = self.parallel(_tophat, "tzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Top-Hat(R={radius})")
         return out
     
@@ -205,27 +203,15 @@ class ImgArray(BaseArray):
             Radius of rolling ball, by default 50
         smoothing : bool, optional
             If apply 3x3 averaging before creating background.
-
+        n_cpu : int, optional
+            Number of CPU to use
+            
         Returns
         -------
         ImgArray
             Background subtracted image.
         """        
-        # out = np.zeros(self.shape)
-        
-        # for t, img in self.as_uint16().iter("tzc"):
-        #     if (smoothing):
-        #         ref = skfil.rank.mean(img, np.ones((3,3)), **kwargs)
-        #         back = skres.rolling_ball(ref, radius=radius, **kwargs)
-        #         tozero = (back > img)
-        #         back[tozero] = img[tozero]
-        #     else:
-        #         ref = img
-        #         back = skres.rolling_ball(ref, radius=radius, **kwargs)
-        #     out[t] = img - back
-        # out = out.view(self.__class__)
         out = self.parallel(_rolling_ball, "tzc", radius, smoothing, n_cpu=n_cpu)
-
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
@@ -238,6 +224,8 @@ class ImgArray(BaseArray):
         ----------
         radius : int, optional
             Radius of filter, by default 1
+        n_cpu : int, optional
+            Number of CPU to use
 
         Returns
         -------
@@ -245,10 +233,6 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        # out = np.zeros(self.shape)
-        # for t, img in self.as_uint16().iter("tzc"):
-        #     out[t] = skfil.rank.mean(img, disk_, **kwargs)
-        # out = out.view(self.__class__)
         out = self.parallel(_mean, "tzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Mean-Filter(R={radius})")
         return out
@@ -272,18 +256,6 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        # out = np.zeros(self.shape)
-        # if (n_cpu > 0):
-        #     with multi.Pool(n_cpu) as p:
-        #         results = p.map(_median, self.as_uint16().iter_parallel("tzc", disk_))
-            
-        #     for sl, imgf in results:
-        #         out[sl] = imgf
-        # else:
-        #     for sl, img in self.as_uint16().iter("tzc"):
-        #         out[sl] = skfil.rank.median(img, disk_)
-                
-        # out = out.view(self.__class__)
         out = self.parallel(_median, "tzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Median-Filter(R={radius})")
         return out
@@ -495,9 +467,9 @@ class ImgArray(BaseArray):
         # out = (out - lowerlim) / (upperlim - lowerlim) / (1 + 1e-6)
         lowerlim = np.percentile(out, lower)
         upperlim = np.percentile(out, upper)
-        out = skexp.rescale_intensity(out, dtype=dtype, in_range=[lowerlim, upperlim])
+        out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
-        out = out.view(self.__class__).as_uint16()
+        out = out.view(self.__class__)
         out._set_info(self, f"Rescale-Intensity({lower:.1f}-{upper:.1f})")
         out.temp = [lowerlim, upperlim]
         return out
