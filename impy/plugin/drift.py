@@ -85,6 +85,7 @@ def drift_correction(self, shift=None, ref=None, order=1):
             raise ValueError(f"Cannot track drift using {ref.axes} image")
 
         shift = track_drift(ref, axis="t")
+        self.ongoing = "drift_correction"
 
     elif (shift.shape[1] != 2):
         raise TypeError(f"Invalid shift shape: {shift.shape}")

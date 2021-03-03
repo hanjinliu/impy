@@ -442,7 +442,7 @@ class ImgArray(BaseArray):
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
         out = self.view(np.ndarray)
         for a in axis:
-            axisint = self.axisof(a)
+            axisint = out.axisof(a)
             out = func(out, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out.as_uint16()
