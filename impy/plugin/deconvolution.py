@@ -40,7 +40,7 @@ def _deconvolution3d(img3d, psfimg, niter) -> np.ndarray:
     img3d = np.array(img3d).astype("float32")
     eps = np.percentile(img3d, 99)*1e-6
 
-    algorithm = fdres.RichardsonLucyDeconvolver(img3d.ndim, epsilon=eps).initialize()
+    algorithm = fdres.RichardsonLucyDeconvolver(img3d.ndim, epsilon=eps, pad_fill="constant").initialize() # pad_fill="constant"?
     img_model = fddata.Acquisition(data=img3d, kernel=psfimg)
     result = algorithm.run(img_model, niter=niter)
     return result.data
