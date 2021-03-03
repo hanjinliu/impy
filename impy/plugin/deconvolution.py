@@ -39,8 +39,10 @@ def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, d
 def _deconvolution3d(img3d, psfimg, niter) -> np.ndarray:
     img3d = np.array(img3d).astype("float32")
     eps = np.percentile(img3d, 99)*1e-6
-
-    algorithm = fdres.RichardsonLucyDeconvolver(img3d.ndim, epsilon=eps, pad_fill="constant").initialize() # pad_fill="constant"?
+    
+    # By default pad_fill = "reflect" but this setting could cause unexpected intensity decrease caused by
+    # extra-high intensity in remote places.
+    algorithm = fdres.RichardsonLucyDeconvolver(img3d.ndim, epsilon=eps, pad_fill="symmetric").initialize()
     img_model = fddata.Acquisition(data=img3d, kernel=psfimg)
     result = algorithm.run(img_model, niter=niter)
     return result.data
@@ -58,6 +60,7 @@ def deconvolution3d(self, psfinfo={}, niter:int=50):
         Number of iteration.
     """
     if (isinstance(psfinfo, dict)):
+        # 7x7 is enough for standard conditions.
         # set size_z to an odd number
         kw = {"size_x": 7, "size_y": 7, "size_z": self.sizeof("z")//2*2+1}
         kw.update(psfinfo)
