@@ -440,14 +440,22 @@ class ImgArray(BaseArray):
             func = method
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
-        out = self
-        for a in axis:
-            axisint = out.axisof(a)
-            out = func(np.asarray(out), axis=axisint).view(self.__class__)
-            out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
+        axisint = self.axisof(axis)
+        out = func(np.asarray(self), axis=axisint).view(self.__class__)
+        out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out.as_uint16()
 
-    @record
+    
+    def clip_outliers(self, lower=1, upper=99):
+        lowerlim = np.percentile(self, lower)
+        upperlim = np.percentile(self, upper)
+        out = np.clip(np.asarray(self), lowerlim, upperlim)
+        out = out.view(self.__class__)
+        out._set_info(self, f"Clip-Outliers({lower:.1f}%-{upper:.1f}%)")
+        out.temp = [lowerlim, upperlim]
+        return out
+        
+        
     def rescale_intensity(self, lower=0, upper=100, dtype=np.uint16):
         """
         [min, max] -> [0, 1)
@@ -460,7 +468,7 @@ class ImgArray(BaseArray):
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.1f}-{upper:.1f})")
+        out._set_info(self, f"Rescale-Intensity({lower:.1f}%-{upper:.1f}%)")
         out.temp = [lowerlim, upperlim]
         return out
 

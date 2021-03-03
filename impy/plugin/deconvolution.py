@@ -6,7 +6,7 @@ from ..func import record
 
 __all__ = ["deconvolution3d"]
 
-def psf(wavelength:float=0.610, pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
+def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
     """
     wavelength: wave length [micron]
     pxsize: pixel size [micron]
@@ -14,8 +14,7 @@ def psf(wavelength:float=0.610, pxsize:float=0.216667, dz:float=0.38, **kwargs) 
     ns: reflactive index of the specimen
     na: N.A.
     """
-    size_x = size_y = 1 + 2*int(wavelength/pxsize)
-    size_z = size_x*2 - 1
+    
     # in case parameters were set in nm-unit
     if (wavelength > 200):
         raise ValueError(f"'wavelength' is too large: {wavelength} um")
@@ -56,10 +55,13 @@ def deconvolution3d(self, psfinfo={}, niter:int=50):
     - For experimentally obtained image stack, use it directly. 
     
     niters: int
-        number of iteration.
+        Number of iteration.
     """
-    if (type(psfinfo) == dict):
-        psfimg = psf(**psfinfo)
+    if (isinstance(psfinfo, dict)):
+        # set size_z to an odd number
+        kw = {"size_x": 7, "size_y": 7, "size_z": self.sizeof("z")//2*2+1}
+        kw.update(psfinfo)
+        psfimg = psf(**kw)
     else:
         psfimg = np.array(psfinfo)
         psfimg /= np.max(psfimg)
