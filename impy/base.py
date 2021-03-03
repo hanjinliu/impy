@@ -1,4 +1,5 @@
 import numpy as np
+import multiprocessing as multi
 import matplotlib.pyplot as plt
 from skimage import io
 import os
@@ -523,7 +524,41 @@ class BaseArray(np.ndarray):
                 print(f"\r{name}: {i:>4}/{total_repeat:>4}", end="")
             yield t, selfview[t]
         print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed.")
+    
+    
+    def parallel(self, func, axes:str, *args, n_cpu:int=4):
+        """
+        Multiprocessing tool.
+
+        Parameters
+        ----------
+        func : callable
+            Function applied to each image.
+            sl, img = func(arg). arg must be packed into tuple or list.
+        axes : str
+            passed to iter()
+        n_cpu : int, optional
+            Number of CPU to use, by default 4
+
+        Returns
+        -------
+        ImgArray
+        """
+        out = np.zeros(self.shape)
+        if (n_cpu > 0):
+            lmd = lambda x : (x[0], x[1], *args)
+            with multi.Pool(n_cpu) as p:
+                results = p.map(func, map(lmd, self.as_uint16().iter(axes)))
             
+            for sl, imgf in results:
+                out[sl] = imgf
+        else:
+            for sl, img in self.as_uint16().iter(axes):
+                sl, out2d = func((sl, img, *args))
+                out[sl] = out2d
+                
+        out = out.view(self.__class__)
+        return out
     
     def get_cmaps(self):
         """

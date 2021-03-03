@@ -2,11 +2,34 @@ import numpy as np
 from skimage.morphology import white_tophat, black_tophat, disk
 from skimage import transform as sktrans
 from skimage import filters as skfil
+from skimage import restoration as skres
+from skimage import exposure as skexp
 from scipy import optimize as opt
 from .func import get_meta, record, gauss2d, square, circle, del_axis, add_axes
 from .base import BaseArray
 from .axes import Axes
 from .roi import Rectangle
+
+def _median(args):
+    sl, data, selem = args
+    return (sl, skfil.rank.median(data, selem))
+
+def _mean(args):
+    sl, data, selem = args
+    return (sl, skfil.rank.mean(data, selem))
+
+def _rolling_ball(args):
+    sl, data, radius, smooth = args
+    if (smooth):
+        _, ref = _mean((sl, data, np.ones((3, 3))))
+        back = skres.rolling_ball(ref, radius=radius)
+        tozero = (back > data)
+        back[tozero] = data[tozero]
+    else:
+        back = skres.rolling_ball(data, radius=radius)
+    
+    return (sl, data - back)
+
 
 class ImgArray(BaseArray):
     def __init__(self, path:str, axes=None):
@@ -143,14 +166,14 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def rolling_ball(self, radius=50, light_bg=False, **kwargs):
+    def tophat(self, radius=50, light_bg=False, **kwargs):
         """
-        Subtract Background using rolling-ball algorithm.
+        Subtract Background using top-hat algorithm.
 
         Parameters
         ----------
         radius : int, optional
-            Radius os rolling ball, by default 50
+            Radius of hat, by default 50
         light_bg : bool, optional
             If light background, by default False
 
@@ -168,11 +191,46 @@ class ImgArray(BaseArray):
             out[t] = func(img, disk_, **kwargs)
         out = out.view(self.__class__)
 
+        out._set_info(self, f"Top-Hat(R={radius})")
+        return out
+    
+    @record
+    def rolling_ball(self, radius=50, smoothing=True, n_cpu=4):
+        """
+        Subtract Background using rolling-ball algorithm.
+
+        Parameters
+        ----------
+        radius : int, optional
+            Radius of rolling ball, by default 50
+        smoothing : bool, optional
+            If apply 3x3 averaging before creating background.
+
+        Returns
+        -------
+        ImgArray
+            Background subtracted image.
+        """        
+        # out = np.zeros(self.shape)
+        
+        # for t, img in self.as_uint16().iter("tzc"):
+        #     if (smoothing):
+        #         ref = skfil.rank.mean(img, np.ones((3,3)), **kwargs)
+        #         back = skres.rolling_ball(ref, radius=radius, **kwargs)
+        #         tozero = (back > img)
+        #         back[tozero] = img[tozero]
+        #     else:
+        #         ref = img
+        #         back = skres.rolling_ball(ref, radius=radius, **kwargs)
+        #     out[t] = img - back
+        # out = out.view(self.__class__)
+        out = self.parallel(_rolling_ball, "tzc", radius, smoothing, n_cpu=n_cpu)
+
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
     @record
-    def mean_filter(self, radius=1, **kwargs):
+    def mean_filter(self, radius=1, n_cpu=4):
         """
         Run mean filter.
 
@@ -187,22 +245,26 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = np.zeros(self.shape)
-        for t, img in self.as_uint16().iter("tzc"):
-            out[t] = skfil.rank.mean(img, disk_, **kwargs)
-        out = out.view(self.__class__)
+        # out = np.zeros(self.shape)
+        # for t, img in self.as_uint16().iter("tzc"):
+        #     out[t] = skfil.rank.mean(img, disk_, **kwargs)
+        # out = out.view(self.__class__)
+        out = self.parallel(_mean, "tzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Mean-Filter(R={radius})")
         return out
     
+        
     @record
-    def median_filter(self, radius=1, **kwargs):
+    def median_filter(self, radius=1, n_cpu=4):
         """
-        Run median filter.
+        Run median filter. 
 
         Parameters
         ----------
         radius : int, optional
             Radius of filter, by default 1
+        n_cpu : int, optional
+            Number of CPU to use
 
         Returns
         -------
@@ -210,12 +272,22 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = np.zeros(self.shape)
-        for t, img in self.as_uint16().iter("tzc"):
-            out[t] = skfil.rank.median(img, disk_, **kwargs)
-        out = out.view(self.__class__)
+        # out = np.zeros(self.shape)
+        # if (n_cpu > 0):
+        #     with multi.Pool(n_cpu) as p:
+        #         results = p.map(_median, self.as_uint16().iter_parallel("tzc", disk_))
+            
+        #     for sl, imgf in results:
+        #         out[sl] = imgf
+        # else:
+        #     for sl, img in self.as_uint16().iter("tzc"):
+        #         out[sl] = skfil.rank.median(img, disk_)
+                
+        # out = out.view(self.__class__)
+        out = self.parallel(_median, "tzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Median-Filter(R={radius})")
         return out
+
     
     @record
     def fft(self):
@@ -402,26 +474,31 @@ class ImgArray(BaseArray):
         return out.as_uint16()
 
     @record
-    def rescale_float(self, lower=0, upper=100):
+    def rescale_intensity(self, lower=0, upper=100, dtype=np.uint16):
         """
         [min, max] -> [0, 1)
         2^-16 = 1.5 x 10^-5
+        out = skimage.exposure.rescale_intensity(out, dtype=np.uint16, in_range=...)
         """
         out = self.view(np.ndarray).astype("float64")
-        if (lower > 0):
-            lowerlim = np.percentile(out, lower)
-            out[out<lowerlim] = lowerlim
-        else:
-            lowerlim = np.min(out)
+        # if (lower > 0):
+        #     lowerlim = np.percentile(out, lower)
+        #     out[out<lowerlim] = lowerlim
+        # else:
+        #     lowerlim = np.min(out)
         
-        if (upper < 100):
-            upperlim = np.percentile(out, upper)
-            out[out>upperlim] = upperlim
-        else:
-            upperlim = np.max(out)
-        out = (out - lowerlim) / (upperlim - lowerlim) / (1 + 1e-6)
+        # if (upper < 100):
+        #     upperlim = np.percentile(out, upper)
+        #     out[out>upperlim] = upperlim
+        # else:
+        #     upperlim = np.max(out)
+        # out = (out - lowerlim) / (upperlim - lowerlim) / (1 + 1e-6)
+        lowerlim = np.percentile(out, lower)
+        upperlim = np.percentile(out, upper)
+        out = skexp.rescale_intensity(out, dtype=dtype, in_range=[lowerlim, upperlim])
+        
         out = out.view(self.__class__).as_uint16()
-        out._set_info(self, f"Rescale-Float({lower:.1f}-{upper:.1f})")
+        out._set_info(self, f"Rescale-Intensity({lower:.1f}-{upper:.1f})")
         out.temp = [lowerlim, upperlim]
         return out
     
