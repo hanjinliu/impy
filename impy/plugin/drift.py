@@ -5,6 +5,11 @@ from skimage import registration as skreg
 from skimage import transform as sktrans
 from ..func import record
 
+"""
+Maybe this is better...
+https://scikit-image.org/docs/0.13.x/auto_examples/transform/plot_register_translation.html
+"""
+
 __all__ = ["drift_correction"]
 
 @record
