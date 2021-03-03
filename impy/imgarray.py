@@ -444,7 +444,7 @@ class ImgArray(BaseArray):
         for a in axis:
             axisint = out.axisof(a)
             out = func(np.asarray(out), axis=axisint).view(self.__class__)
-        out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
+            out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out.as_uint16()
 
     @record
