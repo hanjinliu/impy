@@ -41,7 +41,7 @@ def _deconvolution3d(img3d, psfimg, niter) -> np.ndarray:
     eps = np.percentile(img3d, 99)*1e-6
     
     # By default pad_fill = "reflect" but this setting could cause unexpected intensity decrease caused by
-    # extra-high intensity in remote places.
+    # extra-high intensity in remote places. "symmetric" is better. "constant" is worst.
     algorithm = fdres.RichardsonLucyDeconvolver(img3d.ndim, epsilon=eps, pad_fill="symmetric").initialize()
     img_model = fddata.Acquisition(data=img3d, kernel=psfimg)
     result = algorithm.run(img_model, niter=niter)
