@@ -428,7 +428,7 @@ class ImgArray(BaseArray):
         return imgs
 
     @record
-    def proj(self, method="mean", axis="z"):
+    def proj(self, axis="z", method="mean"):
         """
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
@@ -453,18 +453,6 @@ class ImgArray(BaseArray):
         out = skimage.exposure.rescale_intensity(out, dtype=np.uint16, in_range=...)
         """
         out = self.view(np.ndarray).astype("float64")
-        # if (lower > 0):
-        #     lowerlim = np.percentile(out, lower)
-        #     out[out<lowerlim] = lowerlim
-        # else:
-        #     lowerlim = np.min(out)
-        
-        # if (upper < 100):
-        #     upperlim = np.percentile(out, upper)
-        #     out[out>upperlim] = upperlim
-        # else:
-        #     upperlim = np.max(out)
-        # out = (out - lowerlim) / (upperlim - lowerlim) / (1 + 1e-6)
         lowerlim = np.percentile(out, lower)
         upperlim = np.percentile(out, upper)
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
@@ -473,6 +461,9 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Rescale-Intensity({lower:.1f}-{upper:.1f})")
         out.temp = [lowerlim, upperlim]
         return out
+
+    def sort_axes(self):
+        return self.transpose(self.axes.argsort())
     
     # numpy functions that will change/discard order
     def transpose(self, axes):
@@ -507,7 +498,7 @@ class ImgArray(BaseArray):
 
 # non-member functions.
 
-def array(arr, name="array", axes=None, dirpath="", history=[], metadata={}, lut=None):
+def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], metadata={}, lut=None):
     """
     make an ImgArray object, just like np.array(x)
     """
@@ -524,7 +515,13 @@ def array(arr, name="array", axes=None, dirpath="", history=[], metadata={}, lut
     self.history = history
     self.metadata = metadata
     self.lut = lut
-    return self.as_uint16()
+    
+    if (dtype == "uint16"):
+        return self.as_uint16()
+    elif (dtype == "uint8"):
+        return self.as_uint8()
+    else:
+        return self.astype("float32")
 
 def imread(path:str):
     # make object
@@ -535,7 +532,7 @@ def imread(path:str):
         self.name = meta["history"].pop(0)
         self.history = meta["history"]
     
-    # in case the image is in yxc-order.
+    # In case the image is in yxc-order. This sometimes happens.
     if ("c" in self.axes and self.sizeof("c") > self.sizeof("x")):
         self = np.moveaxis(self, -1, -3)
         _axes = self.axes.axes
@@ -543,6 +540,7 @@ def imread(path:str):
         self.axes = _axes
     
     return self.transpose(self.axes.argsort()) # arrange in tzcyx-order
+
 
 def read_meta(path:str):
     meta = get_meta(path)

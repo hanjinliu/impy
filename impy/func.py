@@ -3,6 +3,26 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from tifffile import TiffFile
 from functools import wraps
+import time
+
+
+class Timer:
+    def __init__(self):
+        self.tic()
+        
+    def tic(self):
+        self.t = time.time()
+    
+    def toc(self):
+        self.t = time.time() - self.t
+    
+    def __str__(self):
+        minute, sec = divmod(int(self.t), 60)
+        if (minute == 0):
+            out = f"{sec} sec"
+        else:
+            out = f"{minute} min {sec} sec"
+        return out
 
 def get_meta(path:str):
     with TiffFile(path) as tif:

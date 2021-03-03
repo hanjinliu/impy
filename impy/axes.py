@@ -1,5 +1,5 @@
 NONE = "_"
-ORDER = {"q": -1, "s": -1, "t": 0, "z": 1, "c": 2, "y": 3, "x": 4}
+ORDER = {"q": -1, "s": 5, "t": 0, "z": 1, "c": 2, "y": 3, "x": 4}
 
 class ImageAxesError(Exception):
     pass

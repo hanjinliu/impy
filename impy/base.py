@@ -3,12 +3,14 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 from skimage import io
 import os
-from .func import del_axis, add_axes, get_lut
+from .func import del_axis, add_axes, get_lut, Timer
 from .axes import Axes
 from tifffile import imwrite
+from skimage.exposure import histogram
 import itertools
-plt.rcParams["font.size"] = 10
 
+plt.rcParams["font.size"] = 10
+    
 def check_value(__op__):
     def wrapper(self, value):
         if (isinstance(value, np.ndarray)):
@@ -425,14 +427,18 @@ class BaseArray(np.ndarray):
         if (newfig):
             plt.figure(figsize=(4, 1.7))
 
-        n_bin = min(int(np.sqrt(self.size / 3)), 100)
-        plt.hist(self.flat, color="grey", bins=n_bin, density=True)
+        nbin = min(int(np.sqrt(self.size / 3)), 256)
+        # plt.hist(self.flat, color="grey", bins=n_bin, density=True)
+        y, x = histogram(self.flatten(), nbins=nbin)
+        plt.plot(x, y, color="gray")
+        plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
         
         if (contrast is None):
             contrast = [self.min(), self.max()]
         x0, x1 = contrast
         
         plt.xlim(x0, x1)
+        plt.ylim(0, None)
         plt.yticks([])
         
         return None
@@ -500,7 +506,7 @@ class BaseArray(np.ndarray):
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
 
-    def iter(self, axes:str):
+    def iter(self, axes:str, showprogress:bool=True):
         """
         make an iterator that iterate for each axis in 'axes'.
         """
@@ -513,17 +519,17 @@ class BaseArray(np.ndarray):
                 total_repeat *= self.sizeof(a)
             else:
                 iterlist.append([slice(None)])
-        selfview = self.view(np.ndarray).copy()
-        if (hasattr(self, "ongoing")):
-            name = self.ongoing
-        else:
-            name = "iteration"
+        selfview = np.asarray(self)
+        name = getattr(self, "ongoing", "iteration")
         
-        for i, t in enumerate(itertools.product(*iterlist)):
-            if (total_repeat > 1):
+        timer = Timer()
+        for i, sl in enumerate(itertools.product(*iterlist)):
+            if (total_repeat > 1 and showprogress):
                 print(f"\r{name}: {i:>4}/{total_repeat:>4}", end="")
-            yield t, selfview[t]
-        print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed.")
+            yield sl, selfview[sl]
+            
+        timer.toc()
+        print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
     
     
     def parallel(self, func, axes:str, *args, n_cpu:int=4):
@@ -547,8 +553,13 @@ class BaseArray(np.ndarray):
         out = np.zeros(self.shape)
         if (n_cpu > 0):
             lmd = lambda x : (x[0], x[1], *args)
+            name = getattr(self, "ongoing", "iteration")
+            timer = Timer()
+            print(f"{name} ...", end="")
             with multi.Pool(n_cpu) as p:
-                results = p.map(func, map(lmd, self.as_uint16().iter(axes)))
+                results = p.map(func, map(lmd, self.as_uint16().iter(axes, False)))
+            timer.toc()
+            print(f"\r{name} completed ({timer})")
             
             for sl, imgf in results:
                 out[sl] = imgf
