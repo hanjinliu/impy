@@ -1,4 +1,7 @@
 import numpy as np
+import os
+import glob
+import collections
 from skimage.morphology import white_tophat, disk
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -342,7 +345,7 @@ class ImgArray(BaseArray):
         out.temp = thr
         return out
         
-    @record
+        
     def crop_circle(self, radius=None, outzero=True):
         """
         Make a circular window function.
@@ -379,7 +382,6 @@ class ImgArray(BaseArray):
         return rect
 
     
-    @record
     def crop_center(self, scale=0.5):
         """
         Crop out the center of an image.
@@ -515,7 +517,7 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     if (isinstance(arr, ImgArray)):
         return arr
     
-    if (type(arr) is str):
+    if (isinstance(arr, str)):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
         
     self = arr.view(ImgArray)
@@ -549,8 +551,46 @@ def imread(path:str):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.transpose(self.axes.argsort()) # arrange in tzcyx-order
+    return self.transpose(self.axes.argsort()) # arrange in tzcyxs-order
 
+def imread_collection(dirname:str, axis:str="s", ext:str="tif", ignore_exception:bool=False):
+    """
+    Read images recursively from a directory, and stack them into one ImgArray.
+
+    Parameters
+    ----------
+    dirname : str
+        Path to the directory
+    axis : str, optional
+        To specify which axis will be the new one, by default "s"
+    ext : str, optional
+        Extension of files, by default "tif"
+    ignore_exception : bool, optional
+        If true, arrays with wrong shape will be ignored, by default False
+    """    
+    paths = glob.glob(f"{dirname}{os.sep}**{os.sep}*.{ext}", recursive=True)
+    imgs = []
+    shapes = []
+    for path in paths:
+        img = imread(path)
+        imgs.append(img)
+        shapes.append(img.shape)
+    
+    list_of_shape = list(set(shapes))
+    if (len(list_of_shape) > 1):
+        if (ignore_exception):
+            ctr = collections.Counter(shapes)
+            common_shape = ctr.most_common()[0][0]
+            imgs = [img for img in imgs if img.shape == common_shape]
+        else:
+            raise ValueError("Input directory has images with different shapes: "
+                            f"{', '.join(map(str, list_of_shape))}")
+    
+    out = stack(imgs, axis=axis)
+    out.dirpath, out.name = os.path.split(dirname)
+    out.history[-1] = "imread_collection"
+    return out
+    
 
 def read_meta(path:str):
     meta = get_meta(path)
