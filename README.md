@@ -2,23 +2,36 @@
 
 ## Basic Usage
 
-Load image with `imread` function.
+Load image with `imread` function. `ImgArray` object is created.
 ```python
 import impy as ip
-img = ip.imread(r"C:\Users\...\XXX.tif")
+img = ip.imread(r"C:\Users\...\XXX.tif") # load single tif
+img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True) # load tifs recursively from a directory
 ```
 
-- `imshow` = visualize 2-D or 3-D image.
-- `hist` = show the histogram of image intensity profile.
-- `imsave` = save image (by default save in the directory that the original image was loaded).
+Stacking images with `impy.stack`
 
-## Attributes of ImgArray
+```python
+img = ip.stack([img1, img2], axis="c") # stack along channel
+```
+
+
+## Basic Attributes and Functions of ImgArray
+
+### Attributes
 
 - `name` = name of the original image.
 - `dirpath` = absolute path to the original image.
 - `history` = history of applied analysis.
 - `axes` = dimensions of image, "tzcyxs"-order.
 - `lut` = look up table.
+
+### Functions
+
+- `imshow` = visualize 2-D or 3-D image.
+- `hist` = show the histogram of image intensity profile.
+- `imsave` = save image (by default save in the directory that the original image was loaded).
+
 
 ## Flexible Slicing
 
@@ -43,6 +56,8 @@ You can also measure images and obtain ROI
 - `measure_lines`
 
 ## Image Analysis
+
+`ImgArray` has a lot of member functions for image analysis.
 
 - `drift_correction`(plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
 - `deconvolution3d`(plugin) = 3-D deconvolution.
