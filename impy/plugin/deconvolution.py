@@ -4,6 +4,7 @@ from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from ..func import record
 
+# Identical to the algorithm in Deconvolution.jl of Julia.
 # To avoid Memory Error, scipy.fftpack is used instead of numpy.fft because the latter does not support 
 # dtype complex64.
 

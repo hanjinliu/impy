@@ -110,19 +110,14 @@ class BaseArray(np.ndarray):
         print(repr(self))
         return None
     
-    def imsave(self, tifname, dirpath="default path"):
+    def imsave(self, tifname:str):
         """
         Save image (at the same directory as the original image by default).
         """
-        if (dirpath == "default path"):
-            dirpath = self.dirpath
-        
-        if (not os.path.exists(dirpath)):
-            raise FileNotFoundError(f"No such directory: {dirpath}")
-        
         if (not tifname.endswith(".tif")):
             tifname += ".tif"
-        tifpath = os.path.join(dirpath, tifname)
+        if (os.sep not in tifname):
+            tifname = os.path.join(self.dirpath, tifname)
         
         metadata = self.metadata
         metadata.update({"min":np.percentile(self, 1), "max":np.percentile(self, 99)})
@@ -137,9 +132,9 @@ class BaseArray(np.ndarray):
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifpath, np.array(self.as_uint16()), imagej=True, metadata=metadata)
+        imwrite(tifname, np.array(self.as_uint16()), imagej=True, metadata=metadata)
         
-        print(f"Succesfully saved: {tifpath}")
+        print(f"Succesfully saved: {tifname}")
         return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -405,6 +400,7 @@ class BaseArray(np.ndarray):
         out = out.astype("uint8")
         return out
 
+
     def as_uint16(self):
         if (self.dtype == "uint16"):
             return self
@@ -470,8 +466,8 @@ class BaseArray(np.ndarray):
             plt.imshow(self, **imshow_kwargs)
             self.hist()
         elif (self.ndim == 3):
-            if (self.axes.is_none() or self.axes[0] != "c"):
-                imglist = [s[1] for s in self.iter("tzs", False)]
+            if ("c" not in self.axes):
+                imglist = [s[1] for s in self.iter("ptzs", False)]
                 if (len(imglist) > 24):
                     raise ValueError("Too much images. The number of images should be < 24.")
 

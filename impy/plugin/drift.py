@@ -38,7 +38,6 @@ def track_drift(self, axis="t", **kwargs):
 
     result = np.fliplr(shift_list) # shift is (y,x) order in skreg
     show_drift(result)
-    # del self.ongoing
     return result
 
 def show_drift(result):
@@ -93,13 +92,13 @@ def drift_correction(self, shift=None, ref=None, order=1):
         raise TypeError(f"Length inconsistency between image and shift")
 
     out = np.empty(self.shape)
-    for sl, img in self.as_uint16().iter("tzc"):
+    for sl, img in self.as_uint16().iter("ptzc"):
         if (type(sl) is int):
             tr = -shift[sl]
         else:
             tr = -shift[sl[0]]
         mx = sktrans.AffineTransform(translation=tr)
-        out[sl] = sktrans.warp(img.astype("float64"), mx, order=order)
+        out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
     out = out.view(self.__class__).as_uint16()
 
     out._set_info(self, "Drift-Correction")

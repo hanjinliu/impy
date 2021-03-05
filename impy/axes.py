@@ -83,13 +83,13 @@ class Axes:
             pass
         elif (type(value) is str):
             value = value.lower()
-            counter = {"t": False, "z": False, "c": False, "x": False, "y": False}
+            counter = {"p":False, "t": False, "z": False, "c": False, "x": False, "y": False}
             for v in value:
-                if (v in "tzcxy"):
+                if (v in "ptzcxys"):
                     if (counter[v] == True):
                         raise ImageAxesError(f"'{v}' appeared twice: {value}")
                     counter[v] = True
-                elif (v in "qs"):
+                elif (v in "q"):
                     pass
                 else:
                     raise ImageAxesError(f"axes cannot contain characters except for 'qtzcxys': got {value}")
