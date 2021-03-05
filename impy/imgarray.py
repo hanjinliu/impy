@@ -528,15 +528,13 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     self.metadata = metadata
     self.lut = lut
     
-    if (dtype == "uint16"):
-        return self.as_uint16()
-    elif (dtype == "uint8"):
-        return self.as_uint8()
-    else:
-        return self.astype("float32")
+    return self.as_img_type(dtype)
 
 def imread(path:str):
     # make object
+    if (not os.path.exists(path)):
+        raise FileNotFoundError(f"No such file or directory: {path}")
+    
     meta = get_meta(path)
     self = ImgArray(path, axes=meta["axes"])
     self.metadata = meta["ijmeta"]
@@ -551,9 +549,9 @@ def imread(path:str):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.transpose(self.axes.argsort()) # arrange in tzcyxs-order
+    return self.sort_axes() # arrange in tzcyxs-order
 
-def imread_collection(dirname:str, axis:str="s", ext:str="tif", ignore_exception:bool=False):
+def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False):
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 

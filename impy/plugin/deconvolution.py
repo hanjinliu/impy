@@ -1,10 +1,10 @@
 from flowdec.psf import GibsonLanni as PSF
-from flowdec import restoration as fdres
-from flowdec import data as fddata
+# from flowdec import restoration as fdres
+# from flowdec import data as fddata
 import numpy as np
 from ..func import record
 
-__all__ = ["deconvolute_cf", "deconvolute_tirf"]
+__all__ = ["lucy3d", "lucy2d"]
 
 def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
     """
@@ -36,39 +36,62 @@ def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, d
     psfimg = PSF(**psf_kwargs).generate()
     return psfimg
 
-def _rechardson_lucy(img, psfimg, deconvinfo, niter) -> np.ndarray:
-    img = np.array(img).astype("float32")
-    kw = {"epsilon": np.percentile(img, 99)*1e-6}
-    kw.update(deconvinfo)
+# def _rechardson_lucy(img, psfimg, deconvinfo, niter) -> np.ndarray:
+#     img = np.array(img).astype("float32")
+#     kw = {"epsilon": np.percentile(img, 99)*1e-6}
+#     kw.update(deconvinfo)
     
-    algorithm = fdres.RichardsonLucyDeconvolver(img.ndim, **kw).initialize()
-    img_model = fddata.Acquisition(data=img, kernel=psfimg)
-    result = algorithm.run(img_model, niter=niter)
-    return result.data
+#     algorithm = fdres.RichardsonLucyDeconvolver(img.ndim, **kw).initialize()
+#     img_model = fddata.Acquisition(data=img, kernel=psfimg)
+#     result = algorithm.run(img_model, niter=niter)
+#     return result.data
+
+def _richardson_lucy(args):
+    sl, obs, psf, niter = args
+    
+    if (obs.shape != psf.shape):
+        raise ValueError(f"observation and PSF have different shape: {obs.shape} and {psf.shape}")
+    
+    fft = np.fft.fftn
+    ifft = np.fft.ifftn
+    
+    obs = obs.astype("float32")
+    
+    psf_ft = fft(psf)
+    psf_ft_conj = np.conjugate(psf_ft)
+    
+    def lucy_step(estimated):
+        factor = ifft(fft(obs / ifft(fft(estimated) * psf_ft)) * psf_ft_conj)
+        return estimated * np.real(factor)
+    
+    estimated = np.real(ifft(fft(obs) * psf_ft))
+    for _ in range(niter):
+        estimated = lucy_step(estimated)
+    
+    return sl, np.fft.fftshift(estimated)
 
 @record
-def deconvolute_cf(self, psfinfo={}, deconvinfo={}, niter:int=50):
+def lucy3d(self, psfinfo={}, niter:int=50, dtype="uint16", n_cpu=4):
     """
     Deconvolution of 3-dimensional image obtained from confocal microscopy, 
     using Richardson-Lucy's algorithm.
     
     Parameters
     ----------
-    psfinfo: dict or np.array
+    psfinfo : dict or np.array
         For synthetic PSF image, pass dict of PSF parameters. By default, 
         wavelength=0.610, pxsize=0.216667, dz=0.38. For experimentally obtained
         PSF image stack, use it directly.
-    
-    deconvinfo: dict
-        Keyword arguments passed to RichardsonLucyDeconvolver.
 
-    niters: int
+    niters : int
         Number of iteration.
+    
+    dtype : str
+        Output dtype
     """
+    # make PSF
     if (isinstance(psfinfo, dict)):
-        # 7x7 is enough for standard conditions.
-        # set size_z to an odd number
-        kw = {"size_x": 7, "size_y": 7, "size_z": self.sizeof("z")//2*2+1}
+        kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": self.sizeof("z")}
         kw.update(psfinfo)
         psfimg = psf(**kw)
     elif (isinstance(psfinfo, np.ndarray)):
@@ -76,19 +99,19 @@ def deconvolute_cf(self, psfinfo={}, deconvinfo={}, niter:int=50):
         psfimg /= np.max(psfimg)
     else:
         raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psfinfo)}")
-
-    out = np.zeros(self.shape)
-    for sl, img in self.iter("tcs"):
-        out[sl] = _rechardson_lucy(img, psfimg, deconvinfo, niter)
-    out = out.view(self.__class__)
-    out._set_info(self, f"RichardsonLucy-confocal(niter={niter})")
     
-    return out.as_uint16()
+    # start deconvolution
+    out = np.zeros(self.shape)
+    out = self.parallel(_richardson_lucy, "ptcs", psfimg, niter, n_cpu=n_cpu)
+    out = out.view(self.__class__)
+    out._set_info(self, f"RichardsonLucy-3D(niter={niter})")
+    
+    return out.as_img_type(dtype)
 
 @record
-def deconvolute_tirf(self, psfinfo={}, deconvinfo={}, niter:int=50):
+def lucy2d(self, psfinfo={}, niter:int=50, dtype="uint16", n_cpu=4):
+    # make PSF
     if (isinstance(psfinfo, dict)):
-        # 7x7 is enough for standard conditions.
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
         kw.update(psfinfo)
         psfimg = psf(**kw)[0]
@@ -97,11 +120,10 @@ def deconvolute_tirf(self, psfinfo={}, deconvinfo={}, niter:int=50):
         psfimg /= np.max(psfimg)
     else:
         raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psfinfo)}")
-
-    out = np.zeros(self.shape)
-    for sl, img in self.iter("tzcs"):
-        out[sl] = _rechardson_lucy(img, psfimg, deconvinfo, niter)
-    out = out.view(self.__class__)
-    out._set_info(self, f"RichardsonLucy-TIRF(niter={niter})")
     
-    return out.as_uint16()
+    out = np.zeros(self.shape)
+    out = self.parallel(_richardson_lucy, "ptzcs", psfimg, niter, n_cpu=n_cpu)
+    out = out.view(self.__class__)
+    out._set_info(self, f"RichardsonLucy-2D(niter={niter})")
+    
+    return out.as_img_type(dtype)

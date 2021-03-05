@@ -3,7 +3,7 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 from skimage import io
 import os
-from .func import del_axis, add_axes, get_lut, Timer
+from .func import del_axis, add_axes, get_lut, Timer, load_json
 from .axes import Axes
 from tifffile import imwrite
 from skimage.exposure import histogram
@@ -124,9 +124,16 @@ class BaseArray(np.ndarray):
             tifname += ".tif"
         tifpath = os.path.join(dirpath, tifname)
         
-        metadata = {"impyhist": "->".join([self.name] + self.history),
-                    "spacing": self.metadata.get("spacing", ""),
-                    "unit": self.metadata.get("unit", "")}
+        metadata = self.metadata
+        metadata.update({"min":np.percentile(self, 1), "max":np.percentile(self, 99)})
+        
+        try:
+            info = load_json(metadata["Info"])
+        except KeyError:
+            info = {}
+        
+        info["impyhist"] = "->".join([self.name] + self.history)
+        metadata["Info"] = str(info)
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
@@ -419,6 +426,15 @@ class BaseArray(np.ndarray):
         out = out.astype("uint16")
         return out
     
+    def as_img_type(self, dtype="uint16"):
+        if (dtype == "uint16"):
+            return self.as_uint16()
+        elif (dtype == "uint8"):
+            return self.as_uint8()
+        elif (dtype in "float", "f", "float32"):
+            return self.astype("float32")
+        else:
+            raise ValueError(f"dtype: {dtype}")
     
     def hist(self, contrast=None, newfig=True):
         """
@@ -455,7 +471,8 @@ class BaseArray(np.ndarray):
             self.hist()
         elif (self.ndim == 3):
             if (self.axes.is_none() or self.axes[0] != "c"):
-                if (self.shape[0] > 24):
+                imglist = [s[1] for s in self.iter("tzs", False)]
+                if (len(imglist) > 24):
                     raise ValueError("Too much images. The number of images should be < 24.")
 
                 vmax = np.percentile(self[self>0], 99.99)
@@ -463,7 +480,7 @@ class BaseArray(np.ndarray):
                 cmaps = self.get_cmaps()
                 imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
                 imshow_kwargs.update(kwargs)
-                imglist = [arr for arr in self.view(np.ndarray)]
+                
                 n_img = len(imglist)
                 n_col = min(n_img, 4)
                 n_row = int(n_img / n_col + 0.99)
@@ -479,7 +496,7 @@ class BaseArray(np.ndarray):
                 n_chn = self.sizeof("c")
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
-                    img = self[i]
+                    img = self[f"c={i+1}"]
                     vmax = np.percentile(img[img>0], 99.99)
                     vmin = np.percentile(img[img>0], 0.01)  
                     imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": "none"}

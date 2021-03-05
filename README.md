@@ -15,7 +15,6 @@ Stacking images with `impy.stack`
 img = ip.stack([img1, img2], axis="c") # stack along channel
 ```
 
-
 ## Basic Attributes and Functions of ImgArray
 
 ### Attributes
@@ -60,7 +59,7 @@ You can also measure images and obtain ROI
 `ImgArray` has a lot of member functions for image analysis.
 
 - `drift_correction`(plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
-- `deconvolution3d`(plugin) = 3-D deconvolution.
+- `deconvolute_cf`(plugin) = 3-D deconvolution of confocal images.
 - `mean_filter`, `meadian_filter` = for filtering.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `rough_gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).

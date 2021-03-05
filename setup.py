@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name="impy",
-      version="1.2.0",
+      version="1.3.0",
       description="Numpy and scikit-image based image analysis tool",
       author="Hanjin Liu",
       author_email="liuhanjin-sc@g.ecc.u-tokyo.ac.jp",

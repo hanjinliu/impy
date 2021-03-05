@@ -37,7 +37,7 @@ Normalize the image and save it.
 
 (ex.3) Deconvolution
 >>> psfinfo = {"wavelength":0.57, "pxsize":0.1, "dz":0.3}
->>> img2 = img.deconvolution3d(psfinfo=psfinfo, niter=20)
+>>> img2 = img.deconvolute_cf(psfinfo=psfinfo, niter=20)
 
 """
 
