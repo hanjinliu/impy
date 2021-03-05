@@ -1,14 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from skimage import registration as skreg
+try:
+    from skimage.registration import phase_cross_correlation
+except ImportError:
+    from skimage.feature import register_translation as phase_cross_correlation
 from skimage import transform as sktrans
 from ..func import record
 
-"""
-Maybe this is better...
-https://scikit-image.org/docs/0.13.x/auto_examples/transform/plot_register_translation.html
-"""
 
 __all__ = ["drift_correction"]
 
@@ -27,9 +26,9 @@ def track_drift(self, axis="t", **kwargs):
     # self.ongoing = "drift tracking"
     shift_list = [[0.0, 0.0]]
     last_img = None
-    for i, (_, img) in enumerate(self.iter(axis)):
+    for _, img in self.iter(axis):
         if (last_img is not None):
-            shift, _, _ = skreg.phase_cross_correlation(last_img, img, **corr_kwargs)
+            shift, _, _ = phase_cross_correlation(last_img, img, **corr_kwargs)
             shift_total = shift + shift_list[-1]            # list + ndarray -> ndarray
             shift_list.append(shift_total)
             last_img = img
@@ -39,7 +38,6 @@ def track_drift(self, axis="t", **kwargs):
 
     result = np.fliplr(shift_list) # shift is (y,x) order in skreg
     show_drift(result)
-    # del self.ongoing
     return result
 
 def show_drift(result):
@@ -60,14 +58,17 @@ def show_drift(result):
     return None
 
 @record
-def drift_correction(self, shift=None, ref=None):
+def drift_correction(self, shift=None, ref=None, order=1):
     """
     shift: (N, 2) array, optional.
-    x,y coordinates of drift. If None, this parameter will be determined by the
-    track drift() function, using self or ref if indicated. 
+        x,y coordinates of drift. If None, this parameter will be determined by the
+        track drift() function, using self or ref if indicated. 
 
     ref: ImgArray object, optional
-    The reference 3D image to determine drift.
+        The reference 3D image to determine drift.
+    
+    order: int, optional
+        The order of interpolation. See skimage.transform.warp.
 
     e.g.
     >>> drift = [[ dx1, dy1], [ dx2, dy2], ... ]
@@ -83,6 +84,7 @@ def drift_correction(self, shift=None, ref=None):
             raise ValueError(f"Cannot track drift using {ref.axes} image")
 
         shift = track_drift(ref, axis="t")
+        self.ongoing = "drift_correction"
 
     elif (shift.shape[1] != 2):
         raise TypeError(f"Invalid shift shape: {shift.shape}")
@@ -90,13 +92,13 @@ def drift_correction(self, shift=None, ref=None):
         raise TypeError(f"Length inconsistency between image and shift")
 
     out = np.empty(self.shape)
-    for t, img in self.as_uint16().iter("tzc"):
-        if (type(t) is int):
-            tr = -shift[t]
+    for sl, img in self.as_uint16().iter("ptzc"):
+        if (type(sl) is int):
+            tr = -shift[sl]
         else:
-            tr = -shift[t[0]]
+            tr = -shift[sl[0]]
         mx = sktrans.AffineTransform(translation=tr)
-        out[t] = sktrans.warp(img.astype("float64"), mx)
+        out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
     out = out.view(self.__class__).as_uint16()
 
     out._set_info(self, "Drift-Correction")

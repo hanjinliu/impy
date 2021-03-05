@@ -1,4 +1,7 @@
 import numpy as np
+import os
+import glob
+import collections
 from skimage.morphology import white_tophat, disk
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -342,7 +345,7 @@ class ImgArray(BaseArray):
         out.temp = thr
         return out
         
-    @record
+        
     def crop_circle(self, radius=None, outzero=True):
         """
         Make a circular window function.
@@ -370,7 +373,7 @@ class ImgArray(BaseArray):
             y -= dy//2
         else:
             raise ValueError("'position' must be 'corner' or 'center'")
-        rect = Rectangle(x, y, x+dx, y+dy)
+        rect = Rectangle(x, x+dx, y, y+dy)
         if (hasattr(self, "rois") and type(self.rois) is list):
             self.rois.append(rect)
         else:
@@ -379,7 +382,6 @@ class ImgArray(BaseArray):
         return rect
 
     
-    @record
     def crop_center(self, scale=0.5):
         """
         Crop out the center of an image.
@@ -428,12 +430,11 @@ class ImgArray(BaseArray):
         return imgs
 
     @record
-    def proj(self, method="mean", axis="z"):
+    def proj(self, axis="z", method="mean"):
         """
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
         """
-        axisint = self.axisof(axis)
         func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
         if (method in func_dict.keys()):
             func = func_dict[method]
@@ -441,11 +442,22 @@ class ImgArray(BaseArray):
             func = method
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
-        out = func(self.view(np.ndarray), axis=axisint).view(self.__class__)
+        axisint = self.axisof(axis)
+        out = func(np.asarray(self), axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out.as_uint16()
 
-    @record
+    
+    def clip_outliers(self, lower=1, upper=99):
+        lowerlim = np.percentile(self, lower)
+        upperlim = np.percentile(self, upper)
+        out = np.clip(np.asarray(self), lowerlim, upperlim)
+        out = out.view(self.__class__)
+        out._set_info(self, f"Clip-Outliers({lower:.1f}%-{upper:.1f}%)")
+        out.temp = [lowerlim, upperlim]
+        return out
+        
+        
     def rescale_intensity(self, lower=0, upper=100, dtype=np.uint16):
         """
         [min, max] -> [0, 1)
@@ -453,26 +465,17 @@ class ImgArray(BaseArray):
         out = skimage.exposure.rescale_intensity(out, dtype=np.uint16, in_range=...)
         """
         out = self.view(np.ndarray).astype("float64")
-        # if (lower > 0):
-        #     lowerlim = np.percentile(out, lower)
-        #     out[out<lowerlim] = lowerlim
-        # else:
-        #     lowerlim = np.min(out)
-        
-        # if (upper < 100):
-        #     upperlim = np.percentile(out, upper)
-        #     out[out>upperlim] = upperlim
-        # else:
-        #     upperlim = np.max(out)
-        # out = (out - lowerlim) / (upperlim - lowerlim) / (1 + 1e-6)
         lowerlim = np.percentile(out, lower)
         upperlim = np.percentile(out, upper)
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.1f}-{upper:.1f})")
+        out._set_info(self, f"Rescale-Intensity({lower:.1f}%-{upper:.1f}%)")
         out.temp = [lowerlim, upperlim]
         return out
+
+    def sort_axes(self):
+        return self.transpose(self.axes.argsort())
     
     # numpy functions that will change/discard order
     def transpose(self, axes):
@@ -507,14 +510,14 @@ class ImgArray(BaseArray):
 
 # non-member functions.
 
-def array(arr, name="array", axes=None, dirpath="", history=[], metadata={}, lut=None):
+def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], metadata={}, lut=None):
     """
     make an ImgArray object, just like np.array(x)
     """
     if (isinstance(arr, ImgArray)):
         return arr
     
-    if (type(arr) is str):
+    if (isinstance(arr, str)):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
         
     self = arr.view(ImgArray)
@@ -524,10 +527,14 @@ def array(arr, name="array", axes=None, dirpath="", history=[], metadata={}, lut
     self.history = history
     self.metadata = metadata
     self.lut = lut
-    return self.as_uint16()
+    
+    return self.as_img_type(dtype)
 
 def imread(path:str):
     # make object
+    if (not os.path.exists(path)):
+        raise FileNotFoundError(f"No such file or directory: {path}")
+    
     meta = get_meta(path)
     self = ImgArray(path, axes=meta["axes"])
     self.metadata = meta["ijmeta"]
@@ -535,14 +542,53 @@ def imread(path:str):
         self.name = meta["history"].pop(0)
         self.history = meta["history"]
     
-    # in case the image is in yxc-order.
+    # In case the image is in yxc-order. This sometimes happens.
     if ("c" in self.axes and self.sizeof("c") > self.sizeof("x")):
         self = np.moveaxis(self, -1, -3)
         _axes = self.axes.axes
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.transpose(self.axes.argsort()) # arrange in tzcyx-order
+    return self.sort_axes() # arrange in tzcyxs-order
+
+def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False):
+    """
+    Read images recursively from a directory, and stack them into one ImgArray.
+
+    Parameters
+    ----------
+    dirname : str
+        Path to the directory
+    axis : str, optional
+        To specify which axis will be the new one, by default "s"
+    ext : str, optional
+        Extension of files, by default "tif"
+    ignore_exception : bool, optional
+        If true, arrays with wrong shape will be ignored, by default False
+    """    
+    paths = glob.glob(f"{dirname}{os.sep}**{os.sep}*.{ext}", recursive=True)
+    imgs = []
+    shapes = []
+    for path in paths:
+        img = imread(path)
+        imgs.append(img)
+        shapes.append(img.shape)
+    
+    list_of_shape = list(set(shapes))
+    if (len(list_of_shape) > 1):
+        if (ignore_exception):
+            ctr = collections.Counter(shapes)
+            common_shape = ctr.most_common()[0][0]
+            imgs = [img for img in imgs if img.shape == common_shape]
+        else:
+            raise ValueError("Input directory has images with different shapes: "
+                            f"{', '.join(map(str, list_of_shape))}")
+    
+    out = stack(imgs, axis=axis)
+    out.dirpath, out.name = os.path.split(dirname)
+    out.history[-1] = "imread_collection"
+    return out
+    
 
 def read_meta(path:str):
     meta = get_meta(path)

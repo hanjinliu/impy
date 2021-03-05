@@ -3,30 +3,54 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from tifffile import TiffFile
 from functools import wraps
+import time
+import json
+import re
 
+class Timer:
+    def __init__(self):
+        self.tic()
+        
+    def tic(self):
+        self.t = time.time()
+    
+    def toc(self):
+        self.t = time.time() - self.t
+    
+    def __str__(self):
+        minute, sec = divmod(int(self.t), 60)
+        if (minute == 0):
+            out = f"{sec} sec"
+        else:
+            out = f"{minute} min {sec} sec"
+        return out
+
+def load_json(s:str):
+    return json.loads(re.sub("'", '"', s))
+    
 def get_meta(path:str):
     with TiffFile(path) as tif:
         hist = []
         ijmeta = tif.imagej_metadata
-        if (ijmeta):
-            ijmeta.pop("ROI", None)
-
-        # 270 = ImageDescription
-        try:
-            discr = tif.pages[0].tags[270].value
-        except:
-            discr = ""
-        if (discr):
-            for s in discr.split("\n"):
-                if (s.startswith("impyhist=")):
-                    hist = s[9:].split("->")
+        if (ijmeta is None):
+            ijmeta = {}
+        
+        ijmeta.pop("ROI", None)
+        
+        if ("Info" in ijmeta.keys()):
+            try:
+                infodict = load_json(ijmeta["Info"])
+            except:
+                infodict = {}
+            if ("impyhist" in infodict.keys()):
+                hist = infodict["impyhist"].split("->")
+        
         try:
             axes = tif.series[0].axes.lower()
         except:
             axes = None
     
-    if (ijmeta is None):
-        ijmeta = {}
+    
     return {"axes":axes, "ijmeta":ijmeta, "history":hist}
 
 def record(func):

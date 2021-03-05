@@ -3,12 +3,14 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 from skimage import io
 import os
-from .func import del_axis, add_axes, get_lut
+from .func import del_axis, add_axes, get_lut, Timer, load_json
 from .axes import Axes
 from tifffile import imwrite
+from skimage.exposure import histogram
 import itertools
-plt.rcParams["font.size"] = 10
 
+plt.rcParams["font.size"] = 10
+    
 def check_value(__op__):
     def wrapper(self, value):
         if (isinstance(value, np.ndarray)):
@@ -108,29 +110,31 @@ class BaseArray(np.ndarray):
         print(repr(self))
         return None
     
-    def imsave(self, tifname, dirpath="default path"):
+    def imsave(self, tifname:str):
         """
         Save image (at the same directory as the original image by default).
         """
-        if (dirpath == "default path"):
-            dirpath = self.dirpath
-        
-        if (not os.path.exists(dirpath)):
-            raise FileNotFoundError(f"No such directory: {dirpath}")
-        
         if (not tifname.endswith(".tif")):
             tifname += ".tif"
-        tifpath = os.path.join(dirpath, tifname)
+        if (os.sep not in tifname):
+            tifname = os.path.join(self.dirpath, tifname)
         
-        metadata = {"impyhist": "->".join([self.name] + self.history),
-                    "spacing": self.metadata.get("spacing", ""),
-                    "unit": self.metadata.get("unit", "")}
+        metadata = self.metadata
+        metadata.update({"min":np.percentile(self, 1), "max":np.percentile(self, 99)})
+        
+        try:
+            info = load_json(metadata["Info"])
+        except:
+            info = {}
+        
+        info["impyhist"] = "->".join([self.name] + self.history)
+        metadata["Info"] = str(info)
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifpath, np.array(self.as_uint16()), imagej=True, metadata=metadata)
+        imwrite(tifname, np.array(self.as_uint16()), imagej=True, metadata=metadata)
         
-        print(f"Succesfully saved: {tifpath}")
+        print(f"Succesfully saved: {tifname}")
         return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -396,6 +400,7 @@ class BaseArray(np.ndarray):
         out = out.astype("uint8")
         return out
 
+
     def as_uint16(self):
         if (self.dtype == "uint16"):
             return self
@@ -417,6 +422,15 @@ class BaseArray(np.ndarray):
         out = out.astype("uint16")
         return out
     
+    def as_img_type(self, dtype="uint16"):
+        if (dtype == "uint16"):
+            return self.as_uint16()
+        elif (dtype == "uint8"):
+            return self.as_uint8()
+        elif (dtype in "float", "f", "float32"):
+            return self.astype("float32")
+        else:
+            raise ValueError(f"dtype: {dtype}")
     
     def hist(self, contrast=None, newfig=True):
         """
@@ -425,14 +439,18 @@ class BaseArray(np.ndarray):
         if (newfig):
             plt.figure(figsize=(4, 1.7))
 
-        n_bin = min(int(np.sqrt(self.size / 3)), 100)
-        plt.hist(self.flat, color="grey", bins=n_bin, density=True)
+        nbin = min(int(np.sqrt(self.size / 3)), 256)
+        # plt.hist(self.flat, color="grey", bins=n_bin, density=True)
+        y, x = histogram(self.flatten(), nbins=nbin)
+        plt.plot(x, y, color="gray")
+        plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
         
         if (contrast is None):
             contrast = [self.min(), self.max()]
         x0, x1 = contrast
         
         plt.xlim(x0, x1)
+        plt.ylim(0, None)
         plt.yticks([])
         
         return None
@@ -448,8 +466,9 @@ class BaseArray(np.ndarray):
             plt.imshow(self, **imshow_kwargs)
             self.hist()
         elif (self.ndim == 3):
-            if (self.axes.is_none() or self.axes[0] != "c"):
-                if (self.shape[0] > 24):
+            if ("c" not in self.axes):
+                imglist = [s[1] for s in self.iter("ptzs", False)]
+                if (len(imglist) > 24):
                     raise ValueError("Too much images. The number of images should be < 24.")
 
                 vmax = np.percentile(self[self>0], 99.99)
@@ -457,7 +476,7 @@ class BaseArray(np.ndarray):
                 cmaps = self.get_cmaps()
                 imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
                 imshow_kwargs.update(kwargs)
-                imglist = [arr for arr in self.view(np.ndarray)]
+                
                 n_img = len(imglist)
                 n_col = min(n_img, 4)
                 n_row = int(n_img / n_col + 0.99)
@@ -473,7 +492,7 @@ class BaseArray(np.ndarray):
                 n_chn = self.sizeof("c")
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
-                    img = self[i]
+                    img = self[f"c={i+1}"]
                     vmax = np.percentile(img[img>0], 99.99)
                     vmin = np.percentile(img[img>0], 0.01)  
                     imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -500,7 +519,7 @@ class BaseArray(np.ndarray):
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
 
-    def iter(self, axes:str):
+    def iter(self, axes:str, showprogress:bool=True):
         """
         make an iterator that iterate for each axis in 'axes'.
         """
@@ -513,17 +532,18 @@ class BaseArray(np.ndarray):
                 total_repeat *= self.sizeof(a)
             else:
                 iterlist.append([slice(None)])
-        selfview = self.view(np.ndarray).copy()
-        if (hasattr(self, "ongoing")):
-            name = self.ongoing
-        else:
-            name = "iteration"
+        selfview = np.asarray(self)
+        name = getattr(self, "ongoing", "iteration")
         
-        for i, t in enumerate(itertools.product(*iterlist)):
-            if (total_repeat > 1):
+        timer = Timer()
+        for i, sl in enumerate(itertools.product(*iterlist)):
+            if (total_repeat > 1 and showprogress):
                 print(f"\r{name}: {i:>4}/{total_repeat:>4}", end="")
-            yield t, selfview[t]
-        print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed.")
+            yield sl, selfview[sl]
+            
+        timer.toc()
+        if (showprogress):
+            print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
     
     
     def parallel(self, func, axes:str, *args, n_cpu:int=4):
@@ -547,8 +567,13 @@ class BaseArray(np.ndarray):
         out = np.zeros(self.shape)
         if (n_cpu > 0):
             lmd = lambda x : (x[0], x[1], *args)
+            name = getattr(self, "ongoing", "iteration")
+            timer = Timer()
+            print(f"{name} ...", end="")
             with multi.Pool(n_cpu) as p:
-                results = p.map(func, map(lmd, self.as_uint16().iter(axes)))
+                results = p.map(func, map(lmd, self.as_uint16().iter(axes, False)))
+            timer.toc()
+            print(f"\r{name} completed ({timer})")
             
             for sl, imgf in results:
                 out[sl] = imgf

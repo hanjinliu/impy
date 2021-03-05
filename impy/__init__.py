@@ -7,7 +7,7 @@ warnings.simplefilter("ignore", RuntimeWarning)
 
 import os
 from importlib import import_module
-from .imgarray import array, imread, read_meta, stack, ImgArray
+from .imgarray import array, imread, imread_collection, read_meta, stack, ImgArray
 
 __doc__ = \
 r"""
@@ -37,7 +37,7 @@ Normalize the image and save it.
 
 (ex.3) Deconvolution
 >>> psfinfo = {"wavelength":0.57, "pxsize":0.1, "dz":0.3}
->>> img2 = img.deconvolution3d(psfinfo=psfinfo, niter=20)
+>>> img2 = img.deconvolute_cf(psfinfo=psfinfo, niter=20)
 
 """
 
