@@ -129,7 +129,7 @@ class BaseArray(np.ndarray):
         
         try:
             info = load_json(metadata["Info"])
-        except KeyError:
+        except:
             info = {}
         
         info["impyhist"] = "->".join([self.name] + self.history)
