@@ -236,7 +236,7 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = self.parallel(_mean, "tzc", disk_, n_cpu=n_cpu)
+        out = self.parallel(_mean, "tzc", disk_, n_cpu=n_cpu).as_uint16()
         out._set_info(self, f"Mean-Filter(R={radius})")
         return out
     
@@ -259,7 +259,7 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = self.parallel(_median, "tzc", disk_, n_cpu=n_cpu)
+        out = self.parallel(_median, "tzc", disk_, n_cpu=n_cpu).as_uint16()
         out._set_info(self, f"Median-Filter(R={radius})")
         return out
 

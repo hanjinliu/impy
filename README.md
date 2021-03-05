@@ -1,10 +1,38 @@
 # impy
 
+More Numpy in image analysis! History of analysis, the original image and directory are all recorded in the object.
+
+## Example
+
+```python
+import impy as ip
+img0 = ip.imread(r"...\images\XXX.tif")
+img0
+
+#     shape     : 10(t), 3(c), 512(y), 512(x)
+#     dtype     : uint16
+#   directory   : ...\images
+# original image: XXX
+#    history    : 
+```
+
+```python
+img = img0.proj(axis="t") # projection
+img = img.median_filter(radius=3) # median filter
+img = img[0] # get first channel
+img 
+
+#     shape     : 512(y), 512(x)
+#     dtype     : uint16
+#   directory   : ...\images
+# original image: XXX
+#    history    : mean-Projection(axis=t)->Median-Filter(R=3)->getitem[0]
+```
+
 ## Basic Usage
 
 Load image with `imread` function. `ImgArray` object is created.
 ```python
-import impy as ip
 img = ip.imread(r"C:\Users\...\XXX.tif") # load single tif
 img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True) # load tifs recursively from a directory
 ```
@@ -67,4 +95,4 @@ You can also measure images and obtain ROI
 - `split` = split the image along any axis.
 
 # Reference
-flowdec
+For 3-D PSF generation, [flowdec](https://github.com/hammerlab/flowdec) is imported in this package.
