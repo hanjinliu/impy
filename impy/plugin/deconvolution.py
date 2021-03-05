@@ -1,8 +1,11 @@
 from flowdec.psf import GibsonLanni as PSF
-# from flowdec import restoration as fdres
-# from flowdec import data as fddata
 import numpy as np
+from scipy.fftpack import fftn as fft
+from scipy.fftpack import ifftn as ifft
 from ..func import record
+
+# To avoid Memory Error, scipy.fftpack is used instead of numpy.fft because the latter does not support 
+# dtype complex64.
 
 __all__ = ["lucy3d", "lucy2d"]
 
@@ -52,10 +55,8 @@ def _richardson_lucy(args):
     if (obs.shape != psf.shape):
         raise ValueError(f"observation and PSF have different shape: {obs.shape} and {psf.shape}")
     
-    fft = np.fft.fftn
-    ifft = np.fft.ifftn
-    
     obs = obs.astype("float32")
+    psf = psf.astype("float32")
     
     psf_ft = fft(psf)
     psf_ft_conj = np.conjugate(psf_ft)
