@@ -275,6 +275,23 @@ class ImgArray(BaseArray):
     @same_dtype()
     @record
     def gaussian_filter(self, sigma=1, n_cpu=4, dims=2):
+        """
+        Run Gaussian filter (Gaussian blur).
+
+        Parameters
+        ----------
+        sigma : scalar or array of scalars, optional
+            standard deviation(s) of Gaussian, by default 1
+        n_cpu : int, optional
+            Number of CPU to use, by default 4
+        dims : int, optional
+            Dimension of Gaussian, by default 2
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         if (dims==2):
             axes = "ptzc"
         elif (dims==3):
@@ -475,7 +492,7 @@ class ImgArray(BaseArray):
         upperlim = np.percentile(self, upper)
         out = np.clip(np.asarray(self), lowerlim, upperlim)
         out = out.view(self.__class__)
-        out._set_info(self, f"Clip-Outliers({lower:.3f}%-{upper:.3f}%)")
+        out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
         out.temp = [lowerlim, upperlim]
         return out
         
@@ -490,7 +507,7 @@ class ImgArray(BaseArray):
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.3f}%-{upper:.3f}%)")
+        out._set_info(self, f"Rescale-Intensity({lower:.2f}%-{upper:.2f}%)")
         out.temp = [lowerlim, upperlim]
         return out
 
@@ -550,7 +567,7 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     
     return self.as_img_type(dtype)
 
-def imread(path:str):
+def imread(path:str, dtype="uint16"):
     # make object
     if (not os.path.exists(path)):
         raise FileNotFoundError(f"No such file or directory: {path}")
@@ -569,9 +586,9 @@ def imread(path:str):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.sort_axes() # arrange in ptzcyx-order
+    return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False):
+def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False, dtype="uint16"):
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -590,7 +607,7 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     imgs = []
     shapes = []
     for path in paths:
-        img = imread(path)
+        img = imread(path, dtype=dtype)
         imgs.append(img)
         shapes.append(img.shape)
     
