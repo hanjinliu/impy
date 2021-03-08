@@ -176,11 +176,15 @@ class BaseArray(np.ndarray):
     @check_value
     def __truediv__(self, value):
         self = self.astype("float32")
+        if (isinstance(value), np.ndarray):
+            value[value==0] = np.inf
         return super().__truediv__(value)
     
     @check_value
     def __itruediv__(self, value):
         self = self.astype("float32")
+        if (isinstance(value), np.ndarray):
+            value[value==0] = np.inf
         return super().__itruediv__(value)
     
     def __getitem__(self, key):
