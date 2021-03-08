@@ -584,7 +584,7 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     if (isinstance(arr, str)):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
         
-    self = arr.view(ImgArray)
+    self = np.array(arr, dtype=dtype).view(ImgArray)
     self.axes = axes
     self.dirpath = dirpath
     self.name = name
@@ -592,7 +592,7 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     self.metadata = metadata
     self.lut = lut
     
-    return self.as_img_type(dtype)
+    return self
 
 def imread(path:str, dtype="uint16"):
     # make object

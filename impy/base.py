@@ -90,7 +90,11 @@ class BaseArray(np.ndarray):
         else:
             self._lut = ["gray"] * n_lut
             raise ValueError(f"Incorrect LUT for {n_lut}-channel image: {value}")
-
+    
+    @property
+    def value(self):
+        return np.asarray(self)
+        
     def __repr__(self):
         if (self.axes.is_none()):
             shape_info = self.shape
@@ -148,24 +152,42 @@ class BaseArray(np.ndarray):
         return super().__add__(value)
     
     @same_dtype(asfloat=True)
+    def __iadd__(self, value):
+        return super().__iadd__(value)
+    
+    @same_dtype(asfloat=True)
     def __sub__(self, value):
         return super().__sub__(value)
+    
+    @same_dtype(asfloat=True)
+    def __isub__(self, value):
+        return super().__isub__(value)
     
     @same_dtype(asfloat=True)
     @check_value
     def __mul__(self, value):
         return super().__mul__(value)
-
+    
+    @same_dtype(asfloat=True)
+    @check_value
+    def __imul__(self, value):
+        return super().__imul__(value)
+    
     @check_value
     def __truediv__(self, value):
         self = self.astype("float32")
         return super().__truediv__(value)
     
+    @check_value
+    def __itruediv__(self, value):
+        self = self.astype("float32")
+        return super().__itruediv__(value)
     
     def __getitem__(self, key):
-        if (type(key) is str):
+        if (isinstance(key, str)):
             # img["t=2,z=4"] ... ImageJ-like method
-            return self.getitem(key)
+            sl = self.str_to_slice(key)
+            return self.__getitem__(sl)
         elif (hasattr(key, "__as_roi__")):
             # img[roi] ... get item from ROI.
             return key.__as_roi__(self)
@@ -195,13 +217,17 @@ class BaseArray(np.ndarray):
         return out
     
     def __setitem__(self, key, value):
+        if (isinstance(key, str)):
+            # img["t=2,z=4"] ... ImageJ-like method
+            sl = self.str_to_slice(key)
+            return self.__setitem__(sl, value)
         super().__setitem__(key, value)         # set item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         new_history = f"setitem[{keystr}]"
         
         self._set_info(self, new_history)
     
-    def getitem(self, string):
+    def str_to_slice(self, string):
         """
         get subslices using ImageJ-like format.
         e.g. 't=3-, z=1-5', 't=1, z=-7' (this will not be interpreted as minus)
@@ -243,9 +269,12 @@ class BaseArray(np.ndarray):
             else:
                 input_keylist.append(slice(None))
 
-        return self.__getitem__(tuple(input_keylist))
-            
-
+        return tuple(input_keylist)
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Overloaded Numpy Functions to Inherit Attributes
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    
     def __array_finalize__(self, obj):
         """
         Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
@@ -378,6 +407,9 @@ class BaseArray(np.ndarray):
             self.lut = None
         return None
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Type Conversions
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def as_uint8(self):
         if (self.dtype == "uint8"):
@@ -436,6 +468,10 @@ class BaseArray(np.ndarray):
         else:
             raise ValueError(f"dtype: {dtype}")
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Simple Visualizations
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     def hist(self, contrast=None, newfig=True):
         """
         Show intensity profile.
@@ -510,6 +546,9 @@ class BaseArray(np.ndarray):
 
         return self
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Others
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def axisof(self, axisname):
         if (type(axisname) is int):
