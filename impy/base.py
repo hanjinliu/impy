@@ -8,8 +8,6 @@ from .axes import Axes
 from tifffile import imwrite
 from skimage.exposure import histogram
 import itertools
-
-plt.rcParams["font.size"] = 10
     
 def check_value(__op__):
     def wrapper(self, value):
@@ -518,7 +516,8 @@ class BaseArray(np.ndarray):
             if ("c" not in self.axes):
                 imglist = [s[1] for s in self.iter("ptzs", False)]
                 if (len(imglist) > 24):
-                    raise ValueError("Too much images. The number of images should be < 24.")
+                    print("Too much images. First 24 images are shown.")
+                    imglist = imglist[:24]
 
                 vmax = np.percentile(self[self>0], 99.99)
                 vmin = np.percentile(self[self>0], 0.01)

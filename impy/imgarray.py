@@ -488,6 +488,19 @@ class ImgArray(BaseArray):
 
     
     def clip_outliers(self, in_range=(0, 100)):
+        """
+        Saturate low/high intensity using np.clip.mean
+
+        Parameters
+        ----------
+        in_range : two scalar values, optional
+            range of lower/upper limits, by default (0, 100)
+
+        Returns
+        -------
+        ImgArray
+            Clipped image with temporary attribute
+        """        
         lower, upper = in_range
         if (isinstance(lower, str) and lower.endswith("%")):
             lower = float(lower[:-1])
@@ -512,8 +525,20 @@ class ImgArray(BaseArray):
         
     def rescale_intensity(self, in_range=(0, 100), dtype=np.uint16):
         """
-        [min, max] -> [0, 1)
-        """
+        Rescale the intensity of the image using skimage.exposure.rescale_intensity.
+
+        Parameters
+        ----------
+        in_range : two scalar values, optional
+            range of lower/upper limit, by default (0, 100)
+        dtype : numpy dtype, optional
+            output dtype, by default np.uint16
+
+        Returns
+        -------
+        ImgArray
+            Rescaled image
+        """        
         out = self.view(np.ndarray).astype("float32")
         lower, upper = in_range
         if (isinstance(lower, str) and lower.endswith("%")):
@@ -594,7 +619,7 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     
     return self
 
-def imread(path:str, dtype="uint16"):
+def imread(path:str, dtype:str="uint16"):
     # make object
     if (not os.path.exists(path)):
         raise FileNotFoundError(f"No such file or directory: {path}")
@@ -659,7 +684,7 @@ def read_meta(path:str):
     return meta
 
 
-def stack(imgs, axis="c"):
+def stack(imgs, axis="c", dtype="uint16"):
     """
     imgs: list or tuple (or other iterable objects) of 2D-images.
     axis: to specify which axis will be the new axis.
@@ -678,7 +703,7 @@ def stack(imgs, axis="c"):
         new_axes = None
         _axis = 0
 
-    arrs = [np.array(img.as_uint16()) for img in imgs]
+    arrs = [np.asarray(img.as_img_type(dtype)) for img in imgs]
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
