@@ -67,6 +67,15 @@ def record(func):
     return wrapper
 
 def same_dtype(asfloat=False):
+    """
+    Decorator to assure output image has the same dtype as the input
+    image. 
+
+    Parameters
+    ----------
+    asfloat : bool, optional
+        If input image should be converted to float first, by default False
+    """    
     def _same_dtype(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -101,7 +110,7 @@ def square(params, func, z):
     z_guess = func(x, y, *params)
     return np.mean((z - z_guess)**2)
 
-def circle(radius, shape, dtype="float64"):
+def circle(radius, shape, dtype="bool"):
     x = np.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
     y = np.arange(-(shape[1] - 1) / 2, (shape[1] - 1) / 2 + 1)
     dx, dy = np.meshgrid(x, y)

@@ -426,7 +426,7 @@ class BaseArray(np.ndarray):
             out = out / 256
         elif(self.dtype == "bool"):
             pass
-        elif (self.dtype == "float64"):
+        elif (self.dtype in ("float16", "float32", "float64")):
             if (0 <= np.min(out) and np.max(out) < 1):
                 out = out * 256
             else:
@@ -449,7 +449,7 @@ class BaseArray(np.ndarray):
             out = out * 256
         elif(self.dtype == "bool"):
             pass
-        elif (self.dtype in ["float16", "float32", "float64"]):
+        elif (self.dtype in ("float16", "float32", "float64")):
             if (0 <= np.min(out) and np.max(out) < 1):
                 out = out * 65536
             else:
@@ -487,7 +487,6 @@ class BaseArray(np.ndarray):
             plt.figure(figsize=(4, 1.7))
 
         nbin = min(int(np.sqrt(self.size / 3)), 256)
-        # plt.hist(self.flat, color="grey", bins=n_bin, density=True)
         y, x = histogram(self.flatten(), nbins=nbin)
         plt.plot(x, y, color="gray")
         plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
@@ -512,6 +511,7 @@ class BaseArray(np.ndarray):
             
             plt.imshow(self, **imshow_kwargs)
             self.hist()
+            
         elif (self.ndim == 3):
             if ("c" not in self.axes):
                 imglist = [s[1] for s in self.iter("ptzs", False)]
@@ -572,8 +572,20 @@ class BaseArray(np.ndarray):
 
     def iter(self, axes:str, showprogress:bool=True):
         """
-        make an iterator that iterate for each axis in 'axes'.
-        """
+        Iteration along axes.
+
+        Parameters
+        ----------
+        axes : str
+            On which axes iteration is performed.
+        showprogress : bool, optional
+            If show progress of algorithm, by default True
+
+        Yields
+        -------
+        np.ndarray
+            Subimage
+        """        
         axes = "".join([a for a in axes if a in self.axes]) # update axes to existing ones
         iterlist = []
         total_repeat = 1

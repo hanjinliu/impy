@@ -310,14 +310,14 @@ class ImgArray(BaseArray):
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with many functions here.
         """
-        freq = fft(self.view(np.ndarray))
+        freq = fft(np.asarray(self).astype("float32"))
         out = np.fft.fftshift(freq).view(self.__class__)
         out._set_info(self, "FFT")
         return out
     
     @record
     def ifft(self):
-        freq = np.fft.fftshift(self.view(np.ndarray))
+        freq = np.fft.fftshift(np.asarray(self))
         out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
@@ -391,10 +391,11 @@ class ImgArray(BaseArray):
         
         circ = circle(radius, self.xyshape())
         if (not outzero):
-            circ = 1 - circ
+            circ = ~circ
         circ = add_axes(self.axes, self.shape, circ)
-        out = self * circ
-        out.history.pop()
+        out = np.array(self)
+        out[~circ] = 0
+        out = out.view(self.__class__)
         out._set_info(self, f"Crop-Circle(R={radius}, {'outzero' if outzero else 'inzero'})")
         return out
     
