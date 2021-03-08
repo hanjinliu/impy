@@ -52,6 +52,7 @@ img = ip.stack([img1, img2], axis="c") # stack along channel
 - `history` = history of applied analysis.
 - `axes` = dimensions of image, "tzcyxs"-order.
 - `lut` = look up table.
+- `value` (property) = show the array in numpy format.
 
 ### Functions
 
@@ -64,9 +65,17 @@ img = ip.stack([img1, img2], axis="c") # stack along channel
 Overflow, underflow and type conversion is considered for operations `+`, `-`, `*` and `/`.
 ```python
 # img = <uint16 image>
-img + 10000 # pixel values larger than 65535 is substituted to 63353
-img - 10000 # pixel values smaller than 0 is substituted to 0
-img/10 # output is converted to float32
+
+img + 10000     # pixel values larger than 65535 
+                # is substituted to 63353
+
+img - 10000     # pixel values smaller than 0 is
+                # substituted to 0
+
+img/10          # output is converted to float32 
+                # where `img` itself is not
+
+img/=10         # `img` is converted to float32
 ```
 
 ## Flexible Slicing
@@ -74,7 +83,8 @@ img/10 # output is converted to float32
 When you want to access the first channel and 4-th to 10-th time points, you can do it by:
 
 ```python
-img["c=1,t=4-10"]
+img["c=1,t=4-10"]       # get items
+img["c=1,t=4-10"] = 0   # set items
 ```
 
 ## Interactive Plot and Measurement
@@ -97,7 +107,7 @@ You can also measure images and obtain ROI
 
 - `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
 - `lucy3d` (plugin) = 3-D deconvolution of confocal images.
-- `mean_filter`, `meadian_filter` = for filtering.
+- `mean_filter`, `meadian_filter`, `gaussian_filter` = for filtering.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `rough_gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).
 - `proj` = Z-projection along any axis.

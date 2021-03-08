@@ -1,8 +1,13 @@
 from setuptools import setup, find_packages
-from .impy import __version__
 
+with open("impy/__init__.py", encoding="utf-8") as f:
+    for line in f:
+        if (line.startswith("__version__")):
+            VERSION = line.strip().split()[-1][1:-1]
+            break
+      
 setup(name="impy",
-      version=__version__,
+      version=VERSION,
       description="Numpy and scikit-image based image analysis tool",
       author="Hanjin Liu",
       author_email="liuhanjin-sc@g.ecc.u-tokyo.ac.jp",
