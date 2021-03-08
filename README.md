@@ -40,7 +40,8 @@ img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True) # lo
 Stacking images with `impy.stack`
 
 ```python
-img = ip.stack([img1, img2], axis="c") # stack along channel
+# make stack along channel axis
+img = ip.stack([img1, img2], axis="c", dtype="uint16") 
 ```
 
 ## Basic Attributes and Functions of ImgArray
@@ -104,13 +105,17 @@ You can also measure images and obtain ROI
 
 ## Image Analysis
 
-`ImgArray` has a lot of member functions for image analysis.
+`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
 - `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
 - `lucy3d` (plugin) = 3-D deconvolution of confocal images.
+- `affine` = Affine transformation.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` = for filtering.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `rough_gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).
+- `fft`, `ifft` = Fourier transformation.
+- `crop_center`, `crop_circle` = crop image.
+- `rescale_intensity` = rescale the intensity profile in certain range.
 - `proj` = Z-projection along any axis.
 - `split` = split the image along any axis.
 
