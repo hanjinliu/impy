@@ -468,7 +468,7 @@ class BaseArray(np.ndarray):
             return self.as_uint16()
         elif (dtype == "uint8"):
             return self.as_uint8()
-        elif (dtype in "float", "f", "float32"):
+        elif (dtype in ("float", "f", "float32")):
             return self.astype("float32")
         elif (dtype == "bool"):
             return self.astype("bool")
