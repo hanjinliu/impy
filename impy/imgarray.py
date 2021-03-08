@@ -8,6 +8,8 @@ from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
 from scipy import optimize as opt
+from scipy.fftpack import fftn as fft
+from scipy.fftpack import ifftn as ifft
 from .func import get_meta, record, same_dtype, gauss2d, square, circle, del_axis, add_axes
 from .base import BaseArray
 from .axes import Axes
@@ -308,19 +310,15 @@ class ImgArray(BaseArray):
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with many functions here.
         """
-        if (self.ndim != 2):
-            raise TypeError(f"input must be two dimensional, but got {self.shape}")
-        freq = np.fft.fft2(self.view(np.ndarray))
+        freq = fft(self.view(np.ndarray))
         out = np.fft.fftshift(freq).view(self.__class__)
         out._set_info(self, "FFT")
         return out
     
     @record
     def ifft(self):
-        if (self.ndim != 2):
-            raise TypeError(f"input must be two dimensional, but got {self.shape}")
         freq = np.fft.fftshift(self.view(np.ndarray))
-        out = np.fft.ifft2(freq).real.view(self.__class__)
+        out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
     
