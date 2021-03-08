@@ -1,6 +1,6 @@
 # impy
 
-More Numpy in image analysis! History of analysis, the original image and directory are all recorded in the object.
+More Numpy in image analysis! History of analysis, the original image and directory are all recorded in the object. Many image analysis tools are coded using functions in [scikit-image](https://github.com/scikit-image/scikit-image).
 
 ## Example
 
@@ -94,5 +94,5 @@ You can also measure images and obtain ROI
 - `proj` = Z-projection along any axis.
 - `split` = split the image along any axis.
 
-# Reference
-For 3-D PSF generation, [flowdec](https://github.com/hammerlab/flowdec) is imported in this package.
+# References
+For 3-D PSF generation, [flowdec](https://github.com/hammerlab/flowdec) is imported in this package. For 3-D deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.

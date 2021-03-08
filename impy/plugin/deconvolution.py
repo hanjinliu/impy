@@ -1,4 +1,3 @@
-from flowdec.psf import GibsonLanni as PSF
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
@@ -10,7 +9,8 @@ from ..func import record
 
 __all__ = ["lucy3d", "lucy2d"]
 
-def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
+def psf(size_x, size_y, size_z, wavelength:float=0.610, 
+        pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
     """
     wavelength: wave length [micron]
     pxsize: pixel size [micron]
@@ -18,6 +18,11 @@ def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, d
     ns: reflactive index of the specimen
     na: N.A.
     """
+    try:
+        from flowdec.psf import GibsonLanni as PSF
+    except ImportError:
+        raise ImportError("You need to install flowdec to make "
+                          "synthetic point spread function")
     
     # in case parameters were set in nm-unit
     if (wavelength > 200):

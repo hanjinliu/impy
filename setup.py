@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
+from .impy import __version__
 
 setup(name="impy",
-      version="1.3.3",
+      version=__version__,
       description="Numpy and scikit-image based image analysis tool",
       author="Hanjin Liu",
       author_email="liuhanjin-sc@g.ecc.u-tokyo.ac.jp",
@@ -11,7 +12,6 @@ setup(name="impy",
             "scikit-image",
             "numpy",
             "matplotlib",
-            "ipywidgets",
       ],
       python_requires=">=3.6",
       )

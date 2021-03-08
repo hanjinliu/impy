@@ -8,7 +8,7 @@ from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
 from scipy import optimize as opt
-from .func import get_meta, record, gauss2d, square, circle, del_axis, add_axes
+from .func import get_meta, record, same_dtype, gauss2d, square, circle, del_axis, add_axes
 from .base import BaseArray
 from .axes import Axes
 from .roi import Rectangle
@@ -20,6 +20,10 @@ def _median(args):
 def _mean(args):
     sl, data, selem = args
     return (sl, skfil.rank.mean(data, selem))
+
+def _gaussian(args):
+    sl, data, sigma = args
+    return (sl, skfil.gaussian(data, sigma=sigma))
 
 def _rolling_ball(args):
     sl, data, radius, smooth = args
@@ -36,13 +40,13 @@ def _rolling_ball(args):
 def _tophat(args):
     sl, data, selem = args
     return (sl, white_tophat(data, selem))
-    
 
 
 class ImgArray(BaseArray):
     def __init__(self, path:str, axes=None):
         super().__init__(path, axes)
 
+    @same_dtype()
     @record
     def affine(self, **kwargs):
         """
@@ -52,8 +56,9 @@ class ImgArray(BaseArray):
         mx = sktrans.AffineTransform(**kwargs)
         out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
         out._set_info(self, f"Affine-Translate({kwargs})")
-        return out.as_uint16()
+        return out
     
+    @same_dtype()
     @record
     def translate(self, translation=None):
         """
@@ -62,8 +67,9 @@ class ImgArray(BaseArray):
         mx = sktrans.AffineTransform(translation=translation)
         out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
         out._set_info(self, f"Translate{translation}")
-        return out.as_uint16()
+        return out
 
+    @same_dtype()
     @record
     def rescale(self, scale=1/16):
         try:
@@ -78,7 +84,7 @@ class ImgArray(BaseArray):
                 scale_.append(1)
         out = sktrans.rescale(self.view(np.ndarray).astype("float64"), scale_, anti_aliasing=False).view(self.__class__)
         out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
-        return out.as_uint16()
+        return out
     
     
     @record
@@ -173,6 +179,7 @@ class ImgArray(BaseArray):
         out.temp = param
         return out
     
+    @same_dtype()
     @record
     def tophat(self, radius=50, n_cpu=4):
         """
@@ -195,6 +202,7 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Top-Hat(R={radius})")
         return out
     
+    @same_dtype()
     @record
     def rolling_ball(self, radius=50, smoothing=True, n_cpu=4):
         """
@@ -218,6 +226,7 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
+    @same_dtype()
     @record
     def mean_filter(self, radius=1, n_cpu=4):
         """
@@ -236,11 +245,11 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = self.parallel(_mean, "tzc", disk_, n_cpu=n_cpu).as_uint16()
+        out = self.parallel(_mean, "ptzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Mean-Filter(R={radius})")
         return out
     
-        
+    @same_dtype()
     @record
     def median_filter(self, radius=1, n_cpu=4):
         """
@@ -259,10 +268,22 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = self.parallel(_median, "tzc", disk_, n_cpu=n_cpu).as_uint16()
+        out = self.parallel(_median, "ptzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Median-Filter(R={radius})")
         return out
 
+    @same_dtype()
+    @record
+    def gaussian_filter(self, sigma=1, n_cpu=4, dims=2):
+        if (dims==2):
+            axes = "ptzc"
+        elif (dims==3):
+            axes = "ptc"
+        else:
+            raise ValueError("dims must be 2 or 3.")
+        out = self.parallel(_gaussian, axes, sigma, n_cpu=n_cpu)
+        out._set_info(self, f"Gaussian-Filter(sigma={sigma})")
+        return out
     
     @record
     def fft(self):
@@ -429,6 +450,7 @@ class ImgArray(BaseArray):
                 img.lut = None
         return imgs
 
+    @same_dtype()
     @record
     def proj(self, axis="z", method="mean"):
         """
@@ -445,7 +467,7 @@ class ImgArray(BaseArray):
         axisint = self.axisof(axis)
         out = func(np.asarray(self), axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
-        return out.as_uint16()
+        return out
 
     
     def clip_outliers(self, lower=1, upper=99):
@@ -453,7 +475,7 @@ class ImgArray(BaseArray):
         upperlim = np.percentile(self, upper)
         out = np.clip(np.asarray(self), lowerlim, upperlim)
         out = out.view(self.__class__)
-        out._set_info(self, f"Clip-Outliers({lower:.1f}%-{upper:.1f}%)")
+        out._set_info(self, f"Clip-Outliers({lower:.3f}%-{upper:.3f}%)")
         out.temp = [lowerlim, upperlim]
         return out
         
@@ -461,16 +483,14 @@ class ImgArray(BaseArray):
     def rescale_intensity(self, lower=0, upper=100, dtype=np.uint16):
         """
         [min, max] -> [0, 1)
-        2^-16 = 1.5 x 10^-5
-        out = skimage.exposure.rescale_intensity(out, dtype=np.uint16, in_range=...)
         """
-        out = self.view(np.ndarray).astype("float64")
+        out = self.view(np.ndarray).astype("float32")
         lowerlim = np.percentile(out, lower)
         upperlim = np.percentile(out, upper)
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.1f}%-{upper:.1f}%)")
+        out._set_info(self, f"Rescale-Intensity({lower:.3f}%-{upper:.3f}%)")
         out.temp = [lowerlim, upperlim]
         return out
 
@@ -549,7 +569,7 @@ def imread(path:str):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.sort_axes() # arrange in tzcyxs-order
+    return self.sort_axes() # arrange in ptzcyx-order
 
 def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False):
     """

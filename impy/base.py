@@ -3,7 +3,7 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 from skimage import io
 import os
-from .func import del_axis, add_axes, get_lut, Timer, load_json
+from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype
 from .axes import Axes
 from tifffile import imwrite
 from skimage.exposure import histogram
@@ -19,12 +19,14 @@ def check_value(__op__):
                 raise ValueError("Cannot multiply or divide array containig negative value.")
             if (self.ndim >= 3 and value.shape == self.xyshape()):
                 value = add_axes(self.axes, self.shape, value)
-        elif (type(value) in [int, float] and value < 0):
+        elif (isinstance(value, (int, float)) and value < 0):
             raise ValueError("Cannot multiply or divide negative value.")
 
         out = __op__(self, value)
         return out
     return wrapper
+
+
 
 class BaseArray(np.ndarray):
     """
@@ -132,7 +134,7 @@ class BaseArray(np.ndarray):
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifname, np.array(self.as_uint16()), imagej=True, metadata=metadata)
+        imwrite(tifname, np.asarray(self.as_uint16()), imagej=True, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -141,20 +143,18 @@ class BaseArray(np.ndarray):
     #   Basic Functions
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+    @same_dtype(asfloat=True)
+    def __add__(self, value):
+        return super().__add__(value)
+    
+    @same_dtype(asfloat=True)
+    def __sub__(self, value):
+        return super().__sub__(value)
+    
+    @same_dtype(asfloat=True)
     @check_value
     def __mul__(self, value):
-        dtype = self.dtype
-        self = self.astype("float32")
-        out = super().__mul__(value)
-        # Consider saturation
-        if (dtype == "uint16"):
-            out[out > 65535] = 65535
-            out = out.as_uint16()
-        elif (dtype == "uint8"):
-            out[out > 255] = 255
-            out = out.as_uint8()
-        
-        return out
+        return super().__mul__(value)
 
     @check_value
     def __truediv__(self, value):
@@ -382,7 +382,7 @@ class BaseArray(np.ndarray):
     def as_uint8(self):
         if (self.dtype == "uint8"):
             return self
-        out = np.array(self)
+        out = np.asarray(self)
         if (self.dtype == "uint16"):
             out = out / 256
         elif(self.dtype == "bool"):
@@ -394,7 +394,8 @@ class BaseArray(np.ndarray):
                 out = out + 0.5
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-        
+        out[out < 0] = 0
+        out[out >= 256] = 255
         out = out.view(self.__class__)
         out._set_info(self)
         out = out.astype("uint8")
@@ -404,7 +405,7 @@ class BaseArray(np.ndarray):
     def as_uint16(self):
         if (self.dtype == "uint16"):
             return self
-        out = np.array(self)
+        out = np.asarray(self)
         if (self.dtype == "uint8"):
             out = out * 256
         elif(self.dtype == "bool"):
@@ -416,7 +417,8 @@ class BaseArray(np.ndarray):
                 out = out + 0.5
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-
+        out[out < 0] = 0
+        out[out >= 65536] = 65535
         out = out.view(self.__class__)
         out._set_info(self)
         out = out.astype("uint16")
