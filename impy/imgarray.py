@@ -487,9 +487,22 @@ class ImgArray(BaseArray):
         return out
 
     
-    def clip_outliers(self, lower=1, upper=99):
-        lowerlim = np.percentile(self, lower)
-        upperlim = np.percentile(self, upper)
+    def clip_outliers(self, in_range=(0, 100)):
+        lower, upper = in_range
+        if (isinstance(lower, str) and lower.endswith("%")):
+            lower = float(lower[:-1])
+            lowerlim = np.percentile(self, lower)
+        else:
+            lowerlim = float(lower)
+        
+        if (isinstance(upper, str) and upper.endswith("%")):
+            upper = float(upper[:-1])
+            upperlim = np.percentile(self, upper)
+        else:
+            lowerlim = float(lower)
+        
+        if (lowerlim >= upperlim):
+            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
         out = np.clip(np.asarray(self), lowerlim, upperlim)
         out = out.view(self.__class__)
         out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
@@ -497,13 +510,27 @@ class ImgArray(BaseArray):
         return out
         
         
-    def rescale_intensity(self, lower=0, upper=100, dtype=np.uint16):
+    def rescale_intensity(self, in_range=(0, 100), dtype=np.uint16):
         """
         [min, max] -> [0, 1)
         """
         out = self.view(np.ndarray).astype("float32")
-        lowerlim = np.percentile(out, lower)
-        upperlim = np.percentile(out, upper)
+        lower, upper = in_range
+        if (isinstance(lower, str) and lower.endswith("%")):
+            lower = float(lower[:-1])
+            lowerlim = np.percentile(out, lower)
+        else:
+            lowerlim = float(lower)
+        
+        if (isinstance(upper, str) and upper.endswith("%")):
+            upper = float(upper[:-1])
+            upperlim = np.percentile(out, upper)
+        else:
+            lowerlim = float(lower)
+        
+        if (lowerlim >= upperlim):
+            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+            
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)

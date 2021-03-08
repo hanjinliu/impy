@@ -59,6 +59,15 @@ img = ip.stack([img1, img2], axis="c") # stack along channel
 - `hist` = show the histogram of image intensity profile.
 - `imsave` = save image (by default save in the directory that the original image was loaded).
 
+## Automatic Saturation and Type Conversion
+
+Overflow, underflow and type conversion is considered for operations `+`, `-`, `*` and `/`.
+```python
+# img = <uint16 image>
+img + 10000 # pixel values larger than 65535 is substituted to 63353
+img - 10000 # pixel values smaller than 0 is substituted to 0
+img/10 # output is converted to float32
+```
 
 ## Flexible Slicing
 
