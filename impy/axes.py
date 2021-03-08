@@ -19,8 +19,32 @@ def check_none(func):
 
 
 class Axes:
-    def __init__(self, value=NONE) -> None:
-        self.set(value)
+    def __init__(self, value=NONE, ndim=0) -> None:
+        self.axes = NONE
+        
+        if (value == NONE):
+            pass
+        elif (isinstance(value, str)):
+            value = value.lower()
+            counter = {"p":False, "t": False, "z": False, "c": False, "x": False, "y": False}
+            for v in value:
+                if (v in "ptzcxys"):
+                    if (counter[v] == True):
+                        raise ImageAxesError(f"'{v}' appeared twice: {value}")
+                    counter[v] = True
+                elif (v in "q"):
+                    pass
+                else:
+                    raise ImageAxesError(f"axes cannot contain characters except for 'qtzcxys': got {value}")
+            
+            if (ndim > 0 and len(value) != ndim):
+                raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and order({value})")
+        elif (isinstance(value, self.__class__)):
+            value = value.axes
+        else:
+            raise ImageAxesError(f"Cannot set {type(value)} to axes.")
+        
+        self.axes = value
             
     @check_none
     def __str__(self):
@@ -77,32 +101,6 @@ class Axes:
             pass
         else:
             raise ImageAxesError(f"Axes must in tzcxy order, but got {self.axes}")
-
-    def set(self, value=NONE, ndim=0) -> None:
-        if (value == NONE):
-            pass
-        elif (type(value) is str):
-            value = value.lower()
-            counter = {"p":False, "t": False, "z": False, "c": False, "x": False, "y": False}
-            for v in value:
-                if (v in "ptzcxys"):
-                    if (counter[v] == True):
-                        raise ImageAxesError(f"'{v}' appeared twice: {value}")
-                    counter[v] = True
-                elif (v in "q"):
-                    pass
-                else:
-                    raise ImageAxesError(f"axes cannot contain characters except for 'qtzcxys': got {value}")
-            
-            if (ndim > 0 and len(value) != ndim):
-                raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and order({value})")
-            
-        else:
-            raise ImageAxesError(f"Cannot set {type(value)} to axes.")
-        
-        self.axes = value
-        
-        return None
     
     @check_none
     def find(self, axis) -> int:

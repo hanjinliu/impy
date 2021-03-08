@@ -1,7 +1,6 @@
 import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
-from skimage import io
 import os
 from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype
 from .axes import Axes
@@ -24,8 +23,7 @@ def check_value(__op__):
         return out
     return wrapper
 
-
-
+# TODO: make lut compatible with imagej
 class BaseArray(np.ndarray):
     """
     Array implemented with basic functions.
@@ -36,20 +34,28 @@ class BaseArray(np.ndarray):
     - intuitive sub-array viewing in ImageJ format such as img["t=1,z=5"].
     - auto history recording.
     """
-    def __new__(cls, path:str, axes=None):
-        img = io.imread(path)
-        self = img.view(cls)
-        self.dirpath = os.path.dirname(path)
-        self.name = os.path.splitext(os.path.basename(path))[0]
+    
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+                history=[], metadata={}, lut=None):
+        if (isinstance(obj, cls)):
+            return obj
+        
+        self = np.array(obj).view(cls)
+        self.dirpath = "" if dirpath is None else dirpath
+        self.name = "Image from impy" if name is None else name
+        
+        # MicroManager
         if (self.name.endswith("_MMStack_Pos0.ome")):
             self.name = self.name[:-17]
-        self.history = []
+        
+        self.history = [] if history is None else history
         self.axes = axes
-        self.metadata = {}
-        self.lut = None
+        self.metadata = {} if metadata is None else metadata
+        self.lut = lut
         return self
 
-    def __init__(self, path:str, axes=None):
+    def __init__(self, obj, name=None, axes=None, dirpath=None, 
+                 history=[], metadata={}, lut=None):
         pass
     
     @property
@@ -60,10 +66,8 @@ class BaseArray(np.ndarray):
     def axes(self, value):
         if (value is None):
             self._axes = Axes()
-        elif (isinstance(value, Axes)):
-            self._axes = value.copy()
         else:
-            self._axes = Axes(value)
+            self._axes = Axes(value, self.ndim)
         
     @property
     def lut(self):
@@ -141,7 +145,7 @@ class BaseArray(np.ndarray):
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifname, np.asarray(self.as_uint16()), imagej=True, metadata=metadata)
+        imwrite(tifname, self.as_uint16().value, imagej=True, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -421,7 +425,7 @@ class BaseArray(np.ndarray):
     def as_uint8(self):
         if (self.dtype == "uint8"):
             return self
-        out = np.asarray(self)
+        out = self.value
         if (self.dtype == "uint16"):
             out = out / 256
         elif(self.dtype == "bool"):
@@ -444,7 +448,7 @@ class BaseArray(np.ndarray):
     def as_uint16(self):
         if (self.dtype == "uint16"):
             return self
-        out = np.asarray(self)
+        out = self.value
         if (self.dtype == "uint8"):
             out = out * 256
         elif(self.dtype == "bool"):
@@ -516,7 +520,7 @@ class BaseArray(np.ndarray):
             if ("c" not in self.axes):
                 imglist = [s[1] for s in self.iter("ptzs", False)]
                 if (len(imglist) > 24):
-                    print("Too much images. First 24 images are shown.")
+                    print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
                 vmax = np.percentile(self[self>0], 99.99)
@@ -603,7 +607,7 @@ class BaseArray(np.ndarray):
                 total_repeat *= self.sizeof(a)
             else:
                 iterlist.append([slice(None)])
-        selfview = np.asarray(self)
+        selfview = self.value
         name = getattr(self, "ongoing", "iteration")
         
         timer = Timer()

@@ -2,6 +2,7 @@ import numpy as np
 import os
 import glob
 import collections
+from skimage import io
 from skimage.morphology import white_tophat
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -47,8 +48,10 @@ def _tophat(args):
 
 
 class ImgArray(BaseArray):
-    def __init__(self, path:str, axes=None):
-        super().__init__(path, axes)
+    def __init__(self, obj, name=None, axes=None, dirpath=None, 
+                 history=None, metadata=None, lut=None):
+        super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
+                         history=history, metadata=metadata, lut=lut)
 
     @same_dtype()
     @record
@@ -282,14 +285,14 @@ class ImgArray(BaseArray):
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with many functions here.
         """
-        freq = fft(np.asarray(self).astype("float32"))
+        freq = fft(self.value.astype("float32"))
         out = np.fft.fftshift(freq).view(self.__class__)
         out._set_info(self, "FFT")
         return out
     
     @record
     def ifft(self):
-        freq = np.fft.fftshift(np.asarray(self))
+        freq = np.fft.fftshift(self.value)
         out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
@@ -453,7 +456,7 @@ class ImgArray(BaseArray):
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
         axisint = self.axisof(axis)
-        out = func(np.asarray(self), axis=axisint).view(self.__class__)
+        out = func(self.value, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out
 
@@ -487,7 +490,7 @@ class ImgArray(BaseArray):
         
         if (lowerlim >= upperlim):
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
-        out = np.clip(np.asarray(self), lowerlim, upperlim)
+        out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
         out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
         out.temp = [lowerlim, upperlim]
@@ -570,38 +573,44 @@ class ImgArray(BaseArray):
 
 # non-member functions.
 
-def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], metadata={}, lut=None):
+def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     """
     make an ImgArray object, just like np.array(x)
     """
-    if (isinstance(arr, ImgArray)):
-        return arr
-    
     if (isinstance(arr, str)):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
         
-    self = np.array(arr, dtype=dtype).view(ImgArray)
-    self.axes = axes
-    self.dirpath = dirpath
-    self.name = name
-    self.history = history
-    self.metadata = metadata
-    self.lut = lut
+    self = ImgArray(np.array(arr, dtype=dtype), name=name, axes=axes, lut=lut)
     
     return self
 
 def imread(path:str, dtype:str="uint16"):
-    # make object
     if (not os.path.exists(path)):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
-    meta = get_meta(path)
-    self = ImgArray(path, axes=meta["axes"])
-    self.metadata = meta["ijmeta"]
-    if (meta["history"]):
-        self.name = meta["history"].pop(0)
-        self.history = meta["history"]
+    fname, fext = os.path.splitext(os.path.basename(path))
+    # read tif metadata
+    if (fext == ".tif"):
+        meta = get_meta(path)
     
+    img = io.imread(path)
+    
+    dirpath = os.path.dirname(path)
+    
+    axes = meta["axes"]
+    metadata = meta["ijmeta"]
+    lut = None                  # TODO: read LUT from ImageJ metadata
+    if (meta["history"]):
+        name = meta["history"].pop(0)
+        history = meta["history"]
+    else:
+        name = fname
+        history = []
+        
+    
+    self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
+                    history=history, metadata=metadata, lut=lut)
+        
     # In case the image is in yxc-order. This sometimes happens.
     if ("c" in self.axes and self.sizeof("c") > self.sizeof("x")):
         self = np.moveaxis(self, -1, -3)
@@ -674,7 +683,7 @@ def stack(imgs, axis="c", dtype="uint16"):
         new_axes = None
         _axis = 0
 
-    arrs = [np.asarray(img.as_img_type(dtype)) for img in imgs]
+    arrs = [img.as_img_type(dtype).value for img in imgs]
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
