@@ -94,6 +94,11 @@ class BaseArray(np.ndarray):
     @property
     def value(self):
         return np.asarray(self)
+    
+    @property
+    def range(self):
+        return self.min(), self.max()
+    
         
     def __repr__(self):
         if (self.axes.is_none()):
@@ -176,14 +181,14 @@ class BaseArray(np.ndarray):
     @check_value
     def __truediv__(self, value):
         self = self.astype("float32")
-        if (isinstance(value), np.ndarray):
+        if (isinstance(value, np.ndarray)):
             value[value==0] = np.inf
         return super().__truediv__(value)
     
     @check_value
     def __itruediv__(self, value):
         self = self.astype("float32")
-        if (isinstance(value), np.ndarray):
+        if (isinstance(value, np.ndarray)):
             value[value==0] = np.inf
         return super().__itruediv__(value)
     

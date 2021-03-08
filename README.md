@@ -53,6 +53,7 @@ img = ip.stack([img1, img2], axis="c") # stack along channel
 - `axes` = dimensions of image, "tzcyxs"-order.
 - `lut` = look up table.
 - `value` (property) = show the array in numpy format.
+- `range` (property) = return a tuple of min/max.
 
 ### Functions
 
