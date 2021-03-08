@@ -570,14 +570,14 @@ class BaseArray(np.ndarray):
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
 
-    def iter(self, axes:str, showprogress:bool=True):
+    def iter(self, axes, showprogress:bool=True):
         """
         Iteration along axes.
 
         Parameters
         ----------
-        axes : str
-            On which axes iteration is performed.
+        axes : str or int
+            On which axes iteration is performed. Or the number of spatial dimension.
         showprogress : bool, optional
             If show progress of algorithm, by default True
 
@@ -586,6 +586,14 @@ class BaseArray(np.ndarray):
         np.ndarray
             Subimage
         """        
+        if (isinstance(axes, int)):
+            if (axes == 2):
+                axes = "ptzc"
+            elif (axes == 3):
+                axes = "ptc"
+            else:
+                ValueError(f"dimension must be 2 or 3, but got {axes}")
+                
         axes = "".join([a for a in axes if a in self.axes]) # update axes to existing ones
         iterlist = []
         total_repeat = 1
@@ -609,7 +617,7 @@ class BaseArray(np.ndarray):
             print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
     
     
-    def parallel(self, func, axes:str, *args, n_cpu:int=4):
+    def parallel(self, func, axes, *args, n_cpu:int=4):
         """
         Multiprocessing tool.
 
@@ -618,7 +626,7 @@ class BaseArray(np.ndarray):
         func : callable
             Function applied to each image.
             sl, img = func(arg). arg must be packed into tuple or list.
-        axes : str
+        axes : str or int
             passed to iter()
         n_cpu : int, optional
             Number of CPU to use, by default 4

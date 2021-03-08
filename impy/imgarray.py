@@ -2,19 +2,21 @@ import numpy as np
 import os
 import glob
 import collections
-from skimage.morphology import white_tophat, disk
+from skimage.morphology import white_tophat
 from skimage import transform as sktrans
 from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
-from scipy import optimize as opt
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, gauss2d, square, circle, del_axis, add_axes
+from .func import get_meta, record, same_dtype, gaussfit, circle, del_axis, add_axes, ball_like
 from .base import BaseArray
 from .axes import Axes
 from .roi import Rectangle
 
+def _affine(args):
+    sl, data, mx = args
+    return (sl, sktrans.warp(data, mx))
 def _median(args):
     sl, data, selem = args
     return (sl, skfil.rank.median(data, selem))
@@ -50,14 +52,15 @@ class ImgArray(BaseArray):
 
     @same_dtype()
     @record
-    def affine(self, **kwargs):
+    def affine(self, dims=2, n_cpu=4, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
         mx = sktrans.AffineTransform(**kwargs)
         out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
-        out._set_info(self, f"Affine-Translate({kwargs})")
+        out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
     @same_dtype()
@@ -112,33 +115,9 @@ class ImgArray(BaseArray):
         if (self.ndim != 2):
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        # initialize parameters
-        if (p0 is None):
-            mu1, mu2 = np.unravel_index(np.argmax(self), self.shape)  # 2-dim argmax
-            sg1 = self.shape[0]
-            sg2 = self.shape[1]
-            B = np.percentile(self, 5)
-            A = np.percentile(self, 95) - B
-            p0 = mu1, mu2, sg1, sg2, A, B
-        
-        print("\n --------------------- GaussFit --------------------- ")
-        print("Initial parameters:")
-        print("mu1={:.3g}, mu2={:.3g}, sg1={:.3g}, sg2={:.3g}, A={:.3g}, B={:.3g}".format(*p0))
-        
-        param = opt.minimize(square, p0, args=(gauss2d, self.view(np.ndarray).astype("float64"))).x
-        
-        print("Fitting results:")
-        print("mu1={:.3g}, mu2={:.3g}, sg1={:.3g}, sg2={:.3g}, A={:.3g}, B={:.3g}".format(*param))
-        print(" ---------------------------------------------------- \n")
-
-        # prepare fit image
-        x = np.arange(self.shape[0])
-        y = np.arange(self.shape[1])
-
-        out = gauss2d(x, y, *(param)).view(self.__class__)
+        param, fit = gaussfit(np.array(self, dtype="float32"), p0)
+        out = fit.view(self.__class__)
         out._set_info(self, "Gaussian-Fit")
-
-        # set temporal result
         out.temp = param
 
         return out
@@ -170,13 +149,8 @@ class ImgArray(BaseArray):
         rough = self.rescale(scale)
         rough_gauss = rough.gaussfit(p0)
         
-        # rescale parameters
-        param = rough_gauss.temp
-        param[:4] /= scale
-        
-        x = np.arange(self.shape[0])
-        y = np.arange(self.shape[1])
-        out = gauss2d(x, y, *param).view(self.__class__)
+        param, fit = gaussfit(np.array(rough, dtype="float32"), p0, scale=scale)
+        out = fit.view(self.__class__)
         out._set_info(self, f"Rough-Gaussian-Fit(x1/{np.round(1/scale, 1)})")
         out.temp = param
         return out
@@ -199,8 +173,8 @@ class ImgArray(BaseArray):
         ImgArray
             Background subtracted image.
         """        
-        disk_ = disk(radius)
-        out = self.parallel(_tophat, "tzc", disk_, n_cpu=n_cpu)
+        disk = ball_like(radius, 2)
+        out = self.parallel(_tophat, "ptzc", disk, n_cpu=n_cpu)
         out._set_info(self, f"Top-Hat(R={radius})")
         return out
     
@@ -224,13 +198,13 @@ class ImgArray(BaseArray):
         ImgArray
             Background subtracted image.
         """        
-        out = self.parallel(_rolling_ball, "tzc", radius, smoothing, n_cpu=n_cpu)
+        out = self.parallel(_rolling_ball, "ptzc", radius, smoothing, n_cpu=n_cpu)
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def mean_filter(self, radius=1, n_cpu=4):
+    def mean_filter(self, radius=1, n_cpu=4, dims=2):
         """
         Run mean filter.
 
@@ -240,20 +214,22 @@ class ImgArray(BaseArray):
             Radius of filter, by default 1
         n_cpu : int, optional
             Number of CPU to use
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
 
         Returns
         -------
         ImgArray
             Filtered image.
-        """        
-        disk_ = disk(radius)
-        out = self.parallel(_mean, "ptzc", disk_, n_cpu=n_cpu)
-        out._set_info(self, f"Mean-Filter(R={radius})")
+        """
+        disk = ball_like(radius, dims)
+        out = self.parallel(_mean, dims, disk, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Mean-Filter(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def median_filter(self, radius=1, n_cpu=4):
+    def median_filter(self, radius=1, n_cpu=4, dims=2):
         """
         Run median filter. 
 
@@ -263,15 +239,17 @@ class ImgArray(BaseArray):
             Radius of filter, by default 1
         n_cpu : int, optional
             Number of CPU to use
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
 
         Returns
         -------
         ImgArray
             Filtered image.
-        """        
-        disk_ = disk(radius)
-        out = self.parallel(_median, "ptzc", disk_, n_cpu=n_cpu)
-        out._set_info(self, f"Median-Filter(R={radius})")
+        """
+        disk = ball_like(radius, dims)
+        out = self.parallel(_median, dims, disk, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Median-Filter(R={radius})")
         return out
 
     @same_dtype()
@@ -287,21 +265,15 @@ class ImgArray(BaseArray):
         n_cpu : int, optional
             Number of CPU to use, by default 4
         dims : int, optional
-            Dimension of Gaussian, by default 2
+            Dimension of axes, i.e. xy or xyz, by default 2
 
         Returns
         -------
         ImgArray
             Filtered image.
         """        
-        if (dims==2):
-            axes = "ptzc"
-        elif (dims==3):
-            axes = "ptc"
-        else:
-            raise ValueError("dims must be 2 or 3.")
-        out = self.parallel(_gaussian, axes, sigma, n_cpu=n_cpu)
-        out._set_info(self, f"Gaussian-Filter(sigma={sigma})")
+        out = self.parallel(_gaussian, dims, sigma, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
         return out
     
     @record
