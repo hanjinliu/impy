@@ -3,13 +3,11 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 from skimage import io
 import os
-from .func import del_axis, add_axes, get_lut, Timer, load_json
+from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype
 from .axes import Axes
 from tifffile import imwrite
 from skimage.exposure import histogram
 import itertools
-
-plt.rcParams["font.size"] = 10
     
 def check_value(__op__):
     def wrapper(self, value):
@@ -19,12 +17,14 @@ def check_value(__op__):
                 raise ValueError("Cannot multiply or divide array containig negative value.")
             if (self.ndim >= 3 and value.shape == self.xyshape()):
                 value = add_axes(self.axes, self.shape, value)
-        elif (type(value) in [int, float] and value < 0):
+        elif (isinstance(value, (int, float)) and value < 0):
             raise ValueError("Cannot multiply or divide negative value.")
 
         out = __op__(self, value)
         return out
     return wrapper
+
+
 
 class BaseArray(np.ndarray):
     """
@@ -88,7 +88,16 @@ class BaseArray(np.ndarray):
         else:
             self._lut = ["gray"] * n_lut
             raise ValueError(f"Incorrect LUT for {n_lut}-channel image: {value}")
-
+    
+    @property
+    def value(self):
+        return np.asarray(self)
+    
+    @property
+    def range(self):
+        return self.min(), self.max()
+    
+        
     def __repr__(self):
         if (self.axes.is_none()):
             shape_info = self.shape
@@ -132,7 +141,7 @@ class BaseArray(np.ndarray):
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifname, np.array(self.as_uint16()), imagej=True, metadata=metadata)
+        imwrite(tifname, np.asarray(self.as_uint16()), imagej=True, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -141,31 +150,51 @@ class BaseArray(np.ndarray):
     #   Basic Functions
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+    @same_dtype(asfloat=True)
+    def __add__(self, value):
+        return super().__add__(value)
+    
+    @same_dtype(asfloat=True)
+    def __iadd__(self, value):
+        return super().__iadd__(value)
+    
+    @same_dtype(asfloat=True)
+    def __sub__(self, value):
+        return super().__sub__(value)
+    
+    @same_dtype(asfloat=True)
+    def __isub__(self, value):
+        return super().__isub__(value)
+    
+    @same_dtype(asfloat=True)
     @check_value
     def __mul__(self, value):
-        dtype = self.dtype
-        self = self.astype("float32")
-        out = super().__mul__(value)
-        # Consider saturation
-        if (dtype == "uint16"):
-            out[out > 65535] = 65535
-            out = out.as_uint16()
-        elif (dtype == "uint8"):
-            out[out > 255] = 255
-            out = out.as_uint8()
-        
-        return out
-
+        return super().__mul__(value)
+    
+    @same_dtype(asfloat=True)
+    @check_value
+    def __imul__(self, value):
+        return super().__imul__(value)
+    
     @check_value
     def __truediv__(self, value):
         self = self.astype("float32")
+        if (isinstance(value, np.ndarray)):
+            value[value==0] = np.inf
         return super().__truediv__(value)
     
+    @check_value
+    def __itruediv__(self, value):
+        self = self.astype("float32")
+        if (isinstance(value, np.ndarray)):
+            value[value==0] = np.inf
+        return super().__itruediv__(value)
     
     def __getitem__(self, key):
-        if (type(key) is str):
+        if (isinstance(key, str)):
             # img["t=2,z=4"] ... ImageJ-like method
-            return self.getitem(key)
+            sl = self.str_to_slice(key)
+            return self.__getitem__(sl)
         elif (hasattr(key, "__as_roi__")):
             # img[roi] ... get item from ROI.
             return key.__as_roi__(self)
@@ -195,13 +224,17 @@ class BaseArray(np.ndarray):
         return out
     
     def __setitem__(self, key, value):
+        if (isinstance(key, str)):
+            # img["t=2,z=4"] ... ImageJ-like method
+            sl = self.str_to_slice(key)
+            return self.__setitem__(sl, value)
         super().__setitem__(key, value)         # set item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         new_history = f"setitem[{keystr}]"
         
         self._set_info(self, new_history)
     
-    def getitem(self, string):
+    def str_to_slice(self, string):
         """
         get subslices using ImageJ-like format.
         e.g. 't=3-, z=1-5', 't=1, z=-7' (this will not be interpreted as minus)
@@ -243,9 +276,12 @@ class BaseArray(np.ndarray):
             else:
                 input_keylist.append(slice(None))
 
-        return self.__getitem__(tuple(input_keylist))
-            
-
+        return tuple(input_keylist)
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Overloaded Numpy Functions to Inherit Attributes
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    
     def __array_finalize__(self, obj):
         """
         Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
@@ -378,11 +414,14 @@ class BaseArray(np.ndarray):
             self.lut = None
         return None
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Type Conversions
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def as_uint8(self):
         if (self.dtype == "uint8"):
             return self
-        out = np.array(self)
+        out = np.asarray(self)
         if (self.dtype == "uint16"):
             out = out / 256
         elif(self.dtype == "bool"):
@@ -394,7 +433,8 @@ class BaseArray(np.ndarray):
                 out = out + 0.5
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-        
+        out[out < 0] = 0
+        out[out >= 256] = 255
         out = out.view(self.__class__)
         out._set_info(self)
         out = out.astype("uint8")
@@ -404,7 +444,7 @@ class BaseArray(np.ndarray):
     def as_uint16(self):
         if (self.dtype == "uint16"):
             return self
-        out = np.array(self)
+        out = np.asarray(self)
         if (self.dtype == "uint8"):
             out = out * 256
         elif(self.dtype == "bool"):
@@ -416,7 +456,8 @@ class BaseArray(np.ndarray):
                 out = out + 0.5
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-
+        out[out < 0] = 0
+        out[out >= 65536] = 65535
         out = out.view(self.__class__)
         out._set_info(self)
         out = out.astype("uint16")
@@ -427,11 +468,17 @@ class BaseArray(np.ndarray):
             return self.as_uint16()
         elif (dtype == "uint8"):
             return self.as_uint8()
-        elif (dtype in "float", "f", "float32"):
+        elif (dtype in ("float", "f", "float32")):
             return self.astype("float32")
+        elif (dtype == "bool"):
+            return self.astype("bool")
         else:
             raise ValueError(f"dtype: {dtype}")
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Simple Visualizations
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     def hist(self, contrast=None, newfig=True):
         """
         Show intensity profile.
@@ -469,7 +516,8 @@ class BaseArray(np.ndarray):
             if ("c" not in self.axes):
                 imglist = [s[1] for s in self.iter("ptzs", False)]
                 if (len(imglist) > 24):
-                    raise ValueError("Too much images. The number of images should be < 24.")
+                    print("Too much images. First 24 images are shown.")
+                    imglist = imglist[:24]
 
                 vmax = np.percentile(self[self>0], 99.99)
                 vmin = np.percentile(self[self>0], 0.01)
@@ -506,6 +554,9 @@ class BaseArray(np.ndarray):
 
         return self
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Others
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def axisof(self, axisname):
         if (type(axisname) is int):

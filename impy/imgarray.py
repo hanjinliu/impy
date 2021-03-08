@@ -8,7 +8,9 @@ from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
 from scipy import optimize as opt
-from .func import get_meta, record, gauss2d, square, circle, del_axis, add_axes
+from scipy.fftpack import fftn as fft
+from scipy.fftpack import ifftn as ifft
+from .func import get_meta, record, same_dtype, gauss2d, square, circle, del_axis, add_axes
 from .base import BaseArray
 from .axes import Axes
 from .roi import Rectangle
@@ -20,6 +22,10 @@ def _median(args):
 def _mean(args):
     sl, data, selem = args
     return (sl, skfil.rank.mean(data, selem))
+
+def _gaussian(args):
+    sl, data, sigma = args
+    return (sl, skfil.gaussian(data, sigma=sigma))
 
 def _rolling_ball(args):
     sl, data, radius, smooth = args
@@ -36,13 +42,13 @@ def _rolling_ball(args):
 def _tophat(args):
     sl, data, selem = args
     return (sl, white_tophat(data, selem))
-    
 
 
 class ImgArray(BaseArray):
     def __init__(self, path:str, axes=None):
         super().__init__(path, axes)
 
+    @same_dtype()
     @record
     def affine(self, **kwargs):
         """
@@ -52,8 +58,9 @@ class ImgArray(BaseArray):
         mx = sktrans.AffineTransform(**kwargs)
         out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
         out._set_info(self, f"Affine-Translate({kwargs})")
-        return out.as_uint16()
+        return out
     
+    @same_dtype()
     @record
     def translate(self, translation=None):
         """
@@ -62,8 +69,9 @@ class ImgArray(BaseArray):
         mx = sktrans.AffineTransform(translation=translation)
         out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
         out._set_info(self, f"Translate{translation}")
-        return out.as_uint16()
+        return out
 
+    @same_dtype()
     @record
     def rescale(self, scale=1/16):
         try:
@@ -78,7 +86,7 @@ class ImgArray(BaseArray):
                 scale_.append(1)
         out = sktrans.rescale(self.view(np.ndarray).astype("float64"), scale_, anti_aliasing=False).view(self.__class__)
         out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
-        return out.as_uint16()
+        return out
     
     
     @record
@@ -173,6 +181,7 @@ class ImgArray(BaseArray):
         out.temp = param
         return out
     
+    @same_dtype()
     @record
     def tophat(self, radius=50, n_cpu=4):
         """
@@ -195,6 +204,7 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Top-Hat(R={radius})")
         return out
     
+    @same_dtype()
     @record
     def rolling_ball(self, radius=50, smoothing=True, n_cpu=4):
         """
@@ -218,6 +228,7 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
+    @same_dtype()
     @record
     def mean_filter(self, radius=1, n_cpu=4):
         """
@@ -236,11 +247,11 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = self.parallel(_mean, "tzc", disk_, n_cpu=n_cpu)
+        out = self.parallel(_mean, "ptzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Mean-Filter(R={radius})")
         return out
     
-        
+    @same_dtype()
     @record
     def median_filter(self, radius=1, n_cpu=4):
         """
@@ -259,10 +270,39 @@ class ImgArray(BaseArray):
             Filtered image.
         """        
         disk_ = disk(radius)
-        out = self.parallel(_median, "tzc", disk_, n_cpu=n_cpu)
+        out = self.parallel(_median, "ptzc", disk_, n_cpu=n_cpu)
         out._set_info(self, f"Median-Filter(R={radius})")
         return out
 
+    @same_dtype()
+    @record
+    def gaussian_filter(self, sigma=1, n_cpu=4, dims=2):
+        """
+        Run Gaussian filter (Gaussian blur).
+
+        Parameters
+        ----------
+        sigma : scalar or array of scalars, optional
+            standard deviation(s) of Gaussian, by default 1
+        n_cpu : int, optional
+            Number of CPU to use, by default 4
+        dims : int, optional
+            Dimension of Gaussian, by default 2
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        if (dims==2):
+            axes = "ptzc"
+        elif (dims==3):
+            axes = "ptc"
+        else:
+            raise ValueError("dims must be 2 or 3.")
+        out = self.parallel(_gaussian, axes, sigma, n_cpu=n_cpu)
+        out._set_info(self, f"Gaussian-Filter(sigma={sigma})")
+        return out
     
     @record
     def fft(self):
@@ -270,19 +310,15 @@ class ImgArray(BaseArray):
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with many functions here.
         """
-        if (self.ndim != 2):
-            raise TypeError(f"input must be two dimensional, but got {self.shape}")
-        freq = np.fft.fft2(self.view(np.ndarray))
+        freq = fft(self.view(np.ndarray))
         out = np.fft.fftshift(freq).view(self.__class__)
         out._set_info(self, "FFT")
         return out
     
     @record
     def ifft(self):
-        if (self.ndim != 2):
-            raise TypeError(f"input must be two dimensional, but got {self.shape}")
         freq = np.fft.fftshift(self.view(np.ndarray))
-        out = np.fft.ifft2(freq).real.view(self.__class__)
+        out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
     
@@ -429,6 +465,7 @@ class ImgArray(BaseArray):
                 img.lut = None
         return imgs
 
+    @same_dtype()
     @record
     def proj(self, axis="z", method="mean"):
         """
@@ -445,32 +482,82 @@ class ImgArray(BaseArray):
         axisint = self.axisof(axis)
         out = func(np.asarray(self), axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
-        return out.as_uint16()
+        return out
 
     
-    def clip_outliers(self, lower=1, upper=99):
-        lowerlim = np.percentile(self, lower)
-        upperlim = np.percentile(self, upper)
+    def clip_outliers(self, in_range=(0, 100)):
+        """
+        Saturate low/high intensity using np.clip.mean
+
+        Parameters
+        ----------
+        in_range : two scalar values, optional
+            range of lower/upper limits, by default (0, 100)
+
+        Returns
+        -------
+        ImgArray
+            Clipped image with temporary attribute
+        """        
+        lower, upper = in_range
+        if (isinstance(lower, str) and lower.endswith("%")):
+            lower = float(lower[:-1])
+            lowerlim = np.percentile(self, lower)
+        else:
+            lowerlim = float(lower)
+        
+        if (isinstance(upper, str) and upper.endswith("%")):
+            upper = float(upper[:-1])
+            upperlim = np.percentile(self, upper)
+        else:
+            lowerlim = float(lower)
+        
+        if (lowerlim >= upperlim):
+            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
         out = np.clip(np.asarray(self), lowerlim, upperlim)
         out = out.view(self.__class__)
-        out._set_info(self, f"Clip-Outliers({lower:.1f}%-{upper:.1f}%)")
+        out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
         out.temp = [lowerlim, upperlim]
         return out
         
         
-    def rescale_intensity(self, lower=0, upper=100, dtype=np.uint16):
+    def rescale_intensity(self, in_range=(0, 100), dtype=np.uint16):
         """
-        [min, max] -> [0, 1)
-        2^-16 = 1.5 x 10^-5
-        out = skimage.exposure.rescale_intensity(out, dtype=np.uint16, in_range=...)
-        """
-        out = self.view(np.ndarray).astype("float64")
-        lowerlim = np.percentile(out, lower)
-        upperlim = np.percentile(out, upper)
+        Rescale the intensity of the image using skimage.exposure.rescale_intensity.
+
+        Parameters
+        ----------
+        in_range : two scalar values, optional
+            range of lower/upper limit, by default (0, 100)
+        dtype : numpy dtype, optional
+            output dtype, by default np.uint16
+
+        Returns
+        -------
+        ImgArray
+            Rescaled image
+        """        
+        out = self.view(np.ndarray).astype("float32")
+        lower, upper = in_range
+        if (isinstance(lower, str) and lower.endswith("%")):
+            lower = float(lower[:-1])
+            lowerlim = np.percentile(out, lower)
+        else:
+            lowerlim = float(lower)
+        
+        if (isinstance(upper, str) and upper.endswith("%")):
+            upper = float(upper[:-1])
+            upperlim = np.percentile(out, upper)
+        else:
+            lowerlim = float(lower)
+        
+        if (lowerlim >= upperlim):
+            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+            
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.1f}%-{upper:.1f}%)")
+        out._set_info(self, f"Rescale-Intensity({lower:.2f}%-{upper:.2f}%)")
         out.temp = [lowerlim, upperlim]
         return out
 
@@ -520,7 +607,7 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     if (isinstance(arr, str)):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
         
-    self = arr.view(ImgArray)
+    self = np.array(arr, dtype=dtype).view(ImgArray)
     self.axes = axes
     self.dirpath = dirpath
     self.name = name
@@ -528,9 +615,9 @@ def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], 
     self.metadata = metadata
     self.lut = lut
     
-    return self.as_img_type(dtype)
+    return self
 
-def imread(path:str):
+def imread(path:str, dtype:str="uint16"):
     # make object
     if (not os.path.exists(path)):
         raise FileNotFoundError(f"No such file or directory: {path}")
@@ -549,9 +636,9 @@ def imread(path:str):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.sort_axes() # arrange in tzcyxs-order
+    return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False):
+def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False, dtype="uint16"):
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -570,7 +657,7 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     imgs = []
     shapes = []
     for path in paths:
-        img = imread(path)
+        img = imread(path, dtype=dtype)
         imgs.append(img)
         shapes.append(img.shape)
     
@@ -595,7 +682,7 @@ def read_meta(path:str):
     return meta
 
 
-def stack(imgs, axis="c"):
+def stack(imgs, axis="c", dtype="uint16"):
     """
     imgs: list or tuple (or other iterable objects) of 2D-images.
     axis: to specify which axis will be the new axis.
@@ -614,7 +701,7 @@ def stack(imgs, axis="c"):
         new_axes = None
         _axis = 0
 
-    arrs = [np.array(img.as_uint16()) for img in imgs]
+    arrs = [np.asarray(img.as_img_type(dtype)) for img in imgs]
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)

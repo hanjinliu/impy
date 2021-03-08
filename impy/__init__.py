@@ -1,3 +1,4 @@
+__version__ = "1.4.3"
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
@@ -37,11 +38,11 @@ Normalize the image and save it.
 
 (ex.3) Deconvolution
 >>> psfinfo = {"wavelength":0.57, "pxsize":0.1, "dz":0.3}
->>> img2 = img.deconvolute_cf(psfinfo=psfinfo, niter=20)
+>>> img2 = img.lucy3d(psfinfo=psfinfo, niter=20)
 
 """
 
-
+# load plugins if possible
 plugin_path = os.path.join(os.path.dirname(__file__), "plugin")
 py_file_list = []
 for file in os.listdir(plugin_path):

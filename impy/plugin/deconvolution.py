@@ -1,8 +1,7 @@
-from flowdec.psf import GibsonLanni as PSF
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from ..func import record
+from ..func import record, same_dtype
 
 # Identical to the algorithm in Deconvolution.jl of Julia.
 # To avoid Memory Error, scipy.fftpack is used instead of numpy.fft because the latter does not support 
@@ -10,7 +9,8 @@ from ..func import record
 
 __all__ = ["lucy3d", "lucy2d"]
 
-def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
+def synthesize_psf(size_x, size_y, size_z, wavelength:float=0.610, 
+        pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
     """
     wavelength: wave length [micron]
     pxsize: pixel size [micron]
@@ -18,6 +18,11 @@ def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, d
     ns: reflactive index of the specimen
     na: N.A.
     """
+    try:
+        from flowdec.psf import GibsonLanni as PSF
+    except ImportError:
+        raise ImportError("You need to install flowdec to make "
+                          "synthetic point spread function")
     
     # in case parameters were set in nm-unit
     if (wavelength > 200):
@@ -52,12 +57,10 @@ def psf(size_x, size_y, size_z, wavelength:float=0.610, pxsize:float=0.216667, d
 
 def _richardson_lucy(args):
     sl, obs, psf, niter = args
+    # obs and psf must be float32 here
     
     if (obs.shape != psf.shape):
         raise ValueError(f"observation and PSF have different shape: {obs.shape} and {psf.shape}")
-    
-    obs = obs.astype("float32")
-    psf = psf.astype("float32")
     
     psf_ft = fft(psf)
     psf_ft_conj = np.conjugate(psf_ft)
@@ -72,8 +75,9 @@ def _richardson_lucy(args):
     
     return sl, np.fft.fftshift(estimated)
 
+@same_dtype(True)
 @record
-def lucy3d(self, psfinfo={}, niter:int=50, dtype="uint16", n_cpu=4):
+def lucy3d(self, psfinfo, niter:int=50, n_cpu=4):
     """
     Deconvolution of 3-dimensional image obtained from confocal microscopy, 
     using Richardson-Lucy's algorithm.
@@ -95,12 +99,14 @@ def lucy3d(self, psfinfo={}, niter:int=50, dtype="uint16", n_cpu=4):
     if (isinstance(psfinfo, dict)):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": self.sizeof("z")}
         kw.update(psfinfo)
-        psfimg = psf(**kw)
+        psfimg = synthesize_psf(**kw)
     elif (isinstance(psfinfo, np.ndarray)):
         psfimg = np.asarray(psfinfo)
         psfimg /= np.max(psfimg)
     else:
         raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psfinfo)}")
+    
+    psfimg = psfimg.astype("float32")
     
     # start deconvolution
     out = np.zeros(self.shape)
@@ -108,24 +114,28 @@ def lucy3d(self, psfinfo={}, niter:int=50, dtype="uint16", n_cpu=4):
     out = out.view(self.__class__)
     out._set_info(self, f"RichardsonLucy-3D(niter={niter})")
     
-    return out.as_img_type(dtype)
+    return out
 
+@same_dtype(True)
 @record
-def lucy2d(self, psfinfo={}, niter:int=50, dtype="uint16", n_cpu=4):
+def lucy2d(self, psfinfo, niter:int=50, n_cpu=4):
     # make PSF
     if (isinstance(psfinfo, dict)):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
         kw.update(psfinfo)
-        psfimg = psf(**kw)[0]
+        psfimg = synthesize_psf(**kw)[0]
     elif (isinstance(psfinfo, np.ndarray)):
         psfimg = np.asarray(psfinfo)
         psfimg /= np.max(psfimg)
     else:
         raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psfinfo)}")
     
+    psfimg = psfimg.astype("float32")
+    
+    # start deconvolution
     out = np.zeros(self.shape)
     out = self.parallel(_richardson_lucy, "ptzcs", psfimg, niter, n_cpu=n_cpu)
     out = out.view(self.__class__)
     out._set_info(self, f"RichardsonLucy-2D(niter={niter})")
     
-    return out.as_img_type(dtype)
+    return out

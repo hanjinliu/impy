@@ -66,6 +66,19 @@ def record(func):
         return out
     return wrapper
 
+def same_dtype(asfloat=False):
+    def _same_dtype(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            dtype = self.dtype
+            if (asfloat):
+                self = self.astype("float32")
+            out = func(self, *args, **kwargs)
+            out = out.as_img_type(dtype)
+            return out
+        return wrapper
+    return _same_dtype
+
 def gauss2d(x, y, mu1, mu2, sg1, sg2, A, B):
     """
     e.g. for 100x200 image,

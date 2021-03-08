@@ -6,7 +6,7 @@ try:
 except ImportError:
     from skimage.feature import register_translation as phase_cross_correlation
 from skimage import transform as sktrans
-from ..func import record
+from ..func import record, same_dtype
 
 
 __all__ = ["drift_correction"]
@@ -57,6 +57,7 @@ def show_drift(result):
     plt.show()
     return None
 
+@same_dtype(True)
 @record
 def drift_correction(self, shift=None, ref=None, order=1):
     """
@@ -92,14 +93,14 @@ def drift_correction(self, shift=None, ref=None, order=1):
         raise TypeError(f"Length inconsistency between image and shift")
 
     out = np.empty(self.shape)
-    for sl, img in self.as_uint16().iter("ptzc"):
+    for sl, img in self.iter("ptzc"):
         if (type(sl) is int):
             tr = -shift[sl]
         else:
             tr = -shift[sl[0]]
         mx = sktrans.AffineTransform(translation=tr)
         out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
-    out = out.view(self.__class__).as_uint16()
+    out = out.view(self.__class__)
 
     out._set_info(self, "Drift-Correction")
     out.temp = shift
