@@ -673,6 +673,8 @@ class BaseArray(np.ndarray):
         else:
             if (self.lut is None):
                 cmaps = ["gray"]
+            elif (len(self.lut) != len(self.axes)):
+                cmaps = ["gray"] * len(self.axes)
             else:
                 cmaps = [get_lut(self.lut[0])]
         return cmaps

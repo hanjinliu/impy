@@ -538,7 +538,9 @@ class ImgArray(BaseArray):
         return out
 
     def sort_axes(self):
-        return self.transpose(self.axes.argsort())
+        arr = np.array(self.axes.argsort())
+        order = arr[arr]
+        return self.transpose(order)
     
     # numpy functions that will change/discard order
     def transpose(self, axes):
@@ -584,7 +586,25 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     
     return self
 
-def imread(path:str, dtype:str="uint16"):
+def imread(path:str, dtype:str="uint16", axes=None, lut=None):
+    """
+    Load image from path.
+
+    Parameters
+    ----------
+    path : str
+        Path to the image.
+    dtype : str, optional
+        dtype of the image, by default "uint16"
+    axes : str or None, optional
+        If the image does not have axes metadata, this value will be used.
+    lut : list of str, or None, optional
+        LUT of the image.
+
+    Returns
+    -------
+    ImgArray
+    """    
     if (not os.path.exists(path)):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
@@ -592,6 +612,8 @@ def imread(path:str, dtype:str="uint16"):
     # read tif metadata
     if (fext == ".tif"):
         meta = get_meta(path)
+    else:
+        meta = {"axes":axes, "ijmeta":{}, "history":[]}
     
     img = io.imread(path)
     
@@ -618,7 +640,10 @@ def imread(path:str, dtype:str="uint16"):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
+    if (self.axes.is_none()):
+        return self
+    else:
+        return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
 def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False, dtype="uint16"):
     """
@@ -629,7 +654,7 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     dirname : str
         Path to the directory
     axis : str, optional
-        To specify which axis will be the new one, by default "s"
+        To specify which axis will be the new one, by default "p"
     ext : str, optional
         Extension of files, by default "tif"
     ignore_exception : bool, optional
