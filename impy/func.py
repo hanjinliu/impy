@@ -112,7 +112,16 @@ def square(params, func, z):
     z_guess = func(x, y, *params)
     return np.mean((z - z_guess)**2)
 
-def gaussfit(img2d, p0, scale=1):
+def gaussfit(img2d, p0=None, scale=1):
+    """
+    Fit 2-D image to 2-D gaussian
+
+    Parameters
+    ----------
+    img2d : 2-D image
+    p0 : initial parameters
+    scale : float, optional
+    """
     if (p0 is None):
         mu1, mu2 = np.unravel_index(np.argmax(img2d), img2d.shape)  # 2-dim argmax
         sg1 = img2d.shape[0]
