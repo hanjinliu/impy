@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from scipy import optimize as opt
 from tifffile import TiffFile
+from skimage.morphology import disk, ball
 from functools import wraps
 import time
 import json
@@ -67,6 +69,15 @@ def record(func):
     return wrapper
 
 def same_dtype(asfloat=False):
+    """
+    Decorator to assure output image has the same dtype as the input
+    image. 
+
+    Parameters
+    ----------
+    asfloat : bool, optional
+        If input image should be converted to float first, by default False
+    """    
     def _same_dtype(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -101,12 +112,37 @@ def square(params, func, z):
     z_guess = func(x, y, *params)
     return np.mean((z - z_guess)**2)
 
-def circle(radius, shape, dtype="float64"):
+def gaussfit(img2d, p0, scale=1):
+    if (p0 is None):
+        mu1, mu2 = np.unravel_index(np.argmax(img2d), img2d.shape)  # 2-dim argmax
+        sg1 = img2d.shape[0]
+        sg2 = img2d.shape[1]
+        B = np.percentile(img2d, 5)
+        A = np.percentile(img2d, 95) - B
+        p0 = mu1, mu2, sg1, sg2, A, B
+    
+    param = opt.minimize(square, p0, args=(gauss2d, img2d)).x
+    param[:4] /= scale
+    
+    x = np.arange(img2d.shape[0])
+    y = np.arange(img2d.shape[1])
+
+    fit = gauss2d(x, y, *param).astype("float32")
+    return param, fit
+
+def circle(radius, shape, dtype="bool"):
     x = np.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
     y = np.arange(-(shape[1] - 1) / 2, (shape[1] - 1) / 2 + 1)
     dx, dy = np.meshgrid(x, y)
     return np.array((dx ** 2 + dy ** 2) <= radius ** 2, dtype=dtype)
 
+def ball_like(radius, dims:int):
+    if (dims == 2):
+        return disk(radius)
+    elif (dims == 3):
+        return ball(radius)
+    else:
+        raise ValueError(f"dims must be 2 or 3, but got {dims}")
 
 def del_axis(axes, axis):
     """

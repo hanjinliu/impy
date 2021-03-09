@@ -1,7 +1,6 @@
 import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
-from skimage import io
 import os
 from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype
 from .axes import Axes
@@ -24,8 +23,7 @@ def check_value(__op__):
         return out
     return wrapper
 
-
-
+# TODO: make lut compatible with imagej
 class BaseArray(np.ndarray):
     """
     Array implemented with basic functions.
@@ -36,20 +34,28 @@ class BaseArray(np.ndarray):
     - intuitive sub-array viewing in ImageJ format such as img["t=1,z=5"].
     - auto history recording.
     """
-    def __new__(cls, path:str, axes=None):
-        img = io.imread(path)
-        self = img.view(cls)
-        self.dirpath = os.path.dirname(path)
-        self.name = os.path.splitext(os.path.basename(path))[0]
+    
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+                history=[], metadata={}, lut=None):
+        if (isinstance(obj, cls)):
+            return obj
+        
+        self = np.array(obj).view(cls)
+        self.dirpath = "" if dirpath is None else dirpath
+        self.name = "Image from impy" if name is None else name
+        
+        # MicroManager
         if (self.name.endswith("_MMStack_Pos0.ome")):
             self.name = self.name[:-17]
-        self.history = []
+        
+        self.history = [] if history is None else history
         self.axes = axes
-        self.metadata = {}
-        self.lut = None
+        self.metadata = {} if metadata is None else metadata
+        self.lut = lut
         return self
 
-    def __init__(self, path:str, axes=None):
+    def __init__(self, obj, name=None, axes=None, dirpath=None, 
+                 history=[], metadata={}, lut=None):
         pass
     
     @property
@@ -60,10 +66,8 @@ class BaseArray(np.ndarray):
     def axes(self, value):
         if (value is None):
             self._axes = Axes()
-        elif (isinstance(value, Axes)):
-            self._axes = value.copy()
         else:
-            self._axes = Axes(value)
+            self._axes = Axes(value, self.ndim)
         
     @property
     def lut(self):
@@ -141,7 +145,7 @@ class BaseArray(np.ndarray):
         if (self.axes):
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifname, np.asarray(self.as_uint16()), imagej=True, metadata=metadata)
+        imwrite(tifname, self.as_uint16().value, imagej=True, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -421,12 +425,12 @@ class BaseArray(np.ndarray):
     def as_uint8(self):
         if (self.dtype == "uint8"):
             return self
-        out = np.asarray(self)
+        out = self.value
         if (self.dtype == "uint16"):
             out = out / 256
         elif(self.dtype == "bool"):
             pass
-        elif (self.dtype == "float64"):
+        elif (self.dtype in ("float16", "float32", "float64")):
             if (0 <= np.min(out) and np.max(out) < 1):
                 out = out * 256
             else:
@@ -444,12 +448,12 @@ class BaseArray(np.ndarray):
     def as_uint16(self):
         if (self.dtype == "uint16"):
             return self
-        out = np.asarray(self)
+        out = self.value
         if (self.dtype == "uint8"):
             out = out * 256
         elif(self.dtype == "bool"):
             pass
-        elif (self.dtype in ["float16", "float32", "float64"]):
+        elif (self.dtype in ("float16", "float32", "float64")):
             if (0 <= np.min(out) and np.max(out) < 1):
                 out = out * 65536
             else:
@@ -487,7 +491,6 @@ class BaseArray(np.ndarray):
             plt.figure(figsize=(4, 1.7))
 
         nbin = min(int(np.sqrt(self.size / 3)), 256)
-        # plt.hist(self.flat, color="grey", bins=n_bin, density=True)
         y, x = histogram(self.flatten(), nbins=nbin)
         plt.plot(x, y, color="gray")
         plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
@@ -512,11 +515,12 @@ class BaseArray(np.ndarray):
             
             plt.imshow(self, **imshow_kwargs)
             self.hist()
+            
         elif (self.ndim == 3):
             if ("c" not in self.axes):
                 imglist = [s[1] for s in self.iter("ptzs", False)]
                 if (len(imglist) > 24):
-                    print("Too much images. First 24 images are shown.")
+                    print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
                 vmax = np.percentile(self[self>0], 99.99)
@@ -570,10 +574,30 @@ class BaseArray(np.ndarray):
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
 
-    def iter(self, axes:str, showprogress:bool=True):
+    def iter(self, axes, showprogress:bool=True):
         """
-        make an iterator that iterate for each axis in 'axes'.
-        """
+        Iteration along axes.
+
+        Parameters
+        ----------
+        axes : str or int
+            On which axes iteration is performed. Or the number of spatial dimension.
+        showprogress : bool, optional
+            If show progress of algorithm, by default True
+
+        Yields
+        -------
+        np.ndarray
+            Subimage
+        """        
+        if (isinstance(axes, int)):
+            if (axes == 2):
+                axes = "ptzc"
+            elif (axes == 3):
+                axes = "ptc"
+            else:
+                ValueError(f"dimension must be 2 or 3, but got {axes}")
+                
         axes = "".join([a for a in axes if a in self.axes]) # update axes to existing ones
         iterlist = []
         total_repeat = 1
@@ -583,7 +607,7 @@ class BaseArray(np.ndarray):
                 total_repeat *= self.sizeof(a)
             else:
                 iterlist.append([slice(None)])
-        selfview = np.asarray(self)
+        selfview = self.value
         name = getattr(self, "ongoing", "iteration")
         
         timer = Timer()
@@ -597,7 +621,7 @@ class BaseArray(np.ndarray):
             print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
     
     
-    def parallel(self, func, axes:str, *args, n_cpu:int=4):
+    def parallel(self, func, axes, *args, n_cpu:int=4):
         """
         Multiprocessing tool.
 
@@ -606,7 +630,7 @@ class BaseArray(np.ndarray):
         func : callable
             Function applied to each image.
             sl, img = func(arg). arg must be packed into tuple or list.
-        axes : str
+        axes : str or int
             passed to iter()
         n_cpu : int, optional
             Number of CPU to use, by default 4
@@ -649,6 +673,8 @@ class BaseArray(np.ndarray):
         else:
             if (self.lut is None):
                 cmaps = ["gray"]
+            elif (len(self.lut) != len(self.axes)):
+                cmaps = ["gray"] * len(self.axes)
             else:
                 cmaps = [get_lut(self.lut[0])]
         return cmaps

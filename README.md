@@ -8,40 +8,50 @@ More Numpy in image analysis! History of analysis, the original image and direct
 import impy as ip
 img0 = ip.imread(r"...\images\XXX.tif")
 img0
-
-#     shape     : 10(t), 3(c), 512(y), 512(x)
-#     dtype     : uint16
-#   directory   : ...\images
-# original image: XXX
-#    history    : 
 ```
+    [Out]
+        shape     : 10(t), 3(c), 512(y), 512(x)
+        dtype     : uint16
+      directory   : ...\images
+    original image: XXX
+       history    : 
 
 ```python
 img = img0.proj(axis="t") # projection
 img = img.median_filter(radius=3) # median filter
 img = img[0] # get first channel
 img 
-
-#     shape     : 512(y), 512(x)
-#     dtype     : uint16
-#   directory   : ...\images
-# original image: XXX
-#    history    : mean-Projection(axis=t)->Median-Filter(R=3)->getitem[0]
 ```
+    [Out]
+        shape     : 512(y), 512(x)
+        dtype     : uint16
+      directory   : ...\images
+    original image: XXX
+       history    : mean-Projection(axis=t)->Median-Filter(R=3)->getitem[0]
 
 ## Basic Usage
 
 Load image with `imread` function. `ImgArray` object is created.
 ```python
-img = ip.imread(r"C:\Users\...\XXX.tif") # load single tif
-img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True) # load tifs recursively from a directory
+# load single tif
+img = ip.imread(r"C:\Users\...\XXX.tif")
+# load tifs recursively from a directory
+img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True)
 ```
 
-Stacking images with `impy.stack`
+Stacking images with `impy.stack`.
 
 ```python
 # make stack along channel axis
 img = ip.stack([img1, img2], axis="c", dtype="uint16") 
+```
+
+Making synthetic three-channel image with `impy.array` and manually set its axes and LUTs.
+
+```python
+img = ip.array(np.random.rand(3*40*30).reshape(3,40,30)*100, name="random noise")
+img.axes = "cyx"
+img.lut = ["teal", "violet", "gold"]
 ```
 
 ## Basic Attributes and Functions of ImgArray
@@ -61,6 +71,13 @@ img = ip.stack([img1, img2], axis="c", dtype="uint16")
 - `imshow` = visualize 2-D or 3-D image.
 - `hist` = show the histogram of image intensity profile.
 - `imsave` = save image (by default save in the directory that the original image was loaded).
+
+## Data Type Conversion
+
+`uint8`, `uint16`, `bool` and `float32` are supported for type conversion.
+- `as_uint8` = convert to `uint8`.
+- `as_uint16` = convert to `uint16`.
+- `as_img_type` = convert to any supported types.
 
 ## Automatic Saturation and Type Conversion
 
@@ -97,7 +114,7 @@ With `ipywidgets` and in correct environment, you can visualize images interacti
 - `imshowz` = several z-slices are visualized in the same time.
 - `imshow_comparewith` = two images are visualized in the same time.
 
-You can also measure images and obtain ROI
+You can also measure images and obtain ROIs
 
 - `measure_rectangles`
 - `measure_polygons`

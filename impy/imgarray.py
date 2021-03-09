@@ -2,19 +2,22 @@ import numpy as np
 import os
 import glob
 import collections
-from skimage.morphology import white_tophat, disk
+from skimage import io
+from skimage.morphology import white_tophat
 from skimage import transform as sktrans
 from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
-from scipy import optimize as opt
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, gauss2d, square, circle, del_axis, add_axes
+from .func import get_meta, record, same_dtype, gaussfit, circle, del_axis, add_axes, ball_like
 from .base import BaseArray
 from .axes import Axes
 from .roi import Rectangle
 
+def _affine(args):
+    sl, data, mx = args
+    return (sl, sktrans.warp(data, mx))
 def _median(args):
     sl, data, selem = args
     return (sl, skfil.rank.median(data, selem))
@@ -45,19 +48,22 @@ def _tophat(args):
 
 
 class ImgArray(BaseArray):
-    def __init__(self, path:str, axes=None):
-        super().__init__(path, axes)
+    def __init__(self, obj, name=None, axes=None, dirpath=None, 
+                 history=None, metadata=None, lut=None):
+        super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
+                         history=history, metadata=metadata, lut=lut)
 
     @same_dtype()
     @record
-    def affine(self, **kwargs):
+    def affine(self, dims=2, n_cpu=4, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
         mx = sktrans.AffineTransform(**kwargs)
         out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
-        out._set_info(self, f"Affine-Translate({kwargs})")
+        out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
     @same_dtype()
@@ -112,33 +118,9 @@ class ImgArray(BaseArray):
         if (self.ndim != 2):
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        # initialize parameters
-        if (p0 is None):
-            mu1, mu2 = np.unravel_index(np.argmax(self), self.shape)  # 2-dim argmax
-            sg1 = self.shape[0]
-            sg2 = self.shape[1]
-            B = np.percentile(self, 5)
-            A = np.percentile(self, 95) - B
-            p0 = mu1, mu2, sg1, sg2, A, B
-        
-        print("\n --------------------- GaussFit --------------------- ")
-        print("Initial parameters:")
-        print("mu1={:.3g}, mu2={:.3g}, sg1={:.3g}, sg2={:.3g}, A={:.3g}, B={:.3g}".format(*p0))
-        
-        param = opt.minimize(square, p0, args=(gauss2d, self.view(np.ndarray).astype("float64"))).x
-        
-        print("Fitting results:")
-        print("mu1={:.3g}, mu2={:.3g}, sg1={:.3g}, sg2={:.3g}, A={:.3g}, B={:.3g}".format(*param))
-        print(" ---------------------------------------------------- \n")
-
-        # prepare fit image
-        x = np.arange(self.shape[0])
-        y = np.arange(self.shape[1])
-
-        out = gauss2d(x, y, *(param)).view(self.__class__)
+        param, fit = gaussfit(np.array(self, dtype="float32"), p0)
+        out = fit.view(self.__class__)
         out._set_info(self, "Gaussian-Fit")
-
-        # set temporal result
         out.temp = param
 
         return out
@@ -170,13 +152,8 @@ class ImgArray(BaseArray):
         rough = self.rescale(scale)
         rough_gauss = rough.gaussfit(p0)
         
-        # rescale parameters
-        param = rough_gauss.temp
-        param[:4] /= scale
-        
-        x = np.arange(self.shape[0])
-        y = np.arange(self.shape[1])
-        out = gauss2d(x, y, *param).view(self.__class__)
+        param, fit = gaussfit(np.array(rough, dtype="float32"), p0, scale=scale)
+        out = fit.view(self.__class__)
         out._set_info(self, f"Rough-Gaussian-Fit(x1/{np.round(1/scale, 1)})")
         out.temp = param
         return out
@@ -199,8 +176,8 @@ class ImgArray(BaseArray):
         ImgArray
             Background subtracted image.
         """        
-        disk_ = disk(radius)
-        out = self.parallel(_tophat, "tzc", disk_, n_cpu=n_cpu)
+        disk = ball_like(radius, 2)
+        out = self.parallel(_tophat, "ptzc", disk, n_cpu=n_cpu)
         out._set_info(self, f"Top-Hat(R={radius})")
         return out
     
@@ -224,13 +201,13 @@ class ImgArray(BaseArray):
         ImgArray
             Background subtracted image.
         """        
-        out = self.parallel(_rolling_ball, "tzc", radius, smoothing, n_cpu=n_cpu)
+        out = self.parallel(_rolling_ball, "ptzc", radius, smoothing, n_cpu=n_cpu)
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def mean_filter(self, radius=1, n_cpu=4):
+    def mean_filter(self, radius=1, n_cpu=4, dims=2):
         """
         Run mean filter.
 
@@ -240,20 +217,22 @@ class ImgArray(BaseArray):
             Radius of filter, by default 1
         n_cpu : int, optional
             Number of CPU to use
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
 
         Returns
         -------
         ImgArray
             Filtered image.
-        """        
-        disk_ = disk(radius)
-        out = self.parallel(_mean, "ptzc", disk_, n_cpu=n_cpu)
-        out._set_info(self, f"Mean-Filter(R={radius})")
+        """
+        disk = ball_like(radius, dims)
+        out = self.parallel(_mean, dims, disk, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Mean-Filter(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def median_filter(self, radius=1, n_cpu=4):
+    def median_filter(self, radius=1, n_cpu=4, dims=2):
         """
         Run median filter. 
 
@@ -263,15 +242,17 @@ class ImgArray(BaseArray):
             Radius of filter, by default 1
         n_cpu : int, optional
             Number of CPU to use
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
 
         Returns
         -------
         ImgArray
             Filtered image.
-        """        
-        disk_ = disk(radius)
-        out = self.parallel(_median, "ptzc", disk_, n_cpu=n_cpu)
-        out._set_info(self, f"Median-Filter(R={radius})")
+        """
+        disk = ball_like(radius, dims)
+        out = self.parallel(_median, dims, disk, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Median-Filter(R={radius})")
         return out
 
     @same_dtype()
@@ -287,21 +268,15 @@ class ImgArray(BaseArray):
         n_cpu : int, optional
             Number of CPU to use, by default 4
         dims : int, optional
-            Dimension of Gaussian, by default 2
+            Dimension of axes, i.e. xy or xyz, by default 2
 
         Returns
         -------
         ImgArray
             Filtered image.
         """        
-        if (dims==2):
-            axes = "ptzc"
-        elif (dims==3):
-            axes = "ptc"
-        else:
-            raise ValueError("dims must be 2 or 3.")
-        out = self.parallel(_gaussian, axes, sigma, n_cpu=n_cpu)
-        out._set_info(self, f"Gaussian-Filter(sigma={sigma})")
+        out = self.parallel(_gaussian, dims, sigma, n_cpu=n_cpu)
+        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
         return out
     
     @record
@@ -310,14 +285,14 @@ class ImgArray(BaseArray):
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with many functions here.
         """
-        freq = fft(self.view(np.ndarray))
+        freq = fft(self.value.astype("float32"))
         out = np.fft.fftshift(freq).view(self.__class__)
         out._set_info(self, "FFT")
         return out
     
     @record
     def ifft(self):
-        freq = np.fft.fftshift(self.view(np.ndarray))
+        freq = np.fft.fftshift(self.value)
         out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
@@ -391,10 +366,11 @@ class ImgArray(BaseArray):
         
         circ = circle(radius, self.xyshape())
         if (not outzero):
-            circ = 1 - circ
+            circ = ~circ
         circ = add_axes(self.axes, self.shape, circ)
-        out = self * circ
-        out.history.pop()
+        out = np.array(self)
+        out[~circ] = 0
+        out = out.view(self.__class__)
         out._set_info(self, f"Crop-Circle(R={radius}, {'outzero' if outzero else 'inzero'})")
         return out
     
@@ -480,7 +456,7 @@ class ImgArray(BaseArray):
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
         axisint = self.axisof(axis)
-        out = func(np.asarray(self), axis=axisint).view(self.__class__)
+        out = func(self.value, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out
 
@@ -514,7 +490,7 @@ class ImgArray(BaseArray):
         
         if (lowerlim >= upperlim):
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
-        out = np.clip(np.asarray(self), lowerlim, upperlim)
+        out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
         out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
         out.temp = [lowerlim, upperlim]
@@ -562,7 +538,9 @@ class ImgArray(BaseArray):
         return out
 
     def sort_axes(self):
-        return self.transpose(self.axes.argsort())
+        arr = np.array(self.axes.argsort())
+        order = arr[arr]
+        return self.transpose(order)
     
     # numpy functions that will change/discard order
     def transpose(self, axes):
@@ -597,38 +575,64 @@ class ImgArray(BaseArray):
 
 # non-member functions.
 
-def array(arr, name="array", dtype="uint16", axes=None, dirpath="", history=[], metadata={}, lut=None):
+def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     """
     make an ImgArray object, just like np.array(x)
     """
-    if (isinstance(arr, ImgArray)):
-        return arr
-    
     if (isinstance(arr, str)):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
         
-    self = np.array(arr, dtype=dtype).view(ImgArray)
-    self.axes = axes
-    self.dirpath = dirpath
-    self.name = name
-    self.history = history
-    self.metadata = metadata
-    self.lut = lut
+    self = ImgArray(np.array(arr, dtype=dtype), name=name, axes=axes, lut=lut)
     
     return self
 
-def imread(path:str, dtype:str="uint16"):
-    # make object
+def imread(path:str, dtype:str="uint16", axes=None, lut=None):
+    """
+    Load image from path.
+
+    Parameters
+    ----------
+    path : str
+        Path to the image.
+    dtype : str, optional
+        dtype of the image, by default "uint16"
+    axes : str or None, optional
+        If the image does not have axes metadata, this value will be used.
+    lut : list of str, or None, optional
+        LUT of the image.
+
+    Returns
+    -------
+    ImgArray
+    """    
     if (not os.path.exists(path)):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
-    meta = get_meta(path)
-    self = ImgArray(path, axes=meta["axes"])
-    self.metadata = meta["ijmeta"]
-    if (meta["history"]):
-        self.name = meta["history"].pop(0)
-        self.history = meta["history"]
+    fname, fext = os.path.splitext(os.path.basename(path))
+    # read tif metadata
+    if (fext == ".tif"):
+        meta = get_meta(path)
+    else:
+        meta = {"axes":axes, "ijmeta":{}, "history":[]}
     
+    img = io.imread(path)
+    
+    dirpath = os.path.dirname(path)
+    
+    axes = meta["axes"]
+    metadata = meta["ijmeta"]
+    lut = None                  # TODO: read LUT from ImageJ metadata
+    if (meta["history"]):
+        name = meta["history"].pop(0)
+        history = meta["history"]
+    else:
+        name = fname
+        history = []
+        
+    
+    self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
+                    history=history, metadata=metadata, lut=lut)
+        
     # In case the image is in yxc-order. This sometimes happens.
     if ("c" in self.axes and self.sizeof("c") > self.sizeof("x")):
         self = np.moveaxis(self, -1, -3)
@@ -636,7 +640,10 @@ def imread(path:str, dtype:str="uint16"):
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
+    if (self.axes.is_none()):
+        return self
+    else:
+        return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
 def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False, dtype="uint16"):
     """
@@ -647,7 +654,7 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     dirname : str
         Path to the directory
     axis : str, optional
-        To specify which axis will be the new one, by default "s"
+        To specify which axis will be the new one, by default "p"
     ext : str, optional
         Extension of files, by default "tif"
     ignore_exception : bool, optional
@@ -701,7 +708,7 @@ def stack(imgs, axis="c", dtype="uint16"):
         new_axes = None
         _axis = 0
 
-    arrs = [np.asarray(img.as_img_type(dtype)) for img in imgs]
+    arrs = [img.as_img_type(dtype).value for img in imgs]
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
