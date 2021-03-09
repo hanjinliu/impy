@@ -53,31 +53,31 @@ class ImgArray(BaseArray):
         super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
                          history=history, metadata=metadata, lut=lut)
 
-    @same_dtype()
+    @same_dtype(True)
     @record
     def affine(self, dims=2, n_cpu=4, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
+        # TODO: implement 3D
         mx = sktrans.AffineTransform(**kwargs)
-        out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
         out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
         out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
-    @same_dtype()
+    @same_dtype(True)
     @record
-    def translate(self, translation=None):
+    def translate(self, dims=2, n_cpu=4, translation=None):
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = sktrans.warp(self.view(np.ndarray), mx).view(self.__class__)
+        out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
         out._set_info(self, f"Translate{translation}")
         return out
 
-    @same_dtype()
+    @same_dtype(True)
     @record
     def rescale(self, scale=1/16):
         try:
@@ -90,7 +90,7 @@ class ImgArray(BaseArray):
                 scale_.append(scale)
             else:
                 scale_.append(1)
-        out = sktrans.rescale(self.view(np.ndarray).astype("float64"), scale_, anti_aliasing=False).view(self.__class__)
+        out = sktrans.rescale(self.value, scale_, anti_aliasing=False).view(self.__class__)
         out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
         return out
     
@@ -283,7 +283,7 @@ class ImgArray(BaseArray):
     def fft(self):
         """
         Fast Fourier transformation.
-        This function returns complex array. Inconpatible with many functions here.
+        This function returns complex array. Inconpatible with some functions here.
         """
         freq = fft(self.value.astype("float32"))
         out = np.fft.fftshift(freq).view(self.__class__)
@@ -538,6 +538,14 @@ class ImgArray(BaseArray):
         return out
 
     def sort_axes(self):
+        """
+        Sort image dimensions to ptzcyx-order
+
+        Returns
+        -------
+        ImgArray
+            Sorted image
+        """
         arr = np.array(self.axes.argsort())
         order = arr[arr]
         return self.transpose(order)
@@ -691,10 +699,23 @@ def read_meta(path:str):
 
 def stack(imgs, axis="c", dtype="uint16"):
     """
-    imgs: list or tuple (or other iterable objects) of 2D-images.
-    axis: to specify which axis will be the new axis.
-    This function can be used to create stack, hyperstack or multi-channel image
-    """
+    Create stack image from list of images.
+
+    Parameters
+    ----------
+    imgs : iterable object of images.
+        Images to stack. These images must have exactly the same shapes.
+    axis : str, optional
+        Which axis will be the new one, by default "c"
+    dtype : str, optional
+        Output dtype, by default "uint16"
+
+    Returns
+    -------
+    ImgArray
+        Image stack
+
+    """    
     
     if (isinstance(imgs, np.ndarray)):
         raise TypeError("cannot stack single array.")

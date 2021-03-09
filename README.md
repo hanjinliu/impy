@@ -27,7 +27,7 @@ img
         dtype     : uint16
       directory   : ...\images
     original image: XXX
-       history    : mean-Projection(axis=t)->Median-Filter(R=3)->getitem[0]
+       history    : mean-Projection(axis=t)->2D-Median-Filter(R=3)->getitem[0]
 
 ## Basic Usage
 
@@ -61,7 +61,7 @@ img.lut = ["teal", "violet", "gold"]
 - `name` = name of the original image.
 - `dirpath` = absolute path to the original image.
 - `history` = history of applied analysis.
-- `axes` = dimensions of image, "tzcyxs"-order.
+- `axes` = dimensions of image, "ptzcyx"-order.
 - `lut` = look up table.
 - `value` (property) = show the array in numpy format.
 - `range` (property) = return a tuple of min/max.
@@ -91,10 +91,10 @@ img + 10000     # pixel values larger than 65535
 img - 10000     # pixel values smaller than 0 is
                 # substituted to 0
 
-img/10          # output is converted to float32 
+img / 10        # output is converted to float32 
                 # where `img` itself is not
 
-img/=10         # `img` is converted to float32
+img /= 10       # `img` is converted to float32
 ```
 
 ## Flexible Slicing
@@ -137,4 +137,4 @@ You can also measure images and obtain ROIs
 - `split` = split the image along any axis.
 
 # References
-For 3-D PSF generation, [flowdec](https://github.com/hammerlab/flowdec) is imported in this package. For 3-D deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.
+For 3-D PSF generation, [flowdec](https://github.com/hammerlab/flowdec) is imported in this package. For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.
