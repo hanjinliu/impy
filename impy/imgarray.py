@@ -18,6 +18,7 @@ from .roi import Rectangle
 def _affine(args):
     sl, data, mx = args
     return (sl, sktrans.warp(data, mx))
+
 def _median(args):
     sl, data, selem = args
     return (sl, skfil.rank.median(data, selem))
@@ -409,7 +410,7 @@ class ImgArray(BaseArray):
         y0 = int(sizey / 2 * (1 - scale)) + 1
         y1 = int(sizey / 2 * (1 + scale))
 
-        out = self.getitem(f"x={x0}-{x1},y={y0}-{y1}")
+        out = self[f"x={x0}-{x1},y={y0}-{y1}"]
         out.history[-1] = f"Crop-Center(scale={scale})"
         
         return out
