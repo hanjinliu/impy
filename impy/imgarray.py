@@ -164,14 +164,14 @@ class ImgArray(BaseArray):
             imgs = [img for img in self.split("c")]
             
         corrected = []
-        print("fitting ...", end="")
+        print("fitting ... ", end="")
         for i, img in enumerate(imgs):
             if i == base:
                 corrected.append(self[f"c={i+1}"])
             else:
                 mtx = affinefit(img, imgs[base], bins, order)
                 corrected.append(self[f"c={i+1}"].affine(order=order, matrix=mtx))
-        print("\rfitting completed")
+
         out = stack(corrected, axis="c", dtype=self.dtype)
         out._set_info(self, f"Affine-Correction(order={order})")
         return out
