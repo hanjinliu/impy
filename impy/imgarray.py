@@ -10,14 +10,14 @@ from skimage import restoration as skres
 from skimage import exposure as skexp
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, gaussfit, circle, del_axis, add_axes, ball_like
+from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
 from .base import BaseArray
 from .axes import Axes
 from .roi import Rectangle
 
 def _affine(args):
-    sl, data, mx = args
-    return (sl, sktrans.warp(data, mx))
+    sl, data, mx, order = args
+    return (sl, sktrans.warp(data, mx, order=order))
 
 def _median(args):
     sl, data, selem = args
@@ -56,14 +56,14 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def affine(self, dims=2, n_cpu=4, **kwargs):
+    def affine(self, dims=2, n_cpu=4, order=1, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
         # TODO: implement 3D
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
+        out = self.parallel(_affine, dims, mx, order, n_cpu=n_cpu)
         out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
@@ -97,12 +97,14 @@ class ImgArray(BaseArray):
     
     
     @record
-    def gaussfit(self, p0=None):
+    def gaussfit(self, scale=1/16, p0=None):
         """
         Fit the image to 2-D Gaussian.
 
         Parameters
         ----------
+        scale : float, optional
+            Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters, by default None
 
@@ -119,44 +121,59 @@ class ImgArray(BaseArray):
         if (self.ndim != 2):
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        param, fit = gaussfit(np.array(self, dtype="float32"), p0)
+        param, fit = gaussfit(self, p0, scale=scale)
         out = fit.view(self.__class__)
-        out._set_info(self, "Gaussian-Fit")
+        out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
         out.temp = param
 
         return out
     
     @record
-    def rough_gaussfit(self, scale=1/16, p0=None):
+    def affine_correction(self, base=0, bins=256, order=3, prefilter=True):
         """
-        Execute gaussfit() after making a rough image using rescale(), for large image.
-        Optimal parameter set is also correctly scaled and stored in attribute 'temp'.
+        Correct chromatic aberration using Affine transformation. Input matrix is
+        determined by maximizing normalized mutual information.
 
         Parameters
         ----------
-        scale: float
-            Size of rough image.
-            
-        p0 : list or None, optional
-            Initial parameters, by default None
+        base : int, optional
+            Which channel will be the reference, by default 0
+        bins : int, optional
+            Number of bins that is generated on calculating mutual information, 
+            by default 256
+        order : int, optional
+            Interporation order, by default 3
+        prefilter: bool
+            If median filter is applied to all images before fitting. This does not
+            change original images. By default True.
 
         Returns
         -------
         ImgArray
-            Fit image.
-
-        Raises
-        ------
-        TypeError
-            If self is not two dimensional.
-        """ 
-        rough = self.rescale(scale)
-        rough_gauss = rough.gaussfit(p0)
+            Corrected image.
+        """        
+        if "c" not in self.axes:
+            raise ValueError("Image does not have channel axis.")
+        elif self.sizeof("c") < 2:
+            raise ValueError("Image must have two channels or more.")
         
-        param, fit = gaussfit(np.array(rough, dtype="float32"), p0, scale=scale)
-        out = fit.view(self.__class__)
-        out._set_info(self, f"Rough-Gaussian-Fit(x1/{np.round(1/scale, 1)})")
-        out.temp = param
+        # images of all channels
+        if prefilter:
+            imgs = [img for img in self.median_filter(radius=1).split("c")]
+        else:
+            imgs = [img for img in self.split("c")]
+            
+        corrected = []
+        print("fitting ... ", end="")
+        for i, img in enumerate(imgs):
+            if i == base:
+                corrected.append(self[f"c={i+1}"])
+            else:
+                mtx = affinefit(img, imgs[base], bins, order)
+                corrected.append(self[f"c={i+1}"].affine(order=order, matrix=mtx))
+
+        out = stack(corrected, axis="c", dtype=self.dtype)
+        out._set_info(self, f"Affine-Correction(order={order})")
         return out
     
     @same_dtype()
@@ -462,7 +479,7 @@ class ImgArray(BaseArray):
         return out
 
     
-    def clip_outliers(self, in_range=(0, 100)):
+    def clip_outliers(self, in_range=("0%", "100%")):
         """
         Saturate low/high intensity using np.clip.mean
 
@@ -474,20 +491,24 @@ class ImgArray(BaseArray):
         Returns
         -------
         ImgArray
-            Clipped image with temporary attribute
+            Clipped image with temporal attribute
         """        
         lower, upper = in_range
         if (isinstance(lower, str) and lower.endswith("%")):
             lower = float(lower[:-1])
             lowerlim = np.percentile(self, lower)
+        elif (lower is None):
+            lowerlim = np.min(self)
         else:
             lowerlim = float(lower)
         
         if (isinstance(upper, str) and upper.endswith("%")):
             upper = float(upper[:-1])
             upperlim = np.percentile(self, upper)
+        elif (upper is None):
+            upperlim = np.max(self)
         else:
-            lowerlim = float(lower)
+            upperlim = float(lower)
         
         if (lowerlim >= upperlim):
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
@@ -498,7 +519,7 @@ class ImgArray(BaseArray):
         return out
         
         
-    def rescale_intensity(self, in_range=(0, 100), dtype=np.uint16):
+    def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16):
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity.
 
@@ -512,21 +533,25 @@ class ImgArray(BaseArray):
         Returns
         -------
         ImgArray
-            Rescaled image
+            Rescaled image with temporal attribute
         """        
         out = self.view(np.ndarray).astype("float32")
         lower, upper = in_range
         if (isinstance(lower, str) and lower.endswith("%")):
             lower = float(lower[:-1])
             lowerlim = np.percentile(out, lower)
+        elif (lower is None):
+            lowerlim = np.min(out)
         else:
             lowerlim = float(lower)
         
         if (isinstance(upper, str) and upper.endswith("%")):
             upper = float(upper[:-1])
             upperlim = np.percentile(out, upper)
+        elif (upper is None):
+            upperlim = np.max(out)
         else:
-            lowerlim = float(lower)
+            upperlim = float(lower)
         
         if (lowerlim >= upperlim):
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")

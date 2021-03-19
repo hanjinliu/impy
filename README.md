@@ -126,11 +126,12 @@ You can also measure images and obtain ROIs
 
 - `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
 - `lucy3d` (plugin) = 3-D deconvolution of confocal images.
-- `affine` = Affine transformation.
+- `affine_correction` = Correction of such as chromatic aberration using Affine transformation.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` = for filtering.
 - `rolling_ball`, `tophat` = for background subtraction.
-- `rough_gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).
+- `gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).
 - `fft`, `ifft` = Fourier transformation.
+- `threshold` = thresholding.
 - `crop_center`, `crop_circle` = crop image.
 - `rescale_intensity` = rescale the intensity profile in certain range.
 - `proj` = Z-projection along any axis.
