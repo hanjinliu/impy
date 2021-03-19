@@ -2,8 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from scipy import optimize as opt
+from scipy.stats import entropy
 from tifffile import TiffFile
 from skimage.morphology import disk, ball
+from skimage import transform as sktrans
 from functools import wraps
 import time
 import json
@@ -98,9 +100,10 @@ def gauss2d(x, y, mu1, mu2, sg1, sg2, A, B):
     """
     x, y = np.meshgrid(y, x)
     
-    z = A*np.exp(-((((x - mu1)/sg1)**2) + (((y - mu2)/sg2)**2))/2) + B
+    z = A*np.exp(-((((x - mu1)/sg1)**2) + ((y - mu2)/sg2)**2)/2) + B
     
     return z
+
 
 def square(params, func, z):
     """
@@ -111,7 +114,7 @@ def square(params, func, z):
     y = np.arange(z.shape[1])
     z_guess = func(x, y, *params)
     return np.mean((z - z_guess)**2)
-
+    
 def gaussfit(img2d, p0=None, scale=1):
     """
     Fit 2-D image to 2-D gaussian
@@ -122,22 +125,148 @@ def gaussfit(img2d, p0=None, scale=1):
     p0 : initial parameters
     scale : float, optional
     """
+    
+    rough = img2d.rescale(scale).value.astype("float32")
+    
     if (p0 is None):
-        mu1, mu2 = np.unravel_index(np.argmax(img2d), img2d.shape)  # 2-dim argmax
-        sg1 = img2d.shape[0]
-        sg2 = img2d.shape[1]
-        B = np.percentile(img2d, 5)
-        A = np.percentile(img2d, 95) - B
+        mu1, mu2 = np.unravel_index(np.argmax(rough), rough.shape)  # 2-dim argmax
+        sg1 = rough.shape[0]
+        sg2 = rough.shape[1]
+        B = np.percentile(rough, 5)
+        A = np.percentile(rough, 95) - B
         p0 = mu1, mu2, sg1, sg2, A, B
     
-    param = opt.minimize(square, p0, args=(gauss2d, img2d)).x
+    param = opt.minimize(square, p0, args=(gauss2d, rough)).x
     param[:4] /= scale
     
     x = np.arange(img2d.shape[0])
     y = np.arange(img2d.shape[1])
 
     fit = gauss2d(x, y, *param).astype("float32")
+    
+    # show fitting result
+    x0 = img2d.shape[1]//2
+    y0 = img2d.shape[0]//2
+    plt.figure(figsize=(6,4))
+    plt.subplot(2,1,1)
+    plt.title("x-direction")
+    plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
+    plt.plot(fit[y0], color="red", label="fit")
+    plt.subplot(2,1,2)
+    plt.title("y-direction")
+    plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
+    plt.plot(fit[:,x0], color="red", label="fit")
+    plt.tight_layout()
+    plt.show()
     return param, fit
+
+
+def affinefit(img, imgref, bins=256, order=3):
+    as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
+    
+    def normalized_mutual_information(img, imgref):
+        """
+        Y(A,B) = (H(A)+H(B))/H(A,B)
+        See "Elegant SciPy"
+        """
+        hist, edges = np.histogramdd([np.ravel(img), np.ravel(imgref)], bins=bins)
+        hist /= np.sum(hist)
+        e1 = entropy(np.sum(hist, axis=0)) # Shannon entropy
+        e2 = entropy(np.sum(hist, axis=1))
+        e12 = entropy(np.ravel(hist)) # mutual entropy
+        return (e1 + e2)/e12
+    
+    def cost_nmi(mtx, img, imgref):
+        mtx = sktrans.AffineTransform(matrix=as_3x3_matrix(mtx))
+        img_transformed = sktrans.warp(img, mtx, order=order)
+        return -normalized_mutual_information(img_transformed, imgref)
+    
+    mtx0 = np.array([[1., 0., 0.],
+                     [0., 1., 0.]]) # aberration makes little difference
+    
+    result = opt.minimize(cost_nmi, mtx0, args=(np.asarray(img), np.asarray(imgref)), method="Powell")
+    mtx_opt = as_3x3_matrix(result.x)
+    return mtx_opt
+    
+
+
+# # # This is from affine correction with 2D-Gaussian fitting using manually # # #
+# # # selected ROIs.
+
+# def _affinefit(x, y, xref, yref):
+#     """
+#     Aberration correction using Affine transformation.
+#     Make (x, y) close to (xref, yref).
+#     """
+#     as3x3 = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
+#     def _square(mtx, xy, xy0):
+#         mtx = as3x3(mtx)
+#         return np.sum((xy0 - mtx @ xy)**2)
+    
+#     if not len(x) == len(y) == len(xref) == len(yref):
+#         raise ValueError("all input arrays must have same length.")
+    
+#     mtx0 = np.array([[1., 0., 0.],
+#                      [0., 1., 0.]]) # aberration makes little difference
+    
+#     xy = np.vstack((x, y, np.ones(len(x))))
+#     xyref = np.vstack((xref, yref, np.ones(len(xref))))
+#     out = opt.minimize(_square, mtx0, args=(xy, xyref))
+    
+#     mtx_opt = as3x3(out.x)
+#     corrected = mtx_opt @ xy
+#     return mtx_opt, corrected[0,:], corrected[1,:]
+
+# def affinefit(img2d, img2dref, xdata, ydata, w=10):
+#     xlist = []
+#     ylist = []
+#     xreflist = []
+#     yreflist = []
+#     n_passed = 0
+#     n_failed = 0
+#     # Fit each particle to 2D-Gaussian
+#     for i, (x, y) in enumerate(zip(xdata, ydata)):
+#         try:
+#             x=int(x)
+#             y=int(y)
+#             corner = np.array([x-w, y-w])
+#             p1 = GaussianParticle(img2d[y-w:y+w,x-w:x+w], corner)
+#             p2 = GaussianParticle(img2dref[y-w:y+w,x-w:x+w], corner)
+#             if p1.check() and p2.check():
+#                 xlist.append(p1.x)
+#                 ylist.append(p1.y)
+#                 xreflist.append(p2.x)
+#                 yreflist.append(p2.y)
+#                 n_passed += 1
+#             else:
+#                 n_failed += 1
+                
+#         except:
+#             n_failed += 1
+            
+#     print(f"passed: {n_passed}, failed: {n_failed}")
+#     xlist = np.array(xlist)
+#     ylist = np.array(ylist)
+#     xreflist = np.array(xreflist)
+#     yreflist = np.array(yreflist)
+    
+#     # minimize distance by Affine transformation
+#     mtx_opt, xcor, ycor = _affinefit(xlist, ylist, xreflist, yreflist)
+    
+#     result = AffineCorrectionResult()
+#     result.x = xlist
+#     result.y = ylist
+#     result.xcor = xcor
+#     result.ycor = ycor
+#     result.xref = xreflist
+#     result.yref = yreflist
+#     result.matrix = mtx_opt
+#     result.rmsd = np.sqrt(np.mean((xlist-xreflist)**2 + (ylist-yreflist)**2))
+#     result.rmsd_cor = np.sqrt(np.mean((xcor-xreflist)**2 + (ycor-yreflist)**2))
+    
+#     return result
+
+        
 
 def circle(radius, shape, dtype="bool"):
     x = np.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
@@ -146,9 +275,9 @@ def circle(radius, shape, dtype="bool"):
     return np.array((dx ** 2 + dy ** 2) <= radius ** 2, dtype=dtype)
 
 def ball_like(radius, dims:int):
-    if (dims == 2):
+    if dims == 2:
         return disk(radius)
-    elif (dims == 3):
+    elif dims == 3:
         return ball(radius)
     else:
         raise ValueError(f"dims must be 2 or 3, but got {dims}")
