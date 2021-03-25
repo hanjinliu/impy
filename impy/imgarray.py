@@ -129,7 +129,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def affine_correction(self, base=0, bins=256, order=3, prefilter=True):
+    def affine_correction(self, base=0, bins=256, order=3, prefilter=True, axis="c"):
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
@@ -143,9 +143,13 @@ class ImgArray(BaseArray):
             by default 256
         order : int, optional
             Interporation order, by default 3
-        prefilter: bool
+        prefilter : bool
             If median filter is applied to all images before fitting. This does not
             change original images. By default True.
+        axis : str
+            Along which axis correction will be performed, by default "c".
+            Chromatic aberration -> "c"
+            Some drift during time lapse movie -> "t"
 
         Returns
         -------
@@ -159,21 +163,24 @@ class ImgArray(BaseArray):
         
         # images of all channels
         if prefilter:
-            imgs = [img for img in self.median_filter(radius=1).split("c")]
+            imgs = [img for img in self.median_filter(radius=1).split(axis)]
         else:
-            imgs = [img for img in self.split("c")]
+            imgs = [img for img in self.split(axis)]
             
         corrected = []
+        matrices = []
         print("fitting ... ", end="")
         for i, img in enumerate(imgs):
             if i == base:
                 corrected.append(self[f"c={i+1}"])
             else:
                 mtx = affinefit(img, imgs[base], bins, order)
-                corrected.append(self[f"c={i+1}"].affine(order=order, matrix=mtx))
+                corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=mtx))
+                matrices.append(mtx)
 
-        out = stack(corrected, axis="c", dtype=self.dtype)
+        out = stack(corrected, axis=axis, dtype=self.dtype)
         out._set_info(self, f"Affine-Correction(order={order})")
+        out.temp = matrices
         return out
     
     @same_dtype()
