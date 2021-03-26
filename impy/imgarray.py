@@ -129,15 +129,16 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def affine_correction(self, base=0, bins=256, order=3, prefilter=True, axis="c"):
+    def affine_correction(self, ref=None, bins=256, order=3, prefilter=True, axis="c"):
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
 
         Parameters
         ----------
-        base : int, optional
-            Which channel will be the reference, by default 0
+        ref : int, optional
+            Reference image-stack to calculate Affine transformation matrices, or
+            matrices themselves.
         bins : int, optional
             Number of bins that is generated on calculating mutual information, 
             by default 256
@@ -155,32 +156,68 @@ class ImgArray(BaseArray):
         -------
         ImgArray
             Corrected image.
-        """        
-        if "c" not in self.axes:
-            raise ValueError("Image does not have channel axis.")
-        elif self.sizeof("c") < 2:
-            raise ValueError("Image must have two channels or more.")
+        """
+        def check_c_axis(self):
+            if not hasattr(self, "axes"):
+                raise AttributeError("Image dose not have axes.")
+            elif "c" not in self.axes:
+                raise ValueError("Image does not have channel axis.")
+            elif self.sizeof("c") < 2:
+                raise ValueError("Image must have two channels or more.")
         
-        # images of all channels
-        if prefilter:
-            imgs = [img for img in self.median_filter(radius=1).split(axis)]
-        else:
-            imgs = [img for img in self.split(axis)]
+        check_c_axis(self)
+        
+        mtx = None
+        
+        # check `ref`
+        if ref is None:
+            # correct self
+            ref = self
             
+        elif isinstance(ref, np.ndarray):
+            # ref is single Affine transformation matrix or a reference image stack.
+            if ref.shape == (3, 3) and np.allclose(ref[2,:2], 0):
+                mtx = [1, ref]
+            else:
+                check_c_axis(ref)
+                
+        elif isinstance(ref, (list, tuple)):
+            # ref is a list of Affine transformation matrix
+            for m in ref:
+                if isinstance(m, (int, float)) and m == 1:
+                    pass
+                    
+                elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
+                    raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
+        
+        else:
+            raise TypeError("`ref` must be image or (list of) Affine transformation matrices.")
+        
+        
+        # Determine matrices by fitting
+        if mtx is None:
+            if prefilter:
+                imgs = [img for img in ref.median_filter(radius=1).split(axis)]
+            else:
+                imgs = [img for img in ref.split(axis)]
+                
+            print("fitting ... ", end="")
+            mtx = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
+        
+        if len(mtx) != self.sizeof("c"):
+            nchn = self.sizeof("c")
+            raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
+        
         corrected = []
-        matrices = []
-        print("fitting ... ", end="")
-        for i, img in enumerate(imgs):
-            if i == base:
+        for i, m in enumerate(mtx):
+            if m == 1:
                 corrected.append(self[f"c={i+1}"])
             else:
-                mtx = affinefit(img, imgs[base], bins, order)
-                corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=mtx))
-                matrices.append(mtx)
+                corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=m))
 
         out = stack(corrected, axis=axis, dtype=self.dtype)
         out._set_info(self, f"Affine-Correction(order={order})")
-        out.temp = matrices
+        out.temp = mtx
         return out
     
     @same_dtype()
