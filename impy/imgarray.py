@@ -160,9 +160,9 @@ class ImgArray(BaseArray):
         def check_c_axis(self):
             if not hasattr(self, "axes"):
                 raise AttributeError("Image dose not have axes.")
-            elif "c" not in self.axes:
+            elif axis not in self.axes:
                 raise ValueError("Image does not have channel axis.")
-            elif self.sizeof("c") < 2:
+            elif self.sizeof(axis) < 2:
                 raise ValueError("Image must have two channels or more.")
         
         check_c_axis(self)
@@ -183,12 +183,19 @@ class ImgArray(BaseArray):
                 
         elif isinstance(ref, (list, tuple)):
             # ref is a list of Affine transformation matrix
+            mtx = []
             for m in ref:
-                if isinstance(m, (int, float)) and m == 1:
-                    pass
+                if isinstance(m, (int, float)): 
+                    if m == 1:
+                        mtx.append(m)
+                    else:
+                        raise ValueError(f"Only `1` is ok, but got {m}")
                     
                 elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
                     raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
+                
+                else:
+                    mtx.append(m)
         
         else:
             raise TypeError("`ref` must be image or (list of) Affine transformation matrices.")
@@ -204,14 +211,14 @@ class ImgArray(BaseArray):
             print("fitting ... ", end="")
             mtx = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
         
-        if len(mtx) != self.sizeof("c"):
-            nchn = self.sizeof("c")
+        if len(mtx) != self.sizeof(axis):
+            nchn = self.sizeof(axis)
             raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
         
         corrected = []
         for i, m in enumerate(mtx):
-            if m == 1:
-                corrected.append(self[f"c={i+1}"])
+            if isinstance(m, (int, float)) and m==1:
+                corrected.append(self[f"{axis}={i+1}"])
             else:
                 corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=m))
 
