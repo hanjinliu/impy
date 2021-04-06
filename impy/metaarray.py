@@ -77,9 +77,6 @@ class MetaArray(np.ndarray):
             # img["t=2,z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__getitem__(sl)
-        elif hasattr(key, "__as_roi__"):
-            # img[roi] ... get item from ROI.
-            return key.__as_roi__(self)
 
         if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
             # img[arr] ... where arr is 2-D boolean array
@@ -103,6 +100,120 @@ class MetaArray(np.ndarray):
             out._set_info(self, new_axes)
         
         return out
+    
+    def __array_finalize__(self, obj):
+        """
+        Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
+        this function will be called to set essential attributes.
+        Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
+        """
+        if obj is None: return None
+        self.dirpath = getattr(obj, "dirpath", None)
+        self.name = getattr(obj, "name", None)
+
+        try:
+            self.axes = getattr(obj, "axes", None)
+        except:
+            self.axes = None
+        if not self.axes.is_none() and len(self.axes) != self.ndim:
+            self.axes = None
+        
+        self.metadata = getattr(obj, "metadata", {})
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        """
+        Every time a numpy universal function (add, subtract, ...) is called,
+        this function will be called to set/update essential attributes.
+        """
+        # convert to np.array
+        def _replace_self(a):
+            if (a is self): return a.view(np.ndarray)
+            else: return a
+
+        # call numpy function
+        args = tuple(_replace_self(a) for a in inputs)
+
+        if "out" in kwargs:
+            kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
+
+        result = getattr(ufunc, method)(*args, **kwargs)
+
+        if result is NotImplemented:
+            return NotImplemented
+        
+        result = result.view(self.__class__)
+        
+        # in the case result is such as np.float64
+        if not isinstance(result, self.__class__):
+            return result
+        
+        self._inherit_meta()
+        
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        """
+        Every time a numpy universal function (add, subtract, ...) is called,
+        this function will be called to set/update essential attributes.
+        """
+        # convert to np.array
+        def _replace_self(a):
+            if (a is self): return a.view(np.ndarray)
+            else: return a
+
+        # call numpy function
+        args = tuple(_replace_self(a) for a in inputs)
+
+        if "out" in kwargs:
+            kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
+
+        result = getattr(ufunc, method)(*args, **kwargs)
+
+        if result is NotImplemented:
+            return NotImplemented
+        
+        result = result.view(self.__class__)
+        
+        # in the case result is such as np.float64
+        if not isinstance(result, self.__class__):
+            return result
+        
+        return result._inherit_meta(ufunc, *inputs, **kwargs)
+    
+    def _inherit_meta(self, ufunc, *inputs, **kwargs):
+        # set attributes for output
+        name = "no name"
+        dirpath = ""
+        input_ndim = -1
+        axes = None
+        metadata = None
+        for input_ in inputs:
+            if isinstance(input_, self.__class__):
+                name = input_.name
+                dirpath = input_.dirpath
+                axes = input_.axes
+                input_ndim = input_.ndim
+                metadata = input_.metadata.copy()
+                break
+
+        self.dirpath = dirpath
+        self.name = name
+        self.metadata = metadata
+        
+        # set axes
+        if axes is None:
+            self.axes = None
+        elif input_ndim == self.ndim:
+            self.axes = axes
+        elif input_ndim > self.ndim:
+            self.lut = None
+            if "axis" in kwargs.keys() and not self.axes.is_none():
+                axis = kwargs["axis"]
+                self.axes = del_axis(axes, axis)
+            else:
+                self.axes = None
+        else:
+            self.axes = None
+
+        return self
     
     def str_to_slice(self, string):
         """
@@ -148,6 +259,19 @@ class MetaArray(np.ndarray):
 
         return tuple(input_keylist)
     
+    def sort_axes(self):
+        """
+        Sort image dimensions to ptzcyx-order
+
+        Returns
+        -------
+        MetaArray
+            Sorted image
+        """
+        arr = np.array(self.axes.argsort())
+        order = arr[arr]
+        return self.transpose(order)
+    
     # numpy functions that will change/discard order
     def transpose(self, axes):
         """
@@ -171,3 +295,15 @@ class MetaArray(np.ndarray):
         out = super().ravel()
         out._set_info(self, new_axes=None)
         return out
+    
+    def axisof(self, axisname):
+        if (type(axisname) is int):
+            return axisname
+        else:
+            return self.axes.find(axisname)
+    
+    def xyshape(self):
+        return self.sizeof("x"), self.sizeof("y")
+    
+    def sizeof(self, axis:str):
+        return self.shape[self.axes.find(axis)]

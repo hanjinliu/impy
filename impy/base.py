@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr
 from .axes import Axes
+from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
 import itertools
@@ -24,7 +25,7 @@ def check_value(__op__):
     return wrapper
 
 # TODO: make lut compatible with imagej
-class BaseArray(np.ndarray):
+class BaseArray(MetaArray):
     """
     Array implemented with basic functions.
     - axes information such as tzyx.
@@ -293,7 +294,7 @@ class BaseArray(np.ndarray):
         this function will be called to set essential attributes.
         Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
         """
-        if (obj is None): return None
+        if obj is None: return None
         self.dirpath = getattr(obj, "dirpath", None)
         self.name = getattr(obj, "name", None)
         self.history = getattr(obj, "history", [])
@@ -339,7 +340,10 @@ class BaseArray(np.ndarray):
         # in the case result is such as np.float64
         if not isinstance(result, self.__class__):
             return result
-
+        
+        return result._inherit_meta(ufunc, *inputs, **kwargs)
+    
+    def _inherit_meta(self, ufunc, *inputs, **kwargs):
         # set attributes for output
         name = "no name"
         dirpath = ""
@@ -360,30 +364,31 @@ class BaseArray(np.ndarray):
                 lut = input_.lut
                 break
 
-        result.dirpath = dirpath
-        result.name = name
-        result.history = history
-        result.metadata = metadata
+        self.dirpath = dirpath
+        self.name = name
+        self.history = history
+        self.metadata = metadata
         
         # set axes
         if axes is None:
-            result.axes = None
-            result.lut = None
-        elif input_ndim == result.ndim:
-            result.axes = axes
-            result.lut = lut
-        elif input_ndim > result.ndim:
-            result.lut = None
+            self.axes = None
+            self.lut = None
+        elif input_ndim == self.ndim:
+            self.axes = axes
+            self.lut = lut
+        elif input_ndim > self.ndim:
+            self.lut = None
             if "axis" in kwargs.keys() and not self.axes.is_none():
                 axis = kwargs["axis"]
-                result.axes = del_axis(axes, axis)
+                self.axes = del_axis(axes, axis)
             else:
-                result.axes = None
+                self.axes = None
         else:
-            result.axes = None
-            result.lut = None
+            self.axes = None
+            self.lut = None
 
-        return result
+        return self
+    
     
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
