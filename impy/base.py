@@ -488,15 +488,16 @@ class BaseArray(np.ndarray):
         """
         Show intensity profile.
         """
-        if (newfig):
+        if newfig:
             plt.figure(figsize=(4, 1.7))
 
         nbin = min(int(np.sqrt(self.size / 3)), 256)
-        y, x = histogram(self.flatten(), nbins=nbin)
+        d = self.astype("uint8").ravel() if self.dtype == bool else self.ravel()
+        y, x = histogram(d, nbins=nbin)
         plt.plot(x, y, color="gray")
         plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
         
-        if (contrast is None):
+        if contrast is None:
             contrast = [self.min(), self.max()]
         x0, x1 = contrast
         
@@ -507,9 +508,12 @@ class BaseArray(np.ndarray):
         return None
 
     def imshow(self, **kwargs):
-        if (self.ndim == 2):
-            vmax = np.percentile(self[self>0], 99.99)
-            vmin = np.percentile(self[self>0], 0.01)
+        if self.ndim == 2:
+            if self.dtype == bool:
+                vmax = vmin = None
+            else:
+                vmax = np.percentile(self[self>0], 99.99)
+                vmin = np.percentile(self[self>0], 0.01)
             cmaps = self.get_cmaps()
             imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
             imshow_kwargs.update(kwargs)
@@ -517,15 +521,19 @@ class BaseArray(np.ndarray):
             plt.imshow(self, **imshow_kwargs)
             self.hist()
             
-        elif (self.ndim == 3):
-            if ("c" not in self.axes):
+        elif self.ndim == 3:
+            if "c" not in self.axes:
                 imglist = [s[1] for s in self.iter("ptzs", False)]
-                if (len(imglist) > 24):
+                if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
-                vmax = np.percentile(self[self>0], 99.99)
-                vmin = np.percentile(self[self>0], 0.01)
+                if self.dtype == bool:
+                    vmax = vmin = None
+                else:
+                    vmax = np.percentile(self[self>0], 99.99)
+                    vmin = np.percentile(self[self>0], 0.01)
+
                 cmaps = self.get_cmaps()
                 imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
                 imshow_kwargs.update(kwargs)
@@ -546,8 +554,11 @@ class BaseArray(np.ndarray):
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i+1}"]
-                    vmax = np.percentile(img[img>0], 99.99)
-                    vmin = np.percentile(img[img>0], 0.01)  
+                    if self.dtype == bool:
+                        vmax = vmin = None
+                    else:
+                        vmax = np.percentile(self[self>0], 99.99)
+                        vmin = np.percentile(self[self>0], 0.01)
                     imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
                     imshow_kwargs.update(kwargs)
                     

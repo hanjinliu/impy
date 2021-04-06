@@ -2,7 +2,6 @@ import numpy as np
 import os
 import glob
 import collections
-from numpy.lib.shape_base import expand_dims
 from skimage import io
 from skimage import morphology as skmorph
 from skimage import transform as sktrans
@@ -48,17 +47,33 @@ def _opening(args):
     sl, data, selem = args
     return (sl, skmorph.opening(data, selem))
 
+def _binary_opening(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_opening(data, selem))
+
 def _closing(args):
     sl, data, selem = args
     return (sl, skmorph.closing(data, selem))
+
+def _binary_closing(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_closing(data, selem))
 
 def _erosion(args):
     sl, data, selem = args
     return (sl, skmorph.erosion(data, selem))
 
+def _binary_erosion(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_erosion(data, selem))
+
 def _dilation(args):
     sl, data, selem = args
     return (sl, skmorph.dilation(data, selem))
+
+def _binary_dilation(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_dilation(data, selem))
 
 def _tophat(args):
     sl, data, selem = args
@@ -135,7 +150,7 @@ class ImgArray(BaseArray):
         TypeError
             If self is not two dimensional.
         """        
-        if (self.ndim != 2):
+        if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
         param, fit = gaussfit(self, p0, scale=scale)
@@ -252,32 +267,47 @@ class ImgArray(BaseArray):
     
     @same_dtype()
     @record
-    def opening(self, radius=1):
-        disk = ball_like(radius, 2)
-        out = self.parallel(_tophat, "ptzc", disk)
-        out._set_info(self, f"Opening(R={radius})")
-        return out
+    def erosion(self, radius=1, dims=2):
+        f = _binary_erosion if self.dtype == bool else _erosion
+        return self._running_kernel(radius, dims, f, f"{dims}D-Erosion(R={radius})")
     
     @same_dtype()
     @record
-    def tophat(self, radius=50):
-        """
-        Subtract Background using top-hat algorithm.
-
-        Parameters
-        ----------
-        radius : int, optional
-            Radius of hat, by default 50
-
-        Returns
-        -------
-        ImgArray
-            Background subtracted image.
-        """        
-        disk = ball_like(radius, 2)
-        out = self.parallel(_tophat, "ptzc", disk)
-        out._set_info(self, f"Top-Hat(R={radius})")
-        return out
+    def dilation(self, radius=1, dims=2):
+        f = _binary_dilation if self.dtype == bool else _dilation
+        return self._running_kernel(radius, dims, f, f"{dims}D-Dilation(R={radius})")
+    
+    @same_dtype()
+    @record
+    def opening(self, radius=1, dims=2):
+        f = _binary_opening if self.dtype == bool else _opening
+        return self._running_kernel(radius, dims, f, f"{dims}D-Opening(R={radius})")
+    
+    @same_dtype()
+    @record
+    def closing(self, radius=1, dims=2):
+        f = _binary_closing if self.dtype == bool else _closing
+        return self._running_kernel(radius, dims, f, f"{dims}D-Closing(R={radius})")
+    
+    @same_dtype()
+    @record
+    def tophat(self, radius=50, dims=2):
+        return self._running_kernel(radius, dims, _tophat, f"{dims}D-Top-Hat(R={radius})")
+    
+    @same_dtype()
+    @record
+    def mean_filter(self, radius=1, dims=2):
+        return self._running_kernel(radius, dims, _mean, f"{dims}D-Mean-Filter(R={radius})")
+    
+    @same_dtype()
+    @record
+    def median_filter(self, radius=1, dims=2):
+        return self._running_kernel(radius, dims, _median, f"{dims}D-Median-Filter(R={radius})")
+    
+    @same_dtype()
+    @record
+    def gaussian_filter(self, sigma=1, dims=2):
+        return self._running_kernel(sigma, dims, _gaussian, f"{dims}D-Gaussian-Filter(sigma={sigma})")
     
     @same_dtype()
     @record
@@ -301,73 +331,6 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
-    @same_dtype()
-    @record
-    def mean_filter(self, radius=1, dims=2):
-        """
-        Run mean filter.
-
-        Parameters
-        ----------
-        radius : int, optional
-            Radius of filter, by default 1
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """
-        disk = ball_like(radius, dims)
-        out = self.parallel(_mean, dims, disk)
-        out._set_info(self, f"{dims}D-Mean-Filter(R={radius})")
-        return out
-    
-    @same_dtype()
-    @record
-    def median_filter(self, radius=1, dims=2):
-        """
-        Run median filter. 
-
-        Parameters
-        ----------
-        radius : int, optional
-            Radius of filter, by default 1
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """
-        disk = ball_like(radius, dims)
-        out = self.parallel(_median, dims, disk)
-        out._set_info(self, f"{dims}D-Median-Filter(R={radius})")
-        return out
-
-    @same_dtype()
-    @record
-    def gaussian_filter(self, sigma=1, dims=2):
-        """
-        Run Gaussian filter (Gaussian blur).
-
-        Parameters
-        ----------
-        sigma : scalar or array of scalars, optional
-            standard deviation(s) of Gaussian, by default 1
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """        
-        out = self.parallel(_gaussian, dims, sigma)
-        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
-        return out
     
     @record
     def fft(self):
@@ -418,7 +381,7 @@ class ImgArray(BaseArray):
                     "triangle": skfil.threshold_triangle,
                     "yen": skfil.threshold_yen
                     }
-        if (thr is None):
+        if thr is None:
             method = method.lower()
             try:
                 func = methods_[method]
@@ -455,7 +418,7 @@ class ImgArray(BaseArray):
             radius = np.min(self.xyshape()) // 2
         
         circ = circle(radius, self.xyshape())
-        if (not outzero):
+        if not outzero:
             circ = ~circ
         circ = add_axes(self.axes, self.shape, circ)
         out = np.array(self)
