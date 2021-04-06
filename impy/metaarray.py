@@ -5,7 +5,7 @@ import itertools
 
 class MetaArray(np.ndarray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata={}):
+                metadata=None):
         if isinstance(obj, cls):
             return obj
         
@@ -31,7 +31,7 @@ class MetaArray(np.ndarray):
     
     @axes.setter
     def axes(self, value):
-        if (value is None):
+        if value is None:
             self._axes = Axes()
         else:
             self._axes = Axes(value, self.ndim)
@@ -102,6 +102,13 @@ class MetaArray(np.ndarray):
             out._set_info(self, new_axes)
         
         return out
+    
+    def __setitem__(self, key, value):
+        if isinstance(key, str):
+            # img["t=2,z=4"] ... ImageJ-like method
+            sl = self.str_to_slice(key)
+            return self.__setitem__(sl, value)
+        super().__setitem__(key, value)
     
     def __array_finalize__(self, obj):
         """

@@ -194,10 +194,6 @@ class BaseArray(MetaArray):
     
     
     def __setitem__(self, key, value):
-        if isinstance(key, str):
-            # img["t=2,z=4"] ... ImageJ-like method
-            sl = self.str_to_slice(key)
-            return self.__setitem__(sl, value)
         super().__setitem__(key, value)         # set item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         new_history = f"setitem[{keystr}]"

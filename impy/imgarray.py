@@ -514,6 +514,7 @@ class ImgArray(BaseArray):
             raise AttributeError("Use label() to add label to the image.")
 
         if "p" in self.axes:
+            # this dimension will be label
             raise ValueError("axis 'p' is forbidden.")
         
         if self.labels.ndim == 2:
@@ -525,20 +526,14 @@ class ImgArray(BaseArray):
         
         prop_axes = "".join([a for a in axes if a in self.axes])
         shape = tuple(self.sizeof(a) for a in prop_axes)
-        
-        out = {p: np.zeros((self.labels.max(),) + shape, dtype="float32")
+        out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
+                            name=self.name+"-"+p, axes="p"+prop_axes, dirpath=self.dirpath)
                for p in properties}
         
-        for sl in itertools.product(map(range, shape)):
-            out = np.zeros((self.labels.max(),) + shape)
+        for sl in itertools.product(*map(range, (self.labels.max(),) + shape)):
             props = skmes.regionprops(self.labels, self.value, cache=False)
             for p in properties:
-                out[p][sl] = getattr(props, p)
-        
-        for k, arr in out.items():
-            arr.view(PropArray)
-            arr.axes = prop_axes
-            arr.name = self.name + "-" + k
+                out[p][sl] = getattr(props[sl[0]], p)
         
         return out            
     
@@ -690,12 +685,10 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
     
     arr = np.array(arr, dtype=dtype)
-    if arr.ndim <= 1:
-        arr = arr.reshape(1, -1)
         
     # Automatically determine axes
     if axes is None:
-        axes = ["", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
             
     self = ImgArray(arr, name=name, axes=axes, lut=lut)
     
