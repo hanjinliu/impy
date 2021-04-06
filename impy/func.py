@@ -227,9 +227,9 @@ def del_axis(axes, axis):
     axis: int.
     delete axis from axes.
     """
-    if (type(axis) == int):
+    if type(axis) == int:
         axis = [axis]
-    if (axes is None):
+    if axes is None:
         return None
     new_axes = ""
     for i, o in enumerate(axes):
@@ -242,7 +242,7 @@ def add_axes(axes, shape, arr2d):
     """
     stack yx-ordered array 'arr2d' to 'axes' in shape 'shape'
     """
-    if (len(shape) == 2):
+    if len(shape) == 2:
         return arr2d
     arr2d = np.array(arr2d)
     for i, o in enumerate(reversed(axes)):

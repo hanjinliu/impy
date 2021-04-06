@@ -16,6 +16,7 @@ from scipy.fftpack import ifftn as ifft
 from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
 from .base import BaseArray
 from .axes import Axes
+from .proparray import PropArray
 from .roi import Rectangle
 
 def _affine(args):
@@ -540,11 +541,12 @@ class ImgArray(BaseArray):
             for p in properties:
                 out[p][sl] = getattr(props, p)
         
-        for arr in out.values():
-            arr.view(BaseArray)
+        for k, arr in out.items():
+            arr.view(PropArray)
             arr.axes = prop_axes
-            # TODO: continue
-            
+            arr.name = self.name + "-" + k
+        
+        return out            
     
     @record
     def split(self, axis=None):
@@ -682,45 +684,6 @@ class ImgArray(BaseArray):
         out.temp = [lowerlim, upperlim]
         return out
 
-    def sort_axes(self):
-        """
-        Sort image dimensions to ptzcyx-order
-
-        Returns
-        -------
-        ImgArray
-            Sorted image
-        """
-        arr = np.array(self.axes.argsort())
-        order = arr[arr]
-        return self.transpose(order)
-    
-    # numpy functions that will change/discard order
-    def transpose(self, axes):
-        """
-        change the order of image dimensions.
-        'axes' will also be arranged.
-        """
-        out = super().transpose(axes)
-        if (self.axes.is_none()):
-            new_axes = None
-        else:
-            new_axes = "".join([self.axes[i] for i in list(axes)])
-        out._set_info(self, new_axes = new_axes)
-        return out
-    
-    def flatten(self):
-        out = super().flatten()
-        out._set_info(self, new_axes = None)
-        return out
-    
-    def ravel(self):
-        out = super().ravel()
-        out._set_info(self, new_axes = None)
-        return out
-    
-    def reshape(self, *args, **kwargs):
-        raise NotImplementedError("Cannot reshape ImgArray")
         
 
 # non-member functions.

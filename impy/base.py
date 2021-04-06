@@ -435,7 +435,7 @@ class BaseArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+    
     def iter(self, axes, showprogress:bool=True):
         """
         Iteration along axes.
@@ -452,36 +452,16 @@ class BaseArray(MetaArray):
         np.ndarray
             Subimage
         """        
-        if isinstance(axes, int):
-            if axes == 2:
-                axes = "ptzc"
-            elif axes == 3:
-                axes = "ptc"
-            else:
-                ValueError(f"dimension must be 2 or 3, but got {axes}")
-                
-        axes = "".join([a for a in axes if a in self.axes]) # update axes to existing ones
-        iterlist = []
-        total_repeat = 1
-        for a in self.axes:
-            if a in axes:
-                iterlist.append(range(self.sizeof(a)))
-                total_repeat *= self.sizeof(a)
-            else:
-                iterlist.append([slice(None)])
-        selfview = self.value
         name = getattr(self, "ongoing", "iteration")
-        
         timer = Timer()
-        for i, sl in enumerate(itertools.product(*iterlist)):
-            if total_repeat > 1 and showprogress:
-                print(f"\r{name}: {i:>4}/{total_repeat:>4}", end="")
-            yield sl, selfview[sl]
+        if showprogress:
+            print(f"{name} ...", end="")
+        for x in super().iter(axes):
+            yield x
             
         timer.toc()
         if showprogress:
-            print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
-    
+            print(f"\r{name} completed ({timer})")
     
     def parallel(self, func, axes, *args):
         """

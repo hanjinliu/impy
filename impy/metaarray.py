@@ -1,6 +1,7 @@
 import numpy as np
 from .axes import Axes
 from .func import add_axes, del_axis, _key_repr
+import itertools
 
 class MetaArray(np.ndarray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -272,6 +273,45 @@ class MetaArray(np.ndarray):
         order = arr[arr]
         return self.transpose(order)
     
+    def iter(self, axes):
+        """
+        Iteration along axes.
+
+        Parameters
+        ----------
+        axes : str or int
+            On which axes iteration is performed. Or the number of spatial dimension.
+        showprogress : bool, optional
+            If show progress of algorithm, by default True
+
+        Yields
+        -------
+        np.ndarray
+            Subimage
+        """        
+        if isinstance(axes, int):
+            if axes == 2:
+                axes = "ptzc"
+            elif axes == 3:
+                axes = "ptc"
+            else:
+                ValueError(f"dimension must be 2 or 3, but got {axes}")
+                
+        axes = "".join([a for a in axes if a in self.axes]) # update axes to existing ones
+        iterlist = []
+        for a in self.axes:
+            if a in axes:
+                iterlist.append(range(self.sizeof(a)))
+            else:
+                iterlist.append([slice(None)])
+                
+        selfview = self.value
+        
+        for sl in itertools.product(*iterlist):
+            yield sl, selfview[sl]
+            
+        
+            
     # numpy functions that will change/discard order
     def transpose(self, axes):
         """
@@ -295,6 +335,10 @@ class MetaArray(np.ndarray):
         out = super().ravel()
         out._set_info(self, new_axes=None)
         return out
+    
+    def reshape(self, *args, **kwargs):
+        raise NotImplementedError("Cannot reshape ImgArray")
+    
     
     def axisof(self, axisname):
         if (type(axisname) is int):
