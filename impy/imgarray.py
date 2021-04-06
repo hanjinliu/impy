@@ -8,6 +8,8 @@ from skimage import transform as sktrans
 from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
+from skimage import measure as skmes
+import warnings
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
@@ -117,9 +119,11 @@ class ImgArray(BaseArray):
             scale = float(scale)
         except:
             raise TypeError(f"scale must be float, but got {type(scale)}")
+        
         scale_ = []
+        
         for a in self.axes:
-            if (a in "yx"):
+            if a in "yx":
                 scale_.append(scale)
             else:
                 scale_.append(1)
@@ -392,7 +396,7 @@ class ImgArray(BaseArray):
 
             out = np.zeros(self.shape, dtype=bool)
             for t, img in self.as_uint16().iter(iters):
-                if (light_bg):
+                if light_bg:
                     out[t] = img <= thr
                 else:
                     out[t] = img >= thr
@@ -400,7 +404,7 @@ class ImgArray(BaseArray):
             out._set_info(self, f"Thresholding({method})")
 
         else:
-            if (light_bg):
+            if light_bg:
                 out = self <= thr
             else:
                 out = self >= thr
@@ -414,7 +418,7 @@ class ImgArray(BaseArray):
         """
         Make a circular window function.
         """
-        if (radius is None):
+        if radius is None:
             radius = np.min(self.xyshape()) // 2
         
         circ = circle(radius, self.xyshape())
@@ -431,15 +435,21 @@ class ImgArray(BaseArray):
         """
         Make a rectancge ROI.
         """
-        if (position == "corner"):
+        warnings.warn("specify will be removed because ROI" 
+                      "is inconpatible with label in skimage",
+                      DeprecationWarning)
+        
+        if position == "corner":
             pass
-        elif (position == "center"):
+        elif position == "center":
             x -= dx//2
             y -= dy//2
         else:
             raise ValueError("'position' must be 'corner' or 'center'")
+        
         rect = Rectangle(x, x+dx, y, y+dy)
-        if (hasattr(self, "rois") and type(self.rois) is list):
+        
+        if hasattr(self, "rois") and type(self.rois) is list:
             self.rois.append(rect)
         else:
             self.rois = [rect]
@@ -452,7 +462,7 @@ class ImgArray(BaseArray):
         Crop out the center of an image.
         e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
         """
-        if (scale <= 0 or 1 < scale):
+        if scale <= 0 or 1 < scale:
             raise ValueError(f"scale must be (0, 1], but got {scale}")
         
         sizex, sizey = self.xyshape()
@@ -466,6 +476,29 @@ class ImgArray(BaseArray):
         out.history[-1] = f"Crop-Center(scale={scale})"
         
         return out
+    
+    def label(self, label_image=None, dims=2, connectivity=None):
+        if label_image is None:
+            label_image = self
+        elif not isinstance(label_image, np.ndarray):
+            raise TypeError("label_image must be an array")
+        elif label_image.shape != self.shape:
+            raise TypeError("incompatible shapes between self and label_image."
+                           f"{self.shape} and {label_image.shape}")
+        
+        labels = np.zeros(self.shape, dtype="uint16")
+        nlabel_last = 0
+        for sl, img in label_image.iter(dims, False):
+            labels[sl], nlabel = skmes.label(img, background=0, return_num=True, connectivity=connectivity)
+            labels[sl] += nlabel_last
+            nlabel_last = nlabel
+        
+        
+        return self.labels
+    
+    def regionprops(self):
+        pass
+        
     
     @record
     def split(self, axis=None):
@@ -492,7 +525,7 @@ class ImgArray(BaseArray):
         for i, img in enumerate(imgs):
             img.history[-1] = f"Split(axis={axis})"
             img.axes = del_axis(self.axes, axisint)
-            if (axis == "c" and self.lut is not None):
+            if axis == "c" and self.lut is not None:
                 img.lut = [self.lut[i]]
             else:
                 img.lut = None
@@ -506,12 +539,13 @@ class ImgArray(BaseArray):
         'method' must be in func_dict.keys() or some function like np.mean.
         """
         func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
-        if (method in func_dict.keys()):
+        if method in func_dict.keys():
             func = func_dict[method]
-        elif (callable(method)):
+        elif callable(method):
             func = method
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
+        
         axisint = self.axisof(axis)
         out = func(self.value, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
@@ -661,7 +695,7 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
         
     # Automatically determine axes
     if axes is None:
-        axes = ["", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim]
+        axes = ["", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
             
     self = ImgArray(arr, name=name, axes=axes, lut=lut)
     
@@ -689,12 +723,12 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     -------
     ImgArray
     """    
-    if (not os.path.exists(path)):
+    if not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
     fname, fext = os.path.splitext(os.path.basename(path))
     # read tif metadata
-    if (fext == ".tif"):
+    if fext == ".tif":
         meta = get_meta(path)
     else:
         meta = {"axes":axes, "ijmeta":{}, "history":[]}
@@ -706,7 +740,7 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     lut = None                  # TODO: read LUT from ImageJ metadata
-    if (meta["history"]):
+    if meta["history"]:
         name = meta["history"].pop(0)
         history = meta["history"]
     else:
@@ -718,7 +752,7 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
                     history=history, metadata=metadata, lut=lut)
         
     # In case the image is in yxc-order. This sometimes happens.
-    if ("c" in self.axes and self.sizeof("c") > self.sizeof("x")):
+    if "c" in self.axes and self.sizeof("c") > self.sizeof("x"):
         self = np.moveaxis(self, -1, -3)
         _axes = self.axes.axes
         _axes = _axes[:-3] + "cyx"
@@ -753,7 +787,7 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
         shapes.append(img.shape)
     
     list_of_shape = list(set(shapes))
-    if (len(list_of_shape) > 1):
+    if len(list_of_shape) > 1:
         if (ignore_exception):
             ctr = collections.Counter(shapes)
             common_shape = ctr.most_common()[0][0]
@@ -796,11 +830,11 @@ def stack(imgs, axis="c", dtype="uint16"):
 
     """    
     
-    if (isinstance(imgs, np.ndarray)):
+    if isinstance(imgs, np.ndarray):
         raise TypeError("cannot stack single array.")
     
     # find where to add new axis
-    if (imgs[0].axes):
+    if imgs[0].axes:
         new_axes = Axes(axis + str(imgs[0].axes))
         new_axes.sort()
         _axis = new_axes.find(axis)

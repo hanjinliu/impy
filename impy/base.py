@@ -46,7 +46,7 @@ class BaseArray(np.ndarray):
         self.name = "Image from impy" if name is None else name
         
         # MicroManager
-        if (self.name.endswith("_MMStack_Pos0.ome")):
+        if self.name.endswith("_MMStack_Pos0.ome"):
             self.name = self.name[:-17]
         
         self.history = [] if history is None else history
@@ -349,7 +349,7 @@ class BaseArray(np.ndarray):
         metadata = None
         lut = None
         for input_ in inputs:
-            if (isinstance(input_, self.__class__)):
+            if isinstance(input_, self.__class__):
                 name = input_.name
                 dirpath = input_.dirpath
                 history = input_.history.copy()
@@ -366,15 +366,15 @@ class BaseArray(np.ndarray):
         result.metadata = metadata
         
         # set axes
-        if (axes is None):
+        if axes is None:
             result.axes = None
             result.lut = None
-        elif (input_ndim == result.ndim):
+        elif input_ndim == result.ndim:
             result.axes = axes
             result.lut = lut
-        elif (input_ndim > result.ndim):
+        elif input_ndim > result.ndim:
             result.lut = None
-            if ("axis" in kwargs.keys() and not self.axes.is_none()):
+            if "axis" in kwargs.keys() and not self.axes.is_none():
                 axis = kwargs["axis"]
                 result.axes = del_axis(axes, axis)
             else:
@@ -392,22 +392,22 @@ class BaseArray(np.ndarray):
         self.metadata = other.metadata
         
         # if any function is on-going
-        if (hasattr(other, "ongoing")):
+        if hasattr(other, "ongoing"):
             self.ongoing = other.ongoing
         
         # set history
-        if (next_history is not None):
+        if next_history is not None:
             self.history = other.history + [next_history]
         else:
             self.history = other.history.copy()
         
         # set axes
-        if (new_axes != "inherit"):
+        if new_axes != "inherit":
             self.axes = new_axes
         else:
             self.axes = other.axes
         
-        if (hasattr(other, "rois") and not self.axes.is_none() and self.xyshape() == other.xyshape()):
+        if hasattr(other, "rois") and not self.axes.is_none() and self.xyshape() == other.xyshape():
             self.rois = other.rois
 
         # set lut
@@ -415,7 +415,7 @@ class BaseArray(np.ndarray):
             self.lut = other.lut
         except:
             self.lut = None
-        if (self.axes.is_none()):
+        if self.axes.is_none():
             self.lut = None
         return None
     

@@ -13,6 +13,18 @@ class ROI:
         """
         Mask the corresponding pixels to draw ROI.
         """
+    
+    def mean(self, img):
+        return np.mean(img[self])
+    
+    def std(self, img):
+        return np.std(img[self])
+    
+    def max(self, img):
+        return np.max(img[self])
+    
+    def min(self, img):
+        return np.min(img[self])
 
 class Line(ROI):
     def __init__(self, x0, x1, y0, y1):
@@ -119,18 +131,6 @@ class Rectangle(ROI):
     def area(self):
         return (self.x1 - self.x0) * (self.y1 - self.y0)
     
-    def mean(self, img):
-        return np.mean(img[self])
-    
-    def std(self, img):
-        return np.std(img[self])
-    
-    def max(self, img):
-        return np.max(img[self])
-    
-    def min(self, img):
-        return np.min(img[self])
-    
     def mask_array(self, mask):
         rows, cols = skdraw.polygon_perimeter([self.y0-1, self.y0-1, self.y1, self.y1], 
                                               [self.x0-1, self.x1, self.x1, self.x0-1])
@@ -158,21 +158,37 @@ class Polygon(ROI):
         n_px = int(np.max(self.verts))
         return np.sum(skmes.grid_points_in_poly((n_px, n_px), self.verts))
     
-    def mean(self, img):
-        return np.mean(img[self])
-    
-    def std(self, img):
-        return np.std(img[self])
-    
-    def max(self, img):
-        return np.max(img[self])
-    
-    def min(self, img):
-        return np.min(img[self])
-    
     def mask_array(self, mask):
         xs = np.array([int(x+0.5) for x in self.verts[:, 1]])
         ys = np.array([int(y+0.5) for y in self.verts[:, 0]])
         rows, cols = skdraw.polygon_perimeter(xs, ys, mask.shape)
         mask[rows, cols] = True
+        return None
+
+class Area(ROI):
+    def __init__(self, arr:np.ndarray, corner:tuple):
+        self.arr = arr
+        self.corner = corner
+    
+    def __repr__(self):
+        return "Area"
+    
+    def __as_roi__(self, img):
+        mask = np.zeros(img.shape, dtype=bool)
+        x0, x1, y0, y1 = self.get_rectangle_verts()
+        mask[y0:y1, x0:x1] = self.arr
+        return img[mask]
+    
+    def area(self):
+        return np.sum(self.arr)
+    
+    def get_rectangle_verts(self):
+        # return x0, x1, y0, y1
+        s1, s2 = self.arr.shape
+        c1, c2 = self.corner
+        return s2, s2+c2, s1, s1+c1
+    
+    def mask_array(self, mask):
+        x0, x1, y0, y1 = self.get_rectangle_verts()
+        mask[y0:y1, x0:x1] = self.arr
         return None
