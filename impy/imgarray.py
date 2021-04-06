@@ -2,8 +2,9 @@ import numpy as np
 import os
 import glob
 import collections
+from numpy.lib.shape_base import expand_dims
 from skimage import io
-from skimage.morphology import white_tophat
+from skimage import morphology as skmorph
 from skimage import transform as sktrans
 from skimage import filters as skfil
 from skimage import restoration as skres
@@ -43,9 +44,25 @@ def _rolling_ball(args):
     
     return (sl, data - back)
 
+def _opening(args):
+    sl, data, selem = args
+    return (sl, skmorph.opening(data, selem))
+
+def _closing(args):
+    sl, data, selem = args
+    return (sl, skmorph.closing(data, selem))
+
+def _erosion(args):
+    sl, data, selem = args
+    return (sl, skmorph.erosion(data, selem))
+
+def _dilation(args):
+    sl, data, selem = args
+    return (sl, skmorph.dilation(data, selem))
+
 def _tophat(args):
     sl, data, selem = args
-    return (sl, white_tophat(data, selem))
+    return (sl, skmorph.white_tophat(data, selem))
 
 
 class ImgArray(BaseArray):
@@ -56,25 +73,25 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def affine(self, dims=2, n_cpu=4, order=1, **kwargs):
+    def affine(self, dims=2, order=1, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
         # TODO: implement 3D
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(_affine, dims, mx, order, n_cpu=n_cpu)
+        out = self.parallel(_affine, dims, mx, order)
         out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
     @same_dtype(True)
     @record
-    def translate(self, dims=2, n_cpu=4, translation=None):
+    def translate(self, dims=2, translation=None):
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
+        out = self.parallel(_affine, dims, mx)
         out._set_info(self, f"Translate{translation}")
         return out
 
@@ -227,9 +244,23 @@ class ImgArray(BaseArray):
         out.temp = mtx
         return out
     
+    def _running_kernel(self, radius:float, dims:int, function=None, annotation:str=""):
+        disk = ball_like(radius, dims)
+        out = self.parallel(function, dims, disk)
+        out._set_info(self, annotation)
+        return out
+    
     @same_dtype()
     @record
-    def tophat(self, radius=50, n_cpu=4):
+    def opening(self, radius=1):
+        disk = ball_like(radius, 2)
+        out = self.parallel(_tophat, "ptzc", disk)
+        out._set_info(self, f"Opening(R={radius})")
+        return out
+    
+    @same_dtype()
+    @record
+    def tophat(self, radius=50):
         """
         Subtract Background using top-hat algorithm.
 
@@ -237,8 +268,6 @@ class ImgArray(BaseArray):
         ----------
         radius : int, optional
             Radius of hat, by default 50
-        n_cpu : int, optional
-            Number of CPU to use
 
         Returns
         -------
@@ -246,13 +275,13 @@ class ImgArray(BaseArray):
             Background subtracted image.
         """        
         disk = ball_like(radius, 2)
-        out = self.parallel(_tophat, "ptzc", disk, n_cpu=n_cpu)
+        out = self.parallel(_tophat, "ptzc", disk)
         out._set_info(self, f"Top-Hat(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def rolling_ball(self, radius=50, smoothing=True, n_cpu=4):
+    def rolling_ball(self, radius=50, smoothing=True):
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -262,21 +291,19 @@ class ImgArray(BaseArray):
             Radius of rolling ball, by default 50
         smoothing : bool, optional
             If apply 3x3 averaging before creating background.
-        n_cpu : int, optional
-            Number of CPU to use
             
         Returns
         -------
         ImgArray
             Background subtracted image.
         """        
-        out = self.parallel(_rolling_ball, "ptzc", radius, smoothing, n_cpu=n_cpu)
+        out = self.parallel(_rolling_ball, "ptzc", radius, smoothing)
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def mean_filter(self, radius=1, n_cpu=4, dims=2):
+    def mean_filter(self, radius=1, dims=2):
         """
         Run mean filter.
 
@@ -284,8 +311,6 @@ class ImgArray(BaseArray):
         ----------
         radius : int, optional
             Radius of filter, by default 1
-        n_cpu : int, optional
-            Number of CPU to use
         dims : int, optional
             Dimension of axes, i.e. xy or xyz, by default 2
 
@@ -295,13 +320,13 @@ class ImgArray(BaseArray):
             Filtered image.
         """
         disk = ball_like(radius, dims)
-        out = self.parallel(_mean, dims, disk, n_cpu=n_cpu)
+        out = self.parallel(_mean, dims, disk)
         out._set_info(self, f"{dims}D-Mean-Filter(R={radius})")
         return out
     
     @same_dtype()
     @record
-    def median_filter(self, radius=1, n_cpu=4, dims=2):
+    def median_filter(self, radius=1, dims=2):
         """
         Run median filter. 
 
@@ -309,8 +334,6 @@ class ImgArray(BaseArray):
         ----------
         radius : int, optional
             Radius of filter, by default 1
-        n_cpu : int, optional
-            Number of CPU to use
         dims : int, optional
             Dimension of axes, i.e. xy or xyz, by default 2
 
@@ -320,13 +343,13 @@ class ImgArray(BaseArray):
             Filtered image.
         """
         disk = ball_like(radius, dims)
-        out = self.parallel(_median, dims, disk, n_cpu=n_cpu)
+        out = self.parallel(_median, dims, disk)
         out._set_info(self, f"{dims}D-Median-Filter(R={radius})")
         return out
 
     @same_dtype()
     @record
-    def gaussian_filter(self, sigma=1, n_cpu=4, dims=2):
+    def gaussian_filter(self, sigma=1, dims=2):
         """
         Run Gaussian filter (Gaussian blur).
 
@@ -334,8 +357,6 @@ class ImgArray(BaseArray):
         ----------
         sigma : scalar or array of scalars, optional
             standard deviation(s) of Gaussian, by default 1
-        n_cpu : int, optional
-            Number of CPU to use, by default 4
         dims : int, optional
             Dimension of axes, i.e. xy or xyz, by default 2
 
@@ -344,7 +365,7 @@ class ImgArray(BaseArray):
         ImgArray
             Filtered image.
         """        
-        out = self.parallel(_gaussian, dims, sigma, n_cpu=n_cpu)
+        out = self.parallel(_gaussian, dims, sigma)
         out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
         return out
     
@@ -484,7 +505,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def split(self, axis="c"):
+    def split(self, axis=None):
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -497,9 +518,13 @@ class ImgArray(BaseArray):
         -------
         list of ImgArray
             Separate images
-        """        
-        
-        axisint = self.axisof(axis)
+        """
+        # determine axis in int.
+        if axis is None:
+            axisint = 0
+        else:
+            axisint = self.axisof(axis)
+            
         imgs = list(np.moveaxis(self, axisint, 0))
         for i, img in enumerate(imgs):
             img.history[-1] = f"Split(axis={axis})"
@@ -545,23 +570,23 @@ class ImgArray(BaseArray):
             Clipped image with temporal attribute
         """        
         lower, upper = in_range
-        if (isinstance(lower, str) and lower.endswith("%")):
+        if isinstance(lower, str) and lower.endswith("%"):
             lower = float(lower[:-1])
             lowerlim = np.percentile(self, lower)
-        elif (lower is None):
+        elif lower is None:
             lowerlim = np.min(self)
         else:
             lowerlim = float(lower)
         
-        if (isinstance(upper, str) and upper.endswith("%")):
+        if isinstance(upper, str) and upper.endswith("%"):
             upper = float(upper[:-1])
             upperlim = np.percentile(self, upper)
-        elif (upper is None):
+        elif upper is None:
             upperlim = np.max(self)
         else:
             upperlim = float(lower)
         
-        if (lowerlim >= upperlim):
+        if lowerlim >= upperlim:
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
@@ -588,23 +613,23 @@ class ImgArray(BaseArray):
         """        
         out = self.view(np.ndarray).astype("float32")
         lower, upper = in_range
-        if (isinstance(lower, str) and lower.endswith("%")):
+        if isinstance(lower, str) and lower.endswith("%"):
             lower = float(lower[:-1])
             lowerlim = np.percentile(out, lower)
-        elif (lower is None):
+        elif lower is None:
             lowerlim = np.min(out)
         else:
             lowerlim = float(lower)
         
-        if (isinstance(upper, str) and upper.endswith("%")):
+        if isinstance(upper, str) and upper.endswith("%"):
             upper = float(upper[:-1])
             upperlim = np.percentile(out, upper)
-        elif (upper is None):
+        elif upper is None:
             upperlim = np.max(out)
         else:
             upperlim = float(lower)
         
-        if (lowerlim >= upperlim):
+        if lowerlim >= upperlim:
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
             
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
@@ -664,12 +689,23 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     """
     make an ImgArray object, just like np.array(x)
     """
-    if (isinstance(arr, str)):
+    if isinstance(arr, str):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
+    
+    arr = np.array(arr, dtype=dtype)
+    if arr.ndim <= 1:
+        arr = arr.reshape(1, -1)
         
-    self = ImgArray(np.array(arr, dtype=dtype), name=name, axes=axes, lut=lut)
+    # Automatically determine axes
+    if axes is None:
+        axes = ["", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim]
+            
+    self = ImgArray(arr, name=name, axes=axes, lut=lut)
     
     return self
+
+def zeros(shape, dtype="uint16", name=None, axes=None, lut=None):
+    return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
 
 def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     """
@@ -773,6 +809,9 @@ def read_meta(path:str):
     meta = get_meta(path)
     return meta
 
+def set_cpu(n_cpu:int):
+    ImgArray.n_cpu=n_cpu
+    return None
 
 def stack(imgs, axis="c", dtype="uint16"):
     """
@@ -814,7 +853,7 @@ def stack(imgs, axis="c", dtype="uint16"):
     out._set_info(imgs[0], f"Make-Stack(axis={axis})", new_axes)
     
     # connect LUT if needed.
-    if (axis == "c"):
+    if axis == "c":
         luts = [img.lut[0] for img in imgs]
         out.lut = luts
     

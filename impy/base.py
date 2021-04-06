@@ -34,6 +34,7 @@ class BaseArray(np.ndarray):
     - intuitive sub-array viewing in ImageJ format such as img["t=1,z=5"].
     - auto history recording.
     """
+    n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 history=[], metadata={}, lut=None):
@@ -590,10 +591,10 @@ class BaseArray(np.ndarray):
         np.ndarray
             Subimage
         """        
-        if (isinstance(axes, int)):
-            if (axes == 2):
+        if isinstance(axes, int):
+            if axes == 2:
                 axes = "ptzc"
-            elif (axes == 3):
+            elif axes == 3:
                 axes = "ptc"
             else:
                 ValueError(f"dimension must be 2 or 3, but got {axes}")
@@ -602,7 +603,7 @@ class BaseArray(np.ndarray):
         iterlist = []
         total_repeat = 1
         for a in self.axes:
-            if (a in axes):
+            if a in axes:
                 iterlist.append(range(self.sizeof(a)))
                 total_repeat *= self.sizeof(a)
             else:
@@ -612,16 +613,16 @@ class BaseArray(np.ndarray):
         
         timer = Timer()
         for i, sl in enumerate(itertools.product(*iterlist)):
-            if (total_repeat > 1 and showprogress):
+            if total_repeat > 1 and showprogress:
                 print(f"\r{name}: {i:>4}/{total_repeat:>4}", end="")
             yield sl, selfview[sl]
             
         timer.toc()
-        if (showprogress):
+        if showprogress:
             print(f"\r{name}: {total_repeat:>4}/{total_repeat:>4} completed ({timer})")
     
     
-    def parallel(self, func, axes, *args, n_cpu:int=4):
+    def parallel(self, func, axes, *args):
         """
         Multiprocessing tool.
 
@@ -632,20 +633,18 @@ class BaseArray(np.ndarray):
             sl, img = func(arg). arg must be packed into tuple or list.
         axes : str or int
             passed to iter()
-        n_cpu : int, optional
-            Number of CPU to use, by default 4
 
         Returns
         -------
         ImgArray
         """
         out = np.zeros(self.shape)
-        if (n_cpu > 0):
+        if self.__class__.n_cpu > 0:
             lmd = lambda x : (x[0], x[1], *args)
             name = getattr(self, "ongoing", "iteration")
             timer = Timer()
             print(f"{name} ...", end="")
-            with multi.Pool(n_cpu) as p:
+            with multi.Pool(self.__class__.n_cpu) as p:
                 results = p.map(func, map(lmd, self.as_uint16().iter(axes, False)))
             timer.toc()
             print(f"\r{name} completed ({timer})")
@@ -665,13 +664,13 @@ class BaseArray(np.ndarray):
         From self.lut get colormap used in plt.
         Default colormap is gray.
         """
-        if ("c" in self.axes):
-            if (self.lut is None):
+        if "c" in self.axes:
+            if self.lut is None:
                 cmaps = ["gray"] * self.sizeof("c")
             else:
                 cmaps = [get_lut(c) for c in self.lut]
         else:
-            if (self.lut is None):
+            if self.lut is None:
                 cmaps = ["gray"]
             elif (len(self.lut) != len(self.axes)):
                 cmaps = ["gray"] * len(self.axes)
@@ -683,15 +682,15 @@ class BaseArray(np.ndarray):
 def _key_repr(key):
     keylist = []
         
-    if (type(key) == tuple):
+    if isinstance(key, tuple):
         _keys = key
-    elif (hasattr(key, "__array__")):
+    elif hasattr(key, "__array__"):
         _keys = ("array",)
     else:
         _keys = (key,)
     
     for s in _keys:
-        if (type(s) in [slice, list, np.ndarray]):
+        if type(s) in [slice, list, np.ndarray]:
             keylist.append("*")
         else:
             keylist.append(str(s))
