@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 import os
 import glob
@@ -477,28 +478,73 @@ class ImgArray(BaseArray):
         
         return out
     
-    def label(self, label_image=None, dims=2, connectivity=None):
+    def label(self, label_image=None, connectivity=None):
+        # check the shape of label_image
         if label_image is None:
             label_image = self
+            
         elif not isinstance(label_image, np.ndarray):
             raise TypeError("label_image must be an array")
-        elif label_image.shape != self.shape:
-            raise TypeError("incompatible shapes between self and label_image."
-                           f"{self.shape} and {label_image.shape}")
         
-        labels = np.zeros(self.shape, dtype="uint16")
-        nlabel_last = 0
-        for sl, img in label_image.iter(dims, False):
-            labels[sl], nlabel = skmes.label(img, background=0, return_num=True, connectivity=connectivity)
-            labels[sl] += nlabel_last
-            nlabel_last = nlabel
+        elif label_image.ndim == 2:
+            if label_image.shape != self.xyshape():
+                raise ValueError("Incompatible yx-shape")
+        elif label_image.ndim == 3:
+            zyxshape = tuple(self.sizeof(a) for a in "zyx")
+            if label_image.shape != zyxshape:
+                raise ValueError("Incompatible zyx-shape")
+        else:
+            raise ValueError("'label_image' must be 2 or 3 dimensional")
+            
+        labels, nlabel = skmes.label(label_image, background=0, return_num=True, connectivity=connectivity)
+        # labels = np.zeros(label_image.shape, dtype="uint32")
+        # nlabel_last = 0
         
+        # for sl, img in label_image.iter(dims, False):
+        #     labels[sl], nlabel = skmes.label(img, background=0, return_num=True, connectivity=connectivity)
+        #     labels[sl] += nlabel_last
+        #     nlabel_last = nlabel
         
-        return self.labels
+        if nlabel < 256:
+            labels = labels.astype("uint8")
+        elif nlabel < 65535:
+            labels = labels.astype("uint16")
+        
+        self.labels = labels
+        
+        return labels
     
-    def regionprops(self):
-        pass
+    def regionprops(self, properties=("mean_intensity")):
+        if not hasattr(self, "labels"):
+            raise AttributeError("Use label() to add label to the image.")
+
+        if "p" in self.axes:
+            raise ValueError("axis 'p' is forbidden.")
         
+        if self.labels.ndim == 2:
+            axes = "tzc"
+        elif self.labels.ndim == 3:
+            axes = "tc"
+        else:
+            raise ValueError("'label_image' must be 2 or 3 dimensional")
+        
+        prop_axes = "".join([a for a in axes if a in self.axes])
+        shape = tuple(self.sizeof(a) for a in prop_axes)
+        
+        out = {p: np.zeros((self.labels.max(),) + shape, dtype="float32")
+               for p in properties}
+        
+        for sl in itertools.product(map(range, shape)):
+            out = np.zeros((self.labels.max(),) + shape)
+            props = skmes.regionprops(self.labels, self.value, cache=False)
+            for p in properties:
+                out[p][sl] = getattr(props, p)
+        
+        for arr in out.values():
+            arr.view(BaseArray)
+            arr.axes = prop_axes
+            # TODO: continue
+            
     
     @record
     def split(self, axis=None):
@@ -673,12 +719,9 @@ class ImgArray(BaseArray):
         out._set_info(self, new_axes = None)
         return out
     
-    def reshape(self, newshape, axes=None):
-        if (axes is not None and len(newshape) != len(axes)):
-            raise ValueError("newshape and axes have incompatible lengths.")
-        out = super().reshape(newshape)
-        out._set_info(self, new_axes = axes)
-        return out
+    def reshape(self, *args, **kwargs):
+        raise NotImplementedError("Cannot reshape ImgArray")
+        
 
 # non-member functions.
 

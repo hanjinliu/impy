@@ -189,6 +189,23 @@ def affinefit(img, imgref, bins=256, order=3):
     return mtx_opt
     
 
+def _key_repr(key):
+    keylist = []
+        
+    if isinstance(key, tuple):
+        _keys = key
+    elif hasattr(key, "__array__"):
+        _keys = ("array",)
+    else:
+        _keys = (key,)
+    
+    for s in _keys:
+        if type(s) in [slice, list, np.ndarray]:
+            keylist.append("*")
+        else:
+            keylist.append(str(s))
+    
+    return ",".join(keylist)
 
 def circle(radius, shape, dtype="bool"):
     x = np.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)

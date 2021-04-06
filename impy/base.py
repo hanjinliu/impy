@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
-from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype
+from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr
 from .axes import Axes
 from tifffile import imwrite
 from skimage.exposure import histogram
@@ -38,7 +38,7 @@ class BaseArray(np.ndarray):
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 history=[], metadata={}, lut=None):
-        if (isinstance(obj, cls)):
+        if isinstance(obj, cls):
             return obj
         
         self = np.array(obj).view(cls)
@@ -84,11 +84,11 @@ class BaseArray(np.ndarray):
         else:
             n_lut = 1
         
-        if (value is None):
+        if value is None:
             self._lut = ["gray"] * n_lut
-        elif (n_lut == 1 and type(value) is str):
+        elif n_lut == 1 and type(value) is str:
             self._lut = [value]
-        elif (n_lut == len(value)):
+        elif n_lut == len(value):
             self._lut = list(value)
         else:
             self._lut = ["gray"] * n_lut
@@ -196,31 +196,31 @@ class BaseArray(np.ndarray):
         return super().__itruediv__(value)
     
     def __getitem__(self, key):
-        if (isinstance(key, str)):
+        if isinstance(key, str):
             # img["t=2,z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__getitem__(sl)
-        elif (hasattr(key, "__as_roi__")):
+        elif hasattr(key, "__as_roi__"):
             # img[roi] ... get item from ROI.
             return key.__as_roi__(self)
 
-        if (isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2):
+        if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
             # img[arr] ... where arr is 2-D boolean array
             key = add_axes(self.axes, self.shape, key)
 
         out = super().__getitem__(key)          # get item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         
-        if (isinstance(out, self.__class__)):   # cannot set attribution to such as numpy.int32 
+        if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             new_history = f"getitem[{keystr}]"
-            if (self.axes):
+            if self.axes:
                 del_list = []
                 for i, s in enumerate(keystr.split(",")):
                     if (s != "*"):
                         del_list.append(i)
                         
                 new_axes = del_axis(self.axes, del_list)
-                if (hasattr(key, "__array__")):
+                if hasattr(key, "__array__"):
                     new_axes = None
             else:
                 new_axes = None
@@ -229,7 +229,7 @@ class BaseArray(np.ndarray):
         return out
     
     def __setitem__(self, key, value):
-        if (isinstance(key, str)):
+        if isinstance(key, str):
             # img["t=2,z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__setitem__(sl, value)
@@ -253,7 +253,7 @@ class BaseArray(np.ndarray):
             olist.append(self.axisof(o))
 
             # set value or slice
-            if ("-" in v):
+            if "-" in v:
                 start, end = [s.strip() for s in v.strip().split("-")]
                 if (start == ""):
                     start = None
@@ -275,7 +275,7 @@ class BaseArray(np.ndarray):
         
         input_keylist = []
         for i in range(len(self.axes)):
-            if (i in olist):
+            if i in olist:
                 j = olist.index(i)
                 input_keylist.append(vlist[j])
             else:
@@ -302,7 +302,7 @@ class BaseArray(np.ndarray):
             self.axes = getattr(obj, "axes", None)
         except:
             self.axes = None
-        if (not self.axes.is_none() and len(self.axes) != self.ndim):
+        if not self.axes.is_none() and len(self.axes) != self.ndim:
             self.axes = None
         
         self.metadata = getattr(obj, "metadata", {})
@@ -326,18 +326,18 @@ class BaseArray(np.ndarray):
         # call numpy function
         args = tuple(_replace_self(a) for a in inputs)
 
-        if ("out" in kwargs):
+        if "out" in kwargs:
             kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
 
         result = getattr(ufunc, method)(*args, **kwargs)
 
-        if(result is NotImplemented):
+        if result is NotImplemented:
             return NotImplemented
         
         result = result.view(self.__class__)
         
         # in the case result is such as np.float64
-        if (not isinstance(result, self.__class__)):
+        if not isinstance(result, self.__class__):
             return result
 
         # set attributes for output
@@ -690,20 +690,3 @@ class BaseArray(np.ndarray):
         return cmaps
     
 
-def _key_repr(key):
-    keylist = []
-        
-    if isinstance(key, tuple):
-        _keys = key
-    elif hasattr(key, "__array__"):
-        _keys = ("array",)
-    else:
-        _keys = (key,)
-    
-    for s in _keys:
-        if type(s) in [slice, list, np.ndarray]:
-            keylist.append("*")
-        else:
-            keylist.append(str(s))
-    
-    return ",".join(keylist)
