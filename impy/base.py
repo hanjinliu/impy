@@ -61,17 +61,6 @@ class BaseArray(MetaArray):
         pass
     
     @property
-    def axes(self):
-        return self._axes
-    
-    @axes.setter
-    def axes(self, value):
-        if (value is None):
-            self._axes = Axes()
-        else:
-            self._axes = Axes(value, self.ndim)
-        
-    @property
     def lut(self):
         return self._lut
     
@@ -96,10 +85,6 @@ class BaseArray(MetaArray):
             raise ValueError(f"Incorrect LUT for {n_lut}-channel image: {value}")
     
     @property
-    def value(self):
-        return np.asarray(self)
-    
-    @property
     def range(self):
         return self.min(), self.max()
     
@@ -117,13 +102,6 @@ class BaseArray(MetaArray):
                f"original image: {self.name}\n"\
                f"   history    : {'->'.join(self.history)}\n"
     
-    def __str__(self):
-        return self.name
-    
-
-    def showinfo(self):
-        print(repr(self))
-        return None
     
     def imsave(self, tifname:str):
         """
@@ -197,35 +175,12 @@ class BaseArray(MetaArray):
         return super().__itruediv__(value)
     
     def __getitem__(self, key):
-        if isinstance(key, str):
-            # img["t=2,z=4"] ... ImageJ-like method
-            sl = self.str_to_slice(key)
-            return self.__getitem__(sl)
-        elif hasattr(key, "__as_roi__"):
-            # img[roi] ... get item from ROI.
-            return key.__as_roi__(self)
-
-        if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
-            # img[arr] ... where arr is 2-D boolean array
-            key = add_axes(self.axes, self.shape, key)
-
         out = super().__getitem__(key)          # get item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             new_history = f"getitem[{keystr}]"
-            if self.axes:
-                del_list = []
-                for i, s in enumerate(keystr.split(",")):
-                    if (s != "*"):
-                        del_list.append(i)
-                        
-                new_axes = del_axis(self.axes, del_list)
-                if hasattr(key, "__array__"):
-                    new_axes = None
-            else:
-                new_axes = None
-            out._set_info(self, new_history, new_axes)
+            out._set_info(self, new_history, out.axes)
         
         return out
     
@@ -240,50 +195,6 @@ class BaseArray(MetaArray):
         
         self._set_info(self, new_history)
     
-    def str_to_slice(self, string):
-        """
-        get subslices using ImageJ-like format.
-        e.g. 't=3-, z=1-5', 't=1, z=-7' (this will not be interpreted as minus)
-        """
-        keylist = [key.strip() for key in string.split(",")]
-        olist = [] # e.g. 'z', 't'
-        vlist = [] # e.g. 5, 2:4
-        for k in keylist:
-            # e.g. k = "t = 4-7"
-            o, v = [s.strip() for s in k.split("=")]
-            olist.append(self.axisof(o))
-
-            # set value or slice
-            if "-" in v:
-                start, end = [s.strip() for s in v.strip().split("-")]
-                if (start == ""):
-                    start = None
-                else:
-                    start = int(start) - 1
-                    if (start < 0):
-                        raise IndexError(f"out of range: {o}")
-                if (end == ""):
-                    end = None
-                else:
-                    end = int(end)
-
-                vlist.append(slice(start, end, None))
-            else:
-                pos = int(v) - 1
-                if (pos < 0):
-                        raise IndexError(f"out of range: {o}")
-                vlist.append(pos)
-        
-        input_keylist = []
-        for i in range(len(self.axes)):
-            if i in olist:
-                j = olist.index(i)
-                input_keylist.append(vlist[j])
-            else:
-                input_keylist.append(slice(None))
-
-        return tuple(input_keylist)
-    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Overloaded Numpy Functions to Inherit Attributes
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -294,54 +205,12 @@ class BaseArray(MetaArray):
         this function will be called to set essential attributes.
         Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
         """
-        if obj is None: return None
-        self.dirpath = getattr(obj, "dirpath", None)
-        self.name = getattr(obj, "name", None)
+        super().__array_finalize__(obj)
         self.history = getattr(obj, "history", [])
-
-        try:
-            self.axes = getattr(obj, "axes", None)
-        except:
-            self.axes = None
-        if not self.axes.is_none() and len(self.axes) != self.ndim:
-            self.axes = None
-        
-        self.metadata = getattr(obj, "metadata", {})
-
         try:
             self.lut = getattr(obj, "lut", None)
         except:
             self.lut = None
-
-
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """
-        Every time a numpy universal function (add, subtract, ...) is called,
-        this function will be called to set/update essential attributes.
-        """
-        # convert to np.array
-        def _replace_self(a):
-            if (a is self): return a.view(np.ndarray)
-            else: return a
-
-        # call numpy function
-        args = tuple(_replace_self(a) for a in inputs)
-
-        if "out" in kwargs:
-            kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
-
-        result = getattr(ufunc, method)(*args, **kwargs)
-
-        if result is NotImplemented:
-            return NotImplemented
-        
-        result = result.view(self.__class__)
-        
-        # in the case result is such as np.float64
-        if not isinstance(result, self.__class__):
-            return result
-        
-        return result._inherit_meta(ufunc, *inputs, **kwargs)
     
     def _inherit_meta(self, ufunc, *inputs, **kwargs):
         # set attributes for output
@@ -392,10 +261,7 @@ class BaseArray(MetaArray):
     
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
-        self.dirpath = other.dirpath
-        self.name = other.name
-        self.metadata = other.metadata
-        
+        super()._set_info(other, new_axes)
         # if any function is on-going
         if hasattr(other, "ongoing"):
             self.ongoing = other.ongoing
@@ -405,16 +271,7 @@ class BaseArray(MetaArray):
             self.history = other.history + [next_history]
         else:
             self.history = other.history.copy()
-        
-        # set axes
-        if new_axes != "inherit":
-            self.axes = new_axes
-        else:
-            self.axes = other.axes
-        
-        if hasattr(other, "rois") and not self.axes.is_none() and self.xyshape() == other.xyshape():
-            self.rois = other.rois
-
+            
         # set lut
         try:
             self.lut = other.lut
@@ -429,15 +286,15 @@ class BaseArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def as_uint8(self):
-        if (self.dtype == "uint8"):
+        if self.dtype == "uint8":
             return self
         out = self.value
-        if (self.dtype == "uint16"):
+        if self.dtype == "uint16":
             out = out / 256
-        elif(self.dtype == "bool"):
+        elif self.dtype == "bool":
             pass
-        elif (self.dtype in ("float16", "float32", "float64")):
-            if (0 <= np.min(out) and np.max(out) < 1):
+        elif self.dtype in ("float16", "float32", "float64"):
+            if 0 <= np.min(out) and np.max(out) < 1:
                 out = out * 256
             else:
                 out = out + 0.5
@@ -452,15 +309,15 @@ class BaseArray(MetaArray):
 
 
     def as_uint16(self):
-        if (self.dtype == "uint16"):
+        if self.dtype == "uint16":
             return self
         out = self.value
-        if (self.dtype == "uint8"):
+        if self.dtype == "uint8":
             out = out * 256
-        elif(self.dtype == "bool"):
+        elif self.dtype == "bool":
             pass
-        elif (self.dtype in ("float16", "float32", "float64")):
-            if (0 <= np.min(out) and np.max(out) < 1):
+        elif self.dtype in ("float16", "float32", "float64"):
+            if 0 <= np.min(out) and np.max(out) < 1:
                 out = out * 65536
             else:
                 out = out + 0.5
@@ -474,13 +331,13 @@ class BaseArray(MetaArray):
         return out
     
     def as_img_type(self, dtype="uint16"):
-        if (dtype == "uint16"):
+        if dtype == "uint16":
             return self.as_uint16()
-        elif (dtype == "uint8"):
+        elif dtype == "uint8":
             return self.as_uint8()
-        elif (dtype in ("float", "f", "float32")):
+        elif dtype in ("float", "f", "float32"):
             return self.astype("float32")
-        elif (dtype == "bool"):
+        elif dtype == "bool":
             return self.astype("bool")
         else:
             raise ValueError(f"dtype: {dtype}")
@@ -578,18 +435,6 @@ class BaseArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    def axisof(self, axisname):
-        if (type(axisname) is int):
-            return axisname
-        else:
-            return self.axes.find(axisname)
-    
-    def xyshape(self):
-        return self.sizeof("x"), self.sizeof("y")
-    
-    def sizeof(self, axis:str):
-        return self.shape[self.axes.find(axis)]
 
     def iter(self, axes, showprogress:bool=True):
         """
