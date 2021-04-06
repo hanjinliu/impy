@@ -200,7 +200,7 @@ def _key_repr(key):
         _keys = (key,)
     
     for s in _keys:
-        if type(s) in [slice, list, np.ndarray]:
+        if type(s) in (slice, list, np.ndarray):
             keylist.append("*")
         else:
             keylist.append(str(s))

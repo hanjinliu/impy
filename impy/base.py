@@ -3,21 +3,19 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
 from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr
-from .axes import Axes
 from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
-import itertools
     
 def check_value(__op__):
     def wrapper(self, value):
-        if (isinstance(value, np.ndarray)):
+        if isinstance(value, np.ndarray):
             value = value.astype("float32")
-            if ((value < 0).any()):
+            if (value < 0).any():
                 raise ValueError("Cannot multiply or divide array containig negative value.")
-            if (self.ndim >= 3 and value.shape == self.xyshape()):
+            if self.ndim >= 3 and value.shape == self.xyshape():
                 value = add_axes(self.axes, self.shape, value)
-        elif (isinstance(value, (int, float)) and value < 0):
+        elif isinstance(value, (int, float)) and value < 0:
             raise ValueError("Cannot multiply or divide negative value.")
 
         out = __op__(self, value)
@@ -39,20 +37,9 @@ class BaseArray(MetaArray):
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 history=[], metadata={}, lut=None):
-        if isinstance(obj, cls):
-            return obj
         
-        self = np.array(obj).view(cls)
-        self.dirpath = "" if dirpath is None else dirpath
-        self.name = "Image from impy" if name is None else name
-        
-        # MicroManager
-        if self.name.endswith("_MMStack_Pos0.ome"):
-            self.name = self.name[:-17]
-        
+        self = super().__new__(cls, obj, name, axes, dirpath, metadata)
         self.history = [] if history is None else history
-        self.axes = axes
-        self.metadata = {} if metadata is None else metadata
         self.lut = lut
         return self
 
@@ -67,9 +54,9 @@ class BaseArray(MetaArray):
     @lut.setter
     def lut(self, value):
         # number of channel
-        if (self.axes.is_none()):
+        if self.axes.is_none():
             n_lut = 1
-        elif ("c" in self.axes.axes[:self.ndim]):
+        elif "c" in self.axes.axes[:self.ndim]:
             n_lut = self.sizeof("c")
         else:
             n_lut = 1
@@ -107,9 +94,9 @@ class BaseArray(MetaArray):
         """
         Save image (at the same directory as the original image by default).
         """
-        if (not tifname.endswith(".tif")):
+        if not tifname.endswith(".tif"):
             tifname += ".tif"
-        if (os.sep not in tifname):
+        if os.sep not in tifname:
             tifname = os.path.join(self.dirpath, tifname)
         
         metadata = self.metadata
@@ -175,14 +162,36 @@ class BaseArray(MetaArray):
         return super().__itruediv__(value)
     
     def __getitem__(self, key):
-        out = super().__getitem__(key)          # get item as np.ndarray
+        if isinstance(key, str):
+            # img["t=2,z=4"] ... ImageJ-like method
+            sl = self.str_to_slice(key)
+            return self.__getitem__(sl)
+
+        if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
+            # img[arr] ... where arr is 2-D boolean array
+            key = add_axes(self.axes, self.shape, key)
+
+        out = np.ndarray.__getitem__(self, key)          # get item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
+            if self.axes:
+                del_list = []
+                for i, s in enumerate(keystr.split(",")):
+                    if s != "*":
+                        del_list.append(i)
+                        
+                new_axes = del_axis(self.axes, del_list)
+                if hasattr(key, "__array__"):
+                    new_axes = None
+            else:
+                new_axes = None
+            
             new_history = f"getitem[{keystr}]"
-            out._set_info(self, new_history, out.axes)
+            out._set_info(self, new_history, new_axes)
         
         return out
+    
     
     def __setitem__(self, key, value):
         if isinstance(key, str):

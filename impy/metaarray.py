@@ -90,7 +90,7 @@ class MetaArray(np.ndarray):
             if self.axes:
                 del_list = []
                 for i, s in enumerate(keystr.split(",")):
-                    if (s != "*"):
+                    if s != "*":
                         del_list.append(i)
                         
                 new_axes = del_axis(self.axes, del_list)
@@ -98,6 +98,7 @@ class MetaArray(np.ndarray):
                     new_axes = None
             else:
                 new_axes = None
+                
             out._set_info(self, new_axes)
         
         return out
@@ -177,6 +178,7 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
+        # TODO: delete ufunc from args
         return result._inherit_meta(ufunc, *inputs, **kwargs)
     
     def _inherit_meta(self, ufunc, *inputs, **kwargs):
