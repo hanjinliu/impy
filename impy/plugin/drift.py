@@ -16,7 +16,7 @@ def track_drift(self, axis="t", **kwargs):
     """
     Calculate (x,y) change based on cross correlation.
     """
-    if (self.ndim != 3):
+    if self.ndim != 3:
         raise TypeError(f"input must be three dimensional, but got {self.shape}")
 
     # slow drift needs large upsampling numbers
@@ -37,10 +37,9 @@ def track_drift(self, axis="t", **kwargs):
     
 
     result = np.fliplr(shift_list) # shift is (y,x) order in skreg
-    show_drift(result)
     return result
 
-def show_drift(result):
+def _show_drift(result):
     fig = plt.figure()
     ax = fig.add_subplot(111, title="drift")
     ax.plot(result[:, 0], result[:, 1], marker="+", color="red")
@@ -59,7 +58,7 @@ def show_drift(result):
 
 @same_dtype(True)
 @record
-def drift_correction(self, shift=None, ref=None, order=1):
+def drift_correction(self, shift=None, ref=None, order=1, show_drift=True):
     """
     shift: (N, 2) array, optional.
         x,y coordinates of drift. If None, this parameter will be determined by the
@@ -75,26 +74,28 @@ def drift_correction(self, shift=None, ref=None, order=1):
     >>> drift = [[ dx1, dy1], [ dx2, dy2], ... ]
     >>> img = img0.drift_correction()
     """
-    if (shift is None):
+    if shift is None:
         # determine 'ref'
-        if (ref is None):
+        if ref is None:
             ref = self
-        elif (not isinstance(ref, self.__class__)):
+        elif not isinstance(ref, self.__class__):
             raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
-        elif (ref.axes != "tyx"):
+        elif ref.axes != "tyx":
             raise ValueError(f"Cannot track drift using {ref.axes} image")
 
         shift = track_drift(ref, axis="t")
+        if show_drift:
+            _show_drift(shift)
         self.ongoing = "drift_correction"
 
-    elif (shift.shape[1] != 2):
+    elif shift.shape[1] != 2:
         raise TypeError(f"Invalid shift shape: {shift.shape}")
-    elif (shift.shape[0] != self.sizeof("t")):
+    elif shift.shape[0] != self.sizeof("t"):
         raise TypeError(f"Length inconsistency between image and shift")
 
     out = np.empty(self.shape)
     for sl, img in self.iter("ptzc"):
-        if (type(sl) is int):
+        if type(sl) is int:
             tr = -shift[sl]
         else:
             tr = -shift[sl[0]]

@@ -497,14 +497,8 @@ class ImgArray(BaseArray):
         else:
             raise ValueError("'label_image' must be 2 or 3 dimensional")
             
-        labels, nlabel = skmes.label(label_image, background=0, return_num=True, connectivity=connectivity)
-        # labels = np.zeros(label_image.shape, dtype="uint32")
-        # nlabel_last = 0
-        
-        # for sl, img in label_image.iter(dims, False):
-        #     labels[sl], nlabel = skmes.label(img, background=0, return_num=True, connectivity=connectivity)
-        #     labels[sl] += nlabel_last
-        #     nlabel_last = nlabel
+        labels, nlabel = skmes.label(label_image, background=0, 
+                                     return_num=True, connectivity=connectivity)
         
         if nlabel < 256:
             labels = labels.astype("uint8")

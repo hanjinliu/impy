@@ -45,16 +45,6 @@ def synthesize_psf(size_x, size_y, size_z, wavelength:float=0.610,
     psfimg = PSF(**psf_kwargs).generate()
     return psfimg
 
-# def _rechardson_lucy(img, psfimg, deconvinfo, niter) -> np.ndarray:
-#     img = np.array(img).astype("float32")
-#     kw = {"epsilon": np.percentile(img, 99)*1e-6}
-#     kw.update(deconvinfo)
-    
-#     algorithm = fdres.RichardsonLucyDeconvolver(img.ndim, **kw).initialize()
-#     img_model = fddata.Acquisition(data=img, kernel=psfimg)
-#     result = algorithm.run(img_model, niter=niter)
-#     return result.data
-
 def _richardson_lucy(args):
     sl, obs, psf, niter = args
     # obs and psf must be float32 here
@@ -120,7 +110,7 @@ def lucy3d(self, psfinfo, niter:int=50, n_cpu=4):
 @record
 def lucy2d(self, psfinfo, niter:int=50, n_cpu=4):
     # make PSF
-    if (isinstance(psfinfo, dict)):
+    if isinstance(psfinfo, dict):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
         kw.update(psfinfo)
         psfimg = synthesize_psf(**kw)[0]
