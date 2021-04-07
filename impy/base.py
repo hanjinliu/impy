@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
-from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr
+from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr, determine_range
 from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
@@ -383,21 +383,13 @@ class BaseArray(MetaArray):
         
         return None
 
-    def imshow(self, label=True, **kwargs):
+    def imshow(self, **kwargs):
         if self.ndim == 2:
-            if self.dtype == bool:
-                vmax = vmin = None
-            else:
-                vmax = np.percentile(self[self>0], 99.99)
-                vmin = np.percentile(self[self>0], 0.01)
+            vmax, vmin = determine_range(self)
             cmaps = self.get_cmaps()
             imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
             imshow_kwargs.update(kwargs)
-            if label and hasattr(self, "labels"):
-                overlay = label2rgb(self.labels, image=self.value, bg_label=0)
-                plt.imshow(overlay, **imshow_kwargs)
-            else:
-                plt.imshow(self.value, **imshow_kwargs)
+            plt.imshow(self.value, **imshow_kwargs)
             
             self.hist()
             
@@ -408,11 +400,7 @@ class BaseArray(MetaArray):
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
-                if self.dtype == bool:
-                    vmax = vmin = None
-                else:
-                    vmax = np.percentile(self[self>0], 99.99)
-                    vmin = np.percentile(self[self>0], 0.01)
+                vmax, vmin = determine_range(self)
 
                 cmaps = self.get_cmaps()
                 imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -424,11 +412,7 @@ class BaseArray(MetaArray):
                 fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
                 ax = ax.flat
                 for i, img in enumerate(imglist):
-                    if label and hasattr(self, "labels"):
-                        overlay = label2rgb(self.labels, image=img, bg_label=0)
-                        ax[i].imshow(overlay, **imshow_kwargs)
-                    else:
-                        ax[i].imshow(img, **imshow_kwargs)
+                    ax[i].imshow(img, **imshow_kwargs)
                     ax[i].axis("off")
                     ax[i].set_title(f"Image-{i+1}")
 
@@ -438,11 +422,7 @@ class BaseArray(MetaArray):
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i+1}"]
-                    if self.dtype == bool:
-                        vmax = vmin = None
-                    else:
-                        vmax = np.percentile(self[self>0], 99.99)
-                        vmin = np.percentile(self[self>0], 0.01)
+                    vmax, vmin = determine_range(self)
                     imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
                     imshow_kwargs.update(kwargs)
                     
@@ -453,6 +433,21 @@ class BaseArray(MetaArray):
         plt.show()
 
         return self
+    
+    def imshow_label(self, alpha=0.3, image_alpha=1, **kwargs):
+        if self.ndim == 2:
+            vmax, vmin = determine_range(self)
+            imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
+            imshow_kwargs.update(kwargs)
+            vmin = imshow_kwargs["vmin"]
+            vmax = imshow_kwargs["vmax"]
+            image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
+            overlay = label2rgb(self.labels, image=image, bg_label=0, 
+                                alpha=alpha, image_alpha=image_alpha)
+            plt.imshow(overlay, **imshow_kwargs)
+            self.hist()
+        else:
+            raise NotImplementedError("not implemented for ndim != 2")
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Others

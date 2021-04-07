@@ -262,3 +262,11 @@ def get_lut(name):
             print(f"{name} is not a color or a cmap.")
             lut = "gray"
     return lut
+
+def determine_range(arr):
+    if arr.dtype == bool:
+        vmax = vmin = None
+    else:
+        vmax = np.percentile(arr[arr>0], 99.99)
+        vmin = np.percentile(arr[arr>0], 0.01)
+    return vmax, vmin
