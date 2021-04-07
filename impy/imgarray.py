@@ -302,7 +302,7 @@ class ImgArray(BaseArray):
         elif len(sigma) != dims:
             raise ValueError("length of sigma and dims must match.")
         
-        out = self.astype("float32").parallel(_hessian_eigval, dims, sigma, 
+        out = self.as_float().parallel(_hessian_eigval, dims, sigma, 
                                               outshape=self.shape+(dims,))
         
         out = list(np.moveaxis(out, -1, 0))
@@ -320,14 +320,17 @@ class ImgArray(BaseArray):
         elif len(sigma) != dims:
             raise ValueError("length of sigma and dims must match.")
         
-        out = self.astype("float32").parallel(_hessian_scaled_eigvec, dims, sigma, 
+        out = self.as_float().parallel(_hessian_scaled_eigvec, dims, sigma, 
                                               outshape=self.shape+(dims,))
         # TODO: set axes
         
         return out
     
     def hessian_filter(self, sigma:float=1):
+        # only puncta detection is available now
         eigval = self.hessian_eigval(sigma)
+        for e in eigval:
+            e[e>0] = 0
         return np.product(eigval, axis=0)**(1/len(eigval))
         
     

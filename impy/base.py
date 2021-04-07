@@ -335,13 +335,19 @@ class BaseArray(MetaArray):
         out = out.astype("uint16")
         return out
     
+    def as_float(self):
+        out = self.value.astype("float32").view(self.__class__)
+        out._set_info(self)
+        return out
+        
+    
     def as_img_type(self, dtype="uint16"):
         if dtype == "uint16":
             return self.as_uint16()
         elif dtype == "uint8":
             return self.as_uint8()
         elif dtype in ("float", "f", "float32"):
-            return self.astype("float32")
+            return self.as_float()
         elif dtype == "bool":
             return self.astype("bool")
         else:
