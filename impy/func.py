@@ -84,7 +84,7 @@ def same_dtype(asfloat=False):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             dtype = self.dtype
-            if (asfloat):
+            if asfloat:
                 self = self.astype("float32")
             out = func(self, *args, **kwargs)
             out = out.as_img_type(dtype)

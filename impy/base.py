@@ -468,7 +468,7 @@ class BaseArray(MetaArray):
         if showprogress:
             print(f"\r{name} completed ({timer})")
     
-    def parallel(self, func, axes, *args):
+    def parallel(self, func, axes, *args, outshape=None, outdtype="float32"):
         """
         Multiprocessing tool.
 
@@ -479,26 +479,33 @@ class BaseArray(MetaArray):
             sl, img = func(arg). arg must be packed into tuple or list.
         axes : str or int
             passed to iter()
-
+        outshape : tuple, optional
+            shape of output. By default shape of input image because this
+            function is used almost for filtering
+        
         Returns
         -------
         ImgArray
         """
-        out = np.zeros(self.shape)
-        if self.__class__.n_cpu > 0:
+        if outshape is None:
+            outshape = self.shape
+            
+        out = np.zeros(outshape, dtype=outdtype)
+        
+        if self.__class__.n_cpu > 1:
             lmd = lambda x : (x[0], x[1], *args)
             name = getattr(self, "ongoing", "iteration")
             timer = Timer()
             print(f"{name} ...", end="")
             with multi.Pool(self.__class__.n_cpu) as p:
-                results = p.map(func, map(lmd, self.as_uint16().iter(axes, False)))
+                results = p.map(func, map(lmd, self.iter(axes, False)))
             timer.toc()
             print(f"\r{name} completed ({timer})")
             
             for sl, imgf in results:
                 out[sl] = imgf
         else:
-            for sl, img in self.as_uint16().iter(axes):
+            for sl, img in self.iter(axes):
                 sl, out2d = func((sl, img, *args))
                 out[sl] = out2d
                 

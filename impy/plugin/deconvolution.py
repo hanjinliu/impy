@@ -100,7 +100,7 @@ def lucy3d(self, psfinfo, niter:int=50, n_cpu=4):
     
     # start deconvolution
     out = np.zeros(self.shape)
-    out = self.parallel(_richardson_lucy, "ptcs", psfimg, niter)
+    out = self.parallel(_richardson_lucy, "ptc", psfimg, niter)
     out = out.view(self.__class__)
     out._set_info(self, f"RichardsonLucy-3D(niter={niter})")
     
@@ -124,7 +124,7 @@ def lucy2d(self, psfinfo, niter:int=50, n_cpu=4):
     
     # start deconvolution
     out = np.zeros(self.shape)
-    out = self.parallel(_richardson_lucy, "ptzcs", psfimg, niter)
+    out = self.parallel(_richardson_lucy, "ptzc", psfimg, niter)
     out = out.view(self.__class__)
     out._set_info(self, f"RichardsonLucy-2D(niter={niter})")
     

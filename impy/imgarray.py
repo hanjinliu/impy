@@ -10,6 +10,8 @@ from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
 from skimage import measure as skmes
+from skimage.feature.corner import _symmetric_image
+from skimage import feature as skfeat
 import warnings
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
@@ -37,7 +39,7 @@ def _gaussian(args):
 
 def _rolling_ball(args):
     sl, data, radius, smooth = args
-    if (smooth):
+    if smooth:
         _, ref = _mean((sl, data, np.ones((3, 3))))
         back = skres.rolling_ball(ref, radius=radius)
         tozero = (back > data)
@@ -83,6 +85,33 @@ def _tophat(args):
     sl, data, selem = args
     return (sl, skmorph.white_tophat(data, selem))
 
+def _hessian_eigh(args):
+    sl, data, sigma = args
+    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
+                                             mode="reflect")
+    # Correct for scale
+    sigma = np.asarray(sigma)
+    hessian = _symmetric_image(hessian_elements)
+    hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
+    eigval = eigvec = np.linalg.eigh(hessian)
+    return (sl, eigval, eigvec)
+
+def _hessian_eigval(args):
+    sl, data, sigma = args
+    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
+                                             mode="reflect")
+    # Correct for scale
+    sigma = np.asarray(sigma)
+    hessian = _symmetric_image(hessian_elements)
+    hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
+    eigval = np.linalg.eigvalsh(hessian)
+    return (sl, eigval)
+
+def _hessian_scaled_eigvec(args):
+    # eigval * eigvec
+    sl, eigval, eigvec = _hessian_eigh(args)
+    eigvec = np.stack([eigval]*eigvec.shape[-2], axis=-1) * eigvec
+    return (sl, eigvec)
 
 class ImgArray(BaseArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
@@ -99,7 +128,7 @@ class ImgArray(BaseArray):
         """
         # TODO: implement 3D
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(_affine, dims, mx, order)
+        out = self.as_uint16().parallel(_affine, dims, mx, order)
         out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
@@ -110,7 +139,7 @@ class ImgArray(BaseArray):
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(_affine, dims, mx)
+        out = self.as_uint16().parallel(_affine, dims, mx)
         out._set_info(self, f"Translate{translation}")
         return out
 
@@ -265,9 +294,46 @@ class ImgArray(BaseArray):
         out.temp = mtx
         return out
     
+    @record
+    def hessian_eigval(self, sigma=1, dims=2):
+        # check sigma
+        if isinstance(sigma, (int, float)):
+            sigma = [sigma] * dims
+        elif len(sigma) != dims:
+            raise ValueError("length of sigma and dims must match.")
+        
+        out = self.astype("float32").parallel(_hessian_eigval, dims, sigma, 
+                                              outshape=self.shape+(dims,))
+        
+        out = list(np.moveaxis(out, -1, 0))
+        for i, each in enumerate(out):
+            each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+        
+        return out
+    
+    @record
+    def hessian_eigvec(self, sigma=1, dims=2):
+        # check sigma
+        
+        if isinstance(sigma, (int, float)):
+            sigma = [sigma] * dims
+        elif len(sigma) != dims:
+            raise ValueError("length of sigma and dims must match.")
+        
+        out = self.astype("float32").parallel(_hessian_scaled_eigvec, dims, sigma, 
+                                              outshape=self.shape+(dims,))
+        # TODO: set axes
+        
+        return out
+    
+    def hessian_filter(self, sigma:float=1):
+        eigval = self.hessian_eigval(sigma)
+        return np.product(eigval, axis=0)**(1/len(eigval))
+        
+    
     def _running_kernel(self, radius:float, dims:int, function=None, annotation:str=""):
         disk = ball_like(radius, dims)
-        out = self.parallel(function, dims, disk)
+        out = self.as_uint16().parallel(function, dims, disk)
         out._set_info(self, annotation)
         return out
     
@@ -333,7 +399,7 @@ class ImgArray(BaseArray):
         ImgArray
             Background subtracted image.
         """        
-        out = self.parallel(_rolling_ball, "ptzc", radius, smoothing)
+        out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     

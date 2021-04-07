@@ -27,7 +27,7 @@ def track_drift(self, axis="t", **kwargs):
     shift_list = [[0.0, 0.0]]
     last_img = None
     for _, img in self.iter(axis):
-        if (last_img is not None):
+        if last_img is not None:
             shift, _, _ = phase_cross_correlation(last_img, img, **corr_kwargs)
             shift_total = shift + shift_list[-1]            # list + ndarray -> ndarray
             shift_list.append(shift_total)
