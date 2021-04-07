@@ -61,7 +61,7 @@ img.lut = ["teal", "violet", "gold"]
 - `name` = name of the original image.
 - `dirpath` = absolute path to the original image.
 - `history` = history of applied analysis.
-- `axes` = dimensions of image, "ptzcyx"-order.
+- `axes` = dimensions of image, `ptzcyx`-order.
 - `lut` = look up table.
 - `value` (property) = show the array in numpy format.
 - `range` (property) = return a tuple of min/max.
@@ -102,23 +102,16 @@ img /= 10       # `img` is converted to float32
 When you want to access the first channel and 4-th to 10-th time points, you can do it by:
 
 ```python
-img["c=1,t=4-10"]       # get items
-img["c=1,t=4-10"] = 0   # set items
+img["c=1;t=4-10"]       # get items
+img["c=1;t=4-10"] = 0   # set items
 ```
 
-## Interactive Plot and Measurement
+List-like slicing is also supported:
 
-With `ipywidgets` and in correct environment, you can visualize images interactively with several options:
+```python
+img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
+```
 
-- `imshowc` = all the channels are visualized in the same time.
-- `imshowz` = several z-slices are visualized in the same time.
-- `imshow_comparewith` = two images are visualized in the same time.
-
-You can also measure images and obtain ROIs
-
-- `measure_rectangles`
-- `measure_polygons`
-- `measure_lines`
 
 ## Image Analysis
 
@@ -127,13 +120,16 @@ You can also measure images and obtain ROIs
 - `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
 - `lucy3d` (plugin) = 3-D deconvolution of confocal images.
 - `affine_correction` = Correction of such as chromatic aberration using Affine transformation.
+- `hessian_eigval`, `hessian_eig` = feature detection using Hessian method.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` = for filtering.
+- `erosion`, `dilation`, `opening`, `closing` = for morphological processing.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).
 - `fft`, `ifft` = Fourier transformation.
 - `threshold` = thresholding.
+- `label`, `regionprops` = labeling images and measure properties.
 - `crop_center`, `crop_circle` = crop image.
-- `rescale_intensity` = rescale the intensity profile in certain range.
+- `rescale_intensity` = rescale the intensity profile into certain range.
 - `proj` = Z-projection along any axis.
 - `split` = split the image along any axis.
 
