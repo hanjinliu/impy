@@ -93,7 +93,7 @@ def _hessian_eigh(args):
     sigma = np.asarray(sigma)
     hessian = _symmetric_image(hessian_elements)
     hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
-    eigval = eigvec = np.linalg.eigh(hessian)
+    eigval, eigvec = np.linalg.eigh(hessian)
     return (sl, eigval, eigvec)
 
 def _hessian_eigval(args):
@@ -107,11 +107,6 @@ def _hessian_eigval(args):
     eigval = np.linalg.eigvalsh(hessian)
     return (sl, eigval)
 
-def _hessian_scaled_eigvec(args):
-    # eigval * eigvec
-    sl, eigval, eigvec = _hessian_eigh(args)
-    eigvec = np.stack([eigval]*eigvec.shape[-2], axis=-1) * eigvec
-    return (sl, eigvec)
 
 class ImgArray(BaseArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
@@ -126,7 +121,8 @@ class ImgArray(BaseArray):
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
-        # TODO: implement 3D
+        if dims != 2:
+            raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
         out = self.as_uint16().parallel(_affine, dims, mx, order)
         out._set_info(self, f"{dims}D-Affine-Transform")
@@ -184,7 +180,8 @@ class ImgArray(BaseArray):
         ------
         TypeError
             If self is not two dimensional.
-        """        
+        """
+        # TODO: optionally RANSAC
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
@@ -302,29 +299,51 @@ class ImgArray(BaseArray):
         elif len(sigma) != dims:
             raise ValueError("length of sigma and dims must match.")
         
-        out = self.as_float().parallel(_hessian_eigval, dims, sigma, 
+        eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, 
                                               outshape=self.shape+(dims,))
         
-        out = list(np.moveaxis(out, -1, 0))
-        for i, each in enumerate(out):
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
             each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
         
-        return out
+        return eigval
     
     @record
     def hessian_eigvec(self, sigma=1, dims=2):
         # check sigma
-        
         if isinstance(sigma, (int, float)):
             sigma = [sigma] * dims
         elif len(sigma) != dims:
             raise ValueError("length of sigma and dims must match.")
         
-        out = self.as_float().parallel(_hessian_scaled_eigvec, dims, sigma, 
-                                              outshape=self.shape+(dims,))
-        # TODO: set axes
+        eigval = np.empty(self.shape+(dims,), dtype="float32")
+        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
         
-        return out
+        if self.__class__.n_cpu > 1:
+            results = self._parallel(_hessian_eigh, dims, sigma)
+            for sl, eigval_, eigvec_ in results:
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        else:
+            for sl, img in self.iter(dims):
+                sl, eigval_, eigvec_ = _hessian_eigh((sl, img, dims, sigma))
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        
+        # set information of eigenvalue list
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+        
+        # set information of eigenvector list
+        eigvec = list(np.moveaxis(eigvec, -1, 0))
+        allaxes = "yx" if dims==2 else "zyx"
+        for i, e in enumerate(eigvec):
+            eigvec[i] = list(np.moveaxis(e, -1 ,0))
+            for j, each in enumerate(eigvec[i]):
+                each._set_info(self, f"{dims}D-Hessian-eigenvector[{i}][{allaxes[j]}]")
+                
+        return eigval, eigvec
     
     def hessian_filter(self, sigma:float=1):
         # only puncta detection is available now
@@ -850,7 +869,7 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     
     list_of_shape = list(set(shapes))
     if len(list_of_shape) > 1:
-        if (ignore_exception):
+        if ignore_exception:
             ctr = collections.Counter(shapes)
             common_shape = ctr.most_common()[0][0]
             imgs = [img for img in imgs if img.shape == common_shape]

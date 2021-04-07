@@ -185,7 +185,6 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        # TODO: delete ufunc from args
         return result._inherit_meta(ufunc, *inputs, **kwargs)
     
     def _inherit_meta(self, ufunc, *inputs, **kwargs):

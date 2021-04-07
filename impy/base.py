@@ -22,7 +22,7 @@ def check_value(__op__):
         return out
     return wrapper
 
-# TODO: make lut compatible with imagej
+
 class BaseArray(MetaArray):
     """
     Array implemented with basic functions.
@@ -491,7 +491,7 @@ class BaseArray(MetaArray):
         
         Returns
         -------
-        ImgArray
+        BaseArray
         """
         if outshape is None:
             outshape = self.shape
@@ -499,15 +499,7 @@ class BaseArray(MetaArray):
         out = np.zeros(outshape, dtype=outdtype)
         
         if self.__class__.n_cpu > 1:
-            lmd = lambda x : (x[0], x[1], *args)
-            name = getattr(self, "ongoing", "iteration")
-            timer = Timer()
-            print(f"{name} ...", end="")
-            with multi.Pool(self.__class__.n_cpu) as p:
-                results = p.map(func, map(lmd, self.iter(axes, False)))
-            timer.toc()
-            print(f"\r{name} completed ({timer})")
-            
+            results = self._parallel(func, axes, *args)
             for sl, imgf in results:
                 out[sl] = imgf
         else:
@@ -517,6 +509,17 @@ class BaseArray(MetaArray):
                 
         out = out.view(self.__class__)
         return out
+    
+    def _parallel(self, func, axes, *args):
+        lmd = lambda x : (x[0], x[1], *args)
+        name = getattr(self, "ongoing", "iteration")
+        timer = Timer()
+        print(f"{name} ...", end="")
+        with multi.Pool(self.__class__.n_cpu) as p:
+            results = p.map(func, map(lmd, self.iter(axes, False)))
+        timer.toc()
+        print(f"\r{name} completed ({timer})")
+        return results
     
     def get_cmaps(self):
         """
