@@ -41,7 +41,7 @@ class MetaArray(np.ndarray):
         return np.asarray(self)
     
     def __repr__(self):
-        if (self.axes.is_none()):
+        if self.axes.is_none():
             shape_info = self.shape
         else:
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])

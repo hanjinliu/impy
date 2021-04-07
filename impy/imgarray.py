@@ -597,9 +597,11 @@ class ImgArray(BaseArray):
         
         return labels
     
-    def regionprops(self, properties=("mean_intensity")):
+    def regionprops(self, properties=("mean_intensity", "area")):
         if not hasattr(self, "labels"):
             raise AttributeError("Use label() to add label to the image.")
+        if not hasattr(properties, "__iter__"):
+            raise TypeError("'properties' must be iterable.")
 
         if "p" in self.axes:
             # this dimension will be label
@@ -615,11 +617,12 @@ class ImgArray(BaseArray):
         prop_axes = "".join([a for a in axes if a in self.axes])
         shape = tuple(self.sizeof(a) for a in prop_axes)
         out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
-                            name=self.name+"-"+p, axes="p"+prop_axes, dirpath=self.dirpath)
+                            name=self.name, axes="p"+prop_axes, dirpath=self.dirpath,
+                            propname = p)
                for p in properties}
         
         for sl in itertools.product(*map(range, (self.labels.max(),) + shape)):
-            props = skmes.regionprops(self.labels, self.value, cache=False)
+            props = skmes.regionprops(self.labels, self.value[sl[1:]], cache=False)
             for p in properties:
                 out[p][sl] = getattr(props[sl[0]], p)
         

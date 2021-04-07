@@ -14,6 +14,8 @@ class PropArray(MetaArray):
                 metadata=None, propname=None):
         if propname in SCALAR_PROP:
             dtype = "float32"
+        elif propname is None:
+            raise TypeError("propname not defined")
         else:
             dtype = object
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
@@ -24,6 +26,19 @@ class PropArray(MetaArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
                  metadata=None, propname=None):
         pass
+    
+    def __repr__(self):
+        if self.axes.is_none():
+            shape_info = self.shape
+        else:
+            shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
+
+        return f"\n"\
+               f"    shape     : {shape_info}\n"\
+               f"    dtype     : {self.dtype}\n"\
+               f"  directory   : {self.dirpath}\n"\
+               f"original image: {self.name}\n"\
+               f"property name : {self.propname}\n"
     
     def plot_profile(self, along=None, cmap="jet", cmap_range=(0,1)):
         if self.dtype == object:
@@ -40,7 +55,7 @@ class PropArray(MetaArray):
         for i, (sl, y) in enumerate(self.iter(iteraxes)):
             plt.plot(x, y, color=cmap(positions[i]))
         
-        plt.title(f"for each {iteraxes}")
+        plt.title(f"{self.propname}")
         plt.xlabel(along)
         plt.show()
         
