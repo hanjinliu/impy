@@ -5,11 +5,11 @@ import itertools
 
 class MetaArray(np.ndarray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None):
+                metadata=None, dtype=None):
         if isinstance(obj, cls):
             return obj
         
-        self = np.array(obj).view(cls)
+        self = np.array(obj, dtype=dtype).view(cls)
         self.dirpath = "" if dirpath is None else dirpath
         self.name = "Image from impy" if name is None else name
         
@@ -22,7 +22,7 @@ class MetaArray(np.ndarray):
         return self
     
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 metadata={}):
+                 metadata=None):
         pass
     
     @property

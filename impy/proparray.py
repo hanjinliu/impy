@@ -10,7 +10,25 @@ SCALAR_PROP = (
     "perimeter_crofton", "solidity")
 
 class PropArray(MetaArray):
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+                metadata=None, propname=None):
+        if propname in SCALAR_PROP:
+            dtype = "float32"
+        else:
+            dtype = object
+        self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
+        self.propname = propname
+        
+        return self
+
+    def __init__(self, obj, name=None, axes=None, dirpath=None, 
+                 metadata=None, propname=None):
+        pass
+    
     def plot_profile(self, along=None, cmap="jet", cmap_range=(0,1)):
+        if self.dtype == object:
+            raise TypeError(f"Cannot call plot_profile for {self.propname} "
+                            "because dtype == object.")
         if along is None:
             along = self.axes[-1]
         
@@ -28,4 +46,7 @@ class PropArray(MetaArray):
         
         return self
         
-        
+    def _set_info(self, other, new_axes:str="inherit"):
+        super()._set_info(other, new_axes)
+        self.propname = other.propname
+        return None

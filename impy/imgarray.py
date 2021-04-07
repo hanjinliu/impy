@@ -571,7 +571,7 @@ class ImgArray(BaseArray):
         
         if nlabel < 256:
             labels = labels.astype("uint8")
-        elif nlabel < 65535:
+        elif nlabel < 65536:
             labels = labels.astype("uint16")
         
         self.labels = labels

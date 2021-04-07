@@ -36,7 +36,7 @@ class BaseArray(MetaArray):
     n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=[], metadata={}, lut=None):
+                history=None, metadata=None, lut=None):
         
         self = super().__new__(cls, obj, name, axes, dirpath, metadata)
         self.history = [] if history is None else history
@@ -44,7 +44,7 @@ class BaseArray(MetaArray):
         return self
 
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=[], metadata={}, lut=None):
+                 history=None, metadata=None, lut=None):
         pass
     
     @property
