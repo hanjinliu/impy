@@ -12,14 +12,12 @@ from skimage import exposure as skexp
 from skimage import measure as skmes
 from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
-import warnings
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
 from .base import BaseArray
 from .axes import Axes
 from .proparray import PropArray
-from .roi import Rectangle
 
 def _affine(args):
     sl, data, mx, order = args
@@ -160,7 +158,7 @@ class ImgArray(BaseArray):
     
     
     @record
-    def gaussfit(self, scale=1/16, p0=None):
+    def gaussfit(self, scale=1/16, p0=None, show_result=True):
         """
         Fit the image to 2-D Gaussian.
 
@@ -170,6 +168,8 @@ class ImgArray(BaseArray):
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters, by default None
+        show_result : bool, optional
+            If show the fitting result.
 
         Returns
         -------
@@ -185,7 +185,7 @@ class ImgArray(BaseArray):
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        param, fit = gaussfit(self, p0, scale=scale)
+        param, fit = gaussfit(self, p0, scale=scale, show_result=show_result)
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
         out.temp = param
@@ -525,9 +525,6 @@ class ImgArray(BaseArray):
         """
         Make a rectancge ROI.
         """
-        warnings.warn("specify will be removed because ROI" 
-                      "is inconpatible with label in skimage",
-                      DeprecationWarning)
         
         if position == "corner":
             pass
@@ -537,14 +534,14 @@ class ImgArray(BaseArray):
         else:
             raise ValueError("'position' must be 'corner' or 'center'")
         
-        rect = Rectangle(x, x+dx, y, y+dy)
-        
-        if hasattr(self, "rois") and type(self.rois) is list:
-            self.rois.append(rect)
+        if hasattr(self, "labels"):
+            self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
         else:
-            self.rois = [rect]
+            labels = np.zeros((self.sizeof("y"), self.sizeof("x")), dtype="uint8")
+            labels[y:y+dy, x:x+dx] = 1
+            self.labels = labels
         
-        return rect
+        return self.labels
 
     
     def crop_center(self, scale=0.5):
@@ -600,8 +597,9 @@ class ImgArray(BaseArray):
     def regionprops(self, properties=("mean_intensity", "area")):
         if not hasattr(self, "labels"):
             raise AttributeError("Use label() to add label to the image.")
-        if not hasattr(properties, "__iter__"):
-            raise TypeError("'properties' must be iterable.")
+        
+        if isinstance(properties, str):
+            properties = (properties,)
 
         if "p" in self.axes:
             # this dimension will be label
@@ -626,7 +624,7 @@ class ImgArray(BaseArray):
             for p in properties:
                 out[p][sl] = getattr(props[sl[0]], p)
         
-        return out            
+        return out
     
     @record
     def split(self, axis=None):

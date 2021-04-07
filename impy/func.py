@@ -115,7 +115,7 @@ def square(params, func, z):
     z_guess = func(x, y, *params)
     return np.mean((z - z_guess)**2)
     
-def gaussfit(img2d, p0=None, scale=1):
+def gaussfit(img2d, p0=None, scale=1, show_result=True):
     """
     Fit 2-D image to 2-D gaussian
 
@@ -145,19 +145,20 @@ def gaussfit(img2d, p0=None, scale=1):
     fit = gauss2d(x, y, *param).astype("float32")
     
     # show fitting result
-    x0 = img2d.shape[1]//2
-    y0 = img2d.shape[0]//2
-    plt.figure(figsize=(6,4))
-    plt.subplot(2,1,1)
-    plt.title("x-direction")
-    plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
-    plt.plot(fit[y0], color="red", label="fit")
-    plt.subplot(2,1,2)
-    plt.title("y-direction")
-    plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
-    plt.plot(fit[:,x0], color="red", label="fit")
-    plt.tight_layout()
-    plt.show()
+    if show_result:
+        x0 = img2d.shape[1]//2
+        y0 = img2d.shape[0]//2
+        plt.figure(figsize=(6,4))
+        plt.subplot(2,1,1)
+        plt.title("x-direction")
+        plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
+        plt.plot(fit[y0], color="red", label="fit")
+        plt.subplot(2,1,2)
+        plt.title("y-direction")
+        plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
+        plt.plot(fit[:,x0], color="red", label="fit")
+        plt.tight_layout()
+        plt.show()
     return param, fit
 
 
