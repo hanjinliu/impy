@@ -40,7 +40,7 @@ class PropArray(MetaArray):
                f"original image: {self.name}\n"\
                f"property name : {self.propname}\n"
     
-    def plot_profile(self, along=None, cmap="jet", cmap_range=(0,1)):
+    def plot_profile(self, along=None, cmap="jet", cmap_range=(0, 1)):
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")

@@ -3,6 +3,42 @@ from .axes import Axes
 from .func import add_axes, del_axis, _key_repr
 import itertools
 
+def _range_to_list(v:str):
+    """
+    "1,3,5" -> [1,3,5]
+    "2,4-6,9" -> [2,4,5,6,9]
+    """
+    if "-" in v:
+        s, e = v.split("-")
+        return list(range(int(s)-1, int(e)))
+    else:
+        return [int(v)-1]
+    
+
+def _str_to_range(v:str):
+    if "," in v:
+        sl = sum((_range_to_list(v) for v in v.split(",")), [])
+        
+    elif "-" in v:
+        start, end = [s.strip() for s in v.strip().split("-")]
+        if start == "":
+            start = None
+        else:
+            start = int(start) - 1
+            if start < 0:
+                raise IndexError("string indexing starts from 1.")
+        if end == "":
+            end = None
+        else:
+            end = int(end)
+        sl = slice(start, end, None)
+        
+    else:
+        sl = int(v) - 1
+        if sl < 0:
+            raise IndexError("string indexing starts from 1.")
+    return sl
+
 class MetaArray(np.ndarray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
@@ -229,35 +265,16 @@ class MetaArray(np.ndarray):
         get subslices using ImageJ-like format.
         e.g. 't=3-, z=1-5', 't=1, z=-7' (this will not be interpreted as minus)
         """
-        keylist = [key.strip() for key in string.split(",")]
+        keylist = [key.strip() for key in string.split(";")]
         olist = [] # e.g. 'z', 't'
         vlist = [] # e.g. 5, 2:4
         for k in keylist:
             # e.g. k = "t = 4-7"
             o, v = [s.strip() for s in k.split("=")]
+            
             olist.append(self.axisof(o))
-
-            # set value or slice
-            if "-" in v:
-                start, end = [s.strip() for s in v.strip().split("-")]
-                if (start == ""):
-                    start = None
-                else:
-                    start = int(start) - 1
-                    if start < 0:
-                        raise IndexError(f"out of range: {o}")
-                if end == "":
-                    end = None
-                else:
-                    end = int(end)
-
-                vlist.append(slice(start, end, None))
-            else:
-                pos = int(v) - 1
-                if (pos < 0):
-                        raise IndexError(f"out of range: {o}")
-                vlist.append(pos)
-        
+            vlist.append(_str_to_range(v))
+            
         input_keylist = []
         for i in range(len(self.axes)):
             if i in olist:
