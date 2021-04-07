@@ -12,7 +12,7 @@ def sort_axes(str_):
 
 def check_none(func):
     def checked(self, *args, **kwargs):
-        if (self.is_none()):
+        if self.is_none():
             raise ImageAxesError("Axes not defined.")
         return func(self, *args, **kwargs)
     return checked
@@ -22,24 +22,24 @@ class Axes:
     def __init__(self, value=NONE, ndim=0) -> None:
         self.axes = NONE
         
-        if (value == NONE):
+        if value == NONE:
             pass
-        elif (isinstance(value, str)):
+        elif isinstance(value, str):
             value = value.lower()
             counter = {"p":False, "t": False, "z": False, "c": False, "x": False, "y": False}
             for v in value:
-                if (v in "ptzcxys"):
+                if v in "ptzcxys":
                     if (counter[v] == True):
                         raise ImageAxesError(f"'{v}' appeared twice: {value}")
                     counter[v] = True
-                elif (v in "q"):
+                elif v in "q":
                     pass
                 else:
                     raise ImageAxesError(f"axes cannot contain characters except for 'qtzcxys': got {value}")
             
-            if (ndim > 0 and len(value) != ndim):
-                raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and order({value})")
-        elif (isinstance(value, self.__class__)):
+            if ndim > 0 and len(value) != ndim:
+                raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and axes ({value})")
+        elif isinstance(value, self.__class__):
             value = value.axes
         else:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
@@ -68,9 +68,9 @@ class Axes:
     
     @check_none
     def __eq__(self, other):
-        if (type(other) is str):
+        if isinstance(other, str):
             return self.axes == other
-        elif (isinstance(other, self.__class__)):
+        elif isinstance(other, self.__class__):
             return other == self.axes
 
     def __contains__(self, other):
@@ -80,7 +80,7 @@ class Axes:
         return not self.is_none()
     
     def __repr__(self):
-        if (self.is_none()):
+        if self.is_none():
             return "No axes defined"
         else:
             return self.axes
@@ -97,7 +97,7 @@ class Axes:
         return self.axes == sort_axes(self.axes)
     
     def check_is_sorted(self):
-        if (self.is_sorted()):
+        if self.is_sorted():
             pass
         else:
             raise ImageAxesError(f"Axes must in tzcxy order, but got {self.axes}")
@@ -105,7 +105,7 @@ class Axes:
     @check_none
     def find(self, axis) -> int:
         i = self.axes.find(axis)
-        if (i < 0):
+        if i < 0:
             raise ImageAxesError(f"Image does not have {axis}-axis: {self.axes}")
         else:
             return i

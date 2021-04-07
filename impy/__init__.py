@@ -1,4 +1,4 @@
-__version__ = "2.1.0"
+__version__ = "1.0.0"
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
@@ -8,7 +8,7 @@ warnings.simplefilter("ignore", RuntimeWarning)
 
 import os
 from importlib import import_module
-from .imgarray import array, imread, imread_collection, read_meta, stack, ImgArray
+from .imgarray import array, imread, imread_collection, read_meta, stack, set_cpu, ImgArray
 
 __doc__ = \
 r"""

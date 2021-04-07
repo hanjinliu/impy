@@ -84,7 +84,7 @@ def same_dtype(asfloat=False):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             dtype = self.dtype
-            if (asfloat):
+            if asfloat:
                 self = self.astype("float32")
             out = func(self, *args, **kwargs)
             out = out.as_img_type(dtype)
@@ -115,7 +115,7 @@ def square(params, func, z):
     z_guess = func(x, y, *params)
     return np.mean((z - z_guess)**2)
     
-def gaussfit(img2d, p0=None, scale=1):
+def gaussfit(img2d, p0=None, scale=1, show_result=True):
     """
     Fit 2-D image to 2-D gaussian
 
@@ -145,19 +145,20 @@ def gaussfit(img2d, p0=None, scale=1):
     fit = gauss2d(x, y, *param).astype("float32")
     
     # show fitting result
-    x0 = img2d.shape[1]//2
-    y0 = img2d.shape[0]//2
-    plt.figure(figsize=(6,4))
-    plt.subplot(2,1,1)
-    plt.title("x-direction")
-    plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
-    plt.plot(fit[y0], color="red", label="fit")
-    plt.subplot(2,1,2)
-    plt.title("y-direction")
-    plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
-    plt.plot(fit[:,x0], color="red", label="fit")
-    plt.tight_layout()
-    plt.show()
+    if show_result:
+        x0 = img2d.shape[1]//2
+        y0 = img2d.shape[0]//2
+        plt.figure(figsize=(6,4))
+        plt.subplot(2,1,1)
+        plt.title("x-direction")
+        plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
+        plt.plot(fit[y0], color="red", label="fit")
+        plt.subplot(2,1,2)
+        plt.title("y-direction")
+        plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
+        plt.plot(fit[:,x0], color="red", label="fit")
+        plt.tight_layout()
+        plt.show()
     return param, fit
 
 
@@ -189,84 +190,23 @@ def affinefit(img, imgref, bins=256, order=3):
     return mtx_opt
     
 
-
-# # # This is from affine correction with 2D-Gaussian fitting using manually # # #
-# # # selected ROIs.
-
-# def _affinefit(x, y, xref, yref):
-#     """
-#     Aberration correction using Affine transformation.
-#     Make (x, y) close to (xref, yref).
-#     """
-#     as3x3 = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
-#     def _square(mtx, xy, xy0):
-#         mtx = as3x3(mtx)
-#         return np.sum((xy0 - mtx @ xy)**2)
-    
-#     if not len(x) == len(y) == len(xref) == len(yref):
-#         raise ValueError("all input arrays must have same length.")
-    
-#     mtx0 = np.array([[1., 0., 0.],
-#                      [0., 1., 0.]]) # aberration makes little difference
-    
-#     xy = np.vstack((x, y, np.ones(len(x))))
-#     xyref = np.vstack((xref, yref, np.ones(len(xref))))
-#     out = opt.minimize(_square, mtx0, args=(xy, xyref))
-    
-#     mtx_opt = as3x3(out.x)
-#     corrected = mtx_opt @ xy
-#     return mtx_opt, corrected[0,:], corrected[1,:]
-
-# def affinefit(img2d, img2dref, xdata, ydata, w=10):
-#     xlist = []
-#     ylist = []
-#     xreflist = []
-#     yreflist = []
-#     n_passed = 0
-#     n_failed = 0
-#     # Fit each particle to 2D-Gaussian
-#     for i, (x, y) in enumerate(zip(xdata, ydata)):
-#         try:
-#             x=int(x)
-#             y=int(y)
-#             corner = np.array([x-w, y-w])
-#             p1 = GaussianParticle(img2d[y-w:y+w,x-w:x+w], corner)
-#             p2 = GaussianParticle(img2dref[y-w:y+w,x-w:x+w], corner)
-#             if p1.check() and p2.check():
-#                 xlist.append(p1.x)
-#                 ylist.append(p1.y)
-#                 xreflist.append(p2.x)
-#                 yreflist.append(p2.y)
-#                 n_passed += 1
-#             else:
-#                 n_failed += 1
-                
-#         except:
-#             n_failed += 1
-            
-#     print(f"passed: {n_passed}, failed: {n_failed}")
-#     xlist = np.array(xlist)
-#     ylist = np.array(ylist)
-#     xreflist = np.array(xreflist)
-#     yreflist = np.array(yreflist)
-    
-#     # minimize distance by Affine transformation
-#     mtx_opt, xcor, ycor = _affinefit(xlist, ylist, xreflist, yreflist)
-    
-#     result = AffineCorrectionResult()
-#     result.x = xlist
-#     result.y = ylist
-#     result.xcor = xcor
-#     result.ycor = ycor
-#     result.xref = xreflist
-#     result.yref = yreflist
-#     result.matrix = mtx_opt
-#     result.rmsd = np.sqrt(np.mean((xlist-xreflist)**2 + (ylist-yreflist)**2))
-#     result.rmsd_cor = np.sqrt(np.mean((xcor-xreflist)**2 + (ycor-yreflist)**2))
-    
-#     return result
-
+def _key_repr(key):
+    keylist = []
         
+    if isinstance(key, tuple):
+        _keys = key
+    elif hasattr(key, "__array__"):
+        _keys = ("array",)
+    else:
+        _keys = (key,)
+    
+    for s in _keys:
+        if type(s) in (slice, list, np.ndarray):
+            keylist.append("*")
+        else:
+            keylist.append(str(s))
+    
+    return ",".join(keylist)
 
 def circle(radius, shape, dtype="bool"):
     x = np.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
@@ -288,9 +228,9 @@ def del_axis(axes, axis):
     axis: int.
     delete axis from axes.
     """
-    if (type(axis) == int):
+    if type(axis) == int:
         axis = [axis]
-    if (axes is None):
+    if axes is None:
         return None
     new_axes = ""
     for i, o in enumerate(axes):
@@ -303,7 +243,7 @@ def add_axes(axes, shape, arr2d):
     """
     stack yx-ordered array 'arr2d' to 'axes' in shape 'shape'
     """
-    if (len(shape) == 2):
+    if len(shape) == 2:
         return arr2d
     arr2d = np.array(arr2d)
     for i, o in enumerate(reversed(axes)):
@@ -322,3 +262,11 @@ def get_lut(name):
             print(f"{name} is not a color or a cmap.")
             lut = "gray"
     return lut
+
+def determine_range(arr):
+    if arr.dtype == bool:
+        vmax = vmin = None
+    else:
+        vmax = np.percentile(arr[arr>0], 99.99)
+        vmin = np.percentile(arr[arr>0], 0.01)
+    return vmax, vmin

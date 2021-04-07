@@ -1,19 +1,23 @@
+import itertools
 import numpy as np
 import os
 import glob
 import collections
 from skimage import io
-from skimage.morphology import white_tophat
+from skimage import morphology as skmorph
 from skimage import transform as sktrans
 from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
+from skimage import measure as skmes
+from skimage.feature.corner import _symmetric_image
+from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
 from .base import BaseArray
 from .axes import Axes
-from .roi import Rectangle
+from .proparray import PropArray
 
 def _affine(args):
     sl, data, mx, order = args
@@ -33,7 +37,7 @@ def _gaussian(args):
 
 def _rolling_ball(args):
     sl, data, radius, smooth = args
-    if (smooth):
+    if smooth:
         _, ref = _mean((sl, data, np.ones((3, 3))))
         back = skres.rolling_ball(ref, radius=radius)
         tozero = (back > data)
@@ -43,9 +47,63 @@ def _rolling_ball(args):
     
     return (sl, data - back)
 
+def _opening(args):
+    sl, data, selem = args
+    return (sl, skmorph.opening(data, selem))
+
+def _binary_opening(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_opening(data, selem))
+
+def _closing(args):
+    sl, data, selem = args
+    return (sl, skmorph.closing(data, selem))
+
+def _binary_closing(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_closing(data, selem))
+
+def _erosion(args):
+    sl, data, selem = args
+    return (sl, skmorph.erosion(data, selem))
+
+def _binary_erosion(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_erosion(data, selem))
+
+def _dilation(args):
+    sl, data, selem = args
+    return (sl, skmorph.dilation(data, selem))
+
+def _binary_dilation(args):
+    sl, data, selem = args
+    return (sl, skmorph.binary_dilation(data, selem))
+
 def _tophat(args):
     sl, data, selem = args
-    return (sl, white_tophat(data, selem))
+    return (sl, skmorph.white_tophat(data, selem))
+
+def _hessian_eigh(args):
+    sl, data, sigma = args
+    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
+                                             mode="reflect")
+    # Correct for scale
+    sigma = np.asarray(sigma)
+    hessian = _symmetric_image(hessian_elements)
+    hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
+    eigval, eigvec = np.linalg.eigh(hessian)
+    return (sl, eigval, eigvec)
+
+def _hessian_eigval(args):
+    sl, data, sigma = args
+    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
+                                             mode="reflect")
+    # Correct for scale
+    sigma = np.asarray(sigma)
+    hessian = _symmetric_image(hessian_elements)
+    hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
+    eigval = np.linalg.eigvalsh(hessian)
+    return (sl, eigval)
 
 
 class ImgArray(BaseArray):
@@ -56,25 +114,26 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def affine(self, dims=2, n_cpu=4, order=1, **kwargs):
+    def affine(self, dims=2, order=1, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
-        # TODO: implement 3D
+        if dims != 2:
+            raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(_affine, dims, mx, order, n_cpu=n_cpu)
+        out = self.as_uint16().parallel(_affine, dims, mx, order)
         out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
     @same_dtype(True)
     @record
-    def translate(self, dims=2, n_cpu=4, translation=None):
+    def translate(self, dims=2, translation=None):
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(_affine, dims, mx, n_cpu=n_cpu)
+        out = self.as_uint16().parallel(_affine, dims, mx)
         out._set_info(self, f"Translate{translation}")
         return out
 
@@ -85,9 +144,11 @@ class ImgArray(BaseArray):
             scale = float(scale)
         except:
             raise TypeError(f"scale must be float, but got {type(scale)}")
+        
         scale_ = []
+        
         for a in self.axes:
-            if (a in "yx"):
+            if a in "yx":
                 scale_.append(scale)
             else:
                 scale_.append(1)
@@ -97,7 +158,7 @@ class ImgArray(BaseArray):
     
     
     @record
-    def gaussfit(self, scale=1/16, p0=None):
+    def gaussfit(self, scale=1/16, p0=None, show_result=True):
         """
         Fit the image to 2-D Gaussian.
 
@@ -107,6 +168,8 @@ class ImgArray(BaseArray):
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters, by default None
+        show_result : bool, optional
+            If show the fitting result.
 
         Returns
         -------
@@ -117,11 +180,12 @@ class ImgArray(BaseArray):
         ------
         TypeError
             If self is not two dimensional.
-        """        
-        if (self.ndim != 2):
+        """
+        # TODO: optionally RANSAC
+        if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        param, fit = gaussfit(self, p0, scale=scale)
+        param, fit = gaussfit(self, p0, scale=scale, show_result=show_result)
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
         out.temp = param
@@ -129,79 +193,250 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def affine_correction(self, base=0, bins=256, order=3, prefilter=True):
+    def affine_correction(self, ref=None, bins=256, order=3, prefilter=True, axis="c"):
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
 
         Parameters
         ----------
-        base : int, optional
-            Which channel will be the reference, by default 0
+        ref : int, optional
+            Reference image-stack to calculate Affine transformation matrices, or
+            matrices themselves.
         bins : int, optional
             Number of bins that is generated on calculating mutual information, 
             by default 256
         order : int, optional
             Interporation order, by default 3
-        prefilter: bool
+        prefilter : bool
             If median filter is applied to all images before fitting. This does not
             change original images. By default True.
+        axis : str
+            Along which axis correction will be performed, by default "c".
+            Chromatic aberration -> "c"
+            Some drift during time lapse movie -> "t"
 
         Returns
         -------
         ImgArray
             Corrected image.
-        """        
-        if "c" not in self.axes:
-            raise ValueError("Image does not have channel axis.")
-        elif self.sizeof("c") < 2:
-            raise ValueError("Image must have two channels or more.")
+        """
+        def check_c_axis(self):
+            if not hasattr(self, "axes"):
+                raise AttributeError("Image dose not have axes.")
+            elif axis not in self.axes:
+                raise ValueError("Image does not have channel axis.")
+            elif self.sizeof(axis) < 2:
+                raise ValueError("Image must have two channels or more.")
         
-        # images of all channels
-        if prefilter:
-            imgs = [img for img in self.median_filter(radius=1).split("c")]
-        else:
-            imgs = [img for img in self.split("c")]
+        check_c_axis(self)
+        
+        mtx = None
+        
+        # check `ref`
+        if ref is None:
+            # correct self
+            ref = self
             
-        corrected = []
-        print("fitting ... ", end="")
-        for i, img in enumerate(imgs):
-            if i == base:
-                corrected.append(self[f"c={i+1}"])
+        elif isinstance(ref, np.ndarray):
+            # ref is single Affine transformation matrix or a reference image stack.
+            if ref.shape == (3, 3) and np.allclose(ref[2,:2], 0):
+                mtx = [1, ref]
             else:
-                mtx = affinefit(img, imgs[base], bins, order)
-                corrected.append(self[f"c={i+1}"].affine(order=order, matrix=mtx))
+                check_c_axis(ref)
+                
+        elif isinstance(ref, (list, tuple)):
+            # ref is a list of Affine transformation matrix
+            mtx = []
+            for m in ref:
+                if isinstance(m, (int, float)): 
+                    if m == 1:
+                        mtx.append(m)
+                    else:
+                        raise ValueError(f"Only `1` is ok, but got {m}")
+                    
+                elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
+                    raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
+                
+                else:
+                    mtx.append(m)
+        
+        else:
+            raise TypeError("`ref` must be image or (list of) Affine transformation matrices.")
+        
+        
+        # Determine matrices by fitting
+        if mtx is None:
+            if prefilter:
+                imgs = [img for img in ref.median_filter(radius=1).split(axis)]
+            else:
+                imgs = [img for img in ref.split(axis)]
+                
+            print("fitting ... ", end="")
+            mtx = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
+        
+        if len(mtx) != self.sizeof(axis):
+            nchn = self.sizeof(axis)
+            raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
+        
+        corrected = []
+        for i, m in enumerate(mtx):
+            if isinstance(m, (int, float)) and m==1:
+                corrected.append(self[f"{axis}={i+1}"])
+            else:
+                corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=m))
 
-        out = stack(corrected, axis="c", dtype=self.dtype)
+        out = stack(corrected, axis=axis, dtype=self.dtype)
         out._set_info(self, f"Affine-Correction(order={order})")
+        out.temp = mtx
         return out
     
-    @same_dtype()
     @record
-    def tophat(self, radius=50, n_cpu=4):
+    def hessian_eigval(self, sigma=1, dims=2) -> list:
         """
-        Subtract Background using top-hat algorithm.
+        Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
+        is considered to be a single spatial image, and if dims=3, zyx-image.
 
         Parameters
         ----------
-        radius : int, optional
-            Radius of hat, by default 50
-        n_cpu : int, optional
-            Number of CPU to use
+        sigma : int, optional
+            sigma of Gaussian filter applied before calculating Hessian, by default 1.
+        dims : 2 or 3, optional
+            spatial dimension, by default 2
 
         Returns
         -------
-        ImgArray
-            Background subtracted image.
+        list of float ImgArray
+            eigenvalues in smaller->larger order
         """        
-        disk = ball_like(radius, 2)
-        out = self.parallel(_tophat, "ptzc", disk, n_cpu=n_cpu)
-        out._set_info(self, f"Top-Hat(R={radius})")
+        # check sigma
+        if isinstance(sigma, (int, float)):
+            sigma = [sigma] * dims
+        elif len(sigma) != dims:
+            raise ValueError("length of sigma and dims must match.")
+        
+        eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, 
+                                              outshape=self.shape+(dims,))
+        
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+        
+        return eigval
+    
+    @record
+    def hessian_eig(self, sigma=1, dims=2):
+        """
+        Calculate Hessian's eigenvalues and eigenvectors.
+
+        Parameters
+        ----------
+        sigma : int, optional
+            sigma of Gaussian filter applied before calculating Hessian, by default 1.
+        dims : 2 or 3, optional
+            spatial dimension, by default 2
+
+        Returns
+        -------
+        list of float ImgArray and 2D-list of float ImgArray
+        """        
+        # check sigma
+        if isinstance(sigma, (int, float)):
+            sigma = [sigma] * dims
+        elif len(sigma) != dims:
+            raise ValueError("length of sigma and dims must match.")
+        
+        eigval = np.empty(self.shape+(dims,), dtype="float32")
+        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        
+        if self.__class__.n_cpu > 1:
+            results = self._parallel(_hessian_eigh, dims, sigma)
+            for sl, eigval_, eigvec_ in results:
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        else:
+            for sl, img in self.iter(dims):
+                sl, eigval_, eigvec_ = _hessian_eigh((sl, img, dims, sigma))
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        
+        # set information of eigenvalue list
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+        
+        # set information of eigenvector list
+        eigvec = list(np.moveaxis(eigvec, -1, 0))
+        allaxes = "yx" if dims==2 else "zyx"
+        for i, e in enumerate(eigvec):
+            eigvec[i] = list(np.moveaxis(e, -1 ,0))
+            for j, each in enumerate(eigvec[i]):
+                each._set_info(self, f"{dims}D-Hessian-eigenvector[{i}][{allaxes[j]}]")
+                
+        return eigval, eigvec
+    
+    def hessian_filter(self, sigma=1):
+        # only puncta detection is available now
+        # TODO: filament detection etc.
+        eigval = self.hessian_eigval(sigma)
+        for e in eigval:
+            e[e>0] = 0
+        return np.product(-eigval, axis=0)**(1/len(eigval))
+        
+    
+    def _running_kernel(self, radius:float, dims:int, function=None, annotation:str=""):
+        disk = ball_like(radius, dims)
+        out = self.as_uint16().parallel(function, dims, disk)
+        out._set_info(self, annotation)
         return out
     
     @same_dtype()
     @record
-    def rolling_ball(self, radius=50, smoothing=True, n_cpu=4):
+    def erosion(self, radius=1, dims=2):
+        f = _binary_erosion if self.dtype == bool else _erosion
+        return self._running_kernel(radius, dims, f, f"{dims}D-Erosion(R={radius})")
+    
+    @same_dtype()
+    @record
+    def dilation(self, radius=1, dims=2):
+        f = _binary_dilation if self.dtype == bool else _dilation
+        return self._running_kernel(radius, dims, f, f"{dims}D-Dilation(R={radius})")
+    
+    @same_dtype()
+    @record
+    def opening(self, radius=1, dims=2):
+        f = _binary_opening if self.dtype == bool else _opening
+        return self._running_kernel(radius, dims, f, f"{dims}D-Opening(R={radius})")
+    
+    @same_dtype()
+    @record
+    def closing(self, radius=1, dims=2):
+        f = _binary_closing if self.dtype == bool else _closing
+        return self._running_kernel(radius, dims, f, f"{dims}D-Closing(R={radius})")
+    
+    @same_dtype()
+    @record
+    def tophat(self, radius=50, dims=2):
+        return self._running_kernel(radius, dims, _tophat, f"{dims}D-Top-Hat(R={radius})")
+    
+    @same_dtype()
+    @record
+    def mean_filter(self, radius=1, dims=2):
+        return self._running_kernel(radius, dims, _mean, f"{dims}D-Mean-Filter(R={radius})")
+    
+    @same_dtype()
+    @record
+    def median_filter(self, radius=1, dims=2):
+        return self._running_kernel(radius, dims, _median, f"{dims}D-Median-Filter(R={radius})")
+    
+    @same_dtype()
+    @record
+    def gaussian_filter(self, sigma=1, dims=2):
+        return self._running_kernel(sigma, dims, _gaussian, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+    
+    @same_dtype()
+    @record
+    def rolling_ball(self, radius=50, smoothing=True):
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -211,91 +446,16 @@ class ImgArray(BaseArray):
             Radius of rolling ball, by default 50
         smoothing : bool, optional
             If apply 3x3 averaging before creating background.
-        n_cpu : int, optional
-            Number of CPU to use
             
         Returns
         -------
         ImgArray
             Background subtracted image.
         """        
-        out = self.parallel(_rolling_ball, "ptzc", radius, smoothing, n_cpu=n_cpu)
+        out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
-    @same_dtype()
-    @record
-    def mean_filter(self, radius=1, n_cpu=4, dims=2):
-        """
-        Run mean filter.
-
-        Parameters
-        ----------
-        radius : int, optional
-            Radius of filter, by default 1
-        n_cpu : int, optional
-            Number of CPU to use
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """
-        disk = ball_like(radius, dims)
-        out = self.parallel(_mean, dims, disk, n_cpu=n_cpu)
-        out._set_info(self, f"{dims}D-Mean-Filter(R={radius})")
-        return out
-    
-    @same_dtype()
-    @record
-    def median_filter(self, radius=1, n_cpu=4, dims=2):
-        """
-        Run median filter. 
-
-        Parameters
-        ----------
-        radius : int, optional
-            Radius of filter, by default 1
-        n_cpu : int, optional
-            Number of CPU to use
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """
-        disk = ball_like(radius, dims)
-        out = self.parallel(_median, dims, disk, n_cpu=n_cpu)
-        out._set_info(self, f"{dims}D-Median-Filter(R={radius})")
-        return out
-
-    @same_dtype()
-    @record
-    def gaussian_filter(self, sigma=1, n_cpu=4, dims=2):
-        """
-        Run Gaussian filter (Gaussian blur).
-
-        Parameters
-        ----------
-        sigma : scalar or array of scalars, optional
-            standard deviation(s) of Gaussian, by default 1
-        n_cpu : int, optional
-            Number of CPU to use, by default 4
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """        
-        out = self.parallel(_gaussian, dims, sigma, n_cpu=n_cpu)
-        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
-        return out
     
     @record
     def fft(self):
@@ -346,7 +506,7 @@ class ImgArray(BaseArray):
                     "triangle": skfil.threshold_triangle,
                     "yen": skfil.threshold_yen
                     }
-        if (thr is None):
+        if thr is None:
             method = method.lower()
             try:
                 func = methods_[method]
@@ -356,8 +516,8 @@ class ImgArray(BaseArray):
             thr = func(self.view(np.ndarray), **kwargs)
 
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.as_uint16().iter(iters):
-                if (light_bg):
+            for t, img in self.iter(iters):
+                if light_bg:
                     out[t] = img <= thr
                 else:
                     out[t] = img >= thr
@@ -365,7 +525,7 @@ class ImgArray(BaseArray):
             out._set_info(self, f"Thresholding({method})")
 
         else:
-            if (light_bg):
+            if light_bg:
                 out = self <= thr
             else:
                 out = self >= thr
@@ -379,11 +539,11 @@ class ImgArray(BaseArray):
         """
         Make a circular window function.
         """
-        if (radius is None):
+        if radius is None:
             radius = np.min(self.xyshape()) // 2
         
         circ = circle(radius, self.xyshape())
-        if (not outzero):
+        if not outzero:
             circ = ~circ
         circ = add_axes(self.axes, self.shape, circ)
         out = np.array(self)
@@ -396,20 +556,23 @@ class ImgArray(BaseArray):
         """
         Make a rectancge ROI.
         """
-        if (position == "corner"):
+        
+        if position == "corner":
             pass
-        elif (position == "center"):
+        elif position == "center":
             x -= dx//2
             y -= dy//2
         else:
             raise ValueError("'position' must be 'corner' or 'center'")
-        rect = Rectangle(x, x+dx, y, y+dy)
-        if (hasattr(self, "rois") and type(self.rois) is list):
-            self.rois.append(rect)
-        else:
-            self.rois = [rect]
         
-        return rect
+        if hasattr(self, "labels"):
+            self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
+        else:
+            labels = np.zeros((self.sizeof("y"), self.sizeof("x")), dtype="uint8")
+            labels[y:y+dy, x:x+dx] = 1
+            self.labels = labels
+        
+        return self.labels
 
     
     def crop_center(self, scale=0.5):
@@ -417,7 +580,7 @@ class ImgArray(BaseArray):
         Crop out the center of an image.
         e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
         """
-        if (scale <= 0 or 1 < scale):
+        if scale <= 0 or 1 < scale:
             raise ValueError(f"scale must be (0, 1], but got {scale}")
         
         sizex, sizey = self.xyshape()
@@ -427,13 +590,113 @@ class ImgArray(BaseArray):
         y0 = int(sizey / 2 * (1 - scale)) + 1
         y1 = int(sizey / 2 * (1 + scale))
 
-        out = self[f"x={x0}-{x1},y={y0}-{y1}"]
+        out = self[f"x={x0}-{x1};y={y0}-{y1}"]
         out.history[-1] = f"Crop-Center(scale={scale})"
         
         return out
     
+    def label(self, label_image=None, connectivity=None):
+        """
+        Run skimage's label() and store the results as attribute.
+
+        Parameters
+        ----------
+        label_image : array, optional
+            image to make label, by default self is used.
+        connectivity : int, optional
+            passed to skimage's label(), by default None
+
+        Returns
+        -------
+        labeled image
+        """        
+        # check the shape of label_image
+        if label_image is None:
+            label_image = self
+            
+        elif not isinstance(label_image, np.ndarray):
+            raise TypeError("label_image must be an array")
+        
+        elif label_image.ndim == 2:
+            if label_image.shape != self.xyshape():
+                raise ValueError("Incompatible yx-shape")
+        elif label_image.ndim == 3:
+            zyxshape = tuple(self.sizeof(a) for a in "zyx")
+            if label_image.shape != zyxshape:
+                raise ValueError("Incompatible zyx-shape")
+        else:
+            raise ValueError("'label_image' must be 2 or 3 dimensional")
+            
+        labels, nlabel = skmes.label(label_image, background=0, 
+                                     return_num=True, connectivity=connectivity)
+        
+        # use memory efficient dtype
+        if nlabel < 256:
+            labels = labels.astype("uint8")
+        elif nlabel < 65536:
+            labels = labels.astype("uint16")
+        
+        self.labels = labels
+        
+        return labels
+    
+    def regionprops(self, properties=("mean_intensity", "area"), extra_properties=None) -> dict:
+        """
+        Run skimage's regionprops() function and return the results as PropArray, so
+        that you can access using flexible slicing. For example, if a tcyx-image is
+        analyzed with properties=("X", "Y"), then you can get X's time-course profile
+        of channel 1 at label 3 by prop["X"]["p=5;c=1"].
+
+        Parameters
+        ----------
+        properties : iterable, optional
+            properties to analyze, see skimage.measure.regionprops.
+        extra_properties : iterable of callable, optional
+            extra properties to analyze, see skimage.measure.regionprops.
+
+        Returns
+        -------
+        dict of PropArray
+        """        
+        if not hasattr(self, "labels"):
+            raise AttributeError("Use label() to add label to the image.")
+        
+        if isinstance(properties, str):
+            properties = (properties,)
+
+        if "p" in self.axes:
+            # this dimension will be label
+            raise ValueError("axis 'p' is forbidden.")
+        
+        if self.labels.ndim == 2:
+            axes = "tzc"
+        elif self.labels.ndim == 3:
+            axes = "tc"
+        else:
+            raise ValueError("'label_image' must be 2 or 3 dimensional")
+        
+        prop_axes = "".join([a for a in axes if a in self.axes])
+        shape = tuple(self.sizeof(a) for a in prop_axes)
+        out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
+                            name=self.name, 
+                            axes="p"+prop_axes,
+                            dirpath=self.dirpath,
+                            propname = p)
+               for p in properties}
+        
+        # calculate property value for each slice
+        for sl in itertools.product(*map(range, shape)):
+            props = skmes.regionprops(self.labels, self.value[sl], 
+                                      cache=False,
+                                      extra_properties=extra_properties)
+            label_sl = (slice(None),) + sl
+            for prop_name in properties:
+                out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
+        
+        return out
+    
     @record
-    def split(self, axis="c"):
+    def split(self, axis=None):
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -446,14 +709,18 @@ class ImgArray(BaseArray):
         -------
         list of ImgArray
             Separate images
-        """        
-        
-        axisint = self.axisof(axis)
+        """
+        # determine axis in int.
+        if axis is None:
+            axisint = 0
+        else:
+            axisint = self.axisof(axis)
+            
         imgs = list(np.moveaxis(self, axisint, 0))
         for i, img in enumerate(imgs):
             img.history[-1] = f"Split(axis={axis})"
             img.axes = del_axis(self.axes, axisint)
-            if (axis == "c" and self.lut is not None):
+            if axis == "c" and self.lut is not None:
                 img.lut = [self.lut[i]]
             else:
                 img.lut = None
@@ -467,12 +734,13 @@ class ImgArray(BaseArray):
         'method' must be in func_dict.keys() or some function like np.mean.
         """
         func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
-        if (method in func_dict.keys()):
+        if method in func_dict.keys():
             func = func_dict[method]
-        elif (callable(method)):
+        elif callable(method):
             func = method
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
+        
         axisint = self.axisof(axis)
         out = func(self.value, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
@@ -494,23 +762,23 @@ class ImgArray(BaseArray):
             Clipped image with temporal attribute
         """        
         lower, upper = in_range
-        if (isinstance(lower, str) and lower.endswith("%")):
+        if isinstance(lower, str) and lower.endswith("%"):
             lower = float(lower[:-1])
             lowerlim = np.percentile(self, lower)
-        elif (lower is None):
+        elif lower is None:
             lowerlim = np.min(self)
         else:
             lowerlim = float(lower)
         
-        if (isinstance(upper, str) and upper.endswith("%")):
+        if isinstance(upper, str) and upper.endswith("%"):
             upper = float(upper[:-1])
             upperlim = np.percentile(self, upper)
-        elif (upper is None):
+        elif upper is None:
             upperlim = np.max(self)
         else:
             upperlim = float(lower)
         
-        if (lowerlim >= upperlim):
+        if lowerlim >= upperlim:
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
@@ -537,23 +805,23 @@ class ImgArray(BaseArray):
         """        
         out = self.view(np.ndarray).astype("float32")
         lower, upper = in_range
-        if (isinstance(lower, str) and lower.endswith("%")):
+        if isinstance(lower, str) and lower.endswith("%"):
             lower = float(lower[:-1])
             lowerlim = np.percentile(out, lower)
-        elif (lower is None):
+        elif lower is None:
             lowerlim = np.min(out)
         else:
             lowerlim = float(lower)
         
-        if (isinstance(upper, str) and upper.endswith("%")):
+        if isinstance(upper, str) and upper.endswith("%"):
             upper = float(upper[:-1])
             upperlim = np.percentile(out, upper)
-        elif (upper is None):
+        elif upper is None:
             upperlim = np.max(out)
         else:
             upperlim = float(lower)
         
-        if (lowerlim >= upperlim):
+        if lowerlim >= upperlim:
             raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
             
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
@@ -563,49 +831,7 @@ class ImgArray(BaseArray):
         out.temp = [lowerlim, upperlim]
         return out
 
-    def sort_axes(self):
-        """
-        Sort image dimensions to ptzcyx-order
-
-        Returns
-        -------
-        ImgArray
-            Sorted image
-        """
-        arr = np.array(self.axes.argsort())
-        order = arr[arr]
-        return self.transpose(order)
-    
-    # numpy functions that will change/discard order
-    def transpose(self, axes):
-        """
-        change the order of image dimensions.
-        'axes' will also be arranged.
-        """
-        out = super().transpose(axes)
-        if (self.axes.is_none()):
-            new_axes = None
-        else:
-            new_axes = "".join([self.axes[i] for i in list(axes)])
-        out._set_info(self, new_axes = new_axes)
-        return out
-    
-    def flatten(self):
-        out = super().flatten()
-        out._set_info(self, new_axes = None)
-        return out
-    
-    def ravel(self):
-        out = super().ravel()
-        out._set_info(self, new_axes = None)
-        return out
-    
-    def reshape(self, newshape, axes=None):
-        if (axes is not None and len(newshape) != len(axes)):
-            raise ValueError("newshape and axes have incompatible lengths.")
-        out = super().reshape(newshape)
-        out._set_info(self, new_axes = axes)
-        return out
+        
 
 # non-member functions.
 
@@ -613,12 +839,21 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     """
     make an ImgArray object, just like np.array(x)
     """
-    if (isinstance(arr, str)):
+    if isinstance(arr, str):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
+    
+    arr = np.array(arr, dtype=dtype)
         
-    self = ImgArray(np.array(arr, dtype=dtype), name=name, axes=axes, lut=lut)
+    # Automatically determine axes
+    if axes is None:
+        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+            
+    self = ImgArray(arr, name=name, axes=axes, lut=lut)
     
     return self
+
+def zeros(shape, dtype="uint16", name=None, axes=None, lut=None):
+    return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
 
 def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     """
@@ -639,12 +874,12 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     -------
     ImgArray
     """    
-    if (not os.path.exists(path)):
+    if not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
     fname, fext = os.path.splitext(os.path.basename(path))
     # read tif metadata
-    if (fext == ".tif"):
+    if fext == ".tif":
         meta = get_meta(path)
     else:
         meta = {"axes":axes, "ijmeta":{}, "history":[]}
@@ -656,7 +891,7 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     lut = None                  # TODO: read LUT from ImageJ metadata
-    if (meta["history"]):
+    if meta["history"]:
         name = meta["history"].pop(0)
         history = meta["history"]
     else:
@@ -668,7 +903,7 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
                     history=history, metadata=metadata, lut=lut)
         
     # In case the image is in yxc-order. This sometimes happens.
-    if ("c" in self.axes and self.sizeof("c") > self.sizeof("x")):
+    if "c" in self.axes and self.sizeof("c") > self.sizeof("x"):
         self = np.moveaxis(self, -1, -3)
         _axes = self.axes.axes
         _axes = _axes[:-3] + "cyx"
@@ -703,8 +938,8 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
         shapes.append(img.shape)
     
     list_of_shape = list(set(shapes))
-    if (len(list_of_shape) > 1):
-        if (ignore_exception):
+    if len(list_of_shape) > 1:
+        if ignore_exception:
             ctr = collections.Counter(shapes)
             common_shape = ctr.most_common()[0][0]
             imgs = [img for img in imgs if img.shape == common_shape]
@@ -722,6 +957,9 @@ def read_meta(path:str):
     meta = get_meta(path)
     return meta
 
+def set_cpu(n_cpu:int):
+    ImgArray.n_cpu=n_cpu
+    return None
 
 def stack(imgs, axis="c", dtype="uint16"):
     """
@@ -743,11 +981,11 @@ def stack(imgs, axis="c", dtype="uint16"):
 
     """    
     
-    if (isinstance(imgs, np.ndarray)):
+    if isinstance(imgs, np.ndarray):
         raise TypeError("cannot stack single array.")
     
     # find where to add new axis
-    if (imgs[0].axes):
+    if imgs[0].axes:
         new_axes = Axes(axis + str(imgs[0].axes))
         new_axes.sort()
         _axis = new_axes.find(axis)
@@ -763,7 +1001,7 @@ def stack(imgs, axis="c", dtype="uint16"):
     out._set_info(imgs[0], f"Make-Stack(axis={axis})", new_axes)
     
     # connect LUT if needed.
-    if (axis == "c"):
+    if axis == "c":
         luts = [img.lut[0] for img in imgs]
         out.lut = luts
     
