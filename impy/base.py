@@ -6,6 +6,7 @@ from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _ke
 from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
+from skimage.color import label2rgb
     
 def check_value(__op__):
     def wrapper(self, value):
@@ -163,7 +164,7 @@ class BaseArray(MetaArray):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            # img["t=2,z=4"] ... ImageJ-like method
+            # img["t=2;z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__getitem__(sl)
 
@@ -263,7 +264,6 @@ class BaseArray(MetaArray):
 
         return self
     
-    
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
         super()._set_info(other, new_axes)
@@ -276,7 +276,10 @@ class BaseArray(MetaArray):
             self.history = other.history + [next_history]
         else:
             self.history = other.history.copy()
-            
+        
+        # set labels
+        if hasattr(other, "labels"):
+            self.labels = other.labels
         # set lut
         try:
             self.lut = other.lut
@@ -380,7 +383,7 @@ class BaseArray(MetaArray):
         
         return None
 
-    def imshow(self, **kwargs):
+    def imshow(self, label=True, **kwargs):
         if self.ndim == 2:
             if self.dtype == bool:
                 vmax = vmin = None
@@ -390,13 +393,17 @@ class BaseArray(MetaArray):
             cmaps = self.get_cmaps()
             imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
             imshow_kwargs.update(kwargs)
+            if label and hasattr(self, "labels"):
+                overlay = label2rgb(self.labels, image=self.value, bg_label=0)
+                plt.imshow(overlay, **imshow_kwargs)
+            else:
+                plt.imshow(self.value, **imshow_kwargs)
             
-            plt.imshow(self, **imshow_kwargs)
             self.hist()
             
         elif self.ndim == 3:
             if "c" not in self.axes:
-                imglist = [s[1] for s in self.iter("ptzs", False)]
+                imglist = [s[1] for s in self.iter("ptz", False)]
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
@@ -417,7 +424,11 @@ class BaseArray(MetaArray):
                 fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
                 ax = ax.flat
                 for i, img in enumerate(imglist):
-                    ax[i].imshow(img, **imshow_kwargs)
+                    if label and hasattr(self, "labels"):
+                        overlay = label2rgb(self.labels, image=img, bg_label=0)
+                        ax[i].imshow(overlay, **imshow_kwargs)
+                    else:
+                        ax[i].imshow(img, **imshow_kwargs)
                     ax[i].axis("off")
                     ax[i].set_title(f"Image-{i+1}")
 

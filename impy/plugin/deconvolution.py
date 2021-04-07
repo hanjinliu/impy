@@ -25,11 +25,11 @@ def synthesize_psf(size_x, size_y, size_z, wavelength:float=0.610,
                           "synthetic point spread function")
     
     # in case parameters were set in nm-unit
-    if (wavelength > 200):
+    if wavelength > 200:
         raise ValueError(f"'wavelength' is too large: {wavelength} um")
-    if (pxsize > 50):
+    if pxsize > 50:
         raise ValueError(f"'pxsize' is too large: {pxsize} um")
-    if (dz > 10):
+    if dz > 10:
         raise ValueError(f"'dz' is too large: {dz} um")
     
     # set parameters
@@ -49,8 +49,9 @@ def _richardson_lucy(args):
     sl, obs, psf, niter = args
     # obs and psf must be float32 here
     
-    if (obs.shape != psf.shape):
-        raise ValueError(f"observation and PSF have different shape: {obs.shape} and {psf.shape}")
+    if obs.shape != psf.shape:
+        raise ValueError("observation and PSF have different shape: "
+                        f"{obs.shape} and {psf.shape}")
     
     psf_ft = fft(psf)
     psf_ft_conj = np.conjugate(psf_ft)
@@ -67,7 +68,7 @@ def _richardson_lucy(args):
 
 @same_dtype(True)
 @record
-def lucy3d(self, psfinfo, niter:int=50, n_cpu=4):
+def lucy3d(self, psfinfo, niter:int=50):
     """
     Deconvolution of 3-dimensional image obtained from confocal microscopy, 
     using Richardson-Lucy's algorithm.
@@ -108,7 +109,7 @@ def lucy3d(self, psfinfo, niter:int=50, n_cpu=4):
 
 @same_dtype(True)
 @record
-def lucy2d(self, psfinfo, niter:int=50, n_cpu=4):
+def lucy2d(self, psfinfo, niter:int=50):
     # make PSF
     if isinstance(psfinfo, dict):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}

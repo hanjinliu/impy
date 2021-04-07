@@ -292,7 +292,23 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def hessian_eigval(self, sigma=1, dims=2):
+    def hessian_eigval(self, sigma=1, dims=2) -> list:
+        """
+        Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
+        is considered to be a single spatial image, and if dims=3, zyx-image.
+
+        Parameters
+        ----------
+        sigma : int, optional
+            sigma of Gaussian filter applied before calculating Hessian, by default 1.
+        dims : 2 or 3, optional
+            spatial dimension, by default 2
+
+        Returns
+        -------
+        list of float ImgArray
+            eigenvalues in smaller->larger order
+        """        
         # check sigma
         if isinstance(sigma, (int, float)):
             sigma = [sigma] * dims
@@ -309,7 +325,21 @@ class ImgArray(BaseArray):
         return eigval
     
     @record
-    def hessian_eigvec(self, sigma=1, dims=2):
+    def hessian_eig(self, sigma=1, dims=2):
+        """
+        Calculate Hessian's eigenvalues and eigenvectors.
+
+        Parameters
+        ----------
+        sigma : int, optional
+            sigma of Gaussian filter applied before calculating Hessian, by default 1.
+        dims : 2 or 3, optional
+            spatial dimension, by default 2
+
+        Returns
+        -------
+        list of float ImgArray and 2D-list of float ImgArray
+        """        
         # check sigma
         if isinstance(sigma, (int, float)):
             sigma = [sigma] * dims
@@ -345,12 +375,13 @@ class ImgArray(BaseArray):
                 
         return eigval, eigvec
     
-    def hessian_filter(self, sigma:float=1):
+    def hessian_filter(self, sigma=1):
         # only puncta detection is available now
+        # TODO: filament detection etc.
         eigval = self.hessian_eigval(sigma)
         for e in eigval:
             e[e>0] = 0
-        return np.product(eigval, axis=0)**(1/len(eigval))
+        return np.product(-eigval, axis=0)**(1/len(eigval))
         
     
     def _running_kernel(self, radius:float, dims:int, function=None, annotation:str=""):
@@ -485,7 +516,7 @@ class ImgArray(BaseArray):
             thr = func(self.view(np.ndarray), **kwargs)
 
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.as_uint16().iter(iters):
+            for t, img in self.iter(iters):
                 if light_bg:
                     out[t] = img <= thr
                 else:
@@ -559,12 +590,26 @@ class ImgArray(BaseArray):
         y0 = int(sizey / 2 * (1 - scale)) + 1
         y1 = int(sizey / 2 * (1 + scale))
 
-        out = self[f"x={x0}-{x1},y={y0}-{y1}"]
+        out = self[f"x={x0}-{x1};y={y0}-{y1}"]
         out.history[-1] = f"Crop-Center(scale={scale})"
         
         return out
     
     def label(self, label_image=None, connectivity=None):
+        """
+        Run skimage's label() and store the results as attribute.
+
+        Parameters
+        ----------
+        label_image : array, optional
+            image to make label, by default self is used.
+        connectivity : int, optional
+            passed to skimage's label(), by default None
+
+        Returns
+        -------
+        labeled image
+        """        
         # check the shape of label_image
         if label_image is None:
             label_image = self
@@ -585,6 +630,7 @@ class ImgArray(BaseArray):
         labels, nlabel = skmes.label(label_image, background=0, 
                                      return_num=True, connectivity=connectivity)
         
+        # use memory efficient dtype
         if nlabel < 256:
             labels = labels.astype("uint8")
         elif nlabel < 65536:
@@ -594,7 +640,24 @@ class ImgArray(BaseArray):
         
         return labels
     
-    def regionprops(self, properties=("mean_intensity", "area")):
+    def regionprops(self, properties=("mean_intensity", "area"), extra_properties=None) -> dict:
+        """
+        Run skimage's regionprops() function and return the results as PropArray, so
+        that you can access using flexible slicing. For example, if a tcyx-image is
+        analyzed with properties=("X", "Y"), then you can get X's time-course profile
+        of channel 1 at label 3 by prop["X"]["p=5;c=1"].
+
+        Parameters
+        ----------
+        properties : iterable, optional
+            properties to analyze, see skimage.measure.regionprops.
+        extra_properties : iterable of callable, optional
+            extra properties to analyze, see skimage.measure.regionprops.
+
+        Returns
+        -------
+        dict of PropArray
+        """        
         if not hasattr(self, "labels"):
             raise AttributeError("Use label() to add label to the image.")
         
@@ -615,14 +678,20 @@ class ImgArray(BaseArray):
         prop_axes = "".join([a for a in axes if a in self.axes])
         shape = tuple(self.sizeof(a) for a in prop_axes)
         out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
-                            name=self.name, axes="p"+prop_axes, dirpath=self.dirpath,
+                            name=self.name, 
+                            axes="p"+prop_axes,
+                            dirpath=self.dirpath,
                             propname = p)
                for p in properties}
         
-        for sl in itertools.product(*map(range, (self.labels.max(),) + shape)):
-            props = skmes.regionprops(self.labels, self.value[sl[1:]], cache=False)
-            for p in properties:
-                out[p][sl] = getattr(props[sl[0]], p)
+        # calculate property value for each slice
+        for sl in itertools.product(*map(range, shape)):
+            props = skmes.regionprops(self.labels, self.value[sl], 
+                                      cache=False,
+                                      extra_properties=extra_properties)
+            label_sl = (slice(None),) + sl
+            for prop_name in properties:
+                out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
         
         return out
     
