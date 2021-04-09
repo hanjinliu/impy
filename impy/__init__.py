@@ -8,7 +8,7 @@ warnings.simplefilter("ignore", RuntimeWarning)
 
 import os
 from importlib import import_module
-from .imgarray import array, imread, imread_collection, read_meta, stack, set_cpu, ImgArray
+from .imgarray import array, zeros, imread, imread_collection, read_meta, stack, set_cpu, ImgArray
 
 __doc__ = \
 r"""

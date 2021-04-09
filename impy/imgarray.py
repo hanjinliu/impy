@@ -15,7 +15,8 @@ from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
+from .func import get_meta, record, same_dtype, affinefit, circle, del_axis, add_axes, ball_like
+from .gauss import GaussianBackground, GaussianParticle
 from .base import BaseArray
 from .axes import Axes
 from .proparray import PropArray
@@ -158,9 +159,8 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
         return out
     
-    
     @record
-    def gaussfit(self, scale:float=1/16, p0=None, show_result:bool=True) -> ImgArray:
+    def gaussfit(self, scale:float=1/16, p0=None) -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
 
@@ -170,8 +170,6 @@ class ImgArray(BaseArray):
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters, by default None
-        show_result : bool, optional
-            If show the fitting result.
 
         Returns
         -------
@@ -183,14 +181,32 @@ class ImgArray(BaseArray):
         TypeError
             If self is not two dimensional.
         """
-        
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        param, fit = gaussfit(self, p0, scale=scale, show_result=show_result)
+        rough = self.rescale(scale).value.astype("float32")
+        gaussian = GaussianBackground(p0)
+        result = gaussian.fit(rough)
+        gaussian.rescale(1/scale)
+        fit = gaussian.generate(self.shape)
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
-        out.temp = param
+        out.temp = result
+
+        return out
+    
+    @record
+    def gaussfit0(self, center, width=9, p0=None):
+        center = np.array(center)
+        gaussian = GaussianParticle(p0)
+        x0, y0 = center - width // 2
+        x1, y1 = center + (width+1) // 2
+        result = gaussian.fit(self.value[x0:x1, y0:y1])
+        gaussian.shift([x0, y0])
+        fit = gaussian.generate(self.shape)
+        out = fit.view(self.__class__)
+        out._set_info(self, f"Gaussian-Particle")
+        out.temp = result
 
         return out
     
@@ -584,7 +600,7 @@ class ImgArray(BaseArray):
             x -= dx//2
             y -= dy//2
         else:
-            raise ValueError("'position' must be 'corner' or 'center'")
+            raise ValueError("'position' must be either 'corner' or 'center'")
         
         if hasattr(self, "labels"):
             self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
@@ -639,12 +655,13 @@ class ImgArray(BaseArray):
             raise TypeError("label_image must be an array")
         
         elif label_image.ndim == 2:
-            if label_image.shape != self.xyshape():
-                raise ValueError("Incompatible yx-shape")
+            yxshape = tuple(self.sizeof(a) for a in "yx")
+            if label_image.shape != yxshape:
+                raise ValueError(f"Incompatible yx-shape: {label_image.shape} and {yxshape}")
         elif label_image.ndim == 3:
             zyxshape = tuple(self.sizeof(a) for a in "zyx")
             if label_image.shape != zyxshape:
-                raise ValueError("Incompatible zyx-shape")
+                raise ValueError(f"Incompatible zyx-shape {label_image.shape} and {zyxshape}")
         else:
             raise ValueError("'label_image' must be 2 or 3 dimensional")
             
@@ -661,7 +678,8 @@ class ImgArray(BaseArray):
         
         return labels
     
-    def regionprops(self, properties=("mean_intensity", "area"), extra_properties=None) -> dict[str, ImgArray]:
+    def regionprops(self, properties:tuple[str]=("mean_intensity", "area"),
+                    extra_properties=None) -> dict[str, ImgArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
