@@ -115,7 +115,7 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def affine(self, dims:int=2, order:int=1, **kwargs):
+    def affine(self, dims:int=2, order:int=1, **kwargs) -> ImgArray:
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
@@ -129,7 +129,7 @@ class ImgArray(BaseArray):
     
     @same_dtype(True)
     @record
-    def translate(self, dims=2, translation=None):
+    def translate(self, dims=2, translation=None) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
@@ -183,7 +183,7 @@ class ImgArray(BaseArray):
         TypeError
             If self is not two dimensional.
         """
-        # TODO: optionally RANSAC
+        
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
@@ -328,7 +328,7 @@ class ImgArray(BaseArray):
         return eigval
     
     @record
-    def hessian_eig(self, sigma=1, dims:int=2) -> list[ImgArray]:
+    def hessian_eig(self, sigma=1, dims:int=2) -> tuple:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -387,7 +387,7 @@ class ImgArray(BaseArray):
         return np.product(-eigval, axis=0)**(1/len(eigval))
         
     
-    def _running_kernel(self, radius:float, dims:int, function=None, annotation:str=""):
+    def _running_kernel(self, radius:float, dims:int, function=None, annotation:str="") -> ImgArray:
         disk = ball_like(radius, dims)
         out = self.as_uint16().parallel(function, dims, disk)
         out._set_info(self, annotation)
@@ -395,46 +395,46 @@ class ImgArray(BaseArray):
     
     @same_dtype()
     @record
-    def erosion(self, radius=1, dims=2):
+    def erosion(self, radius:float=1, dims:int=2) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
         return self._running_kernel(radius, dims, f, f"{dims}D-Erosion(R={radius})")
     
     @same_dtype()
     @record
-    def dilation(self, radius=1, dims=2):
+    def dilation(self, radius:float=1, dims:int=2) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
         return self._running_kernel(radius, dims, f, f"{dims}D-Dilation(R={radius})")
     
     @same_dtype()
     @record
-    def opening(self, radius=1, dims=2):
+    def opening(self, radius:float=1, dims:int=2) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
         return self._running_kernel(radius, dims, f, f"{dims}D-Opening(R={radius})")
     
     @same_dtype()
     @record
-    def closing(self, radius=1, dims=2):
+    def closing(self, radius:float=1, dims:int=2) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
         return self._running_kernel(radius, dims, f, f"{dims}D-Closing(R={radius})")
     
     @same_dtype()
     @record
-    def tophat(self, radius=50, dims=2):
+    def tophat(self, radius:float=50, dims:int=2) -> ImgArray:
         return self._running_kernel(radius, dims, _tophat, f"{dims}D-Top-Hat(R={radius})")
     
     @same_dtype()
     @record
-    def mean_filter(self, radius=1, dims=2):
+    def mean_filter(self, radius:float=1, dims:int=2) -> ImgArray:
         return self._running_kernel(radius, dims, _mean, f"{dims}D-Mean-Filter(R={radius})")
     
     @same_dtype()
     @record
-    def median_filter(self, radius=1, dims=2):
+    def median_filter(self, radius:float=1, dims:int=2) -> ImgArray:
         return self._running_kernel(radius, dims, _median, f"{dims}D-Median-Filter(R={radius})")
     
     @same_dtype()
     @record
-    def gaussian_filter(self, sigma=1, dims=2):
+    def gaussian_filter(self, sigma:float=1, dims:int=2) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
         Parameters
@@ -454,7 +454,7 @@ class ImgArray(BaseArray):
     
     @same_dtype()
     @record
-    def rolling_ball(self, radius=50, smoothing=True):
+    def rolling_ball(self, radius:float=50, smoothing:bool=True) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -476,7 +476,7 @@ class ImgArray(BaseArray):
     
     
     @record
-    def fft(self):
+    def fft(self) -> ImgArray:
         """
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with some functions here.
@@ -487,14 +487,15 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def ifft(self):
+    def ifft(self) -> ImgArray:
         freq = np.fft.fftshift(self.value)
         out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
     
     @record
-    def threshold(self, thr=None, method:str="otsu", light_bg=False, iters="c", **kwargs):
+    def threshold(self, thr=None, method:str="otsu", light_bg:bool=False, 
+                  iters:str="c", **kwargs) -> ImgArray:
         """
         Parameters
         ----------
@@ -570,10 +571,12 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Crop-Circle(R={radius}, {'outzero' if outzero else 'inzero'})")
         return out
     
-    def specify(self, x, y, dx, dy, position="corner"):
+    def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner"):
         """
         Make a rectancge ROI.
         """
+        x, y = xy
+        dx, dy = dxdy
         
         if position == "corner":
             pass
@@ -593,7 +596,7 @@ class ImgArray(BaseArray):
         return self.labels
 
     
-    def crop_center(self, scale=0.5):
+    def crop_center(self, scale:float=0.5):
         """
         Crop out the center of an image.
         e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
@@ -658,7 +661,7 @@ class ImgArray(BaseArray):
         
         return labels
     
-    def regionprops(self, properties=("mean_intensity", "area"), extra_properties=None) -> dict:
+    def regionprops(self, properties=("mean_intensity", "area"), extra_properties=None) -> dict[str, ImgArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -714,7 +717,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def split(self, axis=None) -> list:
+    def split(self, axis=None) -> list[ImgArray]:
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -746,7 +749,7 @@ class ImgArray(BaseArray):
 
     @same_dtype()
     @record
-    def proj(self, axis="z", method="mean"):
+    def proj(self, axis="z", method="mean") -> ImgArray:
         """
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
@@ -765,7 +768,7 @@ class ImgArray(BaseArray):
         return out
 
     
-    def clip_outliers(self, in_range=("0%", "100%")):
+    def clip_outliers(self, in_range=("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip.mean
 
@@ -805,7 +808,7 @@ class ImgArray(BaseArray):
         return out
         
         
-    def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16):
+    def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16) -> ImgArray:
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity.
 
@@ -853,7 +856,7 @@ class ImgArray(BaseArray):
 
 # non-member functions.
 
-def array(arr, dtype="uint16", name=None, axes=None, lut=None):
+def array(arr, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
     """
@@ -870,10 +873,10 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     
     return self
 
-def zeros(shape, dtype="uint16", name=None, axes=None, lut=None):
+def zeros(shape, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
 
-def imread(path:str, dtype:str="uint16", axes=None, lut=None):
+def imread(path:str, dtype:str="uint16", axes=None, lut=None) -> ImgArray:
     """
     Load image from path.
 
@@ -932,7 +935,8 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     else:
         return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False, dtype="uint16"):
+def imread_collection(dirname:str, axis:str="p", ext:str="tif", 
+                      ignore_exception:bool=False, dtype="uint16") -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -971,11 +975,11 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     return out
     
 
-def read_meta(path:str):
+def read_meta(path:str) -> dict:
     meta = get_meta(path)
     return meta
 
-def set_cpu(n_cpu:int):
+def set_cpu(n_cpu:int) -> None:
     ImgArray.n_cpu=n_cpu
     return None
 
