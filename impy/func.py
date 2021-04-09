@@ -22,11 +22,12 @@ class Timer:
         self.t = time.time() - self.t
     
     def __str__(self):
-        minute, sec = divmod(int(self.t), 60)
-        if (minute == 0):
+        minute, sec = divmod(self.t, 60)
+        sec = np.round(sec, 2)
+        if minute == 0:
             out = f"{sec} sec"
         else:
-            out = f"{minute} min {sec} sec"
+            out = f"{int(minute)} min {sec} sec"
         return out
 
 def load_json(s:str):
@@ -36,17 +37,17 @@ def get_meta(path:str):
     with TiffFile(path) as tif:
         hist = []
         ijmeta = tif.imagej_metadata
-        if (ijmeta is None):
+        if ijmeta is None:
             ijmeta = {}
         
         ijmeta.pop("ROI", None)
         
-        if ("Info" in ijmeta.keys()):
+        if "Info" in ijmeta.keys():
             try:
                 infodict = load_json(ijmeta["Info"])
             except:
                 infodict = {}
-            if ("impyhist" in infodict.keys()):
+            if "impyhist" in infodict.keys():
                 hist = infodict["impyhist"].split("->")
         
         try:
@@ -128,7 +129,7 @@ def gaussfit(img2d, p0=None, scale=1, show_result=True):
     
     rough = img2d.rescale(scale).value.astype("float32")
     
-    if (p0 is None):
+    if p0 is None:
         mu1, mu2 = np.unravel_index(np.argmax(rough), rough.shape)  # 2-dim argmax
         sg1 = rough.shape[0]
         sg2 = rough.shape[1]
@@ -201,8 +202,10 @@ def _key_repr(key):
         _keys = (key,)
     
     for s in _keys:
-        if type(s) in (slice, list, np.ndarray):
+        if isinstance(s, (slice, list, np.ndarray)):
             keylist.append("*")
+        elif s is None:
+            keylist.append("new")
         else:
             keylist.append(str(s))
     

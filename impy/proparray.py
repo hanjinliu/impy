@@ -45,7 +45,7 @@ class PropArray(MetaArray):
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
         if along is None:
-            along = self.axes[0]
+            along = self.axes[1]
         
         iteraxes = del_axis(self.axes, self.axisof(along))
         plt.figure(figsize=(4, 1.7))
@@ -65,3 +65,4 @@ class PropArray(MetaArray):
         super()._set_info(other, new_axes)
         self.propname = other.propname
         return None
+    

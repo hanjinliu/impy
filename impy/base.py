@@ -172,19 +172,26 @@ class BaseArray(MetaArray):
             # img[arr] ... where arr is 2-D boolean array
             key = add_axes(self.axes, self.shape, key)
 
-        out = np.ndarray.__getitem__(self, key)          # get item as np.ndarray
+        out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
         keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            if self.axes:
+            if hasattr(key, "__array__"):
+                # fancy indexing will lose axes information
+                new_axes = None
+                
+            elif "new" in keystr:
+                # np.newaxis or None will add dimension
+                new_axes = None
+                
+            elif self.axes:
                 del_list = []
                 for i, s in enumerate(keystr.split(",")):
                     if s != "*":
                         del_list.append(i)
                         
                 new_axes = del_axis(self.axes, del_list)
-                if hasattr(key, "__array__"):
-                    new_axes = None
+                
             else:
                 new_axes = None
             

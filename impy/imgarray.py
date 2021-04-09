@@ -1,3 +1,4 @@
+from __future__ import annotations
 import itertools
 import numpy as np
 import os
@@ -114,7 +115,7 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def affine(self, dims=2, order=1, **kwargs):
+    def affine(self, dims:int=2, order:int=1, **kwargs):
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
@@ -139,26 +140,27 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def rescale(self, scale=1/16):
-        try:
-            scale = float(scale)
-        except:
-            raise TypeError(f"scale must be float, but got {type(scale)}")
-        
-        scale_ = []
-        
-        for a in self.axes:
-            if a in "yx":
-                scale_.append(scale)
-            else:
-                scale_.append(1)
-        out = sktrans.rescale(self.value, scale_, anti_aliasing=False).view(self.__class__)
+    def rescale(self, scale:float=1/16, axes:str="yx", order:int=None) -> ImgArray:
+        """
+        Rescale image.
+
+        Parameters
+        ----------
+        scale : float, optional
+            scale of the new image, by default 1/16
+        axes : str, optional
+            axes to rescale, by default "yx"
+        order : float, optional
+            order of rescaling, by default None
+        """        
+        scale_ = [scale if a in axes else 1 for a in self.axes]
+        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False).view(self.__class__)
         out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
         return out
     
     
     @record
-    def gaussfit(self, scale=1/16, p0=None, show_result=True):
+    def gaussfit(self, scale:float=1/16, p0=None, show_result:bool=True) -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
 
@@ -193,7 +195,8 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def affine_correction(self, ref=None, bins=256, order=3, prefilter=True, axis="c"):
+    def affine_correction(self, ref=None, bins:int=256, 
+                          order:int=3, prefilter:bool=True, axis:str="c") -> ImgArray:
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
@@ -292,14 +295,14 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def hessian_eigval(self, sigma=1, dims=2) -> list:
+    def hessian_eigval(self, sigma=1, dims:int=2) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
         is considered to be a single spatial image, and if dims=3, zyx-image.
 
         Parameters
         ----------
-        sigma : int, optional
+        sigma : float, optional
             sigma of Gaussian filter applied before calculating Hessian, by default 1.
         dims : 2 or 3, optional
             spatial dimension, by default 2
@@ -325,7 +328,7 @@ class ImgArray(BaseArray):
         return eigval
     
     @record
-    def hessian_eig(self, sigma=1, dims=2):
+    def hessian_eig(self, sigma=1, dims:int=2) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -432,7 +435,22 @@ class ImgArray(BaseArray):
     @same_dtype()
     @record
     def gaussian_filter(self, sigma=1, dims=2):
-        return self._running_kernel(sigma, dims, _gaussian, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+        """
+        Run Gaussian filter (Gaussian blur).
+        Parameters
+        ----------
+        sigma : scalar or array of scalars, optional
+            standard deviation(s) of Gaussian, by default 1
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        out = self.parallel(_gaussian, dims, sigma)
+        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+        return out
     
     @same_dtype()
     @record
@@ -659,7 +677,7 @@ class ImgArray(BaseArray):
         dict of PropArray
         """        
         if not hasattr(self, "labels"):
-            raise AttributeError("Use label() to add label to the image.")
+            raise AttributeError("Use label() to add labels to the image.")
         
         if isinstance(properties, str):
             properties = (properties,)
@@ -679,7 +697,7 @@ class ImgArray(BaseArray):
         shape = tuple(self.sizeof(a) for a in prop_axes)
         out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
                             name=self.name, 
-                            axes="p"+prop_axes,
+                            axes="p" + prop_axes,
                             dirpath=self.dirpath,
                             propname = p)
                for p in properties}
@@ -696,7 +714,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def split(self, axis=None):
+    def split(self, axis=None) -> list:
         """
         Split n-dimensional image into (n-1)-dimensional images.
 

@@ -361,8 +361,10 @@ class MetaArray(np.ndarray):
         out._set_info(self, new_axes=None)
         return out
     
-    def reshape(self, *args, **kwargs):
-        raise NotImplementedError("Cannot reshape ImgArray")
+    def reshape(self, shape, order="C"):
+        out = super().reshape(shape, order)
+        out._set_info(self, new_axes=None)
+        return out
     
     
     def axisof(self, axisname):
