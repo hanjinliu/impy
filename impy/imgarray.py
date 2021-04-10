@@ -218,7 +218,8 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def gaussfit0(self, center, width=9, p0=None) -> ImgArray:
+    def gaussfit_particle(self, center, width=9, p0=None) -> ImgArray:
+        # TODO: more useful way?
         center = np.array(center)
         gaussian = GaussianParticle(p0)
         x0, y0 = center - width // 2
@@ -227,7 +228,7 @@ class ImgArray(BaseArray):
         gaussian.shift([x0, y0])
         fit = gaussian.generate(self.shape)
         out = fit.view(self.__class__)
-        out._set_info(self, f"Gaussian-Particle")
+        out._set_info(self, f"Gaussian-Fit-Particle")
         out.temp = dict(params=gaussian.params, result=result)
 
         return out
@@ -451,50 +452,59 @@ class ImgArray(BaseArray):
                 
         return eigval, eigvec
     
-    def _running_kernel(self, radius:float, dims:int, function=None, annotation:str="") -> ImgArray:
+    def _running_kernel(self, radius:float, dims:int, function=None, 
+                        update:bool=False, annotation:str="") -> ImgArray:
         disk = ball_like(radius, dims)
         out = self.as_uint16().parallel(function, dims, disk)
         out._set_info(self, annotation)
+        update and self._update(out)
         return out
     
     @same_dtype()
     @record
-    def erosion(self, radius:float=1, dims:int=2) -> ImgArray:
+    def erosion(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
-        return self._running_kernel(radius, dims, f, f"{dims}D-Erosion(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Erosion(R={radius})")
     
     @same_dtype()
     @record
-    def dilation(self, radius:float=1, dims:int=2) -> ImgArray:
+    def dilation(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
-        return self._running_kernel(radius, dims, f, f"{dims}D-Dilation(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Dilation(R={radius})")
     
     @same_dtype()
     @record
-    def opening(self, radius:float=1, dims:int=2) -> ImgArray:
+    def opening(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
-        return self._running_kernel(radius, dims, f, f"{dims}D-Opening(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Opening(R={radius})")
     
     @same_dtype()
     @record
-    def closing(self, radius:float=1, dims:int=2) -> ImgArray:
+    def closing(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
-        return self._running_kernel(radius, dims, f, f"{dims}D-Closing(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Closing(R={radius})")
     
     @same_dtype()
     @record
-    def tophat(self, radius:float=50, dims:int=2) -> ImgArray:
-        return self._running_kernel(radius, dims, _tophat, f"{dims}D-Top-Hat(R={radius})")
+    def tophat(self, radius:float=50, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _tophat, 
+                                    update, f"{dims}D-Top-Hat(R={radius})")
     
     @same_dtype()
     @record
-    def mean_filter(self, radius:float=1, dims:int=2) -> ImgArray:
-        return self._running_kernel(radius, dims, _mean, f"{dims}D-Mean-Filter(R={radius})")
+    def mean_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _mean, 
+                                    update, f"{dims}D-Mean-Filter(R={radius})")
     
     @same_dtype()
     @record
-    def median_filter(self, radius:float=1, dims:int=2) -> ImgArray:
-        return self._running_kernel(radius, dims, _median, f"{dims}D-Median-Filter(R={radius})")
+    def median_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _median, 
+                                    update, f"{dims}D-Median-Filter(R={radius})")
     
     @same_dtype()
     @record
@@ -514,15 +524,16 @@ class ImgArray(BaseArray):
         """        
         out = self.parallel(_gaussian, dims, sigma)
         out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
-        if update:
-            self.value[:] = out
+        update and self._update(out)
         return out
+
     
-    @same_dtype()
     @record
     def dog_filter(self, low_sigma:float=1, high_sigma=None, dims:int=2) -> ImgArray:
         """
-        Run Difference of Gaussian filter.
+        Run Difference of Gaussian filter. This function does not support `update`
+        argument because intensity can be negative.
+        
         Parameters
         ----------
         low_sigma : scalar or array of scalars, optional
@@ -539,13 +550,14 @@ class ImgArray(BaseArray):
         """        
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
-        out = self.parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
+        out = self.as_uint16().parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
         out._set_info(self, f"{dims}D-DOG-Filter(sigma={low_sigma}-{high_sigma})")
+        
         return out
     
     @same_dtype()
     @record
-    def rolling_ball(self, radius:float=50, smoothing:bool=True) -> ImgArray:
+    def rolling_ball(self, radius:float=50, smoothing:bool=True, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -563,10 +575,11 @@ class ImgArray(BaseArray):
         """        
         out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
         out._set_info(self, f"Rolling-Ball(R={radius})")
+        update and self._update(out)
         return out
     
     def peak_local_max(self, min_distance:int=1, thr:float=None, num_peaks:int=np.inf,
-                       num_peaks_per_label:int=np.inf, use_labels:bool=True):
+                       num_peaks_per_label:int=np.inf, use_labels:bool=True) -> tuple[np.ndarray]:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -598,9 +611,7 @@ class ImgArray(BaseArray):
                                         labels=labels)
         indices = np.array(indices)
         # return as x-coordinates, y-coordinates order.
-        return indices[:,1], indices[:,0]
-        
-        
+        return indices[:,1], indices[:,0]    
     
     @record
     def fft(self) -> ImgArray:
@@ -787,10 +798,10 @@ class ImgArray(BaseArray):
         
         self.labels = labels
         
-        return labels
+        return None
     
     def regionprops(self, properties:tuple[str]=("mean_intensity", "area"),
-                    extra_properties=None) -> dict[str, ImgArray]:
+                    extra_properties=None) -> dict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is

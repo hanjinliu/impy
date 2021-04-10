@@ -296,6 +296,11 @@ class BaseArray(MetaArray):
             self.lut = None
         return None
     
+    def _update(self, out):
+        self.value[:] = out.as_img_type(self.dtype)
+        self.history.append(out.history[-1])
+        return None
+    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Type Conversions
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

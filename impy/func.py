@@ -277,8 +277,11 @@ def determine_range(arr):
     if arr.dtype == bool:
         vmax = vmin = None
     else:
-        vmax = np.percentile(arr[arr>0], 99.99)
-        vmin = np.percentile(arr[arr>0], 0.01)
+        try:
+            vmax = np.percentile(arr[arr>0], 99.99)
+            vmin = np.percentile(arr[arr>0], 0.01)
+        except IndexError:
+            vmax = vmin = None
     return vmax, vmin
 
 def check_clip_range(in_range, img):
