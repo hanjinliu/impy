@@ -15,7 +15,7 @@ from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, affinefit, circle, del_axis, add_axes, ball_like
+from .func import get_meta, record, same_dtype, affinefit, circle, del_axis, add_axes, ball_like, check_nd_sigma
 from .gauss import GaussianBackground, GaussianParticle
 from .base import BaseArray
 from .axes import Axes
@@ -36,6 +36,10 @@ def _mean(args):
 def _gaussian(args):
     sl, data, sigma = args
     return (sl, skfil.gaussian(data, sigma=sigma))
+
+def _difference_of_gaussian(args):
+    sl, data, low_sigma, high_sigma = args
+    return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
 
 def _rolling_ball(args):
     sl, data, radius, smooth = args
@@ -101,10 +105,28 @@ def _hessian_eigval(args):
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
                                              mode="reflect")
     # Correct for scale
+    # TODO: The scale of sigma may be different from that of pixel size.
     sigma = np.asarray(sigma)
     hessian = _symmetric_image(hessian_elements)
     hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
     eigval = np.linalg.eigvalsh(hessian)
+    return (sl, eigval)
+
+def _structure_tensor_eigh(args):
+    # TODO: correct scale
+    sl, data, sigma = args
+    tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
+                                              mode="reflect")
+    tensor = _symmetric_image(tensor_elements)
+    eigval, eigvec = np.linalg.eigh(tensor)
+    return (sl, eigval, eigvec)
+
+def _structure_tensor_eigval(args):
+    sl, data, sigma = args
+    tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
+                                              mode="reflect")
+    tensor = _symmetric_image(tensor_elements)
+    eigval = np.linalg.eigvalsh(tensor)
     return (sl, eigval)
 
 
@@ -191,12 +213,12 @@ class ImgArray(BaseArray):
         fit = gaussian.generate(self.shape)
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
-        out.temp = result
+        out.temp = dict(params=gaussian.params, result=result)
 
         return out
     
     @record
-    def gaussfit0(self, center, width=9, p0=None):
+    def gaussfit0(self, center, width=9, p0=None) -> ImgArray:
         center = np.array(center)
         gaussian = GaussianParticle(p0)
         x0, y0 = center - width // 2
@@ -206,7 +228,7 @@ class ImgArray(BaseArray):
         fit = gaussian.generate(self.shape)
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Particle")
-        out.temp = result
+        out.temp = dict(params=gaussian.params, result=result)
 
         return out
     
@@ -328,12 +350,7 @@ class ImgArray(BaseArray):
         list of float ImgArray
             eigenvalues in smaller->larger order
         """        
-        # check sigma
-        if isinstance(sigma, (int, float)):
-            sigma = [sigma] * dims
-        elif len(sigma) != dims:
-            raise ValueError("length of sigma and dims must match.")
-        
+        sigma = check_nd_sigma(sigma, dims)
         eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, 
                                               outshape=self.shape+(dims,))
         
@@ -358,13 +375,8 @@ class ImgArray(BaseArray):
         Returns
         -------
         list of float ImgArray and 2D-list of float ImgArray
-        """        
-        # check sigma
-        if isinstance(sigma, (int, float)):
-            sigma = [sigma] * dims
-        elif len(sigma) != dims:
-            raise ValueError("length of sigma and dims must match.")
-        
+        """                
+        sigma = check_nd_sigma(sigma, dims)
         eigval = np.empty(self.shape+(dims,), dtype="float32")
         eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
         
@@ -394,14 +406,50 @@ class ImgArray(BaseArray):
                 
         return eigval, eigvec
     
-    def hessian_filter(self, sigma=1):
-        # only puncta detection is available now
-        # TODO: filament detection etc.
-        eigval = self.hessian_eigval(sigma)
-        for e in eigval:
-            e[e>0] = 0
-        return np.product(-eigval, axis=0)**(1/len(eigval))
+    @record
+    def structure_tensor_eigval(self, sigma=1, dims:int=2):
+        sigma = check_nd_sigma(sigma, dims)
+        eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, 
+                                              outshape=self.shape+(dims,))
         
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+        
+        return eigval
+    
+    @record
+    def structure_tensor_eig(self, sigma=1, dims:int=2):
+        # TODO: integrate this long code with Hessian
+        sigma = check_nd_sigma(sigma, dims)
+        eigval = np.empty(self.shape+(dims,), dtype="float32")
+        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        
+        if self.__class__.n_cpu > 1:
+            results = self._parallel(_structure_tensor_eigh, dims, sigma)
+            for sl, eigval_, eigvec_ in results:
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        else:
+            for sl, img in self.iter(dims):
+                sl, eigval_, eigvec_ = _structure_tensor_eigh((sl, img, dims, sigma))
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        
+        # set information of eigenvalue list
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+        
+        # set information of eigenvector list
+        eigvec = list(np.moveaxis(eigvec, -1, 0))
+        allaxes = "yx" if dims==2 else "zyx"
+        for i, e in enumerate(eigvec):
+            eigvec[i] = list(np.moveaxis(e, -1 ,0))
+            for j, each in enumerate(eigvec[i]):
+                each._set_info(self, f"{dims}D-Structure-Tensor-eigenvector[{i}][{allaxes[j]}]")
+                
+        return eigval, eigvec
     
     def _running_kernel(self, radius:float, dims:int, function=None, annotation:str="") -> ImgArray:
         disk = ball_like(radius, dims)
@@ -466,6 +514,31 @@ class ImgArray(BaseArray):
         """        
         out = self.parallel(_gaussian, dims, sigma)
         out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+        return out
+    
+    @same_dtype()
+    @record
+    def dog_filter(self, low_sigma:float=1, high_sigma=None, dims:int=2) -> ImgArray:
+        """
+        Run Difference of Gaussian filter.
+        Parameters
+        ----------
+        low_sigma : scalar or array of scalars, optional
+            lower standard deviation(s) of Gaussian, by default 1
+        high_sigma : scalar or array of scalars, optional
+            higher standard deviation(s) of Gaussian, by default 1
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
+            
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        if high_sigma is None:
+            high_sigma = low_sigma * 1.6
+        out = self.parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
+        out._set_info(self, f"{dims}D-DOG-Filter(sigma={low_sigma}-{high_sigma})")
         return out
     
     @same_dtype()

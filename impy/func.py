@@ -71,6 +71,13 @@ def record(func):
         return out
     return wrapper
 
+def check_nd_sigma(sigma, dims):
+    if isinstance(sigma, (int, float)):
+        sigma = [sigma] * dims
+    elif len(sigma) != dims:
+        raise ValueError("length of sigma and dims must match.")
+    return sigma
+
 def same_dtype(asfloat=False):
     """
     Decorator to assure output image has the same dtype as the input
@@ -273,3 +280,4 @@ def determine_range(arr):
         vmax = np.percentile(arr[arr>0], 99.99)
         vmin = np.percentile(arr[arr>0], 0.01)
     return vmax, vmin
+
