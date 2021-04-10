@@ -15,7 +15,7 @@ from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, affinefit, circle, del_axis, add_axes, ball_like, check_nd_sigma
+from .func import *
 from .gauss import GaussianBackground, GaussianParticle
 from .base import BaseArray
 from .axes import Axes
@@ -498,7 +498,7 @@ class ImgArray(BaseArray):
     
     @same_dtype()
     @record
-    def gaussian_filter(self, sigma:float=1, dims:int=2) -> ImgArray:
+    def gaussian_filter(self, sigma:float=1, dims:int=2, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
         Parameters
@@ -514,6 +514,8 @@ class ImgArray(BaseArray):
         """        
         out = self.parallel(_gaussian, dims, sigma)
         out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+        if update:
+            self.value[:] = out
         return out
     
     @same_dtype()
@@ -563,6 +565,42 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Rolling-Ball(R={radius})")
         return out
     
+    def peak_local_max(self, min_distance:int=1, thr:float=None, num_peaks:int=np.inf,
+                       num_peaks_per_label:int=np.inf, use_labels:bool=True):
+        """
+        Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
+        is more flexible.
+
+        Parameters
+        ----------
+        min_distance : int, optional
+            Minimum distance allowed for each two peaks, by default 1
+        thr : float, optional
+            The absolute minimum intensity of peaks, by default None
+        num_peaks : int, optional
+            Maximum number of peaks, by default np.inf
+        num_peaks_per_label : int, optional
+            Maximum number of peaks per label, by default np.inf
+        use_labels : bool, optional
+            If use self.labels when it exists, by default True
+        """        
+        
+        if use_labels and hasattr(self, "labels"):
+            labels = self.labels
+        else:
+            labels = None
+        
+        indices = skfeat.peak_local_max(self.value,
+                                        min_distance=min_distance, 
+                                        threshold_abs=thr,
+                                        num_peaks=num_peaks,
+                                        num_peaks_per_label=num_peaks_per_label,
+                                        labels=labels)
+        indices = np.array(indices)
+        # return as x-coordinates, y-coordinates order.
+        return indices[:,1], indices[:,0]
+        
+        
     
     @record
     def fft(self) -> ImgArray:
@@ -873,28 +911,10 @@ class ImgArray(BaseArray):
         ImgArray
             Clipped image with temporal attribute
         """        
-        lower, upper = in_range
-        if isinstance(lower, str) and lower.endswith("%"):
-            lower = float(lower[:-1])
-            lowerlim = np.percentile(self, lower)
-        elif lower is None:
-            lowerlim = np.min(self)
-        else:
-            lowerlim = float(lower)
-        
-        if isinstance(upper, str) and upper.endswith("%"):
-            upper = float(upper[:-1])
-            upperlim = np.percentile(self, upper)
-        elif upper is None:
-            upperlim = np.max(self)
-        else:
-            upperlim = float(lower)
-        
-        if lowerlim >= upperlim:
-            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+        lowerlim, upperlim = check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
-        out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
+        out._set_info(self, f"Clip-Outliers({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
         
@@ -916,30 +936,12 @@ class ImgArray(BaseArray):
             Rescaled image with temporal attribute
         """        
         out = self.view(np.ndarray).astype("float32")
-        lower, upper = in_range
-        if isinstance(lower, str) and lower.endswith("%"):
-            lower = float(lower[:-1])
-            lowerlim = np.percentile(out, lower)
-        elif lower is None:
-            lowerlim = np.min(out)
-        else:
-            lowerlim = float(lower)
-        
-        if isinstance(upper, str) and upper.endswith("%"):
-            upper = float(upper[:-1])
-            upperlim = np.percentile(out, upper)
-        elif upper is None:
-            upperlim = np.max(out)
-        else:
-            upperlim = float(lower)
-        
-        if lowerlim >= upperlim:
-            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+        lowerlim, upperlim = check_clip_range(in_range, self.value)
             
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.2f}%-{upper:.2f}%)")
+        out._set_info(self, f"Rescale-Intensity({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
 

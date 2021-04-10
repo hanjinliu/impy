@@ -77,6 +77,7 @@ img.lut = ["teal", "violet", "gold"]
 `uint8`, `uint16`, `bool` and `float32` are supported for type conversion.
 - `as_uint8` = convert to `uint8`.
 - `as_uint16` = convert to `uint16`.
+- `as_float` = convert to `float32`.
 - `as_img_type` = convert to any supported types.
 
 ## Automatic Saturation and Type Conversion
@@ -118,10 +119,12 @@ img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
 `ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
 - `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
-- `lucy3d` (plugin) = 3-D deconvolution of confocal images.
+- `lucy2d`, `lucy3d` (plugin) = deconvolution of images.
 - `affine_correction` = Correction of such as chromatic aberration using Affine transformation.
 - `hessian_eigval`, `hessian_eig` = feature detection using Hessian method.
-- `mean_filter`, `meadian_filter`, `gaussian_filter` = for filtering.
+- `structure_tensor_eigval`, `structure_tensor_eig` = feature detection using structure tensor.
+- `dog_filter` = filtering using difference of gaussian method.
+- `mean_filter`, `meadian_filter`, `gaussian_filter` = for smoothing.
 - `erosion`, `dilation`, `opening`, `closing` = for morphological processing.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `gaussfit` = fit the image to 2-D Gaussian (for correction of uneven irradiation).

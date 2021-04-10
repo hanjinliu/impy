@@ -71,13 +71,6 @@ def record(func):
         return out
     return wrapper
 
-def check_nd_sigma(sigma, dims):
-    if isinstance(sigma, (int, float)):
-        sigma = [sigma] * dims
-    elif len(sigma) != dims:
-        raise ValueError("length of sigma and dims must match.")
-    return sigma
-
 def same_dtype(asfloat=False):
     """
     Decorator to assure output image has the same dtype as the input
@@ -99,6 +92,13 @@ def same_dtype(asfloat=False):
             return out
         return wrapper
     return _same_dtype
+
+def check_nd_sigma(sigma, dims):
+    if isinstance(sigma, (int, float)):
+        sigma = [sigma] * dims
+    elif len(sigma) != dims:
+        raise ValueError("length of sigma and dims must match.")
+    return sigma
 
 def gauss2d(x, y, mu1, mu2, sg1, sg2, A, B):
     """
@@ -281,3 +281,25 @@ def determine_range(arr):
         vmin = np.percentile(arr[arr>0], 0.01)
     return vmax, vmin
 
+def check_clip_range(in_range, img):
+    lower, upper = in_range
+    if isinstance(lower, str) and lower.endswith("%"):
+        lower = float(lower[:-1])
+        lowerlim = np.percentile(img, lower)
+    elif lower is None:
+        lowerlim = np.min(img)
+    else:
+        lowerlim = float(lower)
+    
+    if isinstance(upper, str) and upper.endswith("%"):
+        upper = float(upper[:-1])
+        upperlim = np.percentile(img, upper)
+    elif upper is None:
+        upperlim = np.max(img)
+    else:
+        upperlim = float(upper)
+    
+    if lowerlim >= upperlim:
+        raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+    
+    return lowerlim, upperlim
