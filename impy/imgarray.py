@@ -514,9 +514,12 @@ class ImgArray(BaseArray):
         Parameters
         ----------
         sigma : scalar or array of scalars, optional
-            standard deviation(s) of Gaussian, by default 1
+            Standard deviation(s) of Gaussian, by default 1
         dims : int, optional
             Dimension of axes, i.e. xy or xyz, by default 2
+        update : bool, optional
+            If update self to filtered image, by default False
+            
         Returns
         -------
         ImgArray
@@ -610,6 +613,7 @@ class ImgArray(BaseArray):
                                         num_peaks_per_label=num_peaks_per_label,
                                         labels=labels)
         indices = np.array(indices)
+        self.temp = indices
         # return as x-coordinates, y-coordinates order.
         return indices[:,1], indices[:,0]    
     
