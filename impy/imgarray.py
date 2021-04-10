@@ -1,3 +1,4 @@
+from __future__ import annotations
 import itertools
 import numpy as np
 import os
@@ -14,7 +15,8 @@ from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from .func import get_meta, record, same_dtype, gaussfit, affinefit, circle, del_axis, add_axes, ball_like
+from .func import *
+from .gauss import GaussianBackground, GaussianParticle
 from .base import BaseArray
 from .axes import Axes
 from .proparray import PropArray
@@ -34,6 +36,10 @@ def _mean(args):
 def _gaussian(args):
     sl, data, sigma = args
     return (sl, skfil.gaussian(data, sigma=sigma))
+
+def _difference_of_gaussian(args):
+    sl, data, low_sigma, high_sigma = args
+    return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
 
 def _rolling_ball(args):
     sl, data, radius, smooth = args
@@ -99,10 +105,28 @@ def _hessian_eigval(args):
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
                                              mode="reflect")
     # Correct for scale
+    # TODO: The scale of sigma may be different from that of pixel size.
     sigma = np.asarray(sigma)
     hessian = _symmetric_image(hessian_elements)
     hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
     eigval = np.linalg.eigvalsh(hessian)
+    return (sl, eigval)
+
+def _structure_tensor_eigh(args):
+    # TODO: correct scale
+    sl, data, sigma = args
+    tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
+                                              mode="reflect")
+    tensor = _symmetric_image(tensor_elements)
+    eigval, eigvec = np.linalg.eigh(tensor)
+    return (sl, eigval, eigvec)
+
+def _structure_tensor_eigval(args):
+    sl, data, sigma = args
+    tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
+                                              mode="reflect")
+    tensor = _symmetric_image(tensor_elements)
+    eigval = np.linalg.eigvalsh(tensor)
     return (sl, eigval)
 
 
@@ -114,7 +138,7 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def affine(self, dims=2, order=1, **kwargs):
+    def affine(self, dims:int=2, order:int=1, **kwargs) -> ImgArray:
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
@@ -128,7 +152,7 @@ class ImgArray(BaseArray):
     
     @same_dtype(True)
     @record
-    def translate(self, dims=2, translation=None):
+    def translate(self, dims=2, translation=None) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
@@ -139,26 +163,26 @@ class ImgArray(BaseArray):
 
     @same_dtype(True)
     @record
-    def rescale(self, scale=1/16):
-        try:
-            scale = float(scale)
-        except:
-            raise TypeError(f"scale must be float, but got {type(scale)}")
-        
-        scale_ = []
-        
-        for a in self.axes:
-            if a in "yx":
-                scale_.append(scale)
-            else:
-                scale_.append(1)
-        out = sktrans.rescale(self.value, scale_, anti_aliasing=False).view(self.__class__)
+    def rescale(self, scale:float=1/16, axes:str="yx", order:int=None) -> ImgArray:
+        """
+        Rescale image.
+
+        Parameters
+        ----------
+        scale : float, optional
+            scale of the new image, by default 1/16
+        axes : str, optional
+            axes to rescale, by default "yx"
+        order : float, optional
+            order of rescaling, by default None
+        """        
+        scale_ = [scale if a in axes else 1 for a in self.axes]
+        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False).view(self.__class__)
         out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
         return out
     
-    
     @record
-    def gaussfit(self, scale=1/16, p0=None, show_result=True):
+    def gaussfit(self, scale:float=1/16, p0=None) -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
 
@@ -168,8 +192,6 @@ class ImgArray(BaseArray):
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters, by default None
-        show_result : bool, optional
-            If show the fitting result.
 
         Returns
         -------
@@ -181,19 +203,39 @@ class ImgArray(BaseArray):
         TypeError
             If self is not two dimensional.
         """
-        # TODO: optionally RANSAC
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        param, fit = gaussfit(self, p0, scale=scale, show_result=show_result)
+        rough = self.rescale(scale).value.astype("float32")
+        gaussian = GaussianBackground(p0)
+        result = gaussian.fit(rough)
+        gaussian.rescale(1/scale)
+        fit = gaussian.generate(self.shape)
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
-        out.temp = param
+        out.temp = dict(params=gaussian.params, result=result)
 
         return out
     
     @record
-    def affine_correction(self, ref=None, bins=256, order=3, prefilter=True, axis="c"):
+    def gaussfit_particle(self, center, width=9, p0=None) -> ImgArray:
+        # TODO: more useful way?
+        center = np.array(center)
+        gaussian = GaussianParticle(p0)
+        x0, y0 = center - width // 2
+        x1, y1 = center + (width+1) // 2
+        result = gaussian.fit(self.value[x0:x1, y0:y1])
+        gaussian.shift([x0, y0])
+        fit = gaussian.generate(self.shape)
+        out = fit.view(self.__class__)
+        out._set_info(self, f"Gaussian-Fit-Particle")
+        out.temp = dict(params=gaussian.params, result=result)
+
+        return out
+    
+    @record
+    def affine_correction(self, ref=None, bins:int=256, 
+                          order:int=3, prefilter:bool=True, axis:str="c") -> ImgArray:
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
@@ -292,14 +334,14 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def hessian_eigval(self, sigma=1, dims=2) -> list:
+    def hessian_eigval(self, sigma=1, dims:int=2) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
         is considered to be a single spatial image, and if dims=3, zyx-image.
 
         Parameters
         ----------
-        sigma : int, optional
+        sigma : float, optional
             sigma of Gaussian filter applied before calculating Hessian, by default 1.
         dims : 2 or 3, optional
             spatial dimension, by default 2
@@ -309,12 +351,7 @@ class ImgArray(BaseArray):
         list of float ImgArray
             eigenvalues in smaller->larger order
         """        
-        # check sigma
-        if isinstance(sigma, (int, float)):
-            sigma = [sigma] * dims
-        elif len(sigma) != dims:
-            raise ValueError("length of sigma and dims must match.")
-        
+        sigma = check_nd_sigma(sigma, dims)
         eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, 
                                               outshape=self.shape+(dims,))
         
@@ -325,7 +362,7 @@ class ImgArray(BaseArray):
         return eigval
     
     @record
-    def hessian_eig(self, sigma=1, dims=2):
+    def hessian_eig(self, sigma=1, dims:int=2) -> tuple:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -339,13 +376,8 @@ class ImgArray(BaseArray):
         Returns
         -------
         list of float ImgArray and 2D-list of float ImgArray
-        """        
-        # check sigma
-        if isinstance(sigma, (int, float)):
-            sigma = [sigma] * dims
-        elif len(sigma) != dims:
-            raise ValueError("length of sigma and dims must match.")
-        
+        """                
+        sigma = check_nd_sigma(sigma, dims)
         eigval = np.empty(self.shape+(dims,), dtype="float32")
         eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
         
@@ -375,68 +407,157 @@ class ImgArray(BaseArray):
                 
         return eigval, eigvec
     
-    def hessian_filter(self, sigma=1):
-        # only puncta detection is available now
-        # TODO: filament detection etc.
-        eigval = self.hessian_eigval(sigma)
-        for e in eigval:
-            e[e>0] = 0
-        return np.product(-eigval, axis=0)**(1/len(eigval))
+    @record
+    def structure_tensor_eigval(self, sigma=1, dims:int=2):
+        sigma = check_nd_sigma(sigma, dims)
+        eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, 
+                                              outshape=self.shape+(dims,))
         
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+        
+        return eigval
     
-    def _running_kernel(self, radius:float, dims:int, function=None, annotation:str=""):
+    @record
+    def structure_tensor_eig(self, sigma=1, dims:int=2):
+        # TODO: integrate this long code with Hessian
+        sigma = check_nd_sigma(sigma, dims)
+        eigval = np.empty(self.shape+(dims,), dtype="float32")
+        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        
+        if self.__class__.n_cpu > 1:
+            results = self._parallel(_structure_tensor_eigh, dims, sigma)
+            for sl, eigval_, eigvec_ in results:
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        else:
+            for sl, img in self.iter(dims):
+                sl, eigval_, eigvec_ = _structure_tensor_eigh((sl, img, dims, sigma))
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        
+        # set information of eigenvalue list
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        for i, each in enumerate(eigval):
+            each._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+        
+        # set information of eigenvector list
+        eigvec = list(np.moveaxis(eigvec, -1, 0))
+        allaxes = "yx" if dims==2 else "zyx"
+        for i, e in enumerate(eigvec):
+            eigvec[i] = list(np.moveaxis(e, -1 ,0))
+            for j, each in enumerate(eigvec[i]):
+                each._set_info(self, f"{dims}D-Structure-Tensor-eigenvector[{i}][{allaxes[j]}]")
+                
+        return eigval, eigvec
+    
+    def _running_kernel(self, radius:float, dims:int, function=None, 
+                        update:bool=False, annotation:str="") -> ImgArray:
         disk = ball_like(radius, dims)
         out = self.as_uint16().parallel(function, dims, disk)
         out._set_info(self, annotation)
+        update and self._update(out)
         return out
     
     @same_dtype()
     @record
-    def erosion(self, radius=1, dims=2):
+    def erosion(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
-        return self._running_kernel(radius, dims, f, f"{dims}D-Erosion(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Erosion(R={radius})")
     
     @same_dtype()
     @record
-    def dilation(self, radius=1, dims=2):
+    def dilation(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
-        return self._running_kernel(radius, dims, f, f"{dims}D-Dilation(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Dilation(R={radius})")
     
     @same_dtype()
     @record
-    def opening(self, radius=1, dims=2):
+    def opening(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
-        return self._running_kernel(radius, dims, f, f"{dims}D-Opening(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Opening(R={radius})")
     
     @same_dtype()
     @record
-    def closing(self, radius=1, dims=2):
+    def closing(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
-        return self._running_kernel(radius, dims, f, f"{dims}D-Closing(R={radius})")
+        return self._running_kernel(radius, dims, f, 
+                                    update, f"{dims}D-Closing(R={radius})")
     
     @same_dtype()
     @record
-    def tophat(self, radius=50, dims=2):
-        return self._running_kernel(radius, dims, _tophat, f"{dims}D-Top-Hat(R={radius})")
+    def tophat(self, radius:float=50, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _tophat, 
+                                    update, f"{dims}D-Top-Hat(R={radius})")
     
     @same_dtype()
     @record
-    def mean_filter(self, radius=1, dims=2):
-        return self._running_kernel(radius, dims, _mean, f"{dims}D-Mean-Filter(R={radius})")
+    def mean_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _mean, 
+                                    update, f"{dims}D-Mean-Filter(R={radius})")
     
     @same_dtype()
     @record
-    def median_filter(self, radius=1, dims=2):
-        return self._running_kernel(radius, dims, _median, f"{dims}D-Median-Filter(R={radius})")
+    def median_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _median, 
+                                    update, f"{dims}D-Median-Filter(R={radius})")
     
     @same_dtype()
     @record
-    def gaussian_filter(self, sigma=1, dims=2):
-        return self._running_kernel(sigma, dims, _gaussian, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+    def gaussian_filter(self, sigma:float=1, dims:int=2, update:bool=False) -> ImgArray:
+        """
+        Run Gaussian filter (Gaussian blur).
+        Parameters
+        ----------
+        sigma : scalar or array of scalars, optional
+            standard deviation(s) of Gaussian, by default 1
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        out = self.parallel(_gaussian, dims, sigma)
+        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
+        update and self._update(out)
+        return out
+
+    
+    @record
+    def dog_filter(self, low_sigma:float=1, high_sigma=None, dims:int=2) -> ImgArray:
+        """
+        Run Difference of Gaussian filter. This function does not support `update`
+        argument because intensity can be negative.
+        
+        Parameters
+        ----------
+        low_sigma : scalar or array of scalars, optional
+            lower standard deviation(s) of Gaussian, by default 1
+        high_sigma : scalar or array of scalars, optional
+            higher standard deviation(s) of Gaussian, by default 1
+        dims : int, optional
+            Dimension of axes, i.e. xy or xyz, by default 2
+            
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        if high_sigma is None:
+            high_sigma = low_sigma * 1.6
+        out = self.as_uint16().parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
+        out._set_info(self, f"{dims}D-DOG-Filter(sigma={low_sigma}-{high_sigma})")
+        
+        return out
     
     @same_dtype()
     @record
-    def rolling_ball(self, radius=50, smoothing=True):
+    def rolling_ball(self, radius:float=50, smoothing:bool=True, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -454,11 +575,46 @@ class ImgArray(BaseArray):
         """        
         out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
         out._set_info(self, f"Rolling-Ball(R={radius})")
+        update and self._update(out)
         return out
     
+    def peak_local_max(self, min_distance:int=1, thr:float=None, num_peaks:int=np.inf,
+                       num_peaks_per_label:int=np.inf, use_labels:bool=True) -> tuple[np.ndarray]:
+        """
+        Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
+        is more flexible.
+
+        Parameters
+        ----------
+        min_distance : int, optional
+            Minimum distance allowed for each two peaks, by default 1
+        thr : float, optional
+            The absolute minimum intensity of peaks, by default None
+        num_peaks : int, optional
+            Maximum number of peaks, by default np.inf
+        num_peaks_per_label : int, optional
+            Maximum number of peaks per label, by default np.inf
+        use_labels : bool, optional
+            If use self.labels when it exists, by default True
+        """        
+        
+        if use_labels and hasattr(self, "labels"):
+            labels = self.labels
+        else:
+            labels = None
+        
+        indices = skfeat.peak_local_max(self.value,
+                                        min_distance=min_distance, 
+                                        threshold_abs=thr,
+                                        num_peaks=num_peaks,
+                                        num_peaks_per_label=num_peaks_per_label,
+                                        labels=labels)
+        indices = np.array(indices)
+        # return as x-coordinates, y-coordinates order.
+        return indices[:,1], indices[:,0]    
     
     @record
-    def fft(self):
+    def fft(self) -> ImgArray:
         """
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with some functions here.
@@ -469,14 +625,15 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def ifft(self):
+    def ifft(self) -> ImgArray:
         freq = np.fft.fftshift(self.value)
         out = np.real(ifft(freq)).view(self.__class__)
         out._set_info(self, "IFFT")
         return out
     
     @record
-    def threshold(self, thr=None, method:str="otsu", light_bg=False, iters="c", **kwargs):
+    def threshold(self, thr=None, method:str="otsu", light_bg:bool=False, 
+                  iters:str="c", **kwargs) -> ImgArray:
         """
         Parameters
         ----------
@@ -552,10 +709,12 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Crop-Circle(R={radius}, {'outzero' if outzero else 'inzero'})")
         return out
     
-    def specify(self, x, y, dx, dy, position="corner"):
+    def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner"):
         """
         Make a rectancge ROI.
         """
+        x, y = xy
+        dx, dy = dxdy
         
         if position == "corner":
             pass
@@ -563,7 +722,7 @@ class ImgArray(BaseArray):
             x -= dx//2
             y -= dy//2
         else:
-            raise ValueError("'position' must be 'corner' or 'center'")
+            raise ValueError("'position' must be either 'corner' or 'center'")
         
         if hasattr(self, "labels"):
             self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
@@ -575,7 +734,7 @@ class ImgArray(BaseArray):
         return self.labels
 
     
-    def crop_center(self, scale=0.5):
+    def crop_center(self, scale:float=0.5):
         """
         Crop out the center of an image.
         e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
@@ -618,12 +777,13 @@ class ImgArray(BaseArray):
             raise TypeError("label_image must be an array")
         
         elif label_image.ndim == 2:
-            if label_image.shape != self.xyshape():
-                raise ValueError("Incompatible yx-shape")
+            yxshape = tuple(self.sizeof(a) for a in "yx")
+            if label_image.shape != yxshape:
+                raise ValueError(f"Incompatible yx-shape: {label_image.shape} and {yxshape}")
         elif label_image.ndim == 3:
             zyxshape = tuple(self.sizeof(a) for a in "zyx")
             if label_image.shape != zyxshape:
-                raise ValueError("Incompatible zyx-shape")
+                raise ValueError(f"Incompatible zyx-shape {label_image.shape} and {zyxshape}")
         else:
             raise ValueError("'label_image' must be 2 or 3 dimensional")
             
@@ -638,9 +798,10 @@ class ImgArray(BaseArray):
         
         self.labels = labels
         
-        return labels
+        return None
     
-    def regionprops(self, properties=("mean_intensity", "area"), extra_properties=None) -> dict:
+    def regionprops(self, properties:tuple[str]=("mean_intensity", "area"),
+                    extra_properties=None) -> dict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -659,7 +820,7 @@ class ImgArray(BaseArray):
         dict of PropArray
         """        
         if not hasattr(self, "labels"):
-            raise AttributeError("Use label() to add label to the image.")
+            raise AttributeError("Use label() to add labels to the image.")
         
         if isinstance(properties, str):
             properties = (properties,)
@@ -679,7 +840,7 @@ class ImgArray(BaseArray):
         shape = tuple(self.sizeof(a) for a in prop_axes)
         out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
                             name=self.name, 
-                            axes="p"+prop_axes,
+                            axes="p" + prop_axes,
                             dirpath=self.dirpath,
                             propname = p)
                for p in properties}
@@ -696,7 +857,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def split(self, axis=None):
+    def split(self, axis=None) -> list[ImgArray]:
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -728,7 +889,7 @@ class ImgArray(BaseArray):
 
     @same_dtype()
     @record
-    def proj(self, axis="z", method="mean"):
+    def proj(self, axis="z", method="mean") -> ImgArray:
         """
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
@@ -747,7 +908,7 @@ class ImgArray(BaseArray):
         return out
 
     
-    def clip_outliers(self, in_range=("0%", "100%")):
+    def clip_outliers(self, in_range=("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip.mean
 
@@ -761,33 +922,15 @@ class ImgArray(BaseArray):
         ImgArray
             Clipped image with temporal attribute
         """        
-        lower, upper = in_range
-        if isinstance(lower, str) and lower.endswith("%"):
-            lower = float(lower[:-1])
-            lowerlim = np.percentile(self, lower)
-        elif lower is None:
-            lowerlim = np.min(self)
-        else:
-            lowerlim = float(lower)
-        
-        if isinstance(upper, str) and upper.endswith("%"):
-            upper = float(upper[:-1])
-            upperlim = np.percentile(self, upper)
-        elif upper is None:
-            upperlim = np.max(self)
-        else:
-            upperlim = float(lower)
-        
-        if lowerlim >= upperlim:
-            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+        lowerlim, upperlim = check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
-        out._set_info(self, f"Clip-Outliers({lower:.2f}%-{upper:.2f}%)")
+        out._set_info(self, f"Clip-Outliers({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
         
         
-    def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16):
+    def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16) -> ImgArray:
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity.
 
@@ -804,30 +947,12 @@ class ImgArray(BaseArray):
             Rescaled image with temporal attribute
         """        
         out = self.view(np.ndarray).astype("float32")
-        lower, upper = in_range
-        if isinstance(lower, str) and lower.endswith("%"):
-            lower = float(lower[:-1])
-            lowerlim = np.percentile(out, lower)
-        elif lower is None:
-            lowerlim = np.min(out)
-        else:
-            lowerlim = float(lower)
-        
-        if isinstance(upper, str) and upper.endswith("%"):
-            upper = float(upper[:-1])
-            upperlim = np.percentile(out, upper)
-        elif upper is None:
-            upperlim = np.max(out)
-        else:
-            upperlim = float(lower)
-        
-        if lowerlim >= upperlim:
-            raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+        lowerlim, upperlim = check_clip_range(in_range, self.value)
             
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lower:.2f}%-{upper:.2f}%)")
+        out._set_info(self, f"Rescale-Intensity({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
 
@@ -835,7 +960,7 @@ class ImgArray(BaseArray):
 
 # non-member functions.
 
-def array(arr, dtype="uint16", name=None, axes=None, lut=None):
+def array(arr, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
     """
@@ -852,10 +977,10 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None):
     
     return self
 
-def zeros(shape, dtype="uint16", name=None, axes=None, lut=None):
+def zeros(shape, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
 
-def imread(path:str, dtype:str="uint16", axes=None, lut=None):
+def imread(path:str, dtype:str="uint16", axes=None, lut=None) -> ImgArray:
     """
     Load image from path.
 
@@ -914,7 +1039,8 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None):
     else:
         return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception:bool=False, dtype="uint16"):
+def imread_collection(dirname:str, axis:str="p", ext:str="tif", 
+                      ignore_exception:bool=False, dtype="uint16") -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -953,11 +1079,11 @@ def imread_collection(dirname:str, axis:str="p", ext:str="tif", ignore_exception
     return out
     
 
-def read_meta(path:str):
+def read_meta(path:str) -> dict:
     meta = get_meta(path)
     return meta
 
-def set_cpu(n_cpu:int):
+def set_cpu(n_cpu:int) -> None:
     ImgArray.n_cpu=n_cpu
     return None
 

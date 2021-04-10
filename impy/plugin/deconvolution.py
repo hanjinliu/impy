@@ -87,11 +87,11 @@ def lucy3d(self, psfinfo, niter:int=50):
         Output dtype
     """
     # make PSF
-    if (isinstance(psfinfo, dict)):
+    if isinstance(psfinfo, dict):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": self.sizeof("z")}
         kw.update(psfinfo)
         psfimg = synthesize_psf(**kw)
-    elif (isinstance(psfinfo, np.ndarray)):
+    elif isinstance(psfinfo, np.ndarray):
         psfimg = np.asarray(psfinfo)
         psfimg /= np.max(psfimg)
     else:
