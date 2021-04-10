@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
-from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr, determine_range
+from .func import *
 from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
@@ -25,15 +25,6 @@ def check_value(__op__):
 
 
 class BaseArray(MetaArray):
-    """
-    Array implemented with basic functions.
-    - axes information such as tzyx.
-    - Image visualization and LUT for it.
-    - auto dtype conversion upon image division.
-    - saturation upon multiplying.
-    - intuitive sub-array viewing in ImageJ format such as img["t=1,z=5"].
-    - auto history recording.
-    """
     n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 

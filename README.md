@@ -69,6 +69,7 @@ img.lut = ["teal", "violet", "gold"]
 ### Functions
 
 - `imshow` = visualize 2-D or 3-D image.
+- `imshow_label` = visualize 2-D image and its labels.
 - `hist` = show the histogram of image intensity profile.
 - `imsave` = save image (by default save in the directory that the original image was loaded).
 

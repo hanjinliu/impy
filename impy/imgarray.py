@@ -182,7 +182,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def gaussfit(self, scale:float=1/16, p0=None) -> ImgArray:
+    def gaussfit(self, scale:float=1/16, p0=None, show_result:bool=True) -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
 
@@ -214,7 +214,22 @@ class ImgArray(BaseArray):
         out = fit.view(self.__class__)
         out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
         out.temp = dict(params=gaussian.params, result=result)
-
+        
+        # show fitting result
+        if show_result:
+            x0 = self.shape[1]//2
+            y0 = self.shape[0]//2
+            plt.figure(figsize=(6,4))
+            plt.subplot(2,1,1)
+            plt.title("x-direction")
+            plt.plot(self[y0].value, color="gray", alpha=0.5, label="raw image")
+            plt.plot(fit[y0], color="red", label="fit")
+            plt.subplot(2,1,2)
+            plt.title("y-direction")
+            plt.plot(self[:,x0].value, color="gray", alpha=0.5, label="raw image")
+            plt.plot(fit[:,x0], color="red", label="fit")
+            plt.tight_layout()
+            plt.show()
         return out
     
     @record
@@ -877,13 +892,12 @@ class ImgArray(BaseArray):
         """
         # determine axis in int.
         if axis is None:
-            axisint = 0
-        else:
-            axisint = self.axisof(axis)
+            axis = find_first_appeared(self.axes, "cztp")
+        axisint = self.axisof(axis)
             
         imgs = list(np.moveaxis(self, axisint, 0))
         for i, img in enumerate(imgs):
-            img.history[-1] = f"Split(axis={axis})"
+            img.history[-1] = f"axis({axis})={i}"
             img.axes = del_axis(self.axes, axisint)
             if axis == "c" and self.lut is not None:
                 img.lut = [self.lut[i]]
@@ -892,8 +906,7 @@ class ImgArray(BaseArray):
         return imgs
 
     @same_dtype()
-    @record
-    def proj(self, axis="z", method="mean") -> ImgArray:
+    def proj(self, axis=None, method="mean") -> ImgArray:
         """
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
@@ -906,6 +919,8 @@ class ImgArray(BaseArray):
         else:
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
         
+        if axis is None:
+            axis = find_first_appeared(self.axes, "tzcp")
         axisint = self.axisof(axis)
         out = func(self.value, axis=axisint).view(self.__class__)
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))

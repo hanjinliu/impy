@@ -100,75 +100,6 @@ def check_nd_sigma(sigma, dims):
         raise ValueError("length of sigma and dims must match.")
     return sigma
 
-def gauss2d(x, y, mu1, mu2, sg1, sg2, A, B):
-    """
-    e.g. for 100x200 image,
-    x = [0, 1, 2, 3, ..., 100] 
-    y = [0, 1, 2, 3, ..., 200]
-    """
-    x, y = np.meshgrid(y, x)
-    
-    z = A*np.exp(-((((x - mu1)/sg1)**2) + ((y - mu2)/sg2)**2)/2) + B
-    
-    return z
-
-
-def square(params, func, z):
-    """
-    calculate ||z - func(x, y, *params)||^2
-    where x and y are determine by z.shape
-    """
-    x = np.arange(z.shape[0])
-    y = np.arange(z.shape[1])
-    z_guess = func(x, y, *params)
-    return np.mean((z - z_guess)**2)
-    
-def gaussfit(img2d, p0=None, scale=1, show_result=True):
-    """
-    Fit 2-D image to 2-D gaussian
-
-    Parameters
-    ----------
-    img2d : 2-D image
-    p0 : initial parameters
-    scale : float, optional
-    """
-    
-    rough = img2d.rescale(scale).value.astype("float32")
-    
-    if p0 is None:
-        mu1, mu2 = np.unravel_index(np.argmax(rough), rough.shape)  # 2-dim argmax
-        sg1 = rough.shape[0]
-        sg2 = rough.shape[1]
-        B = np.percentile(rough, 5)
-        A = np.percentile(rough, 95) - B
-        p0 = mu1, mu2, sg1, sg2, A, B
-    
-    param = opt.minimize(square, p0, args=(gauss2d, rough)).x
-    param[:4] /= scale
-    
-    x = np.arange(img2d.shape[0])
-    y = np.arange(img2d.shape[1])
-
-    fit = gauss2d(x, y, *param).astype("float32")
-    
-    # show fitting result
-    if show_result:
-        x0 = img2d.shape[1]//2
-        y0 = img2d.shape[0]//2
-        plt.figure(figsize=(6,4))
-        plt.subplot(2,1,1)
-        plt.title("x-direction")
-        plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
-        plt.plot(fit[y0], color="red", label="fit")
-        plt.subplot(2,1,2)
-        plt.title("y-direction")
-        plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
-        plt.plot(fit[:,x0], color="red", label="fit")
-        plt.tight_layout()
-        plt.show()
-    return param, fit
-
 
 def affinefit(img, imgref, bins=256, order=3):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
@@ -232,19 +163,26 @@ def ball_like(radius, dims:int):
     else:
         raise ValueError(f"dims must be 2 or 3, but got {dims}")
 
+def find_first_appeared(axes, order):
+    for a in order:
+        if a in axes:
+            return a
+    raise ValueError(f"{axes} does not have any of {order}.")
+        
+
 def del_axis(axes, axis):
     """
     axes: str or Axes object.
     axis: int.
     delete axis from axes.
     """
-    if type(axis) == int:
+    if isinstance(axis, int):
         axis = [axis]
-    if axes is None:
+    elif axes is None:
         return None
     new_axes = ""
     for i, o in enumerate(axes):
-        if (i not in axis):
+        if i not in axis:
             new_axes += o
             
     return new_axes
@@ -257,7 +195,7 @@ def add_axes(axes, shape, arr2d):
         return arr2d
     arr2d = np.array(arr2d)
     for i, o in enumerate(reversed(axes)):
-        if (o not in "yx"):
+        if o not in "yx":
             arr2d = np.stack([arr2d]*(shape[-i-1]))
     return arr2d
 
@@ -274,6 +212,9 @@ def get_lut(name):
     return lut
 
 def determine_range(arr):
+    """
+    Called in imshow()
+    """
     if arr.dtype == bool:
         vmax = vmin = None
     else:
@@ -285,6 +226,9 @@ def determine_range(arr):
     return vmax, vmin
 
 def check_clip_range(in_range, img):
+    """
+    Called in clip_outliers() and rescale_intensity().
+    """    
     lower, upper = in_range
     if isinstance(lower, str) and lower.endswith("%"):
         lower = float(lower[:-1])
