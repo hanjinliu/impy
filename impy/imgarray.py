@@ -4,6 +4,7 @@ import numpy as np
 import os
 import glob
 import collections
+from scipy.optimize.optimize import _line_search_wolfe12
 from skimage import io
 from skimage import morphology as skmorph
 from skimage import transform as sktrans
@@ -16,6 +17,7 @@ from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
+from scipy import ndimage as ndi
 from .func import *
 from .gauss import GaussianBackground, GaussianParticle
 from .base import BaseArray
@@ -36,7 +38,8 @@ def _mean(args):
 
 def _gaussian(args):
     sl, data, sigma = args
-    return (sl, skfil.gaussian(data, sigma=sigma))
+    # return (sl, skfil.gaussian(data, sigma=sigma))
+    return (sl, ndi.gaussian_filter(data, sigma))
 
 def _difference_of_gaussian(args):
     sl, data, low_sigma, high_sigma = args
@@ -54,6 +57,10 @@ def _rolling_ball(args):
     
     return (sl, data - back)
 
+def _sobel(args):
+    sl, data = args
+    return (sl, skfil.sobel(data))
+    
 def _opening(args):
     sl, data, selem = args
     return (sl, skmorph.opening(data, selem))
@@ -468,6 +475,14 @@ class ImgArray(BaseArray):
                 
         return eigval, eigvec
     
+    @same_dtype()
+    @record
+    def sobel_filter(self, dims:int=2, update:bool=False):
+        out = self.parallel(_sobel, dims)
+        out._set_info(self, "Sobel-Filter")
+        update and self._update(out)
+        return out
+    
     def _running_kernel(self, radius:float, dims:int, function=None, 
                         update:bool=False, annotation:str="") -> ImgArray:
         disk = ball_like(radius, dims)
@@ -564,7 +579,7 @@ class ImgArray(BaseArray):
         return out
     
     
-    @same_dtype()
+    @same_dtype(True)
     @record
     def gaussian_filter(self, sigma:float=1, dims:int=2, update:bool=False) -> ImgArray:
         """
@@ -813,21 +828,22 @@ class ImgArray(BaseArray):
         
         return out
     
-    def label(self, label_image=None, connectivity=None):
+    def label(self, label_image=None, connectivity=None) -> ImgArray:
         """
         Run skimage's label() and store the results as attribute.
 
         Parameters
         ----------
         label_image : array, optional
-            image to make label, by default self is used.
+            Image to make label, by default self is used.
         connectivity : int, optional
-            passed to skimage's label(), by default None
+            Passed to skimage's label(), by default None
 
         Returns
         -------
         labeled image
         """        
+        # TODO: nD-image using paralell
         # check the shape of label_image
         if label_image is None:
             label_image = self
@@ -855,75 +871,73 @@ class ImgArray(BaseArray):
         elif nlabel < 65536:
             labels = labels.astype("uint16")
         
+        self.labels = array(labels, dtype=labels.dtype, name="label")
+        
+        return self
+    
+    @need_labels
+    def expand_labels(self, distance:int=1) -> ImgArray:
+        labels = skseg.expand_labels(self.labels, distance).view(self.__class__)
+        labels._set_info(self.labels, f"Expand-Labels(d={distance})")
         self.labels = labels
-        
-        return None
+        return self
     
-    def label_threshold(self, thr="otsu", light_bg:bool=False, iters:str="c", 
-                        connectivity=None, **kwargs):
-        self.labels = self.threshold(thr=thr, light_bg=light_bg, iters=iters).value
-        return None
-        
-    
-    def label_watershed(self):
-        # TODO: write
-        return None
-    
-    def label_flood(self, seed, selem=None, connectivity=None, tolerance=None):
-        
-        img = self.value
-
-        seed_value = img[seed]
-        seed = tuple(np.asarray(seed) % img.shape)
-
-        selem = skmorph._util._resolve_neighborhood(selem, connectivity, img.ndim)
-
-        # Must annotate borders
-        working_image = skmorph._util._fast_pad(img, img.min())
-
-        # Stride-aware neighbors - works for both C- and Fortran-contiguity
-        ravelled_seed_idx = np.ravel_multi_index([i + 1 for i in seed],
-                                                working_image.shape)
-        neighbor_offsets = skmorph._util._offsets_to_raveled_neighbors(
-            working_image.shape, selem, center=((1,) * img.ndim))
-
-        # Use a set of flags; see _flood_fill_cy.pyx for meanings
-        flags = np.zeros(working_image.shape, dtype=np.uint8)
-        skmorph._util._set_border_values(flags, value=2)
-
-        if tolerance is not None:
-            # Check if tolerance could create overflow problems
-            try:
-                max_value = np.finfo(working_image.dtype).max
-                min_value = np.finfo(working_image.dtype).min
-            except ValueError:
-                max_value = np.iinfo(working_image.dtype).max
-                min_value = np.iinfo(working_image.dtype).min
+    @need_labels
+    def watershed(self, markers=None, connectivity=1, input_="self") -> ImgArray:
+        if markers is None:
+            markers = self.peak_local_max()
             
-            high_tol = min(max_value, seed_value + tolerance[1])
-            low_tol = max(min_value, seed_value + tolerance[0])
-            skmorph._flood_fill_cy._flood_fill_tolerance(
-                                working_image.ravel(),
-                                flags.ravel(),
-                                neighbor_offsets,
-                                ravelled_seed_idx,
-                                seed_value,
-                                low_tol,
-                                high_tol)
-        else:
-            skmorph._flood_fill_cy._flood_fill_equal(
-                            working_image.ravel(),
-                            flags.ravel(),
-                            neighbor_offsets,
-                            ravelled_seed_idx,
-                            seed_value)
-
-        # Output what the user requested; view does not create a new copy.
-        label_image = flags[(slice(1, -1),) * img.ndim].view(bool)
-        self.label(label_image=label_image)
-        return None
+        if isinstance(markers, (tuple, list)) and len(markers)==2:
+            xcoor, ycoor = markers
+            markers = np.zeros(self.shape)
+            markers[ycoor, xcoor] = np.arange(len(xcoor), dtype="uint16")
         
+        if input_ == "labels":
+            input_img = np.asarray(self.labels)
+        elif input_ == "self":
+            input_img = self.value
+        elif input_ == "distance":
+            input_img = -ndi.distance_transform_edt(self.labels)
+        else:
+            raise ValueError("'input_' must be either 'self', 'labels' or 'distance'.")
+        
+        labels = skseg.watershed(input_img, markers, mask=self.labels, 
+                                 connectivity=connectivity).view(self.__class__)
+        labels._set_info(self.labels, f"Watershed(input={input_})")
+        self.labels = labels
+        return self
     
+    
+    def label_threshold(self, thr="otsu", **kwargs) -> ImgArray:
+        labels = self.threshold(thr=thr, iters="c", **kwargs)
+        return self.label(labels)
+    
+    def label_flood(self, seed, selem=None, connectivity=None, tolerance=None) -> ImgArray:
+        """
+        Make a label using `skimage.segmentation.flood()`.
+
+        Parameters
+        ----------
+        seed : tuple
+            The starting point of flood.
+        selem : ndarray, optional
+            Passed to flood().
+        connectivity : int, optional
+            Passed to flood().
+        tolerance : float, list or None, optional
+            Passed to flood().
+
+        Returns
+        -------
+        ImgArray
+            Labeled image.
+        """        
+        
+        label_image = skseg.flood(self.value, seed, selem=selem, 
+                                  connectivity=connectivity, tolerance=tolerance)
+        return self.label(label_image=label_image)
+        
+    @need_labels
     def regionprops(self, properties:tuple[str]=("mean_intensity", "area"),
                     extra_properties=None) -> dict[str, PropArray]:
         """
@@ -943,8 +957,6 @@ class ImgArray(BaseArray):
         -------
         dict of PropArray
         """        
-        if not hasattr(self, "labels"):
-            raise AttributeError("Use label() to add labels to the image.")
         
         if isinstance(properties, str):
             properties = (properties,)

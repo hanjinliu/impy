@@ -27,6 +27,28 @@ class DiagonalGaussian(Gaussian):
         else:
             self.mu, self.sg, self.a, self.b = params
     
+    @property
+    def mu(self):
+        return self._mu
+    
+    @mu.setter
+    def mu(self, value):
+        if value is None:
+            self._mu = None
+        else:
+            self._mu = np.asarray(value)
+        
+    @property
+    def sg(self):
+        return self._sg
+    
+    @sg.setter
+    def sg(self, value):
+        if value is None:
+            self._sg = None
+        else:
+            self._sg = np.asarray(value)
+        
     @property    
     def params(self):
         return tuple(self.mu) + tuple(self.sg) + (self.a, self.b)

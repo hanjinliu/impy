@@ -93,6 +93,16 @@ def same_dtype(asfloat=False):
         return wrapper
     return _same_dtype
 
+def need_labels(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not hasattr(self, "labels"):
+            raise AttributeError(f"Function {func.__name__} needs labels."
+                                 " Add labels to the image first.")
+        out = func(self, *args, **kwargs)
+        return out
+    return wrapper
+
 def check_nd_sigma(sigma, dims):
     if isinstance(sigma, (int, float)):
         sigma = [sigma] * dims
