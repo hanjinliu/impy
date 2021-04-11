@@ -244,7 +244,7 @@ class ImgArray(BaseArray):
     
     @record
     def gaussfit_particle(self, center, width=9, p0=None) -> ImgArray:
-        # TODO: more useful way?
+        # TODO: more useful way? Like peak_local_max().
         center = np.array(center)
         gaussian = GaussianParticle(p0)
         x0, y0 = center - width // 2
@@ -637,8 +637,9 @@ class ImgArray(BaseArray):
         update and self._update(out)
         return out
     
-    def peak_local_max(self, min_distance:int=1, thr:float=None, num_peaks:int=np.inf,
-                       num_peaks_per_label:int=np.inf, use_labels:bool=True) -> tuple[np.ndarray]:
+    def peak_local_max(self, min_distance:int=1, thr:float=None, 
+                       num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
+                       use_labels:bool=True) -> tuple[ImgArray, ImgArray]:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -693,7 +694,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def threshold(self, thr="otsu", light_bg:bool=False, iters:str="c", **kwargs) -> ImgArray:
+    def threshold(self, thr="otsu", light_bg:bool=False, iters:str="pct", **kwargs) -> ImgArray:
         """
         Parameters
         ----------
@@ -750,7 +751,7 @@ class ImgArray(BaseArray):
         return out
         
         
-    def crop_circle(self, radius=None, outzero=True):
+    def crop_circle(self, radius=None, outzero=True) -> ImgArray:
         """
         Make a circular window function.
         """
@@ -767,7 +768,7 @@ class ImgArray(BaseArray):
         out._set_info(self, f"Crop-Circle(R={radius}, {'outzero' if outzero else 'inzero'})")
         return out
     
-    def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner"):
+    def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner") -> ImgArray:
         """
         Make a rectancge ROI.
         """
@@ -789,10 +790,10 @@ class ImgArray(BaseArray):
             labels[y:y+dy, x:x+dx] = 1
             self.labels = labels
         
-        return self.labels
+        return self
 
     
-    def crop_center(self, scale:float=0.5):
+    def crop_center(self, scale:float=0.5) -> ImgArray:
         """
         Crop out the center of an image.
         e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
@@ -827,7 +828,8 @@ class ImgArray(BaseArray):
         -------
         labeled image
         """        
-        # TODO: nD-image using paralell
+        # TODO: nD-image using paralell, check 3D labeling
+        
         # check the shape of label_image
         if label_image is None:
             label_image = self
@@ -861,21 +863,61 @@ class ImgArray(BaseArray):
     
     @need_labels
     def expand_labels(self, distance:int=1) -> ImgArray:
+        """
+        Expand areas of labels.
+
+        Parameters
+        ----------
+        distance : int, optional
+            The distance to expand, by default 1
+
+        Returns
+        -------
+        ImgArray
+            Same array but labels are updated.
+        """        
         labels = skseg.expand_labels(self.labels, distance).view(self.__class__)
         labels._set_info(self.labels, f"Expand-Labels(d={distance})")
         self.labels = labels
         return self
     
     @need_labels
-    def watershed(self, markers=None, connectivity=1, input_="self") -> ImgArray:
+    def watershed(self, markers=None, connectivity=1, input_="self", dims=None) -> ImgArray:
+        """
+        Label segmentation using watershed algorithm.
+
+        Parameters
+        ----------
+        markers : 1D-arrays or single array, optional
+            Positions of peaks. In skimage, single array with the same shape as input image
+            was accepted, but here list of coordinates is OK.
+        connectivity : int, optional
+            Passed to skimage.segmentation.watershed.
+        input_ : str, optional
+            What image will be the input of watershed algorithm.
+            - "labels" ... self.labels is used.
+            - "self" ... self is used.
+            - "distance" ... distance map of self.labels is used.
+        dims : int, optional
+            Spatial dimension.
+            
+        Returns
+        -------
+        ImgArray
+            Same array but labels are updated.
+        """        
+        # TODO: nD-image using paralell
+        
+        # Determine markers
         if markers is None:
             markers = self.peak_local_max()
             
         if isinstance(markers, (tuple, list)) and len(markers)==2:
-            xcoor, ycoor = markers
+            sl = tuple(reversed(markers))
             markers = np.zeros(self.shape)
-            markers[ycoor, xcoor] = np.arange(len(xcoor), dtype="uint16")
+            markers[sl] = np.arange(len(markers[0]), dtype="uint16")
         
+        # Prepare the input image.
         if input_ == "labels":
             input_img = np.asarray(self.labels)
         elif input_ == "self":
@@ -892,8 +934,20 @@ class ImgArray(BaseArray):
         return self
     
     
-    def label_threshold(self, thr="otsu", **kwargs) -> ImgArray:
-        labels = self.threshold(thr=thr, iters="c", **kwargs)
+    def label_threshold(self, thr="otsu", iters="pct", **kwargs) -> ImgArray:
+        """
+        Make labels with threshold().
+
+        Parameters
+        ----------
+        All are passed to self.threshold()
+        
+        Returns
+        -------
+        ImgArray
+            Same array but labels are updated.
+        """        
+        labels = self.threshold(thr=thr, iters=iters, **kwargs)
         return self.label(labels)
     
     def label_flood(self, seed, selem=None, connectivity=None, tolerance=None) -> ImgArray:
@@ -914,7 +968,7 @@ class ImgArray(BaseArray):
         Returns
         -------
         ImgArray
-            Labeled image.
+            Same array but labels are updated.
         """        
         
         label_image = skseg.flood(self.value, seed, selem=selem, 
@@ -939,7 +993,7 @@ class ImgArray(BaseArray):
 
         Returns
         -------
-        dict of PropArray
+            dict of PropArray
         """        
         
         if isinstance(properties, str):
