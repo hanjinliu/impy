@@ -744,18 +744,12 @@ class ImgArray(BaseArray):
 
             out = np.zeros(self.shape, dtype=bool)
             for t, img in self.iter(iters, False):
-                if light_bg:
-                    out[t] = img <= thr
-                else:
-                    out[t] = img >= thr
+                out[t] = img >= thr
             out = out.view(self.__class__)
             out._set_info(self, f"Thresholding(method={method})")
 
         else:
-            if light_bg:
-                out = self <= thr
-            else:
-                out = self >= thr
+            out = self >= thr
             out._set_info(self, f"Thresholding({thr:.1f})")
         
         out.temp = thr
