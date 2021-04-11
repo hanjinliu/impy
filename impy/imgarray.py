@@ -39,6 +39,14 @@ def _gaussian(args):
     sl, data, sigma = args
     return (sl, ndi.gaussian_filter(data, sigma))
 
+def _entropy(args):
+    sl, data, selem = args
+    return (sl, skfil.rank.entropy(data, selem))
+
+def _enhance_contrast(args):
+    sl, data, selem = args
+    return (sl, skfil.rank.enhance_contrast(data, selem))
+
 def _difference_of_gaussian(args):
     sl, data, low_sigma, high_sigma = args
     return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
@@ -156,7 +164,7 @@ class ImgArray(BaseArray):
         if dims != 2:
             raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.as_uint16().parallel(_affine, dims, mx, order)
+        out = self.parallel(_affine, dims, mx, order)
         out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
@@ -167,7 +175,7 @@ class ImgArray(BaseArray):
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.as_uint16().parallel(_affine, dims, mx)
+        out = self.parallel(_affine, dims, mx)
         out._set_info(self, f"Translate{translation}")
         return out
 
@@ -520,9 +528,20 @@ class ImgArray(BaseArray):
         return self._running_kernel(radius, dims, _median, 
                                     update, f"{dims}D-Median-Filter(R={radius})")
     
+    @record
+    def entropy_filter(self, radius:float=1, dims:int=2) -> ImgArray:
+        return self._running_kernel(radius, dims, _entropy, 
+                                    False, f"{dims}D-Entropy-Filter(R={radius})")
+    
     @same_dtype()
     @record
-    def fill_hole(self, thr="otsu", light_bg:bool=False, update:bool=False) -> ImgArray:
+    def enhance_contrast(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _enhance_contrast, 
+                                    update, f"{dims}D-Enhance-Contrast(R={radius})")
+    
+    @same_dtype()
+    @record
+    def fill_hole(self, thr="otsu", update:bool=False) -> ImgArray:
         """
         Filling holes
         Reference
@@ -533,8 +552,6 @@ class ImgArray(BaseArray):
         ----------
         thr : scalar or str, optional
             Threshold (value or method) to apply if image is not binary, by default "otsu"
-        light_bg : bool, optional
-            Light background, by default False
         update : bool, optional
             If update self to filtered image, by default False
 
@@ -544,19 +561,15 @@ class ImgArray(BaseArray):
             Hole-filled image.
         """        
         if self.dtype != bool:
-            mask = self.threshold(thr=thr, light_bg=light_bg).value
+            mask = self.threshold(thr=thr).value
             history = f"Fill-Hole(threshold={thr})"
         else:
             mask = self.value
             history = "Fill-Hole"
             
         seed = np.copy(self.value)
-        if light_bg:
-            seed[1:-1, 1:-1] = self.min()
-            out = skmorph.reconstruction(seed, mask, method="dilation").view(self.__class__)
-        else:
-            seed[1:-1, 1:-1] = self.max()
-            out = skmorph.reconstruction(seed, mask, method="erosion").view(self.__class__)
+        seed[1:-1, 1:-1] = self.max()
+        out = skmorph.reconstruction(seed, mask, method="erosion").view(self.__class__)
         out._set_info(self, history)
         update and self._update(out)
         return out
@@ -694,14 +707,12 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def threshold(self, thr="otsu", light_bg:bool=False, iters:str="pct", **kwargs) -> ImgArray:
+    def threshold(self, thr="otsu", iters:str="pct", **kwargs) -> ImgArray:
         """
         Parameters
         ----------
         thr: int or array or None, optional
-            Threshold value, or thresholding algorithm..
-        light_bg: bool, default is False
-            If background is brighter
+            Threshold value, or thresholding algorithm.
         iters: str, default is 'c'
             Around which axes images will be iterated.
         **kwargs:
@@ -732,7 +743,7 @@ class ImgArray(BaseArray):
             thr = func(self.view(np.ndarray), **kwargs)
 
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.iter(iters):
+            for t, img in self.iter(iters, False):
                 if light_bg:
                     out[t] = img <= thr
                 else:
