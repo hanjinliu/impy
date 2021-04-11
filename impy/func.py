@@ -110,6 +110,15 @@ def check_nd_sigma(sigma, dims):
         raise ValueError("length of sigma and dims must match.")
     return sigma
 
+def check_nd_pxsize(pxsize, dims):
+    if isinstance(pxsize, (int, float)):
+        pxsize = [pxsize] * dims
+    elif pxsize is None:
+        pxsize = np.ones(dims)
+    elif len(pxsize) != dims:
+        raise ValueError("length of pxsize and dims must match.")
+    return pxsize
+
 
 def affinefit(img, imgref, bins=256, order=3):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))

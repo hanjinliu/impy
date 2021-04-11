@@ -520,6 +520,31 @@ class BaseArray(MetaArray):
         out = out.view(self.__class__)
         return out
     
+    def parallel_eig(self, func, dims, *args):
+        eigval = np.empty(self.shape+(dims,), dtype="float32")
+        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        
+        if self.__class__.n_cpu > 1:
+            results = self._parallel(func, dims, *args)
+            for sl, eigval_, eigvec_ in results:
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        else:
+            for sl, img in self.iter(dims):
+                sl, eigval_, eigvec_ = func((sl, img, dims, *args))
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        
+        # eigenvalues as 1D-list
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        
+        # eigenvectors as 2D-list
+        eigvec = list(np.moveaxis(eigvec, -1, 0))
+        for i, e in enumerate(eigvec):
+            eigvec[i] = list(np.moveaxis(e, -1 ,0))
+            
+        return eigval, eigvec
+    
     def _parallel(self, func, axes, *args):
         lmd = lambda x : (x[0], x[1], *args)
         name = getattr(self, "ongoing", "iteration")

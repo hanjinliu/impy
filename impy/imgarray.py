@@ -4,7 +4,6 @@ import numpy as np
 import os
 import glob
 import collections
-from scipy.optimize.optimize import _line_search_wolfe12
 from skimage import io
 from skimage import morphology as skmorph
 from skimage import transform as sktrans
@@ -38,7 +37,6 @@ def _mean(args):
 
 def _gaussian(args):
     sl, data, sigma = args
-    # return (sl, skfil.gaussian(data, sigma=sigma))
     return (sl, ndi.gaussian_filter(data, sigma))
 
 def _difference_of_gaussian(args):
@@ -98,31 +96,30 @@ def _tophat(args):
     return (sl, skmorph.white_tophat(data, selem))
 
 def _hessian_eigh(args):
-    sl, data, sigma = args
+    sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
                                              mode="reflect")
     # Correct for scale
-    sigma = np.asarray(sigma)
+    pxsize = np.asarray(pxsize)
     hessian = _symmetric_image(hessian_elements)
-    hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
+    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval, eigvec = np.linalg.eigh(hessian)
     return (sl, eigval, eigvec)
 
 def _hessian_eigval(args):
-    sl, data, sigma = args
+    sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
                                              mode="reflect")
     # Correct for scale
-    # TODO: The scale of sigma may be different from that of pixel size.
-    sigma = np.asarray(sigma)
+    pxsize = np.asarray(pxsize)
     hessian = _symmetric_image(hessian_elements)
-    hessian *= (sigma.reshape(-1,1) * sigma.reshape(1,-1))
+    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval = np.linalg.eigvalsh(hessian)
     return (sl, eigval)
 
 def _structure_tensor_eigh(args):
     # TODO: correct scale
-    sl, data, sigma = args
+    sl, data, sigma, pxsize = args
     tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
                                               mode="reflect")
     tensor = _symmetric_image(tensor_elements)
@@ -130,7 +127,7 @@ def _structure_tensor_eigh(args):
     return (sl, eigval, eigvec)
 
 def _structure_tensor_eigval(args):
-    sl, data, sigma = args
+    sl, data, sigma, pxsize = args
     tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
                                               mode="reflect")
     tensor = _symmetric_image(tensor_elements)
@@ -357,7 +354,7 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def hessian_eigval(self, sigma=1, dims:int=2) -> list[ImgArray]:
+    def hessian_eigval(self, sigma=1, pxsize=None, dims:int=2) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
         is considered to be a single spatial image, and if dims=3, zyx-image.
@@ -375,8 +372,9 @@ class ImgArray(BaseArray):
             eigenvalues in smaller->larger order
         """        
         sigma = check_nd_sigma(sigma, dims)
-        eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, 
-                                              outshape=self.shape+(dims,))
+        pxsize = check_nd_pxsize(pxsize, dims)
+        eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, pxsize,
+                                          outshape=self.shape+(dims,))
         
         eigval = list(np.moveaxis(eigval, -1, 0))
         for i, each in enumerate(eigval):
@@ -385,7 +383,7 @@ class ImgArray(BaseArray):
         return eigval
     
     @record
-    def hessian_eig(self, sigma=1, dims:int=2) -> tuple:
+    def hessian_eig(self, sigma=1, pxsize=None, dims:int=2) -> tuple:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -401,40 +399,29 @@ class ImgArray(BaseArray):
         list of float ImgArray and 2D-list of float ImgArray
         """                
         sigma = check_nd_sigma(sigma, dims)
-        eigval = np.empty(self.shape+(dims,), dtype="float32")
-        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
-        
-        if self.__class__.n_cpu > 1:
-            results = self._parallel(_hessian_eigh, dims, sigma)
-            for sl, eigval_, eigvec_ in results:
-                eigval[sl] = eigval_
-                eigvec[sl] = eigvec_
-        else:
-            for sl, img in self.iter(dims):
-                sl, eigval_, eigvec_ = _hessian_eigh((sl, img, dims, sigma))
-                eigval[sl] = eigval_
-                eigvec[sl] = eigvec_
+        pxsize = check_nd_pxsize(pxsize, dims)
+        eigval, eigvec = self.parallel_eig(_hessian_eigh, dims, sigma, pxsize)
         
         # set information of eigenvalue list
-        eigval = list(np.moveaxis(eigval, -1, 0))
-        for i, each in enumerate(eigval):
-            each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+        for i in range(dims):
+            eigval[i] = eigval[i].view(self.__class__)
+            eigval[i]._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
         
         # set information of eigenvector list
-        eigvec = list(np.moveaxis(eigvec, -1, 0))
-        allaxes = "yx" if dims==2 else "zyx"
-        for i, e in enumerate(eigvec):
-            eigvec[i] = list(np.moveaxis(e, -1 ,0))
-            for j, each in enumerate(eigvec[i]):
-                each._set_info(self, f"{dims}D-Hessian-eigenvector[{i}][{allaxes[j]}]")
+        allaxes = "yx" if dims == 2 else "zyx"
+        for i in range(dims):
+            for j in range(dims):
+                eigvec[i][j] = eigvec[i][j].view(self.__class__)
+                eigvec[i][j]._set_info(self, f"{dims}D-Hessian-eigenvector[{i}][{allaxes[j]}]")
                 
         return eigval, eigvec
     
     @record
-    def structure_tensor_eigval(self, sigma=1, dims:int=2):
+    def structure_tensor_eigval(self, sigma=1, pxsize=None, dims:int=2):
         sigma = check_nd_sigma(sigma, dims)
-        eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, 
-                                              outshape=self.shape+(dims,))
+        pxsize = check_nd_pxsize(pxsize, dims)
+        eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, pxsize,
+                                          outshape=self.shape+(dims,))
         
         eigval = list(np.moveaxis(eigval, -1, 0))
         for i, each in enumerate(eigval):
@@ -443,35 +430,22 @@ class ImgArray(BaseArray):
         return eigval
     
     @record
-    def structure_tensor_eig(self, sigma=1, dims:int=2):
-        # TODO: integrate this long code with Hessian
+    def structure_tensor_eig(self, sigma=1, pxsize=None, dims:int=2):
         sigma = check_nd_sigma(sigma, dims)
-        eigval = np.empty(self.shape+(dims,), dtype="float32")
-        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
-        
-        if self.__class__.n_cpu > 1:
-            results = self._parallel(_structure_tensor_eigh, dims, sigma)
-            for sl, eigval_, eigvec_ in results:
-                eigval[sl] = eigval_
-                eigvec[sl] = eigvec_
-        else:
-            for sl, img in self.iter(dims):
-                sl, eigval_, eigvec_ = _structure_tensor_eigh((sl, img, dims, sigma))
-                eigval[sl] = eigval_
-                eigvec[sl] = eigvec_
+        pxsize = check_nd_pxsize(pxsize, dims)
+        eigval, eigvec = self.parallel_eig(_structure_tensor_eigh, dims, sigma, pxsize)
         
         # set information of eigenvalue list
-        eigval = list(np.moveaxis(eigval, -1, 0))
-        for i, each in enumerate(eigval):
-            each._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+        for i in range(dims):
+            eigval[i] = eigval[i].view(self.__class__)
+            eigval[i]._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
         
         # set information of eigenvector list
-        eigvec = list(np.moveaxis(eigvec, -1, 0))
-        allaxes = "yx" if dims==2 else "zyx"
-        for i, e in enumerate(eigvec):
-            eigvec[i] = list(np.moveaxis(e, -1 ,0))
-            for j, each in enumerate(eigvec[i]):
-                each._set_info(self, f"{dims}D-Structure-Tensor-eigenvector[{i}][{allaxes[j]}]")
+        allaxes = "yx" if dims == 2 else "zyx"
+        for i in range(dims):
+            for j in range(dims):
+                eigvec[i][j] = eigvec[i][j].view(self.__class__)
+                eigvec[i][j]._set_info(self, f"{dims}D-Structure-Tensor-eigenvector[{i}][{allaxes[j]}]")
                 
         return eigval, eigvec
     
