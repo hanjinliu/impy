@@ -11,6 +11,7 @@ from skimage import filters as skfil
 from skimage import restoration as skres
 from skimage import exposure as skexp
 from skimage import measure as skmes
+from skimage import segmentation as skseg
 from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
@@ -523,6 +524,48 @@ class ImgArray(BaseArray):
     
     @same_dtype()
     @record
+    def fill_hole(self, thr="otsu", light_bg:bool=False, update:bool=False) -> ImgArray:
+        """
+        Filling holes
+        Reference
+        ---------
+        https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html
+
+        Parameters
+        ----------
+        thr : scalar or str, optional
+            Threshold (value or method) to apply if image is not binary, by default "otsu"
+        light_bg : bool, optional
+            Light background, by default False
+        update : bool, optional
+            If update self to filtered image, by default False
+
+        Returns
+        -------
+        ImgArray
+            Hole-filled image.
+        """        
+        if self.dtype != bool:
+            mask = self.threshold(thr=thr, light_bg=light_bg).value
+            history = f"Fill-Hole(threshold={thr})"
+        else:
+            mask = self.value
+            history = "Fill-Hole"
+            
+        seed = np.copy(self.value)
+        if light_bg:
+            seed[1:-1, 1:-1] = self.min()
+            out = skmorph.reconstruction(seed, mask, method="dilation").view(self.__class__)
+        else:
+            seed[1:-1, 1:-1] = self.max()
+            out = skmorph.reconstruction(seed, mask, method="erosion").view(self.__class__)
+        out._set_info(self, history)
+        update and self._update(out)
+        return out
+    
+    
+    @same_dtype()
+    @record
     def gaussian_filter(self, sigma:float=1, dims:int=2, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
@@ -651,15 +694,12 @@ class ImgArray(BaseArray):
         return out
     
     @record
-    def threshold(self, thr=None, method:str="otsu", light_bg:bool=False, 
-                  iters:str="c", **kwargs) -> ImgArray:
+    def threshold(self, thr="otsu", light_bg:bool=False, iters:str="c", **kwargs) -> ImgArray:
         """
         Parameters
         ----------
         thr: int or array or None, optional
-            Threshold value. If None, this will be determined by 'method'.
-        method: str, optional
-            Thresholding algorithm.
+            Threshold value, or thresholding algorithm..
         light_bg: bool, default is False
             If background is brighter
         iters: str, default is 'c'
@@ -682,8 +722,8 @@ class ImgArray(BaseArray):
                     "triangle": skfil.threshold_triangle,
                     "yen": skfil.threshold_yen
                     }
-        if thr is None:
-            method = method.lower()
+        if isinstance(thr, str):
+            method = thr.lower()
             try:
                 func = methods_[method]
             except KeyError:
@@ -698,7 +738,7 @@ class ImgArray(BaseArray):
                 else:
                     out[t] = img >= thr
             out = out.view(self.__class__)
-            out._set_info(self, f"Thresholding({method})")
+            out._set_info(self, f"Thresholding(method={method})")
 
         else:
             if light_bg:
@@ -818,6 +858,71 @@ class ImgArray(BaseArray):
         self.labels = labels
         
         return None
+    
+    def label_threshold(self, thr="otsu", light_bg:bool=False, iters:str="c", 
+                        connectivity=None, **kwargs):
+        self.labels = self.threshold(thr=thr, light_bg=light_bg, iters=iters).value
+        return None
+        
+    
+    def label_watershed(self):
+        # TODO: write
+        return None
+    
+    def label_flood(self, seed, selem=None, connectivity=None, tolerance=None):
+        
+        img = self.value
+
+        seed_value = img[seed]
+        seed = tuple(np.asarray(seed) % img.shape)
+
+        selem = skmorph._util._resolve_neighborhood(selem, connectivity, img.ndim)
+
+        # Must annotate borders
+        working_image = skmorph._util._fast_pad(img, img.min())
+
+        # Stride-aware neighbors - works for both C- and Fortran-contiguity
+        ravelled_seed_idx = np.ravel_multi_index([i + 1 for i in seed],
+                                                working_image.shape)
+        neighbor_offsets = skmorph._util._offsets_to_raveled_neighbors(
+            working_image.shape, selem, center=((1,) * img.ndim))
+
+        # Use a set of flags; see _flood_fill_cy.pyx for meanings
+        flags = np.zeros(working_image.shape, dtype=np.uint8)
+        skmorph._util._set_border_values(flags, value=2)
+
+        if tolerance is not None:
+            # Check if tolerance could create overflow problems
+            try:
+                max_value = np.finfo(working_image.dtype).max
+                min_value = np.finfo(working_image.dtype).min
+            except ValueError:
+                max_value = np.iinfo(working_image.dtype).max
+                min_value = np.iinfo(working_image.dtype).min
+            
+            high_tol = min(max_value, seed_value + tolerance[1])
+            low_tol = max(min_value, seed_value + tolerance[0])
+            skmorph._flood_fill_cy._flood_fill_tolerance(
+                                working_image.ravel(),
+                                flags.ravel(),
+                                neighbor_offsets,
+                                ravelled_seed_idx,
+                                seed_value,
+                                low_tol,
+                                high_tol)
+        else:
+            skmorph._flood_fill_cy._flood_fill_equal(
+                            working_image.ravel(),
+                            flags.ravel(),
+                            neighbor_offsets,
+                            ravelled_seed_idx,
+                            seed_value)
+
+        # Output what the user requested; view does not create a new copy.
+        label_image = flags[(slice(1, -1),) * img.ndim].view(bool)
+        self.label(label_image=label_image)
+        return None
+        
     
     def regionprops(self, properties:tuple[str]=("mean_intensity", "area"),
                     extra_properties=None) -> dict[str, PropArray]:
@@ -1053,7 +1158,7 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None) -> ImgArray:
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
-    if (self.axes.is_none()):
+    if self.axes.is_none():
         return self
     else:
         return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order

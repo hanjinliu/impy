@@ -1,6 +1,6 @@
 import numpy as np
 from .axes import Axes
-from .func import add_axes, del_axis, _key_repr
+from .func import add_axes, del_axis, key_repr
 import itertools
 
 def _range_to_list(v:str):
@@ -120,7 +120,7 @@ class MetaArray(np.ndarray):
             key = add_axes(self.axes, self.shape, key)
 
         out = super().__getitem__(key)          # get item as np.ndarray
-        keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
+        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             if self.axes:
@@ -225,6 +225,7 @@ class MetaArray(np.ndarray):
     
     def _inherit_meta(self, ufunc, *inputs, **kwargs):
         # set attributes for output
+        # TODO: This function might be simplified using _set_info()
         name = "no name"
         dirpath = ""
         input_ndim = -1

@@ -164,7 +164,7 @@ class BaseArray(MetaArray):
             key = add_axes(self.axes, self.shape, key)
 
         out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
-        keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
+        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             if hasattr(key, "__array__"):
@@ -194,7 +194,7 @@ class BaseArray(MetaArray):
     
     def __setitem__(self, key, value):
         super().__setitem__(key, value)         # set item as np.ndarray
-        keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
+        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         new_history = f"setitem[{keystr}]"
         
         self._set_info(self, new_history)
@@ -444,7 +444,8 @@ class BaseArray(MetaArray):
             imshow_kwargs.update(kwargs)
             vmin = imshow_kwargs["vmin"]
             vmax = imshow_kwargs["vmax"]
-            image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
+            if vmin and vmax:
+                image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
             overlay = label2rgb(self.labels, image=image, bg_label=0, 
                                 alpha=alpha, image_alpha=image_alpha)
             plt.imshow(overlay, **imshow_kwargs)

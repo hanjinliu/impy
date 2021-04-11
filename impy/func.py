@@ -129,7 +129,7 @@ def affinefit(img, imgref, bins=256, order=3):
     return mtx_opt
     
 
-def _key_repr(key):
+def key_repr(key):
     keylist = []
         
     if isinstance(key, tuple):

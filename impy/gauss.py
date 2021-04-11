@@ -42,7 +42,7 @@ class DiagonalGaussian(Gaussian):
         return self.mu.size
     
     def fit(self, data:np.ndarray) -> opt.OptimizeResult:
-        if not all((self.mu, self.sg, self.a, self.b)):
+        if self.mu is None or self.sg is None or self.a is None or self.b is None:
             self._estimate_params(data)
         r = np.indices(data.shape)
         result = opt.minimize(square, self.params, args=(diagonal_gaussian, r, data))
