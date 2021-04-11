@@ -12,8 +12,6 @@ def check_value(__op__):
     def wrapper(self, value):
         if isinstance(value, np.ndarray):
             value = value.astype("float32")
-            if (value < 0).any():
-                raise ValueError("Cannot multiply or divide array containig negative value.")
             if self.ndim >= 3 and value.shape == self.xyshape():
                 value = add_axes(self.axes, self.shape, value)
         elif isinstance(value, (int, float)) and value < 0:
@@ -142,7 +140,7 @@ class BaseArray(MetaArray):
     @check_value
     def __truediv__(self, value):
         self = self.astype("float32")
-        if (isinstance(value, np.ndarray)):
+        if isinstance(value, np.ndarray):
             value[value==0] = np.inf
         return super().__truediv__(value)
     
@@ -216,50 +214,42 @@ class BaseArray(MetaArray):
         except:
             self.lut = None
     
-    def _inherit_meta(self, ufunc, *inputs, **kwargs):
+    def _inherit_meta(self, obj, ufunc, **kwargs):
         # set attributes for output
-        name = "no name"
-        dirpath = ""
-        history = []
-        input_ndim = -1
-        axes = None
-        metadata = None
-        lut = None
-        for input_ in inputs:
-            if isinstance(input_, self.__class__):
-                name = input_.name
-                dirpath = input_.dirpath
-                history = input_.history.copy()
-                axes = input_.axes
-                history.append(ufunc.__name__)
-                input_ndim = input_.ndim
-                metadata = input_.metadata.copy()
-                lut = input_.lut
-                break
-
-        self.dirpath = dirpath
-        self.name = name
-        self.history = history
-        self.metadata = metadata
-        
-        # set axes
-        if axes is None:
+        if obj is None:
+            self.name = "no name"
+            self.dirpath = ""
             self.axes = None
-            self.lut = None
-        elif input_ndim == self.ndim:
-            self.axes = axes
-            self.lut = lut
-        elif input_ndim > self.ndim:
-            self.lut = None
-            if "axis" in kwargs.keys() and not self.axes.is_none():
-                axis = kwargs["axis"]
-                self.axes = del_axis(axes, axis)
+            self.metadata = None
+        else:
+            self.name = obj.name
+            self.dirpath = obj.dirpath
+            self.input_ndim = obj.ndim
+            self.metadata = obj.metadata.copy()
+            if obj.axes.is_none():
+                self.axes = None
+            elif obj.ndim == self.ndim:
+                self.axes = obj.axes
+            elif obj.ndim > self.ndim:
+                if "axis" in kwargs.keys() and not self.axes.is_none():
+                    axis = kwargs["axis"]
+                    self.axes = del_axis(obj.axes, axis)
+                else:
+                    self.axes = None
             else:
                 self.axes = None
-        else:
-            self.axes = None
+        
+        super()._inherit_meta(obj, ufunc, **kwargs)
+        if obj is None:
+            self.history = []
             self.lut = None
-
+        else:
+            self.history = obj.history.copy()
+            self.history.append(ufunc.__name__)
+            if obj.ndim == self.ndim and not self.axes.is_none():
+                self.lut = obj.lut
+            else:
+                self.lut = None
         return self
     
 

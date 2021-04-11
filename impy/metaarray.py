@@ -221,45 +221,42 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        return result._inherit_meta(ufunc, *inputs, **kwargs)
-    
-    def _inherit_meta(self, ufunc, *inputs, **kwargs):
-        # set attributes for output
-        # TODO: This function might be simplified using _set_info()
-        name = "no name"
-        dirpath = ""
-        input_ndim = -1
-        axes = None
-        metadata = None
+        first_instance = None
         for input_ in inputs:
             if isinstance(input_, self.__class__):
-                name = input_.name
-                dirpath = input_.dirpath
-                axes = input_.axes
-                input_ndim = input_.ndim
-                metadata = input_.metadata.copy()
+                first_instance = input_
                 break
-
-        self.dirpath = dirpath
-        self.name = name
-        self.metadata = metadata
         
-        # set axes
-        if axes is None:
+        result._inherit_meta(first_instance, ufunc, **kwargs)
+        
+        return result
+    
+    def _inherit_meta(self, obj, ufunc, **kwargs):
+        # set attributes for output
+        if obj is None:
+            self.name = "no name"
+            self.dirpath = ""
             self.axes = None
-        elif input_ndim == self.ndim:
-            self.axes = axes
-        elif input_ndim > self.ndim:
-            self.lut = None
-            if "axis" in kwargs.keys() and not self.axes.is_none():
-                axis = kwargs["axis"]
-                self.axes = del_axis(axes, axis)
+            self.metadata = None
+        else:
+            self.name = obj.name
+            self.dirpath = obj.dirpath
+            self.input_ndim = obj.ndim
+            self.metadata = obj.metadata.copy()
+            if obj.axes.is_none():
+                self.axes = None
+            elif obj.ndim == self.ndim:
+                self.axes = obj.axes
+            elif obj.ndim > self.ndim:
+                if "axis" in kwargs.keys() and not self.axes.is_none():
+                    axis = kwargs["axis"]
+                    self.axes = del_axis(obj.axes, axis)
+                else:
+                    self.axes = None
             else:
                 self.axes = None
-        else:
-            self.axes = None
-
         return self
+        
     
     def str_to_slice(self, string):
         """
