@@ -118,11 +118,13 @@ def _hessian_eigval(args):
     return (sl, eigval)
 
 def _structure_tensor_eigh(args):
-    # TODO: correct scale
     sl, data, sigma, pxsize = args
     tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
                                               mode="reflect")
+    # Correct for scale
+    pxsize = np.asarray(pxsize)
     tensor = _symmetric_image(tensor_elements)
+    tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval, eigvec = np.linalg.eigh(tensor)
     return (sl, eigval, eigvec)
 
@@ -130,7 +132,10 @@ def _structure_tensor_eigval(args):
     sl, data, sigma, pxsize = args
     tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
                                               mode="reflect")
+    # Correct for scale
+    pxsize = np.asarray(pxsize)
     tensor = _symmetric_image(tensor_elements)
+    tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval = np.linalg.eigvalsh(tensor)
     return (sl, eigval)
 
@@ -361,10 +366,12 @@ class ImgArray(BaseArray):
 
         Parameters
         ----------
-        sigma : float, optional
-            sigma of Gaussian filter applied before calculating Hessian, by default 1.
+        sigma : scalar or array (dims,), optional
+            Standard deviation of Gaussian filter applied before calculating Hessian.
+        pxsize : scalar or array (dims,), optional
+            Pixel size (to normalize matrix).
         dims : 2 or 3, optional
-            spatial dimension, by default 2
+            Spatial dimension.
 
         Returns
         -------
@@ -389,10 +396,12 @@ class ImgArray(BaseArray):
 
         Parameters
         ----------
-        sigma : int, optional
-            sigma of Gaussian filter applied before calculating Hessian, by default 1.
+        sigma : scalar or array (dims,), optional
+            Standard deviation of Gaussian filter applied before calculating Hessian.
+        pxsize : scalar or array (dims,), optional
+            Pixel size (to normalize matrix).
         dims : 2 or 3, optional
-            spatial dimension, by default 2
+            Spatial dimension.
 
         Returns
         -------
@@ -662,7 +671,8 @@ class ImgArray(BaseArray):
         indices = np.array(indices)
         self.temp = indices
         # return as x-coordinates, y-coordinates order.
-        return indices[:,1], indices[:,0]    
+        return (array(indices[:,1], dtype="uint8", axes="x", name="peak_local_max"), 
+                array(indices[:,0], dtype="uint8", axes="y", name="peak_local_max"))
     
     @record
     def fft(self) -> ImgArray:
