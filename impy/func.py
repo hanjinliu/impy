@@ -163,6 +163,8 @@ def key_repr(key):
             keylist.append("*")
         elif s is None:
             keylist.append("new")
+        elif s is ...:
+            keylist.append("...")
         else:
             keylist.append(str(s))
     
@@ -195,14 +197,20 @@ def del_axis(axes, axis):
     axis: int.
     delete axis from axes.
     """
+    new_axes = ""
     if isinstance(axis, int):
         axis = [axis]
     elif axes is None:
         return None
-    new_axes = ""
-    for i, o in enumerate(axes):
-        if i not in axis:
-            new_axes += o
+    
+    if isinstance(axis, list):
+        for i, o in enumerate(axes):
+            if i not in axis:
+                new_axes += o
+    elif isinstance(axis, str):
+        for a in axes:
+            if a not in axis:
+                new_axes += a
             
     return new_axes
 
@@ -269,3 +277,24 @@ def check_clip_range(in_range, img):
         raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
     
     return lowerlim, upperlim
+
+def axes_included(img, label):
+    """
+    e.g.)
+    img.axes = "tyx", label.axes = "yx" -> True
+    img.axes = "tcyx", label.axes = "zyx" -> False
+    
+    """
+    return all([a in img.axes for a in label.axes])
+
+def shape_match(img, label):
+    """
+    e.g.)
+    img   ... 12(t), 100(y), 50(x)
+    label ... 100(y), 50(x)
+        -> True
+    img   ... 12(t), 100(y), 50(x)
+    label ... 30(y), 50(x)
+        -> False
+    """    
+    return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])

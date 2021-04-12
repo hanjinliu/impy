@@ -20,7 +20,7 @@ from scipy import ndimage as ndi
 from .func import *
 from .gauss import GaussianBackground, GaussianParticle
 from .base import BaseArray
-from .axes import Axes
+from .axes import Axes, ImageAxesError
 from .proparray import PropArray
 
 def _affine(args):
@@ -146,6 +146,13 @@ def _structure_tensor_eigval(args):
     tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval = np.linalg.eigvalsh(tensor)
     return (sl, eigval)
+
+def _label(args):
+    sl, data, connectivity = args
+    labels = skmes.label(data, background=0, connectivity=connectivity)
+    return (sl, labels)
+
+
 
 
 class ImgArray(BaseArray):
@@ -622,7 +629,7 @@ class ImgArray(BaseArray):
         """        
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
-        out = self.as_uint16().parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
+        out = self.parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
         out._set_info(self, f"{dims}D-DOG-Filter(sigma={low_sigma}-{high_sigma})")
         
         return out
@@ -706,7 +713,6 @@ class ImgArray(BaseArray):
         out._set_info(self, "IFFT")
         return out
     
-    @record
     def threshold(self, thr="otsu", iters:str="pct", **kwargs) -> ImgArray:
         """
         Parameters
@@ -719,6 +725,7 @@ class ImgArray(BaseArray):
             Keyword arguments that will passed to function indicated in 'method'.
 
         """
+        # TODO: iters did not work
 
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
@@ -755,23 +762,6 @@ class ImgArray(BaseArray):
         out.temp = thr
         return out
         
-        
-    def crop_circle(self, radius=None, outzero=True) -> ImgArray:
-        """
-        Make a circular window function.
-        """
-        if radius is None:
-            radius = np.min(self.xyshape()) // 2
-        
-        circ = circle(radius, self.xyshape())
-        if not outzero:
-            circ = ~circ
-        circ = add_axes(self.axes, self.shape, circ)
-        out = np.array(self)
-        out[~circ] = 0
-        out = out.view(self.__class__)
-        out._set_info(self, f"Crop-Circle(R={radius}, {'outzero' if outzero else 'inzero'})")
-        return out
     
     def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner") -> ImgArray:
         """
@@ -806,7 +796,8 @@ class ImgArray(BaseArray):
         if scale <= 0 or 1 < scale:
             raise ValueError(f"scale must be (0, 1], but got {scale}")
         
-        sizex, sizey = self.xyshape()
+        sizex = self.sizeof("x")
+        sizey = self.sizeof("y")
         
         x0 = int(sizex / 2 * (1 - scale)) + 1
         x1 = int(sizex / 2 * (1 + scale))
@@ -818,7 +809,8 @@ class ImgArray(BaseArray):
         
         return out
     
-    def label(self, label_image=None, connectivity=None) -> ImgArray:
+    @record
+    def label(self, label_image=None, axes=None, connectivity=None) -> ImgArray:
         """
         Run skimage's label() and store the results as attribute.
 
@@ -833,37 +825,37 @@ class ImgArray(BaseArray):
         -------
         labeled image
         """        
-        # TODO: nD-image using paralell, check 3D labeling
-        
         # check the shape of label_image
         if label_image is None:
             label_image = self
             
-        elif not isinstance(label_image, np.ndarray):
-            raise TypeError("label_image must be an array")
+        elif not hasattr(label_image, "axes") or label_image.axes.is_none():
+            raise ValueError("Use ImgArray with axes for label_image.")
         
-        elif label_image.ndim == 2:
-            yxshape = tuple(self.sizeof(a) for a in "yx")
-            if label_image.shape != yxshape:
-                raise ValueError(f"Incompatible yx-shape: {label_image.shape} and {yxshape}")
-        elif label_image.ndim == 3:
-            zyxshape = tuple(self.sizeof(a) for a in "zyx")
-            if label_image.shape != zyxshape:
-                raise ValueError(f"Incompatible zyx-shape {label_image.shape} and {zyxshape}")
-        else:
-            raise ValueError("'label_image' must be 2 or 3 dimensional")
+        elif not axes_included(self, label_image):
+            raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
+                                 f"{label_image.axes} and {self.axes}")
+        
+        elif not shape_match(self, label_image):
+            raise ImageAxesError("Shape mismatch.")
+        
+        if axes is None:
+            axes = "" # do not iterate
             
-        labels, nlabel = skmes.label(label_image, background=0, 
-                                     return_num=True, connectivity=connectivity)
+        labels = label_image.parallel(_label, axes, connectivity, outdtype="uint32").view(np.ndarray)
+        min_nlabel = 0
+        for sl, _ in label_image.iter(axes, False):
+            labels[sl][labels[sl]>0] += min_nlabel
+            min_nlabel += labels[sl].max()
         
         # use memory efficient dtype
-        if nlabel < 256:
+        if min_nlabel < 256:
             labels = labels.astype("uint8")
-        elif nlabel < 65536:
+        elif min_nlabel < 65536:
             labels = labels.astype("uint16")
         
-        self.labels = array(labels, dtype=labels.dtype, name="label")
-        
+        self.labels = labels.view(self.__class__)
+        self.labels._set_info(label_image, "Labeled")
         return self
     
     @need_labels

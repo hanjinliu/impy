@@ -7,6 +7,7 @@ from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
 from skimage.color import label2rgb
+from warnings import warn
     
 def check_value(__op__):
     def wrapper(self, value):
@@ -65,15 +66,23 @@ class BaseArray(MetaArray):
     def range(self):
         return self.min(), self.max()
     
-        
-    def __repr__(self):
+    @property
+    def shape_info(self):
         if self.axes.is_none():
             shape_info = self.shape
         else:
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-
+        return shape_info
+        
+    def __repr__(self):
+        if hasattr(self, "labels"):
+            labels_shape_info = self.labels.shape_info
+        else:
+            labels_shape_info = "None"
+            
         return f"\n"\
-               f"    shape     : {shape_info}\n"\
+               f"    shape     : {self.shape_info}\n"\
+               f"  label shape : {labels_shape_info}\n"\
                f"    dtype     : {self.dtype}\n"\
                f"  directory   : {self.dirpath}\n"\
                f"original image: {self.name}\n"\
@@ -147,7 +156,7 @@ class BaseArray(MetaArray):
     @check_value
     def __itruediv__(self, value):
         self = self.astype("float32")
-        if (isinstance(value, np.ndarray)):
+        if isinstance(value, np.ndarray):
             value[value==0] = np.inf
         return super().__itruediv__(value)
     
@@ -163,7 +172,6 @@ class BaseArray(MetaArray):
 
         out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
         keystr = key_repr(key)                 # write down key e.g. "0,*,*"
-        
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             if hasattr(key, "__array__"):
                 # fancy indexing will lose axes information
@@ -174,25 +182,35 @@ class BaseArray(MetaArray):
                 new_axes = None
                 
             elif self.axes:
-                del_list = []
-                for i, s in enumerate(keystr.split(",")):
-                    if s != "*":
-                        del_list.append(i)
-                        
+                del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
                 new_axes = del_axis(self.axes, del_list)
-                
             else:
                 new_axes = None
             
             new_history = f"getitem[{keystr}]"
             out._set_info(self, new_history, new_axes)
-        
+            
+            if self.axes and hasattr(self, "labels"):
+                label_sl = []
+                if isinstance(key, tuple):
+                    _keys = key
+                else:
+                    _keys = (key,)
+                for i, a in enumerate(self.axes):
+                    if a in self.labels.axes and i < len(_keys):
+                        label_sl.append(_keys[i])
+                if len(label_sl) == 0:
+                    label_sl = (slice(None),)
+                out.labels = self.labels[tuple(label_sl)]
+                
+        # TODO: Ellipsis
+        warn("Ellipsis has yet been integrated. Axes may be arranged in a wrong order.")
         return out
     
     
     def __setitem__(self, key, value):
-        super().__setitem__(key, value)         # set item as np.ndarray
-        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
+        super().__setitem__(key, value)  # set item as np.ndarray
+        keystr = key_repr(key)           # write down key e.g. "0,*,*"
         new_history = f"setitem[{keystr}]"
         
         self._set_info(self, new_history)
@@ -207,51 +225,39 @@ class BaseArray(MetaArray):
         this function will be called to set essential attributes.
         Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
         """
+        
         super().__array_finalize__(obj)
         self.history = getattr(obj, "history", [])
         try:
             self.lut = getattr(obj, "lut", None)
         except:
             self.lut = None
+        
+        self._view_labels(obj)
+    
     
     def _inherit_meta(self, obj, ufunc, **kwargs):
-        # set attributes for output
-        if obj is None:
-            self.name = "no name"
-            self.dirpath = ""
-            self.axes = None
-            self.metadata = None
+        """
+        Copy axis, history etc. from obj.
+        This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
+        considered because it changes `ndim`.
+        """
+        if "axis" in kwargs.keys() and not obj.axes.is_none():
+            axis = kwargs["axis"]
+            new_axes = del_axis(obj.axes, axis)
         else:
-            self.name = obj.name
-            self.dirpath = obj.dirpath
-            self.input_ndim = obj.ndim
-            self.metadata = obj.metadata.copy()
-            if obj.axes.is_none():
-                self.axes = None
-            elif obj.ndim == self.ndim:
-                self.axes = obj.axes
-            elif obj.ndim > self.ndim:
-                if "axis" in kwargs.keys() and not self.axes.is_none():
-                    axis = kwargs["axis"]
-                    self.axes = del_axis(obj.axes, axis)
-                else:
-                    self.axes = None
-            else:
-                self.axes = None
-        
-        super()._inherit_meta(obj, ufunc, **kwargs)
-        if obj is None:
-            self.history = []
-            self.lut = None
-        else:
-            self.history = obj.history.copy()
-            self.history.append(ufunc.__name__)
-            if obj.ndim == self.ndim and not self.axes.is_none():
-                self.lut = obj.lut
-            else:
-                self.lut = None
+            new_axes = "inherit"
+        self._set_info(obj, ufunc.__name__, new_axes=new_axes)
         return self
     
+    def _view_labels(self, other):
+        """
+        Make a view of label **if possible**.
+        """
+        if (hasattr(other, "labels") and 
+            axes_included(self, other.labels) and
+            shape_match(self, other.labels)):
+            self.labels = other.labels
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
         super()._set_info(other, new_axes)
@@ -259,15 +265,15 @@ class BaseArray(MetaArray):
         if hasattr(other, "ongoing"):
             self.ongoing = other.ongoing
         
+        # inherit labels
+        self._view_labels(other)
+        
         # set history
         if next_history is not None:
             self.history = other.history + [next_history]
         else:
             self.history = other.history.copy()
         
-        # set labels
-        if hasattr(other, "labels"):
-            self.labels = other.labels
         # set lut
         try:
             self.lut = other.lut

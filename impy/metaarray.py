@@ -1,5 +1,5 @@
 import numpy as np
-from .axes import Axes
+from .axes import Axes, ImageAxesError
 from .func import add_axes, del_axis, key_repr
 import itertools
 
@@ -102,10 +102,13 @@ class MetaArray(np.ndarray):
         self.metadata = other.metadata
         
         # set axes
-        if new_axes != "inherit":
-            self.axes = new_axes
-        else:
-            self.axes = other.axes
+        try:
+            if new_axes != "inherit":
+                self.axes = new_axes
+            else:
+                self.axes = other.axes
+        except ImageAxesError:
+            self.axes = None
         
         return None
     
@@ -165,6 +168,7 @@ class MetaArray(np.ndarray):
         
         self.metadata = getattr(obj, "metadata", {})
 
+        
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """
         Every time a numpy universal function (add, subtract, ...) is called,
@@ -172,7 +176,7 @@ class MetaArray(np.ndarray):
         """
         # convert to np.array
         def _replace_self(a):
-            if (a is self): return a.view(np.ndarray)
+            if (a is self): return a.value#a.view(np.ndarray)
             else: return a
 
         # call numpy function
@@ -192,35 +196,7 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        self._inherit_meta()
-        
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """
-        Every time a numpy universal function (add, subtract, ...) is called,
-        this function will be called to set/update essential attributes.
-        """
-        # convert to np.array
-        def _replace_self(a):
-            if (a is self): return a.view(np.ndarray)
-            else: return a
-
-        # call numpy function
-        args = tuple(_replace_self(a) for a in inputs)
-
-        if "out" in kwargs:
-            kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
-
-        result = getattr(ufunc, method)(*args, **kwargs)
-
-        if result is NotImplemented:
-            return NotImplemented
-        
-        result = result.view(self.__class__)
-        
-        # in the case result is such as np.float64
-        if not isinstance(result, self.__class__):
-            return result
-        
+        # find if input includes MetaArray
         first_instance = None
         for input_ in inputs:
             if isinstance(input_, self.__class__):
@@ -366,7 +342,7 @@ class MetaArray(np.ndarray):
     
     
     def axisof(self, axisname):
-        if (type(axisname) is int):
+        if type(axisname) is int:
             return axisname
         else:
             return self.axes.find(axisname)
