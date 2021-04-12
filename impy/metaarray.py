@@ -76,6 +76,10 @@ class MetaArray(np.ndarray):
     def value(self):
         return np.asarray(self)
     
+    @property
+    def spatial_shape(self):
+        return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
+    
     def __repr__(self):
         if self.axes.is_none():
             shape_info = self.shape

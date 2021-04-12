@@ -3,6 +3,7 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
 from .func import *
+from .utilcls import *
 from .metaarray import MetaArray
 from tifffile import imwrite
 from skimage.exposure import histogram
@@ -537,7 +538,7 @@ class LabeledArray(MetaArray):
         # eigenvectors as 2D-list
         eigvec = list(np.moveaxis(eigvec, -1, 0))
         for i, e in enumerate(eigvec):
-            eigvec[i] = list(np.moveaxis(e, -1 ,0))
+            eigvec[i] = SpatialList(np.moveaxis(e, -1 ,0))
             
         return eigval, eigvec
     

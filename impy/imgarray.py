@@ -22,6 +22,7 @@ from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .axes import Axes, ImageAxesError
 from .proparray import PropArray
+from .utilcls import *
 
 def _affine(args):
     sl, data, mx, order = args
@@ -443,6 +444,22 @@ class ImgArray(LabeledArray):
     
     @record
     def structure_tensor_eigval(self, sigma=1, pxsize=None, dims:int=2):
+        """
+        Calculate structure tensor's eigenvalues and eigenvectors.
+
+        Parameters
+        ----------
+        sigma : scalar or array (dims,), optional
+            Standard deviation of Gaussian filter applied before calculating Hessian.
+        pxsize : scalar or array (dims,), optional
+            Pixel size (to normalize matrix).
+        dims : 2 or 3, optional
+            Spatial dimension.
+
+        Returns
+        -------
+        list of float ImgArray and 2D-list of float ImgArray
+        """          
         sigma = check_nd_sigma(sigma, dims)
         pxsize = check_nd_pxsize(pxsize, dims)
         eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, pxsize,
@@ -456,6 +473,22 @@ class ImgArray(LabeledArray):
     
     @record
     def structure_tensor_eig(self, sigma=1, pxsize=None, dims:int=2):
+        """
+        Calculate structure tensor's eigenvalues and eigenvectors.
+
+        Parameters
+        ----------
+        sigma : scalar or array (dims,), optional
+            Standard deviation of Gaussian filter applied before calculating Hessian.
+        pxsize : scalar or array (dims,), optional
+            Pixel size (to normalize matrix).
+        dims : 2 or 3, optional
+            Spatial dimension.
+
+        Returns
+        -------
+        list of float ImgArray and 2D-list of float ImgArray
+        """                
         sigma = check_nd_sigma(sigma, dims)
         pxsize = check_nd_pxsize(pxsize, dims)
         eigval, eigvec = self.parallel_eig(_structure_tensor_eigh, dims, sigma, pxsize)
@@ -660,7 +693,7 @@ class ImgArray(LabeledArray):
     
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
-                       use_labels:bool=True, dims=None) -> tuple[ImgArray, ImgArray]:
+                       use_labels:bool=True, dims=None) -> SpatialList[ImgArray]:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -679,7 +712,6 @@ class ImgArray(LabeledArray):
             If use self.labels when it exists, by default True
         """        
         
-        
         # Determine dims
         if dims is None:
             dims = determine_dims(self)
@@ -690,21 +722,23 @@ class ImgArray(LabeledArray):
         out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
                         propname="local_max_indices")
         
-        for sl, img in self.iter(dims, False):
+        # TODO: bug in 1-dim. empty PropArray is generated
+        for sl, img in self.iter(c_axes, False):
             if use_labels and hasattr(self, "labels"):
                 labels = self[sl].labels
             else:
                 labels = None
-            out[sl] = skfeat.peak_local_max(img,
+            indices = skfeat.peak_local_max(img,
                                             min_distance=min_distance, 
                                             threshold_abs=thr,
                                             num_peaks=num_peaks,
                                             num_peaks_per_label=num_peaks_per_label,
                                             labels=labels)
+            
+            out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
+                                                   dirpath=self.dirpath, history=self.history+["Local-Max"])
+                                          for i, a in enumerate(spatial_dims))
         
-        self.temp = out
-        # return as x-coordinates, y-coordinates order.
-        # TODO: nD-array
         return out
     
     @record
@@ -829,7 +863,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record
-    def label(self, label_image=None, axes=None, connectivity=None) -> ImgArray:
+    def label(self, label_image=None, *, axes=None, connectivity=None) -> ImgArray:
         """
         Run skimage's label() and store the results as attribute.
 
@@ -902,15 +936,12 @@ class ImgArray(LabeledArray):
         return self
     
     @need_labels
-    def watershed(self, markers=None, connectivity=1, input_="self", dims=None) -> ImgArray:
+    def watershed(self, *, connectivity=1, input_="self", dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
 
         Parameters
         ----------
-        markers : 1D-arrays or single array, optional
-            Positions of peaks. In skimage, single array with the same shape as input image
-            was accepted, but here list of coordinates is OK.
         connectivity : int, optional
             Passed to skimage.segmentation.watershed.
         input_ : str, optional
@@ -925,17 +956,9 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Same array but labels are updated.
-        """        
-        # TODO: nD-image using paralell
+        """
         
-        # Determine markers
-        if markers is None:
-            markers = self.peak_local_max()
-            
-        if isinstance(markers, (tuple, list)) and len(markers)==2:
-            sl = tuple(reversed(markers))
-            markers = np.zeros(self.shape)
-            markers[sl] = np.arange(len(markers[0]), dtype="uint16")
+        markers = self.peak_local_max(dims=dims)
         
         # Prepare the input image.
         if input_ == "labels":
@@ -948,6 +971,8 @@ class ImgArray(LabeledArray):
         else:
             raise ValueError("'input_' must be either 'self', 'labels' or 'distance'.")
         
+        input_img._view_labels(self)
+        
         # Determine dims
         if dims is None:
             dims = determine_dims(self)
@@ -955,14 +980,31 @@ class ImgArray(LabeledArray):
         # Determine axes
         if dims == 2:
             axes = "ptzc"
+            s_axes = "yx"
         elif dims == 3:
             axes = "ptc"
+            s_axes = "zyx"
         else:
             ValueError(f"dimension must be 2 or 3, but got {dims}")
         
+        # TODO: uint16 may be insufficient
+        labels = np.zeros(input_img.shape, dtype="uint16")
+        input_img.ongoing = "watershed"
+        shape = tuple(self.sizeof(a) for a in s_axes)
+        n_labels = 0
         for sl, img in input_img.iter(axes):
-            labels = skseg.watershed(img, markers, mask=self.labels, 
-                                     connectivity=connectivity).view(self.__class__)
+            marker_input = np.zeros(shape)
+            sl0 = markers[sl[:-dims]]
+            marker_input[tuple(sl0)] = np.arange(len(sl0[0]), dtype="uint16")
+            labels[sl] = skseg.watershed(img, marker_input, mask=input_img[sl].labels, 
+                                         connectivity=connectivity)
+            labels[sl][labels[sl]>0] += n_labels
+            n_labels = labels[sl].max()
+            
+        input_img.ongoing = None
+        del input_img.ongoing
+        
+        labels = labels.view(self.__class__)
         labels._set_info(self.labels, f"Watershed(input={input_})")
         self.labels = labels
         return self
@@ -984,7 +1026,7 @@ class ImgArray(LabeledArray):
         labels = self.threshold(thr=thr, iters=iters, **kwargs)
         return self.label(labels)
     
-    def label_flood(self, seed, selem=None, connectivity=None, tolerance=None) -> ImgArray:
+    def label_flood(self, seed, *, selem=None, connectivity=None, tolerance=None) -> ImgArray:
         """
         Make a label using `skimage.segmentation.flood()`.
 
@@ -1004,14 +1046,15 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
+        # TODO: more useful way?
         
         label_image = skseg.flood(self.value, seed, selem=selem, 
                                   connectivity=connectivity, tolerance=tolerance)
         return self.label(label_image=label_image)
         
     @need_labels
-    def regionprops(self, properties:tuple[str]=("mean_intensity", "area"),
-                    extra_properties=None) -> dict[str, PropArray]:
+    def regionprops(self, properties:tuple[str]=("mean_intensity", "area"), *, 
+                    extra_properties=None) -> ArrayDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -1027,7 +1070,7 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-            dict of PropArray
+            ArrayDict of PropArray
         """        
         
         if isinstance(properties, str):
@@ -1046,12 +1089,12 @@ class ImgArray(LabeledArray):
         
         prop_axes = "".join([a for a in axes if a in self.axes])
         shape = tuple(self.sizeof(a) for a in prop_axes)
-        out = {p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
-                            name=self.name, 
-                            axes="p" + prop_axes,
-                            dirpath=self.dirpath,
-                            propname = p)
-               for p in properties}
+        out = ArrayDict({p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
+                                      name=self.name, 
+                                      axes="p" + prop_axes,
+                                      dirpath=self.dirpath,
+                                      propname = p)
+                         for p in properties})
         
         # calculate property value for each slice
         for sl in itertools.product(*map(range, shape)):
@@ -1168,7 +1211,7 @@ class ImgArray(LabeledArray):
 
 # non-member functions.
 
-def array(arr, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
+def array(arr, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
     """
@@ -1185,10 +1228,13 @@ def array(arr, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
     
     return self
 
-def zeros(shape, dtype="uint16", name=None, axes=None, lut=None) -> ImgArray:
+def zeros(shape, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
 
-def imread(path:str, dtype:str="uint16", axes=None, lut=None) -> ImgArray:
+def empty(shape, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
+    return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
+
+def imread(path:str, dtype:str="uint16", *, axes=None, lut=None) -> ImgArray:
     """
     Load image from path.
 
@@ -1247,7 +1293,7 @@ def imread(path:str, dtype:str="uint16", axes=None, lut=None) -> ImgArray:
     else:
         return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", ext:str="tif", 
+def imread_collection(dirname:str, axis:str="p", *, ext:str="tif", 
                       ignore_exception:bool=False, dtype="uint16") -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.

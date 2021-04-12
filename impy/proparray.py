@@ -66,3 +66,4 @@ class PropArray(MetaArray):
         self.propname = other.propname
         return None
     
+        

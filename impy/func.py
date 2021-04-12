@@ -251,12 +251,8 @@ def determine_range(arr):
     return vmax, vmin
 
 def determine_dims(img):
-    spatial_dims = [a in img.axes for a in "zyx"]
-    if all(spatial_dims):
-        dims = 3
-    elif sum(spatial_dims) == 2:
-        dims = 2
-    else:
+    dims = len(img.spatial_shape)
+    if dims not in (2, 3):
         raise ValueError("Image must be 2 or 3 dimensional.")
     return dims
         
