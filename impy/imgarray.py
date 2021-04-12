@@ -19,7 +19,7 @@ from scipy.fftpack import ifftn as ifft
 from scipy import ndimage as ndi
 from .func import *
 from .gauss import GaussianBackground, GaussianParticle
-from .base import BaseArray
+from .labeledarray import LabeledArray
 from .axes import Axes, ImageAxesError
 from .proparray import PropArray
 
@@ -152,10 +152,11 @@ def _label(args):
     labels = skmes.label(data, background=0, connectivity=connectivity)
     return (sl, labels)
 
+def _watershed(args):
+    pass
 
 
-
-class ImgArray(BaseArray):
+class ImgArray(LabeledArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
                  history=None, metadata=None, lut=None):
         super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
@@ -657,9 +658,9 @@ class ImgArray(BaseArray):
         update and self._update(out)
         return out
     
-    def peak_local_max(self, min_distance:int=1, thr:float=None, 
+    def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
-                       use_labels:bool=True) -> tuple[ImgArray, ImgArray]:
+                       use_labels:bool=True, dims=None) -> tuple[ImgArray, ImgArray]:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -671,29 +672,40 @@ class ImgArray(BaseArray):
         thr : float, optional
             The absolute minimum intensity of peaks, by default None
         num_peaks : int, optional
-            Maximum number of peaks, by default np.inf
+            Maximum number of peaks **for each iteration**.
         num_peaks_per_label : int, optional
             Maximum number of peaks per label, by default np.inf
         use_labels : bool, optional
             If use self.labels when it exists, by default True
         """        
         
-        if use_labels and hasattr(self, "labels"):
-            labels = self.labels
-        else:
-            labels = None
         
-        indices = skfeat.peak_local_max(self.value,
-                                        min_distance=min_distance, 
-                                        threshold_abs=thr,
-                                        num_peaks=num_peaks,
-                                        num_peaks_per_label=num_peaks_per_label,
-                                        labels=labels)
-        indices = np.array(indices)
-        self.temp = indices
+        # Determine dims
+        if dims is None:
+            dims = determine_dims(self)
+        spatial_dims = "yx" if dims == 2 else "zyx"
+        
+        c_axes = complement_axes(self.axes, spatial_dims)
+        shape = tuple(self.sizeof(a) for a in c_axes)
+        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
+                        propname="local_max_indices")
+        
+        for sl, img in self.iter(dims, False):
+            if use_labels and hasattr(self, "labels"):
+                labels = self[sl].labels
+            else:
+                labels = None
+            out[sl] = skfeat.peak_local_max(img,
+                                            min_distance=min_distance, 
+                                            threshold_abs=thr,
+                                            num_peaks=num_peaks,
+                                            num_peaks_per_label=num_peaks_per_label,
+                                            labels=labels)
+        
+        self.temp = out
         # return as x-coordinates, y-coordinates order.
-        return (array(indices[:,1], dtype="uint8", axes="x", name="peak_local_max"), 
-                array(indices[:,0], dtype="uint8", axes="y", name="peak_local_max"))
+        # TODO: nD-array
+        return out
     
     @record
     def fft(self) -> ImgArray:
@@ -713,7 +725,7 @@ class ImgArray(BaseArray):
         out._set_info(self, "IFFT")
         return out
     
-    def threshold(self, thr="otsu", iters:str="pct", **kwargs) -> ImgArray:
+    def threshold(self, thr="otsu", iters:str="pc", **kwargs) -> ImgArray:
         """
         Parameters
         ----------
@@ -725,7 +737,6 @@ class ImgArray(BaseArray):
             Keyword arguments that will passed to function indicated in 'method'.
 
         """
-        # TODO: iters did not work
 
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
@@ -740,6 +751,7 @@ class ImgArray(BaseArray):
                     "triangle": skfil.threshold_triangle,
                     "yen": skfil.threshold_yen
                     }
+        
         if isinstance(thr, str):
             method = thr.lower()
             try:
@@ -756,8 +768,15 @@ class ImgArray(BaseArray):
             out._set_info(self, f"Thresholding(method={method})")
 
         else:
-            out = self >= thr
-            out._set_info(self, f"Thresholding({thr:.1f})")
+            if hasattr(thr, "__iter__"):
+                out = np.zeros(self.shape, dtype=bool)
+                for i, (t, img) in enumerate(self.iter(iters, False)):
+                    out[t] = img >= thr[i]
+                out = out.view(self.__class__)
+                out._set_info(self, "Thresholding(array)")
+            else:
+                out = self >= thr
+                out._set_info(self, f"Thresholding({thr:.1f})")
         
         out.temp = thr
         return out
@@ -765,7 +784,7 @@ class ImgArray(BaseArray):
     
     def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner") -> ImgArray:
         """
-        Make a rectancge ROI.
+        Make a rectancge label.
         """
         x, y = xy
         dx, dy = dxdy
@@ -841,8 +860,12 @@ class ImgArray(BaseArray):
         
         if axes is None:
             axes = "" # do not iterate
-            
+        
+        label_image.ongoing = "label"
         labels = label_image.parallel(_label, axes, connectivity, outdtype="uint32").view(np.ndarray)
+        label_image.ongoing = None
+        del label_image.ongoing
+        
         min_nlabel = 0
         for sl, _ in label_image.iter(axes, False):
             labels[sl][labels[sl]>0] += min_nlabel
@@ -916,22 +939,36 @@ class ImgArray(BaseArray):
         
         # Prepare the input image.
         if input_ == "labels":
-            input_img = np.asarray(self.labels)
+            input_img = self.labels.copy()
         elif input_ == "self":
-            input_img = self.value
+            input_img = self.copy()
         elif input_ == "distance":
-            input_img = -ndi.distance_transform_edt(self.labels)
+            distance_img = -ndi.distance_transform_edt(self.labels.value)
+            input_img = array(distance_img, dtype="float32")
         else:
             raise ValueError("'input_' must be either 'self', 'labels' or 'distance'.")
         
-        labels = skseg.watershed(input_img, markers, mask=self.labels, 
-                                 connectivity=connectivity).view(self.__class__)
+        # Determine dims
+        if dims is None:
+            dims = determine_dims(self)
+        
+        # Determine axes
+        if dims == 2:
+            axes = "ptzc"
+        elif dims == 3:
+            axes = "ptc"
+        else:
+            ValueError(f"dimension must be 2 or 3, but got {dims}")
+        
+        for sl, img in input_img.iter(axes):
+            labels = skseg.watershed(img, markers, mask=self.labels, 
+                                     connectivity=connectivity).view(self.__class__)
         labels._set_info(self.labels, f"Watershed(input={input_})")
         self.labels = labels
         return self
     
     
-    def label_threshold(self, thr="otsu", iters="pct", **kwargs) -> ImgArray:
+    def label_threshold(self, thr="otsu", iters="pc", **kwargs) -> ImgArray:
         """
         Make labels with threshold().
 

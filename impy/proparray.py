@@ -10,7 +10,7 @@ SCALAR_PROP = (
     "perimeter_crofton", "solidity")
 
 class PropArray(MetaArray):
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+    def __new__(cls, obj, *, name=None, axes=None, dirpath=None, 
                 metadata=None, propname=None):
         if propname in SCALAR_PROP:
             dtype = "float32"

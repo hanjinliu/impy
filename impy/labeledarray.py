@@ -23,7 +23,7 @@ def check_value(__op__):
     return wrapper
 
 
-class BaseArray(MetaArray):
+class LabeledArray(MetaArray):
     n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -78,7 +78,7 @@ class BaseArray(MetaArray):
         if hasattr(self, "labels"):
             labels_shape_info = self.labels.shape_info
         else:
-            labels_shape_info = "None"
+            labels_shape_info = "No label"
             
         return f"\n"\
                f"    shape     : {self.shape_info}\n"\

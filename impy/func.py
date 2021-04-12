@@ -208,9 +208,7 @@ def del_axis(axes, axis):
             if i not in axis:
                 new_axes += o
     elif isinstance(axis, str):
-        for a in axes:
-            if a not in axis:
-                new_axes += a
+        new_axes = complement_axes(axes, axis)
             
     return new_axes
 
@@ -251,6 +249,17 @@ def determine_range(arr):
         except IndexError:
             vmax = vmin = None
     return vmax, vmin
+
+def determine_dims(img):
+    spatial_dims = [a in img.axes for a in "zyx"]
+    if all(spatial_dims):
+        dims = 3
+    elif sum(spatial_dims) == 2:
+        dims = 2
+    else:
+        raise ValueError("Image must be 2 or 3 dimensional.")
+    return dims
+        
 
 def check_clip_range(in_range, img):
     """
@@ -298,3 +307,10 @@ def shape_match(img, label):
         -> False
     """    
     return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
+
+def complement_axes(all_axes, axes):
+    c_axes = ""
+    for a in all_axes:
+        if a not in axes:
+            c_axes += a
+    return c_axes
