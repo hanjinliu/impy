@@ -669,7 +669,7 @@ class ImgArray(LabeledArray):
         out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
         return out
     
-    @record(append_history=False)
+    
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
                        use_labels:bool=True, dims=None):
@@ -704,39 +704,26 @@ class ImgArray(LabeledArray):
         out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
                         propname="local_max_indices")
         
+        self.ongoing = "peak_local_max"
         for sl, img in self.iter(c_axes, False, israw=True):
-            if use_labels and hasattr(self, "labels"):
+            if use_labels and hasattr(img, "labels"):
                 labels = img.labels
             else:
                 labels = None
-                
-            indices = skfeat.peak_local_max(img.value,
+            
+            # skfeat.peak_local_max overwrite something so we need to give copy of img.
+            indices = skfeat.peak_local_max(np.array(img),
                                             min_distance=min_distance, 
                                             threshold_abs=thr,
                                             num_peaks=num_peaks,
                                             num_peaks_per_label=num_peaks_per_label,
-                                            labels=labels.value)
+                                            labels=np.array(labels))
             
             out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
                                                     dirpath=self.dirpath, history=self.history+["Local-Max"])
                                             for i, a in enumerate(spatial_dims))
-        
-        # else:
-        #     if use_labels and hasattr(self, "labels"):
-        #         labels = self.labels
-        #     else:
-        #         labels = None
-        #     print("case 2 !!!")
-        #     indices = skfeat.peak_local_max(self.value,
-        #                                     min_distance=min_distance, 
-        #                                     threshold_abs=thr,
-        #                                     num_peaks=num_peaks,
-        #                                     num_peaks_per_label=num_peaks_per_label,
-        #                                     labels=labels.value)
-            
-        #     out = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
-        #                                dirpath=self.dirpath, history=self.history+["Local-Max"])
-        #                       for i, a in enumerate(spatial_dims))
+        self.ongoing = None
+        del self.ongoing
         
         return out
     
@@ -988,10 +975,8 @@ class ImgArray(LabeledArray):
             # Make array from max list
             marker_input = np.zeros(shape, dtype="uint16")
             
-            if isinstance(sl, tuple):
-                sl0 = markers[sl[:-dims]]
-            else:
-                sl0 = markers
+            sl0 = markers[sl[:-dims]]
+            
             marker_input[tuple(sl0)] = np.arange(len(sl0[0]), dtype="uint16")
             labels[sl] = skseg.watershed(img.value, marker_input, mask=img.labels.value, 
                                          connectivity=connectivity)
