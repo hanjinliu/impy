@@ -291,8 +291,15 @@ class MetaArray(np.ndarray):
         else:
             selfview = self.value
         
-        for sl in itertools.product(*iterlist):
+        it = itertools.product(*iterlist)
+        i = 0
+        for sl in it:
             yield sl, selfview[sl]
+            i += 1
+        
+        # if iterlist = []
+        if i == 0:
+            yield (slice(None),)*self.ndim, selfview
     
     def _get_iterlist(self, axes):
         if isinstance(axes, int):
@@ -319,7 +326,7 @@ class MetaArray(np.ndarray):
         'axes' will also be arranged.
         """
         out = super().transpose(axes)
-        if (self.axes.is_none()):
+        if self.axes.is_none():
             new_axes = None
         else:
             new_axes = "".join([self.axes[i] for i in list(axes)])

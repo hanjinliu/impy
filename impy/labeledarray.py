@@ -338,6 +338,7 @@ class LabeledArray(HistoryArray):
 
         return self
     
+    @need_labels
     def imshow_label(self, alpha=0.3, image_alpha=1, **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
@@ -351,8 +352,55 @@ class LabeledArray(HistoryArray):
                                 alpha=alpha, image_alpha=image_alpha)
             plt.imshow(overlay, **imshow_kwargs)
             self.hist()
+        elif self.ndim == 3:
+            if "c" not in self.axes:
+                imglist = [s[1] for s in self.iter("ptz", False, israw=True)]
+                if len(imglist) > 24:
+                    print("Too many images. First 24 images are shown.")
+                    imglist = imglist[:24]
+
+                vmax, vmin = determine_range(self)
+
+                imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                imshow_kwargs.update(kwargs)
+                
+                n_img = len(imglist)
+                n_col = min(n_img, 4)
+                n_row = int(n_img / n_col + 0.99)
+                fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
+                ax = ax.flat
+                for i, img in enumerate(imglist):
+                    vmin = imshow_kwargs["vmin"]
+                    vmax = imshow_kwargs["vmax"]
+                    if vmin and vmax:
+                        image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
+                    overlay = label2rgb(img.labels, image=img, bg_label=0, 
+                                        alpha=alpha, image_alpha=image_alpha)
+                    ax[i].imshow(overlay, **imshow_kwargs)
+                    ax[i].axis("off")
+                    ax[i].set_title(f"Image-{i+1}")
+
+            else:
+                n_chn = self.sizeof("c")
+                fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
+                for i in range(n_chn):
+                    img = self[f"c={i+1}"]
+                    vmax, vmin = determine_range(self)
+                    imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                    imshow_kwargs.update(kwargs)
+                    vmin = imshow_kwargs["vmin"]
+                    vmax = imshow_kwargs["vmax"]
+                    if vmin and vmax:
+                        image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
+                    overlay = label2rgb(img.labels, image=img, bg_label=0, 
+                                        alpha=alpha, image_alpha=image_alpha)
+                    ax[i].imshow(self[i], **imshow_kwargs)
+                    
         else:
-            raise NotImplementedError("not implemented for ndim != 2")
+            raise ValueError("Image must be two or three dimensional.")
+        
+        plt.show()
+        return self
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Others

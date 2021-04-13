@@ -1,5 +1,6 @@
 from __future__ import annotations
 import itertools
+from math import e
 import numpy as np
 import os
 import glob
@@ -365,7 +366,7 @@ class ImgArray(LabeledArray):
         out.temp = mtx
         return out
     
-    @record(False)
+    @record(append_history=False)
     def hessian_eigval(self, sigma=1, pxsize=None, dims:int=2) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
@@ -396,7 +397,7 @@ class ImgArray(LabeledArray):
         
         return eigval
     
-    @record(False)
+    @record(append_history=False)
     def hessian_eig(self, sigma=1, pxsize=None, dims:int=2) -> tuple:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
@@ -432,7 +433,7 @@ class ImgArray(LabeledArray):
                 
         return eigval, eigvec
     
-    @record(False)
+    @record(append_history=False)
     def structure_tensor_eigval(self, sigma=1, pxsize=None, dims:int=2):
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -461,7 +462,7 @@ class ImgArray(LabeledArray):
         
         return eigval
     
-    @record(False)
+    @record(append_history=False)
     def structure_tensor_eig(self, sigma=1, pxsize=None, dims:int=2):
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -668,6 +669,7 @@ class ImgArray(LabeledArray):
         out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
         return out
     
+    @record(append_history=False)
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
                        use_labels:bool=True, dims=None):
@@ -698,42 +700,43 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(self.axes, spatial_dims)
         shape = self.sizesof(c_axes)
         
-        if c_axes:
-            out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
-                            propname="local_max_indices")
-            
-            for sl, img in self.iter(c_axes, False, israw=True):
-                if use_labels and hasattr(self, "labels"):
-                    labels = img.labels
-                else:
-                    labels = None
-                    
-                indices = skfeat.peak_local_max(img.value,
-                                                min_distance=min_distance, 
-                                                threshold_abs=thr,
-                                                num_peaks=num_peaks,
-                                                num_peaks_per_label=num_peaks_per_label,
-                                                labels=labels.value)
-                
-                out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
-                                                       dirpath=self.dirpath, history=self.history+["Local-Max"])
-                                              for i, a in enumerate(spatial_dims))
+        # if c_axes:
+        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
+                        propname="local_max_indices")
         
-        else:
+        for sl, img in self.iter(c_axes, False, israw=True):
             if use_labels and hasattr(self, "labels"):
-                labels = self.labels
+                labels = img.labels
             else:
                 labels = None
-            indices = skfeat.peak_local_max(self.value,
+                
+            indices = skfeat.peak_local_max(img.value,
                                             min_distance=min_distance, 
                                             threshold_abs=thr,
                                             num_peaks=num_peaks,
                                             num_peaks_per_label=num_peaks_per_label,
                                             labels=labels.value)
             
-            out = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
-                                       dirpath=self.dirpath, history=self.history+["Local-Max"])
-                              for i, a in enumerate(spatial_dims))
+            out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
+                                                    dirpath=self.dirpath, history=self.history+["Local-Max"])
+                                            for i, a in enumerate(spatial_dims))
+        
+        # else:
+        #     if use_labels and hasattr(self, "labels"):
+        #         labels = self.labels
+        #     else:
+        #         labels = None
+        #     print("case 2 !!!")
+        #     indices = skfeat.peak_local_max(self.value,
+        #                                     min_distance=min_distance, 
+        #                                     threshold_abs=thr,
+        #                                     num_peaks=num_peaks,
+        #                                     num_peaks_per_label=num_peaks_per_label,
+        #                                     labels=labels.value)
+            
+        #     out = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
+        #                                dirpath=self.dirpath, history=self.history+["Local-Max"])
+        #                       for i, a in enumerate(spatial_dims))
         
         return out
     
@@ -923,6 +926,7 @@ class ImgArray(LabeledArray):
         return self
     
     @need_labels
+    @record(append_history=False)
     def watershed(self, *, connectivity=1, input_="self", dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
@@ -979,12 +983,16 @@ class ImgArray(LabeledArray):
         input_img.ongoing = "watershed"
         shape = self.sizesof(s_axes)
         n_labels = 0
+        # iter_ = input_img.iter(axes, israw=True) if input_img.ndim > dims else [(slice(None), input_img)]
         for sl, img in input_img.iter(axes, israw=True):
             # Make array from max list
             marker_input = np.zeros(shape, dtype="uint16")
-            sl0 = markers[sl[:-dims]]
-            marker_input[tuple(sl0)] = np.arange(len(sl0[0]), dtype="uint16")
             
+            if isinstance(sl, tuple):
+                sl0 = markers[sl[:-dims]]
+            else:
+                sl0 = markers
+            marker_input[tuple(sl0)] = np.arange(len(sl0[0]), dtype="uint16")
             labels[sl] = skseg.watershed(img.value, marker_input, mask=img.labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
@@ -1112,7 +1120,7 @@ class ImgArray(LabeledArray):
         out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
         return out
 
-    
+    @record()
     def clip_outliers(self, in_range=("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip.mean
@@ -1130,7 +1138,6 @@ class ImgArray(LabeledArray):
         lowerlim, upperlim = check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
-        out._set_info(self, f"Clip-Outliers({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
     
@@ -1210,15 +1217,18 @@ def imread(path:str, dtype:str="uint16", *, axes=None, lut=None) -> ImgArray:
         raise FileNotFoundError(f"No such file or directory: {path}")
     
     fname, fext = os.path.splitext(os.path.basename(path))
+    img = io.imread(path)
+    dirpath = os.path.dirname(path)
+    
     # read tif metadata
     if fext == ".tif":
         meta = get_meta(path)
+    elif fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
+        meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
     else:
         meta = {"axes":axes, "ijmeta":{}, "history":[]}
     
-    img = io.imread(path)
     
-    dirpath = os.path.dirname(path)
     
     axes = meta["axes"]
     metadata = meta["ijmeta"]
