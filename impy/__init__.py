@@ -1,4 +1,5 @@
-__version__ = "1.1.0"
+__version__ = "1.2.0"
+# TODO: `lut` should be integrated into Axes object. Also, each axis should have unit.
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
@@ -8,7 +9,9 @@ warnings.simplefilter("ignore", RuntimeWarning)
 
 import os
 from importlib import import_module
-from .imgarray import array, zeros, imread, imread_collection, read_meta, stack, set_cpu, ImgArray
+from .imgarray import (array, zeros, empty, imread, imread_collection, read_meta, 
+                       stack, set_cpu, ImgArray)
+from .proparray import PropArray
 from .gauss import GaussianParticle, GaussianBackground
 
 __doc__ = \
@@ -28,7 +31,7 @@ or directly converting numpy ndarray by
 Median filtering.
 >>> img_med = img.median_filter(radius=30)
 Fitting to Gaussian and show the image.
->>> img_fit = img_med.rough_gaussfit(scale=1/8)
+>>> img_fit = img_med.gaussfit(scale=1/8)
 >>> img_fit.imshow()
 Normalize the image and save it.
 >>> img *= (img_fit.max() / img_fit)
@@ -43,7 +46,7 @@ Normalize the image and save it.
 
 """
 
-# load plugins if possible
+# Load plugins if possible
 plugin_path = os.path.join(os.path.dirname(__file__), "plugin")
 py_file_list = []
 for file in os.listdir(plugin_path):

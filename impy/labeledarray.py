@@ -2,8 +2,9 @@ import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
-from .func import del_axis, add_axes, get_lut, Timer, load_json, same_dtype, _key_repr, determine_range
-from .metaarray import MetaArray
+from .func import *
+from .utilcls import *
+from .historyarray import HistoryArray
 from tifffile import imwrite
 from skimage.exposure import histogram
 from skimage.color import label2rgb
@@ -12,9 +13,7 @@ def check_value(__op__):
     def wrapper(self, value):
         if isinstance(value, np.ndarray):
             value = value.astype("float32")
-            if (value < 0).any():
-                raise ValueError("Cannot multiply or divide array containig negative value.")
-            if self.ndim >= 3 and value.shape == self.xyshape():
+            if self.ndim >= 3 and value.shape == self.sizesof("yx"):
                 value = add_axes(self.axes, self.shape, value)
         elif isinstance(value, (int, float)) and value < 0:
             raise ValueError("Cannot multiply or divide negative value.")
@@ -24,16 +23,7 @@ def check_value(__op__):
     return wrapper
 
 
-class BaseArray(MetaArray):
-    """
-    Array implemented with basic functions.
-    - axes information such as tzyx.
-    - Image visualization and LUT for it.
-    - auto dtype conversion upon image division.
-    - saturation upon multiplying.
-    - intuitive sub-array viewing in ImageJ format such as img["t=1,z=5"].
-    - auto history recording.
-    """
+class LabeledArray(HistoryArray):
     n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -78,13 +68,14 @@ class BaseArray(MetaArray):
     
         
     def __repr__(self):
-        if self.axes.is_none():
-            shape_info = self.shape
+        if hasattr(self, "labels"):
+            labels_shape_info = self.labels.shape_info
         else:
-            shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-
+            labels_shape_info = "No label"
+            
         return f"\n"\
-               f"    shape     : {shape_info}\n"\
+               f"    shape     : {self.shape_info}\n"\
+               f"  label shape : {labels_shape_info}\n"\
                f"    dtype     : {self.dtype}\n"\
                f"  directory   : {self.dirpath}\n"\
                f"original image: {self.name}\n"\
@@ -151,62 +142,16 @@ class BaseArray(MetaArray):
     @check_value
     def __truediv__(self, value):
         self = self.astype("float32")
-        if (isinstance(value, np.ndarray)):
+        if isinstance(value, np.ndarray):
             value[value==0] = np.inf
         return super().__truediv__(value)
     
     @check_value
     def __itruediv__(self, value):
         self = self.astype("float32")
-        if (isinstance(value, np.ndarray)):
+        if isinstance(value, np.ndarray):
             value[value==0] = np.inf
         return super().__itruediv__(value)
-    
-    def __getitem__(self, key):
-        if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like method
-            sl = self.str_to_slice(key)
-            return self.__getitem__(sl)
-
-        if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
-            # img[arr] ... where arr is 2-D boolean array
-            key = add_axes(self.axes, self.shape, key)
-
-        out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
-        keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
-        
-        if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            if hasattr(key, "__array__"):
-                # fancy indexing will lose axes information
-                new_axes = None
-                
-            elif "new" in keystr:
-                # np.newaxis or None will add dimension
-                new_axes = None
-                
-            elif self.axes:
-                del_list = []
-                for i, s in enumerate(keystr.split(",")):
-                    if s != "*":
-                        del_list.append(i)
-                        
-                new_axes = del_axis(self.axes, del_list)
-                
-            else:
-                new_axes = None
-            
-            new_history = f"getitem[{keystr}]"
-            out._set_info(self, new_history, new_axes)
-        
-        return out
-    
-    
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)         # set item as np.ndarray
-        keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
-        new_history = f"setitem[{keystr}]"
-        
-        self._set_info(self, new_history)
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Overloaded Numpy Functions to Inherit Attributes
@@ -218,82 +163,29 @@ class BaseArray(MetaArray):
         this function will be called to set essential attributes.
         Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
         """
-        super().__array_finalize__(obj)
-        self.history = getattr(obj, "history", [])
-        try:
-            self.lut = getattr(obj, "lut", None)
-        except:
-            self.lut = None
-    
-    def _inherit_meta(self, ufunc, *inputs, **kwargs):
-        # set attributes for output
-        name = "no name"
-        dirpath = ""
-        history = []
-        input_ndim = -1
-        axes = None
-        metadata = None
-        lut = None
-        for input_ in inputs:
-            if isinstance(input_, self.__class__):
-                name = input_.name
-                dirpath = input_.dirpath
-                history = input_.history.copy()
-                axes = input_.axes
-                history.append(ufunc.__name__)
-                input_ndim = input_.ndim
-                metadata = input_.metadata.copy()
-                lut = input_.lut
-                break
-
-        self.dirpath = dirpath
-        self.name = name
-        self.history = history
-        self.metadata = metadata
         
-        # set axes
-        if axes is None:
-            self.axes = None
-            self.lut = None
-        elif input_ndim == self.ndim:
-            self.axes = axes
-            self.lut = lut
-        elif input_ndim > self.ndim:
-            self.lut = None
-            if "axis" in kwargs.keys() and not self.axes.is_none():
-                axis = kwargs["axis"]
-                self.axes = del_axis(axes, axis)
-            else:
-                self.axes = None
-        else:
-            self.axes = None
-            self.lut = None
-
-        return self
+        super().__array_finalize__(obj)
+        
+        self._view_labels(obj)
     
+    
+    def _view_labels(self, other):
+        """
+        Make a view of label **if possible**.
+        """
+        if (hasattr(other, "labels") and 
+            axes_included(self, other.labels) and
+            shape_match(self, other.labels)):
+            self.labels = other.labels
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
-        super()._set_info(other, new_axes)
+        super()._set_info(other, next_history, new_axes)
         # if any function is on-going
         if hasattr(other, "ongoing"):
             self.ongoing = other.ongoing
         
-        # set history
-        if next_history is not None:
-            self.history = other.history + [next_history]
-        else:
-            self.history = other.history.copy()
-        
-        # set labels
-        if hasattr(other, "labels"):
-            self.labels = other.labels
-        # set lut
-        try:
-            self.lut = other.lut
-        except:
-            self.lut = None
-        if self.axes.is_none():
-            self.lut = None
+        # inherit labels
+        self._view_labels(other)
         return None
     
     def _update(self, out):
@@ -446,6 +338,7 @@ class BaseArray(MetaArray):
 
         return self
     
+    @need_labels
     def imshow_label(self, alpha=0.3, image_alpha=1, **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
@@ -453,19 +346,67 @@ class BaseArray(MetaArray):
             imshow_kwargs.update(kwargs)
             vmin = imshow_kwargs["vmin"]
             vmax = imshow_kwargs["vmax"]
-            image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
+            if vmin and vmax:
+                image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
             overlay = label2rgb(self.labels, image=image, bg_label=0, 
                                 alpha=alpha, image_alpha=image_alpha)
             plt.imshow(overlay, **imshow_kwargs)
             self.hist()
+        elif self.ndim == 3:
+            if "c" not in self.axes:
+                imglist = [s[1] for s in self.iter("ptz", False, israw=True)]
+                if len(imglist) > 24:
+                    print("Too many images. First 24 images are shown.")
+                    imglist = imglist[:24]
+
+                vmax, vmin = determine_range(self)
+
+                imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                imshow_kwargs.update(kwargs)
+                
+                n_img = len(imglist)
+                n_col = min(n_img, 4)
+                n_row = int(n_img / n_col + 0.99)
+                fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
+                ax = ax.flat
+                for i, img in enumerate(imglist):
+                    vmin = imshow_kwargs["vmin"]
+                    vmax = imshow_kwargs["vmax"]
+                    if vmin and vmax:
+                        image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
+                    overlay = label2rgb(img.labels, image=img, bg_label=0, 
+                                        alpha=alpha, image_alpha=image_alpha)
+                    ax[i].imshow(overlay, **imshow_kwargs)
+                    ax[i].axis("off")
+                    ax[i].set_title(f"Image-{i+1}")
+
+            else:
+                n_chn = self.sizeof("c")
+                fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
+                for i in range(n_chn):
+                    img = self[f"c={i+1}"]
+                    vmax, vmin = determine_range(self)
+                    imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                    imshow_kwargs.update(kwargs)
+                    vmin = imshow_kwargs["vmin"]
+                    vmax = imshow_kwargs["vmax"]
+                    if vmin and vmax:
+                        image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
+                    overlay = label2rgb(img.labels, image=img, bg_label=0, 
+                                        alpha=alpha, image_alpha=image_alpha)
+                    ax[i].imshow(self[i], **imshow_kwargs)
+                    
         else:
-            raise NotImplementedError("not implemented for ndim != 2")
+            raise ValueError("Image must be two or three dimensional.")
+        
+        plt.show()
+        return self
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def iter(self, axes, showprogress:bool=True):
+    def iter(self, axes, showprogress:bool=True, israw=False):
         """
         Iteration along axes.
 
@@ -485,7 +426,7 @@ class BaseArray(MetaArray):
         timer = Timer()
         if showprogress:
             print(f"{name} ...", end="")
-        for x in super().iter(axes):
+        for x in super().iter(axes, israw):
             yield x
             
         timer.toc()
@@ -514,7 +455,7 @@ class BaseArray(MetaArray):
         if outshape is None:
             outshape = self.shape
             
-        out = np.zeros(outshape, dtype=outdtype)
+        out = np.empty(outshape, dtype=outdtype)
         
         if self.__class__.n_cpu > 1:
             results = self._parallel(func, axes, *args)
@@ -528,34 +469,42 @@ class BaseArray(MetaArray):
         out = out.view(self.__class__)
         return out
     
-    def _parallel(self, func, axes, *args):
+    def parallel_eig(self, func, dims, *args):
+        eigval = np.empty(self.shape+(dims,), dtype="float32")
+        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        
+        if self.__class__.n_cpu > 1:
+            results = self._parallel(func, dims, *args)
+            for sl, eigval_, eigvec_ in results:
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        else:
+            for sl, img in self.iter(dims):
+                sl, eigval_, eigvec_ = func((sl, img, dims, *args))
+                eigval[sl] = eigval_
+                eigvec[sl] = eigvec_
+        
+        # eigenvalues as 1D-list
+        eigval = list(np.moveaxis(eigval, -1, 0))
+        
+        # eigenvectors as 2D-list
+        eigvec = list(np.moveaxis(eigvec, -1, 0))
+        for i, e in enumerate(eigvec):
+            eigvec[i] = SpatialList(np.moveaxis(e, -1 ,0))
+            
+        return eigval, eigvec
+    
+    
+    def _parallel(self, func, axes, *args, israw=False):
         lmd = lambda x : (x[0], x[1], *args)
         name = getattr(self, "ongoing", "iteration")
         timer = Timer()
         print(f"{name} ...", end="")
         with multi.Pool(self.__class__.n_cpu) as p:
-            results = p.map(func, map(lmd, self.iter(axes, False)))
+            results = p.map(func, map(lmd, self.iter(axes, False, israw)))
         timer.toc()
         print(f"\r{name} completed ({timer})")
         return results
     
-    def get_cmaps(self):
-        """
-        From self.lut get colormap used in plt.
-        Default colormap is gray.
-        """
-        if "c" in self.axes:
-            if self.lut is None:
-                cmaps = ["gray"] * self.sizeof("c")
-            else:
-                cmaps = [get_lut(c) for c in self.lut]
-        else:
-            if self.lut is None:
-                cmaps = ["gray"]
-            elif (len(self.lut) != len(self.axes)):
-                cmaps = ["gray"] * len(self.axes)
-            else:
-                cmaps = [get_lut(self.lut[0])]
-        return cmaps
     
 

@@ -27,6 +27,28 @@ class DiagonalGaussian(Gaussian):
         else:
             self.mu, self.sg, self.a, self.b = params
     
+    @property
+    def mu(self):
+        return self._mu
+    
+    @mu.setter
+    def mu(self, value):
+        if value is None:
+            self._mu = None
+        else:
+            self._mu = np.asarray(value)
+        
+    @property
+    def sg(self):
+        return self._sg
+    
+    @sg.setter
+    def sg(self, value):
+        if value is None:
+            self._sg = None
+        else:
+            self._sg = np.asarray(value)
+        
     @property    
     def params(self):
         return tuple(self.mu) + tuple(self.sg) + (self.a, self.b)
@@ -42,7 +64,7 @@ class DiagonalGaussian(Gaussian):
         return self.mu.size
     
     def fit(self, data:np.ndarray) -> opt.OptimizeResult:
-        if not all((self.mu, self.sg, self.a, self.b)):
+        if self.mu is None or self.sg is None or self.a is None or self.b is None:
             self._estimate_params(data)
         r = np.indices(data.shape)
         result = opt.minimize(square, self.params, args=(diagonal_gaussian, r, data))

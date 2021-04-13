@@ -66,9 +66,9 @@ def _richardson_lucy(args):
     
     return sl, np.fft.fftshift(estimated)
 
-@same_dtype(True)
-@record
-def lucy3d(self, psfinfo, niter:int=50):
+@same_dtype(asfloat=True)
+@record()
+def lucy3d(self, psfinfo, niter:int=50, update:bool=False):
     """
     Deconvolution of 3-dimensional image obtained from confocal microscopy, 
     using Richardson-Lucy's algorithm.
@@ -102,14 +102,12 @@ def lucy3d(self, psfinfo, niter:int=50):
     # start deconvolution
     out = np.zeros(self.shape)
     out = self.parallel(_richardson_lucy, "ptc", psfimg, niter)
-    out = out.view(self.__class__)
-    out._set_info(self, f"RichardsonLucy-3D(niter={niter})")
     
     return out
 
-@same_dtype(True)
-@record
-def lucy2d(self, psfinfo, niter:int=50):
+@same_dtype(asfloat=True)
+@record()
+def lucy2d(self, psfinfo, niter:int=50, update:bool=False):
     # make PSF
     if isinstance(psfinfo, dict):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
@@ -126,7 +124,5 @@ def lucy2d(self, psfinfo, niter:int=50):
     # start deconvolution
     out = np.zeros(self.shape)
     out = self.parallel(_richardson_lucy, "ptzc", psfimg, niter)
-    out = out.view(self.__class__)
-    out._set_info(self, f"RichardsonLucy-2D(niter={niter})")
     
     return out

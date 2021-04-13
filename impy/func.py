@@ -58,18 +58,61 @@ def get_meta(path:str):
     
     return {"axes":axes, "ijmeta":ijmeta, "history":hist}
 
-def record(func):
+def safe_str(obj):
+    try:
+        return str(obj)
+    except Exception:
+        return str(type(obj))
+    
+def record(append_history=True, record_label=False):
     """
     Record the name of ongoing function.
     """
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        self.ongoing = func.__name__
-        out = func(self, *args, **kwargs)
-        self.ongoing = None
-        del self.ongoing
-        return out
-    return wrapper
+    def _record(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # temporary record ongoing function
+            self.ongoing = func.__name__
+            if record_label:
+                label_axes = self.labels.axes
+                
+            out = func(self, *args, **kwargs)
+            
+            self.ongoing = None
+            del self.ongoing
+            
+            
+            temp = getattr(out, "temp", None)
+            
+            if record_label:
+                self.labels.axes = label_axes
+                
+            # view as ImgArray etc. if possible
+            try:
+                out = out.view(self.__class__)
+            except AttributeError:
+                pass
+            
+            # record history and update if needed
+            ifupdate = kwargs.pop("update", False)
+            
+            if append_history:
+                _args = list(map(safe_str, args))
+                _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
+                history = f"{func.__name__}({','.join(_args + _kwargs)})"
+                if record_label:
+                    out.labels._set_info(self.labels, history)
+                else:
+                    out._set_info(self, history)
+            ifupdate and self._update(out)
+            
+            # if temporary item exists
+            if temp is not None:
+                out.temp = temp
+            return out
+        return wrapper
+    return _record
+
 
 def same_dtype(asfloat=False):
     """
@@ -93,6 +136,16 @@ def same_dtype(asfloat=False):
         return wrapper
     return _same_dtype
 
+def need_labels(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not hasattr(self, "labels"):
+            raise AttributeError(f"Function {func.__name__} needs labels."
+                                 " Add labels to the image first.")
+        out = func(self, *args, **kwargs)
+        return out
+    return wrapper
+
 def check_nd_sigma(sigma, dims):
     if isinstance(sigma, (int, float)):
         sigma = [sigma] * dims
@@ -100,74 +153,14 @@ def check_nd_sigma(sigma, dims):
         raise ValueError("length of sigma and dims must match.")
     return sigma
 
-def gauss2d(x, y, mu1, mu2, sg1, sg2, A, B):
-    """
-    e.g. for 100x200 image,
-    x = [0, 1, 2, 3, ..., 100] 
-    y = [0, 1, 2, 3, ..., 200]
-    """
-    x, y = np.meshgrid(y, x)
-    
-    z = A*np.exp(-((((x - mu1)/sg1)**2) + ((y - mu2)/sg2)**2)/2) + B
-    
-    return z
-
-
-def square(params, func, z):
-    """
-    calculate ||z - func(x, y, *params)||^2
-    where x and y are determine by z.shape
-    """
-    x = np.arange(z.shape[0])
-    y = np.arange(z.shape[1])
-    z_guess = func(x, y, *params)
-    return np.mean((z - z_guess)**2)
-    
-def gaussfit(img2d, p0=None, scale=1, show_result=True):
-    """
-    Fit 2-D image to 2-D gaussian
-
-    Parameters
-    ----------
-    img2d : 2-D image
-    p0 : initial parameters
-    scale : float, optional
-    """
-    
-    rough = img2d.rescale(scale).value.astype("float32")
-    
-    if p0 is None:
-        mu1, mu2 = np.unravel_index(np.argmax(rough), rough.shape)  # 2-dim argmax
-        sg1 = rough.shape[0]
-        sg2 = rough.shape[1]
-        B = np.percentile(rough, 5)
-        A = np.percentile(rough, 95) - B
-        p0 = mu1, mu2, sg1, sg2, A, B
-    
-    param = opt.minimize(square, p0, args=(gauss2d, rough)).x
-    param[:4] /= scale
-    
-    x = np.arange(img2d.shape[0])
-    y = np.arange(img2d.shape[1])
-
-    fit = gauss2d(x, y, *param).astype("float32")
-    
-    # show fitting result
-    if show_result:
-        x0 = img2d.shape[1]//2
-        y0 = img2d.shape[0]//2
-        plt.figure(figsize=(6,4))
-        plt.subplot(2,1,1)
-        plt.title("x-direction")
-        plt.plot(img2d[y0].value, color="gray", alpha=0.5, label="raw image")
-        plt.plot(fit[y0], color="red", label="fit")
-        plt.subplot(2,1,2)
-        plt.title("y-direction")
-        plt.plot(img2d[:,x0].value, color="gray", alpha=0.5, label="raw image")
-        plt.plot(fit[:,x0], color="red", label="fit")
-        plt.tight_layout()
-        plt.show()
-    return param, fit
+def check_nd_pxsize(pxsize, dims):
+    if isinstance(pxsize, (int, float)):
+        pxsize = [pxsize] * dims
+    elif pxsize is None:
+        pxsize = np.ones(dims)
+    elif len(pxsize) != dims:
+        raise ValueError("length of pxsize and dims must match.")
+    return pxsize
 
 
 def affinefit(img, imgref, bins=256, order=3):
@@ -198,7 +191,7 @@ def affinefit(img, imgref, bins=256, order=3):
     return mtx_opt
     
 
-def _key_repr(key):
+def key_repr(key):
     keylist = []
         
     if isinstance(key, tuple):
@@ -213,6 +206,8 @@ def _key_repr(key):
             keylist.append("*")
         elif s is None:
             keylist.append("new")
+        elif s is ...:
+            keylist.append("...")
         else:
             keylist.append(str(s))
     
@@ -232,20 +227,31 @@ def ball_like(radius, dims:int):
     else:
         raise ValueError(f"dims must be 2 or 3, but got {dims}")
 
+def find_first_appeared(axes, order):
+    for a in order:
+        if a in axes:
+            return a
+    raise ValueError(f"{axes} does not have any of {order}.")
+        
+
 def del_axis(axes, axis):
     """
     axes: str or Axes object.
     axis: int.
     delete axis from axes.
     """
-    if type(axis) == int:
-        axis = [axis]
-    if axes is None:
-        return None
     new_axes = ""
-    for i, o in enumerate(axes):
-        if (i not in axis):
-            new_axes += o
+    if isinstance(axis, int):
+        axis = [axis]
+    elif axes is None:
+        return None
+    
+    if isinstance(axis, list):
+        for i, o in enumerate(axes):
+            if i not in axis:
+                new_axes += o
+    elif isinstance(axis, str):
+        new_axes = complement_axes(axes, axis)
             
     return new_axes
 
@@ -257,7 +263,7 @@ def add_axes(axes, shape, arr2d):
         return arr2d
     arr2d = np.array(arr2d)
     for i, o in enumerate(reversed(axes)):
-        if (o not in "yx"):
+        if o not in "yx":
             arr2d = np.stack([arr2d]*(shape[-i-1]))
     return arr2d
 
@@ -274,6 +280,9 @@ def get_lut(name):
     return lut
 
 def determine_range(arr):
+    """
+    Called in imshow()
+    """
     if arr.dtype == bool:
         vmax = vmin = None
     else:
@@ -284,7 +293,17 @@ def determine_range(arr):
             vmax = vmin = None
     return vmax, vmin
 
+def determine_dims(img):
+    dims = len(img.spatial_shape)
+    if dims not in (2, 3):
+        raise ValueError("Image must be 2 or 3 dimensional.")
+    return dims
+        
+
 def check_clip_range(in_range, img):
+    """
+    Called in clip_outliers() and rescale_intensity().
+    """    
     lower, upper = in_range
     if isinstance(lower, str) and lower.endswith("%"):
         lower = float(lower[:-1])
@@ -306,3 +325,31 @@ def check_clip_range(in_range, img):
         raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
     
     return lowerlim, upperlim
+
+def axes_included(img, label):
+    """
+    e.g.)
+    img.axes = "tyx", label.axes = "yx" -> True
+    img.axes = "tcyx", label.axes = "zyx" -> False
+    
+    """
+    return all([a in img.axes for a in label.axes])
+
+def shape_match(img, label):
+    """
+    e.g.)
+    img   ... 12(t), 100(y), 50(x)
+    label ... 100(y), 50(x)
+        -> True
+    img   ... 12(t), 100(y), 50(x)
+    label ... 30(y), 50(x)
+        -> False
+    """    
+    return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
+
+def complement_axes(all_axes, axes):
+    c_axes = ""
+    for a in all_axes:
+        if a not in axes:
+            c_axes += a
+    return c_axes

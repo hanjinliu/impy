@@ -56,9 +56,9 @@ def _show_drift(result):
     plt.show()
     return None
 
-@same_dtype(True)
-@record
-def drift_correction(self, shift=None, ref=None, order=1, show_drift=True):
+@same_dtype(asfloat=True)
+@record()
+def drift_correction(self, shift=None, ref=None, order=1, show_drift=True, update:bool=False):
     """
     shift: (N, 2) array, optional.
         x,y coordinates of drift. If None, this parameter will be determined by the
@@ -95,7 +95,7 @@ def drift_correction(self, shift=None, ref=None, order=1, show_drift=True):
 
     out = np.empty(self.shape)
     for sl, img in self.iter("ptzc"):
-        if type(sl) is int:
+        if isinstance(sl, int):
             tr = -shift[sl]
         else:
             tr = -shift[sl[0]]
@@ -103,6 +103,5 @@ def drift_correction(self, shift=None, ref=None, order=1, show_drift=True):
         out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
     out = out.view(self.__class__)
 
-    out._set_info(self, "Drift-Correction")
     out.temp = shift
     return out

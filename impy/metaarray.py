@@ -1,6 +1,6 @@
 import numpy as np
-from .axes import Axes
-from .func import add_axes, del_axis, _key_repr
+from .axes import Axes, ImageAxesError
+from .func import add_axes, del_axis, key_repr
 import itertools
 
 def _range_to_list(v:str):
@@ -76,14 +76,23 @@ class MetaArray(np.ndarray):
     def value(self):
         return np.asarray(self)
     
-    def __repr__(self):
+    @property
+    def spatial_shape(self):
+        return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
+    
+    
+    @property
+    def shape_info(self):
         if self.axes.is_none():
             shape_info = self.shape
         else:
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-
+        return shape_info
+    
+    
+    def __repr__(self):
         return f"\n"\
-               f"    shape     : {shape_info}\n"\
+               f"    shape     : {self.shape_info}\n"\
                f"    dtype     : {self.dtype}\n"\
                f"  directory   : {self.dirpath}\n"\
                f"original image: {self.name}\n"
@@ -102,10 +111,13 @@ class MetaArray(np.ndarray):
         self.metadata = other.metadata
         
         # set axes
-        if new_axes != "inherit":
-            self.axes = new_axes
-        else:
-            self.axes = other.axes
+        try:
+            if new_axes != "inherit":
+                self.axes = new_axes
+            else:
+                self.axes = other.axes
+        except ImageAxesError:
+            self.axes = None
         
         return None
     
@@ -120,7 +132,7 @@ class MetaArray(np.ndarray):
             key = add_axes(self.axes, self.shape, key)
 
         out = super().__getitem__(key)          # get item as np.ndarray
-        keystr = _key_repr(key)                 # write down key e.g. "0,*,*"
+        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             if self.axes:
@@ -165,6 +177,7 @@ class MetaArray(np.ndarray):
         
         self.metadata = getattr(obj, "metadata", {})
 
+        
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """
         Every time a numpy universal function (add, subtract, ...) is called,
@@ -172,7 +185,7 @@ class MetaArray(np.ndarray):
         """
         # convert to np.array
         def _replace_self(a):
-            if (a is self): return a.view(np.ndarray)
+            if (a is self): return a.value#a.view(np.ndarray)
             else: return a
 
         # call numpy function
@@ -192,73 +205,31 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        self._inherit_meta()
-        
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """
-        Every time a numpy universal function (add, subtract, ...) is called,
-        this function will be called to set/update essential attributes.
-        """
-        # convert to np.array
-        def _replace_self(a):
-            if (a is self): return a.view(np.ndarray)
-            else: return a
-
-        # call numpy function
-        args = tuple(_replace_self(a) for a in inputs)
-
-        if "out" in kwargs:
-            kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
-
-        result = getattr(ufunc, method)(*args, **kwargs)
-
-        if result is NotImplemented:
-            return NotImplemented
-        
-        result = result.view(self.__class__)
-        
-        # in the case result is such as np.float64
-        if not isinstance(result, self.__class__):
-            return result
-        
-        return result._inherit_meta(ufunc, *inputs, **kwargs)
-    
-    def _inherit_meta(self, ufunc, *inputs, **kwargs):
-        # set attributes for output
-        name = "no name"
-        dirpath = ""
-        input_ndim = -1
-        axes = None
-        metadata = None
+        # find if input includes MetaArray
+        first_instance = None
         for input_ in inputs:
             if isinstance(input_, self.__class__):
-                name = input_.name
-                dirpath = input_.dirpath
-                axes = input_.axes
-                input_ndim = input_.ndim
-                metadata = input_.metadata.copy()
+                first_instance = input_
                 break
-
-        self.dirpath = dirpath
-        self.name = name
-        self.metadata = metadata
         
-        # set axes
-        if axes is None:
-            self.axes = None
-        elif input_ndim == self.ndim:
-            self.axes = axes
-        elif input_ndim > self.ndim:
-            self.lut = None
-            if "axis" in kwargs.keys() and not self.axes.is_none():
-                axis = kwargs["axis"]
-                self.axes = del_axis(axes, axis)
-            else:
-                self.axes = None
+        result._inherit_meta(first_instance, ufunc, **kwargs)
+        
+        return result
+    
+    def _inherit_meta(self, obj, ufunc, **kwargs):
+        """
+        Copy axis, history etc. from obj.
+        This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
+        considered because it changes `ndim`.
+        """
+        if "axis" in kwargs.keys() and not obj.axes.is_none():
+            axis = kwargs["axis"]
+            new_axes = del_axis(obj.axes, axis)
         else:
-            self.axes = None
-
+            new_axes = "inherit"
+        self._set_info(obj, new_axes=new_axes)
         return self
+        
     
     def str_to_slice(self, string):
         """
@@ -298,22 +269,39 @@ class MetaArray(np.ndarray):
         order = arr[arr]
         return self.transpose(order)
     
-    def iter(self, axes):
+    
+    def iter(self, axes, israw=False):
         """
-        Iteration along axes.
+        Iteration along axes. Unlike self.iter(axes), this function yields subclass objects
+        so that this function is slower but accessible to attributes such as labels.
 
         Parameters
         ----------
         axes : str or int
             On which axes iteration is performed. Or the number of spatial dimension.
-        showprogress : bool, optional
-            If show progress of algorithm, by default True
 
         Yields
         -------
-        np.ndarray
-            Subimage
-        """        
+        slice and (np.ndarray or MetaArray)
+            slice and Subimage=self[sl]
+        """     
+        iterlist = self._get_iterlist(axes)
+        if israw:
+            selfview = self
+        else:
+            selfview = self.value
+        
+        it = itertools.product(*iterlist)
+        i = 0
+        for sl in it:
+            yield sl, selfview[sl]
+            i += 1
+        
+        # if iterlist = []
+        if i == 0:
+            yield (slice(None),)*self.ndim, selfview
+    
+    def _get_iterlist(self, axes):
         if isinstance(axes, int):
             if axes == 2:
                 axes = "ptzc"
@@ -329,13 +317,7 @@ class MetaArray(np.ndarray):
                 iterlist.append(range(self.sizeof(a)))
             else:
                 iterlist.append([slice(None)])
-                
-        selfview = self.value
-        
-        for sl in itertools.product(*iterlist):
-            yield sl, selfview[sl]
-            
-        
+        return iterlist
             
     # numpy functions that will change/discard order
     def transpose(self, axes):
@@ -344,7 +326,7 @@ class MetaArray(np.ndarray):
         'axes' will also be arranged.
         """
         out = super().transpose(axes)
-        if (self.axes.is_none()):
+        if self.axes.is_none():
             new_axes = None
         else:
             new_axes = "".join([self.axes[i] for i in list(axes)])
@@ -368,13 +350,14 @@ class MetaArray(np.ndarray):
     
     
     def axisof(self, axisname):
-        if (type(axisname) is int):
+        if type(axisname) is int:
             return axisname
         else:
             return self.axes.find(axisname)
     
-    def xyshape(self):
-        return self.sizeof("x"), self.sizeof("y")
     
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
+    
+    def sizesof(self, axes:str):
+        return tuple(self.sizeof(a) for a in axes)
