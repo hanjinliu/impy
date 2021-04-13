@@ -58,18 +58,42 @@ def get_meta(path:str):
     
     return {"axes":axes, "ijmeta":ijmeta, "history":hist}
 
-def record(func):
+def safe_str(obj):
+    try:
+        return str(obj)
+    except Exception:
+        return str(type(obj))
+    
+def record(append_history=True):
     """
     Record the name of ongoing function.
     """
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        self.ongoing = func.__name__
-        out = func(self, *args, **kwargs)
-        self.ongoing = None
-        del self.ongoing
-        return out
-    return wrapper
+    def _record(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # temporary record ongoing function
+            self.ongoing = func.__name__
+            out = func(self, *args, **kwargs)
+            self.ongoing = None
+            del self.ongoing
+            
+            # view as ImgArray etc. if possible
+            try:
+                out = out.view(self.__class__)
+            except AttributeError:
+                pass
+            
+            # record history and update if needed
+            ifupdate = kwargs.pop("update", False)
+            if append_history:
+                _args = list(map(safe_str, args))
+                _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
+                history = f"{func.__name__}({','.join(_args + _kwargs)})"
+                out._set_info(self, history)
+            ifupdate and self._update(out)
+            return out
+        return wrapper
+    return _record
 
 def same_dtype(asfloat=False):
     """

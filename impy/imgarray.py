@@ -162,7 +162,7 @@ class ImgArray(LabeledArray):
                          history=history, metadata=metadata, lut=lut)
 
     @same_dtype(True)
-    @record
+    @record()
     def affine(self, dims:int=2, order:int=1, **kwargs) -> ImgArray:
         """
         Affine transformation
@@ -172,22 +172,20 @@ class ImgArray(LabeledArray):
             raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
         out = self.parallel(_affine, dims, mx, order)
-        out._set_info(self, f"{dims}D-Affine-Transform")
         return out
     
     @same_dtype(True)
-    @record
+    @record()
     def translate(self, dims=2, translation=None) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
         out = self.parallel(_affine, dims, mx)
-        out._set_info(self, f"Translate{translation}")
         return out
 
     @same_dtype(True)
-    @record
+    @record()
     def rescale(self, scale:float=1/16, axes:str="yx", order:int=None) -> ImgArray:
         """
         Rescale image.
@@ -202,11 +200,10 @@ class ImgArray(LabeledArray):
             order of rescaling, by default None
         """        
         scale_ = [scale if a in axes else 1 for a in self.axes]
-        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False).view(self.__class__)
-        out._set_info(self, f"Rescale(x1/{np.round(1/scale, 1)})")
+        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
         return out
     
-    @record
+    @record()
     def gaussfit(self, scale:float=1/16, p0=None, show_result:bool=True) -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
@@ -236,9 +233,7 @@ class ImgArray(LabeledArray):
         result = gaussian.fit(rough)
         gaussian.rescale(1/scale)
         fit = gaussian.generate(self.shape)
-        out = fit.view(self.__class__)
-        out._set_info(self, f"Gaussian-Fit(x1/{np.round(1/scale, 1)})")
-        out.temp = dict(params=gaussian.params, result=result)
+        fit.temp = dict(params=gaussian.params, result=result)
         
         # show fitting result
         if show_result:
@@ -255,9 +250,9 @@ class ImgArray(LabeledArray):
             plt.plot(fit[:,x0], color="red", label="fit")
             plt.tight_layout()
             plt.show()
-        return out
+        return fit
     
-    @record
+    @record()
     def gaussfit_particle(self, center, width=9, p0=None) -> ImgArray:
         # TODO: more useful way? Like peak_local_max().
         center = np.array(center)
@@ -267,13 +262,11 @@ class ImgArray(LabeledArray):
         result = gaussian.fit(self.value[x0:x1, y0:y1])
         gaussian.shift([x0, y0])
         fit = gaussian.generate(self.shape)
-        out = fit.view(self.__class__)
-        out._set_info(self, f"Gaussian-Fit-Particle")
-        out.temp = dict(params=gaussian.params, result=result)
+        fit.temp = dict(params=gaussian.params, result=result)
 
-        return out
+        return fit
     
-    @record
+    @record()
     def affine_correction(self, ref=None, bins:int=256, 
                           order:int=3, prefilter:bool=True, axis:str="c") -> ImgArray:
         """
@@ -369,11 +362,10 @@ class ImgArray(LabeledArray):
                 corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=m))
 
         out = stack(corrected, axis=axis, dtype=self.dtype)
-        out._set_info(self, f"Affine-Correction(order={order})")
         out.temp = mtx
         return out
     
-    @record
+    @record(False)
     def hessian_eigval(self, sigma=1, pxsize=None, dims:int=2) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
@@ -404,7 +396,7 @@ class ImgArray(LabeledArray):
         
         return eigval
     
-    @record
+    @record(False)
     def hessian_eig(self, sigma=1, pxsize=None, dims:int=2) -> tuple:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
@@ -440,7 +432,7 @@ class ImgArray(LabeledArray):
                 
         return eigval, eigvec
     
-    @record
+    @record(False)
     def structure_tensor_eigval(self, sigma=1, pxsize=None, dims:int=2):
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -469,7 +461,7 @@ class ImgArray(LabeledArray):
         
         return eigval
     
-    @record
+    @record(False)
     def structure_tensor_eig(self, sigma=1, pxsize=None, dims:int=2):
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -506,80 +498,76 @@ class ImgArray(LabeledArray):
         return eigval, eigvec
     
     @same_dtype()
-    @record
+    @record()
     def sobel_filter(self, dims:int=2, update:bool=False):
         out = self.parallel(_sobel, dims)
-        out._set_info(self, "Sobel-Filter")
-        update and self._update(out)
         return out
     
     def _running_kernel(self, radius:float, dims:int, function=None, 
                         update:bool=False, annotation:str="") -> ImgArray:
         disk = ball_like(radius, dims)
         out = self.as_uint16().parallel(function, dims, disk)
-        out._set_info(self, annotation)
-        update and self._update(out)
         return out
     
     @same_dtype()
-    @record
+    @record()
     def erosion(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
         return self._running_kernel(radius, dims, f, 
                                     update, f"{dims}D-Erosion(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def dilation(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
         return self._running_kernel(radius, dims, f, 
                                     update, f"{dims}D-Dilation(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def opening(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
         return self._running_kernel(radius, dims, f, 
                                     update, f"{dims}D-Opening(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def closing(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
         return self._running_kernel(radius, dims, f, 
                                     update, f"{dims}D-Closing(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def tophat(self, radius:float=50, dims:int=2, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, dims, _tophat, 
                                     update, f"{dims}D-Top-Hat(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def mean_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, dims, _mean, 
                                     update, f"{dims}D-Mean-Filter(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def median_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, dims, _median, 
                                     update, f"{dims}D-Median-Filter(R={radius})")
     
-    @record
+    @record()
     def entropy_filter(self, radius:float=1, dims:int=2) -> ImgArray:
         return self._running_kernel(radius, dims, _entropy, 
                                     False, f"{dims}D-Entropy-Filter(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def enhance_contrast(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, dims, _enhance_contrast, 
                                     update, f"{dims}D-Enhance-Contrast(R={radius})")
     
     @same_dtype()
-    @record
+    @record()
     def fill_hole(self, thr="otsu", update:bool=False) -> ImgArray:
         """
         Filling holes
@@ -601,21 +589,17 @@ class ImgArray(LabeledArray):
         """        
         if self.dtype != bool:
             mask = self.threshold(thr=thr).value
-            history = f"Fill-Hole(threshold={thr})"
         else:
             mask = self.value
-            history = "Fill-Hole"
             
         seed = np.copy(self.value)
         seed[1:-1, 1:-1] = self.max()
         out = skmorph.reconstruction(seed, mask, method="erosion").view(self.__class__)
-        out._set_info(self, history)
-        update and self._update(out)
         return out
     
     
     @same_dtype(True)
-    @record
+    @record()
     def gaussian_filter(self, sigma:float=1, dims:int=2, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
@@ -634,12 +618,10 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         out = self.parallel(_gaussian, dims, sigma)
-        out._set_info(self, f"{dims}D-Gaussian-Filter(sigma={sigma})")
-        update and self._update(out)
         return out
 
     
-    @record
+    @record()
     def dog_filter(self, low_sigma:float=1, high_sigma=None, dims:int=2) -> ImgArray:
         """
         Run Difference of Gaussian filter. This function does not support `update`
@@ -662,12 +644,11 @@ class ImgArray(LabeledArray):
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
         out = self.parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
-        out._set_info(self, f"{dims}D-DOG-Filter(sigma={low_sigma}-{high_sigma})")
         
         return out
     
     @same_dtype()
-    @record
+    @record()
     def rolling_ball(self, radius:float=50, smoothing:bool=True, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
@@ -685,8 +666,6 @@ class ImgArray(LabeledArray):
             Background subtracted image.
         """        
         out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
-        out._set_info(self, f"Rolling-Ball(R={radius})")
-        update and self._update(out)
         return out
     
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
@@ -760,22 +739,20 @@ class ImgArray(LabeledArray):
     
         
     
-    @record
+    @record()
     def fft(self) -> ImgArray:
         """
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with some functions here.
         """
         freq = fft(self.value.astype("float32"))
-        out = np.fft.fftshift(freq).view(self.__class__)
-        out._set_info(self, "FFT")
+        out = np.fft.fftshift(freq)
         return out
     
-    @record
+    @record()
     def ifft(self) -> ImgArray:
         freq = np.fft.fftshift(self.value)
-        out = np.real(ifft(freq)).view(self.__class__)
-        out._set_info(self, "IFFT")
+        out = np.real(ifft(freq))
         return out
     
     def threshold(self, thr="otsu", iters:str="pc", **kwargs) -> ImgArray:
@@ -818,7 +795,6 @@ class ImgArray(LabeledArray):
             for t, img in self.iter(iters, False):
                 out[t] = img >= thr
             out = out.view(self.__class__)
-            out._set_info(self, f"Thresholding(method={method})")
 
         else:
             if hasattr(thr, "__iter__"):
@@ -826,10 +802,8 @@ class ImgArray(LabeledArray):
                 for i, (t, img) in enumerate(self.iter(iters, False)):
                     out[t] = img >= thr[i]
                 out = out.view(self.__class__)
-                out._set_info(self, "Thresholding(array)")
             else:
                 out = self >= thr
-                out._set_info(self, f"Thresholding({thr:.1f})")
         
         out.temp = thr
         return out
@@ -859,7 +833,7 @@ class ImgArray(LabeledArray):
         
         return self
 
-    
+    @record()
     def crop_center(self, scale:float=0.5) -> ImgArray:
         """
         Crop out the center of an image.
@@ -877,11 +851,10 @@ class ImgArray(LabeledArray):
         y1 = int(sizey / 2 * (1 + scale))
 
         out = self[f"x={x0}-{x1};y={y0}-{y1}"]
-        out.history[-1] = f"Crop-Center(scale={scale})"
         
         return out
     
-    @record
+    @record(False)
     def label(self, label_image=None, *, axes=None, connectivity=None) -> ImgArray:
         """
         Run skimage's label() and store the results as attribute.
@@ -924,13 +897,7 @@ class ImgArray(LabeledArray):
             labels[sl][labels[sl]>0] += min_nlabel
             min_nlabel += labels[sl].max()
         
-        # use memory efficient dtype
-        if min_nlabel < 256:
-            labels = labels.astype("uint8")
-        elif min_nlabel < 65536:
-            labels = labels.astype("uint16")
-        
-        self.labels = labels.view(self.__class__)
+        self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "Labeled")
         return self
     
@@ -1025,7 +992,7 @@ class ImgArray(LabeledArray):
         input_img.ongoing = None
         del input_img.ongoing
         
-        labels = labels.view(self.__class__)
+        labels = labels.view(Label)
         labels._set_info(self.labels, f"Watershed(input={input_})")
         self.labels = labels
         return self
@@ -1101,13 +1068,6 @@ class ImgArray(LabeledArray):
             # this dimension will be label
             raise ValueError("axis 'p' is forbidden.")
         
-        if self.labels.ndim == 2:
-            axes = "tzc"
-        elif self.labels.ndim == 3:
-            axes = "tc"
-        else:
-            raise ValueError("'label_image' must be 2 or 3 dimensional")
-        
         prop_axes = complement_axes("tzcyx", self.labels.axes)
         shape = self.sizesof(prop_axes)
         
@@ -1129,35 +1089,6 @@ class ImgArray(LabeledArray):
         
         return out
     
-    @record
-    def split(self, axis=None) -> list[ImgArray]:
-        """
-        Split n-dimensional image into (n-1)-dimensional images.
-
-        Parameters
-        ----------
-        axis : str or int, optional
-            Along which axis the original image will be split, by default "c"
-
-        Returns
-        -------
-        list of ImgArray
-            Separate images
-        """
-        # determine axis in int.
-        if axis is None:
-            axis = find_first_appeared(self.axes, "cztp")
-        axisint = self.axisof(axis)
-            
-        imgs = list(np.moveaxis(self, axisint, 0))
-        for i, img in enumerate(imgs):
-            img.history[-1] = f"axis({axis})={i}"
-            img.axes = del_axis(self.axes, axisint)
-            if axis == "c" and self.lut is not None:
-                img.lut = [self.lut[i]]
-            else:
-                img.lut = None
-        return imgs
 
     @same_dtype()
     def proj(self, axis=None, method="mean") -> ImgArray:

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from .func import *
 from .utilcls import *
-from .metaarray import MetaArray
+from .historyarray import HistoryArray
 from tifffile import imwrite
 from skimage.exposure import histogram
 from skimage.color import label2rgb
@@ -23,7 +23,7 @@ def check_value(__op__):
     return wrapper
 
 
-class LabeledArray(MetaArray):
+class LabeledArray(HistoryArray):
     n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -66,13 +66,6 @@ class LabeledArray(MetaArray):
     def range(self):
         return self.min(), self.max()
     
-    @property
-    def shape_info(self):
-        if self.axes.is_none():
-            shape_info = self.shape
-        else:
-            shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-        return shape_info
         
     def __repr__(self):
         if hasattr(self, "labels"):
@@ -160,60 +153,6 @@ class LabeledArray(MetaArray):
             value[value==0] = np.inf
         return super().__itruediv__(value)
     
-    def __getitem__(self, key):
-        if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like method
-            sl = self.str_to_slice(key)
-            return self.__getitem__(sl)
-
-        if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
-            # img[arr] ... where arr is 2-D boolean array
-            key = add_axes(self.axes, self.shape, key)
-
-        out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
-        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
-        if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            if hasattr(key, "__array__"):
-                # fancy indexing will lose axes information
-                new_axes = None
-                
-            elif "new" in keystr:
-                # np.newaxis or None will add dimension
-                new_axes = None
-                
-            elif self.axes:
-                del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
-                new_axes = del_axis(self.axes, del_list)
-            else:
-                new_axes = None
-            
-            new_history = f"getitem[{keystr}]"
-            out._set_info(self, new_history, new_axes)
-            
-            if self.axes and hasattr(self, "labels"):
-                label_sl = []
-                if isinstance(key, tuple):
-                    _keys = key
-                else:
-                    _keys = (key,)
-                for i, a in enumerate(self.axes):
-                    if a in self.labels.axes and i < len(_keys):
-                        label_sl.append(_keys[i])
-                if len(label_sl) == 0:
-                    label_sl = (slice(None),)
-                out.labels = self.labels[tuple(label_sl)]
-                
-        # TODO: Ellipsis
-        return out
-    
-    
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)  # set item as np.ndarray
-        keystr = key_repr(key)           # write down key e.g. "0,*,*"
-        new_history = f"setitem[{keystr}]"
-        
-        self._set_info(self, new_history)
-    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Overloaded Numpy Functions to Inherit Attributes
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -226,28 +165,9 @@ class LabeledArray(MetaArray):
         """
         
         super().__array_finalize__(obj)
-        self.history = getattr(obj, "history", [])
-        try:
-            self.lut = getattr(obj, "lut", None)
-        except:
-            self.lut = None
         
         self._view_labels(obj)
     
-    
-    def _inherit_meta(self, obj, ufunc, **kwargs):
-        """
-        Copy axis, history etc. from obj.
-        This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
-        considered because it changes `ndim`.
-        """
-        if "axis" in kwargs.keys() and not obj.axes.is_none():
-            axis = kwargs["axis"]
-            new_axes = del_axis(obj.axes, axis)
-        else:
-            new_axes = "inherit"
-        self._set_info(obj, ufunc.__name__, new_axes=new_axes)
-        return self
     
     def _view_labels(self, other):
         """
@@ -259,27 +179,13 @@ class LabeledArray(MetaArray):
             self.labels = other.labels
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
-        super()._set_info(other, new_axes)
+        super()._set_info(other, next_history, new_axes)
         # if any function is on-going
         if hasattr(other, "ongoing"):
             self.ongoing = other.ongoing
         
         # inherit labels
         self._view_labels(other)
-        
-        # set history
-        if next_history is not None:
-            self.history = other.history + [next_history]
-        else:
-            self.history = other.history.copy()
-        
-        # set lut
-        try:
-            self.lut = other.lut
-        except:
-            self.lut = None
-        if self.axes.is_none():
-            self.lut = None
         return None
     
     def _update(self, out):
@@ -552,24 +458,5 @@ class LabeledArray(MetaArray):
         print(f"\r{name} completed ({timer})")
         return results
     
-    
-    def get_cmaps(self):
-        """
-        From self.lut get colormap used in plt.
-        Default colormap is gray.
-        """
-        if "c" in self.axes:
-            if self.lut is None:
-                cmaps = ["gray"] * self.sizeof("c")
-            else:
-                cmaps = [get_lut(c) for c in self.lut]
-        else:
-            if self.lut is None:
-                cmaps = ["gray"]
-            elif (len(self.lut) != len(self.axes)):
-                cmaps = ["gray"] * len(self.axes)
-            else:
-                cmaps = [get_lut(self.lut[0])]
-        return cmaps
     
 

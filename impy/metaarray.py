@@ -80,14 +80,19 @@ class MetaArray(np.ndarray):
     def spatial_shape(self):
         return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
     
-    def __repr__(self):
+    
+    @property
+    def shape_info(self):
         if self.axes.is_none():
             shape_info = self.shape
         else:
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-
+        return shape_info
+    
+    
+    def __repr__(self):
         return f"\n"\
-               f"    shape     : {shape_info}\n"\
+               f"    shape     : {self.shape_info}\n"\
                f"    dtype     : {self.dtype}\n"\
                f"  directory   : {self.dirpath}\n"\
                f"original image: {self.name}\n"

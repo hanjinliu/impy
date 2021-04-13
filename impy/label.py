@@ -1,6 +1,6 @@
 from .func import *
 from .utilcls import *
-from .metaarray import MetaArray
+from .historyarray import HistoryArray
 from skimage.color import label2rgb
 
 def best_dtype(n:int):
@@ -11,7 +11,7 @@ def best_dtype(n:int):
     else:
         return "uint32"
 
-class Label(MetaArray):
+class Label(HistoryArray):
     def increment(self, n:int):
         # return view if possible
         if self.max() + n > np.iinfo(self.dtype).max:
