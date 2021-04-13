@@ -64,7 +64,7 @@ def safe_str(obj):
     except Exception:
         return str(type(obj))
     
-def record(append_history=True):
+def record(append_history=True, record_label=False):
     """
     Record the name of ongoing function.
     """
@@ -73,12 +73,20 @@ def record(append_history=True):
         def wrapper(self, *args, **kwargs):
             # temporary record ongoing function
             self.ongoing = func.__name__
+            if record_label:
+                label_axes = self.labels.axes
+                
             out = func(self, *args, **kwargs)
+            
             self.ongoing = None
             del self.ongoing
             
+            
             temp = getattr(out, "temp", None)
             
+            if record_label:
+                self.labels.axes = label_axes
+                
             # view as ImgArray etc. if possible
             try:
                 out = out.view(self.__class__)
@@ -92,7 +100,10 @@ def record(append_history=True):
                 _args = list(map(safe_str, args))
                 _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
                 history = f"{func.__name__}({','.join(_args + _kwargs)})"
-                out._set_info(self, history)
+                if record_label:
+                    out.labels._set_info(self.labels, history)
+                else:
+                    out._set_info(self, history)
             ifupdate and self._update(out)
             
             # if temporary item exists
@@ -101,6 +112,7 @@ def record(append_history=True):
             return out
         return wrapper
     return _record
+
 
 def same_dtype(asfloat=False):
     """

@@ -780,6 +780,7 @@ class ImgArray(LabeledArray):
             except KeyError:
                 s = ", ".join(list(methods_.keys()))
                 raise KeyError(f"{method}\nmethod must be: {s}")
+            
             thr = func(self.view(np.ndarray), **kwargs)
 
             out = np.zeros(self.shape, dtype=bool)
@@ -893,7 +894,8 @@ class ImgArray(LabeledArray):
         return self
     
     @need_labels
-    def expand_labels(self, distance:int=1) -> ImgArray:
+    @record(record_label=True)
+    def expand_labels(self, distance:int=1, dims=None) -> ImgArray:
         """
         Expand areas of labels.
 
@@ -907,13 +909,26 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        labels = skseg.expand_labels(self.labels.value, distance).view(self.__class__)
-        labels._set_info(self.labels, f"Expand-Labels(d={distance})")
-        self.labels = labels
+        if dims is None:
+            dims = determine_dims(self)
+        # Determine axes
+        if dims == 2:
+            axes = "ptzc"
+        elif dims == 3:
+            axes = "ptc"
+        else:
+            raise ValueError(f"dimension must be 2 or 3, but got {dims}")
+        
+        labels = np.empty_like(self.labels).value
+        for sl, img in self.iter(axes, israw=True):
+            labels[sl[:-dims]] = skseg.expand_labels(img.labels.value, distance)
+        
+        self.labels = labels.view(Label)
+        
         return self
     
     @need_labels
-    @record(append_history=False)
+    @record(record_label=True)
     def watershed(self, *, connectivity=1, input_="self", dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
@@ -963,7 +978,7 @@ class ImgArray(LabeledArray):
             axes = "ptc"
             s_axes = "zyx"
         else:
-            ValueError(f"dimension must be 2 or 3, but got {dims}")
+            raise ValueError(f"dimension must be 2 or 3, but got {dims}")
         
         labels = np.zeros(input_img.shape, dtype="uint32")
         input_img.ongoing = "watershed"
@@ -986,7 +1001,6 @@ class ImgArray(LabeledArray):
         del input_img.ongoing
         
         labels = labels.view(Label)
-        labels._set_info(self.labels, f"Watershed(input={input_})")
         self.labels = labels.optimize()
         return self
     
@@ -1007,31 +1021,6 @@ class ImgArray(LabeledArray):
         labels = self.threshold(thr=thr, iters=iters, **kwargs)
         return self.label(labels)
     
-    def label_flood(self, seed, *, selem=None, connectivity=None, tolerance=None) -> ImgArray:
-        """
-        Make a label using `skimage.segmentation.flood()`.
-
-        Parameters
-        ----------
-        seed : tuple
-            The starting point of flood.
-        selem : ndarray, optional
-            Passed to flood().
-        connectivity : int, optional
-            Passed to flood().
-        tolerance : float, list or None, optional
-            Passed to flood().
-
-        Returns
-        -------
-        ImgArray
-            Same array but labels are updated.
-        """        
-        # TODO: more useful way?
-        
-        label_image = skseg.flood(self.value, seed, selem=selem, 
-                                  connectivity=connectivity, tolerance=tolerance)
-        return self.label(label_image=label_image)
         
     @need_labels
     def regionprops(self, properties:tuple[str]=("mean_intensity", "area"), *, 
