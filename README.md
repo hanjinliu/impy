@@ -11,23 +11,25 @@ img0
 ```
     [Out]
         shape     : 10(t), 3(c), 512(y), 512(x)
+      label shape : No label
         dtype     : uint16
       directory   : ...\images
     original image: XXX
        history    : 
 
 ```python
-img = img0.proj(axis="t") # projection
-img = img.median_filter(radius=3) # median filter
-img = img[0] # get first channel
-img 
+img = img.proj(axis="t") # projection
+img=img[0]               # get the first channel
+img.median_filter(1.5, update=True) # median filter in place
+img
 ```
     [Out]
         shape     : 512(y), 512(x)
+      label shape : No label
         dtype     : uint16
       directory   : ...\images
     original image: XXX
-       history    : mean-Projection(axis=t)->2D-Median-Filter(R=3)->getitem[0]
+       history    : mean-Projection(axis=t)->getitem[0]->median_filter(1.5)
 
 ## Basic Usage
 
@@ -69,7 +71,7 @@ img.lut = ["teal", "violet", "gold"]
 ### Functions
 
 - `imshow` = visualize 2-D or 3-D image.
-- `imshow_label` = visualize 2-D image and its labels.
+- `imshow_label` = visualize 2-D or 3-D image and its labels.
 - `hist` = show the histogram of image intensity profile.
 - `imsave` = save image (by default save in the directory that the original image was loaded).
 
@@ -126,6 +128,8 @@ img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
 - `structure_tensor_eigval`, `structure_tensor_eig` = feature detection using structure tensor.
 - `dog_filter` = filtering using difference of Gaussian method.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` = for 2-D or 3-D smoothing.
+- `sobel_filter` = for edge detection.
+- `enhance_contrast` = for higher contrast.
 - `erosion`, `dilation`, `opening`, `closing` = for morphological processing.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `gaussfit`, `gaussfit_particle` = fit the image to 2-D Gaussian (for correction of uneven irradiation or single molecular analysis).
@@ -133,7 +137,7 @@ img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
 - `threshold` = thresholding.
 - `peak_local_max` = find maxima.
 - `fill_hole` = fill holl-like region.
-- `label`, `label_threshold`, `label_flood` = labeling images.
+- `label`, `label_threshold` = labeling images.
 - `expand_labels`, `watershed` = adjuct labels.
 - `regionprops` =  measure properties on labels.
 - `crop_center`, `crop_circle` = crop image.
