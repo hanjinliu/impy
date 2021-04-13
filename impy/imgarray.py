@@ -232,7 +232,7 @@ class ImgArray(LabeledArray):
         gaussian = GaussianBackground(p0)
         result = gaussian.fit(rough)
         gaussian.rescale(1/scale)
-        fit = gaussian.generate(self.shape)
+        fit = gaussian.generate(self.shape).view(self.__class__)
         fit.temp = dict(params=gaussian.params, result=result)
         
         # show fitting result
@@ -261,7 +261,7 @@ class ImgArray(LabeledArray):
         x1, y1 = center + (width+1) // 2
         result = gaussian.fit(self.value[x0:x1, y0:y1])
         gaussian.shift([x0, y0])
-        fit = gaussian.generate(self.shape)
+        fit = gaussian.generate(self.shape).view(__class__)
         fit.temp = dict(params=gaussian.params, result=result)
 
         return fit
@@ -755,6 +755,7 @@ class ImgArray(LabeledArray):
         out = np.real(ifft(freq))
         return out
     
+    @record()
     def threshold(self, thr="otsu", iters:str="pc", **kwargs) -> ImgArray:
         """
         Parameters
@@ -804,7 +805,7 @@ class ImgArray(LabeledArray):
                 out = out.view(self.__class__)
             else:
                 out = self >= thr
-        
+        out = out.view(self.__class__)
         out.temp = thr
         return out
         
@@ -875,7 +876,7 @@ class ImgArray(LabeledArray):
             label_image = self
             
         elif not hasattr(label_image, "axes") or label_image.axes.is_none():
-            raise ValueError("Use ImgArray with axes for label_image.")
+            raise ValueError("Use Array with axes for label_image.")
         
         elif not axes_included(self, label_image):
             raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
@@ -1132,8 +1133,8 @@ class ImgArray(LabeledArray):
         out._set_info(self, f"Clip-Outliers({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
-        
-        
+    
+    @record()
     def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16) -> ImgArray:
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity.
@@ -1156,7 +1157,6 @@ class ImgArray(LabeledArray):
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"Rescale-Intensity({lowerlim}-{upperlim})")
         out.temp = [lowerlim, upperlim]
         return out
 

@@ -77,6 +77,8 @@ def record(append_history=True):
             self.ongoing = None
             del self.ongoing
             
+            temp = getattr(out, "temp", None)
+            
             # view as ImgArray etc. if possible
             try:
                 out = out.view(self.__class__)
@@ -85,12 +87,17 @@ def record(append_history=True):
             
             # record history and update if needed
             ifupdate = kwargs.pop("update", False)
+            
             if append_history:
                 _args = list(map(safe_str, args))
                 _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
                 history = f"{func.__name__}({','.join(_args + _kwargs)})"
                 out._set_info(self, history)
             ifupdate and self._update(out)
+            
+            # if temporary item exists
+            if temp is not None:
+                out.temp = temp
             return out
         return wrapper
     return _record

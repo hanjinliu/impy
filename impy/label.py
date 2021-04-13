@@ -27,7 +27,7 @@ class Label(HistoryArray):
         if m < 256 and np.iinfo(self.dtype).max >= 256:
             return self.astype("uint8")
         elif m < 65536 and np.iinfo(self.dtype).max >= 65535:
-            self.astype("uint16")
+            return self.astype("uint16")
         else:
             return self
     
