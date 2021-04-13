@@ -212,29 +212,17 @@ class MetaArray(np.ndarray):
         return result
     
     def _inherit_meta(self, obj, ufunc, **kwargs):
-        # set attributes for output
-        if obj is None:
-            self.name = "no name"
-            self.dirpath = ""
-            self.axes = None
-            self.metadata = None
+        """
+        Copy axis, history etc. from obj.
+        This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
+        considered because it changes `ndim`.
+        """
+        if "axis" in kwargs.keys() and not obj.axes.is_none():
+            axis = kwargs["axis"]
+            new_axes = del_axis(obj.axes, axis)
         else:
-            self.name = obj.name
-            self.dirpath = obj.dirpath
-            self.input_ndim = obj.ndim
-            self.metadata = obj.metadata.copy()
-            if obj.axes.is_none():
-                self.axes = None
-            elif obj.ndim == self.ndim:
-                self.axes = obj.axes
-            elif obj.ndim > self.ndim:
-                if "axis" in kwargs.keys() and not self.axes.is_none():
-                    axis = kwargs["axis"]
-                    self.axes = del_axis(obj.axes, axis)
-                else:
-                    self.axes = None
-            else:
-                self.axes = None
+            new_axes = "inherit"
+        self._set_info(obj, new_axes=new_axes)
         return self
         
     
@@ -276,22 +264,32 @@ class MetaArray(np.ndarray):
         order = arr[arr]
         return self.transpose(order)
     
-    def iter(self, axes):
+    
+    def iter(self, axes, israw=False):
         """
-        Iteration along axes.
+        Iteration along axes. Unlike self.iter(axes), this function yields subclass objects
+        so that this function is slower but accessible to attributes such as labels.
 
         Parameters
         ----------
         axes : str or int
             On which axes iteration is performed. Or the number of spatial dimension.
-        showprogress : bool, optional
-            If show progress of algorithm, by default True
 
         Yields
         -------
-        np.ndarray
-            Subimage
-        """        
+        slice and (np.ndarray or MetaArray)
+            slice and Subimage=self[sl]
+        """     
+        iterlist = self._get_iterlist(axes)
+        if israw:
+            selfview = self
+        else:
+            selfview = self.value
+        
+        for sl in itertools.product(*iterlist):
+            yield sl, selfview[sl]
+    
+    def _get_iterlist(self, axes):
         if isinstance(axes, int):
             if axes == 2:
                 axes = "ptzc"
@@ -307,13 +305,7 @@ class MetaArray(np.ndarray):
                 iterlist.append(range(self.sizeof(a)))
             else:
                 iterlist.append([slice(None)])
-                
-        selfview = self.value
-        
-        for sl in itertools.product(*iterlist):
-            yield sl, selfview[sl]
-            
-        
+        return iterlist
             
     # numpy functions that will change/discard order
     def transpose(self, axes):
@@ -351,8 +343,9 @@ class MetaArray(np.ndarray):
         else:
             return self.axes.find(axisname)
     
-    def xyshape(self):
-        return self.sizeof("x"), self.sizeof("y")
     
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
+    
+    def sizesof(self, axes:str):
+        return tuple(self.sizeof(a) for a in axes)

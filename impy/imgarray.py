@@ -20,6 +20,7 @@ from scipy import ndimage as ndi
 from .func import *
 from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
+from .label import Label
 from .axes import Axes, ImageAxesError
 from .proparray import PropArray
 from .utilcls import *
@@ -153,10 +154,7 @@ def _label(args):
     labels = skmes.label(data, background=0, connectivity=connectivity)
     return (sl, labels)
 
-def _watershed(args):
-    pass
-
-
+    
 class ImgArray(LabeledArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
                  history=None, metadata=None, lut=None):
@@ -693,7 +691,7 @@ class ImgArray(LabeledArray):
     
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
-                       use_labels:bool=True, dims=None) -> SpatialList[ImgArray]:
+                       use_labels:bool=True, dims=None):
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -715,31 +713,52 @@ class ImgArray(LabeledArray):
         # Determine dims
         if dims is None:
             dims = determine_dims(self)
+        
+        # separate spatial dimensions and others
         spatial_dims = "yx" if dims == 2 else "zyx"
-        
         c_axes = complement_axes(self.axes, spatial_dims)
-        shape = tuple(self.sizeof(a) for a in c_axes)
-        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
-                        propname="local_max_indices")
+        shape = self.sizesof(c_axes)
         
-        # TODO: bug in 1-dim. empty PropArray is generated
-        for sl, img in self.iter(c_axes, False):
+        if c_axes:
+            out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
+                            propname="local_max_indices")
+            
+            for sl, img in self.iter(c_axes, False, israw=True):
+                if use_labels and hasattr(self, "labels"):
+                    labels = img.labels
+                else:
+                    labels = None
+                    
+                indices = skfeat.peak_local_max(img.value,
+                                                min_distance=min_distance, 
+                                                threshold_abs=thr,
+                                                num_peaks=num_peaks,
+                                                num_peaks_per_label=num_peaks_per_label,
+                                                labels=labels.value)
+                
+                out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
+                                                       dirpath=self.dirpath, history=self.history+["Local-Max"])
+                                              for i, a in enumerate(spatial_dims))
+        
+        else:
             if use_labels and hasattr(self, "labels"):
-                labels = self[sl].labels
+                labels = self.labels
             else:
                 labels = None
-            indices = skfeat.peak_local_max(img,
+            indices = skfeat.peak_local_max(self.value,
                                             min_distance=min_distance, 
                                             threshold_abs=thr,
                                             num_peaks=num_peaks,
                                             num_peaks_per_label=num_peaks_per_label,
-                                            labels=labels)
+                                            labels=labels.value)
             
-            out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
-                                                   dirpath=self.dirpath, history=self.history+["Local-Max"])
-                                          for i, a in enumerate(spatial_dims))
+            out = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
+                                       dirpath=self.dirpath, history=self.history+["Local-Max"])
+                              for i, a in enumerate(spatial_dims))
         
         return out
+    
+        
     
     @record
     def fft(self) -> ImgArray:
@@ -834,7 +853,7 @@ class ImgArray(LabeledArray):
         if hasattr(self, "labels"):
             self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
         else:
-            labels = np.zeros((self.sizeof("y"), self.sizeof("x")), dtype="uint8")
+            labels = np.zeros(self.sizesof("yx"), dtype="uint8")
             labels[y:y+dy, x:x+dx] = 1
             self.labels = labels
         
@@ -930,7 +949,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        labels = skseg.expand_labels(self.labels, distance).view(self.__class__)
+        labels = skseg.expand_labels(self.labels.value, distance).view(self.__class__)
         labels._set_info(self.labels, f"Expand-Labels(d={distance})")
         self.labels = labels
         return self
@@ -990,13 +1009,15 @@ class ImgArray(LabeledArray):
         # TODO: uint16 may be insufficient
         labels = np.zeros(input_img.shape, dtype="uint16")
         input_img.ongoing = "watershed"
-        shape = tuple(self.sizeof(a) for a in s_axes)
+        shape = self.sizesof(s_axes)
         n_labels = 0
-        for sl, img in input_img.iter(axes):
-            marker_input = np.zeros(shape)
+        for sl, img in input_img.iter(axes, israw=True):
+            # Make array from max list
+            marker_input = np.zeros(shape, dtype="uint16")
             sl0 = markers[sl[:-dims]]
             marker_input[tuple(sl0)] = np.arange(len(sl0[0]), dtype="uint16")
-            labels[sl] = skseg.watershed(img, marker_input, mask=input_img[sl].labels, 
+            
+            labels[sl] = skseg.watershed(img.value, marker_input, mask=img.labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
@@ -1087,8 +1108,9 @@ class ImgArray(LabeledArray):
         else:
             raise ValueError("'label_image' must be 2 or 3 dimensional")
         
-        prop_axes = "".join([a for a in axes if a in self.axes])
-        shape = tuple(self.sizeof(a) for a in prop_axes)
+        prop_axes = complement_axes("tzcyx", self.labels.axes)
+        shape = self.sizesof(prop_axes)
+        
         out = ArrayDict({p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
                                       name=self.name, 
                                       axes="p" + prop_axes,
