@@ -705,7 +705,7 @@ class ImgArray(LabeledArray):
                         propname="local_max_indices")
         
         self.ongoing = "peak_local_max"
-        for sl, img in self.iter(c_axes, False, israw=True):
+        for sl, img in self.iter(c_axes, israw=True):
             if use_labels and hasattr(img, "labels"):
                 labels = img.labels
             else:
@@ -965,19 +965,18 @@ class ImgArray(LabeledArray):
         else:
             ValueError(f"dimension must be 2 or 3, but got {dims}")
         
-        # TODO: uint16 may be insufficient
-        labels = np.zeros(input_img.shape, dtype="uint16")
+        labels = np.zeros(input_img.shape, dtype="uint32")
         input_img.ongoing = "watershed"
         shape = self.sizesof(s_axes)
         n_labels = 0
-        # iter_ = input_img.iter(axes, israw=True) if input_img.ndim > dims else [(slice(None), input_img)]
+        
         for sl, img in input_img.iter(axes, israw=True):
             # Make array from max list
-            marker_input = np.zeros(shape, dtype="uint16")
+            marker_input = np.zeros(shape, dtype="uint32")
             
             sl0 = markers[sl[:-dims]]
             
-            marker_input[tuple(sl0)] = np.arange(len(sl0[0]), dtype="uint16")
+            marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
             labels[sl] = skseg.watershed(img.value, marker_input, mask=img.labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
@@ -988,7 +987,7 @@ class ImgArray(LabeledArray):
         
         labels = labels.view(Label)
         labels._set_info(self.labels, f"Watershed(input={input_})")
-        self.labels = labels
+        self.labels = labels.optimize()
         return self
     
     
