@@ -1,6 +1,7 @@
 from __future__ import annotations
 import itertools
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import glob
 import collections
@@ -17,7 +18,6 @@ from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from scipy import ndimage as ndi
-from scipy import optimize as opt
 from .func import *
 from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
@@ -167,9 +167,9 @@ def _distance_transform_edt(args):
     
 class ImgArray(LabeledArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=None, metadata=None, lut=None):
+                 history=None, metadata=None):
         super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
-                         history=history, metadata=metadata, lut=lut)
+                         history=history, metadata=metadata)
 
     def freeze(self):
         return self.view(LabeledArray)
@@ -808,20 +808,13 @@ class ImgArray(LabeledArray):
             for t, img in self.iter(complement_axes(dims), False):
                 thr = func(img, **kwargs)
                 out[t] = img >= thr
-            out = out.view(self.__class__)
+            
 
+        elif isinstance(thr, (int, float)):
+            out = self >= thr
         else:
-            # TODO: only PropArray
-            if hasattr(thr, "__iter__"):
-                # out = np.zeros(self.shape, dtype=bool)
-                # for i, (t, img) in enumerate(self.iter(complement_axes(dims), False)):
-                #     out[t] = img >= thr[i]
-                # out = out.view(self.__class__)
-                raise NotImplementedError
-            else:
-                out = self >= thr
-        out = out.view(self.__class__)
-        out.temp = thr
+            raise TypeError("'thr' must be numeric, or str specifying a thresholding method.")                
+        
         return out
         
     
@@ -1193,7 +1186,7 @@ class ImgArray(LabeledArray):
 
 # non-member functions.
 
-def array(arr, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
+def array(arr, dtype="uint16", *, name=None, axes=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
     """
@@ -1206,17 +1199,17 @@ def array(arr, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
     if axes is None:
         axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
             
-    self = ImgArray(arr, name=name, axes=axes, lut=lut)
+    self = ImgArray(arr, name=name, axes=axes)
     
     return self
 
-def zeros(shape, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
-    return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
+def zeros(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
+    return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
-def empty(shape, dtype="uint16", *, name=None, axes=None, lut=None) -> ImgArray:
-    return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes, lut=lut)
+def empty(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
+    return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
-def imread(path:str, dtype:str="uint16", *, axes=None, lut=None) -> ImgArray:
+def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
     """
     Load image from path.
 
@@ -1228,8 +1221,6 @@ def imread(path:str, dtype:str="uint16", *, axes=None, lut=None) -> ImgArray:
         dtype of the image, by default "uint16"
     axes : str or None, optional
         If the image does not have axes metadata, this value will be used.
-    lut : list of str, or None, optional
-        LUT of the image.
 
     Returns
     -------
@@ -1254,7 +1245,6 @@ def imread(path:str, dtype:str="uint16", *, axes=None, lut=None) -> ImgArray:
     
     axes = meta["axes"]
     metadata = meta["ijmeta"]
-    lut = None                  # TODO: read LUT from ImageJ metadata
     if meta["history"]:
         name = meta["history"].pop(0)
         history = meta["history"]
@@ -1264,7 +1254,7 @@ def imread(path:str, dtype:str="uint16", *, axes=None, lut=None) -> ImgArray:
         
     
     self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
-                    history=history, metadata=metadata, lut=lut)
+                    history=history, metadata=metadata)
         
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.sizeof("c") > self.sizeof("x"):
@@ -1364,11 +1354,6 @@ def stack(imgs, axis="c", dtype="uint16"):
     out = np.moveaxis(out, 0, _axis)
     out = array(out)    
     out._set_info(imgs[0], f"Make-Stack(axis={axis})", new_axes)
-    
-    # connect LUT if needed.
-    if axis == "c":
-        luts = [img.lut[0] for img in imgs]
-        out.lut = luts
     
     return out
 

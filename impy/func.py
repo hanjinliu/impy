@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 from scipy import optimize as opt
 from scipy.stats import entropy
 from tifffile import TiffFile
@@ -9,8 +7,6 @@ from skimage import transform as sktrans
 import time
 import json
 import re
-
-# TODO: A decorator for `dims`?
 
 class Timer:
     def __init__(self):
@@ -181,16 +177,6 @@ def add_axes(axes, shape, arr2d):
     return arr2d
 
 
-def get_lut(name):
-    try:
-        lut = plt.get_cmap(name)
-    except:
-        try:
-            lut = LinearSegmentedColormap.from_list(name + "_cmap", ["black", name])
-        except:
-            print(f"{name} is not a color or a cmap.")
-            lut = "gray"
-    return lut
 
 def determine_range(arr):
     """

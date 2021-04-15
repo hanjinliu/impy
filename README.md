@@ -6,11 +6,14 @@ ImageJ is generally used for image analysis especially in biological backgrounds
 
 Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution.
 
-## Example
+## Brief Examples
+
+#### 1. Input/Output
 
 ```python
 import impy as ip
 img0 = ip.imread(r"...\images\XXX.tif")
+img0.gaussian_filter(sigma=1, update=True)
 img0
 ```
     [Out]
@@ -19,41 +22,76 @@ img0
         dtype     : uint16
       directory   : ...\images
     original image: XXX
-       history    : 
+       history    : gaussian_filter(sigma=1)
 
 ```python
-img = img.proj(axis="t") # projection
-img=img[0]               # get the first channel
-img.median_filter(1.5, update=True) # median filter in place
-img
+img0.imsave("image_name")
 ```
-    [Out]
-        shape     : 512(y), 512(x)
-      label shape : No label
-        dtype     : uint16
-      directory   : ...\images
-    original image: XXX
-       history    : mean-Projection(axis=t)->getitem[0]->median_filter(1.5)
+
+#### 2. Visualization
+
+```python
+img.imshow()
+```
+
+#### 3. Axis-Targeted Slicing
+
+```python
+img_new = img["c=1;t=4,8,12"]
+```
+
+#### 4. Axis-Targeted Iteration
+
+```python
+for sl, img2d in img.iter("tzc"):
+    print(img2d.range)
+```
+
+which is equivalent to something like ...
+
+```C
+for (t in t_all) {
+    for (z in z_all) {
+        for (c in c_all) {
+            print(min(img[t,z,c]), max(img[t,z,c]))
+        }
+    }
+}
+```
+
+#### 5. Labeling and Measurement
+
+```python
+# Label image using Yen's thresholding
+img.label_threshold(thr="yen")
+# Measure mean intensity and perimeter for every labeled region
+props = img.regionprop(properties=("mean_intensity", "perimeter"))
+# Plot results of perimeter
+props.perimeter.plot_profile()
+```
 
 ## Basic Usage
 
-Load image with `imread` function. `ImgArray` object is created.
+Load image with `imread()` function. `ImgArray` object is created.
 
 ```python
+import impy as ip
+
 # load single tif
 img = ip.imread(r"C:\Users\...\XXX.tif")
+
 # load tifs recursively from a directory
 img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True)
 ```
 
-Stacking images with `impy.stack`.
+Stacking images with `stack()`.
 
 ```python
 # make stack along channel axis
 img = ip.stack([img1, img2], axis="c", dtype="uint16") 
 ```
 
-Making synthetic three-channel image with `impy.array`.
+Making synthetic three-channel image with `array()`.
 
 ```python
 img = ip.array(np.random.rand(3*40*30).reshape(3,40,30)*100, name="random noise")
@@ -67,7 +105,6 @@ img = ip.array(np.random.rand(3*40*30).reshape(3,40,30)*100, name="random noise"
 - `dirpath` = absolute path to the original image.
 - `history` = history of applied analysis.
 - `axes` = dimensions of image, `ptzcyx`-order.
-- `lut` = look up table.
 - `value` (property) = show the array in numpy format.
 - `range` (property) = return a tuple of min/max.
 - `spatial_shape` (property) = such as `"yx"` or `"zyx"`.

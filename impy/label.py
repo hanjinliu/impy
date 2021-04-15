@@ -3,6 +3,7 @@ from .utilcls import *
 from .historyarray import HistoryArray
 from skimage.color import label2rgb
 from skimage import segmentation as skseg
+import matplotlib.pyplot as plt
 
 def best_dtype(n:int):
     if n < 256:
