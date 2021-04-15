@@ -2,7 +2,7 @@
 
 ## More Numpy in image analysis! 
 
-ImageJ is generally used for image analysis especially in biological background. However, recent demands for batch analysis, machine learning and high reproducibility usually do not suit for ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not convenient for biological multi-dimensional analysis, although it is the best practice for above-mentioned problems.
+ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility usually do not suit for ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not convenient for biological multi-dimensional analysis, although it is the best practice for above-mentioned problems.
 
 Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution.
 
@@ -38,6 +38,7 @@ img
 ## Basic Usage
 
 Load image with `imread` function. `ImgArray` object is created.
+
 ```python
 # load single tif
 img = ip.imread(r"C:\Users\...\XXX.tif")
@@ -52,12 +53,10 @@ Stacking images with `impy.stack`.
 img = ip.stack([img1, img2], axis="c", dtype="uint16") 
 ```
 
-Making synthetic three-channel image with `impy.array` and manually set its axes and LUTs.
+Making synthetic three-channel image with `impy.array`.
 
 ```python
 img = ip.array(np.random.rand(3*40*30).reshape(3,40,30)*100, name="random noise")
-img.axes = "cyx"
-img.lut = ["teal", "violet", "gold"]
 ```
 
 ## Basic Attributes and Functions of ImgArray
@@ -71,11 +70,13 @@ img.lut = ["teal", "violet", "gold"]
 - `lut` = look up table.
 - `value` (property) = show the array in numpy format.
 - `range` (property) = return a tuple of min/max.
+- `spatial_shape` (property) = such as `"yx"` or `"zyx"`.
 
 ### Functions
 
 - `imshow` = visualize 2-D or 3-D image.
 - `imshow_label` = visualize 2-D or 3-D image and its labels.
+- `imshow_comparewith` = compare two 2-D images.
 - `hist` = show the histogram of image intensity profile.
 - `imsave` = save image (by default save in the directory that the original image was loaded).
 

@@ -692,7 +692,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
-                       use_labels:bool=True, dims=None):
+                       use_labels:bool=True, squeeze:bool=True, dims=None):
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -705,10 +705,11 @@ class ImgArray(LabeledArray):
             The absolute minimum intensity of peaks, by default None
         num_peaks : int, optional
             Maximum number of peaks **for each iteration**.
-        num_peaks_per_label : int, optional
-            Maximum number of peaks per label, by default np.inf
-        use_labels : bool, optional
-            If use self.labels when it exists, by default True
+        num_peaks_per_label : int, default is np.inf
+            Maximum number of peaks per label.
+        use_labels : bool, default is True
+            If use self.labels when it exists.
+        squeeze : bool, default is True
         dims : int or str, optional
             Dimension of axes.
         """        
@@ -743,6 +744,9 @@ class ImgArray(LabeledArray):
         self.ongoing = None
         del self.ongoing
         
+        if squeeze and out.ndim == 0:
+            out = out[()]
+            
         return out
     
         
@@ -824,6 +828,7 @@ class ImgArray(LabeledArray):
     def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner") -> ImgArray:
         """
         Make a rectancge label.
+        Currently only supports 2-dim image.
         """
         x, y = xy
         dx, dy = dxdy
@@ -843,6 +848,7 @@ class ImgArray(LabeledArray):
             labels[y:y+dy, x:x+dx] = 1
             self.labels = labels.view(Label)
             self.labels._set_info(self, "Labeled")
+            self.labels.axes = "yx"
         
         return self
 
@@ -898,12 +904,6 @@ class ImgArray(LabeledArray):
         
         return self.parallel(_skeletonize, complement_axes(dims), outdtype=bool)
     
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def curve_fit(self, f, p0, dims=None) -> PropArray:
-        # TODO: any general method? Move to PropArray?
-        params, cov = opt.curve_fit(f, np.arange(self.size), self, p0 = p0)
-        pass
     
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -1099,7 +1099,7 @@ class ImgArray(LabeledArray):
             # this dimension will be label
             raise ValueError("axis 'p' is forbidden.")
         
-        prop_axes = complement_axes(self.labels.axes, all_axes="tzcyx")
+        prop_axes = complement_axes(self.labels.axes, all_axes=self.axes)
         shape = self.sizesof(prop_axes)
         
         out = ArrayDict({p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),

@@ -83,7 +83,7 @@ class LabeledArray(HistoryArray):
                f"   history    : {'->'.join(self.history)}\n"
     
     
-    def imsave(self, tifname:str):
+    def imsave(self, tifname:str, dtype="uint16"):
         """
         Save image (at the same directory as the original image by default).
         """
@@ -92,8 +92,9 @@ class LabeledArray(HistoryArray):
         if os.sep not in tifname:
             tifname = os.path.join(self.dirpath, tifname)
         
-        metadata = self.metadata
-        metadata.update({"min":np.percentile(self, 1), "max":np.percentile(self, 99)})
+        metadata = self.metadata.copy()
+        metadata.update({"min":np.percentile(self, 1), 
+                         "max":np.percentile(self, 99)})
         
         try:
             info = load_json(metadata["Info"])
@@ -102,10 +103,10 @@ class LabeledArray(HistoryArray):
         
         info["impyhist"] = "->".join([self.name] + self.history)
         metadata["Info"] = str(info)
-        if (self.axes):
+        if self.axes:
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifname, self.as_uint16().value, imagej=True, metadata=metadata)
+        imwrite(tifname, self.as_img_type(dtype).value, imagej=True, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -155,14 +156,8 @@ class LabeledArray(HistoryArray):
         return super().__itruediv__(value)
     
     def __array_finalize__(self, obj):
-        """
-        Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
-        this function will be called to set essential attributes.
-        Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
-        """
         
         super().__array_finalize__(obj)
-        
         self._view_labels(obj)
     
     

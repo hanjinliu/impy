@@ -79,11 +79,6 @@ class HistoryArray(MetaArray):
         self._set_info(self, new_history)
         
     def __array_finalize__(self, obj):
-        """
-        Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
-        this function will be called to set essential attributes.
-        Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
-        """
         
         super().__array_finalize__(obj)
         self.history = getattr(obj, "history", [])

@@ -161,8 +161,8 @@ class MetaArray(np.ndarray):
     def __array_finalize__(self, obj):
         """
         Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
-        this function will be called to set essential attributes.
-        Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
+        this function will be called to set essential attributes. Therefore, you can use
+        such as img.copy() and img.astype("int") without problems (maybe...).
         """
         if obj is None: return None
         self.dirpath = getattr(obj, "dirpath", None)

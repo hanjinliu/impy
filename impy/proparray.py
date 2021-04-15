@@ -1,7 +1,11 @@
+from __future__ import annotations
 from .metaarray import MetaArray
 import numpy as np
 import matplotlib.pyplot as plt
-from .func import del_axis
+from scipy import optimize as opt
+from .func import *
+from .deco import *
+from .utilcls import *
 
 SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
@@ -60,6 +64,22 @@ class PropArray(MetaArray):
         plt.show()
         
         return self
+    
+    @dims_to_spatial_axes
+    def curve_fit(self, f, p0, dims=None) -> PropArray:
+        # TODO: any general method?
+        c_axes = complement_axes(dims)
+        
+        if len(dims)!=1:
+            raise NotImplementedError
+        
+        out = np.empty(self.sizesof(c_axes), dtype=object)
+        xdata = np.arange(self.sizeof(dims))
+        for sl, data in self.iter(c_axes):
+            out[sl] = opt.curve_fit(f, xdata, data, p0)
+        out = out.view(self.__class__)
+        out._set_info(self, new_axes=del_axis(self.axes, dims))
+        return out
         
     def _set_info(self, other, new_axes:str="inherit"):
         super()._set_info(other, new_axes)
