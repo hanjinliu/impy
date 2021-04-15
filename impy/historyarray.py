@@ -5,15 +5,14 @@ from .metaarray import MetaArray
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None, lut=None):
+                history=None, metadata=None):
         
         self = super().__new__(cls, obj, name, axes, dirpath, metadata)
         self.history = [] if history is None else history
-        self.lut = lut
         return self
 
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=None, metadata=None, lut=None):
+                 history=None, metadata=None):
         pass
     
     def __repr__(self):
@@ -79,18 +78,9 @@ class HistoryArray(MetaArray):
         self._set_info(self, new_history)
         
     def __array_finalize__(self, obj):
-        """
-        Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
-        this function will be called to set essential attributes.
-        Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
-        """
         
         super().__array_finalize__(obj)
         self.history = getattr(obj, "history", [])
-        try:
-            self.lut = getattr(obj, "lut", None)
-        except:
-            self.lut = None
     
     def _inherit_meta(self, obj, ufunc, **kwargs):
         """
@@ -115,13 +105,6 @@ class HistoryArray(MetaArray):
         else:
             self.history = other.history.copy()
         
-        # set lut
-        try:
-            self.lut = other.lut
-        except:
-            self.lut = None
-        if self.axes.is_none():
-            self.lut = None
         return None
     
     def split(self, axis=None) -> list:
@@ -147,28 +130,7 @@ class HistoryArray(MetaArray):
         for i, img in enumerate(imgs):
             img.history[-1] = f"axis({axis})={i}"
             img.axes = del_axis(self.axes, axisint)
-            if axis == "c" and self.lut is not None:
-                img.lut = [self.lut[i]]
-            else:
-                img.lut = None
+            
         return imgs
-    
-    def get_cmaps(self):
-        """
-        From self.lut get colormap used in plt.
-        Default colormap is gray.
-        """
-        if "c" in self.axes:
-            if self.lut is None:
-                cmaps = ["gray"] * self.sizeof("c")
-            else:
-                cmaps = [get_lut(c) for c in self.lut]
-        else:
-            if self.lut is None:
-                cmaps = ["gray"]
-            elif (len(self.lut) != len(self.axes)):
-                cmaps = ["gray"] * len(self.axes)
-            else:
-                cmaps = [get_lut(self.lut[0])]
-        return cmaps
+
     

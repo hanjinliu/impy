@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from ..func import record, same_dtype
+from ..deco import *
 
 # Identical to the algorithm in Deconvolution.jl of Julia.
 # To avoid Memory Error, scipy.fftpack is used instead of numpy.fft because the latter does not support 
@@ -113,7 +113,7 @@ def lucy2d(self, psfinfo, niter:int=50, update:bool=False):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
         kw.update(psfinfo)
         psfimg = synthesize_psf(**kw)[0]
-    elif (isinstance(psfinfo, np.ndarray)):
+    elif isinstance(psfinfo, np.ndarray):
         psfimg = np.asarray(psfinfo)
         psfimg /= np.max(psfimg)
     else:

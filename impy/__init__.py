@@ -1,5 +1,6 @@
-__version__ = "1.2.0"
-# TODO: `lut` should be integrated into Axes object. Also, each axis should have unit.
+__version__ = "1.3.0"
+# TODO: napari
+# TODO: trackpy
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)

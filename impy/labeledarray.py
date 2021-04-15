@@ -3,6 +3,7 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
 from .func import *
+from .deco import *
 from .utilcls import *
 from .historyarray import HistoryArray
 from tifffile import imwrite
@@ -27,40 +28,16 @@ class LabeledArray(HistoryArray):
     n_cpu = 4
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None, lut=None):
+                history=None, metadata=None):
         
         self = super().__new__(cls, obj, name, axes, dirpath, metadata)
         self.history = [] if history is None else history
-        self.lut = lut
         return self
 
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=None, metadata=None, lut=None):
+                 history=None, metadata=None):
         pass
     
-    @property
-    def lut(self):
-        return self._lut
-    
-    @lut.setter
-    def lut(self, value):
-        # number of channel
-        if self.axes.is_none():
-            n_lut = 1
-        elif "c" in self.axes.axes[:self.ndim]:
-            n_lut = self.sizeof("c")
-        else:
-            n_lut = 1
-        
-        if value is None:
-            self._lut = ["gray"] * n_lut
-        elif n_lut == 1 and type(value) is str:
-            self._lut = [value]
-        elif n_lut == len(value):
-            self._lut = list(value)
-        else:
-            self._lut = ["gray"] * n_lut
-            raise ValueError(f"Incorrect LUT for {n_lut}-channel image: {value}")
     
     @property
     def range(self):
@@ -82,7 +59,7 @@ class LabeledArray(HistoryArray):
                f"   history    : {'->'.join(self.history)}\n"
     
     
-    def imsave(self, tifname:str):
+    def imsave(self, tifname:str, dtype="uint16"):
         """
         Save image (at the same directory as the original image by default).
         """
@@ -91,8 +68,9 @@ class LabeledArray(HistoryArray):
         if os.sep not in tifname:
             tifname = os.path.join(self.dirpath, tifname)
         
-        metadata = self.metadata
-        metadata.update({"min":np.percentile(self, 1), "max":np.percentile(self, 99)})
+        metadata = self.metadata.copy()
+        metadata.update({"min":np.percentile(self, 1), 
+                         "max":np.percentile(self, 99)})
         
         try:
             info = load_json(metadata["Info"])
@@ -101,10 +79,10 @@ class LabeledArray(HistoryArray):
         
         info["impyhist"] = "->".join([self.name] + self.history)
         metadata["Info"] = str(info)
-        if (self.axes):
+        if self.axes:
             metadata["axes"] = str(self.axes).upper()
 
-        imwrite(tifname, self.as_uint16().value, imagej=True, metadata=metadata)
+        imwrite(tifname, self.as_img_type(dtype).value, imagej=True, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -153,19 +131,9 @@ class LabeledArray(HistoryArray):
             value[value==0] = np.inf
         return super().__itruediv__(value)
     
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Overloaded Numpy Functions to Inherit Attributes
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    
     def __array_finalize__(self, obj):
-        """
-        Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
-        this function will be called to set essential attributes.
-        Therefore, you can use such as img.copy() and img.astype("int") without problems (maybe...).
-        """
         
         super().__array_finalize__(obj)
-        
         self._view_labels(obj)
     
     
@@ -290,8 +258,8 @@ class LabeledArray(HistoryArray):
     def imshow(self, **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
-            cmaps = self.get_cmaps()
-            imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
+            interpol = "bilinear" if self.dtype == bool else "none"
+            imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
             imshow_kwargs.update(kwargs)
             plt.imshow(self.value, **imshow_kwargs)
             
@@ -306,8 +274,8 @@ class LabeledArray(HistoryArray):
 
                 vmax, vmin = determine_range(self)
 
-                cmaps = self.get_cmaps()
-                imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                interpol = "bilinear" if self.dtype == bool else "none"
+                imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
                 imshow_kwargs.update(kwargs)
                 
                 n_img = len(imglist)
@@ -321,13 +289,13 @@ class LabeledArray(HistoryArray):
                     ax[i].set_title(f"Image-{i+1}")
 
             else:
-                cmaps = self.get_cmaps()
                 n_chn = self.sizeof("c")
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i+1}"]
                     vmax, vmin = determine_range(self)
-                    imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                    interpol = "bilinear" if img.dtype == bool else "none"
+                    imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
                     imshow_kwargs.update(kwargs)
                     
                     ax[i].imshow(self[i], **imshow_kwargs)
@@ -337,9 +305,21 @@ class LabeledArray(HistoryArray):
         plt.show()
 
         return self
+
+    def imshow_comparewith(self, other, **kwargs):
+        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
+        for i, img in enumerate([self, other]):
+            vmax, vmin = determine_range(img)
+            interpol = "bilinear" if img.dtype == bool else "none"
+            imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
+            imshow_kwargs.update(kwargs)
+            ax[i].imshow(img, **imshow_kwargs)
+        
+        plt.show()
+        return self
     
     @need_labels
-    def imshow_label(self, alpha=0.3, image_alpha=1, **kwargs):
+    def imshow_label(self, alpha=0.3, **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
             imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -349,7 +329,7 @@ class LabeledArray(HistoryArray):
             if vmin and vmax:
                 image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
             overlay = label2rgb(self.labels, image=image, bg_label=0, 
-                                alpha=alpha, image_alpha=image_alpha)
+                                alpha=alpha, image_alpha=1)
             plt.imshow(overlay, **imshow_kwargs)
             self.hist()
         elif self.ndim == 3:
@@ -374,8 +354,8 @@ class LabeledArray(HistoryArray):
                     vmax = imshow_kwargs["vmax"]
                     if vmin and vmax:
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
-                    overlay = label2rgb(img.labels, image=img, bg_label=0, 
-                                        alpha=alpha, image_alpha=image_alpha)
+                    overlay = label2rgb(img.labels, image=image, bg_label=0, 
+                                        alpha=alpha, image_alpha=1)
                     ax[i].imshow(overlay, **imshow_kwargs)
                     ax[i].axis("off")
                     ax[i].set_title(f"Image-{i+1}")
@@ -385,16 +365,16 @@ class LabeledArray(HistoryArray):
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i+1}"]
-                    vmax, vmin = determine_range(self)
+                    vmax, vmin = determine_range(img)
                     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
                     imshow_kwargs.update(kwargs)
                     vmin = imshow_kwargs["vmin"]
                     vmax = imshow_kwargs["vmax"]
                     if vmin and vmax:
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
-                    overlay = label2rgb(img.labels, image=img, bg_label=0, 
-                                        alpha=alpha, image_alpha=image_alpha)
-                    ax[i].imshow(self[i], **imshow_kwargs)
+                    overlay = label2rgb(img.labels, image=image, bg_label=0, 
+                                        alpha=alpha, image_alpha=1)
+                    ax[i].imshow(overlay, **imshow_kwargs)
                     
         else:
             raise ValueError("Image must be two or three dimensional.")
@@ -403,7 +383,7 @@ class LabeledArray(HistoryArray):
         return self
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Others
+    #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def iter(self, axes, showprogress:bool=True, israw=False):
@@ -470,8 +450,9 @@ class LabeledArray(HistoryArray):
         return out
     
     def parallel_eig(self, func, dims, *args):
-        eigval = np.empty(self.shape+(dims,), dtype="float32")
-        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        ndim = len(complement_axes(dims))
+        eigval = np.empty(self.shape+(ndim,), dtype="float32")
+        eigvec = np.empty(self.shape+(ndim, ndim), dtype="float32")
         
         if self.__class__.n_cpu > 1:
             results = self._parallel(func, dims, *args)
