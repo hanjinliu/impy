@@ -113,7 +113,7 @@ def lucy2d(self, psfinfo, niter:int=50, update:bool=False):
         kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
         kw.update(psfinfo)
         psfimg = synthesize_psf(**kw)[0]
-    elif (isinstance(psfinfo, np.ndarray)):
+    elif isinstance(psfinfo, np.ndarray):
         psfimg = np.asarray(psfinfo)
         psfimg /= np.max(psfimg)
     else:

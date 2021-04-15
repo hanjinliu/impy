@@ -11,7 +11,7 @@ from ..deco import *
 
 __all__ = ["drift_correction"]
 
-@record
+@record(append_history=False)
 def track_drift(self, axis="t", **kwargs):
     """
     Calculate (x,y) change based on cross correlation.
@@ -58,7 +58,7 @@ def _show_drift(result):
 
 @same_dtype(asfloat=True)
 @record()
-def drift_correction(self, shift=None, ref=None, order=1, show_drift=True, update:bool=False):
+def drift_correction(self, shift=None, ref=None, *, order=1, show_drift=True, update:bool=False):
     """
     shift: (N, 2) array, optional.
         x,y coordinates of drift. If None, this parameter will be determined by the
