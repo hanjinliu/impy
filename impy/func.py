@@ -6,10 +6,11 @@ from scipy.stats import entropy
 from tifffile import TiffFile
 from skimage.morphology import disk, ball
 from skimage import transform as sktrans
-from functools import wraps
 import time
 import json
 import re
+
+# TODO: A decorator for `dims`?
 
 class Timer:
     def __init__(self):
@@ -57,94 +58,6 @@ def get_meta(path:str):
     
     
     return {"axes":axes, "ijmeta":ijmeta, "history":hist}
-
-def safe_str(obj):
-    try:
-        return str(obj)
-    except Exception:
-        return str(type(obj))
-    
-def record(append_history=True, record_label=False):
-    """
-    Record the name of ongoing function.
-    """
-    def _record(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            # temporary record ongoing function
-            self.ongoing = func.__name__
-            if record_label:
-                label_axes = self.labels.axes
-                
-            out = func(self, *args, **kwargs)
-            
-            self.ongoing = None
-            del self.ongoing
-            
-            
-            temp = getattr(out, "temp", None)
-            
-            if record_label:
-                self.labels.axes = label_axes
-                
-            # view as ImgArray etc. if possible
-            try:
-                out = out.view(self.__class__)
-            except AttributeError:
-                pass
-            
-            # record history and update if needed
-            ifupdate = kwargs.pop("update", False)
-            
-            if append_history:
-                _args = list(map(safe_str, args))
-                _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
-                history = f"{func.__name__}({','.join(_args + _kwargs)})"
-                if record_label:
-                    out.labels._set_info(self.labels, history)
-                else:
-                    out._set_info(self, history)
-            ifupdate and self._update(out)
-            
-            # if temporary item exists
-            if temp is not None:
-                out.temp = temp
-            return out
-        return wrapper
-    return _record
-
-
-def same_dtype(asfloat=False):
-    """
-    Decorator to assure output image has the same dtype as the input
-    image. 
-
-    Parameters
-    ----------
-    asfloat : bool, optional
-        If input image should be converted to float first, by default False
-    """    
-    def _same_dtype(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            dtype = self.dtype
-            if asfloat:
-                self = self.astype("float32")
-            out = func(self, *args, **kwargs)
-            out = out.as_img_type(dtype)
-            return out
-        return wrapper
-    return _same_dtype
-
-def need_labels(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if not hasattr(self, "labels"):
-            raise AttributeError(f"Function {func.__name__} needs labels."
-                                 " Add labels to the image first.")
-        out = func(self, *args, **kwargs)
-        return out
-    return wrapper
 
 def check_nd_sigma(sigma, dims):
     if isinstance(sigma, (int, float)):
@@ -298,7 +211,16 @@ def determine_dims(img):
     if dims not in (2, 3):
         raise ValueError("Image must be 2 or 3 dimensional.")
     return dims
-        
+
+def determine_spatial_dims(dims:int):
+    if dims == 2:
+        dims = "yx"
+    elif dims == 3:
+        dims = "zyx"
+    else:
+        raise ValueError(f"dimension must be 2 or 3, but got {dims}")
+    return dims
+
 
 def check_clip_range(in_range, img):
     """
@@ -347,7 +269,7 @@ def shape_match(img, label):
     """    
     return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
 
-def complement_axes(all_axes, axes):
+def complement_axes(axes, all_axes="ptzcyx"):
     c_axes = ""
     for a in all_axes:
         if a not in axes:

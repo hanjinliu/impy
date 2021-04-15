@@ -45,7 +45,7 @@ class Axes:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
         
         self.axes = value
-            
+        
     @check_none
     def __str__(self):
         return self.axes

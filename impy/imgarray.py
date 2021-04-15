@@ -1,6 +1,5 @@
 from __future__ import annotations
 import itertools
-from math import e
 import numpy as np
 import os
 import glob
@@ -18,7 +17,9 @@ from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from scipy import ndimage as ndi
+from scipy import optimize as opt
 from .func import *
+from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
@@ -106,6 +107,10 @@ def _tophat(args):
     sl, data, selem = args
     return (sl, skmorph.white_tophat(data, selem))
 
+def _skeletonize(args):
+    sl, data = args
+    return (sl, skmorph.skeletonize_3d(data))
+
 def _hessian_eigh(args):
     sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
@@ -155,6 +160,10 @@ def _label(args):
     labels = skmes.label(data, background=0, connectivity=connectivity)
     return (sl, labels)
 
+def _distance_transform_edt(args):
+    sl, data = args
+    return (sl, ndi.distance_transform_edt(data))
+
     
 class ImgArray(LabeledArray):
     def __init__(self, obj, name=None, axes=None, dirpath=None, 
@@ -162,9 +171,10 @@ class ImgArray(LabeledArray):
         super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
                          history=history, metadata=metadata, lut=lut)
 
+    @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def affine(self, dims:int=2, order:int=1, **kwargs) -> ImgArray:
+    def affine(self, *, dims=None, order:int=1, **kwargs) -> ImgArray:
         """
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
@@ -172,22 +182,23 @@ class ImgArray(LabeledArray):
         if dims != 2:
             raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(_affine, dims, mx, order)
+        out = self.parallel(_affine, complement_axes(dims), mx, order)
         return out
     
+    @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def translate(self, dims=2, translation=None) -> ImgArray:
+    def translate(self, translation=None, *, dims=2) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(_affine, dims, mx)
+        out = self.parallel(_affine, complement_axes(dims), mx)
         return out
 
     @same_dtype(True)
     @record()
-    def rescale(self, scale:float=1/16, axes:str="yx", order:int=None) -> ImgArray:
+    def rescale(self, scale:float=1/16, dims=None, order:int=None) -> ImgArray:
         """
         Rescale image.
 
@@ -200,7 +211,7 @@ class ImgArray(LabeledArray):
         order : float, optional
             order of rescaling, by default None
         """        
-        scale_ = [scale if a in axes else 1 for a in self.axes]
+        scale_ = [scale if a in dims else 1 for a in self.axes]
         out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
         return out
     
@@ -366,8 +377,9 @@ class ImgArray(LabeledArray):
         out.temp = mtx
         return out
     
+    @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eigval(self, sigma=1, pxsize=None, dims:int=2) -> list[ImgArray]:
+    def hessian_eigval(self, sigma=1, *, pxsize=None, dims=None) -> list[ImgArray]:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
         is considered to be a single spatial image, and if dims=3, zyx-image.
@@ -386,19 +398,21 @@ class ImgArray(LabeledArray):
         list of float ImgArray
             eigenvalues in smaller->larger order
         """        
-        sigma = check_nd_sigma(sigma, dims)
-        pxsize = check_nd_pxsize(pxsize, dims)
+        ndim = len(dims)
+        sigma = check_nd_sigma(sigma, ndim)
+        pxsize = check_nd_pxsize(pxsize, ndim)
         eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, pxsize,
-                                          outshape=self.shape+(dims,))
+                                          outshape=self.shape+(ndim,))
         
         eigval = list(np.moveaxis(eigval, -1, 0))
         for i, each in enumerate(eigval):
-            each._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+            each._set_info(self, f"{ndim}D-Hessian-eigenvalue[{i}]")
         
         return eigval
     
+    @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eig(self, sigma=1, pxsize=None, dims:int=2) -> tuple:
+    def hessian_eig(self, sigma=1, *, pxsize=None, dims=None) -> tuple:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -415,26 +429,27 @@ class ImgArray(LabeledArray):
         -------
         list of float ImgArray and 2D-list of float ImgArray
         """                
-        sigma = check_nd_sigma(sigma, dims)
-        pxsize = check_nd_pxsize(pxsize, dims)
+        ndim = len(dims)
+        sigma = check_nd_sigma(sigma, ndim)
+        pxsize = check_nd_pxsize(pxsize, ndim)
         eigval, eigvec = self.parallel_eig(_hessian_eigh, dims, sigma, pxsize)
         
         # set information of eigenvalue list
-        for i in range(dims):
+        for i in range(ndim):
             eigval[i] = eigval[i].view(self.__class__)
-            eigval[i]._set_info(self, f"{dims}D-Hessian-eigenvalue[{i}]")
+            eigval[i]._set_info(self, f"{ndim}D-Hessian-eigenvalue[{i}]")
         
         # set information of eigenvector list
-        allaxes = "yx" if dims == 2 else "zyx"
-        for i in range(dims):
-            for j in range(dims):
+        for i in range(ndim):
+            for j in range(ndim):
                 eigvec[i][j] = eigvec[i][j].view(self.__class__)
-                eigvec[i][j]._set_info(self, f"{dims}D-Hessian-eigenvector[{i}][{allaxes[j]}]")
+                eigvec[i][j]._set_info(self, f"{ndim}D-Hessian-eigenvector[{i}][{dims[j]}]")
                 
         return eigval, eigvec
     
+    @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eigval(self, sigma=1, pxsize=None, dims:int=2):
+    def structure_tensor_eigval(self, sigma=1, *, pxsize=None, dims=None):
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -451,19 +466,21 @@ class ImgArray(LabeledArray):
         -------
         list of float ImgArray and 2D-list of float ImgArray
         """          
-        sigma = check_nd_sigma(sigma, dims)
-        pxsize = check_nd_pxsize(pxsize, dims)
+        ndim = len(dims)
+        sigma = check_nd_sigma(sigma, ndim)
+        pxsize = check_nd_pxsize(pxsize, ndim)
         eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, pxsize,
-                                          outshape=self.shape+(dims,))
+                                          outshape=self.shape+(ndim,))
         
         eigval = list(np.moveaxis(eigval, -1, 0))
         for i, each in enumerate(eigval):
-            each._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+            each._set_info(self, f"{ndim}D-Structure-Tensor-eigenvalue[{i}]")
         
         return eigval
     
+    @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eig(self, sigma=1, pxsize=None, dims:int=2):
+    def structure_tensor_eig(self, sigma=1, *, pxsize=None, dims=None):
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -480,92 +497,78 @@ class ImgArray(LabeledArray):
         -------
         list of float ImgArray and 2D-list of float ImgArray
         """                
-        sigma = check_nd_sigma(sigma, dims)
-        pxsize = check_nd_pxsize(pxsize, dims)
+        ndim = len(dims)
+        sigma = check_nd_sigma(sigma, ndim)
+        pxsize = check_nd_pxsize(pxsize, ndim)
         eigval, eigvec = self.parallel_eig(_structure_tensor_eigh, dims, sigma, pxsize)
         
         # set information of eigenvalue list
-        for i in range(dims):
+        for i in range(ndim):
             eigval[i] = eigval[i].view(self.__class__)
-            eigval[i]._set_info(self, f"{dims}D-Structure-Tensor-eigenvalue[{i}]")
+            eigval[i]._set_info(self, f"{ndim}D-Structure-Tensor-eigenvalue[{i}]")
         
         # set information of eigenvector list
-        allaxes = "yx" if dims == 2 else "zyx"
-        for i in range(dims):
-            for j in range(dims):
+        for i in range(ndim):
+            for j in range(ndim):
                 eigvec[i][j] = eigvec[i][j].view(self.__class__)
-                eigvec[i][j]._set_info(self, f"{dims}D-Structure-Tensor-eigenvector[{i}][{allaxes[j]}]")
+                eigvec[i][j]._set_info(self, f"{ndim}D-Structure-Tensor-eigenvector[{i}][{dims[j]}]")
                 
         return eigval, eigvec
     
+    @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def sobel_filter(self, dims:int=2, update:bool=False):
-        out = self.parallel(_sobel, dims)
+    def sobel_filter(self, dims=None, update:bool=False):
+        out = self.parallel(_sobel, complement_axes(dims))
         return out
     
-    def _running_kernel(self, radius:float, dims:int, function=None, 
-                        update:bool=False, annotation:str="") -> ImgArray:
-        disk = ball_like(radius, dims)
-        out = self.as_uint16().parallel(function, dims, disk)
-        return out
-    
+    @dims_to_spatial_axes
     @same_dtype()
+    def _running_kernel(self, radius:float, dims:int, function=None, update:bool=False) -> ImgArray:
+        disk = ball_like(radius, len(dims))
+        out = self.as_uint16().parallel(function, complement_axes(dims), disk)
+        return out
+    
     @record()
-    def erosion(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+    def erosion(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
-        return self._running_kernel(radius, dims, f, 
-                                    update, f"{dims}D-Erosion(R={radius})")
+        return self._running_kernel(radius, dims, f, update)
     
-    @same_dtype()
     @record()
-    def dilation(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+    def dilation(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
-        return self._running_kernel(radius, dims, f, 
-                                    update, f"{dims}D-Dilation(R={radius})")
+        return self._running_kernel(radius, dims, f, update)
     
-    @same_dtype()
     @record()
-    def opening(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+    def opening(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
-        return self._running_kernel(radius, dims, f, 
-                                    update, f"{dims}D-Opening(R={radius})")
+        return self._running_kernel(radius, dims, f, update)
     
-    @same_dtype()
     @record()
-    def closing(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
+    def closing(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
-        return self._running_kernel(radius, dims, f, 
-                                    update, f"{dims}D-Closing(R={radius})")
-    
-    @same_dtype()
-    @record()
-    def tophat(self, radius:float=50, dims:int=2, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _tophat, 
-                                    update, f"{dims}D-Top-Hat(R={radius})")
-    
-    @same_dtype()
-    @record()
-    def mean_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _mean, 
-                                    update, f"{dims}D-Mean-Filter(R={radius})")
-    
-    @same_dtype()
-    @record()
-    def median_filter(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _median, 
-                                    update, f"{dims}D-Median-Filter(R={radius})")
+        return self._running_kernel(radius, dims, f, update)
     
     @record()
-    def entropy_filter(self, radius:float=1, dims:int=2) -> ImgArray:
-        return self._running_kernel(radius, dims, _entropy, 
-                                    False, f"{dims}D-Entropy-Filter(R={radius})")
+    def tophat(self, radius:float=50, dims=None, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _tophat, update)
     
-    @same_dtype()
     @record()
-    def enhance_contrast(self, radius:float=1, dims:int=2, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _enhance_contrast, 
-                                    update, f"{dims}D-Enhance-Contrast(R={radius})")
+    def mean_filter(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _mean, update)
+    
+    @record()
+    def median_filter(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _median, update)
+    
+    @record()
+    def entropy_filter(self, radius:float=1, dims=None) -> ImgArray:
+        disk = ball_like(radius, len(dims))
+        return self.as_uint16().parallel(_entropy, dims, disk)
+    
+    @record()
+    def enhance_contrast(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+        return self._running_kernel(radius, dims, _enhance_contrast, update)
     
     @same_dtype()
     @record()
@@ -599,9 +602,10 @@ class ImgArray(LabeledArray):
         return out
     
     
+    @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def gaussian_filter(self, sigma:float=1, dims:int=2, update:bool=False) -> ImgArray:
+    def gaussian_filter(self, sigma:float=1, dims=None, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
         Parameters
@@ -618,12 +622,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        out = self.parallel(_gaussian, dims, sigma)
-        return out
+        return self.parallel(_gaussian, dims, sigma)
 
-    
+    @dims_to_spatial_axes
     @record()
-    def dog_filter(self, low_sigma:float=1, high_sigma=None, dims:int=2) -> ImgArray:
+    def dog_filter(self, low_sigma:float=1, high_sigma=None, *, dims=None) -> ImgArray:
         """
         Run Difference of Gaussian filter. This function does not support `update`
         argument because intensity can be negative.
@@ -644,13 +647,15 @@ class ImgArray(LabeledArray):
         """        
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
-        out = self.parallel(_difference_of_gaussian, dims, low_sigma, high_sigma)
+        out = self.parallel(_difference_of_gaussian, complement_axes(dims),
+                            low_sigma, high_sigma)
         
         return out
     
+    @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def rolling_ball(self, radius:float=50, smoothing:bool=True, update:bool=False) -> ImgArray:
+    def rolling_ball(self, radius:float=50, smoothing:bool=True, *, dims=None, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -666,10 +671,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        out = self.as_uint16().parallel(_rolling_ball, "ptzc", radius, smoothing)
+        out = self.as_uint16().parallel(_rolling_ball, complement_axes(dims), 
+                                        radius, smoothing)
         return out
     
-    
+    @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
                        use_labels:bool=True, dims=None):
@@ -691,13 +697,9 @@ class ImgArray(LabeledArray):
             If use self.labels when it exists, by default True
         """        
         
-        # Determine dims
-        if dims is None:
-            dims = determine_dims(self)
-        
         # separate spatial dimensions and others
-        spatial_dims = "yx" if dims == 2 else "zyx"
-        c_axes = complement_axes(self.axes, spatial_dims)
+        ndim = len(dims)
+        c_axes = complement_axes(dims, all_axes=self.axes)
         shape = self.sizesof(c_axes)
         
         # if c_axes:
@@ -719,9 +721,9 @@ class ImgArray(LabeledArray):
                                             num_peaks_per_label=num_peaks_per_label,
                                             labels=np.array(labels))
             
-            out[sl[:-dims]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
+            out[sl[:-ndim]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
                                                     dirpath=self.dirpath, history=self.history+["Local-Max"])
-                                            for i, a in enumerate(spatial_dims))
+                                            for i, a in enumerate(dims))
         self.ongoing = None
         del self.ongoing
         
@@ -745,8 +747,9 @@ class ImgArray(LabeledArray):
         out = np.real(ifft(freq))
         return out
     
+    @dims_to_spatial_axes
     @record()
-    def threshold(self, thr="otsu", iters:str="pc", **kwargs) -> ImgArray:
+    def threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
         """
         Parameters
         ----------
@@ -784,14 +787,14 @@ class ImgArray(LabeledArray):
             thr = func(self.view(np.ndarray), **kwargs)
 
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.iter(iters, False):
+            for t, img in self.iter(complement_axes(dims), False):
                 out[t] = img >= thr
             out = out.view(self.__class__)
 
         else:
             if hasattr(thr, "__iter__"):
                 out = np.zeros(self.shape, dtype=bool)
-                for i, (t, img) in enumerate(self.iter(iters, False)):
+                for i, (t, img) in enumerate(self.iter(complement_axes(dims), False)):
                     out[t] = img >= thr[i]
                 out = out.view(self.__class__)
             else:
@@ -846,8 +849,47 @@ class ImgArray(LabeledArray):
         
         return out
     
+    @dims_to_spatial_axes
+    @record()
+    def distance_map(self, dims=None) -> ImgArray:
+        # TODO: multi-dimensional
+        if self.dtype != bool:
+            raise TypeError("Cannot run distance_map() with non-binary image.")
+        out = self.parallel(_distance_transform_edt, complement_axes(dims))
+        
+        return out
+        
+    @dims_to_spatial_axes
+    @record()
+    def skeletonize(self, dims=None):
+        if self.dtype != bool:
+            raise TypeError("Cannot run skeletonize() with non-binary image.")
+        
+        out = self.parallel(_skeletonize, complement_axes(dims), outdtype=bool)
+        # TODO: medial_axis, skeletonize, etc...
+        # https://scikit-image.org/docs/dev/auto_examples/edges/plot_skeleton.html
+        return out
+    
+    @record(append_history=False)
+    def curve_fit(self, f, p0, axes=None) -> PropArray:
+        # TODO: any general method? Move to PropArray?
+        params, cov = opt.curve_fit(f, np.arange(self.size), self, p0 = p0)
+        pass
+    
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def profile_line(self, src, dst, linewidth=None, *, order=None, dims=None) -> PropArray:
+        c_axes = complement_axes(dims, all_axes=self.axes)
+        out = PropArray(np.empty(self.sizesof(c_axes)), name=self.name, axes=c_axes, 
+                        dirpath=self.dirpath, propname="line_profile")
+        for sl, img in self.iter(dims):
+            out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, order=order)
+            
+        return out
+    
+    @dims_to_spatial_axes
     @record(False)
-    def label(self, label_image=None, *, axes=None, connectivity=None) -> ImgArray:
+    def label(self, label_image=None, *, dims=None, connectivity=None) -> ImgArray:
         """
         Run skimage's label() and store the results as attribute.
 
@@ -876,16 +918,14 @@ class ImgArray(LabeledArray):
         elif not shape_match(self, label_image):
             raise ImageAxesError("Shape mismatch.")
         
-        if axes is None:
-            axes = "" # do not iterate
-        
+        c_axes = complement_axes(dims)
         label_image.ongoing = "label"
-        labels = label_image.parallel(_label, axes, connectivity, outdtype="uint32").view(np.ndarray)
+        labels = label_image.parallel(_label, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
         label_image.ongoing = None
         del label_image.ongoing
         
         min_nlabel = 0
-        for sl, _ in label_image.iter(axes, False):
+        for sl, _ in label_image.iter(c_axes, False):
             labels[sl][labels[sl]>0] += min_nlabel
             min_nlabel += labels[sl].max()
         
@@ -893,9 +933,10 @@ class ImgArray(LabeledArray):
         self.labels._set_info(label_image, "Labeled")
         return self
     
+    @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def expand_labels(self, distance:int=1, dims=None) -> ImgArray:
+    def expand_labels(self, distance:int=1, *, dims=None) -> ImgArray:
         """
         Expand areas of labels.
 
@@ -909,27 +950,19 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        if dims is None:
-            dims = determine_dims(self)
-        # Determine axes
-        if dims == 2:
-            axes = "ptzc"
-        elif dims == 3:
-            axes = "ptc"
-        else:
-            raise ValueError(f"dimension must be 2 or 3, but got {dims}")
-        
+        ndim = len(dims)
         labels = np.empty_like(self.labels).value
-        for sl, img in self.iter(axes, israw=True):
-            labels[sl[:-dims]] = skseg.expand_labels(img.labels.value, distance)
+        for sl, img in self.iter(complement_axes(dims), israw=True):
+            labels[sl[:-ndim]] = skseg.expand_labels(img.labels.value, distance)
         
         self.labels = labels.view(Label)
         
         return self
     
+    @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def watershed(self, *, connectivity=1, input_="self", dims=None) -> ImgArray:
+    def watershed(self, connectivity=1, input_="self", *, dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
 
@@ -951,6 +984,7 @@ class ImgArray(LabeledArray):
             Same array but labels are updated.
         """
         
+        ndim = len(dims)
         markers = self.peak_local_max(dims=dims)
         
         # Prepare the input image.
@@ -966,30 +1000,16 @@ class ImgArray(LabeledArray):
         
         input_img._view_labels(self)
         
-        # Determine dims
-        if dims is None:
-            dims = determine_dims(self)
-        
-        # Determine axes
-        if dims == 2:
-            axes = "ptzc"
-            s_axes = "yx"
-        elif dims == 3:
-            axes = "ptc"
-            s_axes = "zyx"
-        else:
-            raise ValueError(f"dimension must be 2 or 3, but got {dims}")
-        
         labels = np.zeros(input_img.shape, dtype="uint32")
         input_img.ongoing = "watershed"
-        shape = self.sizesof(s_axes)
+        shape = self.sizesof(dims)
         n_labels = 0
         
-        for sl, img in input_img.iter(axes, israw=True):
+        for sl, img in input_img.iter(complement_axes(dims), israw=True):
             # Make array from max list
             marker_input = np.zeros(shape, dtype="uint32")
             
-            sl0 = markers[sl[:-dims]]
+            sl0 = markers[sl[:-ndim]]
             
             marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
             labels[sl] = skseg.watershed(img.value, marker_input, mask=img.labels.value, 
@@ -1004,8 +1024,8 @@ class ImgArray(LabeledArray):
         self.labels = labels.optimize()
         return self
     
-    
-    def label_threshold(self, thr="otsu", iters="pc", **kwargs) -> ImgArray:
+    @dims_to_spatial_axes
+    def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
         """
         Make labels with threshold().
 
@@ -1018,7 +1038,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        labels = self.threshold(thr=thr, iters=iters, **kwargs)
+        labels = self.threshold(thr=thr, dims=dims, **kwargs)
         return self.label(labels)
     
         
@@ -1050,7 +1070,7 @@ class ImgArray(LabeledArray):
             # this dimension will be label
             raise ValueError("axis 'p' is forbidden.")
         
-        prop_axes = complement_axes("tzcyx", self.labels.axes)
+        prop_axes = complement_axes(self.labels.axes, all_axes="tzcyx")
         shape = self.sizesof(prop_axes)
         
         out = ArrayDict({p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
@@ -1071,12 +1091,12 @@ class ImgArray(LabeledArray):
         
         return out
     
-
     @same_dtype()
     def proj(self, axis=None, method="mean") -> ImgArray:
         """
         Z-projection.
         'method' must be in func_dict.keys() or some function like np.mean.
+        This function is not compatible with record().
         """
         func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
         if method in func_dict.keys():
@@ -1090,7 +1110,7 @@ class ImgArray(LabeledArray):
             axis = find_first_appeared(self.axes, "tzcp")
         axisint = self.axisof(axis)
         out = func(self.value, axis=axisint).view(self.__class__)
-        out._set_info(self, f"{method}-Projection(axis={axis})", del_axis(self.axes, axisint))
+        out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
 
     @record()

@@ -1,6 +1,10 @@
 # impy
 
-More Numpy in image analysis! History of analysis, the original image and directory are all recorded in the object. Many image analysis tools are coded using functions in [scikit-image](https://github.com/scikit-image/scikit-image).
+## More Numpy in image analysis! 
+
+ImageJ is generally used for image analysis especially in biological background. However, recent demands for batch analysis, machine learning and high reproducibility usually do not suit for ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not convenient for biological multi-dimensional analysis, although it is the best practice for above-mentioned problems.
+
+Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution.
 
 ## Example
 

@@ -3,6 +3,7 @@ import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
 from .func import *
+from .deco import *
 from .utilcls import *
 from .historyarray import HistoryArray
 from tifffile import imwrite
@@ -153,10 +154,6 @@ class LabeledArray(HistoryArray):
             value[value==0] = np.inf
         return super().__itruediv__(value)
     
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Overloaded Numpy Functions to Inherit Attributes
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    
     def __array_finalize__(self, obj):
         """
         Every time an np.ndarray object is made by numpy functions inherited to ImgArray,
@@ -291,7 +288,8 @@ class LabeledArray(HistoryArray):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
             cmaps = self.get_cmaps()
-            imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
+            interpol = "bilinear" if self.dtype == bool else "none"
+            imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": interpol}
             imshow_kwargs.update(kwargs)
             plt.imshow(self.value, **imshow_kwargs)
             
@@ -307,7 +305,8 @@ class LabeledArray(HistoryArray):
                 vmax, vmin = determine_range(self)
 
                 cmaps = self.get_cmaps()
-                imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                interpol = "bilinear" if self.dtype == bool else "none"
+                imshow_kwargs = {"cmap": cmaps[0], "vmax": vmax, "vmin": vmin, "interpolation": interpol}
                 imshow_kwargs.update(kwargs)
                 
                 n_img = len(imglist)
@@ -327,7 +326,8 @@ class LabeledArray(HistoryArray):
                 for i in range(n_chn):
                     img = self[f"c={i+1}"]
                     vmax, vmin = determine_range(self)
-                    imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": "none"}
+                    interpol = "bilinear" if img.dtype == bool else "none"
+                    imshow_kwargs = {"cmap": cmaps[i], "vmax": vmax, "vmin": vmin, "interpolation": interpol}
                     imshow_kwargs.update(kwargs)
                     
                     ax[i].imshow(self[i], **imshow_kwargs)
@@ -336,6 +336,18 @@ class LabeledArray(HistoryArray):
         
         plt.show()
 
+        return self
+
+    def imshow_comparewith(self, other, **kwargs):
+        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
+        for i, img in enumerate([self, other]):
+            vmax, vmin = determine_range(img)
+            interpol = "bilinear" if img.dtype == bool else "none"
+            imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": interpol}
+            imshow_kwargs.update(kwargs)
+            ax[i].imshow(img, **imshow_kwargs)
+        
+        plt.show()
         return self
     
     @need_labels
@@ -403,7 +415,7 @@ class LabeledArray(HistoryArray):
         return self
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Others
+    #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def iter(self, axes, showprogress:bool=True, israw=False):
