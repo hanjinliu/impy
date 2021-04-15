@@ -482,8 +482,9 @@ class LabeledArray(HistoryArray):
         return out
     
     def parallel_eig(self, func, dims, *args):
-        eigval = np.empty(self.shape+(dims,), dtype="float32")
-        eigvec = np.empty(self.shape+(dims,dims), dtype="float32")
+        ndim = len(complement_axes(dims))
+        eigval = np.empty(self.shape+(ndim,), dtype="float32")
+        eigvec = np.empty(self.shape+(ndim, ndim), dtype="float32")
         
         if self.__class__.n_cpu > 1:
             results = self._parallel(func, dims, *args)

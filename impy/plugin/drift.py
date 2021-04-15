@@ -6,7 +6,7 @@ try:
 except ImportError:
     from skimage.feature import register_translation as phase_cross_correlation
 from skimage import transform as sktrans
-from ..func import record, same_dtype
+from ..deco import *
 
 
 __all__ = ["drift_correction"]

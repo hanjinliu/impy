@@ -59,19 +59,19 @@ def get_meta(path:str):
     
     return {"axes":axes, "ijmeta":ijmeta, "history":hist}
 
-def check_nd_sigma(sigma, dims):
+def check_nd_sigma(sigma, ndim):
     if isinstance(sigma, (int, float)):
-        sigma = [sigma] * dims
-    elif len(sigma) != dims:
+        sigma = [sigma] * ndim
+    elif len(sigma) != ndim:
         raise ValueError("length of sigma and dims must match.")
     return sigma
 
-def check_nd_pxsize(pxsize, dims):
+def check_nd_pxsize(pxsize, ndim):
     if isinstance(pxsize, (int, float)):
-        pxsize = [pxsize] * dims
+        pxsize = [pxsize] * ndim
     elif pxsize is None:
-        pxsize = np.ones(dims)
-    elif len(pxsize) != dims:
+        pxsize = np.ones(ndim)
+    elif len(pxsize) != ndim:
         raise ValueError("length of pxsize and dims must match.")
     return pxsize
 

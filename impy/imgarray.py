@@ -205,11 +205,11 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         scale : float, optional
-            scale of the new image, by default 1/16
-        axes : str, optional
-            axes to rescale, by default "yx"
+            scale of the new image.
+        dims : int or str, optional
+            axes to rescale.
         order : float, optional
-            order of rescaling, by default None
+            order of rescaling.
         """        
         scale_ = [scale if a in dims else 1 for a in self.axes]
         out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
@@ -225,7 +225,7 @@ class ImgArray(LabeledArray):
         scale : float, optional
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
-            Initial parameters, by default None
+            Initial parameters.
 
         Returns
         -------
@@ -284,7 +284,7 @@ class ImgArray(LabeledArray):
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
-
+        
         Parameters
         ----------
         ref : int, optional
@@ -390,7 +390,7 @@ class ImgArray(LabeledArray):
             Standard deviation of Gaussian filter applied before calculating Hessian.
         pxsize : scalar or array (dims,), optional
             Pixel size (to normalize matrix).
-        dims : 2 or 3, optional
+        dims : int or str, optional
             Spatial dimension.
 
         Returns
@@ -401,7 +401,9 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval = self.as_float().parallel(_hessian_eigval, dims, sigma, pxsize,
+        eigval = self.as_float().parallel(_hessian_eigval, 
+                                          complement_axes(dims), 
+                                          sigma, pxsize,
                                           outshape=self.shape+(ndim,))
         
         eigval = list(np.moveaxis(eigval, -1, 0))
@@ -422,7 +424,7 @@ class ImgArray(LabeledArray):
             Standard deviation of Gaussian filter applied before calculating Hessian.
         pxsize : scalar or array (dims,), optional
             Pixel size (to normalize matrix).
-        dims : 2 or 3, optional
+        dims : int or str, optional
             Spatial dimension.
 
         Returns
@@ -432,7 +434,9 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval, eigvec = self.parallel_eig(_hessian_eigh, dims, sigma, pxsize)
+        eigval, eigvec = self.parallel_eig(_hessian_eigh, 
+                                           complement_axes(dims), 
+                                           sigma, pxsize)
         
         # set information of eigenvalue list
         for i in range(ndim):
@@ -459,7 +463,7 @@ class ImgArray(LabeledArray):
             Standard deviation of Gaussian filter applied before calculating Hessian.
         pxsize : scalar or array (dims,), optional
             Pixel size (to normalize matrix).
-        dims : 2 or 3, optional
+        dims : int or str, optional
             Spatial dimension.
 
         Returns
@@ -469,7 +473,9 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval = self.as_float().parallel(_structure_tensor_eigval, dims, sigma, pxsize,
+        eigval = self.as_float().parallel(_structure_tensor_eigval, 
+                                          complement_axes(dims), 
+                                          sigma, pxsize,
                                           outshape=self.shape+(ndim,))
         
         eigval = list(np.moveaxis(eigval, -1, 0))
@@ -490,7 +496,7 @@ class ImgArray(LabeledArray):
             Standard deviation of Gaussian filter applied before calculating Hessian.
         pxsize : scalar or array (dims,), optional
             Pixel size (to normalize matrix).
-        dims : 2 or 3, optional
+        dims : int or str, optional
             Spatial dimension.
 
         Returns
@@ -500,7 +506,9 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval, eigvec = self.parallel_eig(_structure_tensor_eigh, dims, sigma, pxsize)
+        eigval, eigvec = self.parallel_eig(_structure_tensor_eigh, 
+                                           complement_axes(dims), 
+                                           sigma, pxsize)
         
         # set information of eigenvalue list
         for i in range(ndim):
@@ -611,11 +619,11 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         sigma : scalar or array of scalars, optional
-            Standard deviation(s) of Gaussian, by default 1
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
+            Standard deviation(s) of Gaussian.
+        dims : int or str, optional
+            Dimension of axes.
         update : bool, optional
-            If update self to filtered image, by default False
+            If update self to filtered image.
             
         Returns
         -------
@@ -637,8 +645,8 @@ class ImgArray(LabeledArray):
             lower standard deviation(s) of Gaussian, by default 1
         high_sigma : scalar or array of scalars, optional
             higher standard deviation(s) of Gaussian, by default 1
-        dims : int, optional
-            Dimension of axes, i.e. xy or xyz, by default 2
+        dims : int or str, optional
+            Dimension of axes.
             
         Returns
         -------
@@ -665,6 +673,8 @@ class ImgArray(LabeledArray):
             Radius of rolling ball, by default 50
         smoothing : bool, optional
             If apply 3x3 averaging before creating background.
+        dims : int or str, optional
+            Dimension of axes.
             
         Returns
         -------
@@ -695,6 +705,8 @@ class ImgArray(LabeledArray):
             Maximum number of peaks per label, by default np.inf
         use_labels : bool, optional
             If use self.labels when it exists, by default True
+        dims : int or str, optional
+            Dimension of axes.
         """        
         
         # separate spatial dimensions and others
@@ -755,8 +767,8 @@ class ImgArray(LabeledArray):
         ----------
         thr: int or array or None, optional
             Threshold value, or thresholding algorithm.
-        iters: str, default is 'c'
-            Around which axes images will be iterated.
+        dims : int or str, optional
+            Dimension of axes.
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
 
@@ -784,19 +796,20 @@ class ImgArray(LabeledArray):
                 s = ", ".join(list(methods_.keys()))
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
-            thr = func(self.view(np.ndarray), **kwargs)
-
             out = np.zeros(self.shape, dtype=bool)
             for t, img in self.iter(complement_axes(dims), False):
+                thr = func(img, **kwargs)
                 out[t] = img >= thr
             out = out.view(self.__class__)
 
         else:
+            # TODO: only PropArray
             if hasattr(thr, "__iter__"):
-                out = np.zeros(self.shape, dtype=bool)
-                for i, (t, img) in enumerate(self.iter(complement_axes(dims), False)):
-                    out[t] = img >= thr[i]
-                out = out.view(self.__class__)
+                # out = np.zeros(self.shape, dtype=bool)
+                # for i, (t, img) in enumerate(self.iter(complement_axes(dims), False)):
+                #     out[t] = img >= thr[i]
+                # out = out.view(self.__class__)
+                raise NotImplementedError
             else:
                 out = self >= thr
         out = out.view(self.__class__)
@@ -851,8 +864,21 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def distance_map(self, dims=None) -> ImgArray:
-        # TODO: multi-dimensional
+    def distance_map(self, *, dims=None) -> ImgArray:
+        """
+        Calculate distance map from binary images.
+
+        Parameters
+        ----------
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            Distance map, the further the brighter
+
+        """        
         if self.dtype != bool:
             raise TypeError("Cannot run distance_map() with non-binary image.")
         out = self.parallel(_distance_transform_edt, complement_axes(dims))
@@ -882,7 +908,7 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, all_axes=self.axes)
         out = PropArray(np.empty(self.sizesof(c_axes)), name=self.name, axes=c_axes, 
                         dirpath=self.dirpath, propname="line_profile")
-        for sl, img in self.iter(dims):
+        for sl, img in self.iter(c_axes):
             out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, order=order)
             
         return out
@@ -975,7 +1001,7 @@ class ImgArray(LabeledArray):
             - "labels" ... self.labels is used.
             - "self" ... self is used.
             - "distance" ... distance map of self.labels is used.
-        dims : int, optional
+        dims : int or str, optional
             Spatial dimension.
             
         Returns
