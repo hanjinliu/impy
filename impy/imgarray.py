@@ -171,6 +171,9 @@ class ImgArray(LabeledArray):
         super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
                          history=history, metadata=metadata, lut=lut)
 
+    def freeze(self):
+        return self.view(LabeledArray)
+    
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
@@ -196,6 +199,7 @@ class ImgArray(LabeledArray):
         out = self.parallel(_affine, complement_axes(dims), mx)
         return out
 
+    @dims_to_spatial_axes
     @same_dtype(True)
     @record()
     def rescale(self, scale:float=1/16, dims=None, order:int=None) -> ImgArray:
@@ -532,7 +536,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @same_dtype()
-    def _running_kernel(self, radius:float, dims:int, function=None, update:bool=False) -> ImgArray:
+    def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
         out = self.as_uint16().parallel(function, complement_axes(dims), disk)
         return out
@@ -540,34 +544,34 @@ class ImgArray(LabeledArray):
     @record()
     def erosion(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
-        return self._running_kernel(radius, dims, f, update)
+        return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def dilation(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
-        return self._running_kernel(radius, dims, f, update)
+        return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def opening(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
-        return self._running_kernel(radius, dims, f, update)
+        return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def closing(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
-        return self._running_kernel(radius, dims, f, update)
+        return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def tophat(self, radius:float=50, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _tophat, update)
+        return self._running_kernel(radius, _tophat, dims=dims, update=update)
     
     @record()
     def mean_filter(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _mean, update)
+        return self._running_kernel(radius, _mean, dims=dims, update=update)
     
     @record()
     def median_filter(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _median, update)
+        return self._running_kernel(radius, _median, dims=dims, update=update)
     
     @record()
     def entropy_filter(self, radius:float=1, dims=None) -> ImgArray:
@@ -576,7 +580,7 @@ class ImgArray(LabeledArray):
     
     @record()
     def enhance_contrast(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, dims, _enhance_contrast, update)
+        return self._running_kernel(radius, _enhance_contrast, dims=dims, update=update)
     
     @same_dtype()
     @record()
@@ -715,23 +719,23 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(c_axes)
         
         # if c_axes:
-        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes, dirpath=self.dirpath,
-                        propname="local_max_indices")
+        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
+                        dirpath=self.dirpath, propname="local_max_indices")
         
         self.ongoing = "peak_local_max"
         for sl, img in self.iter(c_axes, israw=True):
+            # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
-                labels = img.labels
+                labels = np.array(img.labels)
             else:
                 labels = None
             
-            # skfeat.peak_local_max overwrite something so we need to give copy of img.
             indices = skfeat.peak_local_max(np.array(img),
                                             min_distance=min_distance, 
                                             threshold_abs=thr,
                                             num_peaks=num_peaks,
                                             num_peaks_per_label=num_peaks_per_label,
-                                            labels=np.array(labels))
+                                            labels=labels)
             
             out[sl[:-ndim]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
                                                     dirpath=self.dirpath, history=self.history+["Local-Max"])
@@ -837,7 +841,8 @@ class ImgArray(LabeledArray):
         else:
             labels = np.zeros(self.sizesof("yx"), dtype="uint8")
             labels[y:y+dy, x:x+dx] = 1
-            self.labels = labels
+            self.labels = labels.view(Label)
+            self.labels._set_info(self, "Labeled")
         
         return self
 
@@ -891,13 +896,11 @@ class ImgArray(LabeledArray):
         if self.dtype != bool:
             raise TypeError("Cannot run skeletonize() with non-binary image.")
         
-        out = self.parallel(_skeletonize, complement_axes(dims), outdtype=bool)
-        # TODO: medial_axis, skeletonize, etc...
-        # https://scikit-image.org/docs/dev/auto_examples/edges/plot_skeleton.html
-        return out
+        return self.parallel(_skeletonize, complement_axes(dims), outdtype=bool)
     
+    @dims_to_spatial_axes
     @record(append_history=False)
-    def curve_fit(self, f, p0, axes=None) -> PropArray:
+    def curve_fit(self, f, p0, dims=None) -> PropArray:
         # TODO: any general method? Move to PropArray?
         params, cov = opt.curve_fit(f, np.arange(self.size), self, p0 = p0)
         pass
