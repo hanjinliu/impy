@@ -1,13 +1,19 @@
-NONE = "_"
-ORDER = {"q": -10, "s": 5, "p": -1, "t": 0, "z": 1, "c": 2, "y": 3, "x": 4}
+from collections import defaultdict, Counter
 
+ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6, "s": 7})
+
+# TODO: axes unit
 class ImageAxesError(Exception):
     pass
 
+class NoneAxes:
+    def __bool__(self):
+        return False
+
+NONE = NoneAxes()
+
 def sort_axes(str_):
-    dict_ = {}
-    for s in str_:
-        dict_[ORDER[s]] = s
+    dict_ = {ORDER[s]: s for s in str_}
     return "".join([dict_[k] for k in sorted(dict_.keys())])
 
 def check_none(func):
@@ -19,28 +25,21 @@ def check_none(func):
 
 
 class Axes:
-    def __init__(self, value=NONE, ndim=0) -> None:
-        self.axes = NONE
-        
-        if value == NONE:
-            pass
+    def __init__(self, value=None, ndim=0) -> None:
+        if value == NONE or value is None:
+            value = NONE
         elif isinstance(value, str):
             value = value.lower()
-            counter = {"p":False, "t": False, "z": False, "c": False, "x": False, "y": False}
-            for v in value:
-                if v in "ptzcxys":
-                    if (counter[v] == True):
-                        raise ImageAxesError(f"'{v}' appeared twice: {value}")
-                    counter[v] = True
-                elif v in "q":
-                    pass
-                else:
-                    raise ImageAxesError(f"axes cannot contain characters except for 'qtzcxys': got {value}")
+            c = Counter(value)
+            if any(v>1 for k, v in c.items() if k in "ptzcyxs"):
+                raise ImageAxesError(f"Either 'ptzcyxs' appeared twice: {value}")
             
             if ndim > 0 and len(value) != ndim:
                 raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and axes ({value})")
+            
         elif isinstance(value, self.__class__):
             value = value.axes
+            
         else:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
         
@@ -86,7 +85,7 @@ class Axes:
             return self.axes
 
     def is_none(self):
-        return self.axes == NONE
+        return isinstance(self.axes, NoneAxes)
 
     def to_none(self):
         self.axes = NONE
@@ -110,7 +109,6 @@ class Axes:
         else:
             return i
     
-
     @check_none
     def sort(self) -> None:
         self.axes = sort_axes(self.axes)
