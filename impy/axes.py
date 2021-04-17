@@ -1,7 +1,7 @@
 from collections import defaultdict, Counter
 import numpy as np
 
-ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6, "s": 7})
+ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
 class ImageAxesError(Exception):
     pass

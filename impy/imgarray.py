@@ -273,8 +273,9 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def gaussfit_particle(self, markers:MarkerArray=None, width=9,
                           p0=None, *, dims=None) -> PropArray:
+        # TODO: axes not defined; empty slices
         raise NotImplementedError
-        # TODO: check, axes not defined empty slices
+        
         ndim = len(dims)
         if markers is None:
             markers = self.peak_local_max(dims=dims, min_distance=width, squeeze=False)
@@ -746,7 +747,7 @@ class ImgArray(LabeledArray):
         min_distance : int, optional
             Minimum distance allowed for each two peaks, by default 1
         thr : float, optional
-            The absolute minimum intensity of peaks, by default None
+            The absolute minimum intensity of peaks.
         num_peaks : int, optional
             Maximum number of peaks **for each iteration**.
         num_peaks_per_label : int, default is np.inf
@@ -758,6 +759,12 @@ class ImgArray(LabeledArray):
             returned instead. This situation only happens when self.ndim == len(dims).
         dims : int or str, optional
             Dimension of axes.
+            
+        Returns
+        -------
+        PropArray of IndexArrays, or if squeeze=True, IndexArray)
+            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
+            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
         """        
         
         # separate spatial dimensions and others
@@ -957,12 +964,35 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def profile_line(self, src, dst, linewidth=None, *, order=None, dims=None) -> PropArray:
+    def profile_line(self, src, dst, linewidth=1, *, order=None, dims=None) -> PropArray:
+        """
+        Measure line profile iteratively for every slice of image.
+
+        Parameters
+        ----------
+        src : array, shape (2,)
+            Source coordinate.
+        dst : array, shape (2,)
+            Destination coordinate.
+        linewidth : int, by default 1.
+            Line width.
+        order : int, optional
+            Spline interpolation order.
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        PropArray of np.ndarray.
+            PropArray with line scans.
+        """        
+        ndim = len(dims)
         c_axes = complement_axes(dims, all_axes=self.axes)
         out = PropArray(np.empty(self.sizesof(c_axes)), name=self.name, axes=c_axes, 
                         dirpath=self.dirpath, propname="line_profile")
         for sl, img in self.iter(c_axes):
-            out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, order=order)
+            out[sl[:-ndim]] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
+                                                 order=order, mode="reflect")
             
         return out
     
