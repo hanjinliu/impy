@@ -6,14 +6,11 @@ import os
 import glob
 import collections
 from skimage import io
-from skimage import morphology as skmorph
 from skimage import transform as sktrans
 from skimage import filters as skfil
-from skimage import restoration as skres
 from skimage import exposure as skexp
 from skimage import measure as skmes
 from skimage import segmentation as skseg
-from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
@@ -26,153 +23,14 @@ from .label import Label
 from .axes import Axes, ImageAxesError
 from .specials import PropArray, MarkerArray, IndexArray
 from .utilcls import *
+from ._process import *
 
-def _affine(args):
-    sl, data, mx, order = args
-    return (sl, sktrans.warp(data, mx, order=order))
 
-def _median(args):
-    sl, data, selem = args
-    return (sl, skfil.rank.median(data, selem))
-
-def _mean(args):
-    sl, data, selem = args
-    return (sl, skfil.rank.mean(data, selem))
-
-def _gaussian(args):
-    sl, data, sigma = args
-    return (sl, ndi.gaussian_filter(data, sigma))
-
-def _entropy(args):
-    sl, data, selem = args
-    return (sl, skfil.rank.entropy(data, selem))
-
-def _enhance_contrast(args):
-    sl, data, selem = args
-    return (sl, skfil.rank.enhance_contrast(data, selem))
-
-def _difference_of_gaussian(args):
-    sl, data, low_sigma, high_sigma = args
-    return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
-
-def _rolling_ball(args):
-    sl, data, radius, smooth = args
-    if smooth:
-        _, ref = _mean((sl, data, np.ones((3, 3))))
-        back = skres.rolling_ball(ref, radius=radius)
-        tozero = (back > data)
-        back[tozero] = data[tozero]
-    else:
-        back = skres.rolling_ball(data, radius=radius)
-    
-    return (sl, data - back)
-
-def _sobel(args):
-    sl, data = args
-    return (sl, skfil.sobel(data))
-    
-def _opening(args):
-    sl, data, selem = args
-    return (sl, skmorph.opening(data, selem))
-
-def _binary_opening(args):
-    sl, data, selem = args
-    return (sl, skmorph.binary_opening(data, selem))
-
-def _closing(args):
-    sl, data, selem = args
-    return (sl, skmorph.closing(data, selem))
-
-def _binary_closing(args):
-    sl, data, selem = args
-    return (sl, skmorph.binary_closing(data, selem))
-
-def _erosion(args):
-    sl, data, selem = args
-    return (sl, skmorph.erosion(data, selem))
-
-def _binary_erosion(args):
-    sl, data, selem = args
-    return (sl, skmorph.binary_erosion(data, selem))
-
-def _dilation(args):
-    sl, data, selem = args
-    return (sl, skmorph.dilation(data, selem))
-
-def _binary_dilation(args):
-    sl, data, selem = args
-    return (sl, skmorph.binary_dilation(data, selem))
-
-def _tophat(args):
-    sl, data, selem = args
-    return (sl, skmorph.white_tophat(data, selem))
-
-def _skeletonize(args):
-    sl, data = args
-    return (sl, skmorph.skeletonize_3d(data))
-
-def _hessian_eigh(args):
-    sl, data, sigma, pxsize = args
-    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
-                                             mode="reflect")
-    # Correct for scale
-    pxsize = np.asarray(pxsize)
-    hessian = _symmetric_image(hessian_elements)
-    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval, eigvec = np.linalg.eigh(hessian)
-    return (sl, eigval, eigvec)
-
-def _hessian_eigval(args):
-    sl, data, sigma, pxsize = args
-    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
-                                             mode="reflect")
-    # Correct for scale
-    pxsize = np.asarray(pxsize)
-    hessian = _symmetric_image(hessian_elements)
-    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval = np.linalg.eigvalsh(hessian)
-    return (sl, eigval)
-
-def _structure_tensor_eigh(args):
-    sl, data, sigma, pxsize = args
-    tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
-                                              mode="reflect")
-    # Correct for scale
-    pxsize = np.asarray(pxsize)
-    tensor = _symmetric_image(tensor_elements)
-    tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval, eigvec = np.linalg.eigh(tensor)
-    return (sl, eigval, eigvec)
-
-def _structure_tensor_eigval(args):
-    sl, data, sigma, pxsize = args
-    tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
-                                              mode="reflect")
-    # Correct for scale
-    pxsize = np.asarray(pxsize)
-    tensor = _symmetric_image(tensor_elements)
-    tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval = np.linalg.eigvalsh(tensor)
-    return (sl, eigval)
-
-def _label(args):
-    sl, data, connectivity = args
-    labels = skmes.label(data, background=0, connectivity=connectivity)
-    return (sl, labels)
-
-def _distance_transform_edt(args):
-    sl, data = args
-    return (sl, ndi.distance_transform_edt(data))
-
-def _fill_hole(args):
-    sl, data, mask = args
-    seed = np.copy(data)
-    seed[1:-1, 1:-1] = data.max()
-    return (sl, skmorph.reconstruction(seed, mask, method="erosion"))
-
-    
 class ImgArray(LabeledArray):
     def freeze(self):
+        """
+        To avoid image analysis.
+        """        
         return self.view(LabeledArray)
     
     @dims_to_spatial_axes
@@ -583,44 +441,44 @@ class ImgArray(LabeledArray):
         return self.parallel(function, complement_axes(dims), disk)
     
     @record()
-    def erosion(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         f = _binary_erosion if self.dtype == bool else _erosion
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
-    def dilation(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         f = _binary_dilation if self.dtype == bool else _dilation
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
-    def opening(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         f = _binary_opening if self.dtype == bool else _opening
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
-    def closing(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         f = _binary_closing if self.dtype == bool else _closing
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
-    def tophat(self, radius:float=50, dims=None, update:bool=False) -> ImgArray:
+    def tophat(self, radius:float=50, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, _tophat, dims=dims, update=update)
     
     @record()
-    def mean_filter(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, _mean, dims=dims, update=update)
     
     @record()
-    def median_filter(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, _median, dims=dims, update=update)
     
     @record()
-    def entropy_filter(self, radius:float=1, dims=None) -> ImgArray:
+    def entropy_filter(self, radius:float=1, *, dims=None) -> ImgArray:
         disk = ball_like(radius, len(dims))
         return self.as_uint16().parallel(_entropy, dims, disk)
     
     @record()
-    def enhance_contrast(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
+    def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, _enhance_contrast, dims=dims, update=update)
     
     @dims_to_spatial_axes
@@ -1159,7 +1017,7 @@ class ImgArray(LabeledArray):
     
         
     @need_labels
-    def regionprops(self, properties:tuple[str]=("mean_intensity", "area"), *, 
+    def regionprops(self, properties:tuple[str,...]=("mean_intensity", "area"), *, 
                     extra_properties=None) -> ArrayDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
@@ -1315,10 +1173,6 @@ def empty_like(img:ImgArray) -> ImgArray:
         raise TypeError("'empty_like' in impy can only take ImgArray as an input")
     
     return empty(img.shape, dtype=img.dtype, name=img.name, axes=img.axes)
-
-def tensordot(a:ImgArray, b:ImgArray) -> ImgArray:
-    common = [i for i in a.axes if i in a.axes and b.axes]
-    np.tensordot(a, b)
 
 def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
     """

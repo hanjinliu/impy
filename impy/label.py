@@ -1,5 +1,8 @@
+from __future__ import annotations
 from .func import *
 from .utilcls import *
+from .deco import *
+from ._process import *
 from .historyarray import HistoryArray
 from skimage.color import label2rgb
 from skimage import segmentation as skseg
@@ -45,3 +48,11 @@ class Label(HistoryArray):
     
     def __truediv__(self, value):
         raise NotImplementedError("Cannot divide label. If you need to divide, convert it to np.ndarray.")
+    
+    @record()
+    def erosion(self, radius:float=1, dims=None) -> Label:
+        return self._running_kernel(radius, _erosion, dims=dims, update=True)
+    
+    @record()
+    def opening(self, radius:float=1, dims=None) -> Label:
+        return self._running_kernel(radius, _opening, dims=dims, update=True)

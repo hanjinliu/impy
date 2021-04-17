@@ -4,28 +4,9 @@ from scipy.stats import entropy
 from tifffile import TiffFile
 from skimage.morphology import disk, ball
 from skimage import transform as sktrans
-import time
 import json
 import re
 
-class Timer:
-    def __init__(self):
-        self.tic()
-        
-    def tic(self):
-        self.t = time.time()
-    
-    def toc(self):
-        self.t = time.time() - self.t
-    
-    def __str__(self):
-        minute, sec = divmod(self.t, 60)
-        sec = np.round(sec, 2)
-        if minute == 0:
-            out = f"{sec} sec"
-        else:
-            out = f"{int(minute)} min {sec} sec"
-        return out
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
