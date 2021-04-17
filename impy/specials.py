@@ -6,7 +6,6 @@ from scipy import optimize as opt
 from .func import *
 from .deco import *
 from .utilcls import *
-from .axes import Axes, ImageAxesError
 
 SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
@@ -86,23 +85,17 @@ class PropArray(MetaArray):
     
     
 class MarkerArray(MetaArray):
-    @property
-    def axes(self):
-        return self._axes
-    
-    @axes.setter
-    def axes(self, value):
-        if value is None:
-            self._axes = Axes("rp", self.ndim)
-        elif value != "rp":
-            raise ImageAxesError(f"MarkerArray must have rp-axes, but got {value}")
-        else:
-            self._axes = Axes(value, self.ndim)
-            
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+                metadata=None, dtype=None):
+        if dtype is None:
+            dtype = "int16"
+        return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
+                               metadata=metadata, dtype=dtype)
+        
     def plot(self, **kwargs):
         if self.ndim != 2:
             raise ValueError("Cannot plot non-2D markers.")
         kw = dict(color="red", marker="x")
         kw.update(kwargs)
-        plt.scatter(self[:,0], self[:,1], **kw)
+        plt.scatter(self["r=1"], self["r=2"], **kw)
         return None
