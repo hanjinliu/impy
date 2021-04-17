@@ -1,6 +1,6 @@
 import numpy as np
 from .axes import Axes, ImageAxesError
-from .func import add_axes, del_axis, key_repr
+from .func import *
 import itertools
 
 def _range_to_list(v:str):
@@ -297,15 +297,14 @@ class MetaArray(np.ndarray):
             yield (slice(None),)*self.ndim, selfview
     
     def _get_iterlist(self, axes):
-        if isinstance(axes, int):
-            if axes == 2:
-                axes = "ptzc"
-            elif axes == 3:
-                axes = "ptc"
-            else:
-                ValueError(f"dimension must be 2 or 3, but got {axes}")
+        """
+        If axes="tzc", then equivalent to following pseudo code:
+        for t in all_t:
+            for z in all_z:
+                for c in all_c:
+                    yield self[t, z, c, ...]
+        """        
                 
-        axes = "".join([a for a in axes if a in self.axes]) # update axes to existing ones
         iterlist = []
         for a in self.axes:
             if a in axes:
@@ -313,6 +312,7 @@ class MetaArray(np.ndarray):
             else:
                 iterlist.append([slice(None)])
         return iterlist
+            
             
     # numpy functions that will change/discard order
     def transpose(self, axes):

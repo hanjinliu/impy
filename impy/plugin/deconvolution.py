@@ -67,6 +67,7 @@ def _richardson_lucy(args):
     
     return sl, np.fft.fftshift(estimated)
 
+@dims_to_spatial_axes
 @same_dtype(asfloat=True)
 @record()
 def lucy(self, psf, niter:int=50, *, dims=None, update:bool=True):
