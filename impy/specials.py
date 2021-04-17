@@ -82,20 +82,21 @@ class PropArray(MetaArray):
         super()._set_info(other, new_axes)
         self.propname = other.propname
         return None
+
     
-    
-class MarkerArray(MetaArray):
+class MarkerArray(MetaArray):    
+    def plot(self, **kwargs):
+        if self.ndim != 2:
+            raise ValueError("Cannot plot non-2D markers.")
+        kw = dict(color="red", marker="x")
+        kw.update(kwargs)
+        plt.scatter(self["r=2"], self["r=1"], **kw)
+        return None
+        
+class IndexArray(MarkerArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
         if dtype is None:
             dtype = "int16"
         return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
                                metadata=metadata, dtype=dtype)
-        
-    def plot(self, **kwargs):
-        if self.ndim != 2:
-            raise ValueError("Cannot plot non-2D markers.")
-        kw = dict(color="red", marker="x")
-        kw.update(kwargs)
-        plt.scatter(self["r=1"], self["r=2"], **kw)
-        return None

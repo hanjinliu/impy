@@ -24,7 +24,7 @@ from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
 from .axes import Axes, ImageAxesError
-from .specials import PropArray, MarkerArray
+from .specials import PropArray, MarkerArray, IndexArray
 from .utilcls import *
 
 def _affine(args):
@@ -264,15 +264,16 @@ class ImgArray(LabeledArray):
         return fit
     
     @dims_to_spatial_axes
-    @record()
-    def gaussfit_particle(self, markers=None, width=9, p0=None, *, dims=None) -> PropArray:
+    @record(append_history=False)
+    def gaussfit_particle(self, markers:MarkerArray=None, width=9,
+                          p0=None, *, dims=None) -> PropArray:
         # TODO: 
         ndim = len(dims)
         if markers is None:
             markers = self.peak_local_max(dims=dims, min_distance=width, squeeze=False)
         
-        params = PropArray(np.empty(markers.shape), name=self.name, 
-                           dirpath=self.dirpath, propname="gaussfit_particle_params")
+        fitting_params = PropArray(np.empty(markers.shape), name=self.name, 
+                           dirpath=self.dirpath, propname="gaussfit_particle_fitting_params")
         
         fitting_result = PropArray(np.empty(markers.shape), name=self.name, 
                                    dirpath=self.dirpath, propname="gaussfit_particle_fitting_result")
@@ -280,27 +281,33 @@ class ImgArray(LabeledArray):
         self.ongoing = "gaussfit_particle"
         for sl, data in self.iter(complement_axes(dims)):
             sl0 = sl[:-ndim]
-            center = np.array(markers[sl0], dtype=int)
-            gaussian = GaussianParticle(p0)
-            r0s = center - width // 2
-            r1s = center + (width+1) // 2
+            centers = markers[sl0]
             
-            for r0, r1 in zip(r0s, r1s): # r0 = (y0, x0)
-                s = (slice(x0, x1) for x0, x1 in zip(r0, r1))
-                try:
-                    fitting_result[sl0] = gaussian.fit(data[s])
-                    gaussian.shift([r0])
-                    params[sl0] = gaussian.params
-                except IndexError:
-                    fitting_result[sl0] = None
-                    params[sl0] = None
-                except RuntimeError:
-                    fitting_result[sl] = None
-                    params[sl0] = None
+            fitting_params_ = PropArray(np.empty(centers.shape[1]), propname="fitting_params")
+            fitting_result_ = PropArray(np.empty(centers.shape[1]), propname="fitting_result")
+            
+            gaussian = GaussianParticle(p0)
+            r0s = centers - width // 2
+            r1s = centers + (width+1) // 2
+            
+            for i, ((_, r0), (_, r1)) in enumerate(zip(r0s.iter("p"), r1s.iter("p"))):
+                # r0 = (y0, x0)
+                s = tuple(slice(x0, x1) for x0, x1 in zip(r0, r1))
+                if data[s].shape != (width, width):
+                    fitting_result_[i] = None
+                    fitting_params_[i] = None
+                else:
+                    fitting_result_[i] = gaussian.fit(data[s])
+                    gaussian.shift([r0[1], r0[0]])
+                    fitting_params_[i] = gaussian.params
+            
+            fitting_result[sl0] = fitting_result_
+            fitting_params[sl0] = fitting_params_
 
-        result = ArrayDict(fitting_result=fitting_result, parameters=params)
+        result = ArrayDict(fitting_result=fitting_result, parameters=fitting_params)
         self.ongoing = None
         del self.ongoing
+        
         return result
     
     @record()
@@ -756,8 +763,8 @@ class ImgArray(LabeledArray):
                                             num_peaks_per_label=num_peaks_per_label,
                                             labels=labels)
             
-            out[sl[:-ndim]] = MarkerArray(indices.T, name=self.name, axes="rp", 
-                                          dirpath=self.dirpath)
+            out[sl[:-ndim]] = IndexArray(indices.T, name=self.name, axes="rp", 
+                                         dirpath=self.dirpath)
             
         self.ongoing = None
         del self.ongoing
@@ -1002,7 +1009,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def watershed(self, connectivity=1, input_="self", *, dims=None) -> ImgArray:
+    def watershed(self, markers:MarkerArray=None, connectivity=1, input_="distance", *, dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
 
@@ -1025,11 +1032,12 @@ class ImgArray(LabeledArray):
         """
         
         ndim = len(dims)
-        markers = self.peak_local_max(dims=dims, squeeze=False)
+        if markers is None:
+            markers = self.peak_local_max(dims=dims, squeeze=False)
         
         # Prepare the input image.
         if input_ == "labels":
-            input_img = self.labels.copy()
+            input_img = LabeledArray(self.labels, axes=self.labels.axes)
         elif input_ == "self":
             input_img = self.copy()
         elif input_ == "distance":

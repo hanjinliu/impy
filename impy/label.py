@@ -25,6 +25,7 @@ class Label(HistoryArray):
             return self
 
     def optimize(self):
+        self.relabel()
         m = self.max()
         if m < 256 and np.iinfo(self.dtype).max >= 256:
             return self.astype("uint8")
@@ -34,7 +35,7 @@ class Label(HistoryArray):
             return self
     
     def relabel(self):
-        self[:] = skseg.relabel_sequential(self.value)
+        self[:] = skseg.relabel_sequential(self.value)[0]
         return self
     
     def imshow(self, **kwargs):
