@@ -119,7 +119,7 @@ class Axes:
         self.axes = self.sorted()
         return None
     
-    def sorted(self):
+    def sorted(self)-> str:
         return "".join([self.axes[i] for i in self.argsort()])
     
     @check_none

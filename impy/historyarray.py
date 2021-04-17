@@ -10,10 +10,6 @@ class HistoryArray(MetaArray):
         self = super().__new__(cls, obj, name, axes, dirpath, metadata)
         self.history = [] if history is None else history
         return self
-
-    def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=None, metadata=None):
-        pass
     
     def __repr__(self):
         return f"\n"\
@@ -66,7 +62,7 @@ class HistoryArray(MetaArray):
                     label_sl = (slice(None),)
                 out.labels = self.labels[tuple(label_sl)]
                 
-        # TODO: Ellipsis
+        # TODO: Ellipsis does not work now.
         return out
     
     

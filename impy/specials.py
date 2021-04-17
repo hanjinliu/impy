@@ -92,11 +92,11 @@ class MarkerArray(MetaArray):
         kw.update(kwargs)
         plt.scatter(self["r=2"], self["r=1"], **kw)
         return None
-        
+
 class IndexArray(MarkerArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
         if dtype is None:
-            dtype = "int16"
+            dtype = "uint16"
         return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
                                metadata=metadata, dtype=dtype)

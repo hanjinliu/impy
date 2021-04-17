@@ -1,3 +1,4 @@
+from ..func import complement_axes
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
@@ -7,7 +8,7 @@ from ..deco import *
 # To avoid Memory Error, scipy.fftpack is used instead of numpy.fft because the latter does not support 
 # dtype complex64.
 
-__all__ = ["lucy3d", "lucy2d"]
+__all__ = ["lucy"]
 
 def synthesize_psf(size_x, size_y, size_z, wavelength:float=0.610, 
         pxsize:float=0.216667, dz:float=0.38, **kwargs) -> np.ndarray:
@@ -68,14 +69,14 @@ def _richardson_lucy(args):
 
 @same_dtype(asfloat=True)
 @record()
-def lucy3d(self, psfinfo, niter:int=50, update:bool=False):
+def lucy(self, psf, niter:int=50, *, dims=None, update:bool=True):
     """
-    Deconvolution of 3-dimensional image obtained from confocal microscopy, 
+    Deconvolution of N-dimensional image obtained from confocal microscopy, 
     using Richardson-Lucy's algorithm.
     
     Parameters
     ----------
-    psfinfo : dict or np.array
+    psf : dict or np.array
         For synthetic PSF image, pass dict of PSF parameters. By default, 
         wavelength=0.610, pxsize=0.216667, dz=0.38. For experimentally obtained
         PSF image stack, use it directly.
@@ -86,43 +87,31 @@ def lucy3d(self, psfinfo, niter:int=50, update:bool=False):
     dtype : str
         Output dtype
     """
+    ndim = len(dims)
     # make PSF
-    if isinstance(psfinfo, dict):
-        kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": self.sizeof("z")}
-        kw.update(psfinfo)
+    if isinstance(psf, dict):
+        if ndim == 2:
+            kw = {"size_x": self.sizeof("x"), 
+                  "size_y": self.sizeof("y"), 
+                  "size_z": 1}
+        elif ndim == 3:
+            kw = {"size_x": self.sizeof("x"), 
+                  "size_y": self.sizeof("y"), 
+                  "size_z": self.sizeof("z")}
+        else:
+            raise ValueError("Default PSF only accept 2D or 3D image.")
+        
+        kw.update(psf)
         psfimg = synthesize_psf(**kw)
-    elif isinstance(psfinfo, np.ndarray):
-        psfimg = np.asarray(psfinfo)
+    elif isinstance(psf, np.ndarray):
+        psfimg = np.asarray(psf)
         psfimg /= np.max(psfimg)
     else:
-        raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psfinfo)}")
+        raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psf)}")
     
     psfimg = psfimg.astype("float32")
     
     # start deconvolution
-    out = np.zeros(self.shape)
-    out = self.parallel(_richardson_lucy, "ptc", psfimg, niter)
-    
-    return out
-
-@same_dtype(asfloat=True)
-@record()
-def lucy2d(self, psfinfo, niter:int=50, update:bool=False):
-    # make PSF
-    if isinstance(psfinfo, dict):
-        kw = {"size_x": self.sizeof("x"), "size_y": self.sizeof("y"), "size_z": 1}
-        kw.update(psfinfo)
-        psfimg = synthesize_psf(**kw)[0]
-    elif isinstance(psfinfo, np.ndarray):
-        psfimg = np.asarray(psfinfo)
-        psfimg /= np.max(psfimg)
-    else:
-        raise TypeError(f"'psfinfo' must be dict or np.ndarray, but got {type(psfinfo)}")
-    
-    psfimg = psfimg.astype("float32")
-    
-    # start deconvolution
-    out = np.zeros(self.shape)
-    out = self.parallel(_richardson_lucy, "ptzc", psfimg, niter)
+    out = self.parallel(_richardson_lucy, complement_axes(dims), psfimg, niter)
     
     return out

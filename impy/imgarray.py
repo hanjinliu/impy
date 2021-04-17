@@ -164,6 +164,12 @@ def _distance_transform_edt(args):
     sl, data = args
     return (sl, ndi.distance_transform_edt(data))
 
+def _fill_hole(args):
+    sl, data, mask = args
+    seed = np.copy(data)
+    seed[1:-1, 1:-1] = data.max()
+    return (sl, skmorph.reconstruction(seed, mask, method="erosion"))
+
     
 class ImgArray(LabeledArray):
     def freeze(self):
@@ -197,7 +203,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rescale(self, scale:float=1/16, dims=None, order:int=None) -> ImgArray:
+    def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
         """
         Rescale image.
 
@@ -267,7 +273,8 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def gaussfit_particle(self, markers:MarkerArray=None, width=9,
                           p0=None, *, dims=None) -> PropArray:
-        # TODO: 
+        raise NotImplementedError
+        # TODO: check, axes not defined empty slices
         ndim = len(dims)
         if markers is None:
             markers = self.peak_local_max(dims=dims, min_distance=width, squeeze=False)
@@ -431,8 +438,9 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        list of float ImgArray
-            eigenvalues in smaller->larger order
+        ImgArray
+            Array of eigenvalues. The axis `l` denotes the index of eigenvalues.
+            l=0 means the smallest eigenvalue.
         """        
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
@@ -465,7 +473,10 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        list of float ImgArray and 2D-list of float ImgArray
+        ImgArray and ImgArray
+            Arrays of eigenvalues and eigenvectors. The axis `l` denotes the index of 
+            eigenvalues. l=0 means the smallest eigenvalue. `r` denotes the index of
+            spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
@@ -501,7 +512,9 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        list of float ImgArray and 2D-list of float ImgArray
+        ImgArray
+            Array of eigenvalues. The axis `l` denotes the index of eigenvalues.
+            l=0 means the smallest eigenvalue.
         """          
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
@@ -533,7 +546,10 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        list of float ImgArray and 2D-list of float ImgArray
+        ImgArray and ImgArray
+            Arrays of eigenvalues and eigenvectors. The axis `l` denotes the index of 
+            eigenvalues. l=0 means the smallest eigenvalue. `r` denotes the index of
+            spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
@@ -563,8 +579,7 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        out = self.as_uint16().parallel(function, complement_axes(dims), disk)
-        return out
+        return self.as_uint16().parallel(function, complement_axes(dims), disk)
     
     @record()
     def erosion(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
@@ -607,11 +622,13 @@ class ImgArray(LabeledArray):
     def enhance_contrast(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, _enhance_contrast, dims=dims, update=update)
     
+    @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def fill_hole(self, thr="otsu", update:bool=False) -> ImgArray:
+    def fill_hole(self, thr="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
         Filling holes
+        
         Reference
         ---------
         https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html
@@ -619,9 +636,11 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         thr : scalar or str, optional
-            Threshold (value or method) to apply if image is not binary, by default "otsu"
-        update : bool, optional
-            If update self to filtered image, by default False
+            Threshold (value or method) to apply if image is not binary.
+        dims : int or str, optional
+            Dimension of axes.
+        update : bool, by default False
+            If update self to filtered image.
 
         Returns
         -------
@@ -632,11 +651,8 @@ class ImgArray(LabeledArray):
             mask = self.threshold(thr=thr).value
         else:
             mask = self.value
-            
-        seed = np.copy(self.value)
-        seed[1:-1, 1:-1] = self.max()
-        out = skmorph.reconstruction(seed, mask, method="erosion").view(self.__class__)
-        return out
+        
+        return self.parallel(_fill_hole, complement_axes(dims), mask, outdtype=self.dtype)
     
     
     @dims_to_spatial_axes
@@ -684,10 +700,10 @@ class ImgArray(LabeledArray):
         """        
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
-        out = self.parallel(_difference_of_gaussian, complement_axes(dims),
-                            low_sigma, high_sigma)
         
-        return out
+        return self.parallel(_difference_of_gaussian, complement_axes(dims),
+                             low_sigma, high_sigma)
+        
     
     @dims_to_spatial_axes
     @same_dtype()
@@ -704,15 +720,17 @@ class ImgArray(LabeledArray):
             If apply 3x3 averaging before creating background.
         dims : int or str, optional
             Dimension of axes.
+        update : bool, optional
+            If update self to filtered image.
             
         Returns
         -------
         ImgArray
             Background subtracted image.
         """        
-        out = self.as_uint16().parallel(_rolling_ball, complement_axes(dims), 
-                                        radius, smoothing)
-        return out
+        return self.as_uint16().parallel(_rolling_ball, complement_axes(dims), 
+                                         radius, smoothing)
+        
     
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
@@ -735,6 +753,8 @@ class ImgArray(LabeledArray):
         use_labels : bool, default is True
             If use self.labels when it exists.
         squeeze : bool, default is True
+            If True and 0-dimensional array will be returned, the contents will be
+            returned instead. This situation only happens when self.ndim == len(dims).
         dims : int or str, optional
             Dimension of axes.
         """        
@@ -910,13 +930,24 @@ class ImgArray(LabeledArray):
         """        
         if self.dtype != bool:
             raise TypeError("Cannot run distance_map() with non-binary image.")
-        out = self.parallel(_distance_transform_edt, complement_axes(dims))
-        
-        return out
+        return self.parallel(_distance_transform_edt, complement_axes(dims))
         
     @dims_to_spatial_axes
     @record()
-    def skeletonize(self, dims=None):
+    def skeletonize(self, *, dims=None) -> ImgArray:
+        """
+        Skeletonize images. Only works for binary images.
+
+        Parameters
+        ----------
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            Skeletonized image.
+        """        
         if self.dtype != bool:
             raise TypeError("Cannot run skeletonize() with non-binary image.")
         
@@ -944,12 +975,14 @@ class ImgArray(LabeledArray):
         ----------
         label_image : array, optional
             Image to make label, by default self is used.
+        dims : int or str, optional
+            Dimension of axes.
         connectivity : int, optional
             Passed to skimage's label(), by default None
 
         Returns
         -------
-        labeled image
+            Labeled image
         """        
         # check the shape of label_image
         if label_image is None:
@@ -991,6 +1024,8 @@ class ImgArray(LabeledArray):
         ----------
         distance : int, optional
             The distance to expand, by default 1
+        dims : int or str, optional
+            Dimension of axes.
 
         Returns
         -------
@@ -1009,12 +1044,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def watershed(self, markers:MarkerArray=None, connectivity=1, input_="distance", *, dims=None) -> ImgArray:
+    def watershed(self, markers:PropArray=None, connectivity=1, input_="distance", *, dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
 
         Parameters
         ----------
+        markers : PropArray, optional
+            Returned by such as `peak_local_max()`. Array of coordinates of peaks.
         connectivity : int, optional
             Passed to skimage.segmentation.watershed.
         input_ : str, optional
@@ -1042,7 +1079,7 @@ class ImgArray(LabeledArray):
             input_img = self.copy()
         elif input_ == "distance":
             distance_img = -ndi.distance_transform_edt(self.labels.value)
-            input_img = array(distance_img, dtype="float32")
+            input_img = self.__class__(distance_img, dtype="float32", axes=self.labels.axes,)
         else:
             raise ValueError("'input_' must be either 'self', 'labels' or 'distance'.")
         
@@ -1247,6 +1284,10 @@ def empty_like(img:ImgArray) -> ImgArray:
         raise TypeError("'empty_like' in impy can only take ImgArray as an input")
     
     return empty(img.shape, dtype=img.dtype, name=img.name, axes=img.axes)
+
+def tensordot(a:ImgArray, b:ImgArray) -> ImgArray:
+    common = [i for i in a.axes if i in a.axes and b.axes]
+    np.tensordot(a, b)
 
 def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
     """
