@@ -1,8 +1,8 @@
 from collections import defaultdict, Counter
+import numpy as np
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6, "s": 7})
 
-# TODO: axes unit
 class ImageAxesError(Exception):
     pass
 
@@ -12,9 +12,6 @@ class NoneAxes:
 
 NONE = NoneAxes()
 
-def sort_axes(str_):
-    dict_ = {ORDER[s]: s for s in str_}
-    return "".join([dict_[k] for k in sorted(dict_.keys())])
 
 def check_none(func):
     def checked(self, *args, **kwargs):
@@ -44,6 +41,7 @@ class Axes:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
         
         self.axes = value
+    
         
     @check_none
     def __str__(self):
@@ -93,7 +91,7 @@ class Axes:
     
     @check_none
     def is_sorted(self) -> bool:
-        return self.axes == sort_axes(self.axes)
+        return self.axes == self.sorted()
     
     def check_is_sorted(self):
         if self.is_sorted():
@@ -111,17 +109,15 @@ class Axes:
     
     @check_none
     def sort(self) -> None:
-        self.axes = sort_axes(self.axes)
+        self.axes = self.sorted()
         return None
+    
+    def sorted(self):
+        return "".join([self.axes[i] for i in self.argsort()])
     
     @check_none
     def argsort(self):
-        sortedaxes = sort_axes(self.axes)
-        arglist = []
-        for a in self.axes:
-            arglist.append(sortedaxes.find(a))
-        return arglist
-
+        return np.argsort([ORDER[k] for k in self.axes])
     
     def copy(self):
         copy_ = self.__class__()

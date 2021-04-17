@@ -278,7 +278,7 @@ class ImgArray(LabeledArray):
         result = gaussian.fit(self.value[x0:x1, y0:y1])
         gaussian.shift([x0, y0])
         fit = gaussian.generate(self.shape).view(__class__)
-        fit.temp = dict(params=gaussian.params, result=result)
+        fit.temp = ArrayDict(params=gaussian.params, result=result)
 
         return fit
     

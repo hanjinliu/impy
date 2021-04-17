@@ -1,6 +1,5 @@
 __version__ = "1.3.1"
-# TODO: napari
-# TODO: trackpy
+# TODO: napari, trackpy, axes unit
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)

@@ -9,8 +9,6 @@ from .historyarray import HistoryArray
 from tifffile import imwrite
 from skimage.exposure import histogram
 from skimage.color import label2rgb
-    
-
 
 # TODO: how to deal with markers? especially in imshow()
 class LabeledArray(HistoryArray):
