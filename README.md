@@ -12,9 +12,9 @@ Here with `ImgArray`, this module solved major problems that happens when you co
 
 ```python
 import impy as ip
-img0 = ip.imread(r"...\images\XXX.tif")
-img0.gaussian_filter(sigma=1, update=True)
-img0
+img = ip.imread(r"...\images\XXX.tif")
+img.gaussian_filter(sigma=1, update=True)
+img
 ```
     [Out]
         shape     : 10(t), 3(c), 512(y), 512(x)
@@ -25,13 +25,14 @@ img0
        history    : gaussian_filter(sigma=1)
 
 ```python
-img0.imsave("image_name")
+img.imsave("image_name")
 ```
 
 #### 2. Visualization
 
 ```python
 img.imshow()
+img.imshow_comparewith(another_img)
 ```
 
 #### 3. Axis-Targeted Slicing
@@ -44,7 +45,7 @@ img_new = img["c=1;t=4,8,12"]
 
 ```python
 for sl, img2d in img.iter("tzc"):
-    print(img2d.range)
+    print(img2d.range) # do something
 ```
 
 which is equivalent to something like ...
@@ -62,12 +63,10 @@ for (t in t_all) {
 #### 5. Labeling and Measurement
 
 ```python
-# Label image using Yen's thresholding
-img.label_threshold(thr="yen")
-# Measure mean intensity and perimeter for every labeled region
-props = img.regionprop(properties=("mean_intensity", "perimeter"))
-# Plot results of perimeter
-props.perimeter.plot_profile()
+img.label_threshold(thr="yen") # Label image using Yen's thresholding
+props = img.regionprop(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
+props.perimeter.plot_profile() # Plot results of perimeter
+props.perimeter["t=2;p=10"] # Get the perimeter of 10-th label in the slice t=2.
 ```
 
 ## Basic Usage
@@ -143,7 +142,7 @@ img / 10        # output is converted to float32
 img /= 10       # `img` is converted to float32
 ```
 
-## Flexible Slicing
+## Axis-Targeted Slicing
 
 When you want to access the first channel and 4-th to 10-th time points, you can do it by:
 
@@ -158,23 +157,31 @@ List-like slicing is also supported:
 img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
 ```
 
+You can define your own axes such as:
+
+```python
+img.axes = "aoe"
+```
+
 
 ## Image Analysis
 
 `ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
 - `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
-- `lucy2d`, `lucy3d` (plugin) = deconvolution of images.
+- `lucy` (plugin) = deconvolution of images.
 - `affine_correction` = Correction of such as chromatic aberration using Affine transformation.
 - `hessian_eigval`, `hessian_eig` = feature detection using Hessian method.
 - `structure_tensor_eigval`, `structure_tensor_eig` = feature detection using structure tensor.
 - `dog_filter` = filtering using difference of Gaussian method.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` = for 2-D or 3-D smoothing.
 - `sobel_filter` = for edge detection.
+- `entropy_filter` = for object detection.
 - `enhance_contrast` = for higher contrast.
 - `erosion`, `dilation`, `opening`, `closing` = for morphological processing.
 - `rolling_ball`, `tophat` = for background subtraction.
 - `gaussfit`, `gaussfit_particle` = fit the image to 2-D Gaussian (for correction of uneven irradiation or single molecular analysis).
+- `distance_map`, `skeletonize` = processing binary images.
 - `fft`, `ifft` = Fourier transformation.
 - `threshold` = thresholding.
 - `peak_local_max` = find maxima.
@@ -182,6 +189,7 @@ img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
 - `label`, `label_threshold` = labeling images.
 - `expand_labels`, `watershed` = adjuct labels.
 - `regionprops` =  measure properties on labels.
+- `profile_line` = get line scan.
 - `crop_center`, `crop_circle` = crop image.
 - `clip_outliers`, `rescale_intensity` = rescale the intensity profile into certain range.
 - `proj` = Z-projection along any axis.
