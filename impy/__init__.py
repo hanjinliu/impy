@@ -1,4 +1,4 @@
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 # TODO: napari, trackpy, axes unit
 import warnings
 warnings.resetwarnings()
@@ -9,9 +9,10 @@ warnings.simplefilter("ignore", RuntimeWarning)
 
 import os
 from importlib import import_module
-from .imgarray import (array, zeros, empty, imread, imread_collection, read_meta, 
+from .imgarray import (array, zeros, zeros_like, empty, empty_like, 
+                       imread, imread_collection, read_meta, 
                        stack, set_cpu, ImgArray)
-from .proparray import PropArray
+from .specials import PropArray, MarkerArray
 from .gauss import GaussianParticle, GaussianBackground
 
 __doc__ = \

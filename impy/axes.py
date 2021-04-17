@@ -10,6 +10,12 @@ class NoneAxes:
     def __bool__(self):
         return False
 
+    def __contains__(self, other):
+        return None
+    
+    def __iter__(self):
+        raise StopIteration
+
 NONE = NoneAxes()
 
 
@@ -28,8 +34,9 @@ class Axes:
         elif isinstance(value, str):
             value = value.lower()
             c = Counter(value)
-            if any(v>1 for k, v in c.items() if k in "ptzcyxs"):
-                raise ImageAxesError(f"Either 'ptzcyxs' appeared twice: {value}")
+            twice = [a for a, v in c.items() if v > 1]
+            if len(twice) > 0:
+                raise ImageAxesError(f"{', '.join(twice)} appeared twice")
             
             if ndim > 0 and len(value) != ndim:
                 raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and axes ({value})")

@@ -2,7 +2,7 @@ class ArrayDict(dict):
     def __getattr__(self, name:str):
         try:
             return self[name]
-        except KeyError as e:
+        except KeyError:
             raise AttributeError(name)
 
     __setattr__ = dict.__setitem__

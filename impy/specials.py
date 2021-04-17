@@ -6,6 +6,7 @@ from scipy import optimize as opt
 from .func import *
 from .deco import *
 from .utilcls import *
+from .axes import Axes, ImageAxesError
 
 SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
@@ -19,17 +20,13 @@ class PropArray(MetaArray):
         if propname in SCALAR_PROP:
             dtype = "float32"
         elif propname is None:
-            raise TypeError("propname not defined")
+            propname = "User_Defined"
         else:
             dtype = object
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
         self.propname = propname
         
         return self
-
-    def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 metadata=None, propname=None):
-        pass
     
     def __repr__(self):
         if self.axes.is_none():
@@ -66,8 +63,7 @@ class PropArray(MetaArray):
         return self
     
     @dims_to_spatial_axes
-    def curve_fit(self, f, p0, dims=None) -> PropArray:
-        # TODO: any general method?
+    def curve_fit(self, f, p0=None, dims=None) -> PropArray:
         c_axes = complement_axes(dims)
         
         if len(dims)!=1:
@@ -76,7 +72,9 @@ class PropArray(MetaArray):
         out = np.empty(self.sizesof(c_axes), dtype=object)
         xdata = np.arange(self.sizeof(dims))
         for sl, data in self.iter(c_axes):
-            out[sl] = opt.curve_fit(f, xdata, data, p0)
+            p0_ = p0 if not callable(p0) else p0(data)
+            result = opt.curve_fit(f, xdata, data, p0_)
+            out[sl] = result
         out = out.view(self.__class__)
         out._set_info(self, new_axes=del_axis(self.axes, dims))
         return out
@@ -86,4 +84,25 @@ class PropArray(MetaArray):
         self.propname = other.propname
         return None
     
-        
+    
+class MarkerArray(MetaArray):
+    @property
+    def axes(self):
+        return self._axes
+    
+    @axes.setter
+    def axes(self, value):
+        if value is None:
+            self._axes = Axes("rp", self.ndim)
+        elif value != "rp":
+            raise ImageAxesError(f"MarkerArray must have rp-axes, but got {value}")
+        else:
+            self._axes = Axes(value, self.ndim)
+            
+    def plot(self, **kwargs):
+        if self.ndim != 2:
+            raise ValueError("Cannot plot non-2D markers.")
+        kw = dict(color="red", marker="x")
+        kw.update(kwargs)
+        plt.scatter(self[:,0], self[:,1], **kw)
+        return None

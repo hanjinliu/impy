@@ -24,7 +24,7 @@ from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
 from .axes import Axes, ImageAxesError
-from .proparray import PropArray
+from .specials import PropArray, MarkerArray
 from .utilcls import *
 
 def _affine(args):
@@ -166,11 +166,6 @@ def _distance_transform_edt(args):
 
     
 class ImgArray(LabeledArray):
-    def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=None, metadata=None):
-        super().__init__(obj, name=name, axes=axes, dirpath=dirpath, 
-                         history=history, metadata=metadata)
-
     def freeze(self):
         return self.view(LabeledArray)
     
@@ -268,19 +263,45 @@ class ImgArray(LabeledArray):
             plt.show()
         return fit
     
+    @dims_to_spatial_axes
     @record()
-    def gaussfit_particle(self, center, width=9, p0=None) -> ImgArray:
-        # TODO: more useful way? Like peak_local_max().
-        center = np.array(center)
-        gaussian = GaussianParticle(p0)
-        x0, y0 = center - width // 2
-        x1, y1 = center + (width+1) // 2
-        result = gaussian.fit(self.value[x0:x1, y0:y1])
-        gaussian.shift([x0, y0])
-        fit = gaussian.generate(self.shape).view(__class__)
-        fit.temp = ArrayDict(params=gaussian.params, result=result)
+    def gaussfit_particle(self, markers=None, width=9, p0=None, *, dims=None) -> PropArray:
+        # TODO: 
+        ndim = len(dims)
+        if markers is None:
+            markers = self.peak_local_max(dims=dims, min_distance=width, squeeze=False)
+        
+        params = PropArray(np.empty(markers.shape), name=self.name, 
+                           dirpath=self.dirpath, propname="gaussfit_particle_params")
+        
+        fitting_result = PropArray(np.empty(markers.shape), name=self.name, 
+                                   dirpath=self.dirpath, propname="gaussfit_particle_fitting_result")
+        
+        self.ongoing = "gaussfit_particle"
+        for sl, data in self.iter(complement_axes(dims)):
+            sl0 = sl[:-ndim]
+            center = np.array(markers[sl0], dtype=int)
+            gaussian = GaussianParticle(p0)
+            r0s = center - width // 2
+            r1s = center + (width+1) // 2
+            
+            for r0, r1 in zip(r0s, r1s): # r0 = (y0, x0)
+                s = (slice(x0, x1) for x0, x1 in zip(r0, r1))
+                try:
+                    fitting_result[sl0] = gaussian.fit(data[s])
+                    gaussian.shift([r0])
+                    params[sl0] = gaussian.params
+                except IndexError:
+                    fitting_result[sl0] = None
+                    params[sl0] = None
+                except RuntimeError:
+                    fitting_result[sl] = None
+                    params[sl0] = None
 
-        return fit
+        result = ArrayDict(fitting_result=fitting_result, parameters=params)
+        self.ongoing = None
+        del self.ongoing
+        return result
     
     @record()
     def affine_correction(self, ref=None, bins:int=256, 
@@ -320,6 +341,22 @@ class ImgArray(LabeledArray):
             elif self.sizeof(axis) < 2:
                 raise ValueError("Image must have two channels or more.")
         
+        def check_matrix(ref):
+            mtx = []
+            for m in ref:
+                if isinstance(m, (int, float)): 
+                    if m == 1:
+                        mtx.append(m)
+                    else:
+                        raise ValueError(f"Only `1` is ok, but got {m}")
+                    
+                elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
+                    raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
+                
+                else:
+                    mtx.append(m)
+            return mtx
+        
         check_c_axis(self)
         
         mtx = None
@@ -338,19 +375,7 @@ class ImgArray(LabeledArray):
                 
         elif isinstance(ref, (list, tuple)):
             # ref is a list of Affine transformation matrix
-            mtx = []
-            for m in ref:
-                if isinstance(m, (int, float)): 
-                    if m == 1:
-                        mtx.append(m)
-                    else:
-                        raise ValueError(f"Only `1` is ok, but got {m}")
-                    
-                elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
-                    raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
-                
-                else:
-                    mtx.append(m)
+            mtx = check_matrix(ref)
         
         else:
             raise TypeError("`ref` must be image or (list of) Affine transformation matrices.")
@@ -383,7 +408,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eigval(self, sigma=1, *, pxsize=None, dims=None) -> list[ImgArray]:
+    def hessian_eigval(self, sigma=1, *, pxsize=None, dims=None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
         is considered to be a single spatial image, and if dims=3, zyx-image.
@@ -410,15 +435,15 @@ class ImgArray(LabeledArray):
                                           sigma, pxsize,
                                           outshape=self.shape+(ndim,))
         
-        eigval = list(np.moveaxis(eigval, -1, 0))
-        for i, each in enumerate(eigval):
-            each._set_info(self, f"{ndim}D-Hessian-eigenvalue[{i}]")
+        eigval.axes = str(self.axes) + "l"
+        eigval = eigval.sort_axes()
+        eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
         
         return eigval
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eig(self, sigma=1, *, pxsize=None, dims=None) -> tuple:
+    def hessian_eig(self, sigma=1, *, pxsize=None, dims=None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -442,22 +467,19 @@ class ImgArray(LabeledArray):
                                            complement_axes(dims), 
                                            sigma, pxsize)
         
-        # set information of eigenvalue list
-        for i in range(ndim):
-            eigval[i] = eigval[i].view(self.__class__)
-            eigval[i]._set_info(self, f"{ndim}D-Hessian-eigenvalue[{i}]")
+        eigval.axes = str(self.axes) + "l"
+        eigval = eigval.sort_axes()
+        eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
         
-        # set information of eigenvector list
-        for i in range(ndim):
-            for j in range(ndim):
-                eigvec[i][j] = eigvec[i][j].view(self.__class__)
-                eigvec[i][j]._set_info(self, f"{ndim}D-Hessian-eigenvector[{i}][{dims[j]}]")
-                
+        eigvec.axes = str(self.axes) + "rl"
+        eigvec = eigvec.sort_axes()
+        eigvec._set_info(self, f"hessian_eigvec", new_axes=eigvec.axes)
+        
         return eigval, eigvec
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eigval(self, sigma=1, *, pxsize=None, dims=None):
+    def structure_tensor_eigval(self, sigma=1, *, pxsize=None, dims=None) -> ImgArray:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -482,15 +504,14 @@ class ImgArray(LabeledArray):
                                           sigma, pxsize,
                                           outshape=self.shape+(ndim,))
         
-        eigval = list(np.moveaxis(eigval, -1, 0))
-        for i, each in enumerate(eigval):
-            each._set_info(self, f"{ndim}D-Structure-Tensor-eigenvalue[{i}]")
-        
+        eigval.axes = str(self.axes) + "l"
+        eigval = eigval.sort_axes()
+        eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
         return eigval
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eig(self, sigma=1, *, pxsize=None, dims=None):
+    def structure_tensor_eig(self, sigma=1, *, pxsize=None, dims=None)-> tuple[ImgArray, ImgArray]:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -514,17 +535,14 @@ class ImgArray(LabeledArray):
                                            complement_axes(dims), 
                                            sigma, pxsize)
         
-        # set information of eigenvalue list
-        for i in range(ndim):
-            eigval[i] = eigval[i].view(self.__class__)
-            eigval[i]._set_info(self, f"{ndim}D-Structure-Tensor-eigenvalue[{i}]")
+        eigval.axes = str(self.axes) + "l"
+        eigval = eigval.sort_axes()
+        eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
         
-        # set information of eigenvector list
-        for i in range(ndim):
-            for j in range(ndim):
-                eigvec[i][j] = eigvec[i][j].view(self.__class__)
-                eigvec[i][j]._set_info(self, f"{ndim}D-Structure-Tensor-eigenvector[{i}][{dims[j]}]")
-                
+        eigvec.axes = str(self.axes) + "rl"
+        eigvec = eigvec.sort_axes()
+        eigvec._set_info(self, f"structure_tensor_eigvec", new_axes=eigvec.axes)
+        
         return eigval, eigvec
     
     @dims_to_spatial_axes
@@ -738,9 +756,9 @@ class ImgArray(LabeledArray):
                                             num_peaks_per_label=num_peaks_per_label,
                                             labels=labels)
             
-            out[sl[:-ndim]] = SpatialList(ImgArray(indices[:, i], name=self.name, axes=a, 
-                                                    dirpath=self.dirpath, history=self.history+["Local-Max"])
-                                            for i, a in enumerate(dims))
+            out[sl[:-ndim]] = MarkerArray(indices.T, name=self.name, axes="rp", 
+                                          dirpath=self.dirpath)
+            
         self.ongoing = None
         del self.ongoing
         
@@ -1007,7 +1025,7 @@ class ImgArray(LabeledArray):
         """
         
         ndim = len(dims)
-        markers = self.peak_local_max(dims=dims)
+        markers = self.peak_local_max(dims=dims, squeeze=False)
         
         # Prepare the input image.
         if input_ == "labels":
@@ -1114,6 +1132,7 @@ class ImgArray(LabeledArray):
         return out
     
     @same_dtype()
+    @record(append_history=False)
     def proj(self, axis=None, method="mean") -> ImgArray:
         """
         Z-projection.
@@ -1206,8 +1225,20 @@ def array(arr, dtype="uint16", *, name=None, axes=None) -> ImgArray:
 def zeros(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
+def zeros_like(img:ImgArray) -> ImgArray:
+    if not isinstance(img, ImgArray):
+        raise TypeError("'zeros_like' in impy can only take ImgArray as an input")
+    
+    return zeros(img.shape, dtype=img.dtype, name=img.name, axes=img.axes)
+
 def empty(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
     return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
+
+def empty_like(img:ImgArray) -> ImgArray:
+    if not isinstance(img, ImgArray):
+        raise TypeError("'empty_like' in impy can only take ImgArray as an input")
+    
+    return empty(img.shape, dtype=img.dtype, name=img.name, axes=img.axes)
 
 def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
     """

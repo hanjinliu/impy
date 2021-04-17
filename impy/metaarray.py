@@ -57,10 +57,6 @@ class MetaArray(np.ndarray):
         self.metadata = {} if metadata is None else metadata
         return self
     
-    def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 metadata=None):
-        pass
-    
     @property
     def axes(self):
         return self._axes
@@ -265,8 +261,7 @@ class MetaArray(np.ndarray):
         MetaArray
             Sorted image
         """
-        arr = np.array(self.axes.argsort())
-        order = arr[arr]
+        order = self.axes.argsort()
         return self.transpose(order)
     
     

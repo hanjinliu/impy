@@ -10,7 +10,6 @@ from tifffile import imwrite
 from skimage.exposure import histogram
 from skimage.color import label2rgb
 
-# TODO: how to deal with markers? especially in imshow()
 class LabeledArray(HistoryArray):
     n_cpu = 4
     
@@ -20,11 +19,6 @@ class LabeledArray(HistoryArray):
         self = super().__new__(cls, obj, name, axes, dirpath, metadata)
         self.history = [] if history is None else history
         return self
-
-    def __init__(self, obj, name=None, axes=None, dirpath=None, 
-                 history=None, metadata=None):
-        pass
-    
     
     @property
     def range(self):
@@ -451,16 +445,8 @@ class LabeledArray(HistoryArray):
                 sl, eigval_, eigvec_ = func((sl, img, dims, *args))
                 eigval[sl] = eigval_
                 eigvec[sl] = eigvec_
-        
-        # eigenvalues as 1D-list
-        eigval = list(np.moveaxis(eigval, -1, 0))
-        
-        # eigenvectors as 2D-list
-        eigvec = list(np.moveaxis(eigvec, -1, 0))
-        for i, e in enumerate(eigvec):
-            eigvec[i] = SpatialList(np.moveaxis(e, -1 ,0))
             
-        return eigval, eigvec
+        return eigval.view(self.__class__), eigvec.view(self.__class__)
     
     
     def _parallel(self, func, axes, *args, israw=False):
