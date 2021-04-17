@@ -579,7 +579,7 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.as_uint16().parallel(function, complement_axes(dims), disk)
+        return self.parallel(function, complement_axes(dims), disk)
     
     @record()
     def erosion(self, radius:float=1, dims=None, update:bool=False) -> ImgArray:
@@ -674,8 +674,9 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
-        return self.parallel(_gaussian, dims, sigma)
+        """
+        return self.parallel(_gaussian, complement_axes(dims), sigma)
+
 
     @dims_to_spatial_axes
     @record()
@@ -728,8 +729,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        return self.as_uint16().parallel(_rolling_ball, complement_axes(dims), 
-                                         radius, smoothing)
+        return self.parallel(_rolling_ball, complement_axes(dims), 
+                             radius, smoothing)
         
     
     @dims_to_spatial_axes
