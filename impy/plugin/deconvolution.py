@@ -89,16 +89,26 @@ def lucy(self, psf, niter:int=50, *, dims=None, update:bool=True):
         Output dtype
     """
     ndim = len(dims)
+    dx = self.scale["x"]
+    dy = self.scale["y"]
+    
+    if dx != dy:
+        raise ValueError(f"Image has different x scale and y scale: {dx} and {dy}")
+    
     # make PSF
     if isinstance(psf, dict):
         if ndim == 2:
             kw = {"size_x": self.sizeof("x"), 
                   "size_y": self.sizeof("y"), 
-                  "size_z": 1}
+                  "size_z": 1,
+                  "pxsize": dx}
+            
         elif ndim == 3:
             kw = {"size_x": self.sizeof("x"), 
                   "size_y": self.sizeof("y"), 
-                  "size_z": self.sizeof("z")}
+                  "size_z": self.sizeof("z"),
+                  "pxsize": dx,
+                  "dz": self.scale["z"]}
         else:
             raise ValueError("Default PSF only accept 2D or 3D image.")
         

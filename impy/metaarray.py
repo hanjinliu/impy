@@ -93,7 +93,10 @@ class MetaArray(np.ndarray):
         return self.axes.tag
     
     def set_scale(self, other=None, **kwargs):
-        if isinstance(other, dict):
+        if self.axes.tag is None:
+            return ImageAxesError("Image does not have axes.")
+        
+        elif isinstance(other, dict):
             # check if all the keys are contained in axes.
             for a in other.keys():
                 if a not in self.axes:

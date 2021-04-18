@@ -25,6 +25,7 @@ from .specials import PropArray, MarkerArray, IndexArray
 from .utilcls import *
 from ._process import *
 
+# TODO: from skimage.feature import blob_dog, blob_log, blob_doh
 
 class ImgArray(LabeledArray):
     def freeze(self):
@@ -281,7 +282,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eigval(self, sigma=1, *, pxsize=None, dims=None) -> ImgArray:
+    def hessian_eigval(self, sigma=1, *, dims=None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
         is considered to be a single spatial image, and if dims=3, zyx-image.
@@ -290,8 +291,6 @@ class ImgArray(LabeledArray):
         ----------
         sigma : scalar or array (dims,), optional
             Standard deviation of Gaussian filter applied before calculating Hessian.
-        pxsize : scalar or array (dims,), optional
-            Pixel size (to normalize matrix).
         dims : int or str, optional
             Spatial dimension.
 
@@ -303,7 +302,8 @@ class ImgArray(LabeledArray):
         """        
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
-        pxsize = check_nd_pxsize(pxsize, ndim)
+        pxsize = np.array([self.scale[a] for a in dims])
+        
         eigval = self.as_float().parallel(hessian_eigval_, 
                                           complement_axes(dims), 
                                           sigma, pxsize,
@@ -317,7 +317,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eig(self, sigma=1, *, pxsize=None, dims=None) -> tuple[ImgArray, ImgArray]:
+    def hessian_eig(self, sigma=1, *, dims=None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -325,8 +325,6 @@ class ImgArray(LabeledArray):
         ----------
         sigma : scalar or array (dims,), optional
             Standard deviation of Gaussian filter applied before calculating Hessian.
-        pxsize : scalar or array (dims,), optional
-            Pixel size (to normalize matrix).
         dims : int or str, optional
             Spatial dimension.
 
@@ -339,7 +337,7 @@ class ImgArray(LabeledArray):
         """                
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
-        pxsize = check_nd_pxsize(pxsize, ndim)
+        pxsize = np.array([self.scale[a] for a in dims])
         eigval, eigvec = self.parallel_eig(hessian_eigh_, 
                                            complement_axes(dims), 
                                            sigma, pxsize)
@@ -356,7 +354,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eigval(self, sigma=1, *, pxsize=None, dims=None) -> ImgArray:
+    def structure_tensor_eigval(self, sigma=1, *, dims=None) -> ImgArray:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -364,8 +362,6 @@ class ImgArray(LabeledArray):
         ----------
         sigma : scalar or array (dims,), optional
             Standard deviation of Gaussian filter applied before calculating Hessian.
-        pxsize : scalar or array (dims,), optional
-            Pixel size (to normalize matrix).
         dims : int or str, optional
             Spatial dimension.
 
@@ -377,7 +373,7 @@ class ImgArray(LabeledArray):
         """          
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
-        pxsize = check_nd_pxsize(pxsize, ndim)
+        pxsize = np.array([self.scale[a] for a in dims])
         eigval = self.as_float().parallel(structure_tensor_eigval_, 
                                           complement_axes(dims), 
                                           sigma, pxsize,
@@ -390,7 +386,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eig(self, sigma=1, *, pxsize=None, dims=None)-> tuple[ImgArray, ImgArray]:
+    def structure_tensor_eig(self, sigma=1, *, dims=None)-> tuple[ImgArray, ImgArray]:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -398,8 +394,6 @@ class ImgArray(LabeledArray):
         ----------
         sigma : scalar or array (dims,), optional
             Standard deviation of Gaussian filter applied before calculating Hessian.
-        pxsize : scalar or array (dims,), optional
-            Pixel size (to normalize matrix).
         dims : int or str, optional
             Spatial dimension.
 
@@ -412,7 +406,7 @@ class ImgArray(LabeledArray):
         """                
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
-        pxsize = check_nd_pxsize(pxsize, ndim)
+        pxsize = np.array([self.scale[a] for a in dims])
         eigval, eigvec = self.parallel_eig(structure_tensor_eigh_, 
                                            complement_axes(dims), 
                                            sigma, pxsize)
