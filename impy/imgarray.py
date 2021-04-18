@@ -959,14 +959,19 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         # Prepare the input image.
         if input_ == "self":
-            markers = self.peak_local_max(dims=dims, squeeze=False)
             input_img = self.copy()
         elif input_ == "distance":
             input_img = self.__class__(self.labels>0, axes=self.axes).distance_map(dims=dims)
-            markers = input_img.peak_local_max(dims=dims, squeeze=False)
         else:
             raise ValueError("'input_' must be either 'self' or 'distance'.")
         
+        if markers is None:
+            markers = input_img.peak_local_max(dims=dims, squeeze=False)
+        elif isinstance(markers, IndexArray):
+            m = PropArray(np.zeros(()))
+            m[()] = markers
+            markers = m
+                
         input_img._view_labels(self)
         if input_img.dtype == bool:
             input_img = input_img.astype("uint8")

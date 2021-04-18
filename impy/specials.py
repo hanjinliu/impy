@@ -20,6 +20,7 @@ class PropArray(MetaArray):
             dtype = "float32"
         elif propname is None:
             propname = "User_Defined"
+            dtype = object
         else:
             dtype = object
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
