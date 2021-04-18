@@ -35,8 +35,8 @@ class ImgArray(LabeledArray):
         return self.view(LabeledArray)
     
     @dims_to_spatial_axes
-    @same_dtype(True)
     @record()
+    @same_dtype(True)
     def affine(self, *, dims=None, order:int=1, **kwargs) -> ImgArray:
         """
         Affine transformation
@@ -49,8 +49,8 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    @same_dtype(True)
     @record()
+    @same_dtype(True)
     def translate(self, translation=None, *, dims=2) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
@@ -60,8 +60,8 @@ class ImgArray(LabeledArray):
         return out
 
     @dims_to_spatial_axes
-    @same_dtype(True)
     @record()
+    @same_dtype(True)
     def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
         """
         Rescale image.
@@ -509,8 +509,8 @@ class ImgArray(LabeledArray):
     
     
     @dims_to_spatial_axes
-    @same_dtype(True)
     @record()
+    @same_dtype(True)
     def gaussian_filter(self, sigma:float=1, dims=None, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).

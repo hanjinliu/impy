@@ -32,7 +32,6 @@ def record(append_history=True, record_label=False):
             self.ongoing = None
             del self.ongoing
             
-            
             temp = getattr(out, "temp", None)
             
             if record_label:
@@ -55,6 +54,7 @@ def record(append_history=True, record_label=False):
                     out.labels._set_info(self.labels, history)
                 else:
                     out._set_info(self, history)
+                    
             ifupdate and self._update(out)
             
             # if temporary item exists

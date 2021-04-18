@@ -109,6 +109,8 @@ class LabeledArray(HistoryArray):
         
         super().__array_finalize__(obj)
         self._view_labels(obj)
+        if hasattr(obj, "ongoing"):
+            self.ongoing = obj.ongoing
     
     
     def _view_labels(self, other):
@@ -131,7 +133,7 @@ class LabeledArray(HistoryArray):
         return None
     
     def _update(self, out):
-        self.value[:] = out.as_img_type(self.dtype)
+        self.value[:] = out.as_img_type(self.dtype).value[:]
         self.history.append(out.history[-1])
         return None
     
