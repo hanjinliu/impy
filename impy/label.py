@@ -49,10 +49,13 @@ class Label(HistoryArray):
     def __truediv__(self, value):
         raise NotImplementedError("Cannot divide label. If you need to divide, convert it to np.ndarray.")
     
+    @dims_to_spatial_axes
     @record()
-    def erosion(self, radius:float=1, dims=None) -> Label:
+    def erosion(self, radius:float=1, *, dims=None) -> Label:
         return self._running_kernel(radius, erosion_, dims=dims, update=True)
     
+    @dims_to_spatial_axes
     @record()
-    def opening(self, radius:float=1, dims=None) -> Label:
+    def opening(self, radius:float=1, *, dims=None) -> Label:
         return self._running_kernel(radius, opening_, dims=dims, update=True)
+    

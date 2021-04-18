@@ -12,14 +12,7 @@ from skimage.color import label2rgb
 
 class LabeledArray(HistoryArray):
     n_cpu = 4
-    
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None):
         
-        self = super().__new__(cls, obj, name, axes, dirpath, metadata)
-        self.history = [] if history is None else history
-        return self
-    
     @property
     def range(self):
         return self.min(), self.max()
@@ -309,6 +302,8 @@ class LabeledArray(HistoryArray):
             vmax = imshow_kwargs["vmax"]
             if vmin and vmax:
                 image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
+            else:
+                image = self.value
             overlay = label2rgb(self.labels, image=image, bg_label=0, 
                                 alpha=alpha, image_alpha=1)
             plt.imshow(overlay, **imshow_kwargs)
@@ -335,6 +330,8 @@ class LabeledArray(HistoryArray):
                     vmax = imshow_kwargs["vmax"]
                     if vmin and vmax:
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
+                    else:
+                        image = self.value
                     overlay = label2rgb(img.labels, image=image, bg_label=0, 
                                         alpha=alpha, image_alpha=1)
                     ax[i].imshow(overlay, **imshow_kwargs)
@@ -353,6 +350,8 @@ class LabeledArray(HistoryArray):
                     vmax = imshow_kwargs["vmax"]
                     if vmin and vmax:
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
+                    else:
+                        image = self.value
                     overlay = label2rgb(img.labels, image=image, bg_label=0, 
                                         alpha=alpha, image_alpha=1)
                     ax[i].imshow(overlay, **imshow_kwargs)

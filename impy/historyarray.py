@@ -5,9 +5,9 @@ from .metaarray import MetaArray
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None):
+                history=None, metadata=None, dtype=None):
         
-        self = super().__new__(cls, obj, name, axes, dirpath, metadata)
+        self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype)
         self.history = [] if history is None else history
         return self
     

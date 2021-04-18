@@ -944,8 +944,7 @@ class ImgArray(LabeledArray):
         connectivity : int, optional
             Passed to skimage.segmentation.watershed.
         input_ : str, optional
-            What image will be the input of watershed algorithm.
-            - "labels" ... self.labels is used.
+            What image will be the input of watershed algorithm.            
             - "self" ... self is used.
             - "distance" ... distance map of self.labels is used.
         dims : int or str, optional
@@ -958,21 +957,19 @@ class ImgArray(LabeledArray):
         """
         
         ndim = len(dims)
-        if markers is None:
-            markers = self.peak_local_max(dims=dims, squeeze=False)
-        
         # Prepare the input image.
-        if input_ == "labels":
-            input_img = LabeledArray(self.labels, axes=self.labels.axes)
-        elif input_ == "self":
+        if input_ == "self":
+            markers = self.peak_local_max(dims=dims, squeeze=False)
             input_img = self.copy()
         elif input_ == "distance":
-            distance_img = -ndi.distance_transform_edt(self.labels.value)
-            input_img = self.__class__(distance_img, dtype="float32", axes=self.labels.axes,)
+            input_img = self.__class__(self.labels>0, axes=self.axes).distance_map(dims=dims)
+            markers = input_img.peak_local_max(dims=dims, squeeze=False)
         else:
-            raise ValueError("'input_' must be either 'self', 'labels' or 'distance'.")
+            raise ValueError("'input_' must be either 'self' or 'distance'.")
         
         input_img._view_labels(self)
+        if input_img.dtype == bool:
+            input_img = input_img.astype("uint8")
         
         labels = np.zeros(input_img.shape, dtype="uint32")
         input_img.ongoing = "watershed"
@@ -986,7 +983,7 @@ class ImgArray(LabeledArray):
             sl0 = markers[sl[:-ndim]]
             
             marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
-            labels[sl] = skseg.watershed(img.value, marker_input, mask=img.labels.value, 
+            labels[sl] = skseg.watershed(-img.value, marker_input, mask=img.labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
