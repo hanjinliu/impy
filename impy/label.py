@@ -51,8 +51,8 @@ class Label(HistoryArray):
     
     @record()
     def erosion(self, radius:float=1, dims=None) -> Label:
-        return self._running_kernel(radius, _erosion, dims=dims, update=True)
+        return self._running_kernel(radius, erosion_, dims=dims, update=True)
     
     @record()
     def opening(self, radius:float=1, dims=None) -> Label:
-        return self._running_kernel(radius, _opening, dims=dims, update=True)
+        return self._running_kernel(radius, opening_, dims=dims, update=True)

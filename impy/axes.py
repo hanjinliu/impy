@@ -28,7 +28,7 @@ def check_none(func):
 
 
 class Axes:
-    def __init__(self, value=None, ndim=0) -> None:
+    def __init__(self, value=None) -> None:
         if value == NONE or value is None:
             value = NONE
         elif isinstance(value, str):
@@ -37,9 +37,6 @@ class Axes:
             twice = [a for a, v in c.items() if v > 1]
             if len(twice) > 0:
                 raise ImageAxesError(f"{', '.join(twice)} appeared twice")
-            
-            if ndim > 0 and len(value) != ndim:
-                raise ImageAxesError(f"Inconpatible dimensions: image (ndim={ndim}) and axes ({value})")
             
         elif isinstance(value, self.__class__):
             value = value.axes
@@ -127,6 +124,4 @@ class Axes:
         return np.argsort([ORDER[k] for k in self.axes])
     
     def copy(self):
-        copy_ = self.__class__()
-        copy_.axes = self.axes
-        return copy_
+        return self.__class__(self)

@@ -66,7 +66,10 @@ class MetaArray(np.ndarray):
         if value is None:
             self._axes = Axes()
         else:
-            self._axes = Axes(value, self.ndim)
+            self._axes = Axes(value)
+            if self.ndim != len(self._axes):
+                raise ImageAxesError("Inconpatible dimensions: "
+                                    f"image (ndim={self.ndim}) and axes ({value})")
     
     @property
     def value(self):
@@ -111,7 +114,7 @@ class MetaArray(np.ndarray):
             if new_axes != "inherit":
                 self.axes = new_axes
             else:
-                self.axes = other.axes
+                self.axes = other.axes.copy()
         except ImageAxesError:
             self.axes = None
         
@@ -174,23 +177,21 @@ class MetaArray(np.ndarray):
         self.metadata = getattr(obj, "metadata", {})
 
         
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *args, **kwargs):
         """
         Every time a numpy universal function (add, subtract, ...) is called,
         this function will be called to set/update essential attributes.
         """
-        # convert to np.array
-        def _replace_self(a):
-            if (a is self): return a.value#a.view(np.ndarray)
-            else: return a
+        _replace_self = lambda a: a.value if a is self else a
+        
+        # convert arguments
+        args_ = tuple(_replace_self(a) for a in args)
 
-        # call numpy function
-        args = tuple(_replace_self(a) for a in inputs)
-
+        # convert keyword arguments
         if "out" in kwargs:
             kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
 
-        result = getattr(ufunc, method)(*args, **kwargs)
+        result = getattr(ufunc, method)(*args_, **kwargs)
 
         if result is NotImplemented:
             return NotImplemented
@@ -201,11 +202,11 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        # find if input includes MetaArray
+        # find the first MetaArray
         first_instance = None
-        for input_ in inputs:
-            if isinstance(input_, self.__class__):
-                first_instance = input_
+        for arg in args:
+            if isinstance(arg, self.__class__):
+                first_instance = arg
                 break
         
         result._inherit_meta(first_instance, ufunc, **kwargs)

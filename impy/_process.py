@@ -8,38 +8,38 @@ from skimage import feature as skfeat
 from scipy import ndimage as ndi
 import numpy as np
 
-def _affine(args):
+def affine_(args):
     sl, data, mx, order = args
     return (sl, sktrans.warp(data, mx, order=order))
 
-def _median(args):
+def median_(args):
     sl, data, selem = args
     return (sl, skfil.rank.median(data, selem))
 
-def _mean(args):
+def mean_(args):
     sl, data, selem = args
     return (sl, skfil.rank.mean(data, selem))
 
-def _gaussian(args):
+def gaussian_(args):
     sl, data, sigma = args
     return (sl, ndi.gaussian_filter(data, sigma))
 
-def _entropy(args):
+def entropy_(args):
     sl, data, selem = args
     return (sl, skfil.rank.entropy(data, selem))
 
-def _enhance_contrast(args):
+def enhance_contrast_(args):
     sl, data, selem = args
     return (sl, skfil.rank.enhance_contrast(data, selem))
 
-def _difference_of_gaussian(args):
+def difference_of_gaussian_(args):
     sl, data, low_sigma, high_sigma = args
     return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
 
-def _rolling_ball(args):
+def rolling_ball_(args):
     sl, data, radius, smooth = args
     if smooth:
-        _, ref = _mean((sl, data, np.ones((3, 3))))
+        _, ref = mean_((sl, data, np.ones((3, 3))))
         back = skres.rolling_ball(ref, radius=radius)
         tozero = (back > data)
         back[tozero] = data[tozero]
@@ -48,51 +48,51 @@ def _rolling_ball(args):
     
     return (sl, data - back)
 
-def _sobel(args):
+def sobel_(args):
     sl, data = args
     return (sl, skfil.sobel(data))
     
-def _opening(args):
+def opening_(args):
     sl, data, selem = args
     return (sl, skmorph.opening(data, selem))
 
-def _binary_opening(args):
+def binary_opening_(args):
     sl, data, selem = args
     return (sl, skmorph.binary_opening(data, selem))
 
-def _closing(args):
+def closing_(args):
     sl, data, selem = args
     return (sl, skmorph.closing(data, selem))
 
-def _binary_closing(args):
+def binary_closing_(args):
     sl, data, selem = args
     return (sl, skmorph.binary_closing(data, selem))
 
-def _erosion(args):
+def erosion_(args):
     sl, data, selem = args
     return (sl, skmorph.erosion(data, selem))
 
-def _binary_erosion(args):
+def binary_erosion_(args):
     sl, data, selem = args
     return (sl, skmorph.binary_erosion(data, selem))
 
-def _dilation(args):
+def dilation_(args):
     sl, data, selem = args
     return (sl, skmorph.dilation(data, selem))
 
-def _binary_dilation(args):
+def binary_dilation_(args):
     sl, data, selem = args
     return (sl, skmorph.binary_dilation(data, selem))
 
-def _tophat(args):
+def tophat_(args):
     sl, data, selem = args
     return (sl, skmorph.white_tophat(data, selem))
 
-def _skeletonize(args):
+def skeletonize_(args):
     sl, data = args
     return (sl, skmorph.skeletonize_3d(data))
 
-def _hessian_eigh(args):
+def hessian_eigh_(args):
     sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
                                              mode="reflect")
@@ -103,7 +103,7 @@ def _hessian_eigh(args):
     eigval, eigvec = np.linalg.eigh(hessian)
     return (sl, eigval, eigvec)
 
-def _hessian_eigval(args):
+def hessian_eigval_(args):
     sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
                                              mode="reflect")
@@ -114,7 +114,7 @@ def _hessian_eigval(args):
     eigval = np.linalg.eigvalsh(hessian)
     return (sl, eigval)
 
-def _structure_tensor_eigh(args):
+def structure_tensor_eigh_(args):
     sl, data, sigma, pxsize = args
     tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
                                               mode="reflect")
@@ -125,7 +125,7 @@ def _structure_tensor_eigh(args):
     eigval, eigvec = np.linalg.eigh(tensor)
     return (sl, eigval, eigvec)
 
-def _structure_tensor_eigval(args):
+def structure_tensor_eigval_(args):
     sl, data, sigma, pxsize = args
     tensor_elements = skfeat.structure_tensor(data, sigma, order="xy",
                                               mode="reflect")
@@ -136,16 +136,16 @@ def _structure_tensor_eigval(args):
     eigval = np.linalg.eigvalsh(tensor)
     return (sl, eigval)
 
-def _label(args):
+def label_(args):
     sl, data, connectivity = args
     labels = skmes.label(data, background=0, connectivity=connectivity)
     return (sl, labels)
 
-def _distance_transform_edt(args):
+def distance_transform_edt_(args):
     sl, data = args
     return (sl, ndi.distance_transform_edt(data))
 
-def _fill_hole(args):
+def fill_hole_(args):
     sl, data, mask = args
     seed = np.copy(data)
     seed[1:-1, 1:-1] = data.max()

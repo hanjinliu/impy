@@ -124,7 +124,7 @@ def find_first_appeared(axes, order):
     raise ValueError(f"{axes} does not have any of {order}.")
         
 
-def del_axis(axes, axis):
+def del_axis(axes, axis) -> str:
     """
     axes: str or Axes object.
     axis: int.

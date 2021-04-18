@@ -44,7 +44,7 @@ class ImgArray(LabeledArray):
         if dims != 2:
             raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(_affine, complement_axes(dims), mx, order)
+        out = self.parallel(affine_, complement_axes(dims), mx, order)
         return out
     
     @dims_to_spatial_axes
@@ -55,7 +55,7 @@ class ImgArray(LabeledArray):
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(_affine, complement_axes(dims), mx)
+        out = self.parallel(affine_, complement_axes(dims), mx)
         return out
 
     @dims_to_spatial_axes
@@ -304,7 +304,7 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval = self.as_float().parallel(_hessian_eigval, 
+        eigval = self.as_float().parallel(hessian_eigval_, 
                                           complement_axes(dims), 
                                           sigma, pxsize,
                                           outshape=self.shape+(ndim,))
@@ -340,7 +340,7 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval, eigvec = self.parallel_eig(_hessian_eigh, 
+        eigval, eigvec = self.parallel_eig(hessian_eigh_, 
                                            complement_axes(dims), 
                                            sigma, pxsize)
         
@@ -378,7 +378,7 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval = self.as_float().parallel(_structure_tensor_eigval, 
+        eigval = self.as_float().parallel(structure_tensor_eigval_, 
                                           complement_axes(dims), 
                                           sigma, pxsize,
                                           outshape=self.shape+(ndim,))
@@ -413,7 +413,7 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = check_nd_pxsize(pxsize, ndim)
-        eigval, eigvec = self.parallel_eig(_structure_tensor_eigh, 
+        eigval, eigvec = self.parallel_eig(structure_tensor_eigh_, 
                                            complement_axes(dims), 
                                            sigma, pxsize)
         
@@ -431,7 +431,7 @@ class ImgArray(LabeledArray):
     @same_dtype()
     @record()
     def sobel_filter(self, dims=None, update:bool=False):
-        out = self.parallel(_sobel, complement_axes(dims))
+        out = self.parallel(sobel_, complement_axes(dims))
         return out
     
     @dims_to_spatial_axes
@@ -442,44 +442,44 @@ class ImgArray(LabeledArray):
     
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        f = _binary_erosion if self.dtype == bool else _erosion
+        f = binary_erosion_ if self.dtype == bool else erosion_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        f = _binary_dilation if self.dtype == bool else _dilation
+        f = binary_dilation_ if self.dtype == bool else dilation_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        f = _binary_opening if self.dtype == bool else _opening
+        f = binary_opening_ if self.dtype == bool else opening_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        f = _binary_closing if self.dtype == bool else _closing
+        f = binary_closing_ if self.dtype == bool else closing_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def tophat(self, radius:float=50, *, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, _tophat, dims=dims, update=update)
+        return self._running_kernel(radius, tophat_, dims=dims, update=update)
     
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, _mean, dims=dims, update=update)
+        return self._running_kernel(radius, mean_, dims=dims, update=update)
     
     @record()
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, _median, dims=dims, update=update)
+        return self._running_kernel(radius, median_, dims=dims, update=update)
     
     @record()
     def entropy_filter(self, radius:float=1, *, dims=None) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.as_uint16().parallel(_entropy, dims, disk)
+        return self.as_uint16().parallel(entropy_, dims, disk)
     
     @record()
     def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
-        return self._running_kernel(radius, _enhance_contrast, dims=dims, update=update)
+        return self._running_kernel(radius, enhance_contrast_, dims=dims, update=update)
     
     @dims_to_spatial_axes
     @same_dtype()
@@ -511,7 +511,7 @@ class ImgArray(LabeledArray):
         else:
             mask = self.value
         
-        return self.parallel(_fill_hole, complement_axes(dims), mask, outdtype=self.dtype)
+        return self.parallel(fill_hole_, complement_axes(dims), mask, outdtype=self.dtype)
     
     
     @dims_to_spatial_axes
@@ -534,7 +534,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """
-        return self.parallel(_gaussian, complement_axes(dims), sigma)
+        return self.parallel(gaussian_, complement_axes(dims), sigma)
 
 
     @dims_to_spatial_axes
@@ -561,7 +561,7 @@ class ImgArray(LabeledArray):
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
         
-        return self.parallel(_difference_of_gaussian, complement_axes(dims),
+        return self.parallel(difference_of_gaussian_, complement_axes(dims),
                              low_sigma, high_sigma)
         
     
@@ -588,7 +588,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        return self.parallel(_rolling_ball, complement_axes(dims), 
+        return self.parallel(rolling_ball_, complement_axes(dims), 
                              radius, smoothing)
         
     
@@ -796,7 +796,7 @@ class ImgArray(LabeledArray):
         """        
         if self.dtype != bool:
             raise TypeError("Cannot run distance_map() with non-binary image.")
-        return self.parallel(_distance_transform_edt, complement_axes(dims))
+        return self.parallel(distance_transform_edt_, complement_axes(dims))
         
     @dims_to_spatial_axes
     @record()
@@ -817,7 +817,7 @@ class ImgArray(LabeledArray):
         if self.dtype != bool:
             raise TypeError("Cannot run skeletonize() with non-binary image.")
         
-        return self.parallel(_skeletonize, complement_axes(dims), outdtype=bool)
+        return self.parallel(skeletonize_, complement_axes(dims), outdtype=bool)
     
     
     @dims_to_spatial_axes
@@ -889,7 +889,7 @@ class ImgArray(LabeledArray):
         
         c_axes = complement_axes(dims)
         label_image.ongoing = "label"
-        labels = label_image.parallel(_label, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
+        labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
         label_image.ongoing = None
         del label_image.ongoing
         
