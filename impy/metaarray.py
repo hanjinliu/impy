@@ -92,7 +92,19 @@ class MetaArray(np.ndarray):
     def scale(self):
         return self.axes.tag
     
-    def set_scale(self, other=None, **kwargs):
+    def set_scale(self, other=None, **kwargs) -> None:
+        """
+        Set scales of each axis.
+
+        Parameters
+        ----------
+        other : dict or MetaArray, optional
+            New scales. If dict, it should be like {"x": 0.1, "y": 0.1}. If MetaArray, only
+            scales of common axes are copied.
+        kwargs : 
+            This enables function call like set_scale(x=0.1, y=0.1).
+
+        """        
         if self.axes.tag is None:
             return ImageAxesError("Image does not have axes.")
         
@@ -104,11 +116,16 @@ class MetaArray(np.ndarray):
             self.axes.tag.update(other)
             
         elif isinstance(other, MetaArray):
+            # Here should not be `self.__class__` because sometimes scales are copied from
+            # an object in different branches of subclasses.
             self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})
+            
         elif kwargs:
             self.set_scale(dict(kwargs))
+            
         else:
             raise TypeError(f"'other' must be str or MetaArray, but got {type(other)}")
+        
         return None
     
             

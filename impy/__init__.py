@@ -1,5 +1,5 @@
 __version__ = "1.4.2"
-# TODO: napari, trackpy, axes unit
+# TODO: napari, trackpy
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
@@ -42,8 +42,9 @@ Normalize the image and save it.
 >>> img2 = img.drift_correction(ref=img["c=1"])
 
 (ex.3) Deconvolution
->>> psfinfo = {"wavelength":0.57, "pxsize":0.1, "dz":0.3}
->>> img2 = img.lucy3d(psfinfo=psfinfo, niter=20)
+>>> psfinfo = {"wavelength":0.57}
+>>> img2.set_scale(x=0.15, y=0.15, z=0.22)
+>>> img2 = img.lucy(psf=psfinfo, niter=20)
 
 """
 
