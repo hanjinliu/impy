@@ -2,7 +2,7 @@ import numpy as np
 from .axes import Axes, ImageAxesError
 from .func import *
 import itertools
-
+# TODO: how to copy scale? such as
 def _range_to_list(v:str):
     """
     "1,3,5" -> [1,3,5]
@@ -88,6 +88,27 @@ class MetaArray(np.ndarray):
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
         return shape_info
     
+    @property
+    def scale(self):
+        return self.axes.tag
+    
+    def set_scale(self, other=None, **kwargs):
+        if isinstance(other, dict):
+            # check if all the keys are contained in axes.
+            for a in other.keys():
+                if a not in self.axes:
+                    raise ImageAxesError(f"Image does not have axis {a}.")    
+            self.axes.tag.update(other)
+            
+        elif isinstance(other, MetaArray):
+            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})
+        elif kwargs:
+            self.set_scale(dict(kwargs))
+        else:
+            raise TypeError(f"'other' must be str or MetaArray, but got {type(other)}")
+        return None
+    
+            
     
     def __repr__(self):
         return f"\n"\
@@ -113,6 +134,7 @@ class MetaArray(np.ndarray):
         try:
             if new_axes != "inherit":
                 self.axes = new_axes
+                self.set_scale(other)
             else:
                 self.axes = other.axes.copy()
         except ImageAxesError:

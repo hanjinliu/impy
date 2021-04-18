@@ -13,28 +13,33 @@ def load_json(s:str):
     
 def get_meta(path:str):
     with TiffFile(path) as tif:
-        hist = []
         ijmeta = tif.imagej_metadata
-        if ijmeta is None:
-            ijmeta = {}
-        
-        ijmeta.pop("ROI", None)
-        
-        if "Info" in ijmeta.keys():
-            try:
-                infodict = load_json(ijmeta["Info"])
-            except:
-                infodict = {}
-            if "impyhist" in infodict.keys():
-                hist = infodict["impyhist"].split("->")
-        
+        series0 = tif.series[0]
+    
+    pagetag = series0.pages[0].tags
+    
+    hist = []
+    if ijmeta is None:
+        ijmeta = {}
+    
+    ijmeta.pop("ROI", None)
+    
+    if "Info" in ijmeta.keys():
         try:
-            axes = tif.series[0].axes.lower()
+            infodict = load_json(ijmeta["Info"])
         except:
-            axes = None
+            infodict = {}
+        if "impyhist" in infodict.keys():
+            hist = infodict["impyhist"].split("->")
     
+    try:
+        axes = series0.axes.lower()
+    except:
+        axes = None
     
-    return {"axes":axes, "ijmeta":ijmeta, "history":hist}
+    tags = {v.name: v.value for v in pagetag.values()}
+    
+    return {"axes": axes, "ijmeta": ijmeta, "history": hist, "tags": tags}
 
 def check_nd_sigma(sigma, ndim):
     if isinstance(sigma, (int, float)):

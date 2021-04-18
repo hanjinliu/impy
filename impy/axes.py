@@ -30,21 +30,29 @@ def check_none(func):
 class Axes:
     def __init__(self, value=None) -> None:
         if value == NONE or value is None:
-            value = NONE
+            self.axes = NONE
+            self.tag = None
         elif isinstance(value, str):
             value = value.lower()
             c = Counter(value)
             twice = [a for a, v in c.items() if v > 1]
             if len(twice) > 0:
                 raise ImageAxesError(f"{', '.join(twice)} appeared twice")
+            self.axes = value
+            self.tag = {a: 1.0 for a in self.axes}
             
         elif isinstance(value, self.__class__):
-            value = value.axes
+            self.axes = value.axes
+            self.tag = value.tag
+            
+        elif isinstance(value, dict):
+            if any(len(v)!=1 for v in value.keys()):
+                raise ImageAxesError("Only one-character str can be an axis symbol.")
+            self.axes = "".join(value.keys())
+            self.tag = value
             
         else:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
-        
-        self.axes = value
     
         
     @check_none
@@ -62,6 +70,11 @@ class Axes:
     @check_none
     def __iter__(self):
         return self.axes.__iter__()
+    
+    @check_none
+    def items(self):
+        for a in self.axes:
+            yield a, self.tag[a]
     
     @check_none
     def __next__(self):

@@ -649,15 +649,17 @@ class ImgArray(LabeledArray):
                                             num_peaks_per_label=num_peaks_per_label,
                                             labels=labels)
             
-            out[sl[:-ndim]] = IndexArray(indices.T, name=self.name, axes="rp", 
-                                         dirpath=self.dirpath)
+            indarr = IndexArray(indices.T, name=self.name, axes="rp", 
+                                dirpath=self.dirpath)
+            out[sl[:-ndim]] = indarr
             
         self.ongoing = None
         del self.ongoing
         
         if squeeze and out.ndim == 0:
             out = out[()]
-            
+        
+        out.set_scale(self)
         return out
     
         
@@ -851,7 +853,8 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes):
             out[sl[:-ndim]] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
                                                  order=order, mode="reflect")
-            
+        
+        out.set_scale(self)
         return out
     
     @dims_to_spatial_axes
@@ -1065,6 +1068,8 @@ class ImgArray(LabeledArray):
             for prop_name in properties:
                 out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
         
+        for parr in out.values():
+            parr.set_scale(self)
         return out
     
     @same_dtype()

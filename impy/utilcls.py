@@ -13,9 +13,10 @@ class ArrayDict(dict):
     
     def __repr__(self):
         if self.keys():
-            v0 = next(iter(self.values()))
-            return f"keys: {', '.join(self.keys())}\n" \
-                   f"values: {repr(v0)}      etc."
+            out = f"{self.__class__.__name__} with\n"
+            for k, v in self.items():
+                out += f"{k} : {v.shape_info}\n"
+            return out
         else:
             return self.__class__.__name__ + "()"
 

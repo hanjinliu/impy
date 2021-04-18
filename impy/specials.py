@@ -41,7 +41,7 @@ class PropArray(MetaArray):
                f"original image: {self.name}\n"\
                f"property name : {self.propname}\n"
     
-    def plot_profile(self, along=None, cmap="jet", cmap_range=(0, 1)):
+    def plot(self, along=None, cmap="jet", cmap_range=(0, 1)):
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
@@ -52,7 +52,7 @@ class PropArray(MetaArray):
         plt.figure(figsize=(4, 1.7))
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
-        x = np.arange(self.sizeof(along))
+        x = np.arange(self.sizeof(along))*self.scale[along]
         for i, (sl, y) in enumerate(self.iter(iteraxes)):
             plt.plot(x, y, color=cmap(positions[i]))
         
@@ -62,19 +62,19 @@ class PropArray(MetaArray):
         
         return self
     
-    @dims_to_spatial_axes
     def curve_fit(self, f, p0=None, dims=None) -> PropArray:
-        c_axes = complement_axes(dims)
+        c_axes = complement_axes(dims, all_axes=self.axes)
         
         if len(dims)!=1:
             raise NotImplementedError
         
         out = np.empty(self.sizesof(c_axes), dtype=object)
         xdata = np.arange(self.sizeof(dims))
+        # maybe I should write another version of iter() for better sl.
         for sl, data in self.iter(c_axes):
             p0_ = p0 if not callable(p0) else p0(data)
             result = opt.curve_fit(f, xdata, data, p0_)
-            out[sl] = result
+            out[sl[:]] = result
         out = out.view(self.__class__)
         out._set_info(self, new_axes=del_axis(self.axes, dims))
         return out
