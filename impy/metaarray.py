@@ -173,25 +173,32 @@ class MetaArray(np.ndarray):
             # img[arr] ... where arr is 2-D boolean array
             key = add_axes(self.axes, self.shape, key)
 
-        out = super().__getitem__(key)          # get item as np.ndarray
+        out = super().__getitem__(key)         # get item as np.ndarray
         keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            if self.axes:
-                del_list = []
-                for i, s in enumerate(keystr.split(",")):
-                    if s != "*":
-                        del_list.append(i)
-                        
-                new_axes = del_axis(self.axes, del_list)
-                if hasattr(key, "__array__"):
-                    new_axes = None
-            else:
+            if hasattr(key, "__array__"):
+                # fancy indexing will lose axes information
                 new_axes = None
                 
-            out._set_info(self, new_axes)
+            elif "new" in keystr:
+                # np.newaxis or None will add dimension
+                new_axes = None
+                
+            elif self.axes:
+                del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
+                new_axes = del_axis(self.axes, del_list)
+            else:
+                new_axes = None
+            
+            out._getitem_additional_set_info(self, keystr=keystr,
+                                             new_axes=new_axes, key=key)
         
         return out
+    
+    def _getitem_additional_set_info(self, other, **kwargs):
+        self._set_info(other, kwargs["new_axes"])
+        return None
     
     def __setitem__(self, key, value):
         if isinstance(key, str):

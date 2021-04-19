@@ -121,6 +121,54 @@ class LabeledArray(HistoryArray):
             axes_included(self, other.labels) and
             shape_match(self, other.labels)):
             self.labels = other.labels
+    
+    # def __getitem__(self, key):
+    #     if isinstance(key, str):
+    #         # img["t=2;z=4"] ... ImageJ-like method
+    #         sl = self.str_to_slice(key)
+    #         return self.__getitem__(sl)
+
+    #     if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
+    #         # img[arr] ... where arr is 2-D boolean array
+    #         key = add_axes(self.axes, self.shape, key)
+
+    #     out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
+    #     keystr = key_repr(key)                 # write down key e.g. "0,*,*"
+    #     if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
+    #         if hasattr(key, "__array__"):
+    #             # fancy indexing will lose axes information
+    #             new_axes = None
+                
+    #         elif "new" in keystr:
+    #             # np.newaxis or None will add dimension
+    #             new_axes = None
+                
+    #         elif self.axes:
+    #             del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
+    #             new_axes = del_axis(self.axes, del_list)
+    #         else:
+    #             new_axes = None
+            
+    #         out._getitem_additional_set_info(self, keystr=keystr,
+    #                                          new_axes=new_axes, key=key)
+    #     return out
+    
+    def _getitem_additional_set_info(self, other, **kwargs):
+        super()._getitem_additional_set_info(other, **kwargs)
+        key = kwargs["key"]
+        if other.axes and hasattr(other, "labels"):
+            label_sl = []
+            if isinstance(key, tuple):
+                _keys = key
+            else:
+                _keys = (key,)
+            for i, a in enumerate(other.axes):
+                if a in other.labels.axes and i < len(_keys):
+                    label_sl.append(_keys[i])
+            if len(label_sl) == 0:
+                label_sl = (slice(None),)
+            self.labels = other.labels[tuple(label_sl)]
+        return None
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
         super()._set_info(other, next_history, new_axes)
@@ -149,7 +197,7 @@ class LabeledArray(HistoryArray):
             out = out / 256
         elif self.dtype == "bool":
             pass
-        elif self.dtype in ("float16", "float32", "float64"):
+        elif self.dtype.kind == "f":
             if 0 <= np.min(out) and np.max(out) < 1:
                 out = out * 256
             else:
@@ -172,7 +220,7 @@ class LabeledArray(HistoryArray):
             out = out * 256
         elif self.dtype == "bool":
             pass
-        elif self.dtype in ("float16", "float32", "float64"):
+        elif self.dtype.kind == "f":
             if 0 <= np.min(out) and np.max(out) < 1:
                 out = out * 65536
             else:
@@ -462,4 +510,3 @@ class LabeledArray(HistoryArray):
         return results
     
     
-
