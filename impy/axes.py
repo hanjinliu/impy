@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import defaultdict, Counter
 import numpy as np
 
@@ -26,12 +27,13 @@ def check_none(func):
         return func(self, *args, **kwargs)
     return checked
 
-
+# TODO: channel names
 class Axes:
     def __init__(self, value=None) -> None:
         if value == NONE or value is None:
-            self.axes = NONE
-            self.tag = None
+            self.axes:str = NONE
+            self.scale:dict[str, float] = None
+            
         elif isinstance(value, str):
             value = value.lower()
             c = Counter(value)
@@ -39,17 +41,21 @@ class Axes:
             if len(twice) > 0:
                 raise ImageAxesError(f"{', '.join(twice)} appeared twice")
             self.axes = value
-            self.tag = {a: 1.0 for a in self.axes}
+            self.scale = {a: 1.0 for a in self.axes}
             
         elif isinstance(value, self.__class__):
             self.axes = value.axes
-            self.tag = value.tag
+            self.scale = value.scale
             
         elif isinstance(value, dict):
             if any(len(v)!=1 for v in value.keys()):
                 raise ImageAxesError("Only one-character str can be an axis symbol.")
             self.axes = "".join(value.keys())
-            self.tag = value
+            for k, v in value.items():
+                try:
+                    self.scale[k] = float(v)
+                except ValueError:
+                    raise TypeError(f"Cannot set {type(v)} information to axes from a dict.")
             
         else:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
@@ -71,10 +77,10 @@ class Axes:
     def __iter__(self):
         return self.axes.__iter__()
     
-    @check_none
-    def items(self):
-        for a in self.axes:
-            yield a, self.tag[a]
+    # @check_none
+    # def items(self):
+    #     for a in self.axes:
+    #         yield a, self.tag[a]
     
     @check_none
     def __next__(self):

@@ -14,7 +14,6 @@ from skimage import segmentation as skseg
 from skimage import feature as skfeat
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from scipy import ndimage as ndi
 from .func import *
 from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
@@ -25,9 +24,9 @@ from .specials import PropArray, MarkerArray, IndexArray
 from .utilcls import *
 from ._process import *
 
-# TODO: from skimage.feature import blob_dog, blob_log, blob_doh
 
 class ImgArray(LabeledArray):
+    
     def freeze(self):
         """
         To avoid image analysis.
@@ -176,6 +175,10 @@ class ImgArray(LabeledArray):
         del self.ongoing
         
         return result
+    
+    # TODO: from skimage.feature import blob_dog, blob_log, blob_doh
+    # def bolb_detection(self, method="dog", ):
+    #     skfeat.blob_dog, skfeat.blob_log, skfeat.blob_doh
     
     @record()
     def affine_correction(self, ref=None, bins:int=256, 
@@ -657,14 +660,17 @@ class ImgArray(LabeledArray):
         return out
     
         
-    
+    @dims_to_spatial_axes
     @record()
-    def fft(self) -> ImgArray:
+    def fft(self, dims) -> ImgArray:
         """
         Fast Fourier transformation.
         This function returns complex array. Inconpatible with some functions here.
         """
-        freq = fft(self.value.astype("float32"))
+        # TODO: check if this works
+        c_axes = complement_axes(dims, all_axes=self.axes)
+        freq = fft(self.value.astype("float32"), shape=self.sizesof(dims), 
+                   axes=[self.axisof(a) for a in c_axes])
         out = np.fft.fftshift(freq)
         return out
     
@@ -730,6 +736,7 @@ class ImgArray(LabeledArray):
         Make a rectancge label.
         Currently only supports 2-dim image.
         """
+        # TODO: more general implementation
         x, y = xy
         dx, dy = dxdy
         
@@ -1160,16 +1167,16 @@ def array(arr, dtype="uint16", *, name=None, axes=None) -> ImgArray:
 def zeros(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
-def zeros_like(img:ImgArray) -> ImgArray:
+def zeros_like(img:ImgArray, name:str=None) -> ImgArray:
     if not isinstance(img, ImgArray):
         raise TypeError("'zeros_like' in impy can only take ImgArray as an input")
     
-    return zeros(img.shape, dtype=img.dtype, name=img.name, axes=img.axes)
+    return zeros(img.shape, dtype=img.dtype, name=name, axes=img.axes)
 
 def empty(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
     return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
-def empty_like(img:ImgArray) -> ImgArray:
+def empty_like(img:ImgArray, name:str=None) -> ImgArray:
     if not isinstance(img, ImgArray):
         raise TypeError("'empty_like' in impy can only take ImgArray as an input")
     

@@ -1,5 +1,5 @@
 __version__ = "1.4.2"
-# TODO: napari, trackpy
+# TODO: napari, btrack ... https://github.com/quantumjot/BayesianTracker
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
@@ -21,6 +21,8 @@ Extended version of NumPy for image analysis.
 The name of original image and executed calculations are all recorded.
 (See also __array_finalize__, __array_ufunc__ and the NumPy official documents)
 
+Examples
+--------
 Import module
 >>> import impy as ip
 Load tiff image by
@@ -46,6 +48,17 @@ Normalize the image and save it.
 >>> img2.set_scale(x=0.15, y=0.15, z=0.22)
 >>> img2 = img.lucy(psf=psfinfo, niter=20)
 
+
+Inheritance
+-----------
+              ____    MetaArray   _______
+             /              \            \
+       HistoryArray        MarkerArray  PropArray
+       /         \          /       \ 
+ LabeledArray   Label  IndexArray CircularMarkerArray
+    /
+ImgArray
+
 """
 
 # Load plugins if possible
@@ -53,7 +66,7 @@ plugin_path = os.path.join(os.path.dirname(__file__), "plugin")
 py_file_list = []
 for file in os.listdir(plugin_path):
     name, ext = os.path.splitext(file)
-    if (ext == ".py" and not name.startswith("__")):
+    if ext == ".py" and not name.startswith("__"):
         py_file_list.append(name)
 
 plugin_func_list = []   # list of plugin function objects

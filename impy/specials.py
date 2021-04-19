@@ -101,3 +101,6 @@ class IndexArray(MarkerArray):
             dtype = "uint16"
         return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
                                metadata=metadata, dtype=dtype)
+
+class CircularMarkerArray(MarkerArray):
+    pass

@@ -90,7 +90,7 @@ class MetaArray(np.ndarray):
     
     @property
     def scale(self):
-        return self.axes.tag
+        return self.axes.scale
     
     def set_scale(self, other=None, **kwargs) -> None:
         """
@@ -105,15 +105,17 @@ class MetaArray(np.ndarray):
             This enables function call like set_scale(x=0.1, y=0.1).
 
         """        
-        if self.axes.tag is None:
+        if self.axes.scale is None:
             return ImageAxesError("Image does not have axes.")
         
         elif isinstance(other, dict):
             # check if all the keys are contained in axes.
-            for a in other.keys():
+            for a, val in other.items():
                 if a not in self.axes:
                     raise ImageAxesError(f"Image does not have axis {a}.")    
-            self.axes.tag.update(other)
+                elif not isinstance(val, (int, float)):
+                    raise TypeError(f"Cannot set non-numeric value as scales.")
+            self.axes.scale.update(other)
             
         elif isinstance(other, MetaArray):
             # Here should not be `self.__class__` because sometimes scales are copied from
@@ -128,7 +130,6 @@ class MetaArray(np.ndarray):
         
         return None
     
-            
     
     def __repr__(self):
         return f"\n"\
