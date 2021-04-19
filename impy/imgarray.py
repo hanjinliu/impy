@@ -695,22 +695,48 @@ class ImgArray(LabeledArray):
         
     @dims_to_spatial_axes
     @record()
-    def fft(self, dims) -> ImgArray:
+    def fft(self, *, dims=None) -> ImgArray:
         """
         Fast Fourier transformation.
-        This function returns complex array. Inconpatible with some functions here.
+        This function returns complex array. Inconpatible with some ImgArray functions.
+        
+        Parameters
+        ----------
+        
+        dims : int or str, optional
+            Dimension of axes.
+            
+        Returns
+        -------
+        ImgArray
+            Complex array.
         """
-        # TODO: check if this works
-        c_axes = complement_axes(dims, self.axes)
         freq = fft(self.value.astype("float32"), shape=self.sizesof(dims), 
-                   axes=[self.axisof(a) for a in c_axes])
+                   axes=[self.axisof(a) for a in dims])
         out = np.fft.fftshift(freq)
         return out
     
     @record()
-    def ifft(self) -> ImgArray:
+    def ifft(self, *, dims=None) -> ImgArray:
+        """
+        Fast Inverse Fourier transformation. Complementary function with `fft()`.
+        
+        Parameters
+        ----------
+        
+        dims : int or str, optional
+            Dimension of axes.
+            
+        Returns
+        -------
+        ImgArray
+            Real array.
+        """
+        
         freq = np.fft.fftshift(self.value)
-        out = np.real(ifft(freq))
+        out = ifft(freq, shape=self.sizesof(dims), 
+                   axes=[self.axisof(a) for a in dims])
+        out = np.real(out)
         return out
     
     @dims_to_spatial_axes
@@ -726,6 +752,10 @@ class ImgArray(LabeledArray):
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
 
+        Returns
+        -------
+        ImgArray
+            Boolian array.
         """
 
         methods_ = {"isodata": skfil.threshold_isodata,
