@@ -122,37 +122,6 @@ class LabeledArray(HistoryArray):
             shape_match(self, other.labels)):
             self.labels = other.labels
     
-    # def __getitem__(self, key):
-    #     if isinstance(key, str):
-    #         # img["t=2;z=4"] ... ImageJ-like method
-    #         sl = self.str_to_slice(key)
-    #         return self.__getitem__(sl)
-
-    #     if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
-    #         # img[arr] ... where arr is 2-D boolean array
-    #         key = add_axes(self.axes, self.shape, key)
-
-    #     out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
-    #     keystr = key_repr(key)                 # write down key e.g. "0,*,*"
-    #     if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-    #         if hasattr(key, "__array__"):
-    #             # fancy indexing will lose axes information
-    #             new_axes = None
-                
-    #         elif "new" in keystr:
-    #             # np.newaxis or None will add dimension
-    #             new_axes = None
-                
-    #         elif self.axes:
-    #             del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
-    #             new_axes = del_axis(self.axes, del_list)
-    #         else:
-    #             new_axes = None
-            
-    #         out._getitem_additional_set_info(self, keystr=keystr,
-    #                                          new_axes=new_axes, key=key)
-    #     return out
-    
     def _getitem_additional_set_info(self, other, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
         key = kwargs["key"]
@@ -291,7 +260,7 @@ class LabeledArray(HistoryArray):
             
         elif self.ndim == 3:
             if "c" not in self.axes:
-                imglist = [s[1] for s in self.iter("ptz", False)]
+                imglist = self.split(axis=find_first_appeared(self.axes, exclude="yx"))
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
@@ -467,7 +436,9 @@ class LabeledArray(HistoryArray):
             
         out = np.empty(outshape, dtype=outdtype)
         
-        if self.__class__.n_cpu > 1:
+        # multi-processing has an overhead (~1 sec) so that with a single slice
+        # image it will be slower with multi-processing.
+        if self.__class__.n_cpu > 1 and len(axes) > 0:
             results = self._parallel(func, axes, *args)
             for sl, imgf in results:
                 out[sl] = imgf
@@ -475,7 +446,7 @@ class LabeledArray(HistoryArray):
             for sl, img in self.iter(axes):
                 sl, out2d = func((sl, img, *args))
                 out[sl] = out2d
-                
+        
         out = out.view(self.__class__)
         return out
     

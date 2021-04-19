@@ -44,7 +44,7 @@ class ImgArray(LabeledArray):
         if dims != 2:
             raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(affine_, complement_axes(dims), mx, order)
+        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
         return out
     
     @dims_to_spatial_axes
@@ -55,7 +55,7 @@ class ImgArray(LabeledArray):
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(affine_, complement_axes(dims), mx)
+        out = self.parallel(affine_, complement_axes(dims, self.axes), mx)
         return out
 
     @dims_to_spatial_axes
@@ -308,7 +308,7 @@ class ImgArray(LabeledArray):
         pxsize = np.array([self.scale[a] for a in dims])
         
         eigval = self.as_float().parallel(hessian_eigval_, 
-                                          complement_axes(dims), 
+                                          complement_axes(dims, self.axes), 
                                           sigma, pxsize,
                                           outshape=self.shape+(ndim,))
         
@@ -342,7 +342,7 @@ class ImgArray(LabeledArray):
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         eigval, eigvec = self.parallel_eig(hessian_eigh_, 
-                                           complement_axes(dims), 
+                                           complement_axes(dims, self.axes), 
                                            sigma, pxsize)
         
         eigval.axes = str(self.axes) + "l"
@@ -378,7 +378,7 @@ class ImgArray(LabeledArray):
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         eigval = self.as_float().parallel(structure_tensor_eigval_, 
-                                          complement_axes(dims), 
+                                          complement_axes(dims, self.axes), 
                                           sigma, pxsize,
                                           outshape=self.shape+(ndim,))
         
@@ -411,7 +411,7 @@ class ImgArray(LabeledArray):
         sigma = check_nd_sigma(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         eigval, eigvec = self.parallel_eig(structure_tensor_eigh_, 
-                                           complement_axes(dims), 
+                                           complement_axes(dims, self.axes), 
                                            sigma, pxsize)
         
         eigval.axes = str(self.axes) + "l"
@@ -428,14 +428,14 @@ class ImgArray(LabeledArray):
     @same_dtype()
     @record()
     def sobel_filter(self, dims=None, update:bool=False):
-        out = self.parallel(sobel_, complement_axes(dims))
+        out = self.parallel(sobel_, complement_axes(dims, self.axes))
         return out
     
     @dims_to_spatial_axes
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.parallel(function, complement_axes(dims), disk)
+        return self.parallel(function, complement_axes(dims, self.axes), disk)
     
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -508,7 +508,7 @@ class ImgArray(LabeledArray):
         else:
             mask = self.value
         
-        return self.parallel(fill_hole_, complement_axes(dims), mask, outdtype=self.dtype)
+        return self.parallel(fill_hole_, complement_axes(dims, self.axes), mask, outdtype=self.dtype)
     
     
     @dims_to_spatial_axes
@@ -531,7 +531,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """
-        return self.parallel(gaussian_, complement_axes(dims), sigma)
+        return self.parallel(gaussian_, complement_axes(dims, self.axes), sigma)
 
 
     @dims_to_spatial_axes
@@ -558,7 +558,7 @@ class ImgArray(LabeledArray):
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
         
-        return self.parallel(difference_of_gaussian_, complement_axes(dims),
+        return self.parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
                              low_sigma, high_sigma)
         
     
@@ -585,7 +585,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        return self.parallel(rolling_ball_, complement_axes(dims), 
+        return self.parallel(rolling_ball_, complement_axes(dims, self.axes), 
                              radius, smoothing)
         
     
@@ -624,7 +624,7 @@ class ImgArray(LabeledArray):
         
         # separate spatial dimensions and others
         ndim = len(dims)
-        c_axes = complement_axes(dims, all_axes=self.axes)
+        c_axes = complement_axes(dims, self.axes)
         shape = self.sizesof(c_axes)
         
         # if c_axes:
@@ -668,7 +668,7 @@ class ImgArray(LabeledArray):
         This function returns complex array. Inconpatible with some functions here.
         """
         # TODO: check if this works
-        c_axes = complement_axes(dims, all_axes=self.axes)
+        c_axes = complement_axes(dims, self.axes)
         freq = fft(self.value.astype("float32"), shape=self.sizesof(dims), 
                    axes=[self.axisof(a) for a in c_axes])
         out = np.fft.fftshift(freq)
@@ -718,7 +718,7 @@ class ImgArray(LabeledArray):
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.iter(complement_axes(dims), False):
+            for t, img in self.iter(complement_axes(dims, self.axes), False):
                 thr = func(img, **kwargs)
                 out[t] = img >= thr
             
@@ -799,7 +799,7 @@ class ImgArray(LabeledArray):
         """        
         if self.dtype != bool:
             raise TypeError("Cannot run distance_map() with non-binary image.")
-        return self.parallel(distance_transform_edt_, complement_axes(dims))
+        return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
         
     @dims_to_spatial_axes
     @record()
@@ -820,7 +820,7 @@ class ImgArray(LabeledArray):
         if self.dtype != bool:
             raise TypeError("Cannot run skeletonize() with non-binary image.")
         
-        return self.parallel(skeletonize_, complement_axes(dims), outdtype=bool)
+        return self.parallel(skeletonize_, complement_axes(dims, self.axes), outdtype=bool)
     
     
     @dims_to_spatial_axes
@@ -848,7 +848,7 @@ class ImgArray(LabeledArray):
             PropArray with line scans.
         """        
         ndim = len(dims)
-        c_axes = complement_axes(dims, all_axes=self.axes)
+        c_axes = complement_axes(dims, self.axes)
         out = PropArray(np.empty(self.sizesof(c_axes)), name=self.name, axes=c_axes, 
                         dirpath=self.dirpath, propname="line_profile")
         for sl, img in self.iter(c_axes):
@@ -891,7 +891,7 @@ class ImgArray(LabeledArray):
         elif not shape_match(self, label_image):
             raise ImageAxesError("Shape mismatch.")
         
-        c_axes = complement_axes(dims)
+        c_axes = complement_axes(dims, self.axes)
         label_image.ongoing = "label"
         labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
         label_image.ongoing = None
@@ -927,7 +927,7 @@ class ImgArray(LabeledArray):
         """        
         ndim = len(dims)
         labels = np.empty_like(self.labels).value
-        for sl, img in self.iter(complement_axes(dims), israw=True):
+        for sl, img in self.iter(complement_axes(dims, self.axes), israw=True):
             labels[sl[:-ndim]] = skseg.expand_labels(img.labels.value, distance)
         
         self.labels = labels.view(Label)
@@ -985,7 +985,7 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(dims)
         n_labels = 0
         
-        for sl, img in input_img.iter(complement_axes(dims), israw=True):
+        for sl, img in input_img.iter(complement_axes(dims, self.axes), israw=True):
             # Make array from max list
             marker_input = np.zeros(shape, dtype="uint32")
             
@@ -1050,7 +1050,7 @@ class ImgArray(LabeledArray):
             # this dimension will be label
             raise ValueError("axis 'p' is forbidden.")
         
-        prop_axes = complement_axes(self.labels.axes, all_axes=self.axes)
+        prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
         out = ArrayDict({p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
@@ -1090,7 +1090,7 @@ class ImgArray(LabeledArray):
             raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
         
         if axis is None:
-            axis = find_first_appeared(self.axes, "tzcp")
+            axis = find_first_appeared(self.axes, exclude="yx")
         axisint = self.axisof(axis)
         out = func(self.value, axis=axisint).view(self.__class__)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
@@ -1147,12 +1147,19 @@ class ImgArray(LabeledArray):
 
 # non-member functions.
 
-def array(arr, dtype="uint16", *, name=None, axes=None) -> ImgArray:
+def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
     """
     if isinstance(arr, str):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
+    if isinstance(arr, np.ndarray) and dtype is None:
+        if arr.dtype in ("uint8", "uint16", "float32"):
+            dtype = arr.dtype
+        elif arr.dtype.kind == "f":
+            dtype = "float32"
+        else:
+            dtype = arr.dtype
     
     arr = np.array(arr, dtype=dtype)
         
@@ -1289,7 +1296,7 @@ def set_cpu(n_cpu:int) -> None:
     ImgArray.n_cpu=n_cpu
     return None
 
-def stack(imgs, axis="c", dtype="uint16"):
+def stack(imgs, axis="c", dtype=None):
     """
     Create stack image from list of images.
 
@@ -1321,11 +1328,14 @@ def stack(imgs, axis="c", dtype="uint16"):
         new_axes = None
         _axis = 0
 
+    if dtype is None:
+        dtype = imgs[0].dtype
+
     arrs = [img.as_img_type(dtype).value for img in imgs]
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
-    out = array(out)    
+    out = array(out, dtype=dtype)    
     out._set_info(imgs[0], f"Make-Stack(axis={axis})", new_axes)
     
     return out

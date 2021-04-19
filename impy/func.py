@@ -122,11 +122,11 @@ def ball_like(radius, dims:int):
     else:
         raise ValueError(f"dims must be 2 or 3, but got {dims}")
 
-def find_first_appeared(axes, order):
-    for a in order:
-        if a in axes:
+def find_first_appeared(axes, include="", exclude=""):
+    for a in include:
+        if a in axes or not a in exclude:
             return a
-    raise ValueError(f"{axes} does not have any of {order}.")
+    raise ValueError(f"Inappropriate axes: {axes}")
         
 
 def del_axis(axes, axis) -> str:

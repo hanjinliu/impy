@@ -19,38 +19,6 @@ class HistoryArray(MetaArray):
                f"original image: {self.name}\n"\
                f"   history    : {'->'.join(self.history)}\n"
     
-    # def __getitem__(self, key):
-    #     if isinstance(key, str):
-    #         # img["t=2;z=4"] ... ImageJ-like method
-    #         sl = self.str_to_slice(key)
-    #         return self.__getitem__(sl)
-
-    #     if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
-    #         # img[arr] ... where arr is 2-D boolean array
-    #         key = add_axes(self.axes, self.shape, key)
-
-    #     out = np.ndarray.__getitem__(self, key) # get item as np.ndarray
-    #     keystr = key_repr(key)                 # write down key e.g. "0,*,*"
-    #     if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-    #         if hasattr(key, "__array__"):
-    #             # fancy indexing will lose axes information
-    #             new_axes = None
-                
-    #         elif "new" in keystr:
-    #             # np.newaxis or None will add dimension
-    #             new_axes = None
-                
-    #         elif self.axes:
-    #             del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
-    #             new_axes = del_axis(self.axes, del_list)
-    #         else:
-    #             new_axes = None
-            
-    #         out._getitem_additional_set_info(self, next_history=f"getitem[{keystr}]",
-    #                                          new_axes=new_axes)
-            
-    #     # TODO: Ellipsis does not work now.
-    #     return out
     
     def _getitem_additional_set_info(self, other, **kwargs):
         keystr = kwargs["keystr"]

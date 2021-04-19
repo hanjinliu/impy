@@ -336,13 +336,13 @@ class MetaArray(np.ndarray):
             selfview = self
         else:
             selfview = self.value
-        
+            
         it = itertools.product(*iterlist)
         i = 0
         for sl in it:
             yield sl, selfview[sl]
             i += 1
-        
+            
         # if iterlist = []
         if i == 0:
             yield (slice(None),)*self.ndim, selfview
