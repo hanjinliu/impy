@@ -123,8 +123,8 @@ def ball_like(radius, dims:int):
         raise ValueError(f"dims must be 2 or 3, but got {dims}")
 
 def find_first_appeared(axes, include="", exclude=""):
-    for a in include:
-        if a in axes or not a in exclude:
+    for a in axes:
+        if a in include or not a in exclude:
             return a
     raise ValueError(f"Inappropriate axes: {axes}")
         

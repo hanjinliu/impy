@@ -176,9 +176,37 @@ class ImgArray(LabeledArray):
         
         return result
     
-    # TODO: from skimage.feature import blob_dog, blob_log, blob_doh
-    # def bolb_detection(self, method="dog", ):
-    #     skfeat.blob_dog, skfeat.blob_log, skfeat.blob_doh
+    
+    @dims_to_spatial_axes
+    @record()
+    def puncta_detection(self, sigma:float=1.5, *, percentile:float=99, num_peaks:int=np.inf, 
+                         squeeze:bool=True, dims=None):
+        """
+        Puncta detection using difference of Gaussian method.
+
+        Parameters
+        ----------
+        sigma : float, optional
+            Standard deviation of puncta.
+        percentile : float, by default 99.
+            percentile to compute threshold of peak_local_max.
+        num_peaks : int, optional
+            [description], by default np.inf
+        squeeze : bool, optional
+            [description], by default True
+        dims : [type], optional
+            [description], by default None
+
+        Returns
+        -------
+        [type]
+            [description]
+        """        
+        
+        dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
+        markers = dog_img.peak_local_max(min_distance=1, percentile=percentile, 
+                                         num_peaks=num_peaks, squeeze=squeeze, dims=dims)
+        return markers
     
     @record()
     def affine_correction(self, ref=None, bins:int=256, 
@@ -590,7 +618,7 @@ class ImgArray(LabeledArray):
         
     
     @dims_to_spatial_axes
-    def peak_local_max(self, *, min_distance:int=1, thr:float=None, 
+    def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
                        num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
                        use_labels:bool=True, squeeze:bool=True, dims=None):
         """
@@ -601,8 +629,8 @@ class ImgArray(LabeledArray):
         ----------
         min_distance : int, optional
             Minimum distance allowed for each two peaks, by default 1
-        thr : float, optional
-            The absolute minimum intensity of peaks.
+        percentile : float, optional
+            Percentile to compute absolute threshold.
         num_peaks : int, optional
             Maximum number of peaks **for each iteration**.
         num_peaks_per_label : int, default is np.inf
@@ -626,6 +654,11 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         c_axes = complement_axes(dims, self.axes)
         shape = self.sizesof(c_axes)
+        
+        if percentile is None:
+            thr = None
+        else:
+            thr = np.percentile(self.value, percentile)
         
         # if c_axes:
         out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
