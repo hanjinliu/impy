@@ -25,6 +25,7 @@ viewer.add_labels(img.labels)
 https://napari.org/tutorials/applications/cell_tracking.html
 """
 
+# TODO: read layers
 
 class napariWindow:
     def __init__(self):

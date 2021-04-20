@@ -57,8 +57,8 @@ def _show_drift(result):
     plt.show()
     return None
 
-@same_dtype(asfloat=True)
 @record()
+@same_dtype(asfloat=True)
 def drift_correction(self, shift=None, ref=None, *, order=1, show_drift=True, 
                      along="t", dims="yx", update:bool=False):
     """

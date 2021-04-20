@@ -178,7 +178,6 @@ class ImgArray(LabeledArray):
     
     
     @dims_to_spatial_axes
-    @record()
     def puncta_detection(self, sigma:float=1.5, *, percentile:float=99, num_peaks:int=np.inf, 
                          squeeze:bool=True, dims=None):
         """
@@ -682,7 +681,7 @@ class ImgArray(LabeledArray):
             indarr = IndexArray(indices.T, name=self.name, axes="rp", 
                                 dirpath=self.dirpath)
             out[sl[:-ndim]] = indarr
-            
+        
         self.ongoing = None
         del self.ongoing
         
@@ -691,7 +690,6 @@ class ImgArray(LabeledArray):
         else:
             out.set_scale(self)
             
-        
         return out
     
         

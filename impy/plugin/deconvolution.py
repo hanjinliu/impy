@@ -70,7 +70,7 @@ def _richardson_lucy(args):
 @dims_to_spatial_axes
 @record()
 @same_dtype(asfloat=True)
-def lucy(self, psf, niter:int=50, *, dims=None, update:bool=True):
+def lucy(self, psf, niter:int=50, *, dims=None, update:bool=False):
     """
     Deconvolution of N-dimensional image obtained from confocal microscopy, 
     using Richardson-Lucy's algorithm.
@@ -114,6 +114,9 @@ def lucy(self, psf, niter:int=50, *, dims=None, update:bool=True):
         
         kw.update(psf)
         psfimg = synthesize_psf(**kw)
+        if ndim == 2:
+            psfimg = psfimg[0]
+            
     elif isinstance(psf, np.ndarray):
         psfimg = np.asarray(psf)
         psfimg /= np.max(psfimg)
