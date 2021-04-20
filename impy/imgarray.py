@@ -76,6 +76,7 @@ class ImgArray(LabeledArray):
         """        
         scale_ = [scale if a in dims else 1 for a in self.axes]
         out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
+        out = out.view(self.__class__)
         return out
     
     @record()
@@ -541,7 +542,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def gaussian_filter(self, sigma:float=1, dims=None, update:bool=False) -> ImgArray:
+    def gaussian_filter(self, sigma:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
         Parameters
@@ -812,6 +813,8 @@ class ImgArray(LabeledArray):
             raise ValueError("'position' must be either 'corner' or 'center'")
         
         if hasattr(self, "labels"):
+            if self.labels.max() == np.iinfo(self.labels.dtype).max:
+                self.labels = self.labels.as_larger_type()
             self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
         else:
             labels = np.zeros(self.sizesof("yx"), dtype="uint8")
@@ -821,6 +824,34 @@ class ImgArray(LabeledArray):
             self.labels.axes = "yx"
         
         return self
+    
+    # def specify(self, center:tuple[int], footprint:np.ndarray) -> ImgArray:
+    #     """
+    #     Make a rectancge label.
+    #     Currently only supports 2-dim image.
+    #     """
+    #     # TODO: more general implementation
+        
+    #     if len(center) != footprint.ndim:
+    #         raise ValueError("center and footprint")
+        
+    #     center = np.array(center)
+    #     dx, dy = np.array(footprint.shape)
+    #     x, y = center - np.array(footprint.shape)//2
+        
+    #     if hasattr(self, "labels"):
+    #         if self.labels.max() == np.iinfo(self.labels.dtype).max:
+    #             self.labels = self.labels.as_larger_type()
+    #         self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
+    #         np.where()
+    #     else:
+    #         labels = np.zeros(self.sizesof("yx"), dtype="uint8")
+    #         labels[y:y+dy, x:x+dx] = 1
+    #         self.labels = labels.view(Label)
+    #         self.labels._set_info(self, "Labeled")
+    #         self.labels.axes = "yx"
+        
+    #     return self
 
     @record()
     def crop_center(self, scale:float=0.5) -> ImgArray:

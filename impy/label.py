@@ -26,6 +26,14 @@ class Label(HistoryArray):
         else:
             self[self>0] += n
             return self
+    
+    def as_larger_type(self):
+        if self.dtype == "uint8":
+            return self.astype("uint16")
+        elif self.dtype == "uint16":
+            return self.astype("uint32")
+        else:
+            raise OverflowError
 
     def optimize(self):
         self.relabel()
