@@ -1,5 +1,7 @@
 __version__ = "1.4.3"
 # TODO: napari, btrack ... https://github.com/quantumjot/BayesianTracker
+# TODO: zero-index in getitem
+
 import warnings
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
@@ -54,14 +56,15 @@ Inheritance
               ____    MetaArray   _______
              /              \            \
        HistoryArray        MarkerArray  PropArray
-       /         \          /       \ 
- LabeledArray   Label  IndexArray CircularMarkerArray
+       /         \          /
+ LabeledArray   Label  IndexArray
     /
 ImgArray
 
 """
 
 # Load plugins if possible
+# TODO: remove plugin, create py-file for inside functions such as drift correction, psf with defocus model
 plugin_path = os.path.join(os.path.dirname(__file__), "plugin")
 py_file_list = []
 for file in os.listdir(plugin_path):

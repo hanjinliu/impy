@@ -138,8 +138,10 @@ def del_axis(axes, axis) -> str:
     new_axes = ""
     if isinstance(axis, int):
         axis = [axis]
-    elif axes is None:
+    if axes is None:
         return None
+    else:
+        axes = str(axes)
     
     if isinstance(axis, list):
         for i, o in enumerate(axes):

@@ -688,8 +688,10 @@ class ImgArray(LabeledArray):
         
         if squeeze and out.ndim == 0:
             out = out[()]
+        else:
+            out.set_scale(self)
+            
         
-        out.set_scale(self)
         return out
     
         

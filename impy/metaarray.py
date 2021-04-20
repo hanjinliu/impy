@@ -16,6 +16,7 @@ def _range_to_list(v:str):
     
 
 def _str_to_range(v:str):
+    # check if this works
     if "," in v:
         sl = sum((_range_to_list(v) for v in v.split(",")), [])
         
@@ -24,17 +25,17 @@ def _str_to_range(v:str):
         if start == "":
             start = None
         else:
-            start = int(start) - 1
+            start = int(start) 
             if start < 0:
                 raise IndexError("string indexing starts from 1.")
         if end == "":
             end = None
         else:
-            end = int(end)
+            end = int(end) + 1
         sl = slice(start, end, None)
         
     else:
-        sl = int(v) - 1
+        sl = int(v)
         if sl < 0:
             raise IndexError("string indexing starts from 1.")
     return sl

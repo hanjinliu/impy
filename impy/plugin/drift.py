@@ -1,3 +1,4 @@
+from impy.func import complement_axes
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -56,9 +57,10 @@ def _show_drift(result):
     plt.show()
     return None
 
-@record()
 @same_dtype(asfloat=True)
-def drift_correction(self, shift=None, ref=None, *, order=1, show_drift=True, update:bool=False):
+@record()
+def drift_correction(self, shift=None, ref=None, *, order=1, show_drift=True, 
+                     along="t", dims="yx", update:bool=False):
     """
     shift: (N, 2) array, optional.
         x,y coordinates of drift. If None, this parameter will be determined by the
@@ -80,10 +82,10 @@ def drift_correction(self, shift=None, ref=None, *, order=1, show_drift=True, up
             ref = self
         elif not isinstance(ref, self.__class__):
             raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
-        elif ref.axes != "tyx":
+        elif ref.axes != along + dims:
             raise ValueError(f"Cannot track drift using {ref.axes} image")
 
-        shift = track_drift(ref, axis="t")
+        shift = track_drift(ref, axis=along)
         if show_drift:
             _show_drift(shift)
         self.ongoing = "drift_correction"
@@ -94,7 +96,7 @@ def drift_correction(self, shift=None, ref=None, *, order=1, show_drift=True, up
         raise TypeError(f"Length inconsistency between image and shift")
 
     out = np.empty(self.shape)
-    for sl, img in self.iter("ptzc"):
+    for sl, img in self.iter(complement_axes(dims, self.axes)):
         if isinstance(sl, int):
             tr = -shift[sl]
         else:
