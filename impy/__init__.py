@@ -16,7 +16,7 @@ from .imgarray import (array, zeros, zeros_like, empty, empty_like,
 from .specials import PropArray, MarkerArray
 from .gauss import GaussianParticle, GaussianBackground
 
-# https://github.com/napari/napari/issues/2504
+# https://github.com/napari/napari/issues/250.
 try:
     from .viewer import viewer
 except ImportError as e:

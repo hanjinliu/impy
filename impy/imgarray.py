@@ -1388,7 +1388,7 @@ def stack(imgs, axis="c", dtype=None):
     axis : str, optional
         Which axis will be the new one, by default "c"
     dtype : str, optional
-        Output dtype, by default "uint16"
+        Output dtype.
 
     Returns
     -------
@@ -1416,7 +1416,7 @@ def stack(imgs, axis="c", dtype=None):
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
-    out = array(out, dtype=dtype)    
+    out = out.view(ImgArray)
     out._set_info(imgs[0], f"Make-Stack(axis={axis})", new_axes)
     
     return out

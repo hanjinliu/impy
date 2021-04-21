@@ -80,6 +80,7 @@ class PropArray(MetaArray):
     #     out._set_info(self, new_axes=del_axis(self.axes, dims))
     #     return out
     
+    
     def melt(self):
         out = []
         dtype = "uint16"

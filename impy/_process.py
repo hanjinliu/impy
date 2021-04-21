@@ -8,17 +8,19 @@ from skimage import feature as skfeat
 from scipy import ndimage as ndi
 import numpy as np
 
+# use ndi functions more
+
 def affine_(args):
     sl, data, mx, order = args
     return (sl, sktrans.warp(data, mx, order=order))
 
 def median_(args):
     sl, data, selem = args
-    return (sl, skfil.rank.median(data, selem))
+    return (sl, ndi.median_filter(data, footprint=selem, mode="reflect"))
 
 def mean_(args):
     sl, data, selem = args
-    return (sl, skfil.rank.mean(data, selem))
+    return (sl, ndi.convolve(data, selem/np.sum(selem)))
 
 def gaussian_(args):
     sl, data, sigma = args

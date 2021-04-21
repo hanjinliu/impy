@@ -163,18 +163,19 @@ class LabeledArray(HistoryArray):
             return self
         out = self.value
         if self.dtype == "uint16":
-            out = out / 256
+            out /= 256
         elif self.dtype == "bool":
             pass
         elif self.dtype.kind == "f":
             if 0 <= np.min(out) and np.max(out) < 1:
-                out = out * 256
+                out *= 256
             else:
-                out = out + 0.5
+                out += 0.5
+            out[out < 0] = 0
+            out[out >= 256] = 255
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-        out[out < 0] = 0
-        out[out >= 256] = 255
+        
         out = out.view(self.__class__)
         out._set_info(self)
         out = out.astype("uint8")
@@ -186,18 +187,18 @@ class LabeledArray(HistoryArray):
             return self
         out = self.value
         if self.dtype == "uint8":
-            out = out * 256
+            out *= 256
         elif self.dtype == "bool":
             pass
         elif self.dtype.kind == "f":
             if 0 <= np.min(out) and np.max(out) < 1:
-                out = out * 65536
+                out *= 65535
             else:
-                out = out + 0.5
+                out += 0.5
+            out[out < 0] = 0
+            out[out >= 65536] = 65535
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-        out[out < 0] = 0
-        out[out >= 65536] = 65535
         out = out.view(self.__class__)
         out._set_info(self)
         out = out.astype("uint16")
@@ -285,7 +286,7 @@ class LabeledArray(HistoryArray):
                 n_chn = self.sizeof("c")
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
-                    img = self[f"c={i+1}"]
+                    img = self[f"c={i}"]
                     vmax, vmin = determine_range(self)
                     interpol = "bilinear" if img.dtype == bool else "none"
                     imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
@@ -361,7 +362,7 @@ class LabeledArray(HistoryArray):
                 n_chn = self.sizeof("c")
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
-                    img = self[f"c={i+1}"]
+                    img = self[f"c={i}"]
                     vmax, vmin = determine_range(img)
                     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
                     imshow_kwargs.update(kwargs)
@@ -429,16 +430,16 @@ class LabeledArray(HistoryArray):
         
         Returns
         -------
-        BaseArray
+        LabeledArray
         """
         if outshape is None:
             outshape = self.shape
             
         out = np.empty(outshape, dtype=outdtype)
         
-        # multi-processing has an overhead (~1 sec) so that with a single slice
-        # image it will be slower with multi-processing.
-        if self.__class__.n_cpu > 1 and len(axes) > 0:
+        # multi-processing has an overhead (~1 sec) so that with a small numbers of
+        # images it will be slower with multi-processing.
+        if self.__class__.n_cpu > 1 and self.size > 10**7:
             results = self._parallel(func, axes, *args)
             for sl, imgf in results:
                 out[sl] = imgf
