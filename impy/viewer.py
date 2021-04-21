@@ -2,7 +2,7 @@ import napari
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
 from .label import Label
-from .specials import MarkerArray
+from .specials import MarkerArray, PropArray
 from .func import complement_axes, del_axis
 
 
@@ -35,9 +35,12 @@ class napariWindow:
         self.viewer = napari.Viewer(title="napari from impy")
     
     def add(self, obj, **kwargs):
+        if self.viewer is None:
+            self.start()
+            
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, MarkerArray):
+        elif isinstance(obj, (MarkerArray,PropArray)):
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
@@ -57,14 +60,17 @@ class napariWindow:
                                   name=img.name, 
                                   **kwargs)
         if hasattr(img, "labels"):
-            self._add_labels(img.labels)
+            self._add_labels(img.labels, name=f"Label of {img.name}")
         return None
     
-    def _add_points(self, points:MarkerArray, size=1.5, face_color="red", edge_color=None):
-        self.viewer.add_points(points.T, size=size, face_color=face_color, edge_color=edge_color)
-        # TODO: how to add to different slices?
+    def _add_points(self, points:MarkerArray, size=1.5, face_color="red", edge_color=None, **kwargs):
+        if isinstance(points, PropArray):
+            points = points.melt()
+        self.viewer.add_points(points.T, size=size, face_color=face_color, edge_color=edge_color, **kwargs)
         return None
-        
+    
     def _add_labels(self, labels:Label, **kwargs):
         self.viewer.add_labels(labels, **kwargs)
         return None
+
+viewer = napariWindow()

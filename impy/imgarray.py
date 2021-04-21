@@ -188,19 +188,15 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, optional
             Standard deviation of puncta.
-        percentile : float, by default 99.
-            percentile to compute threshold of peak_local_max.
-        num_peaks : int, optional
-            [description], by default np.inf
-        squeeze : bool, optional
-            [description], by default True
-        dims : [type], optional
-            [description], by default None
+        percentile, num_peaks, squeeze, dims
+            Passed to peak_local_max()
 
+        
         Returns
         -------
-        [type]
-            [description]
+        PropArray of IndexArrays, or if squeeze=True, IndexArray
+            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
+            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
         """        
         
         dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
@@ -645,7 +641,7 @@ class ImgArray(LabeledArray):
             
         Returns
         -------
-        PropArray of IndexArrays, or if squeeze=True, IndexArray)
+        PropArray of IndexArrays, or if squeeze=True, IndexArray
             PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
             rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
         """        
@@ -794,65 +790,56 @@ class ImgArray(LabeledArray):
         
         return out
         
-    
-    def specify(self, xy:tuple[int], dxdy:tuple[int], position="corner") -> ImgArray:
+    # nD labeling
+    def specify(self, center, radius, shape="square", label_slice=None) -> ImgArray:
         """
-        Make a rectancge label.
-        Currently only supports 2-dim image.
+        Make a label
+        for sl, m in mark.iter("t"):
+            for _, yx in m.iter("p"):
+                img.specify(yx, 2, shape="circle", label_slice=sl[0])
         """
-        # TODO: more general implementation
-        x, y = xy
-        dx, dy = dxdy
         
-        if position == "corner":
-            pass
-        elif position == "center":
-            x -= dx//2
-            y -= dy//2
+        if label_slice is None:
+            label_slice = slice(None)
+        
+        center = np.asarray(center, dtype="uint16")
+        if center.size not in (2, 3):
+            raise ValueError("Currently specify() only supports 2D and 3D images.")
+        if np.isscalar(radius):
+            radius = np.full(center.size, radius)
+        radius = np.asarray(radius)
+        
+        axes = "yx" if center.size == 2 else "zyx"
+        
+        if shape == "square":
+            sl = tuple(slice(xc-r, xc+r, None) for xc, r in zip(center, radius))
+        elif shape == "ellipse":
+            ind = np.indices(self.sizesof(axes))
+            # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
+            sl = sum([((i-xc)/r)**2 for i, xc, r in zip(ind, center, radius)]) <= 1.0
+        elif shape == "circle":
+            ind = np.indices(self.sizesof(axes))
+            r = radius[0]
+            if not (radius == r).all():
+                raise ValueError("Cannot set different radii when shape is 'circle'")
+            # (x-x_0)^2 + (y-y_0)^2 + (z-z_0)^2 <= r^2
+            sl = sum([(i-xc)**2 for i, xc in zip(ind, center)]) <= r**2
         else:
-            raise ValueError("'position' must be either 'corner' or 'center'")
+            raise ValueError(f"{shape}")
         
         if hasattr(self, "labels"):
             if self.labels.max() == np.iinfo(self.labels.dtype).max:
                 self.labels = self.labels.as_larger_type()
-            self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
+            self.labels[label_slice][sl] = self.labels.max() + 1
         else:
-            labels = np.zeros(self.sizesof("yx"), dtype="uint8")
-            labels[y:y+dy, x:x+dx] = 1
+            labels = np.zeros(self.sizesof(axes), dtype="uint8")
+            labels[label_slice][sl] = 1
             self.labels = labels.view(Label)
             self.labels._set_info(self, "Labeled")
-            self.labels.axes = "yx"
+            self.labels.axes = axes
         
         return self
     
-    # def specify(self, center:tuple[int], footprint:np.ndarray) -> ImgArray:
-    #     """
-    #     Make a rectancge label.
-    #     Currently only supports 2-dim image.
-    #     """
-    #     # TODO: more general implementation
-        
-    #     if len(center) != footprint.ndim:
-    #         raise ValueError("center and footprint")
-        
-    #     center = np.array(center)
-    #     dx, dy = np.array(footprint.shape)
-    #     x, y = center - np.array(footprint.shape)//2
-        
-    #     if hasattr(self, "labels"):
-    #         if self.labels.max() == np.iinfo(self.labels.dtype).max:
-    #             self.labels = self.labels.as_larger_type()
-    #         self.labels[y:y+dy, x:x+dx] = self.labels.max() + 1
-    #         np.where()
-    #     else:
-    #         labels = np.zeros(self.sizesof("yx"), dtype="uint8")
-    #         labels[y:y+dy, x:x+dx] = 1
-    #         self.labels = labels.view(Label)
-    #         self.labels._set_info(self, "Labeled")
-    #         self.labels.axes = "yx"
-        
-    #     return self
-
     @record()
     def crop_center(self, scale:float=0.5) -> ImgArray:
         """
@@ -865,10 +852,10 @@ class ImgArray(LabeledArray):
         sizex = self.sizeof("x")
         sizey = self.sizeof("y")
         
-        x0 = int(sizex / 2 * (1 - scale)) + 1
-        x1 = int(sizex / 2 * (1 + scale))
-        y0 = int(sizey / 2 * (1 - scale)) + 1
-        y1 = int(sizey / 2 * (1 + scale))
+        x0 = int(sizex / 2 * (1 - scale))
+        x1 = int(sizex / 2 * (1 + scale)) + 1
+        y0 = int(sizey / 2 * (1 - scale))
+        y1 = int(sizey / 2 * (1 + scale)) + 1
 
         out = self[f"x={x0}-{x1};y={y0}-{y1}"]
         

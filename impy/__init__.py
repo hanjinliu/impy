@@ -1,6 +1,5 @@
-__version__ = "1.4.3"
+__version__ = "1.4.4"
 # TODO: napari, btrack ... https://github.com/quantumjot/BayesianTracker
-# TODO: zero-index in getitem
 
 import warnings
 warnings.resetwarnings()
@@ -16,6 +15,14 @@ from .imgarray import (array, zeros, zeros_like, empty, empty_like,
                        stack, set_cpu, ImgArray)
 from .specials import PropArray, MarkerArray
 from .gauss import GaussianParticle, GaussianBackground
+
+# https://github.com/napari/napari/issues/2504
+try:
+    from .viewer import viewer
+except ImportError as e:
+    print(f"Could not import viewer: {e}")
+except Exception as e:
+    print(f"Could not import viewer: {e}")
 
 __doc__ = \
 r"""

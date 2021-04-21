@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .axes import ImageAxesError
 from .metaarray import MetaArray
 import numpy as np
 import matplotlib.pyplot as plt
@@ -62,22 +63,42 @@ class PropArray(MetaArray):
         
         return self
     
-    def curve_fit(self, f, p0=None, dims=None) -> PropArray:
-        c_axes = complement_axes(dims, all_axes=self.axes)
+    # def curve_fit(self, f, p0=None, dims=None) -> PropArray:
+    #     c_axes = complement_axes(dims, all_axes=self.axes)
         
-        if len(dims)!=1:
-            raise NotImplementedError
+    #     if len(dims)!=1:
+    #         raise NotImplementedError
         
-        out = np.empty(self.sizesof(c_axes), dtype=object)
-        xdata = np.arange(self.sizeof(dims))
-        # maybe I should write another version of iter() for better sl.
-        for sl, data in self.iter(c_axes):
-            p0_ = p0 if not callable(p0) else p0(data)
-            result = opt.curve_fit(f, xdata, data, p0_)
-            out[sl[:]] = result
-        out = out.view(self.__class__)
-        out._set_info(self, new_axes=del_axis(self.axes, dims))
-        return out
+    #     out = np.empty(self.sizesof(c_axes), dtype=object)
+    #     xdata = np.arange(self.sizeof(dims))
+    #     # maybe I should write another version of iter() for better sl.
+    #     for sl, data in self.iter(c_axes):
+    #         p0_ = p0 if not callable(p0) else p0(data)
+    #         result = opt.curve_fit(f, xdata, data, p0_)
+    #         out[sl[:]] = result
+    #     out = out.view(self.__class__)
+    #     out._set_info(self, new_axes=del_axis(self.axes, dims))
+    #     return out
+    
+    def melt(self):
+        out = []
+        dtype = "uint16"
+        for sl, data in self.iter(self.axes, False):
+            if not isinstance(data, MarkerArray):
+                raise TypeError("In melt(), all the object must be MarkerArray, "
+                                f"but got {type(data)}")
+            if not data.axes in ("rp","pr"):
+                raise ImageAxesError("In melt(), all the object must have "
+                                     f"'p' and 'r' axes, but got {data.axes}")
+            
+            for _, a in data.iter("p", False):
+                out.append(sl + tuple(a))
+                if a.dtype.kind == "f":
+                    dtype = "float32"
+            
+        return MarkerArray(out, name=f"{self.name}-melt", axes="pr", dtype=dtype)
+
+    
         
     def _set_info(self, other, new_axes:str="inherit"):
         super()._set_info(other, new_axes)
@@ -91,7 +112,8 @@ class MarkerArray(MetaArray):
             raise ValueError("Cannot plot non-2D markers.")
         kw = dict(color="red", marker="x")
         kw.update(kwargs)
-        plt.scatter(self["r=2"], self["r=1"], **kw)
+        rsize = self.sizeof("r")
+        plt.scatter(self[f"r={rsize-1}"], self[f"r={rsize-2}"], **kw)
         return None
 
 class IndexArray(MarkerArray):
@@ -101,6 +123,3 @@ class IndexArray(MarkerArray):
             dtype = "uint16"
         return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
                                metadata=metadata, dtype=dtype)
-
-class CircularMarkerArray(MarkerArray):
-    pass
