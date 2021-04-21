@@ -1,4 +1,4 @@
-__version__ = "1.4.4"
+__version__ = "1.4.5"
 # TODO: napari, btrack ... https://github.com/quantumjot/BayesianTracker
 
 import warnings

@@ -2,7 +2,7 @@ import numpy as np
 from .axes import Axes, ImageAxesError
 from .func import *
 import itertools
-# TODO: how to copy scale? such as
+
 def _range_to_list(v:str):
     """
     "1,3,5" -> [1,3,5]
@@ -114,7 +114,7 @@ class MetaArray(np.ndarray):
             for a, val in other.items():
                 if a not in self.axes:
                     raise ImageAxesError(f"Image does not have axis {a}.")    
-                elif not isinstance(val, (int, float)):
+                elif not np.isscalar(val):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
             self.axes.scale.update(other)
             

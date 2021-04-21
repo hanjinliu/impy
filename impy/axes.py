@@ -27,7 +27,6 @@ def check_none(func):
         return func(self, *args, **kwargs)
     return checked
 
-# TODO: channel names
 class Axes:
     def __init__(self, value=None) -> None:
         if value == NONE or value is None:

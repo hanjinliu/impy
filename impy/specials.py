@@ -82,6 +82,7 @@ class PropArray(MetaArray):
     
     
     def melt(self):
+        # 0-dim array is ok?
         out = []
         dtype = "uint16"
         for sl, data in self.iter(self.axes, False):

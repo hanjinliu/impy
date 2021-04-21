@@ -245,7 +245,7 @@ class ImgArray(LabeledArray):
         def check_matrix(ref):
             mtx = []
             for m in ref:
-                if isinstance(m, (int, float)): 
+                if np.isscalar(m): 
                     if m == 1:
                         mtx.append(m)
                     else:
@@ -298,7 +298,7 @@ class ImgArray(LabeledArray):
         
         corrected = []
         for i, m in enumerate(mtx):
-            if isinstance(m, (int, float)) and m==1:
+            if np.isscalar(m) and m==1:
                 corrected.append(self[f"{axis}={i+1}"])
             else:
                 corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=m))
@@ -783,7 +783,7 @@ class ImgArray(LabeledArray):
                 out[t] = img >= thr
             
 
-        elif isinstance(thr, (int, float)):
+        elif np.isscalar(thr):
             out = self >= thr
         else:
             raise TypeError("'thr' must be numeric, or str specifying a thresholding method.")                
@@ -791,7 +791,8 @@ class ImgArray(LabeledArray):
         return out
         
     # nD labeling
-    def specify(self, center, radius, shape="square", label_slice=None) -> ImgArray:
+    @dims_to_spatial_axes
+    def specify(self, center, radius, *, dims=None, labeltype="square") -> ImgArray:
         """
         Make a label
         for sl, m in mark.iter("t"):
@@ -799,44 +800,39 @@ class ImgArray(LabeledArray):
                 img.specify(yx, 2, shape="circle", label_slice=sl[0])
         """
         
-        if label_slice is None:
-            label_slice = slice(None)
+        if isinstance(center, PropArray):
+            melted = center.melt()
+            dims = "".join(a for a in dims if a not in center.axes)
+            ndim = len(dims)
+            
+            if np.isscalar(radius):
+                radius = np.full(ndim, radius)
+            radius = np.asarray(radius)
+            
+            shape = self.sizesof(dims)
+            label_shape = center.shape + shape
+            # print(label_shape, shape)
+            label_axes = str(center.axes) + dims
+            if not hasattr(self, "labels"):
+                self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
+
+            for _, marker in melted.iter("p"):
+                center = tuple(marker[-ndim:])
+                label_sl = tuple(marker[:-ndim])
+                sl = specify_one(center, radius, shape, labeltype)
+                self.labels[label_sl][sl] = self.labels.max() + 1
+                if self.labels.max() == np.iinfo(self.labels.dtype).max:
+                    self.labels = self.labels.as_larger_type()
         
-        center = np.asarray(center, dtype="uint16")
-        if center.size not in (2, 3):
-            raise ValueError("Currently specify() only supports 2D and 3D images.")
-        if np.isscalar(radius):
-            radius = np.full(center.size, radius)
-        radius = np.asarray(radius)
-        
-        axes = "yx" if center.size == 2 else "zyx"
-        
-        if shape == "square":
-            sl = tuple(slice(xc-r, xc+r, None) for xc, r in zip(center, radius))
-        elif shape == "ellipse":
-            ind = np.indices(self.sizesof(axes))
-            # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
-            sl = sum([((i-xc)/r)**2 for i, xc, r in zip(ind, center, radius)]) <= 1.0
-        elif shape == "circle":
-            ind = np.indices(self.sizesof(axes))
-            r = radius[0]
-            if not (radius == r).all():
-                raise ValueError("Cannot set different radii when shape is 'circle'")
-            # (x-x_0)^2 + (y-y_0)^2 + (z-z_0)^2 <= r^2
-            sl = sum([(i-xc)**2 for i, xc in zip(ind, center)]) <= r**2
         else:
-            raise ValueError(f"{shape}")
-        
-        if hasattr(self, "labels"):
-            if self.labels.max() == np.iinfo(self.labels.dtype).max:
-                self.labels = self.labels.as_larger_type()
-            self.labels[label_slice][sl] = self.labels.max() + 1
-        else:
-            labels = np.zeros(self.sizesof(axes), dtype="uint8")
-            labels[label_slice][sl] = 1
-            self.labels = labels.view(Label)
-            self.labels._set_info(self, "Labeled")
-            self.labels.axes = axes
+            center = np.asarray(center)
+            if center.ndim == 1:
+                center = center.reshape(-1, 1)
+            center = MarkerArray(center, dtype="uint16", axes="rp")
+            c = PropArray(np.zeros(()), axes="")
+            c[()] = center
+            center = c
+            return self.specify(center, radius, dims=dims, labeltype=labeltype)     
         
         return self
     
@@ -1394,7 +1390,6 @@ def stack(imgs, axis="c", dtype=None):
     -------
     ImgArray
         Image stack
-
     """    
     
     if isinstance(imgs, np.ndarray):

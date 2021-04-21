@@ -8,7 +8,7 @@ def check_value(__op__):
             value = value.astype("float32")
             if self.ndim >= 3 and value.shape == self.sizesof("yx"):
                 value = add_axes(self.axes, self.shape, value)
-        elif isinstance(value, (int, float)) and value < 0:
+        elif np.isscalar(value) and value < 0:
             raise ValueError("Cannot multiply or divide negative value.")
 
         out = __op__(self, value)
