@@ -30,6 +30,14 @@ https://napari.org/tutorials/applications/cell_tracking.html
 class napariWindow:
     def __init__(self):
         self.viewer = None
+    
+    @property
+    def layers(self):
+        return self.viewer.layers
+    
+    @property
+    def last_layer(self):
+        return self.viewer.layers[-1]
         
     def start(self):
         self.viewer = napari.Viewer(title="napari from impy")

@@ -59,7 +59,7 @@ def check_nd_pxsize(pxsize, ndim):
 
 def specify_one(center, radius, shape:tuple, labeltype:str):
     if labeltype == "square":
-        sl = tuple(slice(xc-r, xc+r, None) for xc, r in zip(center, radius))
+        sl = (...,) + tuple(slice(xc-r, xc+r, None) for xc, r in zip(center, radius))
     elif labeltype == "ellipse":
         ind = np.indices(shape)
         # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
@@ -74,7 +74,7 @@ def specify_one(center, radius, shape:tuple, labeltype:str):
     else:
         raise ValueError(f"{shape}")
     
-    return (...,) + sl
+    return sl
 
 
 

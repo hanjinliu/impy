@@ -16,14 +16,15 @@ SCALAR_PROP = (
 
 class PropArray(MetaArray):
     def __new__(cls, obj, *, name=None, axes=None, dirpath=None, 
-                metadata=None, propname=None):
-        if propname in SCALAR_PROP:
-            dtype = "float32"
-        elif propname is None:
+                metadata=None, propname=None, dtype=None):
+        if propname is None:
             propname = "User_Defined"
-            dtype = object
+        
+        if dtype is None and propname in SCALAR_PROP:
+            dtype = "float32"
         else:
             dtype = object
+            
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
         self.propname = propname
         
@@ -82,7 +83,26 @@ class PropArray(MetaArray):
     
     
     def melt(self):
-        # 0-dim array is ok?
+        """
+        Make a melted array.
+        
+        Example
+        -------
+        Suppose:
+        A["t=0"] = [[1,3], [5,4]]
+        A["t=1"] = [[6,7]]
+        
+        after running A.melt():
+        [[0, 1, 3],
+         [0, 5, 4],
+         [1, 6, 7]]
+
+        Returns
+        -------
+        MarkerArray
+            Melter array with r-axis being melted axis. If self.axes="tc" and its contents
+            have yx axes, then the length of r-axis of returned MarkerArray will be 4.]
+        """        
         out = []
         dtype = "uint16"
         for sl, data in self.iter(self.axes, False):

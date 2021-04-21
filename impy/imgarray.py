@@ -128,54 +128,54 @@ class ImgArray(LabeledArray):
             plt.show()
         return fit
     
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def gaussfit_particle(self, markers:MarkerArray=None, width=9,
-                          p0=None, *, dims=None) -> PropArray:
-        # TODO: axes not defined; empty slices
-        raise NotImplementedError
+    # @dims_to_spatial_axes
+    # @record(append_history=False)
+    # def gaussfit_particle(self, markers=None, radius=4,
+    #                       p0=None, *, dims=None) -> PropArray:
         
-        ndim = len(dims)
-        if markers is None:
-            markers = self.peak_local_max(dims=dims, min_distance=width, squeeze=False)
+    #     ndim = len(dims)
+    #     if markers is None:
+    #         markers = self.peak_local_max(dims=dims, min_distance=int(radius*1.4143), squeeze=False)
         
-        fitting_params = PropArray(np.empty(markers.shape), name=self.name, 
-                           dirpath=self.dirpath, propname="gaussfit_particle_fitting_params")
+    #     self.specify(markers, radius, labeltype="square")
         
-        fitting_result = PropArray(np.empty(markers.shape), name=self.name, 
-                                   dirpath=self.dirpath, propname="gaussfit_particle_fitting_result")
+    #     fitting_params = PropArray(np.empty(markers.shape), name=self.name, 
+    #                        dirpath=self.dirpath, propname="gaussfit_particle_fitting_params")
         
-        self.ongoing = "gaussfit_particle"
-        for sl, data in self.iter(complement_axes(dims)):
-            sl0 = sl[:-ndim]
-            centers = markers[sl0]
+    #     fitting_result = PropArray(np.empty(markers.shape), name=self.name, 
+    #                                dirpath=self.dirpath, propname="gaussfit_particle_fitting_result")
+        
+    #     self.ongoing = "gaussfit_particle"
+    #     for sl, data in self.iter(complement_axes(dims)):
+    #         sl0 = sl[:-ndim]
+    #         centers = markers[sl0]
             
-            fitting_params_ = PropArray(np.empty(centers.shape[1]), propname="fitting_params")
-            fitting_result_ = PropArray(np.empty(centers.shape[1]), propname="fitting_result")
+    #         fitting_params_ = PropArray(np.empty(centers.shape[1]), propname="fitting_params")
+    #         fitting_result_ = PropArray(np.empty(centers.shape[1]), propname="fitting_result")
             
-            gaussian = GaussianParticle(p0)
-            r0s = centers - width // 2
-            r1s = centers + (width+1) // 2
+    #         gaussian = GaussianParticle(p0)
+    #         r0s = centers - radius // 2
+    #         r1s = centers + (radius+1) // 2
             
-            for i, ((_, r0), (_, r1)) in enumerate(zip(r0s.iter("p"), r1s.iter("p"))):
-                # r0 = (y0, x0)
-                s = tuple(slice(x0, x1) for x0, x1 in zip(r0, r1))
-                if data[s].shape != (width, width):
-                    fitting_result_[i] = None
-                    fitting_params_[i] = None
-                else:
-                    fitting_result_[i] = gaussian.fit(data[s])
-                    gaussian.shift([r0[1], r0[0]])
-                    fitting_params_[i] = gaussian.params
+    #         for i, ((_, r0), (_, r1)) in enumerate(zip(r0s.iter("p"), r1s.iter("p"))):
+    #             # r0 = (y0, x0)
+    #             s = tuple(slice(x0, x1) for x0, x1 in zip(r0, r1))
+    #             if data[s].shape != (radius, radius):
+    #                 fitting_result_[i] = None
+    #                 fitting_params_[i] = None
+    #             else:
+    #                 fitting_result_[i] = gaussian.fit(data[s])
+    #                 gaussian.shift([r0[1], r0[0]])
+    #                 fitting_params_[i] = gaussian.params
             
-            fitting_result[sl0] = fitting_result_
-            fitting_params[sl0] = fitting_params_
+    #         fitting_result[sl0] = fitting_result_
+    #         fitting_params[sl0] = fitting_params_
 
-        result = ArrayDict(fitting_result=fitting_result, parameters=fitting_params)
-        self.ongoing = None
-        del self.ongoing
+    #     result = ArrayDict(fitting_result=fitting_result, parameters=fitting_params)
+    #     self.ongoing = None
+    #     del self.ongoing
         
-        return result
+    #     return result
     
     
     @dims_to_spatial_axes
@@ -790,14 +790,26 @@ class ImgArray(LabeledArray):
         
         return out
         
-    # nD labeling
     @dims_to_spatial_axes
     def specify(self, center, radius, *, dims=None, labeltype="square") -> ImgArray:
         """
-        Make a label
-        for sl, m in mark.iter("t"):
-            for _, yx in m.iter("p"):
-                img.specify(yx, 2, shape="circle", label_slice=sl[0])
+        Make rectangle or ellipse labels from points.
+        
+        Parameters
+        ----------
+        center : array like, MarkerArray or PropArray
+            Coordinates of centers. 
+        radius : float or array
+            Radius of labels.
+        dims : int or str, optional
+            Dimension of axes.
+        labeltype : str, by default "square"
+            The shape of labels.
+
+        Returns
+        -------
+        ImgArray
+            Labeled image.
         """
         
         if isinstance(center, PropArray):
