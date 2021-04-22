@@ -5,10 +5,10 @@
 ```python
 import impy as ip
 img = ip.imread(r"...\images\Image_0.tif")
-peaks = imgp.find_sm(percentile=90)
-imgp.specify(center=peaks, radius=3, labeltype="circle")
-imgp.imshow()
-imgp.imshow_label()
+peaks = img.find_sm(percentile=90)
+img.specify(center=peaks, radius=3, labeltype="circle")
+img.imshow()
+img.imshow_label()
 ```
 
 ![](Figs/2021-04-22-21-35-08.png)
@@ -109,10 +109,10 @@ Load image with `imread()` function. `ImgArray` object is created.
 - `dirpath` &rarr; absolute path to the original image.
 - `history` &rarr; history of applied analysis.
 - `axes` &rarr; dimensions of image, `ptzcyx`-order.
-- `scale` (property) &rarr; scales of each axis.
-- `value` (property) &rarr; show the array in numpy format.
-- `range` (property) &rarr; return a tuple of min/max.
-- `spatial_shape` (property) &rarr; such as `"yx"` or `"zyx"`.
+- `scale` *property* &rarr; scales of each axis.
+- `value` *property* &rarr; show the array in numpy format.
+- `range` *property* &rarr; return a tuple of min/max of the image.
+- `spatial_shape` *property* &rarr; such as `"yx"` or `"zyx"`.
 
 ### Basic Functions
 
