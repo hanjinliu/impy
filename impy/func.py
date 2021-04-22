@@ -102,7 +102,7 @@ def affinefit(img, imgref, bins=256, order=3):
 def plot_drift(result):
     fig = plt.figure()
     ax = fig.add_subplot(111, title="drift")
-    ax.plot(result[:, 0], result[:, 1], marker="+", color="red")
+    ax.plot(result["r=1"], result["r=0"], marker="+", color="red")
     ax.grid()
     # delete the default axes and let x=0 and y=0 be new ones.
     ax.spines["bottom"].set_position("zero")

@@ -76,11 +76,6 @@ class Axes:
     def __iter__(self):
         return self.axes.__iter__()
     
-    # @check_none
-    # def items(self):
-    #     for a in self.axes:
-    #         yield a, self.tag[a]
-    
     @check_none
     def __next__(self):
         return self.axes.__next__()

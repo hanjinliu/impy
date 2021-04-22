@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import glob
 import collections
+from numpy.core.numeric import True_
 from skimage import io
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -450,8 +451,8 @@ class ImgArray(LabeledArray):
         return eigval, eigvec
     
     @dims_to_spatial_axes
-    @same_dtype()
     @record()
+    @same_dtype(True)
     def sobel_filter(self, *, dims=None, update:bool=False):
         return self.parallel(sobel_, complement_axes(dims, self.axes))
     
@@ -509,8 +510,8 @@ class ImgArray(LabeledArray):
         return self._running_kernel(radius, enhance_contrast_, dims=dims, update=update)
     
     @dims_to_spatial_axes
-    @same_dtype()
     @record()
+    @same_dtype(True)
     def fill_hole(self, thr="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
         Filling holes
@@ -593,8 +594,8 @@ class ImgArray(LabeledArray):
         
     
     @dims_to_spatial_axes
-    @same_dtype()
     @record()
+    @same_dtype(True)
     def rolling_ball(self, radius:float=50, smoothing:bool=True, *, dims=None, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
@@ -1252,7 +1253,7 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def track_drift(self, axis="t", show_drift=True, **kwargs):
         """
-        Calculate (x,y) change based on cross correlation.
+        Calculate xy-directional 
         """
         if self.ndim != 3:
             raise TypeError(f"input must be three dimensional, but got {self.shape}")
@@ -1262,28 +1263,26 @@ class ImgArray(LabeledArray):
         corr_kwargs.update(kwargs)
         
         # self.ongoing = "drift tracking"
-        shift_list = [[0.0, 0.0]]
+        result = [[0.0, 0.0]]
         last_img = None
         for _, img in self.iter(axis):
             if last_img is not None:
                 shift = skreg.phase_cross_correlation(last_img, img, return_error=False, **corr_kwargs)
-                shift_total = shift + shift_list[-1]    # list + ndarray -> ndarray
-                shift_list.append(shift_total)
+                shift_total = shift + result[-1]    # list + ndarray -> ndarray
+                result.append(shift_total)
                 last_img = img
             else:
                 last_img = img
-
-        result = np.fliplr(shift_list) # shift is (y,x) order in skreg
         
-        if show_drift:
-            plot_drift(result)
-        result = MarkerArray(result, name="drift", axes="tr")
+        result = MarkerArray(np.array(result).T, name="drift", axes="rt")
+        
+        show_drift and plot_drift(result)
         
         return result
     
     @dims_to_spatial_axes
-    @same_dtype(asfloat=True)
     @record()
+    @same_dtype(asfloat=True)
     def drift_correction(self, shift=None, ref=None, *, order=1, 
                          along="t", dims=None, update:bool=False):
         """
@@ -1301,6 +1300,10 @@ class ImgArray(LabeledArray):
         >>> drift = [[ dx1, dy1], [ dx2, dy2], ... ]
         >>> img = img0.drift_correction()
         """
+        
+        if len(dims) == 3:
+            raise NotImplementedError("3-dimensional correction is not implemented. yet")
+        
         if shift is None:
             # determine 'ref'
             if ref is None:
@@ -1312,21 +1315,35 @@ class ImgArray(LabeledArray):
 
             shift = ref.track_drift(axis=along)
             self.ongoing = "drift_correction"
+        
+        elif isinstance(shift, MarkerArray):
+            if shift.ndim != 2:
+                raise ValueError("Wrong dimensions of 'shift'.")
 
-        elif shift.shape[1] != 2:
-            raise TypeError(f"Invalid shift shape: {shift.shape}")
-        elif shift.shape[0] != self.sizeof("t"):
-            raise TypeError(f"Length inconsistency between image and shift")
+            if shift.axes and shift.axes == "tr":
+                shift = shift.transpose(1, 0) # rt-order
+            elif shift.axes and shift.axes == "rt":
+                pass
+            else:
+                shift.axes = "tr" if shift.shape[0] >= shift.shape[1] else "rt"
+                
+            nr, nt = shift.sizesof("rt")
+            if nr != len(dims) or nt != self.sizeof("t"):
+                raise ValueError("Wrong shape of 'shift'.")
+        
+        else:
+            shift = MarkerArray(shift)
+            return self.drift_correction(shift, ref, order=order, along=along, 
+                                         dims=dims,update=update)
 
+        shift = np.flipud(shift)
         out = np.empty(self.shape)
         for sl, img in self.iter(complement_axes(dims, self.axes)):
-            if isinstance(sl, int):
-                tr = -shift[sl]
-            else:
-                tr = -shift[sl[0]]
-            mx = sktrans.AffineTransform(translation=tr)
+            trans = -shift[(slice(None),)+(sl[0],)]
+            mx = sktrans.AffineTransform(translation=trans)
             out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
         
+        out = out.view(self.__class__)
         return out
 
     @dims_to_spatial_axes

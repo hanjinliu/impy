@@ -55,7 +55,7 @@ class napariWindow:
         self.viewer.add_image(img,
                               channel_axis=chn_ax,
                               scale=[img.scale[a] for a in img.axes if a != "c"],
-                              name=img.name, 
+                              name=img.name,
                               **kwargs)
         
         if hasattr(img, "labels"):

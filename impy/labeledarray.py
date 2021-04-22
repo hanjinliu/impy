@@ -402,11 +402,12 @@ class LabeledArray(HistoryArray):
         axisint = self.axisof(axis)
         
         imgs = super().split(axisint)
-        labels = self.labels.split(axisint)
-        for img, lbl in zip(imgs, labels):
-            lbl.axes = del_axis(self.labels.axes, axisint)
-            lbl.set_scale(self.labels)
-            img.labels = lbl
+        if hasattr(self, "labels"):
+            labels = self.labels.split(axisint)
+            for img, lbl in zip(imgs, labels):
+                lbl.axes = del_axis(self.labels.axes, axisint)
+                lbl.set_scale(self.labels)
+                img.labels = lbl
             
         return imgs
     
