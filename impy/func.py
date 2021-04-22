@@ -168,7 +168,7 @@ def del_axis(axes, axis) -> str:
             if i not in axis:
                 new_axes += o
     elif isinstance(axis, str):
-        new_axes = complement_axes(axes, axis)
+        new_axes = complement_axes(axis, axes)
             
     return new_axes
 

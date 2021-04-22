@@ -317,7 +317,7 @@ class MetaArray(np.ndarray):
         return self.transpose(order)
     
     
-    def iter(self, axes, israw=False):
+    def iter(self, axes, israw=False, exclude=""):
         """
         Iteration along axes. Unlike self.iter(axes), this function yields subclass objects
         so that this function is slower but accessible to attributes such as labels.
@@ -326,27 +326,37 @@ class MetaArray(np.ndarray):
         ----------
         axes : str or int
             On which axes iteration is performed. Or the number of spatial dimension.
-
+        israw : bool, default is False
+            If True, MetaArray will be returned. If False, np.ndarray will be returned.
+        exclude : str, optional
+            Which axes will be excluded in output. For example, self.axes="tcyx" and 
+            exclude="c" then the axes of output will be "tyx" and slice is also correctly 
+            arranged.
+            
         Yields
         -------
         slice and (np.ndarray or MetaArray)
-            slice and Subimage=self[sl]
+            slice and a subimage=self[sl]
         """     
         iterlist = self._get_iterlist(axes)
-        if israw:
-            selfview = self
-        else:
-            selfview = self.value
-            
+        selfview = self if israw else self.value
         it = itertools.product(*iterlist)
-        i = 0
+
+        i = 0 # counter
         for sl in it:
-            yield sl, selfview[sl]
+            if len(exclude) == 0:
+                outsl = sl
+            else:
+                outsl = tuple(s for i, s in enumerate(sl) 
+                              if self.axes[i] not in exclude)
+            yield outsl, selfview[sl]
             i += 1
             
         # if iterlist = []
         if i == 0:
-            yield (slice(None),)*self.ndim, selfview
+            outsl = (slice(None),) * (self.ndim - len(exclude))
+            yield outsl, selfview
+            
     
     def _get_iterlist(self, axes):
         """

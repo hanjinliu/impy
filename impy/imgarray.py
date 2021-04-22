@@ -933,17 +933,23 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        PropArray of np.ndarray.
-            PropArray with line scans.
+        ImgArray
+            Line scans.
         """        
-        ndim = len(dims)
-        c_axes = complement_axes(dims, self.axes)
-        out = PropArray(np.empty(self.sizesof(c_axes)), name=self.name, axes=c_axes, 
-                        dirpath=self.dirpath, propname="line_profile")
-        for sl, img in self.iter(c_axes):
-            out[sl[:-ndim]] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
-                                                 order=order, mode="reflect")
+        # determine length
+        src = np.asarray(src, dtype=float)
+        dst = np.asarray(dst, dtype=float)
+        d_row, d_col = dst - src
+        length = int(np.ceil(np.hypot(d_row, d_col) + 1))
         
+        c_axes = complement_axes(dims, self.axes)
+        out = np.empty(self.sizesof(c_axes) + (length,), dtype="float32")
+        
+        for sl, img in self.iter(c_axes, exclude=dims):
+            out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
+                                         order=order, mode="reflect")
+        out = out.view(self.__class__)
+        out._set_info(self, "profile_line", c_axes+dims[-1])
         out.set_scale(self)
         return out
     
@@ -1014,12 +1020,12 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        ndim = len(dims)
-        labels = np.empty_like(self.labels).value
-        for sl, img in self.iter(complement_axes(dims, self.axes), israw=True):
-            labels[sl[:-ndim]] = skseg.expand_labels(img.labels.value, distance)
         
-        self.labels = labels.view(Label)
+        labels = np.empty_like(self.labels).value
+        for sl, img in self.iter(complement_axes(dims, self.axes), israw=True, exclude=dims):
+            labels[sl] = skseg.expand_labels(img.labels.value, distance)
+        
+        self.labels.value[:] = labels
         
         return self
     
@@ -1112,7 +1118,7 @@ class ImgArray(LabeledArray):
     
         
     @need_labels
-    def regionprops(self, properties:tuple[str,...]=("mean_intensity", "area"), *, 
+    def regionprops(self, properties:tuple[str,...]=("mean_intensity",), *, 
                     extra_properties=None) -> ArrayDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
@@ -1137,7 +1143,7 @@ class ImgArray(LabeledArray):
 
         if "p" in self.axes:
             # this dimension will be label
-            raise ValueError("axis 'p' is forbidden.")
+            raise ValueError("axis 'p' is forbidden, in regionprop().")
         
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)

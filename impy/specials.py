@@ -3,6 +3,7 @@ from .axes import ImageAxesError
 from .metaarray import MetaArray
 import numpy as np
 import matplotlib.pyplot as plt
+from inspect import signature
 from scipy import optimize as opt
 from .func import *
 from .deco import *
@@ -64,22 +65,64 @@ class PropArray(MetaArray):
         
         return self
     
-    # def curve_fit(self, f, p0=None, dims=None) -> PropArray:
-    #     c_axes = complement_axes(dims, all_axes=self.axes)
+    def curve_fit(self, f, p0=None, dims="t", return_fit=True) -> ArrayDict:
+        """
+        Run scipy.optimize.curve_fit for each dimesion.
+
+        Parameters
+        ----------
+        f : callable
+            Model function.
+        p0 : array or callable, optional
+            Initial parameter. Callable object that estimate initial paramter can also 
+            be passed here.
+        dims : str, by default "t"
+            Along which axes fitting algorithms are conducted.
+        return_fit : bool, by default True
+            If fitting trajectories are returned. If the input array is large, this will 
+            save much memory.
+
+        Returns
+        -------
+        ArrayDict
+            params : Fitting parameters
+            covs : Covariances
+            fit : fitting trajectories (if return_fit==True)
+        """        
+        c_axes = complement_axes(dims, all_axes=self.axes)
         
-    #     if len(dims)!=1:
-    #         raise NotImplementedError
+        if len(dims)!=1:
+            raise NotImplementedError("Only 1-dimensional fitting is implemented.")
         
-    #     out = np.empty(self.sizesof(c_axes), dtype=object)
-    #     xdata = np.arange(self.sizeof(dims))
-    #     # maybe I should write another version of iter() for better sl.
-    #     for sl, data in self.iter(c_axes):
-    #         p0_ = p0 if not callable(p0) else p0(data)
-    #         result = opt.curve_fit(f, xdata, data, p0_)
-    #         out[sl[:]] = result
-    #     out = out.view(self.__class__)
-    #     out._set_info(self, new_axes=del_axis(self.axes, dims))
-    #     return out
+        n_params = len(signature(f).parameters)-1 if callable(p0) else len(p0)
+        
+        params = np.empty(self.sizesof(c_axes) + (n_params,), dtype="float32")
+        covs = np.empty(self.sizesof(c_axes) + (n_params, n_params), dtype="float32")
+        if return_fit:
+            fit = np.empty(self.sizesof(c_axes) + (self.sizeof(dims),), dtype=self.dtype)
+            
+        xdata = np.arange(self.sizeof(dims))*self.scale[dims]
+        
+        for sl, data in self.iter(c_axes, exclude=dims):
+            p0_ = p0 if not callable(p0) else p0(data)
+            result = opt.curve_fit(f, xdata, data, p0_)
+            params[sl], covs[sl] = result
+            if return_fit:
+                fit[sl] = f(xdata, *(result[0]))
+        
+        # set infos
+        params = params.view(self.__class__)
+        covs = covs.view(self.__class__)
+        params._set_info(self, new_axes=del_axis(self.axes, dims)+"m")
+        covs._set_info(self, new_axes=del_axis(self.axes, dims)+"mn")
+        if return_fit:
+            fit = fit.view(self.__class__)
+            fit._set_info(self, new_axes=del_axis(self.axes, dims)+dims)
+        
+        if return_fit:
+            return ArrayDict(params=params, covs=covs, fit=fit)
+        else:
+            return ArrayDict(params=params, covs=covs)
     
     
     def melt(self):

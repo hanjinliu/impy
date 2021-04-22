@@ -249,7 +249,8 @@ class LabeledArray(HistoryArray):
         
         return None
 
-    def imshow(self, **kwargs):
+    @dims_to_spatial_axes
+    def imshow(self, dims=None, **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
             interpol = "bilinear" if self.dtype == bool else "none"
@@ -261,7 +262,7 @@ class LabeledArray(HistoryArray):
             
         elif self.ndim == 3:
             if "c" not in self.axes:
-                imglist = self.split(axis=find_first_appeared(self.axes, exclude="yx"))
+                imglist = self.split(axis=find_first_appeared(self.axes, exclude=dims))
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
@@ -292,7 +293,7 @@ class LabeledArray(HistoryArray):
                     imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
                     imshow_kwargs.update(kwargs)
                     
-                    ax[i].imshow(self[i], **imshow_kwargs)
+                    ax[i].imshow(self[f"c={i}"], **imshow_kwargs)
         else:
             raise ValueError("Image must be two or three dimensional.")
         
@@ -386,7 +387,7 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def iter(self, axes, showprogress:bool=True, israw=False):
+    def iter(self, axes, showprogress:bool=True, israw=False, exclude=""):
         """
         Iteration along axes.
 
@@ -396,6 +397,12 @@ class LabeledArray(HistoryArray):
             On which axes iteration is performed. Or the number of spatial dimension.
         showprogress : bool, optional
             If show progress of algorithm, by default True
+        israw : bool, default is False
+            If True, MetaArray will be returned. If False, np.ndarray will be returned.
+        exclude : str, optional
+            Which axes will be excluded in output. For example, self.axes="tcyx" and 
+            exclude="c" then the axes of output will be "tyx" and slice is also correctly 
+            arranged.
 
         Yields
         -------
@@ -406,7 +413,7 @@ class LabeledArray(HistoryArray):
         timer = Timer()
         if showprogress:
             print(f"{name} ...", end="")
-        for x in super().iter(axes, israw):
+        for x in super().iter(axes, israw=israw, exclude=exclude):
             yield x
             
         timer.toc()
@@ -452,6 +459,24 @@ class LabeledArray(HistoryArray):
         return out
     
     def parallel_eig(self, func, dims, *args):
+        """
+        Similar to `parallel()` but this function returns two arrays.
+        `eigval` has shape of `(L,) + self.shape` and contains eigenvalues for 
+        every L, while `eigvec` has shape of `(R, L) + self.shape` and contains
+        eigenvectors for every L.
+
+        Parameters
+        ----------
+        func : callable
+            Function applied to each image.
+            sl, img = func(arg). arg must be packed into tuple or list.
+        dims : str or int
+            passed to iter()
+
+        Returns
+        -------
+        LabeledArray and LabeledArray
+        """        
         ndim = len(complement_axes(dims))
         eigval = np.empty(self.shape+(ndim,), dtype="float32")
         eigvec = np.empty(self.shape+(ndim, ndim), dtype="float32")
