@@ -179,10 +179,10 @@ class ImgArray(LabeledArray):
     
     
     @dims_to_spatial_axes
-    def puncta_detection(self, sigma:float=1.5, *, percentile:float=99, num_peaks:int=np.inf, 
-                         squeeze:bool=True, dims=None):
+    def find_sm(self, sigma:float=1.5, *, percentile:float=99, num_peaks:int=np.inf, 
+                squeeze:bool=True, dims=None):
         """
-        Puncta detection using difference of Gaussian method.
+        Single molecule detection using difference of Gaussian method.
 
         Parameters
         ----------
@@ -661,7 +661,7 @@ class ImgArray(LabeledArray):
                         dirpath=self.dirpath, propname="local_max_indices")
         
         self.ongoing = "peak_local_max"
-        for sl, img in self.iter(c_axes, israw=True):
+        for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
                 labels = np.array(img.labels)
@@ -677,7 +677,7 @@ class ImgArray(LabeledArray):
             
             indarr = IndexArray(indices.T, name=self.name, axes="rp", 
                                 dirpath=self.dirpath)
-            out[sl[:-ndim]] = indarr
+            out[sl] = indarr
         
         self.ongoing = None
         del self.ongoing

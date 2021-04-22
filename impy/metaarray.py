@@ -31,7 +31,7 @@ def _str_to_range(v:str):
         if end == "":
             end = None
         else:
-            end = int(end) + 1
+            end = int(end)
         sl = slice(start, end, None)
         
     else:
