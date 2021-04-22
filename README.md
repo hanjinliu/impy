@@ -15,7 +15,7 @@ imgp.imshow_label()
 
 ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility are usually hard to achieve with ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not suited for biological image analysis because many functions do not support standard multi-dimensional tiff files.
 
-Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution.
+Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution. For other purpose, such as marking, labeling and storing propeties of an image, `MarkerArray`, `Label`, `PropArray` are alternatively returned but they also support basic functions as `ImgArray`.
 
 This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize images.
 
@@ -105,31 +105,32 @@ Load image with `imread()` function. `ImgArray` object is created.
 
 ### Attributes
 
-- `name` = name of the original image.
-- `dirpath` = absolute path to the original image.
-- `history` = history of applied analysis.
-- `axes` = dimensions of image, `ptzcyx`-order.
-- `scale` (property) = scales of each axis.
-- `value` (property) = show the array in numpy format.
-- `range` (property) = return a tuple of min/max.
-- `spatial_shape` (property) = such as `"yx"` or `"zyx"`.
+- `name` &rarr; name of the original image.
+- `dirpath` &rarr; absolute path to the original image.
+- `history` &rarr; history of applied analysis.
+- `axes` &rarr; dimensions of image, `ptzcyx`-order.
+- `scale` (property) &rarr; scales of each axis.
+- `value` (property) &rarr; show the array in numpy format.
+- `range` (property) &rarr; return a tuple of min/max.
+- `spatial_shape` (property) &rarr; such as `"yx"` or `"zyx"`.
 
 ### Basic Functions
 
-- `imshow` = visualize 2-D or 3-D image.
-- `imshow_label` = visualize 2-D or 3-D image and its labels.
-- `imshow_comparewith` = compare two 2-D images.
-- `hist` = show the histogram of image intensity profile.
-- `imsave` = save image (by default save in the directory that the original image was loaded).
-- `set_scale` = set scales of any axes.
+- `imshow` &rarr; visualize 2-D or 3-D image.
+- `imshow_label` &rarr; visualize 2-D or 3-D image and its labels.
+- `imshow_comparewith` &rarr; compare two 2-D images.
+- `hist` &rarr; show the histogram of image intensity profile.
+- `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
+- `set_scale` &rarr; set scales of any axes.
+- `window` &rarr; interface between `napari`. `ImgArray`, `MarkerArray` and `Label` can be sent to viewer with a simple code `ip.window.add(X)`.
 
 ## Data Type Conversion
 
 `uint8`, `uint16`, `bool` and `float32` are supported for type conversion.
-- `as_uint8` = convert to `uint8`.
-- `as_uint16` = convert to `uint16`.
-- `as_float` = convert to `float32`.
-- `as_img_type` = convert to any supported types.
+- `as_uint8` &rarr; convert to `uint8`.
+- `as_uint16` &rarr; convert to `uint16`.
+- `as_float` &rarr; convert to `float32`.
+- `as_img_type` &rarr; convert to any supported types.
 
 ## Automatic Saturation and Type Conversion
 
@@ -156,7 +157,7 @@ img /= 10       # `img` is converted to float32
 - `track_drift`, `drift_correction` &rarr; for automatic drift correction.
 - `lucy` &rarr; for deconvolution of images.
 - `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
-- `hessian_eigval`, `hessian_eig` = feature detection using Hessian method.
+- `hessian_eigval`, `hessian_eig` &rarr; feature detection using Hessian method.
 - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; feature detection using structure tensor.
 - `dog_filter` &rarr; filtering using difference of Gaussian method.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` &rarr; for 2-D or 3-D smoothing.
