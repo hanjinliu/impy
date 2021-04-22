@@ -248,8 +248,7 @@ class LabeledArray(HistoryArray):
         
         return None
 
-    @dims_to_spatial_axes
-    def imshow(self, dims=None, **kwargs):
+    def imshow(self, dims="yx", **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
             interpol = "bilinear" if self.dtype == bool else "none"

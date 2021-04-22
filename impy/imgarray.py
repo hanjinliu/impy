@@ -130,6 +130,7 @@ class ImgArray(LabeledArray):
             plt.show()
         return fit
     
+    # TODO:
     # @dims_to_spatial_axes
     # @record(append_history=False)
     # def gaussfit_particle(self, markers=None, radius=4,
@@ -1251,10 +1252,23 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def track_drift(self, axis="t", show_drift=True, **kwargs):
+    def track_drift(self, axis="t", show_drift=True, **kwargs) -> MarkerArray:
         """
-        Calculate xy-directional 
-        """
+        Calculate xy-directional drift using `skimage.registration.phase_cross_correlation`.
+
+        Parameters
+        ----------
+        axis : str, by default "t"
+            Along which axis drift will be calculated.
+        show_drift : bool, by default True
+            If True, plot the result.
+
+        Returns
+        -------
+        MarkerArray
+            An array with rt-axis.
+
+        """        
         if self.ndim != 3:
             raise TypeError(f"input must be three dimensional, but got {self.shape}")
 
@@ -1279,6 +1293,7 @@ class ImgArray(LabeledArray):
         show_drift and plot_drift(result)
         
         return result
+    
     
     @dims_to_spatial_axes
     @record()

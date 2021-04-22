@@ -132,6 +132,10 @@ def need_labels(func):
 
 def safe_str(obj):
     try:
-        return str(obj)
+        s = str(obj)
+        if len(s) > 20:
+            return str(type(obj))
+        else:
+            return s
     except Exception:
         return str(type(obj))
