@@ -2,49 +2,68 @@
 
 ## More Numpy in image analysis! 
 
-ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility usually do not suit for ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not convenient for biological multi-dimensional analysis, although it is the best practice for above-mentioned problems.
+```python
+import impy as ip
+img = ip.imread(r"...\images\Image_0.tif")
+peaks = imgp.find_sm(percentile=90)
+imgp.specify(center=peaks, radius=3, labeltype="circle")
+imgp.imshow()
+imgp.imshow_label()
+```
+
+![](Figs/2021-04-22-21-35-08.png)
+
+ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility are usually hard to achieve with ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not suited for biological image analysis because many functions do not support standard multi-dimensional tiff files.
 
 Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution.
 
+This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize images.
+
 ## Brief Examples
 
-#### 1. Input/Output
+#### 1. Input/Output and Visualization
 
 ```python
 import impy as ip
 img = ip.imread(r"...\images\XXX.tif")
 img.gaussian_filter(sigma=1, update=True)
+img.imsave("image_name")
+```
+
+```python
+img.imshow() # matplotlib based visualization
+ip.window.add(img) # send to napari
+```
+
+#### 2. Metadata and Axis-Targeted Slicing
+
+Suppose an `np.ndarray` with shape (10, 20, 256, 256), which axis is time and which is z-slice? The file path of original image, what analysis have been applied are also confusing. `ImgArray` retains all the axis information and histories. You can use any character as axis symbols.
+
+```python
 img
 ```
+
     [Out]
-        shape     : 10(t), 3(c), 512(y), 512(x)
+        shape     : 10(t), 20(z), 256(y), 256(x)
       label shape : No label
         dtype     : uint16
       directory   : ...\images
     original image: XXX
        history    : gaussian_filter(sigma=1)
 
+You can also access any parts of image with string that contains axis information.
+
 ```python
-img.imsave("image_name")
+img_new = img["z=1;t=4,6,8"]
+img_new.axes = "p*@e"
 ```
 
-#### 2. Visualization
+#### 3. Axis-Targeted Iteration
+
+Usually we want to iterate analysis along random axes. `ImgArray` has `iter` method that simplify this process.
 
 ```python
-img.imshow()
-img.imshow_comparewith(another_img)
-```
-
-#### 3. Axis-Targeted Slicing
-
-```python
-img_new = img["c=1;t=4,8,12"]
-```
-
-#### 4. Axis-Targeted Iteration
-
-```python
-for sl, img2d in img.iter("tzc"):
+for sl, img2d in img.iter("tzc"): # iterate along t, z and c axis
     print(img2d.range) # do something
 ```
 
@@ -60,43 +79,29 @@ for (t in t_all) {
 }
 ```
 
-#### 5. Labeling and Measurement
+#### 4. Labeling and Measurement
+
+`scikit-image` has a powerful measurement function called `regionprops`. `ImgArray` also has a method that wrapped the `regionprops` function while enables multi-measurement.
 
 ```python
 img.label_threshold(thr="yen") # Label image using Yen's thresholding
 props = img.regionprop(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
 props.perimeter.plot_profile() # Plot results of perimeter
-props.perimeter["t=2;p=10"] # Get the perimeter of 10-th label in the slice t=2.
+props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
 ```
 
-## Basic Usage
+## Basic Functions in impy
 
 Load image with `imread()` function. `ImgArray` object is created.
 
-```python
-import impy as ip
+- `imread` = Load an image. `e.g. >>> ip.imread(path)`
+- `imread_collection` = Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
+- `read_meta` = Read metadata of a tiff file.
+- `array`, `zeros`, `zeros_like`, `empty`, `empty_like` = similar to those in `numpy` but return `ImgArray`.
+- `set_cpu` = Set the numbers of CPU used in image analysis.
+- `stack` = Make a image stack from a list of images along any axis. ` e.g. >>> ip.stack(imglist, axis="c")`
 
-# load single tif
-img = ip.imread(r"C:\Users\...\XXX.tif")
-
-# load tifs recursively from a directory
-img = ip.imread_collection(r"C:\Users\...\XX_100nM", ignore_exception=True)
-```
-
-Stacking images with `stack()`.
-
-```python
-# make stack along channel axis
-img = ip.stack([img1, img2], axis="c", dtype="uint16") 
-```
-
-Making synthetic three-channel image with `array()`.
-
-```python
-img = ip.array(np.random.rand(3*40*30).reshape(3,40,30)*100, name="random noise")
-```
-
-## Basic Attributes and Functions of ImgArray
+## Attributes and Methods of ImgArray
 
 ### Attributes
 
@@ -104,17 +109,19 @@ img = ip.array(np.random.rand(3*40*30).reshape(3,40,30)*100, name="random noise"
 - `dirpath` = absolute path to the original image.
 - `history` = history of applied analysis.
 - `axes` = dimensions of image, `ptzcyx`-order.
+- `scale` (property) = scales of each axis.
 - `value` (property) = show the array in numpy format.
 - `range` (property) = return a tuple of min/max.
 - `spatial_shape` (property) = such as `"yx"` or `"zyx"`.
 
-### Functions
+### Basic Functions
 
 - `imshow` = visualize 2-D or 3-D image.
 - `imshow_label` = visualize 2-D or 3-D image and its labels.
 - `imshow_comparewith` = compare two 2-D images.
 - `hist` = show the histogram of image intensity profile.
 - `imsave` = save image (by default save in the directory that the original image was loaded).
+- `set_scale` = set scales of any axes.
 
 ## Data Type Conversion
 
@@ -142,58 +149,36 @@ img / 10        # output is converted to float32
 img /= 10       # `img` is converted to float32
 ```
 
-## Axis-Targeted Slicing
-
-When you want to access the first channel and 4-th to 10-th time points, you can do it by:
-
-```python
-img["c=1;t=4-10"]       # get items
-img["c=1;t=4-10"] = 0   # set items
-```
-
-List-like slicing is also supported:
-
-```python
-img["t=1,3-6,9"]  # this means [0,2,3,4,5,8] in t-axis
-```
-
-You can define your own axes such as:
-
-```python
-img.axes = "aoe"
-```
-
-
 ## Image Analysis
 
 `ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
-- `drift_correction` (plugin) = automatic drift correction using `phase_cross_correlation` function in skimage.
-- `lucy` (plugin) = deconvolution of images.
-- `affine_correction` = Correction of such as chromatic aberration using Affine transformation.
+- `track_drift`, `drift_correction` &rarr; for automatic drift correction.
+- `lucy` &rarr; for deconvolution of images.
+- `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
 - `hessian_eigval`, `hessian_eig` = feature detection using Hessian method.
-- `structure_tensor_eigval`, `structure_tensor_eig` = feature detection using structure tensor.
-- `dog_filter` = filtering using difference of Gaussian method.
-- `mean_filter`, `meadian_filter`, `gaussian_filter` = for 2-D or 3-D smoothing.
-- `sobel_filter` = for edge detection.
-- `entropy_filter` = for object detection.
-- `enhance_contrast` = for higher contrast.
-- `erosion`, `dilation`, `opening`, `closing` = for morphological processing.
-- `rolling_ball`, `tophat` = for background subtraction.
-- `gaussfit`, `gaussfit_particle` = fit the image to 2-D Gaussian (for correction of uneven irradiation or single molecular analysis).
-- `distance_map`, `skeletonize` = processing binary images.
-- `fft`, `ifft` = Fourier transformation.
-- `threshold` = thresholding.
-- `peak_local_max` = find maxima.
-- `fill_hole` = fill holl-like region.
-- `label`, `label_threshold` = labeling images.
-- `expand_labels`, `watershed` = adjuct labels.
-- `regionprops` =  measure properties on labels.
-- `profile_line` = get line scan.
-- `crop_center`, `crop_circle` = crop image.
-- `clip_outliers`, `rescale_intensity` = rescale the intensity profile into certain range.
-- `proj` = Z-projection along any axis.
-- `split` = split the image along any axis.
+- `structure_tensor_eigval`, `structure_tensor_eig` &rarr; feature detection using structure tensor.
+- `dog_filter` &rarr; filtering using difference of Gaussian method.
+- `mean_filter`, `meadian_filter`, `gaussian_filter` &rarr; for 2-D or 3-D smoothing.
+- `sobel_filter` &rarr; for edge detection.
+- `entropy_filter` &rarr; for object detection.
+- `enhance_contrast` &rarr; for higher contrast.
+- `erosion`, `dilation`, `opening`, `closing` &rarr; for morphological processing.
+- `rolling_ball`, `tophat` &rarr; for background subtraction.
+- `convolve` &rarr; any convolution.
+- `gaussfit` &rarr; fit the image to 2-D Gaussian.
+- `distance_map`, `skeletonize`, `fill_hole` &rarr; processing binary images.
+- `fft`, `ifft` &rarr; Fourier transformation.
+- `threshold` &rarr; thresholding (many methods included).
+- `find_sm`, `peak_local_max` &rarr; find maxima.
+- `label`, `label_threshold`, `specify` &rarr; labeling images.
+- `expand_labels`, `watershed` &rarr; adjuct labels.
+- `regionprops` &rarr; measure properties on labels.
+- `profile_line` &rarr; get line scan.
+- `crop_center` &rarr; crop image.
+- `clip_outliers`, `rescale_intensity` &rarr; rescale the intensity profile into certain range.
+- `proj` &rarr; Z-projection along any axis.
+- `split` &rarr; split the image along any axis.
 
 # References
-For 3-D PSF generation, [flowdec](https://github.com/hammerlab/flowdec) is imported in this package. For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.
+For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.
