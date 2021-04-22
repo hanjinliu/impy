@@ -504,7 +504,7 @@ class LabeledArray(HistoryArray):
         -------
         LabeledArray and LabeledArray
         """        
-        ndim = len(complement_axes(dims))
+        ndim = len(complement_axes(dims, self.axes))
         eigval = np.empty(self.shape+(ndim,), dtype="float32")
         eigvec = np.empty(self.shape+(ndim, ndim), dtype="float32")
         
