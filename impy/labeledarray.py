@@ -110,8 +110,7 @@ class LabeledArray(HistoryArray):
         super().__array_finalize__(obj)
         self._view_labels(obj)
         if hasattr(obj, "ongoing"):
-            self.ongoing = obj.ongoing
-    
+            self.ongoing = obj.ongoing    
     
     def _view_labels(self, other):
         """
@@ -382,6 +381,34 @@ class LabeledArray(HistoryArray):
         
         plt.show()
         return self
+    
+    def split(self, axis=None) -> list:
+        """
+        Split n-dimensional image into (n-1)-dimensional images.
+
+        Parameters
+        ----------
+        axis : str or int, optional
+            Along which axis the original image will be split, by default "c"
+
+        Returns
+        -------
+        list of arrays
+            Separate images
+        """
+        # determine axis in int.
+        if axis is None:
+            axis = find_first_appeared(self.axes, "cztp")
+        axisint = self.axisof(axis)
+        
+        imgs = super().split(axisint)
+        labels = self.labels.split(axisint)
+        for img, lbl in zip(imgs, labels):
+            lbl.axes = del_axis(self.labels.axes, axisint)
+            lbl.set_scale(self.labels)
+            img.labels = lbl
+            
+        return imgs
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Multi-processing

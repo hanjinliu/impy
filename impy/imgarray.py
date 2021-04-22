@@ -299,9 +299,9 @@ class ImgArray(LabeledArray):
         corrected = []
         for i, m in enumerate(mtx):
             if np.isscalar(m) and m==1:
-                corrected.append(self[f"{axis}={i+1}"])
+                corrected.append(self[f"{axis}={i}"])
             else:
-                corrected.append(self[f"{axis}={i+1}"].affine(order=order, matrix=m))
+                corrected.append(self[f"{axis}={i}"].affine(order=order, matrix=m))
 
         out = stack(corrected, axis=axis, dtype=self.dtype)
         out.temp = mtx
@@ -451,9 +451,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def sobel_filter(self, dims=None, update:bool=False):
-        out = self.parallel(sobel_, complement_axes(dims, self.axes))
-        return out
+    def sobel_filter(self, *, dims=None, update:bool=False):
+        return self.parallel(sobel_, complement_axes(dims, self.axes))
+    
+    @dims_to_spatial_axes
+    @same_dtype()
+    @record()
+    def convolve(self, kernel, *, dims=None, update:bool=False):
+        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel)
     
     @dims_to_spatial_axes
     @same_dtype()
@@ -827,6 +832,7 @@ class ImgArray(LabeledArray):
             label_axes = str(center.axes) + dims
             if not hasattr(self, "labels"):
                 self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
+                self.labels.set_scale(self)
 
             for _, marker in melted.iter("p"):
                 center = tuple(marker[-ndim:])
@@ -999,6 +1005,7 @@ class ImgArray(LabeledArray):
         
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "Labeled")
+        self.labels.set_scale(self)
         return self
     
     @dims_to_spatial_axes
@@ -1097,6 +1104,7 @@ class ImgArray(LabeledArray):
         
         labels = labels.view(Label)
         self.labels = labels.optimize()
+        self.labels.set_scale(self)
         return self
     
     @dims_to_spatial_axes
@@ -1156,6 +1164,8 @@ class ImgArray(LabeledArray):
                          for p in properties})
         
         # calculate property value for each slice
+        timer = Timer()
+        print("regionprops ...", end="")
         for sl in itertools.product(*map(range, shape)):
             props = skmes.regionprops(self.labels, self.value[sl], 
                                       cache=False,
@@ -1163,7 +1173,8 @@ class ImgArray(LabeledArray):
             label_sl = (slice(None),) + sl
             for prop_name in properties:
                 out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
-        
+        timer.toc()
+        print(f"\rregionprops completed ({timer})")
         for parr in out.values():
             parr.set_scale(self)
         return out
