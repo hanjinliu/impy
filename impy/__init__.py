@@ -1,22 +1,14 @@
 __version__ = "1.4.5"
-# TODO: napari, btrack ... https://github.com/quantumjot/BayesianTracker
+# TODO: btrack ... https://github.com/quantumjot/BayesianTracker
 
 import warnings
-warnings.resetwarnings()
-warnings.simplefilter("ignore", UserWarning)
-warnings.simplefilter("ignore", DeprecationWarning)
-warnings.simplefilter("ignore", ResourceWarning)
-warnings.simplefilter("ignore", RuntimeWarning)
-
-import os
-from importlib import import_module
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 
                        imread, imread_collection, read_meta, 
                        stack, set_cpu, ImgArray)
 from .specials import PropArray, MarkerArray
 
 try:
-    from .viewer import viewer
+    from .viewer import window
 except ImportError as e:
     print(f"Could not import viewer: {e}")
 except Exception as e:
@@ -68,36 +60,8 @@ ImgArray
 
 """
 
-# Load plugins if possible
-# TODO: remove plugin, create py-file for inside functions such as drift correction, psf with defocus model
-plugin_path = os.path.join(os.path.dirname(__file__), "plugin")
-py_file_list = []
-for file in os.listdir(plugin_path):
-    name, ext = os.path.splitext(file)
-    if ext == ".py" and not name.startswith("__"):
-        py_file_list.append(name)
-
-plugin_func_list = []   # list of plugin function objects
-for py in py_file_list:
-    try:
-        mod = import_module(f".plugin.{py}", "impy")
-    except ImportError as e:
-        print(f"Could not load '{py}': {e}")
-    else:
-        for func in mod.__all__:
-            plugin_func_list.append(getattr(mod, func))
-            
-plugin = []             # list of plugin function names
-for func in plugin_func_list:
-    setattr(ImgArray, func.__name__, func)
-    plugin.append(func.__name__)
-
-del os, plugin_func_list, plugin_path, import_module
-
 # To silence Warnings in skimage
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", DeprecationWarning)
-
-
 

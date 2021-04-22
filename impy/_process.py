@@ -7,6 +7,8 @@ from skimage.feature.corner import _symmetric_image
 from skimage import feature as skfeat
 from scipy import ndimage as ndi
 import numpy as np
+from scipy.fftpack import fftn as fft
+from scipy.fftpack import ifftn as ifft
 
 def affine_(args):
     sl, data, mx, order = args
@@ -154,3 +156,25 @@ def fill_hole_(args):
     seed = np.copy(data)
     seed[1:-1, 1:-1] = data.max()
     return (sl, skmorph.reconstruction(seed, mask, method="erosion"))
+
+def richardson_lucy_(args):
+    # Identical to the algorithm in Deconvolution.jl of Julia.
+    sl, obs, psf, niter = args
+    # obs and psf must be float32 here
+    
+    if obs.shape != psf.shape:
+        raise ValueError("observation and PSF have different shape: "
+                        f"{obs.shape} and {psf.shape}")
+    
+    psf_ft = fft(psf)
+    psf_ft_conj = np.conjugate(psf_ft)
+    
+    def lucy_step(estimated):
+        factor = ifft(fft(obs / ifft(fft(estimated) * psf_ft)) * psf_ft_conj)
+        return estimated * np.real(factor)
+    
+    estimated = np.real(ifft(fft(obs) * psf_ft))
+    for _ in range(niter):
+        estimated = lucy_step(estimated)
+    
+    return sl, np.fft.fftshift(estimated)

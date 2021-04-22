@@ -6,6 +6,8 @@ from skimage.morphology import disk, ball
 from skimage import transform as sktrans
 import json
 import re
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 
 def load_json(s:str):
@@ -48,14 +50,6 @@ def check_nd_sigma(sigma, ndim):
         raise ValueError("length of sigma and dims must match.")
     return sigma
 
-def check_nd_pxsize(pxsize, ndim):
-    if np.isscalar(pxsize):
-        pxsize = [pxsize] * ndim
-    elif pxsize is None:
-        pxsize = np.ones(ndim)
-    elif len(pxsize) != ndim:
-        raise ValueError("length of pxsize and dims must match.")
-    return pxsize
 
 def specify_one(center, radius, shape:tuple, labeltype:str):
     if labeltype == "square":
@@ -104,6 +98,23 @@ def affinefit(img, imgref, bins=256, order=3):
     result = opt.minimize(cost_nmi, mtx0, args=(np.asarray(img), np.asarray(imgref)), method="Powell")
     mtx_opt = as_3x3_matrix(result.x)
     return mtx_opt
+
+def plot_drift(result):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, title="drift")
+    ax.plot(result[:, 0], result[:, 1], marker="+", color="red")
+    ax.grid()
+    # delete the default axes and let x=0 and y=0 be new ones.
+    ax.spines["bottom"].set_position("zero")
+    ax.spines["left"].set_position("zero")
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    # let the interval of x-axis and that of y-axis be equal.
+    ax.set_aspect("equal")
+    # set the x/y-tick intervals to 1.
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    plt.show()
+    return None
     
 
 def key_repr(key):

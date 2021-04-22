@@ -79,4 +79,4 @@ class napariWindow:
             self.viewer.add_labels(lbl, opacity=opacity, **kwargs)
         return None
 
-viewer = napariWindow()
+window = napariWindow()

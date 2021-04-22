@@ -12,6 +12,7 @@ from skimage import exposure as skexp
 from skimage import measure as skmes
 from skimage import segmentation as skseg
 from skimage import feature as skfeat
+from skimage import registration as skreg
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
 from .func import *
@@ -828,7 +829,6 @@ class ImgArray(LabeledArray):
             
             shape = self.sizesof(dims)
             label_shape = center.shape + shape
-            # print(label_shape, shape)
             label_axes = str(center.axes) + dims
             if not hasattr(self, "labels"):
                 self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
@@ -1074,7 +1074,7 @@ class ImgArray(LabeledArray):
         if markers is None:
             markers = input_img.peak_local_max(dims=dims, squeeze=False)
         elif isinstance(markers, IndexArray):
-            m = PropArray(np.zeros(()))
+            m = PropArray(np.zeros(()), axes="")
             m[()] = markers
             markers = m
                 
@@ -1248,8 +1248,113 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         out.temp = [lowerlim, upperlim]
         return out
+    
+    @record(append_history=False)
+    def track_drift(self, axis="t", show_drift=True, **kwargs):
+        """
+        Calculate (x,y) change based on cross correlation.
+        """
+        if self.ndim != 3:
+            raise TypeError(f"input must be three dimensional, but got {self.shape}")
 
+        # slow drift needs large upsampling numbers
+        corr_kwargs = {"upsample_factor": 10}
+        corr_kwargs.update(kwargs)
         
+        # self.ongoing = "drift tracking"
+        shift_list = [[0.0, 0.0]]
+        last_img = None
+        for _, img in self.iter(axis):
+            if last_img is not None:
+                shift = skreg.phase_cross_correlation(last_img, img, return_error=False, **corr_kwargs)
+                shift_total = shift + shift_list[-1]    # list + ndarray -> ndarray
+                shift_list.append(shift_total)
+                last_img = img
+            else:
+                last_img = img
+
+        result = np.fliplr(shift_list) # shift is (y,x) order in skreg
+        
+        if show_drift:
+            plot_drift(result)
+        result = MarkerArray(result, name="drift", axes="tr")
+        
+        return result
+    
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @record()
+    def drift_correction(self, shift=None, ref=None, *, order=1, 
+                         along="t", dims=None, update:bool=False):
+        """
+        shift: (N, 2) array, optional.
+            x,y coordinates of drift. If None, this parameter will be determined by the
+            track drift() function, using self or ref if indicated. 
+
+        ref: ImgArray object, optional
+            The reference 3D image to determine drift.
+        
+        order: int, optional
+            The order of interpolation. See skimage.transform.warp.
+
+        e.g.
+        >>> drift = [[ dx1, dy1], [ dx2, dy2], ... ]
+        >>> img = img0.drift_correction()
+        """
+        if shift is None:
+            # determine 'ref'
+            if ref is None:
+                ref = self
+            elif not isinstance(ref, self.__class__):
+                raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
+            elif ref.axes != along + dims:
+                raise ValueError(f"Cannot track drift using {ref.axes} image")
+
+            shift = ref.track_drift(axis=along)
+            self.ongoing = "drift_correction"
+
+        elif shift.shape[1] != 2:
+            raise TypeError(f"Invalid shift shape: {shift.shape}")
+        elif shift.shape[0] != self.sizeof("t"):
+            raise TypeError(f"Length inconsistency between image and shift")
+
+        out = np.empty(self.shape)
+        for sl, img in self.iter(complement_axes(dims, self.axes)):
+            if isinstance(sl, int):
+                tr = -shift[sl]
+            else:
+                tr = -shift[sl[0]]
+            mx = sktrans.AffineTransform(translation=tr)
+            out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
+        
+        return out
+
+    @dims_to_spatial_axes
+    @record()
+    @same_dtype(asfloat=True)
+    def lucy(self, psf, niter:int=50, *, dims=None, update:bool=False):
+        """
+        Deconvolution of N-dimensional image obtained from confocal microscopy, 
+        using Richardson-Lucy's algorithm.
+        
+        Parameters
+        ----------
+        psf : np.ndarray
+            Point spread function.
+
+        niters : int
+            Number of iteration.
+        
+        dtype : str
+            Output dtype
+        """
+        
+        psf = np.asarray(psf, dtype="float32")
+        psf /= np.max(psf)
+        
+        # start deconvolution
+        return self.parallel(richardson_lucy_, complement_axes(dims), psf, niter)
+
 
 # non-member functions.
 
