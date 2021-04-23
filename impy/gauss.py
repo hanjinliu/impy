@@ -89,10 +89,14 @@ class DiagonalGaussian(Gaussian):
         pass
 
 class GaussianParticle(DiagonalGaussian):
+    def __init__(self, params=None, initial_sg=1):
+        super().__init__(params)
+        self.initial_sg = initial_sg
+        
     def _estimate_params(self, data:np.ndarray):
         # n-dim argmax
         self.mu = np.array(np.unravel_index(np.argmax(data), data.shape), dtype="float32")
-        self.sg = np.full(data.ndim, 1, dtype="float32")
+        self.sg = np.full(data.ndim, self.initial_sg, dtype="float32")
         self.b, p95 = np.percentile(data, [5, 95])
         self.a = p95 - self.b
         return None

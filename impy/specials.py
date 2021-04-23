@@ -161,8 +161,7 @@ class PropArray(MetaArray):
                 if a.dtype.kind == "f":
                     dtype = "float32"
             
-        return MarkerArray(out, name=f"{self.name}-melt", axes="pr", dtype=dtype)
-
+        return MeltedMarkerArray(out, name=f"{self.name}-melt", axes="pr", dtype=dtype)
     
         
     def _set_info(self, other, new_axes:str="inherit"):
@@ -177,8 +176,7 @@ class MarkerArray(MetaArray):
             raise ValueError("Cannot plot non-2D markers.")
         kw = dict(color="red", marker="x")
         kw.update(kwargs)
-        rsize = self.sizeof("r")
-        plt.scatter(self[f"r={rsize-1}"], self[f"r={rsize-2}"], **kw)
+        plt.scatter(self["r=1"], self["r=0"], **kw)
         return None
 
 class IndexArray(MarkerArray):
@@ -188,3 +186,10 @@ class IndexArray(MarkerArray):
             dtype = "uint16"
         return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
                                metadata=metadata, dtype=dtype)
+
+class MeltedMarkerArray(MarkerArray):
+    # TODO: add index
+    pass
+
+class EllipseMarkerArray(MarkerArray):
+    pass

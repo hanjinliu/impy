@@ -43,7 +43,7 @@ class napariWindow:
             
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, (MarkerArray,PropArray)):
+        elif isinstance(obj, (MarkerArray, PropArray)):
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
@@ -63,7 +63,7 @@ class napariWindow:
                              scale=[img.labels.scale[a] for a in img.labels.axes if a != "c"])
         return None
     
-    def _add_points(self, points:MarkerArray, size=1.5, face_color="red", edge_color=None, **kwargs):
+    def _add_points(self, points:MarkerArray, size=1.5, face_color="red", edge_color="red", **kwargs):
         if isinstance(points, PropArray):
             points = points.melt()
         self.viewer.add_points(points.T, size=size, face_color=face_color, edge_color=edge_color, **kwargs)

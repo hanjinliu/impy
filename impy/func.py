@@ -53,7 +53,7 @@ def check_nd_sigma(sigma, ndim):
 
 def specify_one(center, radius, shape:tuple, labeltype:str):
     if labeltype == "square":
-        sl = (...,) + tuple(slice(xc-r, xc+r, None) for xc, r in zip(center, radius))
+        sl = (...,) + tuple(slice(xc-r, xc+r+1, None) for xc, r in zip(center, radius))
     elif labeltype == "ellipse":
         ind = np.indices(shape)
         # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
@@ -70,7 +70,24 @@ def specify_one(center, radius, shape:tuple, labeltype:str):
     
     return sl
 
-
+def check_matrix(ref):
+    """
+    Check Affine transformation matrix
+    """    
+    mtx = []
+    for m in ref:
+        if np.isscalar(m): 
+            if m == 1:
+                mtx.append(m)
+            else:
+                raise ValueError(f"Only `1` is ok, but got {m}")
+            
+        elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
+            raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
+        
+        else:
+            mtx.append(m)
+    return mtx
 
 def affinefit(img, imgref, bins=256, order=3):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))

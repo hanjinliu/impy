@@ -22,7 +22,7 @@ from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
 from .axes import Axes, ImageAxesError
-from .specials import PropArray, MarkerArray, IndexArray
+from .specials import MeltedMarkerArray, PropArray, MarkerArray, IndexArray
 from .utilcls import *
 from ._process import *
 
@@ -131,54 +131,51 @@ class ImgArray(LabeledArray):
         return fit
     
     # TODO:
-    # @dims_to_spatial_axes
-    # @record(append_history=False)
-    # def gaussfit_particle(self, markers=None, radius=4,
-    #                       p0=None, *, dims=None) -> PropArray:
+    @dims_to_spatial_axes
+    def gaussfit_particle(self, markers=None, radius=4, sigma=1.5, thr=10, *, dims=None) -> PropArray:
         
-    #     ndim = len(dims)
-    #     if markers is None:
-    #         markers = self.peak_local_max(dims=dims, min_distance=int(radius*1.4143), squeeze=False)
+        ndim = len(dims)
+        if markers is None:
+            markers = self.peak_local_max(dims=dims, min_distance=int(radius*np.sqrt(ndim)), squeeze=False)
+        # TODO: save existing labels here
         
-    #     self.specify(markers, radius, labeltype="square")
         
-    #     fitting_params = PropArray(np.empty(markers.shape), name=self.name, 
-    #                        dirpath=self.dirpath, propname="gaussfit_particle_fitting_params")
-        
-    #     fitting_result = PropArray(np.empty(markers.shape), name=self.name, 
-    #                                dirpath=self.dirpath, propname="gaussfit_particle_fitting_result")
-        
-    #     self.ongoing = "gaussfit_particle"
-    #     for sl, data in self.iter(complement_axes(dims)):
-    #         sl0 = sl[:-ndim]
-    #         centers = markers[sl0]
+        if isinstance(markers, PropArray):
+            result = np.empty_like(markers, dtype=object)
+            melted = markers.melt()
+            dims = "".join(a for a in dims if a not in markers.axes)
+            ndim = len(dims)
             
-    #         fitting_params_ = PropArray(np.empty(centers.shape[1]), propname="fitting_params")
-    #         fitting_result_ = PropArray(np.empty(centers.shape[1]), propname="fitting_result")
+            if np.isscalar(radius):
+                radius = np.full(ndim, radius)
+            radius = np.asarray(radius)
             
-    #         gaussian = GaussianParticle(p0)
-    #         r0s = centers - radius // 2
-    #         r1s = centers + (radius+1) // 2
-            
-    #         for i, ((_, r0), (_, r1)) in enumerate(zip(r0s.iter("p"), r1s.iter("p"))):
-    #             # r0 = (y0, x0)
-    #             s = tuple(slice(x0, x1) for x0, x1 in zip(r0, r1))
-    #             if data[s].shape != (radius, radius):
-    #                 fitting_result_[i] = None
-    #                 fitting_params_[i] = None
-    #             else:
-    #                 fitting_result_[i] = gaussian.fit(data[s])
-    #                 gaussian.shift([r0[1], r0[0]])
-    #                 fitting_params_[i] = gaussian.params
-            
-    #         fitting_result[sl0] = fitting_result_
-    #         fitting_params[sl0] = fitting_params_
+            shape = self.sizesof(dims)
 
-    #     result = ArrayDict(fitting_result=fitting_result, parameters=fitting_params)
-    #     self.ongoing = None
-    #     del self.ongoing
+            params = []
+            print("gaussfit_particle ... ", end="")
+            timer = Timer()
+            for _, marker in melted.iter("p"):
+                center = tuple(marker[-ndim:])
+                # label_sl = tuple(marker[:-ndim])
+                sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
+                gaussian = GaussianParticle(initial_sg=sigma)
+                gaussian.fit(self[sl].value)
+                if ((0 <= gaussian.mu) & (gaussian.mu <= radius*2) \
+                    & (sigma/3 < np.abs(gaussian.sg)) & (np.abs(gaussian.sg) < sigma*3) \
+                    & (gaussian.a > 0)).all():
+                    gaussian.shift(center - radius)
+                    params.append(gaussian.params)
+            timer.toc()
+            print(f"\rgaussfit_particle completed ({timer})")
+            out = MeltedMarkerArray(params, dtype="float32", axes="pr")
+        else:
+            raise NotImplementedError
+                    
+        self.ongoing = None
+        del self.ongoing
         
-    #     return result
+        return out
     
     
     @dims_to_spatial_axes
@@ -194,7 +191,6 @@ class ImgArray(LabeledArray):
         percentile, num_peaks, squeeze, dims
             Passed to peak_local_max()
 
-        
         Returns
         -------
         PropArray of IndexArrays, or if squeeze=True, IndexArray
@@ -245,24 +241,7 @@ class ImgArray(LabeledArray):
             elif self.sizeof(axis) < 2:
                 raise ValueError("Image must have two channels or more.")
         
-        def check_matrix(ref):
-            mtx = []
-            for m in ref:
-                if np.isscalar(m): 
-                    if m == 1:
-                        mtx.append(m)
-                    else:
-                        raise ValueError(f"Only `1` is ok, but got {m}")
-                    
-                elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
-                    raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
-                
-                else:
-                    mtx.append(m)
-            return mtx
-        
         check_c_axis(self)
-        
         mtx = None
         
         # check `ref`
@@ -819,6 +798,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """
+        # TODO: too slow in specify_one, in the case of center=MeltedMarkerArray
         
         if isinstance(center, PropArray):
             melted = center.melt()
@@ -1124,6 +1104,7 @@ class ImgArray(LabeledArray):
             Same array but labels are updated.
         """        
         labels = self.threshold(thr=thr, dims=dims, **kwargs)
+        # TODO: dims in label and dims in thresholding is different
         return self.label(labels)
     
         

@@ -20,8 +20,8 @@ Inheritance
               ____    MetaArray   _______
              /              \            \
        HistoryArray        MarkerArray  PropArray
-       /         \          /
- LabeledArray   Label  IndexArray
+       /         \          /       \
+ LabeledArray   Label  IndexArray MeltedMarkerArray
     /
 ImgArray
 
