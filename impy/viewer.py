@@ -2,7 +2,7 @@ import napari
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
 from .label import Label
-from .specials import MarkerArray, PropArray
+from .specials import MarkerArray, PropArray, MeltedMarkerArray
 
 
 """
@@ -63,10 +63,15 @@ class napariWindow:
                              scale=[img.labels.scale[a] for a in img.labels.axes if a != "c"])
         return None
     
-    def _add_points(self, points:MarkerArray, size=1.5, face_color="red", edge_color="red", **kwargs):
+    def _add_points(self, points, **kwargs):
         if isinstance(points, PropArray):
             points = points.melt()
-        self.viewer.add_points(points.T, size=size, face_color=face_color, edge_color=edge_color, **kwargs)
+        if not isinstance(points, MeltedMarkerArray):
+            points = points.T
+            
+        kw = dict(size=3.2, face_color=[0,0,0,0], edge_color="red")
+        kw.update(kwargs)
+        self.viewer.add_points(points.value, **kw)
         return None
     
     def _add_labels(self, labels:Label, opacity=0.3, **kwargs):

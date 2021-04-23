@@ -1,11 +1,10 @@
 from __future__ import annotations
 import itertools
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 import glob
 import collections
-from numpy.core.numeric import True_
+from numpy.linalg.linalg import LinAlgError
 from skimage import io
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -16,6 +15,7 @@ from skimage import feature as skfeat
 from skimage import registration as skreg
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
+from scipy.linalg import pinv
 from .func import *
 from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
@@ -82,7 +82,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record()
-    def gaussfit(self, scale:float=1/16, p0=None, show_result:bool=True) -> ImgArray:
+    def gaussfit(self, scale:float=1/16, p0=None, show_result:bool=True, method="Powell") -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
 
@@ -108,41 +108,29 @@ class ImgArray(LabeledArray):
         
         rough = self.rescale(scale).value.astype("float32")
         gaussian = GaussianBackground(p0)
-        result = gaussian.fit(rough)
+        result = gaussian.fit(rough, method=method)
         gaussian.rescale(1/scale)
         fit = gaussian.generate(self.shape).view(self.__class__)
         fit.temp = dict(params=gaussian.params, result=result)
         
         # show fitting result
-        if show_result:
-            x0 = self.shape[1]//2
-            y0 = self.shape[0]//2
-            plt.figure(figsize=(6,4))
-            plt.subplot(2,1,1)
-            plt.title("x-direction")
-            plt.plot(self[y0].value, color="gray", alpha=0.5, label="raw image")
-            plt.plot(fit[y0], color="red", label="fit")
-            plt.subplot(2,1,2)
-            plt.title("y-direction")
-            plt.plot(self[:,x0].value, color="gray", alpha=0.5, label="raw image")
-            plt.plot(fit[:,x0], color="red", label="fit")
-            plt.tight_layout()
-            plt.show()
+        show_result and plot_gaussfit_result(self, fit)
         return fit
     
     # TODO:
     @dims_to_spatial_axes
-    def gaussfit_particle(self, markers=None, radius=4, sigma=1.5, thr=10, *, dims=None) -> PropArray:
+    def gaussfit_particle(self, markers=None, radius=4, sigma=1.5, percentile=99, *, dims=None) -> ArrayDict:
         
-        ndim = len(dims)
         if markers is None:
-            markers = self.peak_local_max(dims=dims, min_distance=int(radius*np.sqrt(ndim)), squeeze=False)
-        # TODO: save existing labels here
+            ndim = len(dims)
+            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, percentile=percentile).melt()
+            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
         
-        
-        if isinstance(markers, PropArray):
-            result = np.empty_like(markers, dtype=object)
+        elif isinstance(markers, PropArray):
             melted = markers.melt()
+            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
+            
+        elif isinstance(markers, MeltedMarkerArray):
             dims = "".join(a for a in dims if a not in markers.axes)
             ndim = len(dims)
             
@@ -152,23 +140,36 @@ class ImgArray(LabeledArray):
             
             shape = self.sizesof(dims)
 
-            params = []
+            means = []
+            errs = []
             print("gaussfit_particle ... ", end="")
             timer = Timer()
-            for _, marker in melted.iter("p"):
+            for _, marker in markers.iter("p"):
                 center = tuple(marker[-ndim:])
-                # label_sl = tuple(marker[:-ndim])
+                label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
+                input_img = self.value[sl]
+                if input_img.size == 0:
+                    continue
                 gaussian = GaussianParticle(initial_sg=sigma)
-                gaussian.fit(self[sl].value)
-                if ((0 <= gaussian.mu) & (gaussian.mu <= radius*2) \
-                    & (sigma/3 < np.abs(gaussian.sg)) & (np.abs(gaussian.sg) < sigma*3) \
-                    & (gaussian.a > 0)).all():
+                res = gaussian.fit(input_img, method="BFGS")
+                
+                if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
                     gaussian.shift(center - radius)
-                    params.append(gaussian.params)
+                    # calculate fitting error with Jacobian
+                    # TODO: is this error correct?
+                    jac = res.jac[:2].reshape(1,-1)
+                    cov = pinv(jac.T @ jac)
+                    err = np.sqrt(np.diag(cov))
+                    means.append(label_sl + tuple(gaussian.mu))
+                    errs.append(label_sl + tuple(err))
+                    
             timer.toc()
             print(f"\rgaussfit_particle completed ({timer})")
-            out = MeltedMarkerArray(params, dtype="float32", axes="pr")
+            
+            kw = dict(dtype="float32", axes="pr")
+            out = ArrayDict(means = MeltedMarkerArray(means, **kw),
+                            errors = MeltedMarkerArray(errs, **kw))
         else:
             raise NotImplementedError
                     
@@ -199,7 +200,7 @@ class ImgArray(LabeledArray):
         """        
         
         dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
-        markers = dog_img.peak_local_max(min_distance=1, percentile=percentile, 
+        markers = dog_img.peak_local_max(min_distance=int(sigma*3), percentile=percentile, 
                                          num_peaks=num_peaks, squeeze=squeeze, dims=dims)
         return markers
     

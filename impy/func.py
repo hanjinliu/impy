@@ -132,6 +132,22 @@ def plot_drift(result):
     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
     plt.show()
     return None
+
+def plot_gaussfit_result(raw, fit):
+    x0 = raw.shape[1]//2
+    y0 = raw.shape[0]//2
+    plt.figure(figsize=(6,4))
+    plt.subplot(2, 1, 1)
+    plt.title("x-direction")
+    plt.plot(raw[y0].value, color="gray", alpha=0.5, label="raw image")
+    plt.plot(fit[y0], color="red", label="fit")
+    plt.subplot(2, 1, 2)
+    plt.title("y-direction")
+    plt.plot(raw[:,x0].value, color="gray", alpha=0.5, label="raw image")
+    plt.plot(fit[:,x0], color="red", label="fit")
+    plt.tight_layout()
+    plt.show()
+    return None
     
 
 def key_repr(key):

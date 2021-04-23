@@ -18,7 +18,12 @@ def diagonal_gaussian(r, *params):
     return a * np.exp(-np.sum(z_value**2, axis=0) / 2) + b
     
 class Gaussian:
-    pass
+    def mu_inrange(self, low, high):
+        return np.logical_and(low<=self.mu, self.mu<=high).all()
+    
+    def sg_inrange(self, low, high):
+        sg_ = np.abs(self.sg)
+        return np.logical_and(low<=sg_, sg_<=high).all()
 
 class DiagonalGaussian(Gaussian):
     def __init__(self, params=None):
@@ -63,11 +68,12 @@ class DiagonalGaussian(Gaussian):
     def ndim(self):
         return self.mu.size
     
-    def fit(self, data:np.ndarray) -> opt.OptimizeResult:
+    def fit(self, data:np.ndarray, method="Powell") -> opt.OptimizeResult:
         if self.mu is None or self.sg is None or self.a is None or self.b is None:
             self._estimate_params(data)
         r = np.indices(data.shape)
-        result = opt.minimize(square, self.params, args=(diagonal_gaussian, r, data))
+        result = opt.minimize(square, self.params, args=(diagonal_gaussian, r, data),
+                              method=method)
         self.params = result.x
         
         return result
