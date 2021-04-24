@@ -157,6 +157,14 @@ def fill_hole_(args):
     seed[1:-1, 1:-1] = data.max()
     return (sl, skmorph.reconstruction(seed, mask, method="erosion"))
 
+def count_neighbors_(args):
+    sl, data, selem = args
+    return (sl, ndi.convolve(data.astype("uint8"), selem, mode="constant") - data)
+
+def corner_harris_(args):
+    sl, data, k, sigma = args
+    return (sl, skfeat.corner_harris(data, k=k, sigma=sigma))
+
 def richardson_lucy_(args):
     # Identical to the algorithm in Deconvolution.jl of Julia.
     sl, obs, psf, niter = args

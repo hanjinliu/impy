@@ -555,7 +555,6 @@ class ImgArray(LabeledArray):
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
         
-        # if c_axes:
         out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
                         dirpath=self.dirpath, propname="local_max_indices")
         
@@ -586,6 +585,92 @@ class ImgArray(LabeledArray):
         else:
             out.set_scale(self)
             
+        return out
+    
+    @dims_to_spatial_axes
+    def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
+                     num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
+                     use_labels:bool=True, squeeze:bool=True, dims=None):
+        """
+        Find local corner maxima. Slightly different from peak_local_max.
+
+        Parameters
+        ----------
+        min_distance : int, by default 1
+            Minimum distance allowed for each two peaks. This parameter is slightly
+            different from that in `skimage.feature.peak_local_max` because here float
+            input is allowed and every time footprint is calculated.
+        percentile : float, optional
+            Percentile to compute absolute threshold.
+        num_peaks : int, optional
+            Maximum number of peaks **for each iteration**.
+        num_peaks_per_label : int, default is np.inf
+            Maximum number of peaks per label.
+        use_labels : bool, default is True
+            If use self.labels when it exists.
+        squeeze : bool, default is True
+            If True and 0-dimensional array will be returned, the contents will be
+            returned instead. This situation only happens when self.ndim == len(dims).
+        dims : int or str, optional
+            Dimension of axes.
+            
+        Returns
+        -------
+        PropArray of IndexArrays, or if squeeze=True, IndexArray
+            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
+            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
+        """        
+        
+        # separate spatial dimensions and others
+        ndim = len(dims)
+        c_axes = complement_axes(dims, self.axes)
+        shape = self.sizesof(c_axes)
+        
+        thr = None if percentile is None else np.percentile(self.value, percentile)
+        
+        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
+                        dirpath=self.dirpath, propname="local_max_indices")
+        
+        self.ongoing = "corner_peaks"
+        for sl, img in self.iter(c_axes, israw=True, exclude=dims):
+            # skfeat.corner_peaks overwrite something so we need to give copy of img.
+            if use_labels and hasattr(img, "labels"):
+                labels = np.array(img.labels)
+            else:
+                labels = None
+            
+            indices = skfeat.corner_peaks(np.array(img),
+                                          footprint=ball_like(min_distance, ndim),
+                                          threshold_abs=thr,
+                                          num_peaks=num_peaks,
+                                          num_peaks_per_label=num_peaks_per_label,
+                                          labels=labels)
+            
+            indarr = IndexArray(indices.T, name=self.name, axes="rp", 
+                                dirpath=self.dirpath)
+            out[sl] = indarr
+        
+        self.ongoing = None
+        del self.ongoing
+        
+        if squeeze and out.ndim == 0:
+            out = out[()]
+        else:
+            out.set_scale(self)
+            
+        return out
+    
+    @dims_to_spatial_axes
+    @record()
+    def corner_harris(self, sigma=1, k=0.05, *, dims=None):
+        
+        return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
+    
+    @dims_to_spatial_axes
+    def find_corners(self, sigma=1, k=0.05, squeeze:bool=True, *, dims=None):
+        # TODO
+        res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
+        out = res.corner_peaks(min_distance=3, percentile=97, squeeze=squeeze, dims=dims)
         return out
     
     @dims_to_spatial_axes
@@ -777,7 +862,14 @@ class ImgArray(LabeledArray):
                     "yen": skfil.threshold_yen
                     }
         
-        if isinstance(thr, str):
+        if isinstance(thr, str) and thr.endswith("%"):
+            p = float(thr[:-1])
+            out = np.zeros(self.shape, dtype=bool)
+            for t, img in self.iter(complement_axes(dims, self.axes), False):
+                thr = np.percentile(img, p)
+                out[t] = img >= thr
+                
+        elif isinstance(thr, str):
             method = thr.lower()
             try:
                 func = methods_[method]
@@ -819,7 +911,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """
-        # TODO: too slow in specify_one, in the case of center=MeltedMarkerArray
         
         if isinstance(center, PropArray):
             melted = center.melt()
@@ -905,7 +996,7 @@ class ImgArray(LabeledArray):
         
     @dims_to_spatial_axes
     @record()
-    def skeletonize(self, *, dims=None) -> ImgArray:
+    def skeletonize(self, *, dims=None, update=False) -> ImgArray:
         """
         Skeletonize images. Only works for binary images.
 
@@ -913,6 +1004,8 @@ class ImgArray(LabeledArray):
         ----------
         dims : int or str, optional
             Dimension of axes.
+        update : bool, optional
+            If update self to filtered image.
 
         Returns
         -------
@@ -924,10 +1017,43 @@ class ImgArray(LabeledArray):
         
         return self.parallel(skeletonize_, complement_axes(dims, self.axes), outdtype=bool)
     
+    @dims_to_spatial_axes
+    @record()
+    def count_neighbors(self, connectivity=None, mask=True, *, dims=None) -> ImgArray:
+        """
+        Count the number or neighbors of binary images. This function can be used for cross section
+        detection or single filatment detection. Only works for binary images.
+
+        Parameters
+        ----------
+        connectivity : int , optional
+            See label().
+        mask : bool, by default True
+            If True, only neighbors of pixels that satisfy self==True is returned.
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            uint8 array of the number of neighbors.
+        """        
+        if self.dtype != bool:
+            raise TypeError("Cannot run count_neighbors() with non-binary image.")
+        
+        ndim = len(dims)
+        connectivity = ndim if connectivity is None else connectivity
+        selem = ndi.morphology.generate_binary_structure(ndim, connectivity)
+        
+        out = self.parallel(count_neighbors_, complement_axes(dims, self.axes), selem)
+        if mask:
+            out[~self.value] = 0
+            
+        return out
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def profile_line(self, src, dst, linewidth=1, *, order=None, dims=None) -> PropArray:
+    def resclice(self, src, dst, linewidth=1, *, order=None, dims=None) -> ImgArray:
         """
         Measure line profile iteratively for every slice of image.
 
@@ -1129,8 +1255,8 @@ class ImgArray(LabeledArray):
             Same array but labels are updated.
         """        
         labels = self.threshold(thr=thr, dims=dims, **kwargs)
-        # TODO: dims in label and dims in thresholding is different
-        return self.label(labels)
+        # dims in label and dims in thresholding is different
+        return self.label(labels, dims=None)
     
         
     @need_labels
