@@ -4,7 +4,6 @@ import numpy as np
 import os
 import glob
 import collections
-from numpy.linalg.linalg import LinAlgError
 from skimage import io
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -117,92 +116,6 @@ class ImgArray(LabeledArray):
         show_result and plot_gaussfit_result(self, fit)
         return fit
     
-    # TODO:
-    @dims_to_spatial_axes
-    def gaussfit_particle(self, markers=None, radius=4, sigma=1.5, percentile=99, *, dims=None) -> ArrayDict:
-        
-        if markers is None:
-            ndim = len(dims)
-            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, percentile=percentile).melt()
-            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
-        
-        elif isinstance(markers, PropArray):
-            melted = markers.melt()
-            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
-            
-        elif isinstance(markers, MeltedMarkerArray):
-            dims = "".join(a for a in dims if a not in markers.axes)
-            ndim = len(dims)
-            
-            if np.isscalar(radius):
-                radius = np.full(ndim, radius)
-            radius = np.asarray(radius)
-            
-            shape = self.sizesof(dims)
-
-            means = []
-            errs = []
-            print("gaussfit_particle ... ", end="")
-            timer = Timer()
-            for _, marker in markers.iter("p"):
-                center = tuple(marker[-ndim:])
-                label_sl = tuple(marker[:-ndim])
-                sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
-                input_img = self.value[sl]
-                if input_img.size == 0:
-                    continue
-                gaussian = GaussianParticle(initial_sg=sigma)
-                res = gaussian.fit(input_img, method="BFGS")
-                
-                if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
-                    gaussian.shift(center - radius)
-                    # calculate fitting error with Jacobian
-                    # TODO: is this error correct?
-                    jac = res.jac[:2].reshape(1,-1)
-                    cov = pinv(jac.T @ jac)
-                    err = np.sqrt(np.diag(cov))
-                    means.append(label_sl + tuple(gaussian.mu))
-                    errs.append(label_sl + tuple(err))
-                    
-            timer.toc()
-            print(f"\rgaussfit_particle completed ({timer})")
-            
-            kw = dict(dtype="float32", axes="pr")
-            out = ArrayDict(means = MeltedMarkerArray(means, **kw),
-                            errors = MeltedMarkerArray(errs, **kw))
-        else:
-            raise NotImplementedError
-                    
-        self.ongoing = None
-        del self.ongoing
-        
-        return out
-    
-    
-    @dims_to_spatial_axes
-    def find_sm(self, sigma:float=1.5, *, percentile:float=99, num_peaks:int=np.inf, 
-                squeeze:bool=True, dims=None):
-        """
-        Single molecule detection using difference of Gaussian method.
-
-        Parameters
-        ----------
-        sigma : float, optional
-            Standard deviation of puncta.
-        percentile, num_peaks, squeeze, dims
-            Passed to peak_local_max()
-
-        Returns
-        -------
-        PropArray of IndexArrays, or if squeeze=True, IndexArray
-            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
-            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
-        """        
-        
-        dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
-        markers = dog_img.peak_local_max(min_distance=int(sigma*3), percentile=percentile, 
-                                         num_peaks=num_peaks, squeeze=squeeze, dims=dims)
-        return markers
     
     @record()
     def affine_correction(self, ref=None, bins:int=256, 
@@ -567,8 +480,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        if high_sigma is None:
-            high_sigma = low_sigma * 1.6
+        high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
         
         return self.parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
                              low_sigma, high_sigma)
@@ -611,8 +523,10 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        min_distance : int, optional
-            Minimum distance allowed for each two peaks, by default 1
+        min_distance : int, by default 1
+            Minimum distance allowed for each two peaks. This parameter is slightly
+            different from that in `skimage.feature.peak_local_max` because here float
+            input is allowed and every time footprint is calculated.
         percentile : float, optional
             Percentile to compute absolute threshold.
         num_peaks : int, optional
@@ -639,10 +553,7 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         shape = self.sizesof(c_axes)
         
-        if percentile is None:
-            thr = None
-        else:
-            thr = np.percentile(self.value, percentile)
+        thr = None if percentile is None else np.percentile(self.value, percentile)
         
         # if c_axes:
         out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
@@ -657,7 +568,7 @@ class ImgArray(LabeledArray):
                 labels = None
             
             indices = skfeat.peak_local_max(np.array(img),
-                                            min_distance=min_distance, 
+                                            footprint=ball_like(min_distance, ndim),
                                             threshold_abs=thr,
                                             num_peaks=num_peaks,
                                             num_peaks_per_label=num_peaks_per_label,
@@ -677,7 +588,116 @@ class ImgArray(LabeledArray):
             
         return out
     
+    @dims_to_spatial_axes
+    def find_sm(self, sigma:float=1.5, *, percentile:float=95, num_peaks:int=np.inf, 
+                squeeze:bool=True, dims=None):
+        """
+        Single molecule detection using difference of Gaussian method.
+
+        Parameters
+        ----------
+        sigma : float, optional
+            Standard deviation of puncta.
+        percentile, num_peaks, squeeze, dims
+            Passed to peak_local_max()
+
+        Returns
+        -------
+        PropArray of IndexArrays, or if squeeze=True, IndexArray
+            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
+            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
+        """        
         
+        dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
+        markers = dog_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
+                                         num_peaks=num_peaks, squeeze=squeeze, dims=dims)
+        return markers
+    
+    # TODO:
+    @dims_to_spatial_axes
+    def gauss_sm(self, markers=None, radius:float=4, sigma:float=1.5,
+                          percentile:float=95, *, dims=None) -> ArrayDict:
+        """
+        Calculate positions of particles in subpixel precision using Gaussian fitting.
+
+        Parameters
+        ----------
+        markers : MarkerArray, PropArray or MeltedMarkerArray, optional
+            Positions of peaks. If None, this will be determined by find_sm.
+        radius : float, by default 4.
+            Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
+            fitting function.
+        sigma : float, by default 1.5
+            Standard deviation of particles.
+        percentile, dims
+            Passed to peak_local_max()
+
+        Returns
+        -------
+        ArrayDict with keys : means, sigmas, errors
+            Dictionary that contains means, standard deviations and fitting errors.
+        """        
+        
+        if markers is None:
+            ndim = len(dims)
+            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, percentile=percentile).melt()
+            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
+        
+        elif isinstance(markers, PropArray):
+            melted = markers.melt()
+            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
+            
+        elif isinstance(markers, MeltedMarkerArray):
+            dims = "".join(a for a in dims if a not in markers.axes)
+            ndim = len(dims)
+            
+            if np.isscalar(radius):
+                radius = np.full(ndim, radius)
+            radius = np.asarray(radius)
+            
+            shape = self.sizesof(dims)
+
+            means = []
+            sigmas = []
+            errs = []
+            print("gaussfit_particle ... ", end="")
+            timer = Timer()
+            for _, marker in markers.iter("p"):
+                center = tuple(marker[-ndim:])
+                label_sl = tuple(marker[:-ndim])
+                sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
+                input_img = self.value[sl]
+                if input_img.size == 0:
+                    continue
+                gaussian = GaussianParticle(initial_sg=sigma)
+                res = gaussian.fit(input_img, method="BFGS")
+                
+                if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
+                    gaussian.shift(center - radius)
+                    # calculate fitting error with Jacobian
+                    # TODO: is this error correct?
+                    jac = res.jac[:2].reshape(1,-1)
+                    cov = pinv(jac.T @ jac)
+                    err = np.sqrt(np.diag(cov))
+                    means.append(label_sl + tuple(gaussian.mu))
+                    sigmas.append(label_sl + tuple(gaussian.sg))
+                    errs.append(label_sl + tuple(err))
+                    
+            timer.toc()
+            print(f"\rgaussfit_particle completed ({timer})")
+            
+            kw = dict(dtype="float32", axes="pr")
+            out = ArrayDict(means = MeltedMarkerArray(means, **kw),
+                            sigmas = MeltedMarkerArray(sigmas, **kw),
+                            errors = MeltedMarkerArray(errs, **kw))
+        else:
+            raise NotImplementedError
+                    
+        self.ongoing = None
+        del self.ongoing
+        
+        return out
+    
     @dims_to_spatial_axes
     @record()
     def fft(self, *, dims=None) -> ImgArray:
@@ -817,6 +837,8 @@ class ImgArray(LabeledArray):
                 self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
                 self.labels.set_scale(self)
 
+            print("specify ... ", end="")
+            timer = Timer()
             for _, marker in melted.iter("p"):
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
@@ -824,7 +846,9 @@ class ImgArray(LabeledArray):
                 self.labels[label_sl][sl] = self.labels.max() + 1
                 if self.labels.max() == np.iinfo(self.labels.dtype).max:
                     self.labels = self.labels.as_larger_type()
-        
+            timer.toc()
+            print(f"\rspecify completed ({timer})")
+            
         else:
             center = np.asarray(center)
             if center.ndim == 1:

@@ -59,12 +59,19 @@ def specify_one(center, radius, shape:tuple, labeltype:str):
         # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
         sl = sum([((i-xc)/r)**2 for i, xc, r in zip(ind, center, radius)]) <= 1.0
     elif labeltype == "circle":
-        ind = np.indices(shape)
         r = radius[0]
         if not (radius == r).all():
             raise ValueError("Cannot set different radii when shape is 'circle'")
-        # (x-x_0)^2 + (y-y_0)^2 + (z-z_0)^2 <= r^2
-        sl = sum([(i-xc)**2 for i, xc in zip(ind, center)]) <= r**2
+        
+        sl = np.zeros(shape, dtype=bool)
+        area = ball_like(r, len(center)).astype(bool)
+        r_ = area.shape[0]//2
+        bbox = tuple(slice(xc - r_, xc + r_ + 1, None) for xc in center)
+        try:
+            sl[bbox] = area
+        except ValueError:
+            pass
+        
     else:
         raise ValueError(f"{shape}")
     

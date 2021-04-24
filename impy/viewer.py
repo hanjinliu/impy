@@ -1,3 +1,4 @@
+from impy.func import determine_range
 import napari
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
@@ -52,10 +53,12 @@ class napariWindow:
     
     def _add_image(self, img:ImgArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
+        vmax, vmin = determine_range(img.value)
         self.viewer.add_image(img,
                               channel_axis=chn_ax,
                               scale=[img.scale[a] for a in img.axes if a != "c"],
                               name=img.name,
+                              contrast_limits=[vmin, vmax],
                               **kwargs)
         
         if hasattr(img, "labels"):
