@@ -2,7 +2,6 @@ __version__ = "1.5.1"
 # TODO: 
 # - btrack ... https://github.com/quantumjot/BayesianTracker
 # - directional median filter to denoinse images
-# - Melted -> pd.DataFrame
 # - window or padding in lucy()
 
 import warnings

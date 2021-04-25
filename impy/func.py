@@ -331,3 +331,10 @@ def check_psf(img, psf, dims):
         raise ValueError("observation and PSF have different shape: "
                         f"{img.sizesof(dims)} and {psf.shape}")
     return psf
+
+def check_filter_func(f):
+    if f is None:
+        f = lambda x: True
+    elif not callable(f):
+        raise TypeError("`filt` must be callable.")
+    return f

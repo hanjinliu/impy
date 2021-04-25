@@ -188,8 +188,5 @@ class IndexArray(MarkerArray):
                                metadata=metadata, dtype=dtype)
 
 class MeltedMarkerArray(MarkerArray):
-    # TODO: add index
-    pass
-
-class EllipseMarkerArray(MarkerArray):
+    # TODO: add index, or to pd.DataFrame
     pass

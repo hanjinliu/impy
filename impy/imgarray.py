@@ -699,8 +699,8 @@ class ImgArray(LabeledArray):
         return markers
     
     @dims_to_spatial_axes
-    def gauss_sm(self, markers=None, radius:float=4, sigma:float=1.5,
-                          percentile:float=95, *, dims=None) -> ArrayDict:
+    def gauss_sm(self, markers=None, radius:float=4, sigma:float=1.5, filt=None,
+                 percentile:float=95, *, dims=None) -> ArrayDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
@@ -712,7 +712,11 @@ class ImgArray(LabeledArray):
             Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
             fitting function.
         sigma : float, by default 1.5
-            Standard deviation of particles.
+            Expected standard deviation of particles.
+        filt : callable, optional
+            For every slice `sl`, label is added only when filt(`input`) == True is satisfied.
+            This discrimination is conducted before Gaussian fitting so that stringent filter
+            will save time.
         percentile, dims
             Passed to peak_local_max()
 
@@ -723,36 +727,36 @@ class ImgArray(LabeledArray):
         """        
         
         if markers is None:
-            ndim = len(dims)
-            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, percentile=percentile).melt()
-            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
+            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, 
+                                  percentile=percentile).melt()
+            return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
+                                 percentile=percentile, dims=dims)
         
         elif isinstance(markers, PropArray):
-            melted = markers.melt()
-            return self.gaussfit_particle(melted, radius=radius, sigma=sigma, percentile=percentile, dims=dims)
-            
-        elif isinstance(markers, MeltedMarkerArray):
+            markers = markers.melt()
             dims = "".join(a for a in dims if a not in markers.axes)
             ndim = len(dims)
+            filt = check_filter_func(filt)
             
             if np.isscalar(radius):
                 radius = np.full(ndim, radius)
             radius = np.asarray(radius)
             
             shape = self.sizesof(dims)
-
-            means = []
-            sigmas = []
-            errs = []
+            
+            means = []  # fitting results of means
+            sigmas = [] # fitting results of sigmas
+            errs = []   # fitting errors of means
             print("gaussfit_particle ... ", end="")
             timer = Timer()
             for _, marker in markers.iter("p"):
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
-                input_img = self.value[sl]
-                if input_img.size == 0:
+                input_img = self.value[label_sl][sl]
+                if input_img.size == 0 or not filt(input_img):
                     continue
+                
                 gaussian = GaussianParticle(initial_sg=sigma)
                 res = gaussian.fit(input_img, method="BFGS")
                 
@@ -890,7 +894,7 @@ class ImgArray(LabeledArray):
         return out
         
     @dims_to_spatial_axes
-    def specify(self, center, radius, *, dims=None, labeltype="square") -> ImgArray:
+    def specify(self, center, radius, filt=None, *, dims=None, labeltype="square") -> ImgArray:
         """
         Make rectangle or ellipse labels from points.
         
@@ -900,6 +904,8 @@ class ImgArray(LabeledArray):
             Coordinates of centers. 
         radius : float or array
             Radius of labels.
+        filt : callable, optional
+            For every slice `sl`, label is added only when filt(self[sl]) is satisfied.
         dims : int or str, optional
             Dimension of axes.
         labeltype : str, by default "square"
@@ -913,9 +919,12 @@ class ImgArray(LabeledArray):
         
         if isinstance(center, PropArray):
             melted = center.melt()
+            
+            # determine dims to iterate.
             dims = "".join(a for a in dims if a not in center.axes)
             ndim = len(dims)
             
+            # convert radius to an array
             if np.isscalar(radius):
                 radius = np.full(ndim, radius)
             radius = np.asarray(radius)
@@ -927,18 +936,23 @@ class ImgArray(LabeledArray):
                 self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
                 self.labels.set_scale(self)
 
+            filt = check_filter_func(filt)
+            
             print("specify ... ", end="")
             timer = Timer()
             for _, marker in melted.iter("p"):
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, labeltype)
-                self.labels[label_sl][sl] = self.labels.max() + 1
-                if self.labels.max() == np.iinfo(self.labels.dtype).max:
-                    self.labels = self.labels.as_larger_type()
+                if filt(self[label_sl]):
+                    self.labels[label_sl][sl] = self.labels.max() + 1
+                    # increase memory if needed
+                    if self.labels.max() == np.iinfo(self.labels.dtype).max:
+                        self.labels = self.labels.as_larger_type()
+                        
             timer.toc()
             print(f"\rspecify completed ({timer})")
-            
+        
         else:
             center = np.asarray(center)
             if center.ndim == 1:
