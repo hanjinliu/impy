@@ -698,7 +698,6 @@ class ImgArray(LabeledArray):
                                          num_peaks=num_peaks, squeeze=squeeze, dims=dims)
         return markers
     
-    # TODO:
     @dims_to_spatial_axes
     def gauss_sm(self, markers=None, radius:float=4, sigma:float=1.5,
                           percentile:float=95, *, dims=None) -> ArrayDict:
@@ -1022,7 +1021,7 @@ class ImgArray(LabeledArray):
     def count_neighbors(self, connectivity=None, mask=True, *, dims=None) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
-        detection or single filatment detection. Only works for binary images.
+        or branch detection. Only works for binary images.
 
         Parameters
         ----------
@@ -1493,6 +1492,50 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         return out
 
+    def estimate_sigma(self):
+        # TODO: multi-dimensional
+        return skres.estimate_sigma(self.value)
+    
+    @dims_to_spatial_axes
+    @record()
+    def pad(self, pad_width, mode="constant", *, dims=None,  **kwargs) -> ImgArray:
+        """
+        Pad image only for spatial dimensions.
+
+        Parameters
+        ----------
+        pad_width, mode, **kwargs : 
+            See documentation of np.pad().
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            Padded image.
+        """        
+        pad_width_ = []
+        if hasattr(pad_width, "__iter__") and len(pad_width) == len(dims):
+            pad_iter = iter(pad_width)
+            for a in self.axes:
+                if a in dims:
+                    pad_width_.append(next(pad_iter))
+                else:
+                    pad_width_.append((0, 0))
+            
+        elif isinstance(pad_width, int):
+            for a in self.axes:
+                if a in dims:
+                    pad_width_.append((pad_width, pad_width))
+                else:
+                    pad_width_.append((0, 0))
+        else:
+            raise TypeError(f"pad_width must be iterable or int, but got {type(pad_width)}")
+        
+        padimg = np.pad(self.value, pad_width_, mode, **kwargs).view(self.__class__)
+        return padimg
+        
+    
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -1505,16 +1548,15 @@ class ImgArray(LabeledArray):
         ----------
         psf : np.ndarray
             Point spread function.
-
-        niters : int
+        niters : int, by default 50.
             Number of iteration.
-        
-        dtype : str
-            Output dtype
+        dims : int or str, optional
+            Dimension of axes.
+        update : bool, optional
+            If update self to filtered image.
         """
         
-        psf = np.asarray(psf, dtype="float32")
-        psf /= np.max(psf)
+        psf = check_psf(self, psf, dims)
         
         # start deconvolution
         return self.parallel(richardson_lucy_, complement_axes(dims), psf, niter)

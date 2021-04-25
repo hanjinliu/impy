@@ -18,6 +18,19 @@ def median_(args):
     sl, data, selem = args
     return (sl, ndi.median_filter(data, footprint=selem, mode="reflect"))
 
+def directional_median_(args):
+    sl, data = args
+    kernels = [np.array([[0,0,0],[1,1,1],[0,0,0]]),  # -
+               np.array([[1,0,0],[0,1,0],[0,0,1]]),  # \
+               np.array([[0,1,0],[0,1,0],[0,1,0]]),  # |
+               np.array([[0,0,1],[0,1,0],[1,0,0]])]  # /
+    data_var = np.stack([ndi.convolve(data**2, ker/3, mode="reflect") - 
+                         ndi.convolve(data, ker/3, mode="reflect")**2 for ker in kernels])
+    min_vars = np.argmin(data_var, axis=0)
+    data_med = [ndi.median_filter(data, footprint=ker, mode="reflect") for ker in kernels]
+    
+    return
+
 def mean_(args):
     sl, data, selem = args
     return (sl, ndi.convolve(data, selem/np.sum(selem)))
@@ -168,11 +181,6 @@ def corner_harris_(args):
 def richardson_lucy_(args):
     # Identical to the algorithm in Deconvolution.jl of Julia.
     sl, obs, psf, niter = args
-    # obs and psf must be float32 here
-    
-    if obs.shape != psf.shape:
-        raise ValueError("observation and PSF have different shape: "
-                        f"{obs.shape} and {psf.shape}")
     
     psf_ft = fft(psf)
     psf_ft_conj = np.conjugate(psf_ft)

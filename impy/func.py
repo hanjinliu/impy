@@ -185,13 +185,15 @@ def circle(radius, shape, dtype="bool"):
     dx, dy = np.meshgrid(x, y)
     return np.array((dx ** 2 + dy ** 2) <= radius ** 2, dtype=dtype)
 
-def ball_like(radius, dims:int):
-    if dims == 2:
+def ball_like(radius, ndim:int):
+    if ndim == 1:
+        return np.ones(int(radius)*2+1, dtype=np.uint8)
+    elif ndim == 2:
         return disk(radius)
-    elif dims == 3:
+    elif ndim == 3:
         return ball(radius)
     else:
-        raise ValueError(f"dims must be 2 or 3, but got {dims}")
+        raise ValueError(f"dims must be 1 - 3, but got {ndim}")
 
 def find_first_appeared(axes, include="", exclude=""):
     for a in axes:
@@ -320,3 +322,12 @@ def complement_axes(axes, all_axes="ptzcyx"):
         if a not in axes:
             c_axes += a
     return c_axes
+
+def check_psf(img, psf, dims):
+    psf = np.asarray(psf, dtype="float32")
+    psf /= np.max(psf)
+    
+    if img.sizesof(dims) != psf.shape:
+        raise ValueError("observation and PSF have different shape: "
+                        f"{img.sizesof(dims)} and {psf.shape}")
+    return psf
