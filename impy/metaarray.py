@@ -2,44 +2,7 @@ import numpy as np
 from .axes import Axes, ImageAxesError
 from .func import *
 import itertools
-
-def _range_to_list(v:str):
-    """
-    "1,3,5" -> [1,3,5]
-    "2,4-6,9" -> [2,4,5,6,9]
-    """
-    if "-" in v:
-        s, e = v.split("-")
-        return list(range(int(s)-1, int(e)))
-    else:
-        return [int(v)-1]
     
-
-def _str_to_range(v:str):
-    # check if this works
-    if "," in v:
-        sl = sum((_range_to_list(v) for v in v.split(",")), [])
-        
-    elif "-" in v:
-        start, end = [s.strip() for s in v.strip().split("-")]
-        if start == "":
-            start = None
-        else:
-            start = int(start) 
-            if start < 0:
-                raise IndexError("string indexing starts from 1.")
-        if end == "":
-            end = None
-        else:
-            end = int(end)
-        sl = slice(start, end, None)
-        
-    else:
-        sl = int(v)
-        if sl < 0:
-            raise IndexError("string indexing starts from 1.")
-    return sl
-
 class MetaArray(np.ndarray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
@@ -292,7 +255,7 @@ class MetaArray(np.ndarray):
             o, v = [s.strip() for s in k.split("=")]
             
             olist.append(self.axisof(o))
-            vlist.append(_str_to_range(v))
+            vlist.append(str_to_slice(v))
             
         input_keylist = []
         for i in range(len(self.axes)):

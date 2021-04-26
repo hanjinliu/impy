@@ -205,6 +205,18 @@ class AxesFrame(pd.DataFrame):
     def get_coords(self):
         return self[self.columns[self.columns.str.len()==1]]
     
+    def __getitem__(self, k):
+        if "=" in k:
+            axis, sl = [a.strip() for a in k.split("=")]
+            sl = str_to_slice(sl)
+            if isinstance(sl, int):
+                return self[self[axis]==sl]
+            elif isinstance(sl, slice):
+                return self[(sl.start<=self[axis]) & (self[axis]<sl.stop)]
+            else:
+                raise ValueError(f"Wrong key: {k}")
+        return super().__getitem__(k)
+    
     @property
     def col_axes(self):
         return "".join(self.get_coords().columns.values)

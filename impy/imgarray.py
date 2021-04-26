@@ -763,7 +763,7 @@ class ImgArray(LabeledArray):
         if markers is None:
             melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, 
                                   percentile=percentile).melt()
-            return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
+            return self.centroid_sm(melted, radius=radius, sigma=sigma, filt=filt, 
                                  percentile=percentile, dims=dims)
         
         elif isinstance(markers, PropArray):
@@ -791,13 +791,13 @@ class ImgArray(LabeledArray):
                 mom = skmes.moments(input_img, order=1)
                 # TODO: how to do with zyx image?
                 shift = center - radius
-                centroids.append([mom[1, 0]/mom[0, 0] + shift[0],
-                                  mom[0, 1]/mom[0, 0] + shift[1]])
+                centroids.append(label_sl + (mom[1, 0]/mom[0, 0] + shift[0],
+                                             mom[0, 1]/mom[0, 0] + shift[1]))
                     
             timer.toc()
             print(f"\rcentroid_sm completed ({timer})")
             
-            out = MarkerFrame(centroids, columns=dims)
+            out = MarkerFrame(centroids, columns=markers.col_axes)
         else:
             raise NotImplementedError
 

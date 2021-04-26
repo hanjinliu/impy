@@ -2,14 +2,22 @@ import time
 import numpy as np
 
 class BaseDict(dict):
-    def __getattr__(self, name:str):
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(name)
-
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
+    def __init__(self, d=None, **kwargs):
+        if isinstance(d, dict):
+            kwargs = d
+        
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                raise AttributeError(f"cannot set '{k}' because it conflicts with builtin methods.")
+            else:
+                super().__setattr__(k, v)
+        super().__init__(**kwargs)
+    
+    def __setattr__(self, k, v):
+        if hasattr(self, k):
+            self.__setitem__(k,v)
+        else:
+            raise AttributeError(f"{self.__class__} has not attribute {k}")
     
     def __repr__(self):
         if self.keys():
@@ -19,6 +27,25 @@ class BaseDict(dict):
     
     def __keys_repr__(self):
         pass
+        
+# class BaseDict(dict):
+#     def __getattr__(self, name:str):
+#         try:
+#             return self[name]
+#         except KeyError:
+#             raise AttributeError(name)
+
+#     __setattr__ = dict.__setitem__
+#     __delattr__ = dict.__delitem__
+    
+#     def __repr__(self):
+#         if self.keys():
+#             return self.__keys_repr__()
+#         else:
+#             return self.__class__.__name__ + "()"
+    
+#     def __keys_repr__(self):
+#         pass
     
 class ArrayDict(BaseDict):
     def __keys_repr__(self):
