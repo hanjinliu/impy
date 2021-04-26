@@ -44,12 +44,12 @@ class napariWindow:
             
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, (MarkerArray, PropArray)):
+        elif isinstance(obj, (MarkerArray, PropArray, MarkerFrame)):
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
         elif isinstance(obj, TrackFrame):
-            self._add_track(obj, **kwargs)
+            self._add_tracks(obj, **kwargs)
         else:
             raise TypeError(f"Could not interpret type {type(obj)}")
     
@@ -71,8 +71,6 @@ class napariWindow:
     def _add_points(self, points, **kwargs):
         if isinstance(points, PropArray):
             points = points.melt()
-        if not isinstance(points, MeltedMarkerArray):
-            points = points.T
             
         kw = dict(size=3.2, face_color=[0,0,0,0], edge_color="red")
         kw.update(kwargs)
@@ -89,9 +87,12 @@ class napariWindow:
             self.viewer.add_labels(lbl, opacity=opacity, **kwargs)
         return None
 
-    def _add_track(self, track:TrackFrame, **kwargs):
-        for tr in track.split():
-            self.viewer.add_track(tr, **kwargs)
+    def _add_tracks(self, track:TrackFrame, **kwargs):
+        track_list = track.split("c") if "c" in track.col_axes else [track]
+        
+        for tr in track_list:
+            self.viewer.add_tracks(tr, **kwargs)
+        
         return None
 
 window = napariWindow()

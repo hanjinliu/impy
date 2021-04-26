@@ -14,7 +14,7 @@ from skimage import feature as skfeat
 from skimage import registration as skreg
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from scipy.linalg import pseudo_inverse
+from scipy.linalg import pinv as pseudo_inverse
 from .func import *
 from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
@@ -706,7 +706,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        markers : MarkerArray, PropArray or MeltedMarkerArray, optional
+        markers : MarkerArray, PropArray or MarkerFrame, optional
             Positions of peaks. If None, this will be determined by find_sm.
         radius : float, by default 4.
             Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
@@ -734,7 +734,6 @@ class ImgArray(LabeledArray):
         
         elif isinstance(markers, PropArray):
             markers = markers.melt()
-            dims = "".join(a for a in dims if a not in markers.axes)
             ndim = len(dims)
             filt = check_filter_func(filt)
             
@@ -749,7 +748,7 @@ class ImgArray(LabeledArray):
             errs = []   # fitting errors of means
             print("gaussfit_particle ... ", end="")
             timer = Timer()
-            for _, marker in markers.iter("p"):
+            for marker in markers.values:
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
@@ -774,10 +773,10 @@ class ImgArray(LabeledArray):
             timer.toc()
             print(f"\rgaussfit_particle completed ({timer})")
             
-            kw = dict(dtype="float32", axes="pr")
-            out = ArrayDict(means = MeltedMarkerArray(means, **kw),
-                            sigmas = MeltedMarkerArray(sigmas, **kw),
-                            errors = MeltedMarkerArray(errs, **kw))
+            kw = dict(columns=markers.col_axes, dtype="float32")
+            out = FrameDict(means = MarkerFrame(means, **kw),
+                            sigmas = MarkerFrame(sigmas, **kw),
+                            errors = MarkerFrame(errs, **kw))
         else:
             raise NotImplementedError
                     
@@ -940,7 +939,7 @@ class ImgArray(LabeledArray):
             
             print("specify ... ", end="")
             timer = Timer()
-            for _, marker in melted.iter("p"):
+            for marker in melted.values:
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, labeltype)

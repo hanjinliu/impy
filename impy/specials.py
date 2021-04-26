@@ -162,8 +162,10 @@ class PropArray(MetaArray):
                 out.append(sl + tuple(a))
                 if a.dtype.kind == "f":
                     dtype = "float32"
-            
-        return MeltedMarkerArray(out, name=f"{self.name}-melt", axes="pr", dtype=dtype)
+        out = np.array(out, dtype=dtype)
+        n_spatial_dim = out.shape[1] - len(self.axes)
+        cols = str(self.axes) + {1:"x", 2:"yx", 3:"zyx"}[n_spatial_dim]
+        return MarkerFrame(out, columns=cols, dtype=dtype)
     
         
     def _set_info(self, other, new_axes:str="inherit"):
@@ -189,29 +191,27 @@ class IndexArray(MarkerArray):
         return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
                                metadata=metadata, dtype=dtype)
 
-class MeltedMarkerArray(MarkerArray):
-    # TODO: add index, or to pd.DataFrame
-    pass
-
-
 
 class AxesFrame(pd.DataFrame):
-    def __new__(cls, data, columns, **kwargs):
+    @property
+    def _constructor(self):
+        return self.__class__
+    
+    def __init__(self, data=None, columns=None, **kwargs):
         if isinstance(columns, str):
             columns = [a for a in columns]
-        self = pd.DataFrame(data, columns=columns, **kwargs)
-        return self
+        super().__init__(data, columns=columns, **kwargs)
     
     @property
-    def axes(self):
-        return "".join(list(self.columns))
+    def col_axes(self):
+        return "".join(self.columns.values)
     
-    @axes.setter
-    def axes(self, value):
+    @col_axes.setter
+    def col_axes(self, value):
         if isinstance(value, str):
             self.columns = [a for a in value]
         else:
-            raise TypeError("Only str can be set to `axes`.")
+            raise TypeError("Only str can be set to `col_axes`.")
     
     def split(self, axis="c"):
         a_unique = self[axis].unique()
@@ -225,8 +225,9 @@ class MarkerFrame(AxesFrame):
         linked = tp.link(self, search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
                          adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
                          link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
+        
         linked.rename(columns = {"particle":"p"}, inplace=True)
-        linked = linked.reindex([a for a in "p"+self.axes])
+        linked = linked.reindex(columns=[a for a in "p"+self.col_axes])
         
         return TrackFrame(linked)
         

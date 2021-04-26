@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-class ArrayDict(dict):
+class BaseDict(dict):
     def __getattr__(self, name:str):
         try:
             return self[name]
@@ -13,13 +13,26 @@ class ArrayDict(dict):
     
     def __repr__(self):
         if self.keys():
-            out = f"{self.__class__.__name__} with\n"
-            for k, v in self.items():
-                out += f"{k} : {v.shape_info}\n"
-            return out
+            return self.__keys_repr__()
         else:
             return self.__class__.__name__ + "()"
+    
+    def __keys_repr__(self):
+        pass
+    
+class ArrayDict(BaseDict):
+    def __keys_repr__(self):
+        out = f"{self.__class__.__name__} with\n"
+        for k, v in self.items():
+            out += f"{k} : {v.shape_info}\n"
+        return out
 
+class FrameDict(BaseDict):
+    def __keys_repr__(self):
+        out = f"{self.__class__.__name__} with\n"
+        for k, v in self.items():
+            out += f"{k} : {v.col_axes} x{len(v)} rows\n"
+        return out
 
 class Timer:
     def __init__(self):

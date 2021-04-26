@@ -1,6 +1,6 @@
-__version__ = "1.5.1"
+__version__ = "1.5.2"
 # TODO: 
-# - btrack ... https://github.com/quantumjot/BayesianTracker
+# - trackpy
 # - directional median filter to denoinse images
 # - window or padding in lucy()
 
