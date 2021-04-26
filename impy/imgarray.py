@@ -14,14 +14,14 @@ from skimage import feature as skfeat
 from skimage import registration as skreg
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-from scipy.linalg import pinv
+from scipy.linalg import pseudo_inverse
 from .func import *
 from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
 from .axes import Axes, ImageAxesError
-from .specials import MeltedMarkerArray, PropArray, MarkerArray, IndexArray
+from .specials import *
 from .utilcls import *
 from ._process import *
 
@@ -765,7 +765,7 @@ class ImgArray(LabeledArray):
                     # calculate fitting error with Jacobian
                     # TODO: is this error correct?
                     jac = res.jac[:2].reshape(1,-1)
-                    cov = pinv(jac.T @ jac)
+                    cov = pseudo_inverse(jac.T @ jac)
                     err = np.sqrt(np.diag(cov))
                     means.append(label_sl + tuple(gaussian.mu))
                     sigmas.append(label_sl + tuple(gaussian.sg))

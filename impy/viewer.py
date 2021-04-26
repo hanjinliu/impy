@@ -3,7 +3,7 @@ import napari
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
 from .label import Label
-from .specials import MarkerArray, PropArray, MeltedMarkerArray
+from .specials import *
 
 
 """
@@ -48,6 +48,8 @@ class napariWindow:
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
+        elif isinstance(obj, TrackFrame):
+            self._add_track(obj, **kwargs)
         else:
             raise TypeError(f"Could not interpret type {type(obj)}")
     
@@ -85,6 +87,11 @@ class napariWindow:
             
         for lbl in lbls:
             self.viewer.add_labels(lbl, opacity=opacity, **kwargs)
+        return None
+
+    def _add_track(self, track:TrackFrame, **kwargs):
+        for tr in track.split():
+            self.viewer.add_track(tr, **kwargs)
         return None
 
 window = napariWindow()

@@ -2,6 +2,8 @@ from __future__ import annotations
 from .axes import ImageAxesError
 from .metaarray import MetaArray
 import numpy as np
+import trackpy as tp
+import pandas as pd
 import matplotlib.pyplot as plt
 from inspect import signature
 from scipy import optimize as opt
@@ -190,3 +192,47 @@ class IndexArray(MarkerArray):
 class MeltedMarkerArray(MarkerArray):
     # TODO: add index, or to pd.DataFrame
     pass
+
+
+
+class AxesFrame(pd.DataFrame):
+    def __new__(cls, data, columns, **kwargs):
+        if isinstance(columns, str):
+            columns = [a for a in columns]
+        self = pd.DataFrame(data, columns=columns, **kwargs)
+        return self
+    
+    @property
+    def axes(self):
+        return "".join(list(self.columns))
+    
+    @axes.setter
+    def axes(self, value):
+        if isinstance(value, str):
+            self.columns = [a for a in value]
+        else:
+            raise TypeError("Only str can be set to `axes`.")
+    
+    def split(self, axis="c"):
+        a_unique = self[axis].unique()
+        return [self[self[axis]==a] for a in a_unique]
+
+
+class MarkerFrame(AxesFrame):
+    def link(self, search_range, memory=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
+             neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None):
+        
+        linked = tp.link(self, search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
+                         adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
+                         link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
+        linked.rename(columns = {"particle":"p"}, inplace=True)
+        linked = linked.reindex([a for a in "p"+self.axes])
+        
+        return TrackFrame(linked)
+        
+
+class TrackFrame(AxesFrame):
+    def id(self, p_id):
+        return self[self.p==p_id]
+
+    
