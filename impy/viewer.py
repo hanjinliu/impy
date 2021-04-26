@@ -41,7 +41,7 @@ class napariWindow:
     def add(self, obj, **kwargs):
         if self.viewer is None:
             self.start()
-            
+        # TODO: sometimes axes are not connected
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
         elif isinstance(obj, (MarkerArray, PropArray, MarkerFrame)):
@@ -72,7 +72,7 @@ class napariWindow:
         if isinstance(points, PropArray):
             points = points.melt().values
         elif isinstance(points, MarkerArray):
-            points = points.value
+            points = points.value.T
         elif isinstance(points, MarkerFrame):
             points = points.get_coords().values
             

@@ -440,6 +440,7 @@ class ImgArray(LabeledArray):
     def gaussian_filter(self, sigma:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
+        
         Parameters
         ----------
         sigma : scalar or array of scalars, optional
@@ -482,7 +483,54 @@ class ImgArray(LabeledArray):
         
         return self.parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
                              low_sigma, high_sigma)
-        
+    
+    @dims_to_spatial_axes
+    @record()
+    def doh_filter(self, sigma:float=1, *, dims=None) -> ImgArray:
+        """
+        Determinant of Hessian filter. This function does not support `update`
+        argument because output has total different scale of intensity. Because in
+        most cases we want to find only bright dots, eigenvalues larger than 0 is
+        ignored before computing determinant.
+
+        Parameters
+        ----------
+        sigma : scalar or array of scalars, optional
+            Standard deviation(s) of Gaussian filter.
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        ndim = len(dims)
+        sigma = check_nd_sigma(sigma, ndim)
+        pxsize = np.array([self.scale[a] for a in dims])
+        return self.as_float().parallel(hessian_det_, complement_axes(dims, self.axes), 
+                                        sigma, pxsize)
+    
+    @dims_to_spatial_axes
+    @record()
+    def log_filter(self, sigma:float=1, *, dims=None) -> ImgArray:
+        """
+        Laplacian of Gaussian filter.
+
+        Parameters
+        ----------
+        sigma : scalar or array of scalars, optional
+            Standard deviation(s) of Gaussian filter.
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        return -self.as_float().parallel(gaussian_laplace_, complement_axes(dims, self.axes),
+                                        sigma)
     
     @dims_to_spatial_axes
     @record()
@@ -672,7 +720,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def find_sm(self, sigma:float=1.5, *, percentile:float=95, topn:int=np.inf, 
+    def find_sm(self, sigma:float=1.5, *, method="dog", percentile:float=95, topn:int=np.inf, 
                 squeeze:bool=True, dims=None):
         """
         Single molecule detection using difference of Gaussian method.
@@ -681,6 +729,9 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, optional
             Standard deviation of puncta.
+        method : str, by default "dog"
+            Which filter is used prior to finding local maxima. Currently supports "dog", "doh" 
+            and "log".
         percentile, topn, squeeze, dims
             Passed to peak_local_max()
 
@@ -690,15 +741,71 @@ class ImgArray(LabeledArray):
             PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
             rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
         """        
+        methods_ = {"dog": "dog_filter",
+                    "doh": "doh_filter",
+                    "log": "log_filter",
+                    }
+        try:
+            fil_img = getattr(self, methods_[method])(sigma, dims=dims)
+        except KeyError:
+            raise ValueError(f"Currently `method` only supports {', '.join(methods_.keys())}")
         
-        dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
-        markers = dog_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
+        markers = fil_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
                                          topn=topn, squeeze=squeeze, dims=dims)
         return markers
     
+    
+    @dims_to_spatial_axes
+    def centroid_sm(self, markers=None, radius:float=4, sigma:float=1.5, filt=None,
+                    percentile:float=95, *, dims=None) -> MarkerFrame:
+        
+        # TODO: do not work for 2d image
+        if markers is None:
+            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, 
+                                  percentile=percentile).melt()
+            return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
+                                 percentile=percentile, dims=dims)
+        
+        elif isinstance(markers, PropArray):
+            markers = markers.melt()
+            ndim = len(dims)
+            filt = check_filter_func(filt)
+            
+            if np.isscalar(radius):
+                radius = np.full(ndim, radius)
+            radius = np.asarray(radius)
+            
+            shape = self.sizesof(dims)
+            
+            centroids = []  # fitting results of means
+            print("centroid_sm ... ", end="")
+            timer = Timer()
+            for marker in markers.values:
+                center = tuple(marker[-ndim:])
+                label_sl = tuple(marker[:-ndim])
+                sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
+                input_img = self.value[label_sl][sl]
+                if input_img.size == 0 or not filt(input_img):
+                    continue
+                
+                mom = skmes.moments(input_img, order=1)
+                # TODO: how to do with zyx image?
+                shift = center - radius
+                centroids.append([mom[1, 0]/mom[0, 0] + shift[0],
+                                  mom[0, 1]/mom[0, 0] + shift[1]])
+                    
+            timer.toc()
+            print(f"\rcentroid_sm completed ({timer})")
+            
+            out = MarkerFrame(centroids, columns=dims)
+        else:
+            raise NotImplementedError
+
+        return out
+    
     @dims_to_spatial_axes
     def gauss_sm(self, markers=None, radius:float=4, sigma:float=1.5, filt=None,
-                 percentile:float=95, *, dims=None) -> ArrayDict:
+                 percentile:float=95, *, dims=None) -> FrameDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
@@ -746,7 +853,7 @@ class ImgArray(LabeledArray):
             means = []  # fitting results of means
             sigmas = [] # fitting results of sigmas
             errs = []   # fitting errors of means
-            print("gaussfit_particle ... ", end="")
+            print("gauss_sm ... ", end="")
             timer = Timer()
             for marker in markers.values:
                 center = tuple(marker[-ndim:])
@@ -771,7 +878,7 @@ class ImgArray(LabeledArray):
                     errs.append(label_sl + tuple(err))
                     
             timer.toc()
-            print(f"\rgaussfit_particle completed ({timer})")
+            print(f"\rgauss_sm completed ({timer})")
             
             kw = dict(columns=markers.col_axes, dtype="float32")
             out = FrameDict(means = MarkerFrame(means, **kw),
@@ -779,10 +886,7 @@ class ImgArray(LabeledArray):
                             errors = MarkerFrame(errs, **kw))
         else:
             raise NotImplementedError
-                    
-        self.ongoing = None
-        del self.ongoing
-        
+                            
         return out
     
     

@@ -55,6 +55,23 @@ def difference_of_gaussian_(args):
     sl, data, low_sigma, high_sigma = args
     return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
 
+def hessian_det_(args):
+    sl, data, sigma, pxsize = args
+    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
+                                             mode="reflect")
+    # Correct for scale
+    pxsize = np.asarray(pxsize)
+    hessian = _symmetric_image(hessian_elements)
+    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
+    eigval = np.linalg.eigvalsh(hessian)
+    eigval[eigval>0] = 0
+    det = np.product(eigval, axis=-1)
+    return (sl, det)
+
+def gaussian_laplace_(args):
+    sl, data, sigma = args
+    return (sl, ndi.gaussian_laplace(data, sigma))
+
 def rolling_ball_(args):
     sl, data, radius, smooth = args
     if smooth:
