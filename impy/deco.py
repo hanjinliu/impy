@@ -1,6 +1,7 @@
 from functools import wraps
 import numpy as np
 from .func import add_axes
+import trackpy as tp
 
 def check_value(__op__):
     def wrapper(self, value):
@@ -139,3 +140,15 @@ def safe_str(obj):
             return s
     except Exception:
         return str(type(obj))
+    
+def tp_no_verbose(func):
+    """
+    Temporary suppress logging in trackpy.
+    """    
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        tp.quiet(suppress=True)
+        out = func(self, *args, **kwargs)
+        tp.quiet(suppress=False)
+        return out
+    return wrapper

@@ -12,8 +12,6 @@ from skimage import measure as skmes
 from skimage import segmentation as skseg
 from skimage import feature as skfeat
 from skimage import registration as skreg
-from scipy.fftpack import fftn as fft
-from scipy.fftpack import ifftn as ifft
 from scipy.linalg import pinv as pseudo_inverse
 from .func import *
 from .deco import *
@@ -515,7 +513,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
-                       num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
+                       topn:int=np.inf, topn_per_label:int=np.inf, 
                        use_labels:bool=True, squeeze:bool=True, dims=None):
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
@@ -529,9 +527,9 @@ class ImgArray(LabeledArray):
             input is allowed and every time footprint is calculated.
         percentile : float, optional
             Percentile to compute absolute threshold.
-        num_peaks : int, optional
+        topn : int, optional
             Maximum number of peaks **for each iteration**.
-        num_peaks_per_label : int, default is np.inf
+        topn_per_label : int, default is np.inf
             Maximum number of peaks per label.
         use_labels : bool, default is True
             If use self.labels when it exists.
@@ -569,8 +567,8 @@ class ImgArray(LabeledArray):
             indices = skfeat.peak_local_max(np.array(img),
                                             footprint=ball_like(min_distance, ndim),
                                             threshold_abs=thr,
-                                            num_peaks=num_peaks,
-                                            num_peaks_per_label=num_peaks_per_label,
+                                            num_peaks=topn,
+                                            num_peaks_per_label=topn_per_label,
                                             labels=labels)
             
             indarr = IndexArray(indices.T, name=self.name, axes="rp", 
@@ -589,7 +587,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
-                     num_peaks:int=np.inf, num_peaks_per_label:int=np.inf, 
+                     topn:int=np.inf, topn_per_label:int=np.inf, 
                      use_labels:bool=True, squeeze:bool=True, dims=None):
         """
         Find local corner maxima. Slightly different from peak_local_max.
@@ -602,9 +600,9 @@ class ImgArray(LabeledArray):
             input is allowed and every time footprint is calculated.
         percentile : float, optional
             Percentile to compute absolute threshold.
-        num_peaks : int, optional
+        topn : int, optional
             Maximum number of peaks **for each iteration**.
-        num_peaks_per_label : int, default is np.inf
+        topn_per_label : int, default is np.inf
             Maximum number of peaks per label.
         use_labels : bool, default is True
             If use self.labels when it exists.
@@ -642,8 +640,8 @@ class ImgArray(LabeledArray):
             indices = skfeat.corner_peaks(np.array(img),
                                           footprint=ball_like(min_distance, ndim),
                                           threshold_abs=thr,
-                                          num_peaks=num_peaks,
-                                          num_peaks_per_label=num_peaks_per_label,
+                                          num_peaks=topn,
+                                          num_peaks_per_label=topn_per_label,
                                           labels=labels)
             
             indarr = IndexArray(indices.T, name=self.name, axes="rp", 
@@ -674,7 +672,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def find_sm(self, sigma:float=1.5, *, percentile:float=95, num_peaks:int=np.inf, 
+    def find_sm(self, sigma:float=1.5, *, percentile:float=95, topn:int=np.inf, 
                 squeeze:bool=True, dims=None):
         """
         Single molecule detection using difference of Gaussian method.
@@ -683,7 +681,7 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, optional
             Standard deviation of puncta.
-        percentile, num_peaks, squeeze, dims
+        percentile, topn, squeeze, dims
             Passed to peak_local_max()
 
         Returns
@@ -695,7 +693,7 @@ class ImgArray(LabeledArray):
         
         dog_img = self.dog_filter(low_sigma=sigma, dims=dims)
         markers = dog_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
-                                         num_peaks=num_peaks, squeeze=squeeze, dims=dims)
+                                         topn=topn, squeeze=squeeze, dims=dims)
         return markers
     
     @dims_to_spatial_axes
@@ -719,6 +717,8 @@ class ImgArray(LabeledArray):
             will save time.
         percentile, dims
             Passed to peak_local_max()
+        dims : int or str, optional
+            Dimension of axes.
 
         Returns
         -------
@@ -784,6 +784,7 @@ class ImgArray(LabeledArray):
         del self.ongoing
         
         return out
+    
     
     @dims_to_spatial_axes
     @record()
@@ -918,32 +919,35 @@ class ImgArray(LabeledArray):
         
         if isinstance(center, PropArray):
             melted = center.melt()
-            
+            return self.specify(melted, radius, filt=filt, dims=dims, labeltype=labeltype)
+
+        elif isinstance(center, MarkerFrame):
             # determine dims to iterate.
-            dims = "".join(a for a in dims if a not in center.axes)
+            # dims = "".join(a for a in dims if a not in center.axes)
             ndim = len(dims)
-            
             # convert radius to an array
             if np.isscalar(radius):
                 radius = np.full(ndim, radius)
             radius = np.asarray(radius)
             
             shape = self.sizesof(dims)
-            label_shape = center.shape + shape
-            label_axes = str(center.axes) + dims
-            if not hasattr(self, "labels"):
-                self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
-                self.labels.set_scale(self)
+            label_axes = center.col_axes
+            label_shape = self.sizesof(label_axes)
+            if hasattr(self, "labels"):
+                print("Existing labels are updated.")
+            self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
+            self.labels.set_scale(self)
 
             filt = check_filter_func(filt)
             
             print("specify ... ", end="")
             timer = Timer()
-            for marker in melted.values:
-                center = tuple(marker[-ndim:])
+            for marker in center.values:
+                c = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
-                sl = specify_one(center, radius, shape, labeltype)
-                if filt(self[label_sl]):
+                sl = specify_one(c, radius, shape, labeltype)
+                img_ = self[label_sl][sl]
+                if img_.size > 0 and filt(img_):
                     self.labels[label_sl][sl] = self.labels.max() + 1
                     # increase memory if needed
                     if self.labels.max() == np.iinfo(self.labels.dtype).max:
@@ -960,7 +964,7 @@ class ImgArray(LabeledArray):
             c = PropArray(np.zeros(()), axes="")
             c[()] = center
             center = c
-            return self.specify(center, radius, dims=dims, labeltype=labeltype)     
+            return self.specify(center, radius, filt=filt, dims=dims, labeltype=labeltype)     
         
         return self
     
@@ -1026,7 +1030,6 @@ class ImgArray(LabeledArray):
         """        
         if self.dtype != bool:
             raise TypeError("Cannot run skeletonize() with non-binary image.")
-        
         return self.parallel(skeletonize_, complement_axes(dims, self.axes), outdtype=bool)
     
     @dims_to_spatial_axes
@@ -1065,7 +1068,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def resclice(self, src, dst, linewidth=1, *, order=None, dims=None) -> ImgArray:
+    def reslice(self, src, dst, linewidth=1, *, order=None, dims=None) -> ImgArray:
         """
         Measure line profile iteratively for every slice of image.
 
@@ -1478,13 +1481,14 @@ class ImgArray(LabeledArray):
         elif isinstance(shift, MarkerArray):
             if shift.ndim != 2:
                 raise ValueError("Wrong dimensions of 'shift'.")
+            
 
             if shift.axes and shift.axes == "tr":
-                shift = shift.transpose(1, 0) # rt-order
+                shift = shift.transpose((1, 0)) # rt-order
             elif shift.axes and shift.axes == "rt":
                 pass
             else:
-                shift.axes = "tr" if shift.shape[0] >= shift.shape[1] else "rt"
+                raise ImageAxesError(f"Image axes must be 'rt' or 'tr', but got {shift.axes}")
                 
             nr, nt = shift.sizesof("rt")
             if nr != len(dims) or nt != self.sizeof("t"):
@@ -1492,6 +1496,7 @@ class ImgArray(LabeledArray):
         
         else:
             shift = MarkerArray(shift)
+            shift.axes = "tr" if shift.shape[0] >= shift.shape[1] else "rt"
             return self.drift_correction(shift, ref, order=order, along=along, 
                                          dims=dims,update=update)
 
@@ -1719,6 +1724,24 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
     
 
 def read_meta(path:str) -> dict:
+    """
+    Read the metadata of a tiff file. 
+
+    Parameters
+    ----------
+    path : str
+        Path to the tiff file.
+
+    Returns
+    -------
+    dict
+        Dictionary of metadata with following keys.
+        "axes": axes information
+        "ijmeta": ImageJ metadata
+        "history": impy history
+        "tags": tiff tags
+    """    
+    
     meta = get_meta(path)
     return meta
 

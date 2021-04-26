@@ -70,11 +70,15 @@ class napariWindow:
     
     def _add_points(self, points, **kwargs):
         if isinstance(points, PropArray):
-            points = points.melt()
+            points = points.melt().values
+        elif isinstance(points, MarkerArray):
+            points = points.value
+        elif isinstance(points, MarkerFrame):
+            points = points.get_coords().values
             
         kw = dict(size=3.2, face_color=[0,0,0,0], edge_color="red")
         kw.update(kwargs)
-        self.viewer.add_points(points.value, **kw)
+        self.viewer.add_points(points, **kw)
         return None
     
     def _add_labels(self, labels:Label, opacity=0.3, **kwargs):
