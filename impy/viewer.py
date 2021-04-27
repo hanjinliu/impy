@@ -1,5 +1,6 @@
 from impy.func import determine_range
 import napari
+import matplotlib.pyplot as plt
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
 from .label import Label
@@ -24,8 +25,11 @@ https://napari.org/tutorials/applications/cell_tracking.html
 # TODO: read layers
 
 class napariWindow:
+    point_cmap = plt.get_cmap("rainbow", 16)
+    
     def __init__(self):
         self.viewer = None
+        self.point_color_id = 0
     
     @property
     def layers(self):
@@ -77,16 +81,19 @@ class napariWindow:
             points = points.get_coords()
         else:
             scale=None
-            
-        kw = dict(size=3.2, face_color=[0,0,0,0], edge_color="red")
-        kw.update(kwargs)
+        
+        cmap = self.__class__.point_cmap
         
         if "c" in points._axes:
             pnts = points.split("c")
         else:
             pnts = [points]
         for each in pnts:
+            kw = dict(size=3.2, face_color=[0,0,0,0], 
+                      edge_color=list(cmap(self.point_color_id * (cmap.N//2+1) % cmap.N)))
+            kw.update(kwargs)
             self.viewer.add_points(each.values, scale=scale, **kw)
+            self.point_color_id += 1
         return None
     
     def _add_labels(self, labels:Label, opacity=0.3, **kwargs):

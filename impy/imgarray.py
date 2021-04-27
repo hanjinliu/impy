@@ -1,6 +1,7 @@
 from __future__ import annotations
 import itertools
 import numpy as np
+import trackpy as tp
 import os
 import glob
 import collections
@@ -652,8 +653,9 @@ class ImgArray(LabeledArray):
         Returns
         -------
         MarkerFrame
-            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
-            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
+            DataFrame with columns same as axes of self. For example, if self.axes is "tcyx" then
+            return value has "t", "c", "y" and "x" columns, and sub-frame at t=0, c=0 contains all
+            the coordinates of corners in the slice at t=0, c=0.
         """        
         
         # separate spatial dimensions and others
@@ -701,6 +703,30 @@ class ImgArray(LabeledArray):
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
+    
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def trackpy_sm(self, radius, *, return_all=False, dims=None, **kwargs):
+        out = pd.DataFrame()
+        c_axes = complement_axes(dims, self.axes)
+        for sl, data in self.iter(c_axes, exclude=dims):
+            df = tp.locate(data, 2*radius+1, **kwargs)
+            for a, i in zip(c_axes, sl):
+                df[a] = i
+            out = pd.concat([out, df], axis=0)
+        
+        mf = MarkerFrame(out.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
+        # mf.col_axes = str(self.axes)
+        mf.set_scale(self.scale)
+        if return_all:
+            # TODO: a for a not in dims
+            # TODO df is DataFrame so that cannot pring FrameDict
+            
+            
+            df = out[out.columns[out.columns.isin([a for a in out.columns if a not in dims])]]
+            return FrameDict(markers=mf, results=df)
+        else:
+            return mf
     
     @dims_to_spatial_axes
     def find_sm(self, sigma:float=1.5, *, method="dog", percentile:float=95, topn:int=np.inf, 

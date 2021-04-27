@@ -20,11 +20,11 @@ except Exception as e:
 r"""
 Inheritance
 -----------
-              ____    MetaArray   _______
-             /              \            \
-       HistoryArray        MarkerArray  PropArray
-       /         \          /       \
- LabeledArray   Label  IndexArray MeltedMarkerArray
+              __ MetaArray _
+             /              \ 
+       HistoryArray    PropArray
+       /         \    
+ LabeledArray   Label  
     /
 ImgArray
 

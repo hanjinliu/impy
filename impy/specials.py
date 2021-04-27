@@ -201,6 +201,8 @@ class AxesFrame(pd.DataFrame):
     def __init__(self, data=None, columns=None, **kwargs):
         if isinstance(columns, (str, Axes)):
             columns_ = [a for a in columns]
+        elif isinstance(data, AxesFrame):
+            columns_ = data.columns.tolist()
         else:
             columns_ = columns
             
@@ -220,14 +222,20 @@ class AxesFrame(pd.DataFrame):
             axis, sl = [a.strip() for a in k.split("=")]
             sl = str_to_slice(sl)
             if isinstance(sl, int):
-                return self[self[axis]==sl]
+                out = self[self[axis]==sl]
             elif isinstance(sl, slice):
-                return self[(sl.start<=self[axis]) & (self[axis]<sl.stop)]
+                out = self[(sl.start<=self[axis]) & (self[axis]<sl.stop)]
             elif isinstance(sl, list):
-                return self[self[axis].isin(sl)]
+                out = self[self[axis].isin(sl)]
             else:
                 raise ValueError(f"Wrong key: {k} returned {sl}")
-        return super().__getitem__(k)
+            
+        else:
+            out = super().__getitem__(k)
+        
+        out._axes = Axes(out.get_coords())
+        out.set_scale(self)
+        return out
     
     @property
     def col_axes(self):
@@ -251,15 +259,15 @@ class AxesFrame(pd.DataFrame):
 
         Parameters
         ----------
-        other : dict or MetaArray, optional
+        other : dict, AxesFrame or MetaArray, optional
             New scales. If dict, it should be like {"x": 0.1, "y": 0.1}. If MetaArray, only
             scales of common axes are copied.
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
 
         """        
-        if self._axes.scale is None:
-            return ImageAxesError("Image does not have axes.")
+        if self._axes.is_none():
+            raise ImageAxesError("Frame does not have axes.")
         
         elif isinstance(other, dict):
             # check if all the keys are contained in axes.
@@ -287,6 +295,7 @@ class AxesFrame(pd.DataFrame):
         for a in a_unique:
             af = self[self[axis]==a]
             out = af[af.columns[af.columns != axis]]
+            out.set_scale(self)
             out_list.append(out)
         return out_list
 
@@ -295,7 +304,7 @@ class MarkerFrame(AxesFrame):
     @tp_no_verbose
     def link(self, search_range, memory=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
              neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None):
-        tp.quiet()
+        
         linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
                          adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
                          link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)

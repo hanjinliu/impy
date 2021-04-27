@@ -69,8 +69,8 @@ class MetaArray(np.ndarray):
             This enables function call like set_scale(x=0.1, y=0.1).
 
         """        
-        if self.axes.scale is None:
-            return ImageAxesError("Image does not have axes.")
+        if self.axes.is_none():
+            raise ImageAxesError("Image does not have axes.")
         
         elif isinstance(other, dict):
             # check if all the keys are contained in axes.
