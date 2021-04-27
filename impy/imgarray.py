@@ -699,7 +699,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def find_corners(self, sigma=1, k=0.05, *, dims=None):
-        # TODO
+        
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
@@ -715,14 +715,10 @@ class ImgArray(LabeledArray):
                 df[a] = i
             out = pd.concat([out, df], axis=0)
         
+        out.index = np.arange(len(out))
         mf = MarkerFrame(out.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
-        # mf.col_axes = str(self.axes)
         mf.set_scale(self.scale)
         if return_all:
-            # TODO: a for a not in dims
-            # TODO df is DataFrame so that cannot pring FrameDict
-            
-            
             df = out[out.columns[out.columns.isin([a for a in out.columns if a not in dims])]]
             return FrameDict(markers=mf, results=df)
         else:
@@ -785,7 +781,6 @@ class ImgArray(LabeledArray):
         dims : int or str, optional
             Dimension of axes.
         """     
-        # TODO: do not work for 2d image
         if markers is None:
             markers = self.find_sm(sigma=sigma, dims=dims, 
                                   percentile=percentile)
@@ -814,7 +809,6 @@ class ImgArray(LabeledArray):
                     continue
                 
                 mom = skmes.moments(input_img, order=1)
-                # TODO: how to do with zyx image?
                 shift = center - radius
                 centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
                 centroids.append(label_sl + tuple(centroid + shift))
@@ -916,12 +910,11 @@ class ImgArray(LabeledArray):
             kw = dict(columns=markers.col_axes, dtype="float32")
             
             if return_all:
-                print(markers.col_axes[:-ndim]+"ab")
                 out = FrameDict(means = MarkerFrame(means, **kw),
                                 sigmas = MarkerFrame(sigmas, **kw),
                                 errors = MarkerFrame(errs, **kw),
                                 intensities = MarkerFrame(ab, 
-                                                          columns=markers.col_axes[:-ndim]+"ab",
+                                                          columns=str(markers.col_axes)[:-ndim]+"ab",
                                                           dtype="float32"))
                 
                 out.means.set_scale(markers.scale)
@@ -1079,7 +1072,7 @@ class ImgArray(LabeledArray):
             radius = np.asarray(radius)
             
             shape = self.sizesof(dims)
-            label_axes = center.col_axes
+            label_axes = str(center.col_axes)
             label_shape = self.sizesof(label_axes)
             if hasattr(self, "labels"):
                 print("Existing labels are updated.")
@@ -1370,10 +1363,10 @@ class ImgArray(LabeledArray):
         # TODO: use MarkerFrame
         if markers is None:
             markers = input_img.peak_local_max(dims=dims)
-        elif isinstance(markers, IndexArray):
-            m = PropArray(np.zeros(()), axes="")
-            m[()] = markers
-            markers = m
+        # elif isinstance(markers, IndexArray):
+        #     m = PropArray(np.zeros(()), axes="")
+        #     m[()] = markers
+        #     markers = m
                 
         input_img._view_labels(self)
         if input_img.dtype == bool:
@@ -1383,18 +1376,31 @@ class ImgArray(LabeledArray):
         input_img.ongoing = "watershed"
         shape = self.sizesof(dims)
         n_labels = 0
+        # c_axes = complement_axes(dims, self.axes)
+        # for sl, img in input_img.iter(c_axes, israw=True):
+        #     # Make array from max list
+        #     marker_input = np.zeros(shape, dtype="uint32")
+            
+        #     sl0 = markers[sl[:-ndim]]
+            
+            
+        #     marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
+        #     labels[sl] = skseg.watershed(-img.value, marker_input, mask=img.labels.value, 
+        #                                  connectivity=connectivity)
+        #     labels[sl][labels[sl]>0] += n_labels
+        #     n_labels = labels[sl].max()
         
-        for sl, img in input_img.iter(complement_axes(dims, self.axes), israw=True):
-            # Make array from max list
-            marker_input = np.zeros(shape, dtype="uint32")
-            
-            sl0 = markers[sl[:-ndim]]
-            
-            marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
-            labels[sl] = skseg.watershed(-img.value, marker_input, mask=img.labels.value, 
+        marker_input = np.zeros(shape, dtype="uint32") # placeholder for maxima
+        for marker in markers.values:
+            sl0 = marker[:-ndim]
+            sl = tuple(marker)
+            marker_input[tuple(sl0)] = np.arange(1, len(sl[0])+1, dtype="uint32")
+            labels[sl] = skseg.watershed(-input_img[sl].value, marker_input, mask=input_img[sl].labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
+            marker_input[:] = 0 # reset placeholder
+            
             
         input_img.ongoing = None
         del input_img.ongoing

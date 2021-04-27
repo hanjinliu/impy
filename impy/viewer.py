@@ -83,11 +83,11 @@ class napariWindow:
             scale=None
         
         cmap = self.__class__.point_cmap
-        
         if "c" in points._axes:
             pnts = points.split("c")
         else:
             pnts = [points]
+            
         for each in pnts:
             kw = dict(size=3.2, face_color=[0,0,0,0], 
                       edge_color=list(cmap(self.point_color_id * (cmap.N//2+1) % cmap.N)))
@@ -108,9 +108,9 @@ class napariWindow:
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
         track_list = track.split("c") if "c" in track.col_axes else [track]
-        
+        scale = [track.scale[a] for a in track._axes if a not in "pc"]
         for tr in track_list:
-            self.viewer.add_tracks(tr, **kwargs)
+            self.viewer.add_tracks(tr, scale=scale, **kwargs)
         
         return None
 

@@ -40,8 +40,11 @@ class FrameDict(BaseDict):
     def __keys_repr__(self):
         out = f"{self.__class__.__name__} with\n"
         for k, v in self.items():
-            caxes = v.col_axes
-            out += f"[{len(v)} rows x {len(caxes)}columns ({caxes})]\n"
+            if hasattr(v, "col_axes"):
+                caxes = v.col_axes
+                out += f"[{k} : {v.__class__.__name__} with {len(v)} rows x {len(caxes)} columns ({caxes})]\n"
+            else:
+                out += f"[{k} : {v.__class__.__name__} with {len(v)} rows x {len(v.columns)} columns]\n"
         return out
 
 class Timer:

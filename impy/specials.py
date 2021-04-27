@@ -192,6 +192,7 @@ class IndexArray(MarkerArray):
                                metadata=metadata, dtype=dtype)
 
 
+# TODO: strict dtype
 class AxesFrame(pd.DataFrame):
     _metadata=["_axes"]
     @property
@@ -200,17 +201,20 @@ class AxesFrame(pd.DataFrame):
     
     def __init__(self, data=None, columns=None, **kwargs):
         if isinstance(columns, (str, Axes)):
-            columns_ = [a for a in columns]
+            kwargs["columns"] = [a for a in columns]
         elif isinstance(data, AxesFrame):
-            columns_ = data.columns.tolist()
+            kwargs["columns"] = data.columns.tolist()
         else:
-            columns_ = columns
+            kwargs["columns"] = columns
             
-        super().__init__(data, columns=columns_, **kwargs)
+        super().__init__(data, **kwargs)
         self._axes = Axes(columns)
-        
+    
+    def _get_coords_cols(self):
+        return "".join(a for a in self.columns if len(a) == 1)
+    
     def get_coords(self):
-        return self[self.columns[self.columns.str.len()==1]]
+        return self[self.columns[self.columns.isin([a for a in self.columns if len(a) == 1])]]
     
     def __getitem__(self, k):
         if isinstance(k, str) and ";" in k:
@@ -232,14 +236,14 @@ class AxesFrame(pd.DataFrame):
             
         else:
             out = super().__getitem__(k)
-        
-        out._axes = Axes(out.get_coords())
-        out.set_scale(self)
+        if isinstance(out, AxesFrame):
+            out._axes = Axes(out._get_coords_cols())
+            out.set_scale(self)
         return out
     
     @property
     def col_axes(self):
-        return self._axes.axes
+        return self._axes
     
     @col_axes.setter
     def col_axes(self, value):
@@ -248,6 +252,7 @@ class AxesFrame(pd.DataFrame):
             self.columns = [a for a in value]
         else:
             raise TypeError("Only str can be set to `col_axes`.")
+    
     
     @property
     def scale(self):
@@ -302,7 +307,7 @@ class AxesFrame(pd.DataFrame):
 
 class MarkerFrame(AxesFrame):
     @tp_no_verbose
-    def link(self, search_range, memory=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
+    def link(self, search_range, memory=0, min_dwell=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
              neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None):
         
         linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
@@ -310,22 +315,55 @@ class MarkerFrame(AxesFrame):
                          link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
         
         linked.rename(columns = {"particle":"p"}, inplace=True)
-        linked = linked.reindex(columns=[a for a in "p"+self.col_axes])
+        linked = linked.reindex(columns=[a for a in "p"+str(self.col_axes)])
         
-        return TrackFrame(linked)
+        track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
+        track.set_scale(self)
+        if min_dwell > 0:
+            track = track.filter_stubs(min_dwell)
+        return track
         
 
 class TrackFrame(AxesFrame):
-    def id(self, p_id):
-        return self[self.p==p_id]
-    
-    @tp_no_verbose
-    def track_drift(self, smoothing=0, show_drift=True):
+    def _renamed_df(self):
         df = pd.DataFrame(self, copy=True, dtype="float32")
         df.rename(columns = {"t":"frame", "p":"particle"}, inplace=True)
+        return df
+        
+    @tp_no_verbose
+    def track_drift(self, smoothing=0, show_drift=True):
+        df = self._renamed_df()
         shift = -tp.compute_drift(df, smoothing=smoothing)
         ori = pd.DataFrame({"y":[0], "x":[0]})
         shift = pd.concat([ori, shift], axis=0)
         show_drift and plot_drift(shift.values)
         return MarkerFrame(shift)
-        
+    
+    @tp_no_verbose
+    def msd(self, max_lagt=100, detail=False):
+        df = self._renamed_df()
+        return tp.motion.msd(df, self.scale["x"], self.scale["t"], 
+                             max_lagtime=max_lagt, detail=detail)
+    
+    @tp_no_verbose
+    def imsd(self, max_lagt=100):
+        df = self._renamed_df()
+        return tp.motion.imsd(df, self.scale["x"], self.scale["t"], 
+                             max_lagtime=max_lagt)
+    
+    @tp_no_verbose
+    def emsd(self, max_lagt=100, detail=False):
+        df = self._renamed_df()
+        return tp.motion.emsd(df, self.scale["x"], self.scale["t"], 
+                             max_lagtime=max_lagt, detail=detail)
+    
+    
+    @tp_no_verbose
+    def filter_stubs(self, min_dwell=3):
+        df = self._renamed_df()
+        df = tp.filtering.filter_stubs(df, threshold=min_dwell)
+        df.rename(columns = {"frame":"t", "particle":"p"}, inplace=True)
+        df = df.astype({"t":"uint16", "p":"uint32"})
+        out = TrackFrame(df, columns=self.col_axes)
+        out.set_scale(self)
+        return out
