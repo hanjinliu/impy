@@ -28,25 +28,7 @@ class BaseDict(dict):
     def __keys_repr__(self):
         pass
         
-# class BaseDict(dict):
-#     def __getattr__(self, name:str):
-#         try:
-#             return self[name]
-#         except KeyError:
-#             raise AttributeError(name)
-
-#     __setattr__ = dict.__setitem__
-#     __delattr__ = dict.__delitem__
-    
-#     def __repr__(self):
-#         if self.keys():
-#             return self.__keys_repr__()
-#         else:
-#             return self.__class__.__name__ + "()"
-    
-#     def __keys_repr__(self):
-#         pass
-    
+            
 class ArrayDict(BaseDict):
     def __keys_repr__(self):
         out = f"{self.__class__.__name__} with\n"
@@ -58,7 +40,8 @@ class FrameDict(BaseDict):
     def __keys_repr__(self):
         out = f"{self.__class__.__name__} with\n"
         for k, v in self.items():
-            out += f"{k} : {v.col_axes} x{len(v)} rows\n"
+            caxes = v.col_axes
+            out += f"[{len(v)} rows x {len(caxes)}columns ({caxes})]\n"
         return out
 
 class Timer:

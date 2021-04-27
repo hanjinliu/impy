@@ -562,7 +562,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
                        topn:int=np.inf, topn_per_label:int=np.inf, 
-                       use_labels:bool=True, squeeze:bool=True, dims=None):
+                       use_labels:bool=True, dims=None):
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -581,28 +581,24 @@ class ImgArray(LabeledArray):
             Maximum number of peaks per label.
         use_labels : bool, default is True
             If use self.labels when it exists.
-        squeeze : bool, default is True
-            If True and 0-dimensional array will be returned, the contents will be
-            returned instead. This situation only happens when self.ndim == len(dims).
         dims : int or str, optional
             Dimension of axes.
             
         Returns
         -------
-        PropArray of IndexArrays, or if squeeze=True, IndexArray
-            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
-            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
+        MarkerFrame
+            DataFrame with columns same as axes of self. For example, if self.axes is "tcyx" then
+            return value has "t", "c", "y" and "x" columns, and sub-frame at t=0, c=0 contains all
+            the coordinates of peaks in the slice at t=0, c=0.
         """        
         
         # separate spatial dimensions and others
         ndim = len(dims)
         c_axes = complement_axes(dims, self.axes)
-        shape = self.sizesof(c_axes)
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
-        
-        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
-                        dirpath=self.dirpath, propname="local_max_indices")
+                
+        out = []
         
         self.ongoing = "peak_local_max"
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
@@ -618,25 +614,21 @@ class ImgArray(LabeledArray):
                                             num_peaks=topn,
                                             num_peaks_per_label=topn_per_label,
                                             labels=labels)
+            out += [sl + tuple(ind) for ind in indices]
+        
             
-            indarr = IndexArray(indices.T, name=self.name, axes="rp", 
-                                dirpath=self.dirpath)
-            out[sl] = indarr
+        out = MarkerFrame(out, columns=self.axes, dtype="uint16")
+        out.set_scale(self)
         
         self.ongoing = None
         del self.ongoing
-        
-        if squeeze and out.ndim == 0:
-            out = out[()]
-        else:
-            out.set_scale(self)
             
         return out
     
     @dims_to_spatial_axes
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, 
-                     use_labels:bool=True, squeeze:bool=True, dims=None):
+                     use_labels:bool=True, dims=None):
         """
         Find local corner maxima. Slightly different from peak_local_max.
 
@@ -654,15 +646,12 @@ class ImgArray(LabeledArray):
             Maximum number of peaks per label.
         use_labels : bool, default is True
             If use self.labels when it exists.
-        squeeze : bool, default is True
-            If True and 0-dimensional array will be returned, the contents will be
-            returned instead. This situation only happens when self.ndim == len(dims).
         dims : int or str, optional
             Dimension of axes.
             
         Returns
         -------
-        PropArray of IndexArrays, or if squeeze=True, IndexArray
+        MarkerFrame
             PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
             rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
         """        
@@ -670,12 +659,10 @@ class ImgArray(LabeledArray):
         # separate spatial dimensions and others
         ndim = len(dims)
         c_axes = complement_axes(dims, self.axes)
-        shape = self.sizesof(c_axes)
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
-        
-        out = PropArray(np.zeros(shape), name=self.name, axes=c_axes,
-                        dirpath=self.dirpath, propname="local_max_indices")
+                
+        out = []
         
         self.ongoing = "corner_peaks"
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
@@ -691,18 +678,14 @@ class ImgArray(LabeledArray):
                                           num_peaks=topn,
                                           num_peaks_per_label=topn_per_label,
                                           labels=labels)
+            out += [sl + tuple(ind) for ind in indices]
+        
             
-            indarr = IndexArray(indices.T, name=self.name, axes="rp", 
-                                dirpath=self.dirpath)
-            out[sl] = indarr
+        out = MarkerFrame(out, columns=self.axes, dtype="uint16")
+        out.set_scale(self)
         
         self.ongoing = None
         del self.ongoing
-        
-        if squeeze and out.ndim == 0:
-            out = out[()]
-        else:
-            out.set_scale(self)
             
         return out
     
@@ -713,15 +696,15 @@ class ImgArray(LabeledArray):
         return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
     
     @dims_to_spatial_axes
-    def find_corners(self, sigma=1, k=0.05, squeeze:bool=True, *, dims=None):
+    def find_corners(self, sigma=1, k=0.05, *, dims=None):
         # TODO
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
-        out = res.corner_peaks(min_distance=3, percentile=97, squeeze=squeeze, dims=dims)
+        out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
     
     @dims_to_spatial_axes
     def find_sm(self, sigma:float=1.5, *, method="dog", percentile:float=95, topn:int=np.inf, 
-                squeeze:bool=True, dims=None):
+                dims=None):
         """
         Single molecule detection using difference of Gaussian method.
 
@@ -732,14 +715,13 @@ class ImgArray(LabeledArray):
         method : str, by default "dog"
             Which filter is used prior to finding local maxima. Currently supports "dog", "doh" 
             and "log".
-        percentile, topn, squeeze, dims
+        percentile, topn, dims
             Passed to peak_local_max()
 
         Returns
         -------
-        PropArray of IndexArrays, or if squeeze=True, IndexArray
-            PropArray with dtype=object is returned, with IndexArrays in it. Every IndexArray has
-            rp-axes, where r=0 means y-coordinate for 2D-image, and `p` is the index of points.
+        MarkerFrame
+            Peaks in uint16 type.
         """        
         methods_ = {"dog": "dog_filter",
                     "doh": "doh_filter",
@@ -751,23 +733,40 @@ class ImgArray(LabeledArray):
             raise ValueError(f"Currently `method` only supports {', '.join(methods_.keys())}")
         
         markers = fil_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
-                                         topn=topn, squeeze=squeeze, dims=dims)
+                                         topn=topn, dims=dims)
         return markers
     
     
     @dims_to_spatial_axes
     def centroid_sm(self, markers=None, radius:float=4, sigma:float=1.5, filt=None,
                     percentile:float=95, *, dims=None) -> MarkerFrame:
-        
+        """
+        Calculate positions of particles in subpixel precision using centroids.
+
+        Parameters
+        ----------
+        markers : MarkerArray or MarkerFrame, optional
+            Positions of peaks. If None, this will be determined by find_sm.
+        radius : float, by default 4.
+            Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
+            to calculate moments.
+        sigma : float, by default 1.5
+            Expected standard deviation of particles.
+        filt : callable, optional
+            For every slice `sl`, label is added only when filt(`input`) == True is satisfied.
+        percentile, dims
+            Passed to peak_local_max()
+        dims : int or str, optional
+            Dimension of axes.
+        """     
         # TODO: do not work for 2d image
         if markers is None:
-            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, 
-                                  percentile=percentile).melt()
-            return self.centroid_sm(melted, radius=radius, sigma=sigma, filt=filt, 
-                                 percentile=percentile, dims=dims)
+            markers = self.find_sm(sigma=sigma, dims=dims, 
+                                  percentile=percentile)
+            return self.centroid_sm(markers, radius=radius, sigma=sigma, filt=filt, 
+                                    percentile=percentile, dims=dims)
         
-        elif isinstance(markers, PropArray):
-            markers = markers.melt()
+        elif isinstance(markers, MarkerFrame):
             ndim = len(dims)
             filt = check_filter_func(filt)
             
@@ -791,27 +790,28 @@ class ImgArray(LabeledArray):
                 mom = skmes.moments(input_img, order=1)
                 # TODO: how to do with zyx image?
                 shift = center - radius
-                centroids.append(label_sl + (mom[1, 0]/mom[0, 0] + shift[0],
-                                             mom[0, 1]/mom[0, 0] + shift[1]))
+                centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
+                centroids.append(label_sl + tuple(centroid + shift))
                     
             timer.toc()
             print(f"\rcentroid_sm completed ({timer})")
             
-            out = MarkerFrame(centroids, columns=markers.col_axes)
+            out = MarkerFrame(centroids, columns=markers.col_axes, dtype="float32")
+            out.set_scale(markers.scale)
         else:
             raise NotImplementedError
 
         return out
     
     @dims_to_spatial_axes
-    def gauss_sm(self, markers=None, radius:float=4, sigma:float=1.5, filt=None,
-                 percentile:float=95, *, dims=None) -> FrameDict:
+    def gauss_sm(self, markers:MarkerFrame=None, radius:float=4, sigma:float=1.5, filt=None,
+                 percentile:float=95, *, return_all=False, dims=None) -> FrameDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
         Parameters
         ----------
-        markers : MarkerArray, PropArray or MarkerFrame, optional
+        markers : MarkerFrame, optional
             Positions of peaks. If None, this will be determined by find_sm.
         radius : float, by default 4.
             Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
@@ -824,23 +824,26 @@ class ImgArray(LabeledArray):
             will save time.
         percentile, dims
             Passed to peak_local_max()
+        return_all : bool, by default False
+            If True, fitting results are all returned as Frame Dict.
         dims : int or str, optional
             Dimension of axes.
 
         Returns
         -------
-        ArrayDict with keys : means, sigmas, errors
+        MarkerFrame, if return_all == False
+            Gaussian centers.
+        FrameDict with keys {means, sigmas, errors}, if return_all == True
             Dictionary that contains means, standard deviations and fitting errors.
         """        
         
         if markers is None:
-            melted = self.find_sm(sigma=sigma, squeeze=False, dims=dims, 
-                                  percentile=percentile).melt()
+            melted = self.find_sm(sigma=sigma, dims=dims, 
+                                  percentile=percentile)
             return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
                                  percentile=percentile, dims=dims)
         
-        elif isinstance(markers, PropArray):
-            markers = markers.melt()
+        elif isinstance(markers, MarkerFrame):
             ndim = len(dims)
             filt = check_filter_func(filt)
             
@@ -853,6 +856,7 @@ class ImgArray(LabeledArray):
             means = []  # fitting results of means
             sigmas = [] # fitting results of sigmas
             errs = []   # fitting errors of means
+            ab = []
             print("gauss_sm ... ", end="")
             timer = Timer()
             for marker in markers.values:
@@ -870,20 +874,38 @@ class ImgArray(LabeledArray):
                     gaussian.shift(center - radius)
                     # calculate fitting error with Jacobian
                     # TODO: is this error correct?
-                    jac = res.jac[:2].reshape(1,-1)
-                    cov = pseudo_inverse(jac.T @ jac)
-                    err = np.sqrt(np.diag(cov))
+                    if return_all:
+                        jac = res.jac[:2].reshape(1,-1)
+                        cov = pseudo_inverse(jac.T @ jac)
+                        err = np.sqrt(np.diag(cov))
+                        sigmas.append(label_sl + tuple(gaussian.sg))
+                        errs.append(label_sl + tuple(err))
+                        ab.append(label_sl + (gaussian.a, gaussian.b))
+                    
                     means.append(label_sl + tuple(gaussian.mu))
-                    sigmas.append(label_sl + tuple(gaussian.sg))
-                    errs.append(label_sl + tuple(err))
                     
             timer.toc()
             print(f"\rgauss_sm completed ({timer})")
             
             kw = dict(columns=markers.col_axes, dtype="float32")
-            out = FrameDict(means = MarkerFrame(means, **kw),
-                            sigmas = MarkerFrame(sigmas, **kw),
-                            errors = MarkerFrame(errs, **kw))
+            
+            if return_all:
+                print(markers.col_axes[:-ndim]+"ab")
+                out = FrameDict(means = MarkerFrame(means, **kw),
+                                sigmas = MarkerFrame(sigmas, **kw),
+                                errors = MarkerFrame(errs, **kw),
+                                intensities = MarkerFrame(ab, 
+                                                          columns=markers.col_axes[:-ndim]+"ab",
+                                                          dtype="float32"))
+                
+                out.means.set_scale(markers.scale)
+                out.sigmas.set_scale(markers.scale)
+                out.errors.set_scale(markers.scale)
+                    
+            else:
+                out = MarkerFrame(means, **kw)
+                out.set_scale(markers.scale)
+            
         else:
             raise NotImplementedError
                             
@@ -1004,8 +1026,8 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        center : array like, MarkerArray or PropArray
-            Coordinates of centers. 
+        center : array like or MarkerFrame
+            Coordinates of centers. For MarkerFrame, it must have the same axes order.
         radius : float or array
             Radius of labels.
         filt : callable, optional
@@ -1021,11 +1043,7 @@ class ImgArray(LabeledArray):
             Labeled image.
         """
         
-        if isinstance(center, PropArray):
-            melted = center.melt()
-            return self.specify(melted, radius, filt=filt, dims=dims, labeltype=labeltype)
-
-        elif isinstance(center, MarkerFrame):
+        if isinstance(center, MarkerFrame):
             # determine dims to iterate.
             # dims = "".join(a for a in dims if a not in center.axes)
             ndim = len(dims)
@@ -1063,11 +1081,11 @@ class ImgArray(LabeledArray):
         else:
             center = np.asarray(center)
             if center.ndim == 1:
-                center = center.reshape(-1, 1)
-            center = MarkerArray(center, dtype="uint16", axes="rp")
-            c = PropArray(np.zeros(()), axes="")
-            c[()] = center
-            center = c
+                center = center.reshape(1, -1)
+            
+            cols = {1:"x", 2:"yx", 3:"zyx"}[center.shape[1]]
+            center = MarkerFrame(center, columns=cols, dtype="uint16")
+
             return self.specify(center, radius, filt=filt, dims=dims, labeltype=labeltype)     
         
         return self
@@ -1323,8 +1341,9 @@ class ImgArray(LabeledArray):
         else:
             raise ValueError("'input_' must be either 'self' or 'distance'.")
         
+        # TODO: use MarkerFrame
         if markers is None:
-            markers = input_img.peak_local_max(dims=dims, squeeze=False)
+            markers = input_img.peak_local_max(dims=dims)
         elif isinstance(markers, IndexArray):
             m = PropArray(np.zeros(()), axes="")
             m[()] = markers

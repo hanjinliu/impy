@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .axes import ImageAxesError
+from .axes import Axes, ImageAxesError
 from .metaarray import MetaArray
 import numpy as np
 import trackpy as tp
@@ -193,44 +193,102 @@ class IndexArray(MarkerArray):
 
 
 class AxesFrame(pd.DataFrame):
+    _metadata=["_axes"]
     @property
     def _constructor(self):
         return self.__class__
     
     def __init__(self, data=None, columns=None, **kwargs):
-        if isinstance(columns, str):
-            columns = [a for a in columns]
-        super().__init__(data, columns=columns, **kwargs)
+        if isinstance(columns, (str, Axes)):
+            columns_ = [a for a in columns]
+        else:
+            columns_ = columns
+            
+        super().__init__(data, columns=columns_, **kwargs)
+        self._axes = Axes(columns)
         
     def get_coords(self):
         return self[self.columns[self.columns.str.len()==1]]
     
     def __getitem__(self, k):
-        if "=" in k:
+        if isinstance(k, str) and ";" in k:
+            for each in k.split(";"):
+                self = self.__getitem__(each.strip())
+            return self
+        
+        if isinstance(k, str) and "=" in k:
             axis, sl = [a.strip() for a in k.split("=")]
             sl = str_to_slice(sl)
             if isinstance(sl, int):
                 return self[self[axis]==sl]
             elif isinstance(sl, slice):
                 return self[(sl.start<=self[axis]) & (self[axis]<sl.stop)]
+            elif isinstance(sl, list):
+                return self[self[axis].isin(sl)]
             else:
-                raise ValueError(f"Wrong key: {k}")
+                raise ValueError(f"Wrong key: {k} returned {sl}")
         return super().__getitem__(k)
     
     @property
     def col_axes(self):
-        return "".join(self.get_coords().columns.values)
+        return self._axes.axes
     
     @col_axes.setter
     def col_axes(self, value):
         if isinstance(value, str):
+            self._axes.axes = value
             self.columns = [a for a in value]
         else:
             raise TypeError("Only str can be set to `col_axes`.")
     
+    @property
+    def scale(self):
+        return self._axes.scale
+    
+    def set_scale(self, other=None, **kwargs) -> None:
+        """
+        Set scales of each axis.
+
+        Parameters
+        ----------
+        other : dict or MetaArray, optional
+            New scales. If dict, it should be like {"x": 0.1, "y": 0.1}. If MetaArray, only
+            scales of common axes are copied.
+        kwargs : 
+            This enables function call like set_scale(x=0.1, y=0.1).
+
+        """        
+        if self._axes.scale is None:
+            return ImageAxesError("Image does not have axes.")
+        
+        elif isinstance(other, dict):
+            # check if all the keys are contained in axes.
+            for a, val in other.items():
+                if a not in self._axes:
+                    raise ImageAxesError(f"Image does not have axis {a}.")    
+                elif not np.isscalar(val):
+                    raise TypeError(f"Cannot set non-numeric value as scales.")
+            self._axes.scale.update(other)
+            
+        elif isinstance(other, (AxesFrame, MetaArray)):
+            self.set_scale({a: s for a, s in other.scale.items() if a in self._axes})
+            
+        elif kwargs:
+            self.set_scale(dict(kwargs))
+            
+        else:
+            raise TypeError(f"'other' must be str or MetaArray, but got {type(other)}")
+        
+        return None
+    
     def split(self, axis="c"):
         a_unique = self[axis].unique()
-        return [self[self[axis]==a] for a in a_unique]
+        out_list = []
+        for a in a_unique:
+            af = self[self[axis]==a]
+            out = af[af.columns[af.columns != axis]]
+            out_list.append(out)
+        return out_list
 
 
 class MarkerFrame(AxesFrame):
@@ -238,7 +296,7 @@ class MarkerFrame(AxesFrame):
     def link(self, search_range, memory=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
              neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None):
         tp.quiet()
-        linked = tp.link(self, search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
+        linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
                          adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
                          link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
         

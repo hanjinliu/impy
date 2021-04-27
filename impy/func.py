@@ -50,9 +50,9 @@ def _range_to_list(v:str):
     """
     if "-" in v:
         s, e = v.split("-")
-        return list(range(int(s)-1, int(e)))
+        return list(range(int(s), int(e)))
     else:
-        return [int(v)-1]
+        return [int(v)]
     
 def str_to_slice(v:str):
     # check if this works
