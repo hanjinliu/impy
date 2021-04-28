@@ -160,47 +160,45 @@ class LabeledArray(HistoryArray):
     def as_uint8(self):
         if self.dtype == "uint8":
             return self
-        out = self.value
+        
         if self.dtype == "uint16":
-            out /= 256
+            out = self.value / 256
         elif self.dtype == "bool":
-            pass
+            out = self.value
         elif self.dtype.kind == "f":
-            if 0 <= np.min(out) and np.max(out) < 1:
-                out *= 256
+            if 0 <= self.min() and self.max() < 1:
+                out = self.value * 256
             else:
-                out += 0.5
+                out = self.value + 0.5
             out[out < 0] = 0
             out[out >= 256] = 255
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
-        
+        out = out.astype(np.uint8)
         out = out.view(self.__class__)
         out._set_info(self)
-        out = out.astype("uint8")
         return out
 
 
     def as_uint16(self):
         if self.dtype == "uint16":
             return self
-        out = self.value
         if self.dtype == "uint8":
-            out *= 256
+            out = self.value * 256
         elif self.dtype == "bool":
-            pass
+            out = self.value
         elif self.dtype.kind == "f":
-            if 0 <= np.min(out) and np.max(out) < 1:
-                out *= 65535
+            if 0 <= self.min() and self.max() < 1:
+                out = self.value * 65535
             else:
-                out += 0.5
+                out = self.value + 0.5
             out[out < 0] = 0
             out[out >= 65536] = 65535
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
+        out = out.astype(np.uint16)
         out = out.view(self.__class__)
         out._set_info(self)
-        out = out.astype("uint16")
         return out
     
     def as_float(self):

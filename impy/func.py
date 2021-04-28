@@ -162,12 +162,7 @@ def affinefit(img, imgref, bins=256, order=3):
 def plot_drift(result):
     fig = plt.figure()
     ax = fig.add_subplot(111, title="drift")
-    if result.shape[0] == 2:
-        ax.plot(result[1], result[0], marker="+", color="red")
-    elif result.shape[1] == 2:
-        ax.plot(result[:, 1], result[:, 0], marker="+", color="red")
-    else:
-        raise ValueError(f"Wrong shape {result.shape}")
+    ax.plot(result.x, result.y, marker="+", color="red")
     ax.grid()
     # delete the default axes and let x=0 and y=0 be new ones.
     ax.spines["bottom"].set_position("zero")

@@ -8,7 +8,7 @@ import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 
                        imread, imread_collection, read_meta, 
                        stack, set_cpu, ImgArray)
-from .specials import PropArray, MarkerArray
+from .specials import PropArray
 
 try:
     from .viewer import window

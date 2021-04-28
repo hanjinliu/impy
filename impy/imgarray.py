@@ -1328,7 +1328,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def watershed(self, markers:PropArray=None, connectivity=1, input_="distance", *, dims=None) -> ImgArray:
+    def watershed(self, markers:PropArray=None, *, connectivity=1, input="distance", 
+                  min_distance=2, dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
 
@@ -1351,62 +1352,48 @@ class ImgArray(LabeledArray):
             Same array but labels are updated.
         """
         
-        ndim = len(dims)
         # Prepare the input image.
-        if input_ == "self":
+        if input == "self":
             input_img = self.copy()
-        elif input_ == "distance":
+        elif input == "distance":
             input_img = self.__class__(self.labels>0, axes=self.axes).distance_map(dims=dims)
         else:
             raise ValueError("'input_' must be either 'self' or 'distance'.")
         
-        # TODO: use MarkerFrame
-        if markers is None:
-            markers = input_img.peak_local_max(dims=dims)
-        # elif isinstance(markers, IndexArray):
-        #     m = PropArray(np.zeros(()), axes="")
-        #     m[()] = markers
-        #     markers = m
                 
-        input_img._view_labels(self)
         if input_img.dtype == bool:
             input_img = input_img.astype("uint8")
+            
+        input_img._view_labels(self)
+        
+        if markers is None:
+            markers = input_img.peak_local_max(min_distance=min_distance, dims=dims)
         
         labels = np.zeros(input_img.shape, dtype="uint32")
         input_img.ongoing = "watershed"
         shape = self.sizesof(dims)
         n_labels = 0
-        # c_axes = complement_axes(dims, self.axes)
-        # for sl, img in input_img.iter(c_axes, israw=True):
-        #     # Make array from max list
-        #     marker_input = np.zeros(shape, dtype="uint32")
-            
-        #     sl0 = markers[sl[:-ndim]]
-            
-            
-        #     marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
-        #     labels[sl] = skseg.watershed(-img.value, marker_input, mask=img.labels.value, 
-        #                                  connectivity=connectivity)
-        #     labels[sl][labels[sl]>0] += n_labels
-        #     n_labels = labels[sl].max()
+        c_axes = complement_axes(dims, self.axes)
         
         marker_input = np.zeros(shape, dtype="uint32") # placeholder for maxima
-        for marker in markers.values:
-            sl0 = marker[:-ndim]
-            sl = tuple(marker)
-            marker_input[tuple(sl0)] = np.arange(1, len(sl[0])+1, dtype="uint32")
-            labels[sl] = skseg.watershed(-input_img[sl].value, marker_input, mask=input_img[sl].labels.value, 
+        for sl, img in input_img.iter(c_axes, israw=True):
+            sl0 = markers[";".join([f"{a}={i}" for a, i in zip(c_axes, sl)])]
+            sl0 = sl0[[a for a in dims]]
+            sl0 = sl0.values.T.tolist()
+            marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
+            labels[sl] = skseg.watershed(-img.value, marker_input, 
+                                         mask=img.labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
             marker_input[:] = 0 # reset placeholder
-            
             
         input_img.ongoing = None
         del input_img.ongoing
         
         labels = labels.view(Label)
         self.labels = labels.optimize()
+        self.labels._set_info(self)
         self.labels.set_scale(self)
         return self
     
@@ -1425,7 +1412,7 @@ class ImgArray(LabeledArray):
             Same array but labels are updated.
         """        
         labels = self.threshold(thr=thr, dims=dims, **kwargs)
-        # dims in label and dims in thresholding is different
+        # TODO: dims in label and dims in thresholding is different
         return self.label(labels, dims=None)
     
         
@@ -1554,7 +1541,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def track_drift(self, axis="t", show_drift=True, **kwargs) -> MarkerArray:
+    def track_drift(self, axis="t", show_drift=True, **kwargs) -> MarkerFrame:
         """
         Calculate xy-directional drift using `skimage.registration.phase_cross_correlation`.
 
@@ -1590,10 +1577,10 @@ class ImgArray(LabeledArray):
             else:
                 last_img = img
         
-        result = MarkerArray(np.array(result).T, name="drift", axes="rt")
+        result = MarkerFrame(np.array(result), columns="yx")
         
         show_drift and plot_drift(result)
-        
+        result.index.name = axis
         return result
     
     
@@ -1633,32 +1620,20 @@ class ImgArray(LabeledArray):
             shift = ref.track_drift(axis=along)
             self.ongoing = "drift_correction"
         
-        elif isinstance(shift, MarkerArray):
-            if shift.ndim != 2:
-                raise ValueError("Wrong dimensions of 'shift'.")
-            
-
-            if shift.axes and shift.axes == "tr":
-                shift = shift.transpose((1, 0)) # rt-order
-            elif shift.axes and shift.axes == "rt":
-                pass
-            else:
-                raise ImageAxesError(f"Image axes must be 'rt' or 'tr', but got {shift.axes}")
-                
-            nr, nt = shift.sizesof("rt")
-            if nr != len(dims) or nt != self.sizeof("t"):
+        elif isinstance(shift, MarkerFrame):
+            if len(shift) != self.sizeof("t"):
                 raise ValueError("Wrong shape of 'shift'.")
         
         else:
-            shift = MarkerArray(shift)
-            shift.axes = "tr" if shift.shape[0] >= shift.shape[1] else "rt"
+            shift = MarkerFrame(shift, columns="yx", dtype="float32")
             return self.drift_correction(shift, ref, order=order, along=along, 
                                          dims=dims,update=update)
 
-        shift = np.flipud(shift)
         out = np.empty(self.shape)
+        t_index = self.axisof(along)
+        shift = shift.reindex(columns=["x", "y"])
         for sl, img in self.iter(complement_axes(dims, self.axes)):
-            trans = -shift[(slice(None),)+(sl[0],)]
+            trans = -shift.loc[sl[t_index]]
             mx = sktrans.AffineTransform(translation=trans)
             out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
         

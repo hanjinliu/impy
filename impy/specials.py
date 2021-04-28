@@ -125,71 +125,12 @@ class PropArray(MetaArray):
             return ArrayDict(params=params, covs=covs, fit=fit)
         else:
             return ArrayDict(params=params, covs=covs)
-    
-    
-    def melt(self):
-        """
-        Make a melted array.
-        
-        Example
-        -------
-        Suppose:
-        A["t=0"] = [[1,3], [5,4]]
-        A["t=1"] = [[6,7]]
-        
-        after running A.melt():
-        [[0, 1, 3],
-         [0, 5, 4],
-         [1, 6, 7]]
-
-        Returns
-        -------
-        MarkerArray
-            Melter array with r-axis being melted axis. If self.axes="tc" and its contents
-            have yx axes, then the length of r-axis of returned MarkerArray will be 4.]
-        """        
-        out = []
-        dtype = "uint16"
-        for sl, data in self.iter(self.axes, False):
-            if not isinstance(data, MarkerArray):
-                raise TypeError("In melt(), all the object must be MarkerArray, "
-                                f"but got {type(data)}")
-            if not data.axes in ("rp","pr"):
-                raise ImageAxesError("In melt(), all the object must have "
-                                     f"'p' and 'r' axes, but got {data.axes}")
-            
-            for _, a in data.iter("p", False):
-                out.append(sl + tuple(a))
-                if a.dtype.kind == "f":
-                    dtype = "float32"
-        out = np.array(out, dtype=dtype)
-        n_spatial_dim = out.shape[1] - len(self.axes)
-        cols = str(self.axes) + {1:"x", 2:"yx", 3:"zyx"}[n_spatial_dim]
-        return MarkerFrame(out, columns=cols, dtype=dtype)
-    
+       
         
     def _set_info(self, other, new_axes:str="inherit"):
         super()._set_info(other, new_axes)
         self.propname = other.propname
         return None
-
-    
-class MarkerArray(MetaArray):    
-    def plot(self, **kwargs):
-        if self.ndim != 2:
-            raise ValueError("Cannot plot non-2D markers.")
-        kw = dict(color="red", marker="x")
-        kw.update(kwargs)
-        plt.scatter(self["r=1"], self["r=0"], **kw)
-        return None
-
-class IndexArray(MarkerArray):
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None):
-        if dtype is None:
-            dtype = "uint16"
-        return super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath,
-                               metadata=metadata, dtype=dtype)
 
 
 # TODO: strict dtype
@@ -216,26 +157,32 @@ class AxesFrame(pd.DataFrame):
     def get_coords(self):
         return self[self.columns[self.columns.isin([a for a in self.columns if len(a) == 1])]]
     
+    
     def __getitem__(self, k):
-        if isinstance(k, str) and ";" in k:
-            for each in k.split(";"):
-                self = self.__getitem__(each.strip())
-            return self
-        
-        if isinstance(k, str) and "=" in k:
-            axis, sl = [a.strip() for a in k.split("=")]
-            sl = str_to_slice(sl)
-            if isinstance(sl, int):
-                out = self[self[axis]==sl]
-            elif isinstance(sl, slice):
-                out = self[(sl.start<=self[axis]) & (self[axis]<sl.stop)]
-            elif isinstance(sl, list):
-                out = self[self[axis].isin(sl)]
-            else:
-                raise ValueError(f"Wrong key: {k} returned {sl}")
+        if isinstance(k, str):
+            if ";" in k:
+                for each in k.split(";"):
+                    self = self.__getitem__(each.strip())
+                return self
             
+            elif "=" in k:
+                axis, sl = [a.strip() for a in k.split("=")]
+                sl = str_to_slice(sl)
+                if isinstance(sl, int):
+                    out = self[self[axis]==sl]
+                elif isinstance(sl, slice):
+                    out = self[(sl.start<=self[axis]) & (self[axis]<sl.stop)]
+                elif isinstance(sl, list):
+                    out = self[self[axis].isin(sl)]
+                else:
+                    raise ValueError(f"Wrong key: {k} returned {sl}")
+            elif "" == k:
+                return self
+            else:
+                out = super().__getitem__(k)                
         else:
             out = super().__getitem__(k)
+            
         if isinstance(out, AxesFrame):
             out._axes = Axes(out._get_coords_cols())
             out.set_scale(self)

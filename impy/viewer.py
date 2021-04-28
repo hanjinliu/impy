@@ -48,7 +48,7 @@ class napariWindow:
         # TODO: sometimes axes are not connected
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, (MarkerArray, PropArray, MarkerFrame)):
+        elif isinstance(obj, (PropArray, MarkerFrame)):
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
@@ -73,10 +73,7 @@ class napariWindow:
         return None
     
     def _add_points(self, points, **kwargs):
-        if isinstance(points, PropArray):
-            points = points.melt()
-            scale = [points.scale[a] for a in points.axes if a != "c"]
-        elif isinstance(points, MarkerFrame):
+        if isinstance(points, MarkerFrame):
             scale = [points.scale[a] for a in points._axes if a != "c"]
             points = points.get_coords()
         else:
