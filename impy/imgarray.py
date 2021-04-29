@@ -1,5 +1,4 @@
 from __future__ import annotations
-import itertools
 import numpy as np
 import trackpy as tp
 import os
@@ -29,7 +28,7 @@ class ImgArray(LabeledArray):
     
     def freeze(self):
         """
-        To avoid image analysis.
+        To avoid further image analysis, convert to LabeledArray.
         """        
         return self.view(LabeledArray)
     
@@ -50,12 +49,12 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def translate(self, translation=None, *, dims=2) -> ImgArray:
+    def translate(self, translation=None, *, dims=2, order:int=1) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """
         mx = sktrans.AffineTransform(translation=translation)
-        out = self.parallel(affine_, complement_axes(dims, self.axes), mx)
+        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
         return out
 
     @dims_to_spatial_axes
@@ -728,7 +727,7 @@ class ImgArray(LabeledArray):
         mf.set_scale(self.scale)
         if return_all:
             df = out[out.columns[out.columns.isin([a for a in out.columns if a not in dims])]]
-            return FrameDict(markers=mf, results=df)
+            return FrameDict(coords=mf, results=df)
         else:
             return mf
     
@@ -759,14 +758,15 @@ class ImgArray(LabeledArray):
         mf = MarkerFrame(refined_coords.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
         mf.set_scale(self.scale)
         df = refined_coords[refined_coords.columns[refined_coords.columns.isin([a for a in refined_coords.columns if a not in dims])]]
-        return FrameDict(markers=mf, results=df)
+        return FrameDict(coords=mf, results=df)
         
     
     @dims_to_spatial_axes
     def find_sm(self, sigma:float=1.5, *, method="dog", percentile:float=95, topn:int=np.inf, 
                 exclude_border=True, dims=None):
         """
-        Single molecule detection using difference of Gaussian method.
+        Single molecule detection using difference of Gaussian, determinant of hessian or
+        laplacian of Gaussian method.
 
         Parameters
         ----------
@@ -805,7 +805,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        coords : MarkerArray or MarkerFrame, optional
+        coords : MarkerFrame or (N, 2) array, optional
             Coordinates of peaks. If None, this will be determined by find_sm.
         radius : float, by default 4.
             Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
@@ -824,7 +824,7 @@ class ImgArray(LabeledArray):
                                   percentile=percentile)
             return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
                                     percentile=percentile, dims=dims)
-        
+        # This case is main
         elif isinstance(coords, MarkerFrame):
             ndim = len(dims)
             filt = check_filter_func(filt)
@@ -838,9 +838,9 @@ class ImgArray(LabeledArray):
             centroids = []  # fitting results of means
             print("centroid_sm ... ", end="")
             timer = Timer()
-            for marker in coords.values:
-                center = tuple(marker[-ndim:])
-                label_sl = tuple(marker[:-ndim])
+            for crd in coords.values:
+                center = tuple(crd[-ndim:])
+                label_sl = tuple(crd[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
                 input_img = self.value[label_sl][sl]
                 if input_img.size == 0 or not filt(input_img):
@@ -856,20 +856,24 @@ class ImgArray(LabeledArray):
             
             out = MarkerFrame(centroids, columns=coords.col_axes, dtype="float32").as_standard_type()
             out.set_scale(coords.scale)
+            
         else:
-            raise NotImplementedError
+            coords = MarkerFrame(coords, columns=dims, dtype="uint16")
+            coords.set_scale(self)
+            return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
+                                    percentile=percentile, dims=dims)
 
         return out
     
     @dims_to_spatial_axes
-    def gauss_sm(self, coords:MarkerFrame=None, radius:float=4, sigma:float=1.5, filt=None,
-                 percentile:float=95, *, return_all=False, dims=None) -> FrameDict:
+    def gauss_sm(self, coords=None, radius:float=4, sigma:float=1.5, filt=None,
+                 percentile:float=95, *, return_all=False, dims=None) -> MarkerFrame|FrameDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
         Parameters
         ----------
-        coords : MarkerFrame, optional
+        coords : MarkerFrame or (N, 2) array, optional
             Coordinates of peaks. If None, this will be determined by find_sm.
         radius : float, by default 4.
             Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
@@ -880,7 +884,7 @@ class ImgArray(LabeledArray):
             For every slice `sl`, label is added only when filt(`input`) == True is satisfied.
             This discrimination is conducted before Gaussian fitting so that stringent filter
             will save time.
-        percentile, dims
+        percentile, dims :
             Passed to peak_local_max()
         return_all : bool, by default False
             If True, fitting results are all returned as Frame Dict.
@@ -900,7 +904,7 @@ class ImgArray(LabeledArray):
                                   percentile=percentile)
             return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
                                  percentile=percentile, dims=dims)
-        
+        # This case is main
         elif isinstance(coords, MarkerFrame):
             ndim = len(dims)
             filt = check_filter_func(filt)
@@ -917,9 +921,9 @@ class ImgArray(LabeledArray):
             ab = []
             print("gauss_sm ... ", end="")
             timer = Timer()
-            for marker in coords.values:
-                center = tuple(marker[-ndim:])
-                label_sl = tuple(marker[:-ndim])
+            for crd in coords.values:
+                center = tuple(crd[-ndim:])
+                label_sl = tuple(crd[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
                 input_img = self.value[label_sl][sl]
                 if input_img.size == 0 or not filt(input_img):
@@ -964,7 +968,10 @@ class ImgArray(LabeledArray):
                 out.set_scale(coords.scale)
             
         else:
-            raise NotImplementedError
+            coords = MarkerFrame(coords, columns=dims, dtype="uint16")
+            coords.set_scale(self)
+            return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
+                                    percentile=percentile, dims=dims)
                             
         return out
     
@@ -1270,6 +1277,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Line scans.
         """        
+        # TODO: This function should require MarkerFrame as src and dst, and return PropArray
+        # of ImgArray. Or make some functions like regionprop_lines.
         # determine length
         src = np.asarray(src, dtype=float)
         dst = np.asarray(dst, dtype=float)
@@ -1367,14 +1376,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def watershed(self, markers:PropArray=None, *, connectivity=1, input="distance", 
-                  min_distance=2, dims=None) -> ImgArray:
+    def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 
+                  min_distance:float=2, dims=None) -> ImgArray:
         """
         Label segmentation using watershed algorithm.
 
         Parameters
         ----------
-        markers : PropArray, optional
+        coords : MarkerFrame, optional
             Returned by such as `peak_local_max()`. Array of coordinates of peaks.
         connectivity : int, optional
             Passed to skimage.segmentation.watershed.
@@ -1382,7 +1391,7 @@ class ImgArray(LabeledArray):
             What image will be the input of watershed algorithm.            
             - "self" ... self is used.
             - "distance" ... distance map of self.labels is used.
-        dims : int or str, optional
+        dims : str, optional
             Spatial dimension.
             
         Returns
@@ -1405,25 +1414,25 @@ class ImgArray(LabeledArray):
             
         input_img._view_labels(self)
         
-        if markers is None:
-            markers = input_img.peak_local_max(min_distance=min_distance, dims=dims)
+        if coords is None:
+            coords = input_img.peak_local_max(min_distance=min_distance, dims=dims)
         
         labels = np.zeros(input_img.shape, dtype="uint32")
         input_img.ongoing = "watershed"
         shape = self.sizesof(dims)
         n_labels = 0
         c_axes = complement_axes(dims, self.axes)
-        marker_input = np.zeros(shape, dtype="uint32") # placeholder for maxima
+        markers = np.zeros(shape, dtype="uint32") # placeholder for maxima
         for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
-                                       markers.groupby([a for a in c_axes])):
+                                       coords.groupby([a for a in c_axes])):
             crd = crd.values.T.tolist()
-            marker_input[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype="uint32")
-            labels[sl] = skseg.watershed(-img.value, marker_input, 
+            markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype="uint32")
+            labels[sl] = skseg.watershed(-img.value, markers, 
                                          mask=img.labels.value, 
                                          connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
-            marker_input[:] = 0 # reset placeholder
+            markers[:] = 0 # reset placeholder
             
         input_img.ongoing = None
         del input_img.ongoing
@@ -1537,7 +1546,7 @@ class ImgArray(LabeledArray):
     @record()
     def clip_outliers(self, in_range=("0%", "100%")) -> ImgArray:
         """
-        Saturate low/high intensity using np.clip.mean
+        Saturate low/high intensity using np.clip().
 
         Parameters
         ----------
@@ -1558,7 +1567,7 @@ class ImgArray(LabeledArray):
     @record()
     def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16) -> ImgArray:
         """
-        Rescale the intensity of the image using skimage.exposure.rescale_intensity.
+        Rescale the intensity of the image using skimage.exposure.rescale_intensity().
 
         Parameters
         ----------
@@ -1595,9 +1604,8 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        MarkerArray
-            An array with rt-axis.
-
+        MarkerFrame
+            DataFrame structure with x,y columns
         """        
         if self.ndim != 3:
             raise TypeError(f"input must be three dimensional, but got {self.shape}")
@@ -1631,20 +1639,30 @@ class ImgArray(LabeledArray):
     def drift_correction(self, shift=None, ref=None, *, order=1, 
                          along="t", dims=None, update:bool=False):
         """
-        shift: (N, 2) array, optional.
-            x,y coordinates of drift. If None, this parameter will be determined by the
-            track drift() function, using self or ref if indicated. 
+        Drift correction using iterative Affine translation. If translation vectors `shift`
+        is not given, then it will be determined using `track_drift` method of ImgArray.
 
-        ref: ImgArray object, optional
-            The reference 3D image to determine drift.
-        
-        order: int, optional
-            The order of interpolation. See skimage.transform.warp.
+        Parameters
+        ----------
+        shift : DataFrame with columns "x" and "y" (MarkerFrame recommended) or (N, 2) array, optional
+            Translation vectors
+        ref : ImgArray, optional
+            The reference 3D image to determine drift, if `shift` was not given.
+        order : int, by default 1
+            The order of interpolation.
+        along : str, by default "t"
+            Along which axis drift will be corrected.
+        dims : str, optional
+            Spatial dimension.
+        update : bool, optional
+            If update self to filtered image.
 
-        e.g.
-        >>> drift = [[ dx1, dy1], [ dx2, dy2], ... ]
-        >>> img = img0.drift_correction()
-        """
+        Returns
+        -------
+        ImgArray
+            Corrected image.
+
+        """        
         
         if len(dims) == 3:
             raise NotImplementedError("3-dimensional correction is not implemented. yet")
@@ -1681,9 +1699,34 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         return out
 
-    def estimate_sigma(self):
-        # TODO: multi-dimensional
-        return skres.estimate_sigma(self.value)
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def estimate_sigma(self, *, squeeze=True, dims=None):
+        """
+        Wavelet-based estimation of Gaussian noise.
+
+        Parameters
+        ----------
+        squeeze : bool, by default True
+            If True and output can be converted to a scalar, then convert it.
+        dims : str, optional
+            Spatial dimension.
+
+        Returns
+        -------
+        ImgArray or float
+            Estimated standard deviation. sigma["t=0;c=1"] means the estimated value of
+            image slice at t=0 and c=1.
+        """        
+        c_axes = complement_axes(dims, self.axes)
+        out = self.parallel(estimate_sigma_, c_axes, outshape=self.sizesof(c_axes))
+        if out.ndim == 0 and squeeze:
+            out = out[()]
+        else:
+            out = out.view(self.__class__)
+            out._set_info(self, f"estimate_sigma(dims={dims})", new_axes=c_axes)
+        return out       
+        
     
     @dims_to_spatial_axes
     @record()
@@ -1697,6 +1740,8 @@ class ImgArray(LabeledArray):
             See documentation of np.pad().
         dims : int or str, optional
             Dimension of axes.
+        **kwargs :
+            Passed to np.pad().
 
         Returns
         -------
@@ -1743,6 +1788,11 @@ class ImgArray(LabeledArray):
             Dimension of axes.
         update : bool, optional
             If update self to filtered image.
+        
+        Returns
+        -------
+        ImgArray
+            Deconvolved image.
         """
         
         psf = check_psf(self, psf, dims)

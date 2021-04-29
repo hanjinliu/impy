@@ -211,3 +211,7 @@ def richardson_lucy_(args):
         estimated = lucy_step(estimated)
     
     return sl, np.fft.fftshift(estimated)
+
+def estimate_sigma_(args):
+    sl, data = args
+    return (sl[:-data.ndim], skres.estimate_sigma(data))

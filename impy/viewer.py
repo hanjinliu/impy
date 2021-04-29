@@ -45,7 +45,6 @@ class napariWindow:
     def add(self, obj, **kwargs):
         if self.viewer is None:
             self.start()
-        # TODO: sometimes axes are not connected
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
         elif isinstance(obj, (PropArray, MarkerFrame)):
@@ -104,7 +103,6 @@ class napariWindow:
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
-        # TODO: add points at the same time?
         track_list = track.split("c") if "c" in track.col_axes else [track]
         scale = [track.scale[a] for a in track._axes if a not in "pc"]
         for tr in track_list:

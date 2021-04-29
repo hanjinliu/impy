@@ -249,7 +249,9 @@ class LabeledArray(HistoryArray):
         return None
 
     def imshow(self, dims="yx", **kwargs):
-        if self.ndim == 2:
+        if self.ndim == 1:
+            plt.plot(self.value)
+        elif self.ndim == 2:
             vmax, vmin = determine_range(self)
             interpol = "bilinear" if self.dtype == bool else "none"
             imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
@@ -293,7 +295,7 @@ class LabeledArray(HistoryArray):
                     
                     ax[i].imshow(self[f"c={i}"], **imshow_kwargs)
         else:
-            raise ValueError("Image must be two or three dimensional.")
+            raise ValueError("Image must have three or less dimensions.")
         
         plt.show()
 
