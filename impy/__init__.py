@@ -1,8 +1,11 @@
-__version__ = "1.5.2"
+__version__ = "1.5.3"
 # TODO: 
-# - trackpy
 # - directional median filter to denoinse images
 # - window or padding in lucy()
+# maybe useful functions in trackpy
+# - tp.refine.refine_com, tp.refine.refine_com_arr
+# - tp.find.where_close
+# - tp.uncertainty.measure_noise 
 
 import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 

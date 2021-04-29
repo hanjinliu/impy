@@ -562,7 +562,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
-                       topn:int=np.inf, topn_per_label:int=np.inf, 
+                       topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
                        use_labels:bool=True, dims=None):
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
@@ -597,6 +597,9 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         c_axes = complement_axes(dims, self.axes)
         
+        if isinstance(exclude_border, bool):
+            exclude_border = int(min_distance) if exclude_border else False
+        
         thr = None if percentile is None else np.percentile(self.value, percentile)
                 
         out = []
@@ -614,7 +617,8 @@ class ImgArray(LabeledArray):
                                             threshold_abs=thr,
                                             num_peaks=topn,
                                             num_peaks_per_label=topn_per_label,
-                                            labels=labels)
+                                            labels=labels,
+                                            exclude_border=exclude_border)
             out += [sl + tuple(ind) for ind in indices]
         
             
@@ -628,7 +632,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
-                     topn:int=np.inf, topn_per_label:int=np.inf, 
+                     topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
                      use_labels:bool=True, dims=None):
         """
         Find local corner maxima. Slightly different from peak_local_max.
@@ -662,6 +666,9 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         c_axes = complement_axes(dims, self.axes)
         
+        if isinstance(exclude_border, bool):
+            exclude_border = int(min_distance) if exclude_border else False
+        
         thr = None if percentile is None else np.percentile(self.value, percentile)
                 
         out = []
@@ -679,7 +686,8 @@ class ImgArray(LabeledArray):
                                           threshold_abs=thr,
                                           num_peaks=topn,
                                           num_peaks_per_label=topn_per_label,
-                                          labels=labels)
+                                          labels=labels,
+                                          exclude_border=exclude_border)
             out += [sl + tuple(ind) for ind in indices]
         
             
@@ -725,8 +733,38 @@ class ImgArray(LabeledArray):
             return mf
     
     @dims_to_spatial_axes
+    def refine(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
+        # TODO: what should be this function like?
+        if coords is None:
+            coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
+        self.specify(coords, radius, labeltype="circle")
+        
+        radius = tp.utils.validate_tuple(radius, len(dims))
+        sigma = tp.utils.validate_tuple(sigma, len(dims))
+        sigma = tuple([int(x) for x in sigma])
+        refined_coords = tp.refine.refine_com(self.value, self.value, radius, coords,
+                                              max_iterations=n_iter, pos_columns=[a for a in dims])
+        bg = self.value[self.labels==0]
+        black_level = np.mean(bg)
+        noise = np.std(bg)
+        Npx = tp.masks.N_binary_mask(radius, len(dims))
+        mass = refined_coords['raw_mass'].values - Npx * black_level
+        ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
+        
+        if ep.ndim == 1:
+            refined_coords['ep'] = ep
+        else:
+            ep = pd.DataFrame(ep, columns=['ep_' + cc for cc in [a for a in dims]])
+            refined_coords = pd.concat([refined_coords, ep], axis=1)
+        mf = MarkerFrame(refined_coords.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
+        mf.set_scale(self.scale)
+        df = refined_coords[refined_coords.columns[refined_coords.columns.isin([a for a in refined_coords.columns if a not in dims])]]
+        return FrameDict(markers=mf, results=df)
+        
+    
+    @dims_to_spatial_axes
     def find_sm(self, sigma:float=1.5, *, method="dog", percentile:float=95, topn:int=np.inf, 
-                dims=None):
+                exclude_border=True, dims=None):
         """
         Single molecule detection using difference of Gaussian method.
 
@@ -737,7 +775,7 @@ class ImgArray(LabeledArray):
         method : str, by default "dog"
             Which filter is used prior to finding local maxima. Currently supports "dog", "doh" 
             and "log".
-        percentile, topn, dims
+        percentile, topn, exclude_border, dims
             Passed to peak_local_max()
 
         Returns
@@ -754,21 +792,21 @@ class ImgArray(LabeledArray):
         except KeyError:
             raise ValueError(f"Currently `method` only supports {', '.join(methods_.keys())}")
         
-        markers = fil_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
-                                         topn=topn, dims=dims)
-        return markers
+        coords = fil_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
+                                        topn=topn, dims=dims, exclude_border=exclude_border)
+        return coords
     
     
     @dims_to_spatial_axes
-    def centroid_sm(self, markers=None, radius:float=4, sigma:float=1.5, filt=None,
-                    percentile:float=95, *, dims=None) -> MarkerFrame:
+    def centroid_sm(self, coords=None, radius:float=4, sigma:float=1.5, filt=None,
+                    percentile:float=90, *, dims=None) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroids.
 
         Parameters
         ----------
-        markers : MarkerArray or MarkerFrame, optional
-            Positions of peaks. If None, this will be determined by find_sm.
+        coords : MarkerArray or MarkerFrame, optional
+            Coordinates of peaks. If None, this will be determined by find_sm.
         radius : float, by default 4.
             Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
             to calculate moments.
@@ -781,13 +819,13 @@ class ImgArray(LabeledArray):
         dims : int or str, optional
             Dimension of axes.
         """     
-        if markers is None:
-            markers = self.find_sm(sigma=sigma, dims=dims, 
+        if coords is None:
+            coords = self.find_sm(sigma=sigma, dims=dims, 
                                   percentile=percentile)
-            return self.centroid_sm(markers, radius=radius, sigma=sigma, filt=filt, 
+            return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
                                     percentile=percentile, dims=dims)
         
-        elif isinstance(markers, MarkerFrame):
+        elif isinstance(coords, MarkerFrame):
             ndim = len(dims)
             filt = check_filter_func(filt)
             
@@ -800,7 +838,7 @@ class ImgArray(LabeledArray):
             centroids = []  # fitting results of means
             print("centroid_sm ... ", end="")
             timer = Timer()
-            for marker in markers.values:
+            for marker in coords.values:
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
@@ -816,23 +854,23 @@ class ImgArray(LabeledArray):
             timer.toc()
             print(f"\rcentroid_sm completed ({timer})")
             
-            out = MarkerFrame(centroids, columns=markers.col_axes, dtype="float32")
-            out.set_scale(markers.scale)
+            out = MarkerFrame(centroids, columns=coords.col_axes, dtype="float32").as_standard_type()
+            out.set_scale(coords.scale)
         else:
             raise NotImplementedError
 
         return out
     
     @dims_to_spatial_axes
-    def gauss_sm(self, markers:MarkerFrame=None, radius:float=4, sigma:float=1.5, filt=None,
+    def gauss_sm(self, coords:MarkerFrame=None, radius:float=4, sigma:float=1.5, filt=None,
                  percentile:float=95, *, return_all=False, dims=None) -> FrameDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
         Parameters
         ----------
-        markers : MarkerFrame, optional
-            Positions of peaks. If None, this will be determined by find_sm.
+        coords : MarkerFrame, optional
+            Coordinates of peaks. If None, this will be determined by find_sm.
         radius : float, by default 4.
             Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
             fitting function.
@@ -857,13 +895,13 @@ class ImgArray(LabeledArray):
             Dictionary that contains means, standard deviations and fitting errors.
         """        
         
-        if markers is None:
+        if coords is None:
             melted = self.find_sm(sigma=sigma, dims=dims, 
                                   percentile=percentile)
             return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
                                  percentile=percentile, dims=dims)
         
-        elif isinstance(markers, MarkerFrame):
+        elif isinstance(coords, MarkerFrame):
             ndim = len(dims)
             filt = check_filter_func(filt)
             
@@ -879,7 +917,7 @@ class ImgArray(LabeledArray):
             ab = []
             print("gauss_sm ... ", end="")
             timer = Timer()
-            for marker in markers.values:
+            for marker in coords.values:
                 center = tuple(marker[-ndim:])
                 label_sl = tuple(marker[:-ndim])
                 sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
@@ -907,23 +945,23 @@ class ImgArray(LabeledArray):
             timer.toc()
             print(f"\rgauss_sm completed ({timer})")
             
-            kw = dict(columns=markers.col_axes, dtype="float32")
+            kw = dict(columns=coords.col_axes, dtype="float32")
             
             if return_all:
-                out = FrameDict(means = MarkerFrame(means, **kw),
-                                sigmas = MarkerFrame(sigmas, **kw),
-                                errors = MarkerFrame(errs, **kw),
+                out = FrameDict(means = MarkerFrame(means, **kw).as_standard_type(),
+                                sigmas = MarkerFrame(sigmas, **kw).as_standard_type(),
+                                errors = MarkerFrame(errs, **kw).as_standard_type(),
                                 intensities = MarkerFrame(ab, 
-                                                          columns=str(markers.col_axes)[:-ndim]+"ab",
+                                                          columns=str(coords.col_axes)[:-ndim]+"ab",
                                                           dtype="float32"))
                 
-                out.means.set_scale(markers.scale)
-                out.sigmas.set_scale(markers.scale)
-                out.errors.set_scale(markers.scale)
+                out.means.set_scale(coords.scale)
+                out.sigmas.set_scale(coords.scale)
+                out.errors.set_scale(coords.scale)
                     
             else:
                 out = MarkerFrame(means, **kw)
-                out.set_scale(markers.scale)
+                out.set_scale(coords.scale)
             
         else:
             raise NotImplementedError
@@ -1065,6 +1103,7 @@ class ImgArray(LabeledArray):
         if isinstance(center, MarkerFrame):
             # determine dims to iterate.
             # dims = "".join(a for a in dims if a not in center.axes)
+            dims = str(center.col_axes)
             ndim = len(dims)
             # convert radius to an array
             if np.isscalar(radius):
@@ -1083,9 +1122,9 @@ class ImgArray(LabeledArray):
             
             print("specify ... ", end="")
             timer = Timer()
-            for marker in center.values:
-                c = tuple(marker[-ndim:])
-                label_sl = tuple(marker[:-ndim])
+            for crd in center.values:
+                c = tuple(crd[-ndim:])
+                label_sl = tuple(crd[:-ndim])
                 sl = specify_one(c, radius, shape, labeltype)
                 img_ = self[label_sl][sl]
                 if img_.size > 0 and filt(img_):
@@ -1374,13 +1413,11 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(dims)
         n_labels = 0
         c_axes = complement_axes(dims, self.axes)
-        
         marker_input = np.zeros(shape, dtype="uint32") # placeholder for maxima
-        for sl, img in input_img.iter(c_axes, israw=True):
-            sl0 = markers[";".join([f"{a}={i}" for a, i in zip(c_axes, sl)])]
-            sl0 = sl0[[a for a in dims]]
-            sl0 = sl0.values.T.tolist()
-            marker_input[tuple(sl0)] = np.arange(1, len(sl0[0])+1, dtype="uint32")
+        for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
+                                       markers.groupby([a for a in c_axes])):
+            crd = crd.values.T.tolist()
+            marker_input[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype="uint32")
             labels[sl] = skseg.watershed(-img.value, marker_input, 
                                          mask=img.labels.value, 
                                          connectivity=connectivity)
@@ -1400,7 +1437,9 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
         """
-        Make labels with threshold().
+        Make labels with threshold(). Be sure that keyword argument `dims` can be
+        different (in most cases for >4D images) between threshold() and label().
+        In this function, both function will have the same `dims` for simplicity.
 
         Parameters
         ----------
@@ -1412,18 +1451,18 @@ class ImgArray(LabeledArray):
             Same array but labels are updated.
         """        
         labels = self.threshold(thr=thr, dims=dims, **kwargs)
-        # TODO: dims in label and dims in thresholding is different
         return self.label(labels, dims=None)
     
         
     @need_labels
+    @record(append_history=False)
     def regionprops(self, properties:tuple[str,...]=("mean_intensity",), *, 
                     extra_properties=None) -> ArrayDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
         analyzed with properties=("X", "Y"), then you can get X's time-course profile
-        of channel 1 at label 3 by prop["X"]["p=5;c=1"].
+        of channel 1 at label 3 by prop["X"]["p=5;c=1"] or prop.X["p=5;c=1"].
 
         Parameters
         ----------
@@ -1456,16 +1495,18 @@ class ImgArray(LabeledArray):
         
         # calculate property value for each slice
         timer = Timer()
-        print("regionprops ...", end="")
-        for sl in itertools.product(*map(range, shape)):
-            props = skmes.regionprops(self.labels, self.value[sl], 
-                                      cache=False,
+        
+        for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
+            props = skmes.regionprops(self.labels, img, cache=False,
                                       extra_properties=extra_properties)
             label_sl = (slice(None),) + sl
             for prop_name in properties:
+                # Both sides have length of p-axis (number of labels) so that values
+                # can be correctly substituted.
                 out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
+                
         timer.toc()
-        print(f"\rregionprops completed ({timer})")
+        
         for parr in out.values():
             parr.set_scale(self)
         return out

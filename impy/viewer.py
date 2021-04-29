@@ -104,6 +104,7 @@ class napariWindow:
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
+        # TODO: add points at the same time?
         track_list = track.split("c") if "c" in track.col_axes else [track]
         scale = [track.scale[a] for a in track._axes if a not in "pc"]
         for tr in track_list:

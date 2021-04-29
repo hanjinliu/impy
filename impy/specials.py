@@ -96,10 +96,10 @@ class PropArray(MetaArray):
         if len(dims)!=1:
             raise NotImplementedError("Only 1-dimensional fitting is implemented.")
         
-        n_params = len(signature(f).parameters)-1 if callable(p0) else len(p0)
+        n_params = len(signature(f).parameters)-1
         
         params = np.empty(self.sizesof(c_axes) + (n_params,), dtype="float32")
-        covs = np.empty(self.sizesof(c_axes) + (n_params, n_params), dtype="float32")
+        errs = np.empty(self.sizesof(c_axes) + (n_params,), dtype="float32")
         if return_fit:
             fit = np.empty(self.sizesof(c_axes) + (self.sizeof(dims),), dtype=self.dtype)
             
@@ -108,23 +108,24 @@ class PropArray(MetaArray):
         for sl, data in self.iter(c_axes, exclude=dims):
             p0_ = p0 if not callable(p0) else p0(data)
             result = opt.curve_fit(f, xdata, data, p0_)
-            params[sl], covs[sl] = result
+            params[sl], cov = result
+            errs[sl] = np.sqrt(np.diag(cov))
             if return_fit:
                 fit[sl] = f(xdata, *(result[0]))
         
         # set infos
         params = params.view(self.__class__)
-        covs = covs.view(self.__class__)
+        errs = errs.view(self.__class__)
         params._set_info(self, new_axes=del_axis(self.axes, dims)+"m")
-        covs._set_info(self, new_axes=del_axis(self.axes, dims)+"mn")
+        errs._set_info(self, new_axes=del_axis(self.axes, dims)+"m")
         if return_fit:
             fit = fit.view(self.__class__)
             fit._set_info(self, new_axes=del_axis(self.axes, dims)+dims)
         
         if return_fit:
-            return ArrayDict(params=params, covs=covs, fit=fit)
+            return ArrayDict(params=params, errs=errs, fit=fit)
         else:
-            return ArrayDict(params=params, covs=covs)
+            return ArrayDict(params=params, errs=errs)
        
         
     def _set_info(self, other, new_axes:str="inherit"):
@@ -133,7 +134,6 @@ class PropArray(MetaArray):
         return None
 
 
-# TODO: strict dtype
 class AxesFrame(pd.DataFrame):
     _metadata=["_axes"]
     @property
@@ -241,11 +241,16 @@ class AxesFrame(pd.DataFrame):
         
         return None
     
+    def as_standard_type(self):
+        dtype = lambda a: "uint16" if a in "tc" else ("uint32" if a == "p" else "float32")
+        out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
+        out._axes = self._axes
+        return out
+        
+    
     def split(self, axis="c"):
-        a_unique = self[axis].unique()
         out_list = []
-        for a in a_unique:
-            af = self[self[axis]==a]
+        for _, af in self.groupby(axis):
             out = af[af.columns[af.columns != axis]]
             out.set_scale(self)
             out_list.append(out)
@@ -267,8 +272,11 @@ class MarkerFrame(AxesFrame):
         track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
         track.set_scale(self)
         if min_dwell > 0:
-            track = track.filter_stubs(min_dwell)
-        return track
+            out = track.filter_stubs(min_dwell)
+        else:
+            out = track.as_standard_type()
+        out.index = np.arange(len(out))
+        return out
         
 
 class TrackFrame(AxesFrame):
@@ -281,9 +289,10 @@ class TrackFrame(AxesFrame):
     def track_drift(self, smoothing=0, show_drift=True):
         df = self._renamed_df()
         shift = -tp.compute_drift(df, smoothing=smoothing)
-        ori = pd.DataFrame({"y":[0], "x":[0]})
+        # trackpy.compute_drift does not return the initial drift so that here we need to start with [0, 0]
+        ori = pd.DataFrame({"y":[0.], "x":[0.]}, dtype="float32")
         shift = pd.concat([ori, shift], axis=0)
-        show_drift and plot_drift(shift.values)
+        show_drift and plot_drift(shift)
         return MarkerFrame(shift)
     
     @tp_no_verbose
@@ -304,7 +313,6 @@ class TrackFrame(AxesFrame):
         return tp.motion.emsd(df, self.scale["x"], self.scale["t"], 
                              max_lagtime=max_lagt, detail=detail)
     
-    
     @tp_no_verbose
     def filter_stubs(self, min_dwell=3):
         df = self._renamed_df()
@@ -313,4 +321,4 @@ class TrackFrame(AxesFrame):
         df = df.astype({"t":"uint16", "p":"uint32"})
         out = TrackFrame(df, columns=self.col_axes)
         out.set_scale(self)
-        return out
+        return out.as_standard_type()

@@ -150,11 +150,11 @@ class MetaArray(np.ndarray):
                 new_axes = None
                 
             elif self.axes:
-                del_list = [i for i, s in enumerate(keystr.split(",")) if s != "*"]
+                del_list = [i for i, s in enumerate(keystr.split(",")) if s not in ("*", "")]
                 new_axes = del_axis(self.axes, del_list)
             else:
                 new_axes = None
-            
+                
             out._getitem_additional_set_info(self, keystr=keystr,
                                              new_axes=new_axes, key=key)
         

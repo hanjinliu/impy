@@ -123,6 +123,7 @@ class LabeledArray(HistoryArray):
     
     def _getitem_additional_set_info(self, other, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
+        # set labels correctly
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels"):
             label_sl = []
@@ -136,6 +137,7 @@ class LabeledArray(HistoryArray):
             if len(label_sl) == 0:
                 label_sl = (slice(None),)
             self.labels = other.labels[tuple(label_sl)]
+        
         return None
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):

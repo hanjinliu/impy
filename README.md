@@ -60,7 +60,7 @@ img_new.axes = "p*@e"
 
 #### 3. Axis-Targeted Iteration
 
-Usually we want to iterate analysis along random axes. `ImgArray` has `iter` method that simplify this process.
+Usually we want to iterate analysis along random axes. `ImgArray` has `iter` method that simplify this process, which is similar to `groupby` function in `pandas`.
 
 ```python
 for sl, img2d in img.iter("tzc"): # iterate along t, z and c axis
@@ -138,16 +138,11 @@ Overflow, underflow and type conversion is considered for operations `+`, `-`, `
 ```python
 # img = <uint16 image>
 
-img + 10000     # pixel values larger than 65535 
-                # is substituted to 63353
+img + 10000     # pixel values larger than 65535 is substituted to 63353
 
-img - 10000     # pixel values smaller than 0 is
-                # substituted to 0
+img - 10000     # pixel values smaller than 0 is substituted to 0
 
 img / 10        # output is converted to float32 
-                # where `img` itself is not
-
-img /= 10       # `img` is converted to float32
 ```
 
 ## Image Analysis
@@ -159,7 +154,7 @@ img /= 10       # `img` is converted to float32
 - `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
 - `hessian_eigval`, `hessian_eig` &rarr; feature detection using Hessian method.
 - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; feature detection using structure tensor.
-- `dog_filter` &rarr; filtering using difference of Gaussian method.
+- `dog_filter`, `doh_filter`, `log_filter` &rarr; for blob detection.
 - `mean_filter`, `meadian_filter`, `gaussian_filter` &rarr; for 2-D or 3-D smoothing.
 - `sobel_filter` &rarr; for edge detection.
 - `entropy_filter` &rarr; for object detection.
@@ -171,11 +166,12 @@ img /= 10       # `img` is converted to float32
 - `distance_map`, `skeletonize`, `fill_hole` &rarr; processing binary images.
 - `fft`, `ifft` &rarr; Fourier transformation.
 - `threshold` &rarr; thresholding (many methods included).
-- `find_sm`, `peak_local_max` &rarr; find maxima.
+- `find_sm`, `peak_local_max`, `corner_peaks` &rarr; find maxima.
+- `centroid_sm`, `gauss_sm` &rarr; find single molecule in subpixel precision.
 - `label`, `label_threshold`, `specify` &rarr; labeling images.
 - `expand_labels`, `watershed` &rarr; adjuct labels.
 - `regionprops` &rarr; measure properties on labels.
-- `profile_line` &rarr; get line scan.
+- `reslice` &rarr; get line scan.
 - `crop_center` &rarr; crop image.
 - `clip_outliers`, `rescale_intensity` &rarr; rescale the intensity profile into certain range.
 - `proj` &rarr; Z-projection along any axis.

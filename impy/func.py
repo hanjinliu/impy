@@ -258,7 +258,7 @@ def del_axis(axes, axis) -> str:
                 new_axes += o
     elif isinstance(axis, str):
         new_axes = complement_axes(axis, axes)
-            
+        
     return new_axes
 
 def add_axes(axes, shape, arr2d):
