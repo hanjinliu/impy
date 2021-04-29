@@ -35,6 +35,22 @@ def mean_(args):
     sl, data, selem = args
     return (sl, ndi.convolve(data, selem/np.sum(selem)))
 
+def std_(args):
+    sl, data, selem = args
+    selem = selem / np.sum(selem)
+    x1 = ndi.convolve(data, selem)
+    x2 = ndi.convolve(data**2, selem)
+    std_img = np.sqrt(x2 - x1**2)
+    return (sl, std_img)
+
+def coef_(args):
+    sl, data, selem = args
+    selem = selem / np.sum(selem)
+    x1 = ndi.convolve(data, selem)
+    x2 = ndi.convolve(data**2, selem)
+    out = np.sqrt(x2 - x1**2)/x1
+    return (sl, out)
+    
 def convolve_(args):
     sl, data, kernel = args
     return (sl, ndi.convolve(data, kernel))
@@ -123,6 +139,10 @@ def binary_dilation_(args):
 def tophat_(args):
     sl, data, selem = args
     return (sl, skmorph.white_tophat(data, selem))
+
+def convex_hull_(args):
+    sl ,data = args
+    return (sl, skmorph.convex_hull_image(data))
 
 def skeletonize_(args):
     sl, data = args

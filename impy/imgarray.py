@@ -388,14 +388,43 @@ class ImgArray(LabeledArray):
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, mean_, dims=dims, update=update)
     
+    @dims_to_spatial_axes
+    @record()
+    def std_filter(self, radius:float=1, *, dims=None) -> ImgArray:
+        disk = ball_like(radius, len(dims))
+        return self.as_float().parallel(std_, complement_axes(dims, self.axes), disk)
+    
+    @dims_to_spatial_axes
+    @record()
+    def coef_filter(self, radius:float=1, *, dims=None) -> ImgArray:
+        """
+        Coefficient of variance filter. This filter is useful for feature extraction from
+        images with uneven background intensity.
+
+        Parameters
+        ----------
+        radius : float, by default 1
+            Radius of kernel.
+        dims : str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """        
+        disk = ball_like(radius, len(dims))
+        return self.as_float().parallel(coef_, complement_axes(dims, self.axes), disk)
+    
     @record()
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, median_, dims=dims, update=update)
     
+    @dims_to_spatial_axes
     @record()
-    def entropy_filter(self, radius:float=1, *, dims=None) -> ImgArray:
+    def entropy_filter(self, radius:float=5, *, dims=None) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.as_uint16().parallel(entropy_, dims, disk)
+        return self.parallel(entropy_, complement_axes(dims, self.axes), disk)
     
     @record()
     def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -529,8 +558,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return -self.as_float().parallel(gaussian_laplace_, complement_axes(dims, self.axes),
-                                        sigma)
+        return -self.as_float().parallel(gaussian_laplace_, complement_axes(dims, self.axes), sigma)
     
     @dims_to_spatial_axes
     @record()
@@ -701,12 +729,10 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def corner_harris(self, sigma=1, k=0.05, *, dims=None):
-        
         return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
     
     @dims_to_spatial_axes
     def find_corners(self, sigma=1, k=0.05, *, dims=None):
-        
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
@@ -1022,7 +1048,6 @@ class ImgArray(LabeledArray):
         out = np.real(out)
         return out
     
-    @dims_to_spatial_axes
     @record()
     def threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
         """
@@ -1040,6 +1065,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Boolian array.
         """
+        if dims is None:
+            dims = complement_axes("c", self.axes)
 
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
@@ -1196,8 +1223,37 @@ class ImgArray(LabeledArray):
         if self.dtype != bool:
             raise TypeError("Cannot run distance_map() with non-binary image.")
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
+    
+    @dims_to_spatial_axes
+    @only_binary
+    @record()
+    def convex_hull(self, *, dims=None, update=False):
+        """
+        Compute convex hull image.
+
+        Parameters
+        ----------
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self.
+
+        Returns
+        -------
+        ImgArray
+            Convex hull image.
+        """        
+        return self.parallel(convex_hull_, complement_axes(dims, self.axes), outdtype=bool)
+    
+    @dims_to_spatial_axes
+    @need_labels
+    @record()
+    def convex_hull_label(self, *, dims=None):
+        # TODO: write this
+        ...
         
     @dims_to_spatial_axes
+    @only_binary
     @record()
     def skeletonize(self, *, dims=None, update=False) -> ImgArray:
         """
@@ -1206,20 +1262,19 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, optional
-            If update self to filtered image.
+            If update self.
 
         Returns
         -------
         ImgArray
             Skeletonized image.
         """        
-        if self.dtype != bool:
-            raise TypeError("Cannot run skeletonize() with non-binary image.")
         return self.parallel(skeletonize_, complement_axes(dims, self.axes), outdtype=bool)
     
     @dims_to_spatial_axes
+    @only_binary
     @record()
     def count_neighbors(self, connectivity=None, mask=True, *, dims=None) -> ImgArray:
         """
@@ -1425,6 +1480,7 @@ class ImgArray(LabeledArray):
         markers = np.zeros(shape, dtype="uint32") # placeholder for maxima
         for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
                                        coords.groupby([a for a in c_axes])):
+            # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
             crd = crd.values.T.tolist()
             markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype="uint32")
             labels[sl] = skseg.watershed(-img.value, markers, 
@@ -1443,7 +1499,6 @@ class ImgArray(LabeledArray):
         self.labels.set_scale(self)
         return self
     
-    @dims_to_spatial_axes
     def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
         """
         Make labels with threshold(). Be sure that keyword argument `dims` can be
@@ -1459,8 +1514,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        labels = self.threshold(thr=thr, dims=dims, **kwargs)
-        return self.label(labels, dims=None)
+        labels = self.threshold(thr=thr, dims="c", **kwargs)
+        return self.label(labels, dims=dims)
     
         
     @need_labels

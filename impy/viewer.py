@@ -13,13 +13,6 @@ viewer.layers[-1].name="peaks"
 a=viewer.layers[-1]
 a.symbol="arrow"
 a.size = 0.2
-
- 
-# labeling
-viewer.add_labels(img.labels)
-
-# tracking
-https://napari.org/tutorials/applications/cell_tracking.html
 """
 
 # TODO: read layers

@@ -130,6 +130,15 @@ def need_labels(func):
         return out
     return wrapper
 
+def only_binary(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.dtype != bool:
+            raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
+        out = func(self, *args, **kwargs)
+        return out
+    return wrapper
+
 
 def safe_str(obj):
     try:

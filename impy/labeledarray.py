@@ -172,8 +172,7 @@ class LabeledArray(HistoryArray):
                 out = self.value * 256
             else:
                 out = self.value + 0.5
-            out[out < 0] = 0
-            out[out >= 256] = 255
+            out = np.clip(out, 0, 255)
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
         out = out.astype(np.uint8)
@@ -194,8 +193,8 @@ class LabeledArray(HistoryArray):
                 out = self.value * 65535
             else:
                 out = self.value + 0.5
-            out[out < 0] = 0
-            out[out >= 65536] = 65535
+            out = np.clip(out, 0, 65535)
+            
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
         out = out.astype(np.uint16)
