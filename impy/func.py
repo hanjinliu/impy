@@ -280,13 +280,15 @@ def determine_range(arr):
     Called in imshow()
     """
     if arr.dtype == bool:
-        vmax = vmin = None
+        vmax = 1
+        vmin = 0
     else:
         try:
             vmax = np.percentile(arr[arr>0], 99.99)
             vmin = np.percentile(arr[arr>0], 0.01)
         except IndexError:
-            vmax = vmin = None
+            vmax = arr.max()
+            vmin = arr.min()
     return vmax, vmin
 
 def determine_dims(img):

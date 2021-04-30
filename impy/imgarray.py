@@ -432,6 +432,37 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
+    def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> ImgArray:
+        ndim = len(dims)
+        _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
+        return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, outdtype=self.dtype)
+    
+    @record(append_history=False)
+    def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
+        """
+        Compute focus map using variance of Laplacian method. yx-plane with higher value is likely a
+        focal plane.
+
+        Parameters
+        ----------
+        radius : int, by default 1
+            Radius of Laplacian filter's kernel.
+
+        Returns
+        -------
+        PropArray
+            Array of variance of Laplacian
+        """        
+        c_axes = complement_axes(dims, self.axes)
+        laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
+        out = PropArray(self.sizesof(c_axes), dtype="float32", name=self.name, 
+                        axes=c_axes, propname="variance_of_laplacian")
+        for sl, img in laplace_img.iter(c_axes, exclude=dims):
+            out[sl] = np.var(img)
+        return out
+    
+    @dims_to_spatial_axes
+    @record()
     @same_dtype(True)
     def fill_hole(self, thr="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -1283,7 +1314,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        connectivity : int , optional
+        connectivity : int, optional
             See label().
         mask : bool, by default True
             If True, only neighbors of pixels that satisfy self==True is returned.
@@ -1931,8 +1962,6 @@ def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
         meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
     else:
         meta = {"axes":axes, "ijmeta":{}, "history":[]}
-    
-    
     
     axes = meta["axes"]
     metadata = meta["ijmeta"]

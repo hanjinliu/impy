@@ -48,7 +48,8 @@ def coef_(args):
     selem = selem / np.sum(selem)
     x1 = ndi.convolve(data, selem)
     x2 = ndi.convolve(data**2, selem)
-    out = np.sqrt(x2 - x1**2)/x1
+    # sometimes x2 is almost same as x1^2 and this causes negative value.
+    out = np.sqrt(np.abs(x2 - x1**2))/x1
     return (sl, out)
     
 def convolve_(args):
