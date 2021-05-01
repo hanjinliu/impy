@@ -19,6 +19,7 @@ def median_(args):
     return (sl, ndi.median_filter(data, footprint=selem, mode="reflect"))
 
 def directional_median_(args):
+    # use numba
     sl, data = args
     kernels = [np.array([[0,0,0],[1,1,1],[0,0,0]]),  # -
                np.array([[1,0,0],[0,1,0],[0,0,1]]),  # \
@@ -53,8 +54,8 @@ def coef_(args):
     return (sl, out)
     
 def convolve_(args):
-    sl, data, kernel = args
-    return (sl, ndi.convolve(data, kernel))
+    sl, data, kernel, mode, cval = args
+    return (sl, ndi.convolve(data, kernel, mode=mode, cval=cval))
 
 def gaussian_(args):
     sl, data, sigma = args

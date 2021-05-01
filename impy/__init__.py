@@ -2,7 +2,6 @@ __version__ = "1.5.3"
 # TODO: 
 # - refine_leastsq
 # - directional median filter to denoinse images
-# - window or padding in lucy()
 
 import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 

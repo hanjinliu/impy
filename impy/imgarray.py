@@ -349,10 +349,10 @@ class ImgArray(LabeledArray):
         return self.parallel(sobel_, complement_axes(dims, self.axes))
     
     @dims_to_spatial_axes
-    @same_dtype()
+    @same_dtype(asfloat=True)
     @record()
-    def convolve(self, kernel, *, dims=None, update:bool=False):
-        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel)
+    def convolve(self, kernel, *, mode="reflect", cval=0, dims=None, update:bool=False):
+        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, mode, cval)
     
     @dims_to_spatial_axes
     @same_dtype()
@@ -1164,7 +1164,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """
-        
+        # TODO: radius=3.5 does not work
         if isinstance(center, MarkerFrame):
             # determine dims to iterate.
             # dims = "".join(a for a in dims if a not in center.axes)
@@ -1825,7 +1825,7 @@ class ImgArray(LabeledArray):
         pad_width, mode, **kwargs : 
             See documentation of np.pad().
         dims : int or str, optional
-            Dimension of axes.
+            Which dimension to pad.
         **kwargs :
             Passed to np.pad().
 
@@ -1835,6 +1835,12 @@ class ImgArray(LabeledArray):
             Padded image.
         """        
         pad_width_ = []
+        
+        # for consistency with scipy-format
+        if "cval" in kwargs.keys():
+            kwargs["constant_values"] = kwargs["cval"]
+            kwargs.pop("cval")
+            
         if hasattr(pad_width, "__iter__") and len(pad_width) == len(dims):
             pad_iter = iter(pad_width)
             for a in self.axes:
@@ -1854,6 +1860,52 @@ class ImgArray(LabeledArray):
         
         padimg = np.pad(self.value, pad_width_, mode, **kwargs).view(self.__class__)
         return padimg
+    
+    @record()
+    @same_dtype(asfloat=True)
+    def defocus(self, sigma, depth:int, bg:float=None) -> ImgArray:
+        """
+        Make a z-directional padded image by defocusing the original image. This padding is
+        useful when applying FFT to 3D images.
+        
+        Parameters
+        ----------
+        sigma : float or array or float
+            Standard deviation of Gaussian filter for defocusing.
+        depth : int
+            Depth of defocusing. For an image with z-axis size L, then output image will have
+            size L + 2*depth.
+        bg : float, optional
+            Background intensity. If not given, it will calculated as the minimum value of 
+            the original image.
+
+        Returns
+        -------
+        ImgArray
+            Padded image.
+            
+        Example
+        -------
+        depth = 2, radius = 2
+        
+        ----|   |----| o |--     o ... center of kernel
+        ----| o |----|   |--
+        ++++|   |++++|___|++  <- the upper edge of original image 
+        ++++|___|+++++++++++
+
+        """        
+        
+        if bg is None:
+            bg = self.min()
+            
+        # convolve psf
+        out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
+        out.ongoing = "defocus"
+        for sl, img in out.iter(complement_axes("zyx", self.axes), israw=True):
+            img[:depth] = ndi.gaussian_filter(img[:depth*2].value, sigma, mode="constant", cval=bg)[:depth]
+            img[-depth:] = ndi.gaussian_filter(img[-depth*2:].value, sigma, mode="constant", cval=bg)[-depth:]
+            
+        return out
         
     
     @dims_to_spatial_axes
@@ -1882,7 +1934,6 @@ class ImgArray(LabeledArray):
         """
         
         psf = check_psf(self, psf, dims)
-        
         # start deconvolution
         return self.parallel(richardson_lucy_, complement_axes(dims), psf, niter)
 

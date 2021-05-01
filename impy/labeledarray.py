@@ -12,6 +12,7 @@ from skimage.color import label2rgb
 
 class LabeledArray(HistoryArray):
     n_cpu = 4
+    show_progress = True
         
     @property
     def range(self):
@@ -439,13 +440,13 @@ class LabeledArray(HistoryArray):
         """        
         name = getattr(self, "ongoing", "iteration")
         timer = Timer()
-        if showprogress:
+        if showprogress and self.__class__.show_progress:
             print(f"{name} ...", end="")
         for x in super().iter(axes, israw=israw, exclude=exclude):
             yield x
             
         timer.toc()
-        if showprogress:
+        if showprogress and self.__class__.show_progress:
             print(f"\r{name} completed ({timer})")
     
     def parallel(self, func, axes, *args, outshape=None, outdtype="float32"):
@@ -527,11 +528,13 @@ class LabeledArray(HistoryArray):
         lmd = lambda x : (x[0], x[1], *args)
         name = getattr(self, "ongoing", "iteration")
         timer = Timer()
-        print(f"{name} ...", end="")
+        if self.__class__.show_progress:
+            print(f"{name} ...", end="")
         with multi.Pool(self.__class__.n_cpu) as p:
             results = p.map(func, map(lmd, self.iter(axes, False, israw)))
         timer.toc()
-        print(f"\r{name} completed ({timer})")
+        if self.__class__.show_progress:
+            print(f"\r{name} completed ({timer})")
         return results
     
     
