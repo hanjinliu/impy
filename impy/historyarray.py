@@ -85,6 +85,7 @@ class HistoryArray(MetaArray):
         for i, img in enumerate(imgs):
             img.history[-1] = f"axis({axis})={i}"
             img.axes = del_axis(self.axes, axisint)
+            img.set_scale(self)
             
         return imgs
 

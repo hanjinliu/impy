@@ -1816,7 +1816,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def pad(self, pad_width, mode="constant", *, dims=None,  **kwargs) -> ImgArray:
+    def pad(self, pad_width, mode="constant", *, dims=None, **kwargs) -> ImgArray:
         """
         Pad image only for spatial dimensions.
 
