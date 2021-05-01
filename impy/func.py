@@ -89,7 +89,8 @@ def check_nd_sigma(sigma, ndim):
 
 def specify_one(center, radius, shape:tuple, labeltype:str):
     if labeltype == "square":
-        sl = (...,) + tuple(slice(xc-r, xc+r+1, None) for xc, r in zip(center, radius))
+        sl = (...,) + tuple(slice(max(0, xc-int(r)), min(xc+int(r)+1, sh), None) 
+                            for xc, r, sh in zip(center, radius, shape))
     elif labeltype == "ellipse":
         ind = np.indices(shape)
         # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
@@ -98,19 +99,32 @@ def specify_one(center, radius, shape:tuple, labeltype:str):
         r = radius[0]
         if not (radius == r).all():
             raise ValueError("Cannot set different radii when shape is 'circle'")
-        
+
         sl = np.zeros(shape, dtype=bool)
-        area = ball_like(r, len(center)).astype(bool)
-        r_ = area.shape[0]//2
-        bbox = tuple(slice(xc - r_, xc + r_ + 1, None) for xc in center)
-        try:
-            sl[bbox] = area
-        except ValueError:
-            pass
-        
+        area = ball_like_odd(r, len(center))
+        bbox_sl = []
+        area_sl = []
+        for xc, sh in zip(center, shape):
+            start = xc - int(r)
+            stop = xc + int(r) + 1
+            if start < 0:
+                area_sl.append(slice(-start, None))
+                bbox_sl.append(slice(0, stop))
+                start = 0
+            elif stop > sh:
+                area_sl.append(slice(None, 2*int(r)+1-stop+sh))
+                bbox_sl.append(slice(start, None))
+                stop = sh
+            else:
+                area_sl.append(slice(None))
+                bbox_sl.append(slice(start, stop))
+
+        bbox = tuple(bbox_sl)
+        sl[bbox] = area[tuple(area_sl)]
+
     else:
         raise ValueError(f"{shape}")
-    
+
     return sl
 
 def check_matrix(ref):
@@ -230,6 +244,21 @@ def ball_like(radius, ndim:int):
         return ball(radius)
     else:
         raise ValueError(f"dims must be 1 - 3, but got {ndim}")
+
+def ball_like_odd(radius, ndim):
+    """
+    In ball_like, sometimes shapes of output will be even length, such as:
+    [[0, 1, 1, 0],
+     [1, 1, 1, 1],
+     [1, 1, 1, 1],
+     [0, 1, 1, 0]]
+    This is not suitable for specify().
+    """    
+    xc = int(radius)
+    l = xc*2+1
+    coords = np.indices((l,)*ndim)
+    s = np.sum((a-xc)**2 for a in coords)
+    return np.array(s <= radius*radius, dtype=bool)
 
 def find_first_appeared(axes, include="", exclude=""):
     for a in axes:

@@ -1164,7 +1164,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """
-        # TODO: radius=3.5 does not work
         if isinstance(center, MarkerFrame):
             # determine dims to iterate.
             # dims = "".join(a for a in dims if a not in center.axes)
