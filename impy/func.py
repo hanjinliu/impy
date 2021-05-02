@@ -290,18 +290,26 @@ def del_axis(axes, axis) -> str:
         
     return new_axes
 
-def add_axes(axes, shape, arr2d):
-    """
-    stack yx-ordered array 'arr2d' to 'axes' in shape 'shape'
-    """
-    if len(shape) == 2:
-        return arr2d
-    arr2d = np.array(arr2d)
-    for i, o in enumerate(reversed(axes)):
-        if o not in "yx":
-            arr2d = np.stack([arr2d]*(shape[-i-1]))
-    return arr2d
+# Old one
+# def add_axes(axes, shape, arr2d):
+#     """
+#     stack yx-ordered array 'arr2d' to 'axes' in shape 'shape'
+#     """
+#     if len(shape) == 2:
+#         return arr2d
+#     arr2d = np.array(arr2d)
+#     for i, o in enumerate(reversed(axes)):
+#         if o not in "yx":
+#             arr2d = np.stack([arr2d]*(shape[-i-1]))
+#     return arr2d
 
+def add_axes(axes, shape, key, key_axes="yx"):
+    
+    key = np.asarray(key)
+    for i, o in enumerate(reversed(axes)):
+        if o not in key_axes:
+            key = np.stack([key]*(shape[-i-1]), axis=i)
+    return key
 
 
 def determine_range(arr):

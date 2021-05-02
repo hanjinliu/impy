@@ -22,6 +22,7 @@ from .axes import Axes, ImageAxesError
 from .specials import *
 from .utilcls import *
 from ._process import *
+from warnings import warn
 
 
 class ImgArray(LabeledArray):
@@ -1546,7 +1547,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Same array but labels are updated.
         """        
-        labels = self.threshold(thr=thr, dims="c", **kwargs)
+        labels = self.threshold(thr=thr, dims=None, **kwargs)
         return self.label(labels, dims=dims)
     
         
@@ -1631,7 +1632,7 @@ class ImgArray(LabeledArray):
         return out
 
     @record()
-    def clip_outliers(self, in_range=("0%", "100%")) -> ImgArray:
+    def clip(self, in_range=("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip().
 
@@ -1650,6 +1651,10 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         out.temp = [lowerlim, upperlim]
         return out
+    
+    def clip_outliers(self, in_range):
+        warn("`clip_outliers` is renamed as `clip` and will be removed soon.", DeprecationWarning)
+        return self.clip(in_range)
     
     @record()
     def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16) -> ImgArray:

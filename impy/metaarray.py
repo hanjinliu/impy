@@ -133,10 +133,13 @@ class MetaArray(np.ndarray):
             sl = self.str_to_slice(key)
             return self.__getitem__(sl)
 
-        if isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
+        if isinstance(key, MetaArray) and key.dtype == bool:
+            key = add_axes(self.axes, self.shape, key, key.axes)
+            
+        elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
             # img[arr] ... where arr is 2-D boolean array
             key = add_axes(self.axes, self.shape, key)
-
+        
         out = super().__getitem__(key)         # get item as np.ndarray
         keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
@@ -169,6 +172,14 @@ class MetaArray(np.ndarray):
             # img["t=2,z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__setitem__(sl, value)
+        
+        if isinstance(key, MetaArray) and key.dtype == bool:
+            key = add_axes(self.axes, self.shape, key, key.axes)
+            
+        elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
+            # img[arr] ... where arr is 2-D boolean array
+            key = add_axes(self.axes, self.shape, key)
+
         super().__setitem__(key, value)
     
     def __array_finalize__(self, obj):
