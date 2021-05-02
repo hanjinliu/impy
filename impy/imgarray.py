@@ -104,7 +104,7 @@ class ImgArray(LabeledArray):
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
         
-        rough = self.rescale(scale).value.astype("float32")
+        rough = self.rescale(scale).value.astype(np.float32)
         gaussian = GaussianBackground(p0)
         result = gaussian.fit(rough, method=method)
         gaussian.rescale(1/scale)
@@ -470,7 +470,7 @@ class ImgArray(LabeledArray):
         """        
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
-        out = PropArray(np.empty(self.sizesof(c_axes)), dtype="float32", name=self.name, 
+        out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
                         axes=c_axes, propname="variance_of_laplacian")
         laplace_img.ongoing = "focus_map"
         for sl, img in laplace_img.iter(c_axes, exclude=dims):
@@ -921,7 +921,7 @@ class ImgArray(LabeledArray):
             timer.toc()
             print(f"\rcentroid_sm completed ({timer})")
             
-            out = MarkerFrame(centroids, columns=coords.col_axes, dtype="float32").as_standard_type()
+            out = MarkerFrame(centroids, columns=coords.col_axes, dtype=np.float32).as_standard_type()
             out.set_scale(coords.scale)
             
         else:
@@ -1016,7 +1016,7 @@ class ImgArray(LabeledArray):
             timer.toc()
             print(f"\rgauss_sm completed ({timer})")
             
-            kw = dict(columns=coords.col_axes, dtype="float32")
+            kw = dict(columns=coords.col_axes, dtype=np.float32)
             
             if return_all:
                 out = FrameDict(means = MarkerFrame(means, **kw).as_standard_type(),
@@ -1024,7 +1024,7 @@ class ImgArray(LabeledArray):
                                 errors = MarkerFrame(errs, **kw).as_standard_type(),
                                 intensities = MarkerFrame(ab, 
                                                           columns=str(coords.col_axes)[:-ndim]+"ab",
-                                                          dtype="float32"))
+                                                          dtype=np.float32))
                 
                 out.means.set_scale(coords.scale)
                 out.sigmas.set_scale(coords.scale)
@@ -1060,7 +1060,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Complex array.
         """
-        freq = fft(self.value.astype("float32"), shape=self.sizesof(dims), 
+        freq = fft(self.value.astype(np.float32), shape=self.sizesof(dims), 
                    axes=[self.axisof(a) for a in dims])
         out = np.fft.fftshift(freq)
         return out
@@ -1395,11 +1395,77 @@ class ImgArray(LabeledArray):
         out.set_scale(self)
         return out
     
-    @record(append_history=False)
-    def lineprops(self, src, dst, linewidth:int=1, *, order=None, dims="yx") -> PropArray:
-        # TODO: Measure lines
-        # src, dst = MarkerFrame
-        pass
+    def lineprops(self, src, dst, func="mean", linewidth:int=1, *, order=None,
+                  dims="yx", squeeze=True) -> PropArray:
+        """
+        Measure line property using by func(line_scan).
+
+        Parameters
+        ----------
+        src : MarkerFrame or (N, 2) array-like
+            Source coordinates.
+        dst : MarkerFrame of (N, 2) array-like
+            Destination coordinates.
+        func : str or callable, default is "mean".
+            Measurement function.
+        linewidth : int, default is 1.
+            Line width.
+        order : int, optional
+            Spline interpolation order.
+        dims : str, default is "yx"
+            Spatial dimension.
+        squeeze : bool, default is True.
+            If True and only one line is measured, the redundant dimension "p" will be deleted.
+
+        Returns
+        -------
+        PropArray
+            Line properties.
+
+        Example
+        -------
+        Time-course measurement of intensities on lines.
+        >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
+        >>> pr.plot()
+        """        
+        func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
+        if isinstance(func, str) and func in func_dict.keys():
+            func = func_dict[func]
+        elif not callable(func):
+            raise TypeError("`func` must be callable.")
+        
+        if not (isinstance(src, MarkerFrame) and isinstance(dst, MarkerFrame)):
+            return self.lineprops(MarkerFrame(src, columns=dims), MarkerFrame(src, columns=dims),
+                                  func, linewidth, order=order, dims=dims, squeeze=squeeze)
+            
+        if len(src) != len(dst):
+            raise ValueError(f"Shape mismatch between `src` and `dst`: {len(src)} and {len(dst)}")
+        
+        l = len(src)
+        prop_axes = complement_axes(dims, self.axes)
+        shape = self.sizesof(prop_axes)
+        
+        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
+                        axes="p"+prop_axes, dirpath=self.dirpath,
+                        propname = f"lineprops<{func.__name__}>", dtype=np.float32)
+        
+        print("lineprops ... ", end="")
+        timer = Timer()
+        ifshow = self.__class__.show_progress
+        self.__class__.show_progress = False
+        
+        for i, (s, d) in enumerate(zip(src.values, dst.values)):
+            resliced = self.reslice(s, d, linewidth, order=order, dims=dims)
+            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
+            
+        self.__class__.show_progress = ifshow
+        timer.toc()
+        print(f"\rlineprops completed ({timer})")
+
+        if l == 1 and squeeze:
+            out = out[0]
+        
+        return out
     
     @dims_to_spatial_axes
     @record(False)
@@ -1600,16 +1666,14 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = ArrayDict({p: PropArray(np.zeros((self.labels.max(),) + shape, dtype="float32"),
+        out = ArrayDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
                                       name=self.name, 
-                                      axes="p" + prop_axes,
+                                      axes="p"+prop_axes,
                                       dirpath=self.dirpath,
-                                      propname = p)
+                                      propname=p)
                          for p in properties})
         
         # calculate property value for each slice
-        timer = Timer()
-        
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
             props = skmes.regionprops(self.labels, img, cache=False,
                                       extra_properties=extra_properties)
@@ -1618,8 +1682,6 @@ class ImgArray(LabeledArray):
                 # Both sides have length of p-axis (number of labels) so that values
                 # can be correctly substituted.
                 out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
-                
-        timer.toc()
         
         for parr in out.values():
             parr.set_scale(self)
@@ -1690,7 +1752,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Rescaled image with temporal attribute
         """        
-        out = self.view(np.ndarray).astype("float32")
+        out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = check_clip_range(in_range, self.value)
             
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
@@ -1793,7 +1855,7 @@ class ImgArray(LabeledArray):
                 raise ValueError("Wrong shape of 'shift'.")
         
         else:
-            shift = MarkerFrame(shift, columns="yx", dtype="float32")
+            shift = MarkerFrame(shift, columns="yx", dtype=np.float32)
             return self.drift_correction(shift, ref, order=order, along=along, 
                                          dims=dims,update=update)
 
@@ -1803,7 +1865,7 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(complement_axes(dims, self.axes)):
             trans = -shift.loc[sl[t_index]]
             mx = sktrans.AffineTransform(translation=trans)
-            out[sl] = sktrans.warp(img.astype("float32"), mx, order=order)
+            out[sl] = sktrans.warp(img.astype(np.float32), mx, order=order)
         
         out = out.view(self.__class__)
         return out
@@ -2021,7 +2083,7 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
         if arr.dtype in ("uint8", "uint16", "float32"):
             dtype = arr.dtype
         elif arr.dtype.kind == "f":
-            dtype = "float32"
+            dtype = np.float32
         else:
             dtype = arr.dtype
     
