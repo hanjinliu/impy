@@ -1,7 +1,6 @@
-__version__ = "1.5.6"
+__version__ = "1.6.0"
 # TODO: 
-# - refine_leastsq
-# - directional median filter to denoinse images
+# - directional median filter to denoise images
 
 import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 
