@@ -24,9 +24,11 @@ class PropArray(MetaArray):
             propname = "User_Defined"
         
         if dtype is None and propname in SCALAR_PROP:
-            dtype = "float32"
-        else:
+            dtype = np.float32
+        elif dtype is None:
             dtype = object
+        else:
+            dtype = dtype
             
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
         self.propname = propname

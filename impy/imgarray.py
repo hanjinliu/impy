@@ -1056,6 +1056,7 @@ class ImgArray(LabeledArray):
         out = np.fft.fftshift(freq)
         return out
     
+    @dims_to_spatial_axes
     @record()
     def ifft(self, *, dims=None) -> ImgArray:
         """
@@ -1338,9 +1339,8 @@ class ImgArray(LabeledArray):
             
         return out
     
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def reslice(self, src, dst, linewidth=1, *, order=None, dims=None) -> ImgArray:
+    
+    def reslice(self, src, dst, linewidth=1, *, order=None, dims="yx") -> PropArray:
         """
         Measure line profile iteratively for every slice of image.
 
@@ -1359,27 +1359,29 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        ImgArray
+        PropArray
             Line scans.
         """        
-        # TODO: This function should require MarkerFrame as src and dst, and return PropArray
-        # of ImgArray. Or make some functions like regionprop_lines.
-        # determine length
+        # determine length, TODO: test
         src = np.asarray(src, dtype=float)
         dst = np.asarray(dst, dtype=float)
         d_row, d_col = dst - src
         length = int(np.ceil(np.hypot(d_row, d_col) + 1))
         
         c_axes = complement_axes(dims, self.axes)
-        out = np.empty(self.sizesof(c_axes) + (length,), dtype="float32")
-        
+        out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
+                        name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
+        self.ongoing = "reslice"
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
                                          order=order, mode="reflect")
-        out = out.view(self.__class__)
-        out._set_info(self, "profile_line", c_axes+dims[-1])
         out.set_scale(self)
         return out
+    
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def lineprops(self, src, dst, linewidth, *, order=None, dims=None):
+        ...
     
     @dims_to_spatial_axes
     @record(False)
@@ -1905,6 +1907,50 @@ class ImgArray(LabeledArray):
             img[-depth:] = ndi.gaussian_filter(img[-depth*2:].value, sigma, mode="constant", cval=bg)[-depth:]
             
         return out
+    
+    @dims_to_spatial_axes
+    @record()
+    @same_dtype(asfloat=True)
+    def wiener(self, psf, lmd, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Classical wiener deconvolution. This algorithm has the serious ringing problem.
+
+        Parameters
+        ----------
+        psf : np.ndarray
+            Point spread function
+        lmd : float
+            Constant value used in the deconvolution. See Formulation below.
+        dims : int or str, optional
+            Dimension of axes.
+        update : bool, optional
+            If update self to filtered image.
+
+        Returns
+        -------
+        ImgArray
+            Deconvolved image.
+        
+        Formulation
+        -----------
+        
+                 F[Yo] x H*
+        F[Yr] = -----------
+                 |H|^2 + λ
+        
+         Yo: observed image
+         Yr: restored image
+         H : fft of psf
+        `*`: conjugation of complex number
+        """        
+        if lmd <= 0:
+            raise ValueError(f"lmd must be positive, but got: {lmd}")
+        
+        psf_ft = fft(psf)
+        psf_ft_conj = np.conjugate(psf_ft)
+        
+        return self.parallel(wiener_, complement_axes(dims, self.axes),
+                             psf_ft, psf_ft_conj, lmd)
         
     
     @dims_to_spatial_axes
@@ -1933,8 +1979,12 @@ class ImgArray(LabeledArray):
         """
         
         psf = check_psf(self, psf, dims)
+        
+        psf_ft = fft(psf)
+        psf_ft_conj = np.conjugate(psf_ft)
         # start deconvolution
-        return self.parallel(richardson_lucy_, complement_axes(dims), psf, niter)
+        return self.parallel(richardson_lucy_, complement_axes(dims), 
+                             psf_ft, psf_ft_conj, niter)
 
 
 # non-member functions.

@@ -217,12 +217,17 @@ def corner_harris_(args):
     sl, data, k, sigma = args
     return (sl, skfeat.corner_harris(data, k=k, sigma=sigma))
 
+def wiener_(args):
+    sl, obs, psf_ft, psf_ft_conj, lmd = args
+    
+    img_ft = fft(obs)
+    
+    estimated = np.real(ifft(img_ft*psf_ft_conj / (psf_ft*psf_ft_conj + lmd)))
+    return sl, np.fft.fftshift(estimated)
+    
 def richardson_lucy_(args):
     # Identical to the algorithm in Deconvolution.jl of Julia.
-    sl, obs, psf, niter = args
-    
-    psf_ft = fft(psf)
-    psf_ft_conj = np.conjugate(psf_ft)
+    sl, obs, psf_ft, psf_ft_conj, niter = args
     
     def lucy_step(estimated):
         factor = ifft(fft(obs / ifft(fft(estimated) * psf_ft)) * psf_ft_conj)

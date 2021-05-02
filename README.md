@@ -86,7 +86,7 @@ for (t in t_all) {
 ```python
 img.label_threshold(thr="yen") # Label image using Yen's thresholding
 props = img.regionprop(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
-props.perimeter.plot_profile() # Plot results of perimeter
+props.perimeter.p() # Plot results of perimeter
 props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
 ```
 
@@ -150,7 +150,8 @@ img / 10        # output is converted to float32
 `ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
 - `track_drift`, `drift_correction` &rarr; for automatic drift correction.
-- `lucy` &rarr; for deconvolution of images.
+- `wiener`, `lucy` &rarr; for deconvolution of images.
+- `pad`, `defocus` &rarr; for effective padding.
 - `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
 - `hessian_eigval`, `hessian_eig` &rarr; feature detection using Hessian method.
 - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; feature detection using structure tensor.
