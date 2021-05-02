@@ -290,28 +290,15 @@ def del_axis(axes, axis) -> str:
         
     return new_axes
 
-# Old one
-# def add_axes(axes, shape, arr2d):
-#     """
-#     stack yx-ordered array 'arr2d' to 'axes' in shape 'shape'
-#     """
-#     if len(shape) == 2:
-#         return arr2d
-#     arr2d = np.array(arr2d)
-#     for i, o in enumerate(reversed(axes)):
-#         if o not in "yx":
-#             arr2d = np.stack([arr2d]*(shape[-i-1]))
-#     return arr2d
 
 def add_axes(axes, shape, key, key_axes="yx"):
     if shape == key.shape:
         return key
     key = np.asarray(key)
-    for i, o in enumerate(reversed(axes)):
+    for i, o in enumerate(axes):
         if o not in key_axes:
-            key = np.stack([key]*(shape[-i-1]), axis=i)
+            key = np.stack([key]*(shape[i]), axis=i)
     return key
-
 
 def determine_range(arr):
     """
@@ -333,15 +320,6 @@ def determine_dims(img):
     dims = len(img.spatial_shape)
     if dims not in (2, 3):
         raise ValueError("Image must be 2 or 3 dimensional.")
-    return dims
-
-def determine_spatial_dims(dims:int):
-    if dims == 2:
-        dims = "yx"
-    elif dims == 3:
-        dims = "zyx"
-    else:
-        raise ValueError(f"dimension must be 2 or 3, but got {dims}")
     return dims
 
 
