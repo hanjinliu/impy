@@ -40,7 +40,7 @@ class napariWindow:
             self.start()
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, (PropArray, MarkerFrame)):
+        elif isinstance(obj, MarkerFrame):
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
