@@ -304,7 +304,8 @@ def del_axis(axes, axis) -> str:
 #     return arr2d
 
 def add_axes(axes, shape, key, key_axes="yx"):
-    
+    if shape == key.shape:
+        return key
     key = np.asarray(key)
     for i, o in enumerate(reversed(axes)):
         if o not in key_axes:

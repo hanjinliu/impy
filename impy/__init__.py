@@ -1,4 +1,4 @@
-__version__ = "1.5.5"
+__version__ = "1.5.6"
 # TODO: 
 # - refine_leastsq
 # - directional median filter to denoinse images

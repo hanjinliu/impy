@@ -129,11 +129,11 @@ class MetaArray(np.ndarray):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            # img["t=2,z=4"] ... ImageJ-like method
+            # img["t=2;z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__getitem__(sl)
 
-        if isinstance(key, MetaArray) and key.dtype == bool:
+        if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
             key = add_axes(self.axes, self.shape, key, key.axes)
             
         elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
@@ -169,11 +169,11 @@ class MetaArray(np.ndarray):
     
     def __setitem__(self, key, value):
         if isinstance(key, str):
-            # img["t=2,z=4"] ... ImageJ-like method
+            # img["t=2;z=4"] ... ImageJ-like method
             sl = self.str_to_slice(key)
             return self.__setitem__(sl, value)
         
-        if isinstance(key, MetaArray) and key.dtype == bool:
+        if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
             key = add_axes(self.axes, self.shape, key, key.axes)
             
         elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
@@ -181,6 +181,7 @@ class MetaArray(np.ndarray):
             key = add_axes(self.axes, self.shape, key)
 
         super().__setitem__(key, value)
+    
     
     def __array_finalize__(self, obj):
         """

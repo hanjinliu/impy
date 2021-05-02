@@ -90,16 +90,16 @@ class ImgArray(LabeledArray):
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters.
+        show_result : bool, default is True
+            If True, plot the fitting result on the cross sections.
+        method : str, optional
+            Fitting method. See `scipy.optimize.minimize`.
 
         Returns
         -------
         ImgArray
             Fit image.
 
-        Raises
-        ------
-        TypeError
-            If self is not two dimensional.
         """
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
@@ -221,6 +221,12 @@ class ImgArray(LabeledArray):
         ImgArray
             Array of eigenvalues. The axis `l` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
+        
+        Example
+        -------
+        Extract filament
+        >>> eig = -img.hessian_eigval()["l=0"]
+        >>> eig[eig<0] = 0
         """        
         ndim = len(dims)
         sigma = check_nd_sigma(sigma, ndim)
@@ -436,9 +442,9 @@ class ImgArray(LabeledArray):
     def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> ImgArray:
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
-        return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, outdtype=self.dtype)
+        return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, 
+                             "reflect", 0, outdtype=self.dtype)
     
-    @record(append_history=False)
     def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
         """
         Compute focus map using variance of Laplacian method. yx-plane with higher value is likely a
@@ -453,11 +459,20 @@ class ImgArray(LabeledArray):
         -------
         PropArray
             Array of variance of Laplacian
+        
+        Example
+        -------
+        Get the focus plane from a 3D image.
+        >>> score = img.focus_map()
+        >>> score.plot()               # plot the variation of laplacian focus
+        >>> z_focus = np.argmax(score) # determine the focus plane
+        >>> img[z_focus]               # get the focus plane
         """        
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
-        out = PropArray(self.sizesof(c_axes), dtype="float32", name=self.name, 
+        out = PropArray(np.empty(self.sizesof(c_axes)), dtype="float32", name=self.name, 
                         axes=c_axes, propname="variance_of_laplacian")
+        laplace_img.ongoing = "focus_map"
         for sl, img in laplace_img.iter(c_axes, exclude=dims):
             out[sl] = np.var(img)
         return out
@@ -769,29 +784,10 @@ class ImgArray(LabeledArray):
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
     
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def trackpy_sm(self, radius, *, return_all=False, dims=None, **kwargs):
-        out = pd.DataFrame()
-        c_axes = complement_axes(dims, self.axes)
-        for sl, data in self.iter(c_axes, exclude=dims):
-            df = tp.locate(data, 2*radius+1, **kwargs)
-            for a, i in zip(c_axes, sl):
-                df[a] = i
-            out = pd.concat([out, df], axis=0)
-        
-        out.index = np.arange(len(out))
-        mf = MarkerFrame(out.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
-        mf.set_scale(self.scale)
-        if return_all:
-            df = out[out.columns[out.columns.isin([a for a in out.columns if a not in dims])]]
-            return FrameDict(coords=mf, results=df)
-        else:
-            return mf
     
     @dims_to_spatial_axes
     def refine(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
-        # TODO: what should be this function like?
+        # TODO: works anyway, but there may be better methods.
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         self.specify(coords, radius, labeltype="circle")
@@ -840,6 +836,14 @@ class ImgArray(LabeledArray):
         -------
         MarkerFrame
             Peaks in uint16 type.
+        
+        Example
+        -------
+        Track single molecules and view the tracks with napari.
+        >>> coords = img.find_sm()
+        >>> lnk = coords.link(3, min_dwell=10)
+        >>> ip.window.add(img)
+        >>> ip.window.add(lnk)
         """        
         methods_ = {"dog": "dog_filter",
                     "doh": "doh_filter",
@@ -876,6 +880,11 @@ class ImgArray(LabeledArray):
             Passed to peak_local_max()
         dims : int or str, optional
             Dimension of axes.
+        
+        Returns
+        -------
+        MarkerFrame
+            Coordinates of peaks
         """     
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, 
@@ -1043,7 +1052,6 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        
         dims : int or str, optional
             Dimension of axes.
             
@@ -1065,7 +1073,6 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        
         dims : int or str, optional
             Dimension of axes.
             
@@ -1165,6 +1172,14 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Labeled image.
+        
+        Example
+        -------
+        Find single molecules, draw circular labels around them if mean values were greater than 100.
+        >>> coords = img.find_sm()
+        >>> filter_func = lambda a: np.mean(a) > 100
+        >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
+        >>> ip.window.add(img)
         """
         if isinstance(center, MarkerFrame):
             # determine dims to iterate.
@@ -1276,13 +1291,6 @@ class ImgArray(LabeledArray):
             Convex hull image.
         """        
         return self.parallel(convex_hull_, complement_axes(dims, self.axes), outdtype=bool)
-    
-    @dims_to_spatial_axes
-    @need_labels
-    @record()
-    def convex_hull_label(self, *, dims=None):
-        # TODO: write this
-        ...
         
     @dims_to_spatial_axes
     @only_binary
@@ -1326,6 +1334,14 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             uint8 array of the number of neighbors.
+            
+        Example
+        -------
+        >>> skl = img.threshold().skeletonize()
+        >>> edge = skl.count_neighbors()
+        >>> np.argwhere(edge==1) # get coordinates of filament edges.
+        >>> np.argwhere(edge>3) # get coordinates of filament cross sections.
+        
         """        
         if self.dtype != bool:
             raise TypeError("Cannot run count_neighbors() with non-binary image.")
@@ -1341,7 +1357,7 @@ class ImgArray(LabeledArray):
         return out
     
     
-    def reslice(self, src, dst, linewidth=1, *, order=None, dims="yx") -> PropArray:
+    def reslice(self, src, dst, linewidth:int=1, *, order=None, dims="yx") -> PropArray:
         """
         Measure line profile iteratively for every slice of image.
 
@@ -1379,10 +1395,11 @@ class ImgArray(LabeledArray):
         out.set_scale(self)
         return out
     
-    @dims_to_spatial_axes
     @record(append_history=False)
-    def lineprops(self, src, dst, linewidth, *, order=None, dims=None):
-        ...
+    def lineprops(self, src, dst, linewidth:int=1, *, order=None, dims="yx") -> PropArray:
+        # TODO: Measure lines
+        # src, dst = MarkerFrame
+        pass
     
     @dims_to_spatial_axes
     @record(False)
