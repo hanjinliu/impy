@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from scipy.ndimage.filters import median_filter
 import trackpy as tp
 import os
 import glob
@@ -86,7 +87,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        scale : float, optional
+        scale : float, default is 1/16.
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters.
@@ -115,6 +116,61 @@ class ImgArray(LabeledArray):
         show_result and plot_gaussfit_result(self, fit)
         return fit
     
+    @record()
+    @same_dtype(True)
+    def gauss_correction(self, ref=None, scale:float=1/16, median_radius:float=15):
+        """
+        Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
+        background intensity at the same time. If input image is uint, then output value under 0 will
+        replaced with 0. If you want to quantify background, it is necessary to first convert input
+        image to float image.
+
+        Parameters
+        ----------
+        ref : ImgArray, default is `self`.
+            Reference image to estimate background.
+        scale : float, default is 1/16.
+            Scale of rough image (to speed up fitting).
+        median_radius : float, default is 15.
+            Radius of median prefilter's kernel.
+
+        Returns
+        -------
+        ImgArray
+            Corrected and background subtracted image.
+        """        
+        if "c" in self.axes:
+            out = np.empty(self.shape, dtype=np.float32)
+            if isinstance(ref, self.__class__) and "c" in ref.axes:
+                refs = ref.split("c")
+            else:
+                refs = [ref]*self.sizeof("c")
+                
+            for i, (sl, img) in enumerate(self.iter("c", showprogress=False, israw=True)):
+                ref_ = refs[i]
+                out[sl] = img.gauss_correction(ref=ref_, scale=scale, median_radius=median_radius)
+            out = out.view(self.__class__)
+            return out
+        
+        else:
+            if ref is None:
+                if self.ndim != 2:
+                    raise ValueError("`ref` must be given except for images with axes 'yx' or 'cyx'.")
+                else:
+                    return self.gauss_correction(ref=self, scale=scale, median_radius=median_radius)
+            elif isinstance(ref, self.__class__):
+                pass
+            else:
+                raise TypeError(f"`ref` must be None or ImgArray, but got {type(ref)}")
+        
+        if median_radius >= 1:
+            ref = ref.median_filter(radius=median_radius)
+        fit = ref.gaussfit(scale=scale, show_result=False).value
+        a = fit.max()
+        out = self.value / fit * a - a
+        out = out.view(self.__class__)
+        return out
+                
     
     @record()
     def affine_correction(self, ref=None, bins:int=256, 
@@ -606,6 +662,13 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         return -self.as_float().parallel(gaussian_laplace_, complement_axes(dims, self.axes), sigma)
+    
+    @dims_to_spatial_axes
+    @record()
+    def gabor_filter(self, lmd=1, theta=0, psi=0, sigma=1, gamma=1, radius=5, *, dims=None):
+        ker = gabor_kernel_nd(lmd, theta, psi, sigma, gamma, radius)
+        
+        return
     
     @dims_to_spatial_axes
     @record()
@@ -1613,6 +1676,23 @@ class ImgArray(LabeledArray):
         self.labels = labels.optimize()
         self.labels._set_info(self)
         self.labels.set_scale(self)
+        return self
+    
+    @dims_to_spatial_axes
+    @need_labels
+    @record(record_label=True)
+    def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None):
+        
+        # labels = np.zeros(self.shape, dtype="uint32")
+        # shape = self.sizesof(dims)
+        # n_labels = 0
+        c_axes = complement_axes(dims, self.axes)
+        
+        for sl, img in self.iter(c_axes, israw=True):
+            # print(np.unique(img.labels.value))
+            skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol, copy=False)
+            # print(np.unique(img.labels.value))
+        
         return self
     
     def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:

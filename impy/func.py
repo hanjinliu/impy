@@ -8,7 +8,7 @@ import json
 import re
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-
+from scipy.spatial.transform import Rotation
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
@@ -127,6 +127,7 @@ def specify_one(center, radius, shape:tuple, labeltype:str):
 
     return sl
 
+
 def check_matrix(ref):
     """
     Check Affine transformation matrix
@@ -145,6 +146,21 @@ def check_matrix(ref):
         else:
             mtx.append(m)
     return mtx
+
+
+def gabor_kernel_nd(lmd, theta, psi:float, sigma:float, gamma:float, radius:int, ndim:int):
+    rot = Rotation.from_rotvec(theta).as_matrix() # TODO: check +/-
+    sl = slice(-radius, radius+1)
+    r = np.stack(np.mgrid[(sl,)*ndim])
+    # r'_izyx = R_id * r_dzyx
+    r_rot = np.tensordot(rot, r, ([1], [0]))
+    ker = np.empty(r_rot[0].shape, dtype=np.complex64)
+    chi = r_rot[0]**2 + gamma*np.sum(r_rot[1:]**(ndim-1))
+    ker[:] = np.exp(chi/(2*sigma**2)) \
+        / 2 * np.pi * (sigma**ndim) * (gamma**(ndim-1)) \
+        * np.exp(1j * (2*np.pi*r_rot[0]/lmd + psi))
+        
+    return ker
 
 def affinefit(img, imgref, bins=256, order=3):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
