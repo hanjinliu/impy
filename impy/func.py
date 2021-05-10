@@ -149,7 +149,13 @@ def check_matrix(ref):
 
 
 def gabor_kernel_nd(lmd, theta, psi:float, sigma:float, gamma:float, radius:int, ndim:int):
-    rot = Rotation.from_rotvec(theta).as_matrix() # TODO: check +/-
+    if ndim == 2:
+        rot = np.array([[np.cos(theta), -np.sin(theta)],
+                        [np.sin(theta), np.cos(theta)]])
+    elif ndim == 3:
+        rot = Rotation.from_rotvec(theta).as_matrix() # TODO: check +/-
+    else:
+        raise NotImplementedError
     sl = slice(-radius, radius+1)
     r = np.stack(np.mgrid[(sl,)*ndim])
     # r'_izyx = R_id * r_dzyx

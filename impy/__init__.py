@@ -1,6 +1,4 @@
-__version__ = "1.6.2"
-# TODO: 
-# - directional median filter to denoise images
+__version__ = "1.6.3"
 
 import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 

@@ -485,6 +485,34 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
+    @same_dtype()
+    def directional_median_filter(self, radius:int=2, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Chen, Z., & Zhang, L. (2009). Multi-stage directional median filter. International Journal 
+        of Signal Processing, 5(4), 249-252.
+
+        Parameters
+        ----------
+        radius : int, optional
+            Kernel radius of the filter. Here, radius must be int.
+        dims : int or str, optional
+            Dimension of axes.
+        update : bool, by default False
+            If update self to filtered image.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
+        if len(dims) != 2:
+            raise ValueError("Directional median filter is defined only for 2D images.")
+        elif not isinstance(radius, int):
+            raise TypeError(f"`radius` must be int, but got {type(radius)}")
+        return self.parallel(directional_median_, complement_axes(dims, self.axes), radius)
+    
+    @dims_to_spatial_axes
+    @record()
     def entropy_filter(self, radius:float=5, *, dims=None) -> ImgArray:
         disk = ball_like(radius, len(dims))
         return self.parallel(entropy_, complement_axes(dims, self.axes), disk)

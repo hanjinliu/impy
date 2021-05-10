@@ -19,19 +19,25 @@ def median_(args):
     return (sl, ndi.median_filter(data, footprint=selem, mode="reflect"))
 
 def directional_median_(args):
-    # use numba
-    sl, data = args
-    kernels = [np.array([[0,0,0],[1,1,1],[0,0,0]]),  # -
-               np.array([[1,0,0],[0,1,0],[0,0,1]]),  # \
-               np.array([[0,1,0],[0,1,0],[0,1,0]]),  # |
-               np.array([[0,0,1],[0,1,0],[1,0,0]])]  # /
+    sl, data, radius = args
+    kernels = directional_median_kernel_2d(radius*2 + 1)
     data_var = np.stack([ndi.convolve(data**2, ker/3, mode="reflect") - 
                          ndi.convolve(data, ker/3, mode="reflect")**2 for ker in kernels])
     min_vars = np.argmin(data_var, axis=0)
     data_med = [ndi.median_filter(data, footprint=ker, mode="reflect") for ker in kernels]
+    out = np.empty_like(data)
+    for d in [0, 1, 2, 3]:
+        out = np.where(min_vars==d, data_med[d], out)
     
-    return
+    return sl, out
 
+def directional_median_kernel_2d(size):
+    k1 = np.ones((1, size), dtype=np.uint8) # -
+    k2 = np.eye(size)                       # \
+    k3 = k1.T                               # |
+    k4 = np.fliplr(k2)                      # /
+    return [k1, k2, k3, k4]
+    
 def mean_(args):
     sl, data, selem = args
     return (sl, ndi.convolve(data, selem/np.sum(selem)))
