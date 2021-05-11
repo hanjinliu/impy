@@ -12,11 +12,11 @@ from scipy.fftpack import ifftn as ifft
 
 def affine_(args):
     sl, data, mx, order = args
-    return (sl, sktrans.warp(data, mx, order=order))
+    return sl, sktrans.warp(data, mx, order=order)
 
 def median_(args):
     sl, data, selem = args
-    return (sl, ndi.median_filter(data, footprint=selem, mode="reflect"))
+    return sl, ndi.median_filter(data, footprint=selem, mode="reflect")
 
 def directional_median_(args):
     sl, data, radius = args
@@ -40,7 +40,7 @@ def directional_median_kernel_2d(size):
     
 def mean_(args):
     sl, data, selem = args
-    return (sl, ndi.convolve(data, selem/np.sum(selem)))
+    return sl, ndi.convolve(data, selem/np.sum(selem))
 
 def std_(args):
     sl, data, selem = args
@@ -48,7 +48,7 @@ def std_(args):
     x1 = ndi.convolve(data, selem)
     x2 = ndi.convolve(data**2, selem)
     std_img = np.sqrt(x2 - x1**2)
-    return (sl, std_img)
+    return sl, std_img
 
 def coef_(args):
     sl, data, selem = args
@@ -57,27 +57,27 @@ def coef_(args):
     x2 = ndi.convolve(data**2, selem)
     # sometimes x2 is almost same as x1^2 and this causes negative value.
     out = np.sqrt(np.abs(x2 - x1**2))/x1
-    return (sl, out)
+    return sl, out
     
 def convolve_(args):
     sl, data, kernel, mode, cval = args
-    return (sl, ndi.convolve(data, kernel, mode=mode, cval=cval))
+    return sl, ndi.convolve(data, kernel, mode=mode, cval=cval)
 
 def gaussian_(args):
     sl, data, sigma = args
-    return (sl, ndi.gaussian_filter(data, sigma))
+    return sl, ndi.gaussian_filter(data, sigma)
 
 def entropy_(args):
     sl, data, selem = args
-    return (sl, skfil.rank.entropy(data, selem))
+    return sl, skfil.rank.entropy(data, selem)
 
 def enhance_contrast_(args):
     sl, data, selem = args
-    return (sl, skfil.rank.enhance_contrast(data, selem))
+    return sl, skfil.rank.enhance_contrast(data, selem)
 
 def difference_of_gaussian_(args):
     sl, data, low_sigma, high_sigma = args
-    return (sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma))
+    return sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma)
 
 def hessian_det_(args):
     sl, data, sigma, pxsize = args
@@ -90,11 +90,11 @@ def hessian_det_(args):
     eigval = np.linalg.eigvalsh(hessian)
     eigval[eigval>0] = 0
     det = np.product(eigval, axis=-1)
-    return (sl, det)
+    return sl, det
 
 def gaussian_laplace_(args):
     sl, data, sigma = args
-    return (sl, ndi.gaussian_laplace(data, sigma))
+    return sl, ndi.gaussian_laplace(data, sigma)
 
 def rolling_ball_(args):
     sl, data, radius, smooth = args
@@ -106,55 +106,55 @@ def rolling_ball_(args):
     else:
         back = skres.rolling_ball(data, radius=radius)
     
-    return (sl, data - back)
+    return sl, data - back
 
 def sobel_(args):
     sl, data = args
-    return (sl, skfil.sobel(data))
+    return sl, skfil.sobel(data)
     
 def opening_(args):
     sl, data, selem = args
-    return (sl, skmorph.opening(data, selem))
+    return sl, skmorph.opening(data, selem)
 
 def binary_opening_(args):
     sl, data, selem = args
-    return (sl, skmorph.binary_opening(data, selem))
+    return sl, skmorph.binary_opening(data, selem)
 
 def closing_(args):
     sl, data, selem = args
-    return (sl, skmorph.closing(data, selem))
+    return sl, skmorph.closing(data, selem)
 
 def binary_closing_(args):
     sl, data, selem = args
-    return (sl, skmorph.binary_closing(data, selem))
+    return sl, skmorph.binary_closing(data, selem)
 
 def erosion_(args):
     sl, data, selem = args
-    return (sl, skmorph.erosion(data, selem))
+    return sl, skmorph.erosion(data, selem)
 
 def binary_erosion_(args):
     sl, data, selem = args
-    return (sl, skmorph.binary_erosion(data, selem))
+    return sl, skmorph.binary_erosion(data, selem)
 
 def dilation_(args):
     sl, data, selem = args
-    return (sl, skmorph.dilation(data, selem))
+    return sl, skmorph.dilation(data, selem)
 
 def binary_dilation_(args):
     sl, data, selem = args
-    return (sl, skmorph.binary_dilation(data, selem))
+    return sl, skmorph.binary_dilation(data, selem)
 
 def tophat_(args):
     sl, data, selem = args
-    return (sl, skmorph.white_tophat(data, selem))
+    return sl, skmorph.white_tophat(data, selem)
 
 def convex_hull_(args):
     sl ,data = args
-    return (sl, skmorph.convex_hull_image(data))
+    return sl, skmorph.convex_hull_image(data)
 
 def skeletonize_(args):
     sl, data = args
-    return (sl, skmorph.skeletonize_3d(data))
+    return sl, skmorph.skeletonize_3d(data)
 
 def hessian_eigh_(args):
     sl, data, sigma, pxsize = args
@@ -165,7 +165,7 @@ def hessian_eigh_(args):
     hessian = _symmetric_image(hessian_elements)
     hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval, eigvec = np.linalg.eigh(hessian)
-    return (sl, eigval, eigvec)
+    return sl, eigval, eigvec
 
 def hessian_eigval_(args):
     sl, data, sigma, pxsize = args
@@ -176,7 +176,7 @@ def hessian_eigval_(args):
     hessian = _symmetric_image(hessian_elements)
     hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval = np.linalg.eigvalsh(hessian)
-    return (sl, eigval)
+    return sl, eigval
 
 def structure_tensor_eigh_(args):
     sl, data, sigma, pxsize = args
@@ -187,7 +187,7 @@ def structure_tensor_eigh_(args):
     tensor = _symmetric_image(tensor_elements)
     tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval, eigvec = np.linalg.eigh(tensor)
-    return (sl, eigval, eigvec)
+    return sl, eigval, eigvec
 
 def structure_tensor_eigval_(args):
     sl, data, sigma, pxsize = args
@@ -198,30 +198,35 @@ def structure_tensor_eigval_(args):
     tensor = _symmetric_image(tensor_elements)
     tensor *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval = np.linalg.eigvalsh(tensor)
-    return (sl, eigval)
+    return sl, eigval
+
+def lbp_(args):
+    sl, data, p, radius, method = args
+    out = skfeat.local_binary_pattern(data, p, radius, method)
+    return sl, out
 
 def label_(args):
     sl, data, connectivity = args
     labels = skmes.label(data, background=0, connectivity=connectivity)
-    return (sl, labels)
+    return sl, labels
 
 def distance_transform_edt_(args):
     sl, data = args
-    return (sl, ndi.distance_transform_edt(data))
+    return sl, ndi.distance_transform_edt(data)
 
 def fill_hole_(args):
     sl, data, mask = args
     seed = np.copy(data)
     seed[1:-1, 1:-1] = data.max()
-    return (sl, skmorph.reconstruction(seed, mask, method="erosion"))
+    return sl, skmorph.reconstruction(seed, mask, method="erosion")
 
 def count_neighbors_(args):
     sl, data, selem = args
-    return (sl, ndi.convolve(data.astype("uint8"), selem, mode="constant") - data)
+    return sl, ndi.convolve(data.astype("uint8"), selem, mode="constant") - data
 
 def corner_harris_(args):
     sl, data, k, sigma = args
-    return (sl, skfeat.corner_harris(data, k=k, sigma=sigma))
+    return sl, skfeat.corner_harris(data, k=k, sigma=sigma)
 
 def wiener_(args):
     sl, obs, psf_ft, psf_ft_conj, lmd = args
@@ -247,4 +252,4 @@ def richardson_lucy_(args):
 
 def estimate_sigma_(args):
     sl, data = args
-    return (sl[:-data.ndim], skres.estimate_sigma(data))
+    return sl[:-data.ndim], skres.estimate_sigma(data)

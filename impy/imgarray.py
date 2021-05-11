@@ -1747,9 +1747,7 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
-            # print(np.unique(img.labels.value))
-            skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol, copy=False)
-            # print(np.unique(img.labels.value))
+            img.labels[:] = skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol)
         
         return self
     
@@ -1832,6 +1830,12 @@ class ImgArray(LabeledArray):
             parr.set_scale(self)
         return out
     
+    @dims_to_spatial_axes
+    @record()
+    def lbp(self, p:int=12, radius:int=1, *, method:str="default", dims=None):
+        
+        return self.parallel(lbp_, complement_axes(dims), p, radius, method)
+    
     @same_dtype()
     @record(append_history=False)
     def proj(self, axis=None, method="mean") -> ImgArray:
@@ -1840,13 +1844,15 @@ class ImgArray(LabeledArray):
         'method' must be in func_dict.keys() or some function like np.mean.
         This function is not compatible with record().
         """
-        func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
-        if method in func_dict.keys():
-            func = func_dict[method]
-        elif callable(method):
-            func = method
+        if isinstance(method, str):
+            method_ = getattr(np, method, None)
         else:
-            raise TypeError(f"'method' must be one of {', '.join(list(func_dict.keys()))} or callable object.")
+            method_ = method
+        
+        if callable(method_):
+            func = method_
+        else:
+            raise TypeError("'method' must be one of numpy methods or callable object.")
         
         if axis is None:
             axis = find_first_appeared(self.axes, exclude="yx")
