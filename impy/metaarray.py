@@ -2,7 +2,7 @@ import numpy as np
 from .axes import Axes, ImageAxesError
 from .func import *
 import itertools
-    
+
 class MetaArray(np.ndarray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
@@ -228,14 +228,15 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        # find the first MetaArray
-        first_instance = None
+        # find the largest MetaArray. Largest because of broadcasting.
+        arr = None
         for arg in args:
             if isinstance(arg, self.__class__):
-                first_instance = arg
-                break
+                if arr is None or arr.ndim < arg.ndim:
+                    arr = arg
         
-        result._inherit_meta(first_instance, ufunc, **kwargs)
+        if isinstance(arr, self.__class__):
+            result._inherit_meta(arr, ufunc, **kwargs)
         
         return result
     

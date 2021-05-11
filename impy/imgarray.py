@@ -488,9 +488,11 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def directional_median_filter(self, radius:int=2, *, dims=None, update:bool=False) -> ImgArray:
         """
-        Chen, Z., & Zhang, L. (2009). Multi-stage directional median filter. International Journal 
-        of Signal Processing, 5(4), 249-252.
-
+        Median filtering in the directional method. Median is calculated in four directions and
+        the median value in which direction standard deviation is smallest is used. This method
+        retains edge sharpness. Also, this method is not slower than classical median filter in many
+        cases because the kernel size is smaller.
+        
         Parameters
         ----------
         radius : int, optional
@@ -504,6 +506,13 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
+            
+        Reference
+        ---------
+        Modified from following paper:
+        Chen, Z., & Zhang, L. (2009). Multi-stage directional median filter. International Journal 
+        of Signal Processing, 5(4), 249-252.
+
         """        
         if len(dims) != 2:
             raise ValueError("Directional median filter is defined only for 2D images.")
@@ -1195,6 +1204,12 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Boolian array.
+        
+        Example
+        -------
+        Substitute outliers to 0.
+        >>> thr = img.threshold("99%")
+        >>> img[thr] = 0
         """
         if dims is None:
             dims = complement_axes("c", self.axes)
@@ -1469,6 +1484,14 @@ class ImgArray(LabeledArray):
         -------
         PropArray
             Line scans.
+        
+        Example
+        -------
+        Rescile along a line and fit to a model function for every time frame.
+        >>> scan = img.reslice([18,32], [53,48])
+        >>> out = scan.curve_fit(func, init, return_fit=True)
+        >>> plt.plot(scan[0])
+        >>> plt.plot(out.fit[0])
         """        
         # determine length, TODO: test
         src = np.asarray(src, dtype=float)
@@ -1575,7 +1598,15 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-            Labeled image
+        ImgArray
+            Labeled image.
+        
+        Example
+        -------
+        Label the image with threshold and visualize with napari.
+        >>> thr = img.threshold()
+        >>> img.label(thr)
+        >>> ip.window.add(img)
         """        
         # check the shape of label_image
         if label_image is None:
@@ -1669,7 +1700,6 @@ class ImgArray(LabeledArray):
             input_img = self.__class__(self.labels>0, axes=self.axes).distance_map(dims=dims)
         else:
             raise ValueError("'input_' must be either 'self' or 'distance'.")
-        
                 
         if input_img.dtype == bool:
             input_img = input_img.astype("uint8")
@@ -1710,7 +1740,7 @@ class ImgArray(LabeledArray):
     @need_labels
     @record(record_label=True)
     def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None):
-        
+        # TODO
         # labels = np.zeros(self.shape, dtype="uint32")
         # shape = self.sizesof(dims)
         # n_labels = 0
@@ -1762,6 +1792,13 @@ class ImgArray(LabeledArray):
         Returns
         -------
             ArrayDict of PropArray
+            
+        Example
+        -------
+        Measure region properties around single molecules.
+        >>> coords = img.centroid_sm()
+        >>> img.specify(coords, 3, labeltype="circle")
+        >>> props = img.regionprops()
         """        
         
         if isinstance(properties, str):
