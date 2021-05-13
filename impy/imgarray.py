@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from scipy.ndimage.filters import median_filter
 import trackpy as tp
 import os
 import glob
@@ -23,7 +22,7 @@ from .axes import Axes, ImageAxesError
 from .specials import *
 from .utilcls import *
 from ._process import *
-from warnings import warn
+from ._process_numba import *
 
 
 class ImgArray(LabeledArray):
@@ -1832,9 +1831,164 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def lbp(self, p:int=12, radius:int=1, *, method:str="default", dims=None):
-        
+    def lbp(self, p:int=12, radius:int=1, *, method:str="default", dims=None) -> ImgArray:
+        """
+        Local binary pattern feature extraction.
+
+        Parameters
+        ----------
+        p : int, default is 12
+            Number of circular neighbors
+        radius : int, default is 1
+            Radius of neighbours.
+        method : str, optional
+            Method to determined the pattern.
+        dims : str or int, optional
+            Spatial dimension.
+
+        Returns
+        -------
+        ImgArray
+            Local binary pattern image.
+        """        
         return self.parallel(lbp_, complement_axes(dims), p, radius, method)
+    
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def glcm(self, distances, angles, *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
+        """
+        Compute "Gray Level Coocurrence Matrix". This matrix is used for texture classification. For the
+        visualization and projection purpose, ImgArray (instead of PropArray) is returned but be aware
+        that returned image does not have yx-axes.
+
+        Parameters
+        ----------
+        distances : array_like
+            List of pixel pair distance offsets.
+        angles : array_like
+            List of pixel pair angles in radians.
+        bins : int, optional
+            Number of bins.
+        rescale_max : bool, default is False
+            If True, the contrast of the input image is maximized by multiplying an integer.
+        dims : str or int, optional
+            Spatial dimension.
+
+        Returns
+        -------
+        ImgArray
+            GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
+            distance and "<" means angle.
+        """        
+        # TODO: this should be a part of specify? At least I need to apply glcm to small patches of an image.
+        if self.dtype.kind == "f":
+            raise TypeError("Cannot calculate comatrix of float image. Explicitly rescale the image.")
+        elif self.dtype.kind == "i":
+            raise TypeError("Cannot calculate comatrix of int imaga because negative value is not "
+                            "supported yet. Convert to uint if possible.")
+            
+        if bins is None:
+            if self.dtype == bool:
+                bins = 2
+            else:
+                bins = 256
+        
+        if self.dtype.kind == "u":
+            imax = np.iinfo(self.dtype).max
+            
+            if rescale_max:
+                scale = int(imax/self.max())
+                self *= scale
+                self.history.pop()
+            
+            if (imax+1) % bins != 0 or bins > imax+1:
+                raise ValueError(f"`bins` must be a divisor of {imax+1} (max value of {self.dtype}).")
+            self = self // bins
+            self.history.pop()
+            
+        self.ongoing = "glcm"
+        c_axes = complement_axes(dims, self.axes)
+        outshape = self.sizesof(c_axes) + (bins, bins, len(distances), len(angles))
+        out = self.parallel(glcm_, c_axes, distances, angles, bins, outshape=outshape, outdtype=np.uint32)
+        out._set_info(self, "glcm", new_axes=c_axes+"ijd<")
+        
+        return out
+    
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def glcm_filter(self, distances, angles, radius, *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
+        """
+        Compute "Gray Level Coocurrence Matrix". This matrix is used for texture classification. For the
+        visualization and projection purpose, ImgArray (instead of PropArray) is returned but be aware
+        that returned image does not have yx-axes.
+
+        Parameters
+        ----------
+        distances : array_like
+            List of pixel pair distance offsets.
+        angles : array_like
+            List of pixel pair angles in radians.
+        bins : int, optional
+            Number of bins.
+        rescale_max : bool, default is False
+            If True, the contrast of the input image is maximized by multiplying an integer.
+        dims : str or int, optional
+            Spatial dimension.
+
+        Returns
+        -------
+        ImgArray
+            GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
+            distance and "<" means angle.
+        """        
+        if self.dtype.kind == "f":
+            raise TypeError("Cannot calculate comatrix of float image. Explicitly rescale the image.")
+        elif self.dtype.kind == "i":
+            raise TypeError("Cannot calculate comatrix of int imaga because negative value is not "
+                            "supported yet. Convert to uint if possible.")
+            
+        if bins is None:
+            if self.dtype == bool:
+                bins = 2
+            else:
+                bins = 256
+        
+        if self.dtype.kind == "u":
+            imax = np.iinfo(self.dtype).max
+            
+            if rescale_max:
+                scale = int(imax/self.max())
+                self *= scale
+                self.history.pop()
+            
+            if (imax+1) % bins != 0 or bins > imax+1:
+                raise ValueError(f"`bins` must be a divisor of {imax+1} (max value of {self.dtype}).")
+            self = self // bins
+            self.history.pop()
+        
+        
+        c_axes = complement_axes(dims, self.axes)
+        distances = np.asarray(distances, dtype=np.uint8)
+        angles = np.asarray(angles, dtype=np.float32)
+        outshape = self.sizesof(c_axes) + (len(distances), len(angles)) + self.sizesof(dims)
+        out = ArrayDict(contrast=empty(outshape, dtype=np.uint16),
+                        dissimilarity=empty(outshape, dtype=np.uint16),
+                        homogeneity=empty(outshape, dtype=np.uint16),
+                        energy=empty(outshape, dtype=np.uint16))
+        
+        self = self.pad(radius, mode="reflect", dims=dims)
+        self.ongoing = "glcm_filter"
+        for sl, img in self.iter(c_axes):
+            contrast, dissimilarity, homogeneity, energy = glcm_filter_(img, distances, angles, bins, radius)
+            out.contrast.value[sl] = contrast
+            out.dissimilarity.value[sl] = dissimilarity
+            out.homogeneity.value[sl] = homogeneity
+            out.energy.value[sl] = energy
+            
+        for k, v in out.items():
+            v._set_info(self, f"glcm_filter-{k}", new_axes=c_axes+"d<"+dims)
+        return out
+    
     
     @same_dtype()
     @record(append_history=False)
@@ -1881,10 +2035,6 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         out.temp = [lowerlim, upperlim]
         return out
-    
-    def clip_outliers(self, in_range):
-        warn("`clip_outliers` is renamed as `clip` and will be removed soon.", DeprecationWarning)
-        return self.clip(in_range)
     
     @record()
     def rescale_intensity(self, in_range=("0%", "100%"), dtype=np.uint16) -> ImgArray:
