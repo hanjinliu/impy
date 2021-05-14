@@ -1343,8 +1343,7 @@ class ImgArray(LabeledArray):
         if scale <= 0 or 1 < scale:
             raise ValueError(f"scale must be (0, 1], but got {scale}")
         
-        sizex = self.sizeof("x")
-        sizey = self.sizeof("y")
+        sizey, sizex = self.sizesof("yx")
         
         x0 = int(sizex / 2 * (1 - scale))
         x1 = int(sizex / 2 * (1 + scale)) + 1
@@ -1356,6 +1355,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
+    @only_binary
     @record()
     def distance_map(self, *, dims=None) -> ImgArray:
         """
@@ -1372,8 +1372,6 @@ class ImgArray(LabeledArray):
             Distance map, the further the brighter
 
         """        
-        if self.dtype != bool:
-            raise TypeError("Cannot run distance_map() with non-binary image.")
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
     
     @dims_to_spatial_axes
@@ -1881,33 +1879,10 @@ class ImgArray(LabeledArray):
             distance and "<" means angle.
         """        
         # TODO: this should be a part of specify? At least I need to apply glcm to small patches of an image.
-        if self.dtype.kind == "f":
-            raise TypeError("Cannot calculate comatrix of float image. Explicitly rescale the image.")
-        elif self.dtype.kind == "i":
-            raise TypeError("Cannot calculate comatrix of int imaga because negative value is not "
-                            "supported yet. Convert to uint if possible.")
+        self, bins, rescale_max = check_glcm(self, bins, rescale_max)
             
-        if bins is None:
-            if self.dtype == bool:
-                bins = 2
-            else:
-                bins = 256
-        
-        if self.dtype.kind == "u":
-            imax = np.iinfo(self.dtype).max
-            
-            if rescale_max:
-                scale = int(imax/self.max())
-                self *= scale
-                self.history.pop()
-            
-            if (imax+1) % bins != 0 or bins > imax+1:
-                raise ValueError(f"`bins` must be a divisor of {imax+1} (max value of {self.dtype}).")
-            self = self // bins
-            self.history.pop()
-            
-        self.ongoing = "glcm"
         c_axes = complement_axes(dims, self.axes)
+        self.ongoing = "glcm"
         outshape = self.sizesof(c_axes) + (bins, bins, len(distances), len(angles))
         out = self.parallel(glcm_, c_axes, distances, angles, bins, outshape=outshape, outdtype=np.uint32)
         out._set_info(self, "glcm", new_axes=c_axes+"ijd<")
@@ -1916,11 +1891,10 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def glcm_filter(self, distances, angles, radius, *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
+    def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
+                   *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
         """
-        Compute "Gray Level Coocurrence Matrix". This matrix is used for texture classification. For the
-        visualization and projection purpose, ImgArray (instead of PropArray) is returned but be aware
-        that returned image does not have yx-axes.
+        Compute properties of "Gray Level Coocurrence Matrix"
 
         Parameters
         ----------
@@ -1928,6 +1902,10 @@ class ImgArray(LabeledArray):
             List of pixel pair distance offsets.
         angles : array_like
             List of pixel pair angles in radians.
+        radius : int
+            Window radius.
+        properties : tuple of str
+            contrast, dissimilarity, homogeneity, energy, mean, std, asm, max, entropy
         bins : int, optional
             Number of bins.
         rescale_max : bool, default is False
@@ -1941,52 +1919,33 @@ class ImgArray(LabeledArray):
             GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
             distance and "<" means angle.
         """        
-        if self.dtype.kind == "f":
-            raise TypeError("Cannot calculate comatrix of float image. Explicitly rescale the image.")
-        elif self.dtype.kind == "i":
-            raise TypeError("Cannot calculate comatrix of int imaga because negative value is not "
-                            "supported yet. Convert to uint if possible.")
-            
-        if bins is None:
-            if self.dtype == bool:
-                bins = 2
-            else:
-                bins = 256
-        
-        if self.dtype.kind == "u":
-            imax = np.iinfo(self.dtype).max
-            
-            if rescale_max:
-                scale = int(imax/self.max())
-                self *= scale
-                self.history.pop()
-            
-            if (imax+1) % bins != 0 or bins > imax+1:
-                raise ValueError(f"`bins` must be a divisor of {imax+1} (max value of {self.dtype}).")
-            self = self // bins
-            self.history.pop()
-        
-        
+        self, bins, rescale_max = check_glcm(self, bins, rescale_max)
+        if properties is None:
+            properties = ("contrast", "dissimilarity", "idm", 
+                          "asm", "max", "entropy", "correlation")
         c_axes = complement_axes(dims, self.axes)
         distances = np.asarray(distances, dtype=np.uint8)
         angles = np.asarray(angles, dtype=np.float32)
         outshape = self.sizesof(c_axes) + (len(distances), len(angles)) + self.sizesof(dims)
-        out = ArrayDict(contrast=empty(outshape, dtype=np.uint16),
-                        dissimilarity=empty(outshape, dtype=np.uint16),
-                        homogeneity=empty(outshape, dtype=np.uint16),
-                        energy=empty(outshape, dtype=np.uint16))
-        
+        out = {}
+        for prop in properties:
+            if isinstance(prop, str):
+                out[prop] = empty(outshape, dtype=np.float32)
+            elif callable(prop):
+                out[prop.__name__] = empty(outshape, dtype=np.float32)
+            else:
+                raise TypeError("properties must be str or callable.")
+        out = ArrayDict(out)
         self = self.pad(radius, mode="reflect", dims=dims)
-        self.ongoing = "glcm_filter"
+        self.history.pop()
+        self.ongoing = "glcm_props"
         for sl, img in self.iter(c_axes):
-            contrast, dissimilarity, homogeneity, energy = glcm_filter_(img, distances, angles, bins, radius)
-            out.contrast.value[sl] = contrast
-            out.dissimilarity.value[sl] = dissimilarity
-            out.homogeneity.value[sl] = homogeneity
-            out.energy.value[sl] = energy
+            propout = glcm_props_(img, distances, angles, bins, radius, properties)
+            for prop in properties:
+                out[prop].value[sl] = propout[prop]
             
         for k, v in out.items():
-            v._set_info(self, f"glcm_filter-{k}", new_axes=c_axes+"d<"+dims)
+            v._set_info(self, f"glcm_props-{k}", new_axes=c_axes+"d<"+dims)
         return out
     
     

@@ -17,7 +17,7 @@ class BaseDict(dict):
         if hasattr(self, k):
             self.__setitem__(k,v)
         else:
-            raise AttributeError(f"{self.__class__} has not attribute {k}")
+            raise AttributeError(f"{self.__class__} has no attribute {k}")
     
     def __repr__(self):
         if self.keys():
@@ -31,20 +31,22 @@ class BaseDict(dict):
             
 class ArrayDict(BaseDict):
     def __keys_repr__(self):
+        maxl = max(len(aa) for aa in self.keys())
         out = f"{self.__class__.__name__} with\n"
         for k, v in self.items():
-            out += f"{k} : {v.shape_info}\n"
+            out += f"{k:>{maxl}} : {v.shape_info}\n"
         return out
 
 class FrameDict(BaseDict):
     def __keys_repr__(self):
+        maxl = max(len(aa) for aa in self.keys())
         out = f"{self.__class__.__name__} with\n"
         for k, v in self.items():
             if hasattr(v, "col_axes"):
                 caxes = v.col_axes
-                out += f"[{k} : {v.__class__.__name__} with {len(v)} rows x {len(caxes)} columns ({caxes})]\n"
+                out += f"[{k:>{maxl}} : {v.__class__.__name__} with {len(v)} rows x {len(caxes)} columns ({caxes})]\n"
             else:
-                out += f"[{k} : {v.__class__.__name__} with {len(v)} rows x {len(v.columns)} columns]\n"
+                out += f"[{k:>{maxl}} : {v.__class__.__name__} with {len(v)} rows x {len(v.columns)} columns]\n"
         return out
 
 class Timer:

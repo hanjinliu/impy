@@ -147,6 +147,35 @@ def check_matrix(ref):
             mtx.append(m)
     return mtx
 
+def check_glcm(self, bins, rescale_max):
+    if bins is None:
+        if self.dtype == bool:
+            bins = 2
+        else:
+            bins = 256
+    elif bins > 256:
+        raise ValueError("`bins` must be smaller than 256.")
+    
+    if self.dtype == np.uint16:
+        self = self.as_uint8()
+    elif self.dtype == np.uint8:
+        pass
+    else:
+        raise TypeError(f"Cannot calculate comatrix of {self.dtype} image.")
+        
+    imax = np.iinfo(self.dtype).max
+    
+    if rescale_max:
+        scale = int(imax/self.max())
+        self *= scale
+        self.history.pop()
+    
+    if (imax+1) % bins != 0 or bins > imax+1:
+        raise ValueError(f"`bins` must be a divisor of {imax+1} (max value of {self.dtype}).")
+    self = self // ((imax+1) // bins)
+    self.history.pop()
+    
+    return self, bins, rescale_max
 
 def gabor_kernel_nd(lmd, theta, psi:float, sigma:float, gamma:float, radius:int, ndim:int):
     if ndim == 2:
