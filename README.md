@@ -19,6 +19,45 @@ Here with `ImgArray`, this module solved major problems that happens when you co
 
 This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize images, and [trackpy](https://github.com/soft-matter/trackpy), which enables efficient molecule tracking.
 
+
+## Image Analysis Tools
+
+`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
+
+- `track_drift`, `drift_correction` &rarr; Automatic drift correction.
+- `wiener`, `lucy` &rarr; Deconvolution of images.
+- `pad`, `defocus` &rarr; Effective padding.
+- `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
+- `focus_map` &rarr; Find focus using variance of Laplacian method. 
+- `hessian_eigval`, `hessian_eig` &rarr; Feature detection using Hessian method.
+- `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Feature detection using structure tensor.
+- `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection.
+- `mean_filter`, `meadian_filter`, `gaussian_filter` &rarr; n-dimensional smoothing.
+- `directional_median_filter` &rarr; Smoothing without blurring edges.
+- `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
+- `sobel_filter`, `laplacian_filter` &rarr; Edge detection.
+- `entropy_filter`, `gabor_filter` &rarr; Object detection method.
+- `enhance_contrast` &rarr; Enhancing contrast.
+- `erosion`, `dilation`, `opening`, `closing` &rarr; Morphological processing.
+- `rolling_ball`, `tophat` &rarr; Background subtraction.
+- `convolve` &rarr; Any convolution.
+- `hessian_angle`, `gabor_angle` &rarr; Calculate angles of filaments for each pixel.
+- `gaussfit`, `gauss_correction` &rarr; Fit the image to 2-D Gaussian, and use it for image correction.
+- `distance_map`, `skeletonize`, `fill_hole`, `count_neighbors` &rarr; Processing binary images.
+- `fft`, `ifft` &rarr; Fourier transformation.
+- `threshold` &rarr; Thresholding (many methods included).
+- `find_sm`, `peak_local_max`, `corner_peaks` &rarr; Find maxima.
+- `centroid_sm`, `gauss_sm` &rarr; Find single molecule in subpixel precision.
+- `label`, `label_threshold`, `specify` &rarr; Label images.
+- `expand_labels`, `watershed`, "random_walker" &rarr; Adjuct/segment labels.
+- `regionprops`, `lineprops` &rarr; Measure properties on labels/lines.
+- `reslice` &rarr; Get line scan.
+- `lbp`, `glcm`, `glcm_props` &rarr; Texture classification.
+- `crop_center` &rarr; Crop image.
+- `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
+- `proj` &rarr; Z-projection along any axis.
+- `split` &rarr; Split the image along any axis.
+
 ## Brief Examples
 
 #### 1. Input/Output and Visualization
@@ -146,40 +185,6 @@ img - 10000     # pixel values smaller than 0 is substituted to 0
 img / 10        # output is converted to float32 
 ```
 
-## Image Analysis
-
-`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
-
-- `track_drift`, `drift_correction` &rarr; Automatic drift correction.
-- `wiener`, `lucy` &rarr; Deconvolution of images.
-- `pad`, `defocus` &rarr; Effective padding.
-- `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
-- `focus_map` &rarr; Find focus using variance of Laplacian method. 
-- `hessian_eigval`, `hessian_eig` &rarr; Feature detection using Hessian method.
-- `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Feature detection using structure tensor.
-- `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection.
-- `mean_filter`, `meadian_filter`, `gaussian_filter` &rarr; n-dimensional smoothing.
-- `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
-- `sobel_filter`, `laplacian_filter` &rarr; Edge detection.
-- `entropy_filter` &rarr; Object detection.
-- `enhance_contrast` &rarr; Enhancing contrast.
-- `erosion`, `dilation`, `opening`, `closing` &rarr; Morphological processing.
-- `rolling_ball`, `tophat` &rarr; Background subtraction.
-- `convolve` &rarr; Any convolution.
-- `gaussfit` &rarr; Fit the image to 2-D Gaussian.
-- `distance_map`, `skeletonize`, `fill_hole`, `count_neighbors` &rarr; Processing binary images.
-- `fft`, `ifft` &rarr; Fourier transformation.
-- `threshold` &rarr; Thresholding (many methods included).
-- `find_sm`, `peak_local_max`, `corner_peaks` &rarr; Find maxima.
-- `centroid_sm`, `gauss_sm` &rarr; Find single molecule in subpixel precision.
-- `label`, `label_threshold`, `specify` &rarr; Label images.
-- `expand_labels`, `watershed` &rarr; Adjuct labels.
-- `regionprops` &rarr; Measure properties on labels.
-- `reslice` &rarr; Get line scan.
-- `crop_center` &rarr; Crop image.
-- `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
-- `proj` &rarr; Z-projection along any axis.
-- `split` &rarr; Split the image along any axis.
 
 # References
 For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.
