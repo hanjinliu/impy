@@ -4,6 +4,7 @@ import trackpy as tp
 import os
 import glob
 import collections
+import warnings
 from skimage import io
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -414,13 +415,13 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     @record()
     def convolve(self, kernel, *, mode="reflect", cval=0, dims=None, update:bool=False):
-        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, mode, cval)
+        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, mode, cval, outdtype=self.dtype)
     
     @dims_to_spatial_axes
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.parallel(function, complement_axes(dims, self.axes), disk)
+        return self.parallel(function, complement_axes(dims, self.axes), disk, outdtype=self.dtype)
     
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -1141,6 +1142,32 @@ class ImgArray(LabeledArray):
                             
         return out
     
+    @record()    
+    def filament_angle(self, sigma:float=1., *, deg=True, dims="yx"):
+        """
+        Calculate filament angles using Hessian's eigenvectors.
+
+        Parameters
+        ----------
+        sigma : float, default is 1
+            Standard deviation of Gaussian filter applied before running Hessian.
+        deg : bool, default is True
+            If True, degree rather than radian is returned.
+        dims : str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Phase image with range [-90, 90] if deg==True, otherwise [-pi, pi].
+        """        
+        eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            arg = -np.arctan(eigvec["r=0;l=1"]/eigvec["r=1;l=1"])
+        deg and np.rad2deg(arg, out=arg)
+        return arg
+        
     
     @dims_to_spatial_axes
     @record()
@@ -1738,9 +1765,6 @@ class ImgArray(LabeledArray):
     @record(record_label=True)
     def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None):
         # TODO
-        # labels = np.zeros(self.shape, dtype="uint32")
-        # shape = self.sizesof(dims)
-        # n_labels = 0
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
@@ -1878,7 +1902,6 @@ class ImgArray(LabeledArray):
             GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
             distance and "<" means angle.
         """        
-        # TODO: this should be a part of specify? At least I need to apply glcm to small patches of an image.
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
             
         c_axes = complement_axes(dims, self.axes)
@@ -1916,8 +1939,8 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
-            distance and "<" means angle.
+            GLCM with additional axes "d<", where "d" means distance and "<" means angle.
+            If input image has "tzyx" axes then output will have "tzd<yx" axes.
         """        
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
         if properties is None:

@@ -214,7 +214,9 @@ class LabeledArray(HistoryArray):
         
     
     def as_img_type(self, dtype="uint16"):
-        if dtype == "uint16":
+        if str(self.dtype) == dtype:
+            return self
+        elif dtype == "uint16":
             return self.as_uint16()
         elif dtype == "uint8":
             return self.as_uint8()
