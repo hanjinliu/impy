@@ -9,10 +9,6 @@ from scipy import ndimage as ndi
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
-try:
-    from . import _process_numba as nb
-except ImportError:
-    pass
 
 def affine_(args):
     sl, data, mx, order = args
@@ -204,6 +200,18 @@ def structure_tensor_eigval_(args):
     eigval = np.linalg.eigvalsh(tensor)
     return sl, eigval
 
+def gabor_(args):
+    sl, data, ker = args
+    out = np.empty_like(data, dtype=np.complex64)
+    out.real[:] = ndi.convolve(data, ker.real)
+    out.imag[:] = ndi.convolve(data, ker.imag)
+    return sl, out
+
+def gabor_real_(args):
+    sl, data, ker = args
+    out = ndi.convolve(data, ker.real)
+    return sl, out
+
 def lbp_(args):
     sl, data, p, radius, method = args
     out = skfeat.local_binary_pattern(data, p, radius, method)
@@ -213,7 +221,6 @@ def glcm_(args):
     sl, data, distances, angles, levels = args
     out = skfeat.greycomatrix(data, distances, angles, levels=levels)
     return sl, out
-
 
 def label_(args):
     sl, data, connectivity = args

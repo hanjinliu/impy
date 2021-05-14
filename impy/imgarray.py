@@ -1143,7 +1143,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record()    
-    def filament_angle(self, sigma:float=1., *, deg=True, dims="yx"):
+    def hessian_angle(self, sigma:float=1., *, deg=True, dims="yx"):
         """
         Calculate filament angles using Hessian's eigenvectors.
 
@@ -1167,7 +1167,100 @@ class ImgArray(LabeledArray):
             arg = -np.arctan(eigvec["r=0;l=1"]/eigvec["r=1;l=1"])
         deg and np.rad2deg(arg, out=arg)
         return arg
+    
+    @record()
+    def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, 
+                     phi=0, *, deg=True, dims="yx") -> ImgArray:
+        """
+        Calculate filament angles using Gabor filter.
+
+        Parameters
+        ----------
+        n_sample : int, default is 180
+            Number of `theta`s to calculate. By default, -90, -89, ..., 89 degree are calculated.
+        lmd : float, default is 5
+            Wave length of Gabor kernel. Make sure that the diameter of the objects you want to detect is
+            around `lmd/2`.
+        sigma : float, default is 2.5
+            Standard deviation of Gaussian factor of Gabor kernel.
+        gamma : float, default is 1
+            Anisotropy of Gabor kernel, i.e. the standard deviation orthogonal to theta will be sigma/gamma.
+        phi : float, by default 0
+            Phase offset of harmonic factor of Gabor kernel.
+        deg : bool, default is True
+            If True, degree rather than radian is returned.
+        dims : str, by default "yx"
+            Spatial axes.
+            
+            
+        Returns
+        -------
+        ImgArray
+            Phase image with range [-90, 90] if deg==True, otherwise [-pi, pi].
+        """        
+        thetas = np.linspace(0, np.pi, n_sample, False)
+        max_ = np.empty(self.shape, dtype=np.float32)
+        argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle.
         
+        ifshow = self.__class__.show_progress
+        self.__class__.show_progress = False
+        print("gabor_angle ... ", end="")
+        timer = Timer()
+        c_axes = complement_axes(dims, self.axes)
+        for i, theta in enumerate(thetas):
+            ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
+            out_ = self.as_float().parallel(gabor_real_, c_axes, ker)
+            if i > 0:
+                where_update = out_ > max_
+                max_[where_update] = out_[where_update]
+                argmax_[where_update] = i
+            else:
+                max_ = out_
+        argmax_ *= (thetas[1] - thetas[0])
+        argmax_[:] = np.pi/2 - argmax_
+        deg and np.rad2deg(argmax_, out=argmax_)
+        timer.toc()
+        print(f"\rgabor_angle completed ({timer})")
+        self.__class__.show_progress = ifshow
+        
+        return argmax_
+        
+    
+    @record()
+    def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma=1, 
+                     phi=0, *, return_imag=False, dims="yx") -> ImgArray:
+        """
+        Make a Gabor kernel and convolve it.
+
+        Parameters
+        ----------
+        lmd : float, default is 5
+            Wave length of Gabor kernel. Make sure that the diameter of the objects you want to detect is
+            around `lmd/2`.
+        theta : float, default is 0
+            Orientation of harmonic factor of Gabor kernel in radian (x-directional if `theta==0`).
+        sigma : float, default is 2.5
+            Standard deviation of Gaussian factor of Gabor kernel.
+        gamma : float, default is 1
+            Anisotropy of Gabor kernel, i.e. the standard deviation orthogonal to theta will be sigma/gamma.
+        phi : float, by default 0
+            Phase offset of harmonic factor of Gabor kernel.
+        return_imag : bool, default is False
+            If True, a complex image that contains both real and imaginary part of Gabor response is returned.
+        dims : str, by default "yx"
+            Spatial axes.
+
+        Returns
+        -------
+        ImgArray (dtype is float32 or complex64)
+            Filtered image.
+        """        
+        ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
+        if return_imag:
+            out = self.as_float().parallel(gabor_, complement_axes(dims, self.axes), ker, outdtype=np.complex64)
+        else:
+            out = self.as_float().parallel(gabor_real_, complement_axes(dims, self.axes), ker)
+        return out
     
     @dims_to_spatial_axes
     @record()
