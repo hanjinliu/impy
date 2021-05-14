@@ -524,7 +524,7 @@ class ImgArray(LabeledArray):
     @record()
     def entropy_filter(self, radius:float=5, *, dims=None) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.parallel(entropy_, complement_axes(dims, self.axes), disk)
+        return self.as_float().parallel(entropy_, complement_axes(dims, self.axes), disk)
     
     @record()
     def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -700,12 +700,6 @@ class ImgArray(LabeledArray):
         """        
         return -self.as_float().parallel(gaussian_laplace_, complement_axes(dims, self.axes), sigma)
     
-    @dims_to_spatial_axes
-    @record()
-    def gabor_filter(self, lmd=1, theta=0, psi=0, sigma=1, gamma=1, radius=5, *, dims=None):
-        ker = gabor_kernel_nd(lmd, theta, psi, sigma, gamma, radius)
-        
-        return
     
     @dims_to_spatial_axes
     @record()
@@ -1857,7 +1851,7 @@ class ImgArray(LabeledArray):
     @need_labels
     @record(record_label=True)
     def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None):
-        # TODO
+        # TODO: This usage of labels is inconvenient.
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
