@@ -3,6 +3,8 @@ from numba import jit
 import numpy as np
 from scipy.stats import entropy
 
+__all__ = ["glcm_props_"]
+
 @jit("void(uint8[:], f4[:], i8, i8, uint8[:,:], f4[:,:,:,:])", nopython=True)
 def _calc_glcm(distances, angles, levels, radius, patch, glcm):
     glcm[:,:,:,:] = 0

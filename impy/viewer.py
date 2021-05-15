@@ -3,6 +3,7 @@ import napari
 import matplotlib.pyplot as plt
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
+from .phasearray import PhaseArray
 from .label import Label
 from .specials import *
 
@@ -49,8 +50,10 @@ class napariWindow:
         else:
             raise TypeError(f"Could not interpret type {type(obj)}")
     
-    def _add_image(self, img:ImgArray, **kwargs):
+    def _add_image(self, img:LabeledArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
+        if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
+            kwargs["colormap"] = "hsv"
         self.viewer.add_image(img,
                               channel_axis=chn_ax,
                               scale=[img.scale[a] for a in img.axes if a != "c"],
@@ -94,11 +97,16 @@ class napariWindow:
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
-        track_list = track.split("c") if "c" in track.col_axes else [track]
+        if "c" in track.col_axes:
+            track_list = track.split("c")
+        else:
+            track_list = [track]
+            
         scale = [track.scale[a] for a in track._axes if a not in "pc"]
         for tr in track_list:
             self.viewer.add_tracks(tr, scale=scale, **kwargs)
         
         return None
+            
 
 window = napariWindow()

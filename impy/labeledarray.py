@@ -1,13 +1,18 @@
+from __future__ import annotations
 import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
+from .axes import ImageAxesError
 from .func import *
 from .deco import *
 from .utilcls import *
+from ._process import label_
 from .historyarray import HistoryArray
+from .label import Label
 from tifffile import imwrite
 from skimage.exposure import histogram
+from skimage import segmentation as skseg
 from skimage.color import label2rgb
 
 class LabeledArray(HistoryArray):
@@ -463,7 +468,7 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def iter(self, axes, showprogress:bool=True, israw=False, exclude=""):
+    def iter(self, axes, showprogress:bool=True, israw:bool=False, exclude=""):
         """
         Iteration along axes.
 
@@ -585,3 +590,116 @@ class LabeledArray(HistoryArray):
         return results
     
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Multi-processing
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    
+    @dims_to_spatial_axes
+    @record(False)
+    def label(self, label_image=None, *, dims=None, connectivity=None) -> LabeledArray:
+        """
+        Run skimage's label() and store the results as attribute.
+
+        Parameters
+        ----------
+        label_image : array, optional
+            Image to make label, by default self is used.
+        dims : int or str, optional
+            Dimension of axes.
+        connectivity : int, optional
+            Passed to skimage's label(), by default None
+
+        Returns
+        -------
+        LabeledArray
+            Labeled image.
+        
+        Example
+        -------
+        Label the image with threshold and visualize with napari.
+        >>> thr = img.threshold()
+        >>> img.label(thr)
+        >>> ip.window.add(img)
+        """        
+        # check the shape of label_image
+        if label_image is None:
+            label_image = self
+        elif not hasattr(label_image, "axes") or label_image.axes.is_none():
+            raise ValueError("Use Array with axes for label_image.")
+        elif not axes_included(self, label_image):
+            raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
+                                 f"{label_image.axes} and {self.axes}")
+        elif not shape_match(self, label_image):
+            raise ImageAxesError("Shape mismatch.")
+        
+        c_axes = complement_axes(dims, self.axes)
+        label_image.ongoing = "label"
+        labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
+        label_image.ongoing = None
+        del label_image.ongoing
+        
+        min_nlabel = 0
+        for sl, _ in label_image.iter(c_axes, False):
+            labels[sl][labels[sl]>0] += min_nlabel
+            min_nlabel += labels[sl].max()
+        
+        self.labels = labels.view(Label).optimize()
+        self.labels._set_info(label_image, "Labeled")
+        self.labels.set_scale(self)
+        return self
+    
+    @dims_to_spatial_axes
+    @need_labels
+    @record(record_label=True)
+    def expand_labels(self, distance:int=1, *, dims=None) -> LabeledArray:
+        """
+        Expand areas of labels.
+
+        Parameters
+        ----------
+        distance : int, optional
+            The distance to expand, by default 1
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        ImgArray
+            Same array but labels are updated.
+        """        
+        
+        labels = np.empty_like(self.labels).value
+        for sl, img in self.iter(complement_axes(dims, self.axes), israw=True, exclude=dims):
+            labels[sl] = skseg.expand_labels(img.labels.value, distance)
+        
+        self.labels.value[:] = labels
+        
+        return self
+    
+    def append_label(self, label_image:np.ndarray, new:bool=False) -> LabeledArray:
+        if not isinstance(label_image, np.ndarray):
+            raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")
+        
+        if hasattr(self, "labels") and not new:
+            if label_image.shape != self.labels.shape:
+                raise ImageAxesError(f"Shape mismatch. Existing labels have shape {self.labels.shape} "
+                                     f"while labels with shape {label_image.shape} is given.")
+            if label_image.dtype == bool:
+                label_image = label_image.astype(np.uint8)
+            self.labels = self.labels.add_label(label_image)
+        else:
+            # when label_image is simple ndarray
+            if not hasattr(label_image, "axes"):
+                if label_image.shape == self.shape:
+                    axes = self.axes
+                elif label_image.ndim == 2 and "y" in self.axes and "x" in self.axes:
+                    axes = "yx"
+                else:
+                    raise ValueError("Could not infer axes of `label_image`.")
+            else:
+                axes = label_image.axes
+                if not axes_included(self, label_image):
+                    raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
+                
+            self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
+        return self

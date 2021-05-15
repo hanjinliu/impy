@@ -38,11 +38,8 @@ def record(append_history=True, record_label=False):
             if record_label:
                 self.labels.axes = label_axes
                 
-            # view as ImgArray etc. if possible
-            try:
+            if type(out) is np.ndarray:
                 out = out.view(self.__class__)
-            except AttributeError:
-                pass
             
             # record history and update if needed
             ifupdate = kwargs.pop("update", False)

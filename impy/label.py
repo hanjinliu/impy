@@ -10,11 +10,13 @@ import matplotlib.pyplot as plt
 
 def best_dtype(n:int):
     if n < 256:
-        return "uint8"
+        return np.uint8
     elif n < 65536:
-        return "uint16"
+        return np.uint16
+    elif n < 4294967296:
+        return np.uint32
     else:
-        return "uint32"
+        return np.uint64
 
 class Label(HistoryArray):
     def increment(self, n:int):
@@ -28,10 +30,12 @@ class Label(HistoryArray):
             return self
     
     def as_larger_type(self):
-        if self.dtype == "uint8":
-            return self.astype("uint16")
-        elif self.dtype == "uint16":
-            return self.astype("uint32")
+        if self.dtype == np.uint8:
+            return self.astype(np.uint16)
+        elif self.dtype == np.uint16:
+            return self.astype(np.uint32)
+        elif self.dtype == np.uint32:
+            return self.astype(np.uint64)
         else:
             raise OverflowError
 
@@ -39,9 +43,11 @@ class Label(HistoryArray):
         self.relabel()
         m = self.max()
         if m < 256 and np.iinfo(self.dtype).max >= 256:
-            return self.astype("uint8")
-        elif m < 65536 and np.iinfo(self.dtype).max >= 65535:
-            return self.astype("uint16")
+            return self.astype(np.uint8)
+        elif m < 65536 and np.iinfo(self.dtype).max >= 65536:
+            return self.astype(np.uint16)
+        elif m < 4294967296 and np.iinfo(self.dtype).max >= 4294967296:
+            return self.astype(np.uint32)
         else:
             return self
     
@@ -49,6 +55,13 @@ class Label(HistoryArray):
         self[:] = skseg.relabel_sequential(self.value)[0]
         return self
     
+    def add_label(self, label_image):
+        label_image = label_image.view(self.__class__).relabel()
+        label_image = label_image.increment(self.max())
+        self = self.astype(label_image.dtype)
+        self[label_image>0] = label_image[label_image>0]
+        return self
+        
     def imshow(self, **kwargs):
         plt.figure()
         plt.imshow(label2rgb(self, bg_label=0), **kwargs)

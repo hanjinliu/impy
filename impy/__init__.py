@@ -19,8 +19,8 @@ Inheritance
        HistoryArray     PropArray
        /         \    
  LabeledArray   Label  
-    /
-ImgArray
+    /     \
+ImgArray AngleArray
 
 """
 

@@ -20,6 +20,7 @@ from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
 from .axes import Axes, ImageAxesError
+from .phasearray import PhaseArray
 from .specials import *
 from .utilcls import *
 from ._process import *
@@ -524,7 +525,8 @@ class ImgArray(LabeledArray):
     @record()
     def entropy_filter(self, radius:float=5, *, dims=None) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.as_float().parallel(entropy_, complement_axes(dims, self.axes), disk)
+        self = self.as_float() / self.max() # skimage's entropy filter only accept [-1,1] float images.
+        return self.parallel(entropy_, complement_axes(dims, self.axes), disk)
     
     @record()
     def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -587,7 +589,7 @@ class ImgArray(LabeledArray):
             Threshold (value or method) to apply if image is not binary.
         dims : int or str, optional
             Dimension of axes.
-        update : bool, by default False
+        update : bool, default is False
             If update self to filtered image.
 
         Returns
@@ -1160,13 +1162,14 @@ class ImgArray(LabeledArray):
             warnings.simplefilter("ignore", RuntimeWarning)
             arg = -np.arctan(eigvec["r=0;l=1"]/eigvec["r=1;l=1"])
         deg and np.rad2deg(arg, out=arg)
-        return arg
+        return arg.view(PhaseArray)
     
     @record()
     def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, 
                      phi=0, *, deg=True, dims="yx") -> ImgArray:
         """
-        Calculate filament angles using Gabor filter.
+        Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
+        calculated, and the strongest response is returned as output array.
 
         Parameters
         ----------
@@ -1186,7 +1189,6 @@ class ImgArray(LabeledArray):
         dims : str, by default "yx"
             Spatial axes.
             
-            
         Returns
         -------
         ImgArray
@@ -1194,7 +1196,7 @@ class ImgArray(LabeledArray):
         """        
         thetas = np.linspace(0, np.pi, n_sample, False)
         max_ = np.empty(self.shape, dtype=np.float32)
-        argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle.
+        argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle array.
         
         ifshow = self.__class__.show_progress
         self.__class__.show_progress = False
@@ -1217,7 +1219,7 @@ class ImgArray(LabeledArray):
         print(f"\rgabor_angle completed ({timer})")
         self.__class__.show_progress = ifshow
         
-        return argmax_
+        return argmax_.view(PhaseArray)
         
     
     @record()
@@ -1692,91 +1694,116 @@ class ImgArray(LabeledArray):
         
         return out
     
-    @dims_to_spatial_axes
-    @record(False)
-    def label(self, label_image=None, *, dims=None, connectivity=None) -> ImgArray:
-        """
-        Run skimage's label() and store the results as attribute.
+    # @dims_to_spatial_axes
+    # @record(False)
+    # def label(self, label_image=None, *, dims=None, connectivity=None) -> ImgArray:
+    #     """
+    #     Run skimage's label() and store the results as attribute.
 
-        Parameters
-        ----------
-        label_image : array, optional
-            Image to make label, by default self is used.
-        dims : int or str, optional
-            Dimension of axes.
-        connectivity : int, optional
-            Passed to skimage's label(), by default None
+    #     Parameters
+    #     ----------
+    #     label_image : array, optional
+    #         Image to make label, by default self is used.
+    #     dims : int or str, optional
+    #         Dimension of axes.
+    #     connectivity : int, optional
+    #         Passed to skimage's label(), by default None
 
-        Returns
-        -------
-        ImgArray
-            Labeled image.
+    #     Returns
+    #     -------
+    #     ImgArray
+    #         Labeled image.
         
-        Example
-        -------
-        Label the image with threshold and visualize with napari.
-        >>> thr = img.threshold()
-        >>> img.label(thr)
-        >>> ip.window.add(img)
-        """        
-        # check the shape of label_image
-        if label_image is None:
-            label_image = self
-            
-        elif not hasattr(label_image, "axes") or label_image.axes.is_none():
-            raise ValueError("Use Array with axes for label_image.")
+    #     Example
+    #     -------
+    #     Label the image with threshold and visualize with napari.
+    #     >>> thr = img.threshold()
+    #     >>> img.label(thr)
+    #     >>> ip.window.add(img)
+    #     """        
+    #     # check the shape of label_image
+    #     if label_image is None:
+    #         label_image = self
+    #     elif not hasattr(label_image, "axes") or label_image.axes.is_none():
+    #         raise ValueError("Use Array with axes for label_image.")
+    #     elif not axes_included(self, label_image):
+    #         raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
+    #                              f"{label_image.axes} and {self.axes}")
+    #     elif not shape_match(self, label_image):
+    #         raise ImageAxesError("Shape mismatch.")
         
-        elif not axes_included(self, label_image):
-            raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
-                                 f"{label_image.axes} and {self.axes}")
+    #     c_axes = complement_axes(dims, self.axes)
+    #     label_image.ongoing = "label"
+    #     labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
+    #     label_image.ongoing = None
+    #     del label_image.ongoing
         
-        elif not shape_match(self, label_image):
-            raise ImageAxesError("Shape mismatch.")
+    #     min_nlabel = 0
+    #     for sl, _ in label_image.iter(c_axes, False):
+    #         labels[sl][labels[sl]>0] += min_nlabel
+    #         min_nlabel += labels[sl].max()
         
-        c_axes = complement_axes(dims, self.axes)
-        label_image.ongoing = "label"
-        labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
-        label_image.ongoing = None
-        del label_image.ongoing
-        
-        min_nlabel = 0
-        for sl, _ in label_image.iter(c_axes, False):
-            labels[sl][labels[sl]>0] += min_nlabel
-            min_nlabel += labels[sl].max()
-        
-        self.labels = labels.view(Label).optimize()
-        self.labels._set_info(label_image, "Labeled")
-        self.labels.set_scale(self)
-        return self
+    #     self.labels = labels.view(Label).optimize()
+    #     self.labels._set_info(label_image, "Labeled")
+    #     self.labels.set_scale(self)
+    #     return self
     
-    @dims_to_spatial_axes
-    @need_labels
-    @record(record_label=True)
-    def expand_labels(self, distance:int=1, *, dims=None) -> ImgArray:
-        """
-        Expand areas of labels.
+    # @dims_to_spatial_axes
+    # @need_labels
+    # @record(record_label=True)
+    # def expand_labels(self, distance:int=1, *, dims=None) -> ImgArray:
+    #     """
+    #     Expand areas of labels.
 
-        Parameters
-        ----------
-        distance : int, optional
-            The distance to expand, by default 1
-        dims : int or str, optional
-            Dimension of axes.
+    #     Parameters
+    #     ----------
+    #     distance : int, optional
+    #         The distance to expand, by default 1
+    #     dims : int or str, optional
+    #         Dimension of axes.
 
-        Returns
-        -------
-        ImgArray
-            Same array but labels are updated.
-        """        
+    #     Returns
+    #     -------
+    #     ImgArray
+    #         Same array but labels are updated.
+    #     """        
         
-        labels = np.empty_like(self.labels).value
-        for sl, img in self.iter(complement_axes(dims, self.axes), israw=True, exclude=dims):
-            labels[sl] = skseg.expand_labels(img.labels.value, distance)
+    #     labels = np.empty_like(self.labels).value
+    #     for sl, img in self.iter(complement_axes(dims, self.axes), israw=True, exclude=dims):
+    #         labels[sl] = skseg.expand_labels(img.labels.value, distance)
         
-        self.labels.value[:] = labels
+    #     self.labels.value[:] = labels
         
-        return self
+    #     return self
     
+    # def append_label(self, label_image:np.ndarray, new:bool=False) -> ImgArray:
+    #     if not isinstance(label_image, np.ndarray):
+    #         raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")
+        
+    #     if hasattr(self, "labels") and not new:
+    #         if label_image.shape != self.labels.shape:
+    #             raise ImageAxesError(f"Shape mismatch. Existing labels have shape {self.labels.shape} "
+    #                                  f"while labels with shape {label_image.shape} is given.")
+    #         if label_image.dtype == bool:
+    #             label_image = label_image.astype(np.uint8)
+    #         self.labels = self.labels.add_label(label_image)
+    #     else:
+    #         # when label_image is simple ndarray
+    #         if not hasattr(label_image, "axes"):
+    #             if label_image.shape == self.shape:
+    #                 axes = self.axes
+    #             elif label_image.ndim == 2 and "y" in self.axes and "x" in self.axes:
+    #                 axes = "yx"
+    #             else:
+    #                 raise ValueError("Could not infer axes of `label_image`.")
+    #         else:
+    #             axes = label_image.axes
+    #             if not axes_included(self, label_image):
+    #                 raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
+                
+    #         self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
+    #     return self
+        
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
@@ -1851,7 +1878,6 @@ class ImgArray(LabeledArray):
     @need_labels
     @record(record_label=True)
     def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None):
-        # TODO: This usage of labels is inconvenient.
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
@@ -2004,7 +2030,8 @@ class ImgArray(LabeledArray):
     def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
                    *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
         """
-        Compute properties of "Gray Level Coocurrence Matrix"
+        Compute properties of "Gray Level Coocurrence Matrix". This will take long time
+        because of pure Python for-loop.
 
         Parameters
         ----------
@@ -2605,7 +2632,11 @@ def read_meta(path:str) -> dict:
     return meta
 
 def set_cpu(n_cpu:int) -> None:
-    ImgArray.n_cpu=n_cpu
+    ImgArray.n_cpu = n_cpu
+    return None
+
+def set_verbose(b:bool) -> None:
+    ImgArray.show_progress = b
     return None
 
 def stack(imgs, axis="c", dtype=None):

@@ -1,5 +1,4 @@
 import time
-import numpy as np
 
 class BaseDict(dict):
     def __init__(self, d=None, **kwargs):
@@ -61,9 +60,10 @@ class Timer:
     
     def __str__(self):
         minute, sec = divmod(self.t, 60)
-        sec = np.round(sec, 2)
+        sec = round(sec, 2)
         if minute == 0:
             out = f"{sec} sec"
         else:
             out = f"{int(minute)} min {sec} sec"
         return out
+    
