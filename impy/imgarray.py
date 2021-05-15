@@ -1166,7 +1166,7 @@ class ImgArray(LabeledArray):
     
     @record()
     def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, 
-                     phi=0, *, deg=True, dims="yx") -> ImgArray:
+                     phi=0, *, deg=False, dims="yx") -> ImgArray:
         """
         Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
         calculated, and the strongest response is returned as output array.
@@ -1184,7 +1184,7 @@ class ImgArray(LabeledArray):
             Anisotropy of Gabor kernel, i.e. the standard deviation orthogonal to theta will be sigma/gamma.
         phi : float, by default 0
             Phase offset of harmonic factor of Gabor kernel.
-        deg : bool, default is True
+        deg : bool, default is False
             If True, degree rather than radian is returned.
         dims : str, by default "yx"
             Spatial axes.

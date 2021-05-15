@@ -42,6 +42,13 @@ def mean_(args):
     sl, data, selem = args
     return sl, ndi.convolve(data, selem/np.sum(selem))
 
+def phase_mean_(args):
+    sl, data, selem, a = args
+    out = np.empty_like(data, dtype=np.complex64)
+    np.exp(1j*a*data, out=out)
+    ndi.convolve(out, selem, output=out)
+    return sl, np.angle(out)/a
+    
 def std_(args):
     sl, data, selem = args
     selem = selem / np.sum(selem)

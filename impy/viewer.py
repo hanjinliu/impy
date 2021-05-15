@@ -16,7 +16,9 @@ a.symbol="arrow"
 a.size = 0.2
 """
 
-# TODO: read layers
+# TODO: 
+# - read layers
+# - different name for different window
 
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
