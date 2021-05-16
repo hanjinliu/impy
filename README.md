@@ -48,8 +48,9 @@ This module also provides many image analysis tools and seamless interface betwe
 - `threshold` &rarr; Thresholding (many methods included).
 - `find_sm`, `peak_local_max`, `corner_peaks` &rarr; Find maxima.
 - `centroid_sm`, `gauss_sm` &rarr; Find single molecule in subpixel precision.
-- `label`, `label_threshold`, `specify` &rarr; Label images.
-- `expand_labels`, `watershed`, "random_walker" &rarr; Adjuct/segment labels.
+- `label`, `label_threshold`, `specify`, `append_label` &rarr; Label images.
+- `expand_labels`, `watershed`, `random_walker` &rarr; Adjuct/segment labels.
+- `extract` &rarr; Substitute values that do not satisfy certain condition.
 - `regionprops`, `lineprops` &rarr; Measure properties on labels/lines.
 - `reslice` &rarr; Get line scan.
 - `lbp`, `glcm`, `glcm_props` &rarr; Texture classification.
