@@ -443,3 +443,14 @@ def check_filter_func(f):
     elif not callable(f):
         raise TypeError("`filt` must be callable.")
     return f
+
+
+def largest_zeros(shape):
+    try:
+        out = np.zeros(shape, dtype=np.uint64)
+    except MemoryError:
+        try:
+            out = np.zeros(shape, dtype=np.uint32)
+        except MemoryError:
+            out = np.zeros(shape, dtype=np.uint16)
+    return out

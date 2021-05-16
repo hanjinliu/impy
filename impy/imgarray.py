@@ -1250,6 +1250,15 @@ class ImgArray(LabeledArray):
         -------
         ImgArray (dtype is float32 or complex64)
             Filtered image.
+        
+        Example
+        -------
+        Edge Detection using multi-angle Gabor filtering.
+        >>> thetas = np.deg2rad([0, 45, 90, 135])
+        >>> out = np.zeros((4,)+img.shape, dtype=np.float32)
+        >>> for i, theta in enumerate(thetas):
+        >>>     out[i] = img.gabor_filter(theta=theta)
+        >>> out = np.max(out, axis=0)
         """        
         ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
@@ -1371,104 +1380,6 @@ class ImgArray(LabeledArray):
         
         return out
         
-    @dims_to_spatial_axes
-    def specify(self, center, radius, filt=None, *, dims=None, labeltype="square") -> ImgArray:
-        """
-        Make rectangle or ellipse labels from points.
-        
-        Parameters
-        ----------
-        center : array like or MarkerFrame
-            Coordinates of centers. For MarkerFrame, it must have the same axes order.
-        radius : float or array
-            Radius of labels.
-        filt : callable, optional
-            For every slice `sl`, label is added only when filt(self[sl]) is satisfied.
-        dims : int or str, optional
-            Dimension of axes.
-        labeltype : str, by default "square"
-            The shape of labels.
-
-        Returns
-        -------
-        ImgArray
-            Labeled image.
-        
-        Example
-        -------
-        Find single molecules, draw circular labels around them if mean values were greater than 100.
-        >>> coords = img.find_sm()
-        >>> filter_func = lambda a: np.mean(a) > 100
-        >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
-        >>> ip.window.add(img)
-        """
-        if isinstance(center, MarkerFrame):
-            # determine dims to iterate.
-            # dims = "".join(a for a in dims if a not in center.axes)
-            dims = str(center.col_axes)
-            ndim = len(dims)
-            # convert radius to an array
-            if np.isscalar(radius):
-                radius = np.full(ndim, radius)
-            radius = np.asarray(radius)
-            
-            shape = self.sizesof(dims)
-            label_axes = str(center.col_axes)
-            label_shape = self.sizesof(label_axes)
-            if hasattr(self, "labels"):
-                print("Existing labels are updated.")
-            self.labels = Label(np.zeros(label_shape, dtype="uint8"), dtype="uint8", axes=label_axes)
-            self.labels.set_scale(self)
-
-            filt = check_filter_func(filt)
-            
-            print("specify ... ", end="")
-            timer = Timer()
-            for crd in center.values:
-                c = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = specify_one(c, radius, shape, labeltype)
-                img_ = self[label_sl][sl]
-                if img_.size > 0 and filt(img_):
-                    self.labels[label_sl][sl] = self.labels.max() + 1
-                    # increase memory if needed
-                    if self.labels.max() == np.iinfo(self.labels.dtype).max:
-                        self.labels = self.labels.as_larger_type()
-                        
-            timer.toc()
-            print(f"\rspecify completed ({timer})")
-        
-        else:
-            center = np.asarray(center)
-            if center.ndim == 1:
-                center = center.reshape(1, -1)
-            
-            cols = {1:"x", 2:"yx", 3:"zyx"}[center.shape[1]]
-            center = MarkerFrame(center, columns=cols, dtype="uint16")
-
-            return self.specify(center, radius, filt=filt, dims=dims, labeltype=labeltype)     
-        
-        return self
-    
-    @record()
-    def crop_center(self, scale:float=0.5) -> ImgArray:
-        """
-        Crop out the center of an image.
-        e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
-        """
-        if scale <= 0 or 1 < scale:
-            raise ValueError(f"scale must be (0, 1], but got {scale}")
-        
-        sizey, sizex = self.sizesof("yx")
-        
-        x0 = int(sizex / 2 * (1 - scale))
-        x1 = int(sizex / 2 * (1 + scale)) + 1
-        y0 = int(sizey / 2 * (1 - scale))
-        y1 = int(sizey / 2 * (1 + scale)) + 1
-
-        out = self[f"x={x0}-{x1};y={y0}-{y1}"]
-        
-        return out
     
     @dims_to_spatial_axes
     @only_binary
@@ -1576,52 +1487,6 @@ class ImgArray(LabeledArray):
         return out
     
     
-    def reslice(self, src, dst, linewidth:int=1, *, order=None, dims="yx") -> PropArray:
-        """
-        Measure line profile iteratively for every slice of image.
-
-        Parameters
-        ----------
-        src : array, shape (2,)
-            Source coordinate.
-        dst : array, shape (2,)
-            Destination coordinate.
-        linewidth : int, by default 1.
-            Line width.
-        order : int, optional
-            Spline interpolation order.
-        dims : int or str, optional
-            Dimension of axes.
-
-        Returns
-        -------
-        PropArray
-            Line scans.
-        
-        Example
-        -------
-        Rescile along a line and fit to a model function for every time frame.
-        >>> scan = img.reslice([18,32], [53,48])
-        >>> out = scan.curve_fit(func, init, return_fit=True)
-        >>> plt.plot(scan[0])
-        >>> plt.plot(out.fit[0])
-        """        
-        # determine length, TODO: test
-        src = np.asarray(src, dtype=float)
-        dst = np.asarray(dst, dtype=float)
-        d_row, d_col = dst - src
-        length = int(np.ceil(np.hypot(d_row, d_col) + 1))
-        
-        c_axes = complement_axes(dims, self.axes)
-        out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
-                        name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
-        self.ongoing = "reslice"
-        for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
-                                         order=order, mode="reflect")
-        out.set_scale(self)
-        return out
-    
     def lineprops(self, src, dst, func="mean", linewidth:int=1, *, order=None,
                   dims="yx", squeeze=True) -> PropArray:
         """
@@ -1694,116 +1559,6 @@ class ImgArray(LabeledArray):
         
         return out
     
-    # @dims_to_spatial_axes
-    # @record(False)
-    # def label(self, label_image=None, *, dims=None, connectivity=None) -> ImgArray:
-    #     """
-    #     Run skimage's label() and store the results as attribute.
-
-    #     Parameters
-    #     ----------
-    #     label_image : array, optional
-    #         Image to make label, by default self is used.
-    #     dims : int or str, optional
-    #         Dimension of axes.
-    #     connectivity : int, optional
-    #         Passed to skimage's label(), by default None
-
-    #     Returns
-    #     -------
-    #     ImgArray
-    #         Labeled image.
-        
-    #     Example
-    #     -------
-    #     Label the image with threshold and visualize with napari.
-    #     >>> thr = img.threshold()
-    #     >>> img.label(thr)
-    #     >>> ip.window.add(img)
-    #     """        
-    #     # check the shape of label_image
-    #     if label_image is None:
-    #         label_image = self
-    #     elif not hasattr(label_image, "axes") or label_image.axes.is_none():
-    #         raise ValueError("Use Array with axes for label_image.")
-    #     elif not axes_included(self, label_image):
-    #         raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
-    #                              f"{label_image.axes} and {self.axes}")
-    #     elif not shape_match(self, label_image):
-    #         raise ImageAxesError("Shape mismatch.")
-        
-    #     c_axes = complement_axes(dims, self.axes)
-    #     label_image.ongoing = "label"
-    #     labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
-    #     label_image.ongoing = None
-    #     del label_image.ongoing
-        
-    #     min_nlabel = 0
-    #     for sl, _ in label_image.iter(c_axes, False):
-    #         labels[sl][labels[sl]>0] += min_nlabel
-    #         min_nlabel += labels[sl].max()
-        
-    #     self.labels = labels.view(Label).optimize()
-    #     self.labels._set_info(label_image, "Labeled")
-    #     self.labels.set_scale(self)
-    #     return self
-    
-    # @dims_to_spatial_axes
-    # @need_labels
-    # @record(record_label=True)
-    # def expand_labels(self, distance:int=1, *, dims=None) -> ImgArray:
-    #     """
-    #     Expand areas of labels.
-
-    #     Parameters
-    #     ----------
-    #     distance : int, optional
-    #         The distance to expand, by default 1
-    #     dims : int or str, optional
-    #         Dimension of axes.
-
-    #     Returns
-    #     -------
-    #     ImgArray
-    #         Same array but labels are updated.
-    #     """        
-        
-    #     labels = np.empty_like(self.labels).value
-    #     for sl, img in self.iter(complement_axes(dims, self.axes), israw=True, exclude=dims):
-    #         labels[sl] = skseg.expand_labels(img.labels.value, distance)
-        
-    #     self.labels.value[:] = labels
-        
-    #     return self
-    
-    # def append_label(self, label_image:np.ndarray, new:bool=False) -> ImgArray:
-    #     if not isinstance(label_image, np.ndarray):
-    #         raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")
-        
-    #     if hasattr(self, "labels") and not new:
-    #         if label_image.shape != self.labels.shape:
-    #             raise ImageAxesError(f"Shape mismatch. Existing labels have shape {self.labels.shape} "
-    #                                  f"while labels with shape {label_image.shape} is given.")
-    #         if label_image.dtype == bool:
-    #             label_image = label_image.astype(np.uint8)
-    #         self.labels = self.labels.add_label(label_image)
-    #     else:
-    #         # when label_image is simple ndarray
-    #         if not hasattr(label_image, "axes"):
-    #             if label_image.shape == self.shape:
-    #                 axes = self.axes
-    #             elif label_image.ndim == 2 and "y" in self.axes and "x" in self.axes:
-    #                 axes = "yx"
-    #             else:
-    #                 raise ValueError("Could not infer axes of `label_image`.")
-    #         else:
-    #             axes = label_image.axes
-    #             if not axes_included(self, label_image):
-    #                 raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
-                
-    #         self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
-    #     return self
-        
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
@@ -1840,24 +1595,24 @@ class ImgArray(LabeledArray):
             raise ValueError("'input_' must be either 'self' or 'distance'.")
                 
         if input_img.dtype == bool:
-            input_img = input_img.astype("uint8")
+            input_img = input_img.astype(np.uint8)
             
         input_img._view_labels(self)
         
         if coords is None:
             coords = input_img.peak_local_max(min_distance=min_distance, dims=dims)
         
-        labels = np.zeros(input_img.shape, dtype="uint32")
+        labels = largest_zeros(input_img.shape)
         input_img.ongoing = "watershed"
         shape = self.sizesof(dims)
         n_labels = 0
         c_axes = complement_axes(dims, self.axes)
-        markers = np.zeros(shape, dtype="uint32") # placeholder for maxima
+        markers = np.zeros(shape, dtype=labels.dtype) # placeholder for maxima
         for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
                                        coords.groupby([a for a in c_axes])):
             # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
             crd = crd.values.T.tolist()
-            markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype="uint32")
+            markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
             labels[sl] = skseg.watershed(-img.value, markers, 
                                          mask=img.labels.value, 
                                          connectivity=connectivity)
@@ -1877,13 +1632,56 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @need_labels
     @record(record_label=True)
-    def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None):
+    def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None) -> ImgArray:
+        """
+        Random walker segmentation. Only wrapped skimage segmentation. `self.labels` will be
+        segmented.
+
+        Parameters
+        ----------
+        beta, mode, tol
+            see skimage.segmentation.random_walker
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Relabeled image.
+        """        
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol)
         
         return self
+    
+    # @dims_to_spatial_axes
+    # @record(append_history=False)
+    # def slic(self, n_segments=100, *, compactness=10.0, max_iter=10, sigma=1, multichannel=False,
+    #          min_size_factor=0.5, max_size_factor=3, mask=None, dims=None):
+    #     # multichannel not working, needs sort_axes
+    #     # issue: slic returns a strange label with grayscale images.
+    #     if multichannel:
+    #         c_axes = complement_axes("c"+dims, self.axes)
+    #         labels = largest_zeros(self["c=0"].shape)
+    #         exclude = "c"
+    #     else:
+    #         c_axes = complement_axes(dims, self.axes)
+    #         labels = largest_zeros(self.shape)
+    #         exclude = ""
+        
+    #     for sl, img in self.iter(c_axes, exclude=exclude):
+    #         plt.imshow(img)
+    #         labels[sl] = \
+    #         skseg.slic(img, n_segments=n_segments, compactness=compactness, max_iter=max_iter,
+    #                    sigma=sigma, multichannel=multichannel, min_size_factor=min_size_factor,
+    #                    max_size_factor=max_size_factor, start_label=1, mask=mask)
+        
+    #     self.labels = labels.view(Label).optimize()
+    #     self.labels._set_info(self, "slic")
+    #     self.labels.set_scale(self)
+    #     return self
     
     def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
         """
@@ -2090,10 +1888,20 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def proj(self, axis=None, method="mean") -> ImgArray:
         """
-        Z-projection.
-        'method' must be in func_dict.keys() or some function like np.mean.
-        This function is not compatible with record().
-        """
+        Z-projection along any axis.
+
+        Parameters
+        ----------
+        axis : str, optional
+            Along which axis projection will be calculated. If None, most plausible one will be chosen.
+        method : str or callable, default is mean-projection.
+            Projection method. If str is given, it will converted to numpy function.
+
+        Returns
+        -------
+        ImgArray
+            Projected image.
+        """        
         if isinstance(method, str):
             method_ = getattr(np, method, None)
         else:
@@ -2229,7 +2037,11 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Corrected image.
-
+            
+        Example
+        -------
+        Drift correction of multichannel image using the first channel as the reference.
+        >>> img.drift_correction(ref=img["c=0"])
         """        
         
         if len(dims) == 3:

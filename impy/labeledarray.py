@@ -10,9 +10,11 @@ from .utilcls import *
 from ._process import label_
 from .historyarray import HistoryArray
 from .label import Label
+from .specials import *
 from tifffile import imwrite
 from skimage.exposure import histogram
 from skimage import segmentation as skseg
+from skimage import measure as skmes
 from skimage.color import label2rgb
 
 class LabeledArray(HistoryArray):
@@ -591,8 +593,154 @@ class LabeledArray(HistoryArray):
     
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Multi-processing
+    #   Label handling
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+        
+    @record()
+    def crop_center(self, scale:float=0.5) -> LabeledArray:
+        """
+        Crop out the center of an image.
+        e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
+        """
+        if scale <= 0 or 1 < scale:
+            raise ValueError(f"scale must be (0, 1], but got {scale}")
+        
+        sizey, sizex = self.sizesof("yx")
+        
+        x0 = int(sizex / 2 * (1 - scale))
+        x1 = int(sizex / 2 * (1 + scale)) + 1
+        y0 = int(sizey / 2 * (1 - scale))
+        y1 = int(sizey / 2 * (1 + scale)) + 1
+
+        out = self[f"y={y0}-{y1};x={x0}-{x1}"]
+        
+        return out
+    
+    
+    @dims_to_spatial_axes
+    def specify(self, center, radius, filt=None, *, dims=None, labeltype="square") -> LabeledArray:
+        """
+        Make rectangle or ellipse labels from points.
+        
+        Parameters
+        ----------
+        center : array like or MarkerFrame
+            Coordinates of centers. For MarkerFrame, it must have the same axes order.
+        radius : float or array
+            Radius of labels.
+        filt : callable, optional
+            For every slice `sl`, label is added only when filt(self[sl]) is satisfied.
+        dims : int or str, optional
+            Dimension of axes.
+        labeltype : str, by default "square"
+            The shape of labels.
+
+        Returns
+        -------
+        ImgArray
+            Labeled image.
+        
+        Example
+        -------
+        Find single molecules, draw circular labels around them if mean values were greater than 100.
+        >>> coords = img.find_sm()
+        >>> filter_func = lambda a: np.mean(a) > 100
+        >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
+        >>> ip.window.add(img)
+        """
+        if isinstance(center, MarkerFrame):
+            # determine dims to iterate.
+            # dims = "".join(a for a in dims if a not in center.axes)
+            dims = str(center.col_axes)
+            ndim = len(dims)
+            # convert radius to an array
+            if np.isscalar(radius):
+                radius = np.full(ndim, radius)
+            radius = np.asarray(radius)
+            
+            shape = self.sizesof(dims)
+            label_axes = str(center.col_axes)
+            label_shape = self.sizesof(label_axes)
+            if hasattr(self, "labels"):
+                print("Existing labels are updated.")
+            self.labels = Label(np.zeros(label_shape, dtype=np.uint8), dtype=np.uint8, axes=label_axes)
+            self.labels.set_scale(self)
+
+            filt = check_filter_func(filt)
+            
+            print("specify ... ", end="")
+            timer = Timer()
+            for crd in center.values:
+                c = tuple(crd[-ndim:])
+                label_sl = tuple(crd[:-ndim])
+                sl = specify_one(c, radius, shape, labeltype)
+                img_ = self[label_sl][sl]
+                if img_.size > 0 and filt(img_):
+                    self.labels[label_sl][sl] = self.labels.max() + 1
+                    # increase memory if needed
+                    if self.labels.max() == np.iinfo(self.labels.dtype).max:
+                        self.labels = self.labels.as_larger_type()
+                        
+            timer.toc()
+            print(f"\rspecify completed ({timer})")
+        
+        else:
+            center = np.asarray(center)
+            if center.ndim == 1:
+                center = center.reshape(1, -1)
+            
+            cols = {1:"x", 2:"yx", 3:"zyx"}[center.shape[1]]
+            center = MarkerFrame(center, columns=cols, dtype=np.uint16)
+
+            return self.specify(center, radius, filt=filt, dims=dims, labeltype=labeltype)     
+        
+        return self
+    
+    def reslice(self, src, dst, linewidth:int=1, *, order=None, dims="yx") -> PropArray:
+        """
+        Measure line profile iteratively for every slice of image.
+
+        Parameters
+        ----------
+        src : array, shape (2,)
+            Source coordinate.
+        dst : array, shape (2,)
+            Destination coordinate.
+        linewidth : int, by default 1.
+            Line width.
+        order : int, optional
+            Spline interpolation order.
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        PropArray
+            Line scans.
+        
+        Example
+        -------
+        Rescile along a line and fit to a model function for every time frame.
+        >>> scan = img.reslice([18,32], [53,48])
+        >>> out = scan.curve_fit(func, init, return_fit=True)
+        >>> plt.plot(scan[0])
+        >>> plt.plot(out.fit[0])
+        """        
+        # determine length, TODO: test
+        src = np.asarray(src, dtype=float)
+        dst = np.asarray(dst, dtype=float)
+        d_row, d_col = dst - src
+        length = int(np.ceil(np.hypot(d_row, d_col) + 1))
+        
+        c_axes = complement_axes(dims, self.axes)
+        out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
+                        name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
+        self.ongoing = "reslice"
+        for sl, img in self.iter(c_axes, exclude=dims):
+            out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
+                                         order=order, mode="reflect")
+        out.set_scale(self)
+        return out
     
     @dims_to_spatial_axes
     @record(False)
@@ -634,7 +782,8 @@ class LabeledArray(HistoryArray):
         
         c_axes = complement_axes(dims, self.axes)
         label_image.ongoing = "label"
-        labels = label_image.parallel(label_, c_axes, connectivity, outdtype="uint32").view(np.ndarray)
+        labels = largest_zeros(label_image.shape)
+        labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
         label_image.ongoing = None
         del label_image.ongoing
         
@@ -644,7 +793,7 @@ class LabeledArray(HistoryArray):
             min_nlabel += labels[sl].max()
         
         self.labels = labels.view(Label).optimize()
-        self.labels._set_info(label_image, "Labeled")
+        self.labels._set_info(label_image, "label")
         self.labels.set_scale(self)
         return self
     
