@@ -456,11 +456,11 @@ class LabeledArray(HistoryArray):
             # All the labels except for 0 (which means not labeled)
             label_ids = [i for i in np.unique(self.labels) if i != 0]
             
-        region = np.zeros_like(self.labels.value, dtype="uint8")
+        region = np.zeros_like(self.labels.value, dtype=np.uint8)
         for i in label_ids:
             subregion = (self.labels == i)
             if filt(self, subregion):
-                region += subregion.astype("uint8")
+                region += subregion.astype(np.uint8)
             
         out = self.copy()
         out[region == 0] = cval

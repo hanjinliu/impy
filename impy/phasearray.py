@@ -43,3 +43,24 @@ class PhaseArray(LabeledArray):
             
         out = self.parallel(phase_mean_, complement_axes(dims, self.axes), disk, a, outdtype=self.dtype)
         return out
+    
+    def imshow(self, dims="yx", **kwargs):
+        if "cmap" not in kwargs:
+            kwargs["cmap"] = "hsv"
+        return super().imshow(dims=dims, **kwargs)
+    
+    def quiver(self, steps=None, dims="yx", **kwargs):
+        ny, nx = self.sizesof(dims)
+        if steps is None:
+            stepy = ny//16
+            stepx = nx//16
+        else:
+            stepy, stepx = steps
+        
+        yy, xx = np.mgrid[:ny:stepy, :nx:stepx]
+        phase = self.value[::stepy, ::stepx]
+        plt.imshow(np.zeros_like(phase), cmap="gray")
+        plt.quiver(xx, yy, np.cos(phase), np.sin(phase), color="red", units="dots", 
+                   angles="xy", scale_units="xy", lw=1)
+        self.hist()
+        return self

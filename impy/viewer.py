@@ -1,7 +1,4 @@
-from impy.func import determine_range
-import napari
 import matplotlib.pyplot as plt
-from .imgarray import ImgArray
 from .labeledarray import LabeledArray
 from .phasearray import PhaseArray
 from .label import Label
@@ -18,7 +15,7 @@ a.size = 0.2
 
 # TODO: 
 # - read layers
-# - different name for different window
+# - different name for different window?
 
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
@@ -36,7 +33,8 @@ class napariWindow:
         return self.viewer.layers[-1]
         
     def start(self):
-        self.viewer = napari.Viewer(title="napari from impy")
+        import napari
+        self.viewer = napari.Viewer(title="impy")
     
     def add(self, obj, **kwargs):
         if self.viewer is None:
@@ -50,7 +48,7 @@ class napariWindow:
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
         else:
-            raise TypeError(f"Could not interpret type {type(obj)}")
+            raise TypeError(f"Could not interpret type: {type(obj)}")
     
     def _add_image(self, img:LabeledArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None

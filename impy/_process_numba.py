@@ -1,11 +1,11 @@
 from impy.utilcls import ArrayDict
-from numba import jit
 import numpy as np
+from trackpy.try_numba import try_numba_jit
 from scipy.stats import entropy
 
 __all__ = ["glcm_props_"]
 
-@jit("void(uint8[:], f4[:], i8, i8, uint8[:,:], f4[:,:,:,:])", nopython=True)
+@try_numba_jit(signature_or_function="void(uint8[:], f4[:], i8, i8, uint8[:,:], f4[:,:,:,:])", nopython=True)
 def _calc_glcm(distances, angles, levels, radius, patch, glcm):
     glcm[:,:,:,:] = 0
     for a_idx in range(angles.size):
@@ -124,3 +124,4 @@ def std_ref_(glcm, ref, nei):
 
 def std_neighbor_(glcm, ref, nei):
     return np.std(glcm*nei, axis=(0,1))
+

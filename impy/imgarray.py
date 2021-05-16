@@ -19,7 +19,7 @@ from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
 from .labeledarray import LabeledArray
 from .label import Label
-from .axes import Axes, ImageAxesError
+from .axes import Axes
 from .phasearray import PhaseArray
 from .specials import *
 from .utilcls import *
@@ -875,7 +875,25 @@ class ImgArray(LabeledArray):
         return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
     
     @dims_to_spatial_axes
-    def find_corners(self, sigma=1, k=0.05, *, dims=None):
+    def find_corners(self, sigma:float=1, k:float=0.05, *, dims=None):
+        """
+        Corner detection using Harris response.
+
+        Parameters
+        ----------
+        sigma : float, optional
+            Standard deviation of Gaussian prefilter.
+        k : float, optional
+            Sensitivity factor to separate corners from edges, typically in range [0, 0.2].
+            Small values of k result in detection of sharp corners.
+        dims : str or int, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        MarkerFrame
+            Coordinates of corners. For details see `corner_peaks` method.
+        """        
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
@@ -888,8 +906,10 @@ class ImgArray(LabeledArray):
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         self.specify(coords, radius, labeltype="circle")
         
-        radius = tp.utils.validate_tuple(radius, len(dims))
-        sigma = tp.utils.validate_tuple(sigma, len(dims))
+        if np.isscalar(radius):
+            radius = (radius,) * len(dims)
+        if np.isscalar(sigma):
+            sigma = (sigma,) * len(dims)
         sigma = tuple([int(x) for x in sigma])
         refined_coords = tp.refine.refine_com(self.value, self.value, radius, coords,
                                               max_iterations=n_iter, pos_columns=[a for a in dims])
@@ -980,7 +1000,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         MarkerFrame
-            Coordinates of peaks
+            Coordinates of peaks.
         """     
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, 
@@ -1159,6 +1179,8 @@ class ImgArray(LabeledArray):
         """        
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
         with warnings.catch_warnings():
+            # In this block RuntimeWarning of zero division is ignored because infinity is not a problem
+            # when calculating arctan.
             warnings.simplefilter("ignore", RuntimeWarning)
             arg = -np.arctan(eigvec["r=0;l=1"]/eigvec["r=1;l=1"])
         deg and np.rad2deg(arg, out=arg)
@@ -1264,7 +1286,7 @@ class ImgArray(LabeledArray):
         if return_imag:
             out = self.as_float().parallel(gabor_, complement_axes(dims, self.axes), ker, outdtype=np.complex64)
         else:
-            out = self.as_float().parallel(gabor_real_, complement_axes(dims, self.axes), ker)
+            out = self.as_float().parallel(gabor_real_, complement_axes(dims, self.axes), ker, outdtype=np.float32)
         return out
     
     @dims_to_spatial_axes
@@ -1704,7 +1726,7 @@ class ImgArray(LabeledArray):
         
     @need_labels
     @record(append_history=False)
-    def regionprops(self, properties:tuple[str,...]=("mean_intensity",), *, 
+    def regionprops(self, properties:tuple[str,...]|str=("mean_intensity",), *, 
                     extra_properties=None) -> ArrayDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
@@ -1850,17 +1872,24 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        ImgArray
+        ArrayDict of ImgArray
             GLCM with additional axes "d<", where "d" means distance and "<" means angle.
             If input image has "tzyx" axes then output will have "tzd<yx" axes.
+        
+        Example
+        -------
+        Plot GLCM's IDM and ASM images
+        >>> out = img.glcm_props([1], [0], 3, properties=("idm","asm"))
+        >>> out.idm["d=0;<=0"].imshow()
+        >>> out.asm["d=0;<=0"].imshow()
         """        
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
         if properties is None:
             properties = ("contrast", "dissimilarity", "idm", 
                           "asm", "max", "entropy", "correlation")
         c_axes = complement_axes(dims, self.axes)
-        distances = np.asarray(distances, dtype=np.uint8)
-        angles = np.asarray(angles, dtype=np.float32)
+        distances = np.ascontiguousarray(distances, dtype=np.uint8)
+        angles = np.ascontiguousarray(angles, dtype=np.float32)
         outshape = self.sizesof(c_axes) + (len(distances), len(angles)) + self.sizesof(dims)
         out = {}
         for prop in properties:
@@ -1973,9 +2002,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        axis : str, by default "t"
+        axis : str, default is "t"
             Along which axis drift will be calculated.
-        show_drift : bool, by default True
+        show_drift : bool, default is True
             If True, plot the result.
 
         Returns
@@ -2012,8 +2041,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def drift_correction(self, shift=None, ref=None, *, order=1, 
-                         along="t", dims=None, update:bool=False):
+    def drift_correction(self, shift=None, ref:ImgArray=None, *, order:int=1, 
+                         along:str="t", dims=None, update:bool=False):
         """
         Drift correction using iterative Affine translation. If translation vectors `shift`
         is not given, then it will be determined using `track_drift` method of ImgArray.
@@ -2024,9 +2053,9 @@ class ImgArray(LabeledArray):
             Translation vectors
         ref : ImgArray, optional
             The reference 3D image to determine drift, if `shift` was not given.
-        order : int, by default 1
+        order : int, default is 1
             The order of interpolation.
-        along : str, by default "t"
+        along : str, default is "t"
             Along which axis drift will be corrected.
         dims : str, optional
             Spatial dimension.
