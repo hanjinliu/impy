@@ -70,32 +70,6 @@ def str_to_slice(v:str):
     else:
         sl = int(v)
     return sl
-  
-def str_to_slice_old(v:str):
-    # check if this works
-    if "," in v:
-        sl = sum((_range_to_list(v) for v in v.split(",")), [])
-        
-    elif ":" in v:
-        start, end = v.split(":")
-        if start == "":
-            start = None
-        else:
-            start = int(start) 
-            if start < 0:
-                raise IndexError("string indexing starts from 1.")
-        if end == "":
-            end = None
-        else:
-            end = int(end)
-        sl = slice(start, end, None)
-        
-    else:
-        sl = int(v)
-        if sl < 0:
-            raise IndexError("string indexing starts from 1.")
-    return sl
-
 
 def check_nd(x, ndim:int):
     if np.isscalar(x):

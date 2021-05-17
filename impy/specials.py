@@ -18,6 +18,7 @@ SCALAR_PROP = (
     "perimeter_crofton", "solidity")
 
 class PropArray(MetaArray):
+    additional_props = ["dirpath", "metadata", "name", "propname"]
     def __new__(cls, obj, *, name=None, axes=None, dirpath=None, 
                 metadata=None, propname=None, dtype=None):
         if propname is None:
@@ -100,8 +101,8 @@ class PropArray(MetaArray):
         
         n_params = len(signature(f).parameters)-1
         
-        params = np.empty(self.sizesof(c_axes) + (n_params,), dtype="float32")
-        errs = np.empty(self.sizesof(c_axes) + (n_params,), dtype="float32")
+        params = np.empty(self.sizesof(c_axes) + (n_params,), dtype=np.float32)
+        errs = np.empty(self.sizesof(c_axes) + (n_params,), dtype=np.float32)
         if return_fit:
             fit = np.empty(self.sizesof(c_axes) + (self.sizeof(dims),), dtype=self.dtype)
             
@@ -129,11 +130,6 @@ class PropArray(MetaArray):
         else:
             return ArrayDict(params=params, errs=errs)
        
-        
-    def _set_info(self, other, new_axes:str="inherit"):
-        super()._set_info(other, new_axes)
-        self.propname = other.propname
-        return None
 
 
 class AxesFrame(pd.DataFrame):
@@ -244,7 +240,7 @@ class AxesFrame(pd.DataFrame):
         return None
     
     def as_standard_type(self):
-        dtype = lambda a: "uint16" if a in "tc" else ("uint32" if a == "p" else "float32")
+        dtype = lambda a: np.uint16 if a in "tc" else (np.uint32 if a == "p" else np.float32)
         out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
         out._axes = self._axes
         return out
@@ -320,7 +316,7 @@ class TrackFrame(AxesFrame):
         df = self._renamed_df()
         df = tp.filtering.filter_stubs(df, threshold=min_dwell)
         df.rename(columns = {"frame":"t", "particle":"p"}, inplace=True)
-        df = df.astype({"t":"uint16", "p":"uint32"})
+        df = df.astype({"t":np.uint16, "p":np.uint32})
         out = TrackFrame(df, columns=self.col_axes)
         out.set_scale(self)
         return out.as_standard_type()

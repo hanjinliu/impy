@@ -49,7 +49,9 @@ class LabeledArray(HistoryArray):
             tifname += ".tif"
         if os.sep not in tifname:
             tifname = os.path.join(self.dirpath, tifname)
-        
+        if self.metadata is None:
+            self.metadata = {}
+            
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
@@ -396,7 +398,7 @@ class LabeledArray(HistoryArray):
         plt.show()
         return self
     
-    def split(self, axis=None) -> list:
+    def split(self, axis=None) -> list[LabeledArray]:
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -470,7 +472,7 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def iter(self, axes, showprogress:bool=True, israw:bool=False, exclude=""):
+    def iter(self, axes, showprogress:bool=True, israw:bool=False, exclude:str=""):
         """
         Iteration along axes.
 
@@ -503,7 +505,7 @@ class LabeledArray(HistoryArray):
         if showprogress and self.__class__.show_progress:
             print(f"\r{name} completed ({timer})")
     
-    def parallel(self, func, axes, *args, outshape=None, outdtype="float32"):
+    def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32):
         """
         Multiprocessing tool.
 
@@ -696,7 +698,7 @@ class LabeledArray(HistoryArray):
         
         return self
     
-    def reslice(self, src, dst, linewidth:int=1, *, order=None, dims="yx") -> PropArray:
+    def reslice(self, src, dst, linewidth:int=1, *, order:int=None, dims="yx") -> PropArray:
         """
         Measure line profile iteratively for every slice of image.
 

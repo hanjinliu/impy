@@ -4,21 +4,23 @@ from .func import *
 import itertools
 
 class MetaArray(np.ndarray):
+    additional_props = ["dirpath", "metadata", "name"]
+    
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
         if isinstance(obj, cls):
             return obj
         
         self = np.array(obj, dtype=dtype).view(cls)
-        self.dirpath = "" if dirpath is None else dirpath
-        self.name = "Image from impy" if name is None else name
+        self.dirpath = dirpath
+        self.name = name
         
         # MicroManager
         if self.name.endswith("_MMStack_Pos0.ome"):
             self.name = self.name[:-17]
         
         self.axes = axes
-        self.metadata = {} if metadata is None else metadata
+        self.metadata = metadata
         return self
     
     @property
@@ -110,11 +112,13 @@ class MetaArray(np.ndarray):
         print(repr(self))
         return None
     
+    def _set_additional_props(self, other):
+        # set additional properties
+        for p in self.__class__.additional_props:
+            setattr(self, p, getattr(other, p, None))
+    
     def _set_info(self, other, new_axes:str="inherit"):
-        self.dirpath = other.dirpath
-        self.name = other.name
-        self.metadata = other.metadata
-        
+        self._set_additional_props(other)
         # set axes
         try:
             if new_axes != "inherit":
@@ -190,8 +194,7 @@ class MetaArray(np.ndarray):
         such as img.copy() and img.astype("int") without problems (maybe...).
         """
         if obj is None: return None
-        self.dirpath = getattr(obj, "dirpath", None)
-        self.name = getattr(obj, "name", None)
+        self._set_additional_props(obj)
 
         try:
             self.axes = getattr(obj, "axes", None)
@@ -199,9 +202,6 @@ class MetaArray(np.ndarray):
             self.axes = None
         if not self.axes.is_none() and len(self.axes) != self.ndim:
             self.axes = None
-        
-        self.metadata = getattr(obj, "metadata", {})
-
         
     def __array_ufunc__(self, ufunc, method, *args, **kwargs):
         """
