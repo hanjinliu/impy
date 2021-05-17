@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 from scipy import optimize as opt
 from scipy.stats import entropy
@@ -43,24 +44,40 @@ def get_meta(path:str):
     
     return {"axes": axes, "ijmeta": ijmeta, "history": hist, "tags": tags}
 
-def _range_to_list(v:str):
+def _range_to_list(v:str) -> list[int]:
     """
     "1,3,5" -> [1,3,5]
-    "2,4-6,9" -> [2,4,5,6,9]
+    "2,4:6,9" -> [2,4,5,6,9]
     """
-    if "-" in v:
-        s, e = v.split("-")
+    if ":" in v:
+        s, e = v.split(":")
         return list(range(int(s), int(e)))
     else:
         return [int(v)]
+
+def int_or_None(v:str) -> int|None:
+    if v:
+        return int(v)
+    else:
+        return None
     
 def str_to_slice(v:str):
     # check if this works
     if "," in v:
         sl = sum((_range_to_list(v) for v in v.split(",")), [])
+    elif ":" in v:
+        sl = slice(*map(int_or_None, v.split(":")))
+    else:
+        sl = int(v)
+    return sl
+  
+def str_to_slice_old(v:str):
+    # check if this works
+    if "," in v:
+        sl = sum((_range_to_list(v) for v in v.split(",")), [])
         
-    elif "-" in v:
-        start, end = [s.strip() for s in v.strip().split("-")]
+    elif ":" in v:
+        start, end = v.split(":")
         if start == "":
             start = None
         else:
@@ -79,12 +96,13 @@ def str_to_slice(v:str):
             raise IndexError("string indexing starts from 1.")
     return sl
 
-def check_nd_sigma(sigma, ndim):
-    if np.isscalar(sigma):
-        sigma = [sigma] * ndim
-    elif len(sigma) != ndim:
-        raise ValueError("length of sigma and dims must match.")
-    return sigma
+
+def check_nd(x, ndim:int):
+    if np.isscalar(x):
+        x = (x,) * ndim
+    elif len(x) != ndim:
+        raise ValueError("length of parameter and dimension must match.")
+    return x
 
 
 def specify_one(center, radius, shape:tuple, labeltype:str):

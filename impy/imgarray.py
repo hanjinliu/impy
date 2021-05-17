@@ -286,7 +286,7 @@ class ImgArray(LabeledArray):
         >>> eig[eig<0] = 0
         """        
         ndim = len(dims)
-        sigma = check_nd_sigma(sigma, ndim)
+        sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
         eigval = self.as_float().parallel(hessian_eigval_, 
@@ -321,7 +321,7 @@ class ImgArray(LabeledArray):
             spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
-        sigma = check_nd_sigma(sigma, ndim)
+        sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         eigval, eigvec = self.parallel_eig(hessian_eigh_, 
                                            complement_axes(dims, self.axes), 
@@ -357,7 +357,7 @@ class ImgArray(LabeledArray):
             l=0 means the smallest eigenvalue.
         """          
         ndim = len(dims)
-        sigma = check_nd_sigma(sigma, ndim)
+        sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         eigval = self.as_float().parallel(structure_tensor_eigval_, 
                                           complement_axes(dims, self.axes), 
@@ -390,7 +390,7 @@ class ImgArray(LabeledArray):
             spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
-        sigma = check_nd_sigma(sigma, ndim)
+        sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         eigval, eigvec = self.parallel_eig(structure_tensor_eigh_, 
                                            complement_axes(dims, self.axes), 
@@ -677,7 +677,7 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         ndim = len(dims)
-        sigma = check_nd_sigma(sigma, ndim)
+        sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         return self.as_float().parallel(hessian_det_, complement_axes(dims, self.axes), 
                                         sigma, pxsize)
@@ -905,11 +905,8 @@ class ImgArray(LabeledArray):
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         self.specify(coords, radius, labeltype="circle")
-        
-        if np.isscalar(radius):
-            radius = (radius,) * len(dims)
-        if np.isscalar(sigma):
-            sigma = (sigma,) * len(dims)
+        radius = check_nd(radius, len(dims))
+        sigma = check_nd(sigma, len(dims))
         sigma = tuple([int(x) for x in sigma])
         refined_coords = tp.refine.refine_com(self.value, self.value, radius, coords,
                                               max_iterations=n_iter, pos_columns=[a for a in dims])

@@ -612,7 +612,7 @@ class LabeledArray(HistoryArray):
         y0 = int(sizey / 2 * (1 - scale))
         y1 = int(sizey / 2 * (1 + scale)) + 1
 
-        out = self[f"y={y0}-{y1};x={x0}-{x1}"]
+        out = self[f"y={y0}:{y1};x={x0}:{x1}"]
         
         return out
     

@@ -130,7 +130,7 @@ class MetaArray(np.ndarray):
     def __getitem__(self, key):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
-            sl = self.str_to_slice(key)
+            sl = self._str_to_slice(key)
             return self.__getitem__(sl)
 
         if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
@@ -170,7 +170,7 @@ class MetaArray(np.ndarray):
     def __setitem__(self, key, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
-            sl = self.str_to_slice(key)
+            sl = self._str_to_slice(key)
             return self.__setitem__(sl, value)
         
         if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
@@ -253,32 +253,21 @@ class MetaArray(np.ndarray):
             new_axes = "inherit"
         self._set_info(obj, new_axes=new_axes)
         return self
-        
     
-    def str_to_slice(self, string):
+    def _str_to_slice(self, string:str):
         """
         get subslices using ImageJ-like format.
-        e.g. 't=3-, z=1-5', 't=1, z=-7' (this will not be interpreted as minus)
+        e.g. 't=3:, z=1:5', 't=1, z=:7'
         """
-        keylist = [key.strip() for key in string.split(";")]
-        olist = [] # e.g. 'z', 't'
-        vlist = [] # e.g. 5, 2:4
+        keylist = string.split(";")
+        sl_list = [slice(None)]*self.ndim
+        
         for k in keylist:
-            # e.g. k = "t = 4-7"
-            o, v = [s.strip() for s in k.split("=")]
-            
-            olist.append(self.axisof(o))
-            vlist.append(str_to_slice(v))
-            
-        input_keylist = []
-        for i in range(len(self.axes)):
-            if i in olist:
-                j = olist.index(i)
-                input_keylist.append(vlist[j])
-            else:
-                input_keylist.append(slice(None))
+            # e.g. k = "t=4:7"
+            axis, sl_str = k.split("=")
+            sl_list[self.axisof(axis)] = str_to_slice(sl_str)
 
-        return tuple(input_keylist)
+        return tuple(sl_list)
     
     def sort_axes(self):
         """
