@@ -1155,8 +1155,8 @@ class ImgArray(LabeledArray):
                             
         return out
     
-    @record()    
-    def hessian_angle(self, sigma:float=1., *, deg=True, dims="yx"):
+    @record(append_history=False)
+    def hessian_angle(self, sigma:float=1., *, deg=False, dims="yx"):
         """
         Calculate filament angles using Hessian's eigenvectors.
 
@@ -1180,10 +1180,13 @@ class ImgArray(LabeledArray):
             # when calculating arctan.
             warnings.simplefilter("ignore", RuntimeWarning)
             arg = -np.arctan(eigvec["r=0;l=1"]/eigvec["r=1;l=1"])
-        deg and np.rad2deg(arg, out=arg)
-        return arg.view(PhaseArray)
+        
+        arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
+                         metadata=self.metadata, periodicity=np.pi)
+        deg and arg.rad2deg(update=True)
+        return arg
     
-    @record()
+    @record(append_history=False)
     def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, 
                      phi=0, *, deg=False, dims="yx") -> ImgArray:
         """
@@ -1233,13 +1236,14 @@ class ImgArray(LabeledArray):
                 max_ = out_
         argmax_ *= (thetas[1] - thetas[0])
         argmax_[:] = np.pi/2 - argmax_
-        deg and np.rad2deg(argmax_, out=argmax_)
         timer.toc()
         print(f"\rgabor_angle completed ({timer})")
         self.__class__.show_progress = ifshow
         
-        return argmax_.view(PhaseArray)
-        
+        argmax_ = PhaseArray(argmax_, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
+                             metadata=self.metadata, periodicity=np.pi)
+        deg and argmax_.rad2deg(update=True)
+        return argmax_
     
     @record()
     def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma=1, 

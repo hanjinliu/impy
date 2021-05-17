@@ -6,18 +6,45 @@ from .deco import *
 from .func import *
 
 class PhaseArray(LabeledArray):
+    additional_props = ["dirpath", "metadata", "name", "unit", "periodicity"]
+    
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, history=None, 
+                metadata=None, dtype=None, unit="rad", periodicity=None):
+        if dtype is None:
+            dtype = np.float32
+        if periodicity is None:
+            periodicity = {"rad": 2*np.pi, "deg": 360.0}[unit]
+            
+        self = super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath, 
+                               history=history, metadata=metadata, dtype=dtype)
+        self.unit = unit
+        self.periodicity = periodicity
+        return self
+        
     @record()
     def deg2rad(self, *, update=False):
-        return np.deg2rad(self.value)
+        if self.unit == "rad":
+            raise ValueError("Array is already in radian.")
+        out = np.deg2rad(self)
+        out.history.pop(-1)
+        out.unit = "rad"
+        out.periodicity = np.deg2rad(out.periodicity)
+        return out
     
     @record()
     def rad2deg(self, *, update=False):
-        return np.rad2deg(self.value)
+        if self.unit == "deg":
+            raise ValueError("Array is already in degree.")
+        out = np.rad2deg(self)
+        out.history.pop(-1)
+        out.unit = "deg"
+        out.periodicity = np.rad2deg(out.periodicity)
+        return out
     
     @record()
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    def mean_filter(self, radius:float=1, *, periodicity:float=np.pi*2, dims=None, update:bool=False) -> PhaseArray:
+    def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> PhaseArray:
         """
         Mean filter using phase averaging method, which is:
         arg(sum(e^j(X0 + X1 + ...)))
@@ -26,8 +53,6 @@ class PhaseArray(LabeledArray):
         ----------
         radius : float, default is 1
             Radius of kernel.
-        periodicity : float
-            Periodicity of phase. 
         dims : str or int, optional
             Spatial dimensions.
         update : bool, default is False
@@ -39,7 +64,7 @@ class PhaseArray(LabeledArray):
             Filtered image.
         """        
         disk = ball_like(radius, len(dims))
-        a = 2*np.pi/periodicity
+        a = 2*np.pi/self.periodicity
             
         out = self.parallel(phase_mean_, complement_axes(dims, self.axes), disk, a, outdtype=self.dtype)
         return out

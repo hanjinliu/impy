@@ -16,7 +16,7 @@ class MetaArray(np.ndarray):
         self.name = name
         
         # MicroManager
-        if self.name.endswith("_MMStack_Pos0.ome"):
+        if isinstance(self.name, str) and self.name.endswith("_MMStack_Pos0.ome"):
             self.name = self.name[:-17]
         
         self.axes = axes
