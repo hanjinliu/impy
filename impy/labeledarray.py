@@ -632,7 +632,7 @@ class LabeledArray(HistoryArray):
             Radius of labels.
         dims : int or str, optional
             Dimension of axes.
-        labeltype : str, by default "square"
+        labeltype : str, default is "square"
             The shape of labels.
 
         Returns
@@ -651,7 +651,10 @@ class LabeledArray(HistoryArray):
         if isinstance(center, MarkerFrame):
             from ._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
             ndim = len(dims)
+            radius = np.asarray(check_nd(radius, ndim), dtype=np.float32)
+            
             if labeltype in ("square", "s"):
+                radius = radius.astype(np.uint8)
                 if ndim == 2:
                     _specify = _specify_square_2d
                 elif ndim == 3:
@@ -674,8 +677,6 @@ class LabeledArray(HistoryArray):
             label_shape = self.sizesof(label_axes)
             labels = largest_zeros(label_shape)
             
-            radius = np.asarray(check_nd(radius, ndim), dtype=np.float32)
-            
             print("specify ... ", end="")
             timer = Timer()
             n_label = 1
@@ -695,7 +696,7 @@ class LabeledArray(HistoryArray):
             if center.ndim == 1:
                 center = center.reshape(1, -1)
             
-            cols = {1:"x", 2:"yx", 3:"zyx"}[center.shape[1]]
+            cols = {2:"yx", 3:"zyx"}[center.shape[1]]
             center = MarkerFrame(center, columns=cols, dtype=np.uint16)
 
             return self.specify(center, radius, dims=dims, labeltype=labeltype)     
@@ -732,7 +733,7 @@ class LabeledArray(HistoryArray):
         >>> plt.plot(scan[0])
         >>> plt.plot(out.fit[0])
         """        
-        # determine length, TODO: test
+        # determine length
         src = np.asarray(src, dtype=float)
         dst = np.asarray(dst, dtype=float)
         d_row, d_col = dst - src

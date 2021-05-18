@@ -13,6 +13,7 @@ from skimage import segmentation as skseg
 from skimage import feature as skfeat
 from skimage import registration as skreg
 from scipy.linalg import pinv as pseudo_inverse
+from scipy.spatial import Voronoi
 from .func import *
 from .deco import *
 from .gauss import GaussianBackground, GaussianParticle
@@ -729,13 +730,13 @@ class ImgArray(LabeledArray):
         
     
     def wavelet_denoising(self, noise, wavelet="db1", mode="soft", wavelet_levels=None, max_shifts=None):
-        # TODO
+        # TODO: wavelet denoising
         ...
     
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
                        topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
-                       use_labels:bool=True, dims=None):
+                       use_labels:bool=True, dims=None) -> MarkerFrame:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but
         is more flexible.
@@ -805,7 +806,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
-                     use_labels:bool=True, dims=None):
+                     use_labels:bool=True, dims=None) -> MarkerFrame:
         """
         Find local corner maxima. Slightly different from peak_local_max.
 
@@ -873,11 +874,11 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def corner_harris(self, sigma=1, k=0.05, *, dims=None):
+    def corner_harris(self, sigma=1, k=0.05, *, dims=None) -> ImgArray:
         return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
     
     @dims_to_spatial_axes
-    def find_corners(self, sigma:float=1, k:float=0.05, *, dims=None):
+    def find_corners(self, sigma:float=1, k:float=0.05, *, dims=None) -> ImgArray:
         """
         Corner detection using Harris response.
 
@@ -900,6 +901,33 @@ class ImgArray(LabeledArray):
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
     
+    @dims_to_spatial_axes
+    def voronoi(self, coords, *, dims=None) -> ImgArray:
+        
+        if not isinstance(coords, MarkerFrame):
+            coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
+            coords.set_scale(self)
+            
+        # TODO: Voronoi segmentation
+        labels = largest_zeros(self.shape)
+        n_label = 1
+        print("voronoi ... ", end="")
+        timer = Timer()
+        for sl, crds in coords.iter(complement_axes(dims, self.axes)):
+            vor = Voronoi(crds.values)
+            for r in np.array(vor.regions):
+                if (r > 0).all(): # how to deal with infinite points?
+                    poly = vor.vertices[r]
+                    grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
+                    labels[sl][grids] = n_label
+                    n_label += 1
+        timer.toc()
+        print(f"\rvoronoi completed ({timer})")
+        self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+        self.labels.set_scale(self)
+
+        return self
+        
     
     @dims_to_spatial_axes
     def refine_sm(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
@@ -957,7 +985,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def find_sm(self, sigma:float=1.5, *, method="dog", percentile:float=95, topn:int=np.inf, 
-                exclude_border=True, dims=None):
+                exclude_border=True, dims=None) -> MarkerFrame:
         """
         Single molecule detection using difference of Gaussian, determinant of hessian or
         laplacian of Gaussian method.
@@ -1027,8 +1055,7 @@ class ImgArray(LabeledArray):
             Coordinates of peaks.
         """     
         if coords is None:
-            coords = self.find_sm(sigma=sigma, dims=dims, 
-                                  percentile=percentile)
+            coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
             return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
                                     percentile=percentile, dims=dims)
         # This case is main
@@ -1036,9 +1063,7 @@ class ImgArray(LabeledArray):
             ndim = len(dims)
             filt = check_filter_func(filt)
             
-            if np.isscalar(radius):
-                radius = np.full(ndim, radius)
-            radius = np.asarray(radius)
+            radius = np.asarray(check_nd(radius, ndim))
             
             shape = self.sizesof(dims)
             
@@ -1048,7 +1073,7 @@ class ImgArray(LabeledArray):
             for crd in coords.values:
                 center = tuple(crd[-ndim:])
                 label_sl = tuple(crd[:-ndim])
-                sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
+                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
                 input_img = self.value[label_sl][sl]
                 if input_img.size == 0 or not filt(input_img):
                     continue
@@ -1065,7 +1090,7 @@ class ImgArray(LabeledArray):
             out.set_scale(coords.scale)
             
         else:
-            coords = MarkerFrame(coords, columns=dims, dtype="uint16")
+            coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
             coords.set_scale(self)
             return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
                                     percentile=percentile, dims=dims)
@@ -1116,9 +1141,7 @@ class ImgArray(LabeledArray):
             ndim = len(dims)
             filt = check_filter_func(filt)
             
-            if np.isscalar(radius):
-                radius = np.full(ndim, radius)
-            radius = np.asarray(radius)
+            radius = np.asarray(check_nd(radius, ndim))
             
             shape = self.sizesof(dims)
             
@@ -1131,7 +1154,7 @@ class ImgArray(LabeledArray):
             for crd in coords.values:
                 center = tuple(crd[-ndim:])
                 label_sl = tuple(crd[:-ndim])
-                sl = specify_one(center, radius, shape, "square") # sl = (..., z,y,x)
+                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
                 input_img = self.value[label_sl][sl]
                 if input_img.size == 0 or not filt(input_img):
                     continue
@@ -1183,7 +1206,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def hessian_angle(self, sigma:float=1., *, deg=False, dims="yx"):
+    def hessian_angle(self, sigma:float=1., *, deg=False, dims="yx") -> PhaseArray:
         """
         Calculate filament angles using Hessian's eigenvectors.
 
@@ -1215,7 +1238,7 @@ class ImgArray(LabeledArray):
     
     @record(append_history=False)
     def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, 
-                     phi=0, *, deg=False, dims="yx") -> ImgArray:
+                     phi=0, *, deg=False, dims="yx") -> PhaseArray:
         """
         Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
         calculated, and the strongest response is returned as output array.

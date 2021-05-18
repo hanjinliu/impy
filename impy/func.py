@@ -79,6 +79,12 @@ def check_nd(x, ndim:int):
     return x
 
 
+def specify_one(center, radius, shape:tuple) -> tuple[slice]:
+    sl = tuple(slice(max(0, xc-r), min(xc+r+1, sh), None) 
+                        for xc, r, sh in zip(center, radius, shape))
+    return sl
+
+
 def check_matrix(ref):
     """
     Check Affine transformation matrix
