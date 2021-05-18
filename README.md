@@ -15,7 +15,14 @@ img.imshow_label()
 
 ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility are usually hard to achieve with ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not suited for biological image analysis because many functions do not support standard multi-dimensional tiff files.
 
-Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution. For other purposes, such as labeling and storing propeties of an image, `Label`, `PropArray` are alternatively returned but they also support basic functions as `ImgArray`.
+Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution. You can also access its contents in an intuitive way called "axis-targeted slicing" like `img["t=1:5;z=4"]`.
+
+Other types of objects are defined in `impy` for other purposes. 
+- `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
+- `Label` is also an array type while it is only used for labeling of another image and is always attached to it. 
+- `PhaseArray` is an array that contains phase information. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about it. 
+- `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`.
+- `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking methods in `trackpy`. It has information of track ID.
 
 This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize images, and [trackpy](https://github.com/soft-matter/trackpy), which enables efficient molecule tracking.
 
@@ -133,16 +140,15 @@ props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
 
 ## Basic Functions in impy
 
-Load image with `imread()` function. `ImgArray` object is created.
-
 - `imread` = Load an image. `e.g. >>> ip.imread(path)`
 - `imread_collection` = Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
 - `read_meta` = Read metadata of a tiff file.
 - `array`, `zeros`, `zeros_like`, `empty`, `empty_like` = similar to those in `numpy` but return `ImgArray`.
 - `set_cpu` = Set the numbers of CPU used in image analysis.
 - `stack` = Make a image stack from a list of images along any axis. ` e.g. >>> ip.stack(imglist, axis="c")`
+- `window` &rarr; interface between `napari`. `ImgArray`, `Label`, `MarkerFrame` and `TrackFrame` can be sent to viewer with a simple code `ip.window.add(X)`.
 
-## Attributes and Methods of ImgArray
+## Common Attributes and Methods of Arrays
 
 ### Attributes
 
@@ -163,11 +169,10 @@ Load image with `imread()` function. `ImgArray` object is created.
 - `hist` &rarr; show the histogram of image intensity profile.
 - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
 - `set_scale` &rarr; set scales of any axes.
-- `window` &rarr; interface between `napari`. `ImgArray`, `Label`, `MarkerFrame` and `TrackFrame` can be sent to viewer with a simple code `ip.window.add(X)`.
 
 ## Data Type Conversion
 
-`uint8`, `uint16`, `bool` and `float32` are supported for type conversion.
+`uint8`, `uint16`, `bool` and `float32` (sometimes `complex64`) are supported for type conversion.
 - `as_uint8` &rarr; convert to `uint8`.
 - `as_uint16` &rarr; convert to `uint16`.
 - `as_float` &rarr; convert to `float32`.
@@ -185,7 +190,6 @@ img - 10000     # pixel values smaller than 0 is substituted to 0
 
 img / 10        # output is converted to float32 
 ```
-
 
 # References
 For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.

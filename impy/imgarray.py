@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import trackpy as tp
 import os
 import glob
 import collections
@@ -24,8 +23,7 @@ from .phasearray import PhaseArray
 from .specials import *
 from .utilcls import *
 from ._process import *
-from ._process_numba import *
-
+from .glcm import *
 
 class ImgArray(LabeledArray):
     
@@ -462,8 +460,8 @@ class ImgArray(LabeledArray):
     @record()
     def coef_filter(self, radius:float=1, *, dims=None) -> ImgArray:
         """
-        Coefficient of variance filter. This filter is useful for feature extraction from
-        images with uneven background intensity.
+        Coefficient of variance filter. For kernel area X, std(X)/mean(X) are calculated.
+        This filter is useful for feature extraction from images with uneven background intensity.
 
         Parameters
         ----------
@@ -730,6 +728,10 @@ class ImgArray(LabeledArray):
                              radius, smoothing)
         
     
+    def wavelet_denoising(self, noise, wavelet="db1", mode="soft", wavelet_levels=None, max_shifts=None):
+        # TODO
+        ...
+    
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
                        topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
@@ -900,8 +902,31 @@ class ImgArray(LabeledArray):
     
     
     @dims_to_spatial_axes
-    def refine(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
-        # TODO: works anyway, but there may be better methods.
+    def refine_sm(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
+        """
+        Refine coordinates of peaks and calculate positional errors using `trackpy`'s functions. Mean
+        and noise level are determined using original method.
+
+        Parameters
+        ----------
+        coords : MarkerFrame or (N, 2) array, optional
+            Coordinates of peaks. If None, this will be determined by find_sm.
+        radius : float, by default 4.
+            Range to mask single molecules.
+        percentile : int, optional
+            [description], by default 90
+        n_iter : int, default is 10
+            Number of iteration of refinement.
+        sigma : float, default is 1.5
+            Expected standard deviation of particles.
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        FrameDict
+            Coordinates in MarkerFrame and refinement results in pd.DataFrame.
+        """        
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         self.specify(coords, radius, labeltype="circle")
@@ -913,15 +938,16 @@ class ImgArray(LabeledArray):
         bg = self.value[self.labels==0]
         black_level = np.mean(bg)
         noise = np.std(bg)
-        Npx = tp.masks.N_binary_mask(radius, len(dims))
-        mass = refined_coords['raw_mass'].values - Npx * black_level
+        area = np.sum(ball_like_odd(radius, len(dims)))
+        mass = refined_coords["raw_mass"].values - area * black_level
         ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
         
         if ep.ndim == 1:
-            refined_coords['ep'] = ep
+            refined_coords["ep"] = ep
         else:
-            ep = pd.DataFrame(ep, columns=['ep_' + cc for cc in [a for a in dims]])
+            ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in [a for a in dims]])
             refined_coords = pd.concat([refined_coords, ep], axis=1)
+            
         mf = MarkerFrame(refined_coords.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
         mf.set_scale(self.scale)
         df = refined_coords[refined_coords.columns[refined_coords.columns.isin([a for a in refined_coords.columns if a not in dims])]]
@@ -939,7 +965,7 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, optional
             Standard deviation of puncta.
-        method : str, by default "dog"
+        method : str, default is "dog"
             Which filter is used prior to finding local maxima. Currently supports "dog", "doh" 
             and "log".
         percentile, topn, exclude_border, dims
@@ -985,7 +1011,7 @@ class ImgArray(LabeledArray):
         radius : float, by default 4.
             Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
             to calculate moments.
-        sigma : float, by default 1.5
+        sigma : float, default is 1.5
             Expected standard deviation of particles.
         filt : callable, optional
             For every slice `sl`, label is added only when filt(`input`) == True is satisfied.

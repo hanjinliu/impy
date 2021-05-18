@@ -2,7 +2,6 @@ from __future__ import annotations
 from .axes import Axes, ImageAxesError
 from .metaarray import MetaArray
 import numpy as np
-import trackpy as tp
 import pandas as pd
 import matplotlib.pyplot as plt
 from inspect import signature
@@ -16,6 +15,8 @@ SCALAR_PROP = (
     "extent", "feret_diameter_max", "filled_area", "label", "major_axis_length", "max_intensity",
     "mean_intensity", "min_intensity", "minor_axis_length", "orientation", "perimeter",
     "perimeter_crofton", "solidity")
+
+tp = ImportOnRequest("trackpy")
 
 class PropArray(MetaArray):
     additional_props = ["dirpath", "metadata", "name", "propname"]
@@ -254,6 +255,18 @@ class AxesFrame(pd.DataFrame):
             out_list.append(out)
         return out_list
 
+  
+def tp_no_verbose(func):
+    """
+    Temporary suppress logging in trackpy.
+    """    
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        tp.quiet(suppress=True)
+        out = func(self, *args, **kwargs)
+        tp.quiet(suppress=False)
+        return out
+    return wrapper
 
 class MarkerFrame(AxesFrame):
     @tp_no_verbose

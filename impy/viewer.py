@@ -3,8 +3,9 @@ from .labeledarray import LabeledArray
 from .phasearray import PhaseArray
 from .label import Label
 from .specials import *
+from .utilcls import ImportOnRequest
 
-
+napari = ImportOnRequest("napari")
 """
 # marker
 viewer.layers[-1].name="peaks"
@@ -33,7 +34,6 @@ class napariWindow:
         return self.viewer.layers[-1]
         
     def start(self):
-        import napari
         self.viewer = napari.Viewer(title="impy")
     
     def add(self, obj, **kwargs):

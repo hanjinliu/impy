@@ -246,7 +246,7 @@ def fill_hole_(args):
 
 def count_neighbors_(args):
     sl, data, selem = args
-    return sl, ndi.convolve(data.astype("uint8"), selem, mode="constant") - data
+    return sl, ndi.convolve(data.astype(np.uint8), selem, mode="constant") - data
 
 def corner_harris_(args):
     sl, data, k, sigma = args
