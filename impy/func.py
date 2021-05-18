@@ -79,47 +79,6 @@ def check_nd(x, ndim:int):
     return x
 
 
-def specify_one(center, radius, shape:tuple, labeltype:str):
-    if labeltype == "square":
-        sl = (...,) + tuple(slice(max(0, xc-int(r)), min(xc+int(r)+1, sh), None) 
-                            for xc, r, sh in zip(center, radius, shape))
-    elif labeltype == "ellipse":
-        ind = np.indices(shape)
-        # (x-x_0)^2/r_x^2 + (y-y_0)^2/r_y^2 + (z-z_0)^2/r_z^2 <= 1
-        sl = sum([((i-xc)/r)**2 for i, xc, r in zip(ind, center, radius)]) <= 1.0
-    elif labeltype == "circle":
-        r = radius[0]
-        if not (radius == r).all():
-            raise ValueError("Cannot set different radii when shape is 'circle'")
-
-        sl = np.zeros(shape, dtype=bool)
-        area = ball_like_odd(r, len(center))
-        bbox_sl = []
-        area_sl = []
-        for xc, sh in zip(center, shape):
-            start = xc - int(r)
-            stop = xc + int(r) + 1
-            if start < 0:
-                area_sl.append(slice(-start, None))
-                bbox_sl.append(slice(0, stop))
-                start = 0
-            elif stop > sh:
-                area_sl.append(slice(None, 2*int(r)+1-stop+sh))
-                bbox_sl.append(slice(start, None))
-                stop = sh
-            else:
-                area_sl.append(slice(None))
-                bbox_sl.append(slice(start, stop))
-
-        bbox = tuple(bbox_sl)
-        sl[bbox] = area[tuple(area_sl)]
-
-    else:
-        raise ValueError(f"{shape}")
-
-    return sl
-
-
 def check_matrix(ref):
     """
     Check Affine transformation matrix
@@ -437,7 +396,7 @@ def check_filter_func(f):
     return f
 
 
-def largest_zeros(shape):
+def largest_zeros(shape) -> np.ndarray:
     try:
         out = np.zeros(shape, dtype=np.uint64)
     except MemoryError:

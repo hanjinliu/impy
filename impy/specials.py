@@ -255,6 +255,17 @@ class AxesFrame(pd.DataFrame):
             out_list.append(out)
         return out_list
 
+    def iter(self, axes):
+        reg = "|".join(a for a in self.col_axes if a not in axes)
+        groupkeys = [a for a in axes]
+        if len(groupkeys) == 0:
+            yield slice(None), self
+        
+        else:
+            for sl, af in self.groupby(groupkeys):
+                af = af.filter(regex=reg)
+                yield sl, af
+            
   
 def tp_no_verbose(func):
     """

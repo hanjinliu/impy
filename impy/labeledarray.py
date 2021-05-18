@@ -620,7 +620,7 @@ class LabeledArray(HistoryArray):
     
     
     @dims_to_spatial_axes
-    def specify(self, center, radius, filt=None, *, dims=None, labeltype="square") -> LabeledArray:
+    def specify(self, center, radius, *, dims=None, labeltype="square") -> LabeledArray:
         """
         Make rectangle or ellipse labels from points.
         
@@ -628,10 +628,8 @@ class LabeledArray(HistoryArray):
         ----------
         center : array like or MarkerFrame
             Coordinates of centers. For MarkerFrame, it must have the same axes order.
-        radius : float or array
+        radius : float or array-like
             Radius of labels.
-        filt : callable, optional
-            For every slice `sl`, label is added only when filt(self[sl]) is satisfied.
         dims : int or str, optional
             Dimension of axes.
         labeltype : str, by default "square"
@@ -651,40 +649,46 @@ class LabeledArray(HistoryArray):
         >>> ip.window.add(img)
         """
         if isinstance(center, MarkerFrame):
-            # determine dims to iterate.
-            # dims = "".join(a for a in dims if a not in center.axes)
-            dims = str(center.col_axes)
+            from ._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
             ndim = len(dims)
-            # convert radius to an array
-            if np.isscalar(radius):
-                radius = np.full(ndim, radius)
-            radius = np.asarray(radius)
+            if labeltype in ("square", "s"):
+                if ndim == 2:
+                    _specify = _specify_square_2d
+                elif ndim == 3:
+                    _specify = _specify_square_3d
+                else:
+                    raise NotImplementedError("Only ndim = 2,3 is implemented.")
+                
+            elif labeltype in ("circle", "c"):
+                if ndim == 2:
+                    _specify = _specify_circ_2d
+                elif ndim == 3:
+                    _specify = _specify_circ_3d
+                else:
+                    raise NotImplementedError("Only ndim = 2,3 is implemented.")
             
-            shape = self.sizesof(dims)
+            else:
+                raise ValueError("`labeltype` must be 'square' or 'circle'.")
+            
             label_axes = str(center.col_axes)
             label_shape = self.sizesof(label_axes)
-            if hasattr(self, "labels"):
-                print("Existing labels are updated.")
-            self.labels = Label(np.zeros(label_shape, dtype=np.uint8), dtype=np.uint8, axes=label_axes)
-            self.labels.set_scale(self)
-
-            filt = check_filter_func(filt)
+            labels = largest_zeros(label_shape)
+            
+            radius = np.asarray(check_nd(radius, ndim), dtype=np.float32)
             
             print("specify ... ", end="")
             timer = Timer()
-            for crd in center.values:
-                c = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = specify_one(c, radius, shape, labeltype)
-                img_ = self[label_sl][sl]
-                if img_.size > 0 and filt(img_):
-                    self.labels[label_sl][sl] = self.labels.max() + 1
-                    # increase memory if needed
-                    if self.labels.max() == np.iinfo(self.labels.dtype).max:
-                        self.labels = self.labels.as_larger_type()
-                        
+            n_label = 1
+            for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
+                _specify(labels[sl], crds.values, radius, n_label)
+                n_label += len(crds)
             timer.toc()
             print(f"\rspecify completed ({timer})")
+            
+            if hasattr(self, "labels"):
+                print("Existing labels are updated.")
+            self.labels = Label(labels, axes=label_axes).optimize()
+            self.labels.set_scale(self)
         
         else:
             center = np.asarray(center)
@@ -694,7 +698,7 @@ class LabeledArray(HistoryArray):
             cols = {1:"x", 2:"yx", 3:"zyx"}[center.shape[1]]
             center = MarkerFrame(center, columns=cols, dtype=np.uint16)
 
-            return self.specify(center, radius, filt=filt, dims=dims, labeltype=labeltype)     
+            return self.specify(center, radius, dims=dims, labeltype=labeltype)     
         
         return self
     

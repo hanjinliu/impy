@@ -927,6 +927,7 @@ class ImgArray(LabeledArray):
         FrameDict
             Coordinates in MarkerFrame and refinement results in pd.DataFrame.
         """        
+        # TODO: nD image
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         self.specify(coords, radius, labeltype="circle")
@@ -938,7 +939,7 @@ class ImgArray(LabeledArray):
         bg = self.value[self.labels==0]
         black_level = np.mean(bg)
         noise = np.std(bg)
-        area = np.sum(ball_like_odd(radius, len(dims)))
+        area = np.sum(ball_like_odd(radius[0], len(dims)))
         mass = refined_coords["raw_mass"].values - area * black_level
         ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
         
