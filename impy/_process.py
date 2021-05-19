@@ -151,6 +151,22 @@ def binary_dilation_(args):
     sl, data, selem = args
     return sl, skmorph.binary_dilation(data, selem)
 
+def diameter_opening_(args):
+    sl, data, diam, connectivity = args
+    return sl, skmorph.diameter_opening(data, diam, connectivity)
+
+def diameter_closing_(args):
+    sl, data, diam, connectivity = args
+    return sl, skmorph.diameter_closing(data, diam, connectivity)
+
+def area_opening_(args):
+    sl, data, area, connectivity = args
+    return sl, skmorph.area_opening(data, area, connectivity)
+
+def area_closing_(args):
+    sl, data, area, connectivity = args
+    return sl, skmorph.area_closing(data, area, connectivity)
+
 def tophat_(args):
     sl, data, selem = args
     return sl, skmorph.white_tophat(data, selem)

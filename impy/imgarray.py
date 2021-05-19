@@ -483,6 +483,38 @@ class ImgArray(LabeledArray):
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         return self._running_kernel(radius, median_, dims=dims, update=update)
     
+    @record()
+    @dims_to_spatial_axes
+    @same_dtype()
+    def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims=None, 
+                         update:bool=False) -> ImgArray:
+        return self.parallel(diameter_opening_, complement_axes(dims, self.axes), 
+                             diameter, connectivity)
+        
+    @record()
+    @dims_to_spatial_axes
+    @same_dtype()
+    def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims=None,
+                         update:bool=False) -> ImgArray:
+        return self.parallel(diameter_closing_, complement_axes(dims, self.axes), 
+                             diameter, connectivity)
+    
+    @record()
+    @dims_to_spatial_axes
+    @same_dtype()
+    def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
+                     update:bool=False) -> ImgArray:
+        return self.parallel(area_opening_, complement_axes(dims, self.axes), 
+                             area, connectivity)
+        
+    @record()
+    @dims_to_spatial_axes
+    @same_dtype()
+    def area_closing(self, area:int=64, *, connectivity:int=1, dims=None,
+                     update:bool=False) -> ImgArray:
+        return self.parallel(area_closing_, complement_axes(dims, self.axes), 
+                             area, connectivity)
+        
     @dims_to_spatial_axes
     @record()
     @same_dtype()
@@ -902,21 +934,50 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def voronoi(self, coords, *, dims=None) -> ImgArray:
-        
+    def voronoi(self, coords, *, inf=None, dims="yx") -> ImgArray:
+        """
+        Voronoi segmentation of an image. Image region labeled with $i$ means that all
+        the points in the region are closer to the $i$-th point than any other points.
+
+        Parameters
+        ----------
+        coords : MarkerFrame or (N, 2) array-like
+            Coordinates of points.
+        inf : int, array of int, optional
+            Distance to infinity points. If not provided, infinity points are placed at
+            100 times further positions relative to the image shape.
+        dims : int or str, default is "yx"
+            Spatial dimensions
+
+        Returns
+        -------
+        ImgArray
+            Image labeled with segmentation.
+        """        
         if not isinstance(coords, MarkerFrame):
             coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
             coords.set_scale(self)
-            
-        # TODO: Voronoi segmentation
+        
+        ny, nx = self.sizesof(dims)
+        
+        if inf is None:
+            infy = ny * 100
+            infx = nx * 100
+        elif isinstance(inf, int):
+            infy = infx = inf
+        else:
+            infy, infx = inf
+        
+        infpoints = [[-infy, -infx], [-infy, nx+infx], [ny+infy, -infx], [ny+infy, nx+infx]]
+        
         labels = largest_zeros(self.shape)
         n_label = 1
         print("voronoi ... ", end="")
         timer = Timer()
         for sl, crds in coords.iter(complement_axes(dims, self.axes)):
-            vor = Voronoi(crds.values)
-            for r in np.array(vor.regions):
-                if (r > 0).all(): # how to deal with infinite points?
+            vor = Voronoi(crds.values.tolist() + infpoints)
+            for r in vor.regions:
+                if all(r0 > 0 for r0 in r):
                     poly = vor.vertices[r]
                     grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
                     labels[sl][grids] = n_label
