@@ -988,7 +988,32 @@ class ImgArray(LabeledArray):
         self.labels.set_scale(self)
 
         return self
+    
+    @dims_to_spatial_axes
+    def flood(self, seeds, *, connectivity:int=1, tolerance:float=None, dims=None):
+        if not isinstance(seeds, MarkerFrame):
+            seeds = MarkerFrame(seeds, columns=dims, dtype=np.uint16)
+            seeds.set_scale(self)
         
+        labels = largest_zeros(self.shape)
+        n_label = 1
+        print("flood ... ", end="")
+        timer = Timer()
+        for sl, crds in seeds.iter(complement_axes(dims, self.axes)):
+            for crd in crds.values:
+                crd = tuple(crd)
+                if labels[sl][crd] > 0:
+                    # If different seed points belong to the same filled area.
+                    continue
+                fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
+                labels[sl][fill_area] = n_label
+                n_label += 1
+            
+        timer.toc()
+        print(f"\rflood completed ({timer})")
+        self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+        self.labels.set_scale(self)
+        return self
     
     @dims_to_spatial_axes
     def refine_sm(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
@@ -1559,12 +1584,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @only_binary
     @record()
-    def skeletonize(self, *, dims=None, update=False) -> ImgArray:
+    def skeletonize(self, radius:float=0, *, dims=None, update=False) -> ImgArray:
         """
         Skeletonize images. Only works for binary images.
 
         Parameters
         ----------
+        radius : float, optional
+            Radius of skeleton. This is achieved simply by dilation of skeletonized results.
         dims : int or str, optional
             Spatial dimensions.
         update : bool, optional
@@ -1575,7 +1602,12 @@ class ImgArray(LabeledArray):
         ImgArray
             Skeletonized image.
         """        
-        return self.parallel(skeletonize_, complement_axes(dims, self.axes), outdtype=bool)
+        if radius >= 1:
+            selem = ball_like(radius, len(dims))
+        else:
+            selem = None
+        return self.parallel(skeletonize_, complement_axes(dims, self.axes), selem, outdtype=bool)
+        
     
     @dims_to_spatial_axes
     @only_binary
@@ -1607,9 +1639,6 @@ class ImgArray(LabeledArray):
         >>> np.argwhere(edge>3) # get coordinates of filament cross sections.
         
         """        
-        if self.dtype != bool:
-            raise TypeError("Cannot run count_neighbors() with non-binary image.")
-        
         ndim = len(dims)
         connectivity = ndim if connectivity is None else connectivity
         selem = ndi.morphology.generate_binary_structure(ndim, connectivity)

@@ -176,8 +176,11 @@ def convex_hull_(args):
     return sl, skmorph.convex_hull_image(data)
 
 def skeletonize_(args):
-    sl, data = args
-    return sl, skmorph.skeletonize_3d(data)
+    sl, data, selem = args
+    skl = skmorph.skeletonize_3d(data)
+    if selem is not None:
+        skl = skmorph.binary_dilation(skl, selem)
+    return sl, skl 
 
 def hessian_eigh_(args):
     sl, data, sigma, pxsize = args
