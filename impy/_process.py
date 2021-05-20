@@ -20,13 +20,15 @@ def median_(args):
 
 def directional_median_(args):
     sl, data, radius = args
-    kernels = directional_median_kernel_2d(radius*2 + 1)
-    data_var = np.stack([ndi.convolve(data**2, ker/3, mode="reflect") - 
-                         ndi.convolve(data, ker/3, mode="reflect")**2 for ker in kernels])
+    diam = 2*radius + 1
+    directional_median_kernel = directional_median_kernel_2d if data.ndim == 2 else directional_median_kernel_3d
+    kernels = directional_median_kernel(radius*2 + 1)
+    data_var = np.stack([ndi.convolve(data**2, ker/diam, mode="reflect") - 
+                         ndi.convolve(data, ker/diam, mode="reflect")**2 for ker in kernels])
     min_vars = np.argmin(data_var, axis=0)
     data_med = [ndi.median_filter(data, footprint=ker, mode="reflect") for ker in kernels]
     out = np.empty_like(data)
-    for d in [0, 1, 2, 3]:
+    for d in np.arange(len(kernels)):
         out = np.where(min_vars==d, data_med[d], out)
     
     return sl, out
@@ -37,6 +39,15 @@ def directional_median_kernel_2d(size):
     k3 = k1.T                               # |
     k4 = np.fliplr(k2)                      # /
     return [k1, k2, k3, k4]
+
+def directional_median_kernel_3d(size):
+    raise NotImplementedError
+    
+def wavelet_denoising_(args):
+    sl, data, func_kw, max_shift, shift_steps = args
+    out = skres.cycle_spin(data, skres.denoise_wavelet, func_kw=func_kw, max_shifts=max_shift, 
+                           multichannel=False, shift_steps=shift_steps)
+    return sl, out
     
 def mean_(args):
     sl, data, selem = args

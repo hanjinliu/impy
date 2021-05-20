@@ -8,6 +8,7 @@ from inspect import signature
 from scipy import optimize as opt
 from .func import *
 from .deco import *
+from .axes import ORDER
 from .utilcls import *
 
 SCALAR_PROP = (
@@ -265,7 +266,10 @@ class AxesFrame(pd.DataFrame):
             for sl, af in self.groupby(groupkeys):
                 af = af.filter(regex=reg)
                 yield sl, af
-            
+    
+    def sort(self):
+        ids = np.argsort([ORDER[k] for k in self._axes])
+        return self[[self._axes[i] for i in ids]]
   
 def tp_no_verbose(func):
     """

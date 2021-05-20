@@ -247,6 +247,7 @@ class ImgArray(LabeledArray):
             nchn = self.sizeof(axis)
             raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
         
+        # TODO: do not use stack()
         corrected = []
         for i, m in enumerate(mtx):
             if np.isscalar(m) and m==1:
@@ -760,10 +761,13 @@ class ImgArray(LabeledArray):
         return self.parallel(rolling_ball_, complement_axes(dims, self.axes), 
                              radius, smoothing)
         
-    
-    def wavelet_denoising(self, noise, wavelet="db1", mode="soft", wavelet_levels=None, max_shifts=None):
-        # TODO: wavelet denoising
-        ...
+    @dims_to_spatial_axes
+    @record()
+    @same_dtype()
+    def wavelet_denoising(self, noise_sigma:float=None, *, wavelet:str="db1", mode:str="soft", wavelet_levels:int=None, 
+                          method:str="BayesShrink", max_shifts:int=0, shift_steps:int=1, dims=None) -> ImgArray:
+        func_kw=dict(sigma=noise_sigma, wavelet=wavelet, mode=mode, wavelet_levels=wavelet_levels, method=method)
+        return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), func_kw, max_shifts, shift_steps)
     
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
@@ -954,9 +958,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Image labeled with segmentation.
         """        
-        if not isinstance(coords, MarkerFrame):
-            coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
-            coords.set_scale(self)
+        coords = check_coordinates(coords, self)
         
         ny, nx = self.sizesof(dims)
         
@@ -991,23 +993,41 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     def flood(self, seeds, *, connectivity:int=1, tolerance:float=None, dims=None):
-        if not isinstance(seeds, MarkerFrame):
-            seeds = MarkerFrame(seeds, columns=dims, dtype=np.uint16)
-            seeds.set_scale(self)
-        
+        """
+        Flood filling with a list of seed points. By repeating skimage's `flood` function,
+        this method can perform segmentation of an image.
+
+        Parameters
+        ----------
+        seeds : MarkerFrame or (N, D) array-like
+            Seed points to start flood filling.
+        connectivity : int, default is 1
+            Defines connectivity structure.
+        tolerance : float, optional
+            Intensity deviation within this value will be filled.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Labeled image.
+        """        
+        seeds = check_coordinates(seeds, self)
         labels = largest_zeros(self.shape)
-        n_label = 1
+        n_label_next = 1
         print("flood ... ", end="")
         timer = Timer()
         for sl, crds in seeds.iter(complement_axes(dims, self.axes)):
             for crd in crds.values:
                 crd = tuple(crd)
                 if labels[sl][crd] > 0:
-                    # If different seed points belong to the same filled area.
-                    continue
+                    n_label = labels[sl][crd]
+                else:
+                    n_label = n_label_next
+                    n_label_next += 1
                 fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
                 labels[sl][fill_area] = n_label
-                n_label += 1
             
         timer.toc()
         print(f"\rflood completed ({timer})")
@@ -1023,8 +1043,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        coords : MarkerFrame or (N, 2) array, optional
-            Coordinates of peaks. If None, this will be determined by find_sm.
+        coords : MarkerFrame or (N, D) array, optional
+            Coordinates of peaks. If None, this will be determined by `find_sm`.
         radius : float, by default 4.
             Range to mask single molecules.
         percentile : int, optional
@@ -1041,31 +1061,39 @@ class ImgArray(LabeledArray):
         FrameDict
             Coordinates in MarkerFrame and refinement results in pd.DataFrame.
         """        
-        # TODO: nD image
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
+        else:
+            coords = check_coordinates(coords, self)
+            
         self.specify(coords, radius, labeltype="circle")
         radius = check_nd(radius, len(dims))
         sigma = check_nd(sigma, len(dims))
         sigma = tuple([int(x) for x in sigma])
-        refined_coords = tp.refine.refine_com(self.value, self.value, radius, coords,
-                                              max_iterations=n_iter, pos_columns=[a for a in dims])
-        bg = self.value[self.labels==0]
-        black_level = np.mean(bg)
-        noise = np.std(bg)
-        area = np.sum(ball_like_odd(radius[0], len(dims)))
-        mass = refined_coords["raw_mass"].values - area * black_level
-        ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
-        
-        if ep.ndim == 1:
-            refined_coords["ep"] = ep
-        else:
-            ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in [a for a in dims]])
-            refined_coords = pd.concat([refined_coords, ep], axis=1)
+        df_all = pd.DataFrame()
+        c_axes = complement_axes(dims, self.axes)
+        for sl, crds in coords.iter(c_axes):
+            img = self[sl]
+            refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
+                                                  max_iterations=n_iter, pos_columns=[a for a in dims])
+            bg = img.value[img.labels==0]
+            black_level = np.mean(bg)
+            noise = np.std(bg)
+            area = np.sum(ball_like_odd(radius[0], len(dims)))
+            mass = refined_coords["raw_mass"].values - area * black_level
+            ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
             
-        mf = MarkerFrame(refined_coords.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
+            if ep.ndim == 1:
+                refined_coords["ep"] = ep
+            else:
+                ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in [a for a in dims]])
+                refined_coords = pd.concat([refined_coords, ep], axis=1)
+            refined_coords[[a for a in c_axes]] = sl
+            df_all = pd.concat([df_all, refined_coords])
+            
+        mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
         mf.set_scale(self.scale)
-        df = refined_coords[refined_coords.columns[refined_coords.columns.isin([a for a in refined_coords.columns if a not in dims])]]
+        df = df_all[df_all.columns[df_all.columns.isin([a for a in df_all.columns if a not in dims])]]
         return FrameDict(coords=mf, results=df)
         
     
@@ -1144,42 +1172,37 @@ class ImgArray(LabeledArray):
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
             return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
                                     percentile=percentile, dims=dims)
-        # This case is main
-        elif isinstance(coords, MarkerFrame):
-            ndim = len(dims)
-            filt = check_filter_func(filt)
-            
-            radius = np.asarray(check_nd(radius, ndim))
-            
-            shape = self.sizesof(dims)
-            
-            centroids = []  # fitting results of means
-            print("centroid_sm ... ", end="")
-            timer = Timer()
-            for crd in coords.values:
-                center = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
-                input_img = self.value[label_sl][sl]
-                if input_img.size == 0 or not filt(input_img):
-                    continue
-                
-                mom = skmes.moments(input_img, order=1)
-                shift = center - radius
-                centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
-                centroids.append(label_sl + tuple(centroid + shift))
-                    
-            timer.toc()
-            print(f"\rcentroid_sm completed ({timer})")
-            
-            out = MarkerFrame(centroids, columns=coords.col_axes, dtype=np.float32).as_standard_type()
-            out.set_scale(coords.scale)
-            
         else:
-            coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
-            coords.set_scale(self)
-            return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
-                                    percentile=percentile, dims=dims)
+            coords = check_coordinates(coords, self)
+            
+        ndim = len(dims)
+        filt = check_filter_func(filt)
+        
+        radius = np.asarray(check_nd(radius, ndim))
+        
+        shape = self.sizesof(dims)
+        
+        centroids = []  # fitting results of means
+        print("centroid_sm ... ", end="")
+        timer = Timer()
+        for crd in coords.values:
+            center = tuple(crd[-ndim:])
+            label_sl = tuple(crd[:-ndim])
+            sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
+            input_img = self.value[label_sl][sl]
+            if input_img.size == 0 or not filt(input_img):
+                continue
+            
+            mom = skmes.moments(input_img, order=1)
+            shift = center - radius
+            centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
+            centroids.append(label_sl + tuple(centroid + shift))
+                
+        timer.toc()
+        print(f"\rcentroid_sm completed ({timer})")
+        
+        out = MarkerFrame(centroids, columns=coords.col_axes, dtype=np.float32).as_standard_type()
+        out.set_scale(coords.scale)
 
         return out
     
@@ -1218,76 +1241,67 @@ class ImgArray(LabeledArray):
         """        
         
         if coords is None:
-            melted = self.find_sm(sigma=sigma, dims=dims, 
-                                  percentile=percentile)
-            return self.gauss_sm(melted, radius=radius, sigma=sigma, filt=filt, 
-                                 percentile=percentile, dims=dims)
-        # This case is main
-        elif isinstance(coords, MarkerFrame):
-            ndim = len(dims)
-            filt = check_filter_func(filt)
-            
-            radius = np.asarray(check_nd(radius, ndim))
-            
-            shape = self.sizesof(dims)
-            
-            means = []  # fitting results of means
-            sigmas = [] # fitting results of sigmas
-            errs = []   # fitting errors of means
-            ab = []
-            print("gauss_sm ... ", end="")
-            timer = Timer()
-            for crd in coords.values:
-                center = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
-                input_img = self.value[label_sl][sl]
-                if input_img.size == 0 or not filt(input_img):
-                    continue
-                
-                gaussian = GaussianParticle(initial_sg=sigma)
-                res = gaussian.fit(input_img, method="BFGS")
-                
-                if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
-                    gaussian.shift(center - radius)
-                    # calculate fitting error with Jacobian
-                    # TODO: is this error correct?
-                    if return_all:
-                        jac = res.jac[:2].reshape(1,-1)
-                        cov = pseudo_inverse(jac.T @ jac)
-                        err = np.sqrt(np.diag(cov))
-                        sigmas.append(label_sl + tuple(gaussian.sg))
-                        errs.append(label_sl + tuple(err))
-                        ab.append(label_sl + (gaussian.a, gaussian.b))
-                    
-                    means.append(label_sl + tuple(gaussian.mu))
-                    
-            timer.toc()
-            print(f"\rgauss_sm completed ({timer})")
-            
-            kw = dict(columns=coords.col_axes, dtype=np.float32)
-            
-            if return_all:
-                out = FrameDict(means = MarkerFrame(means, **kw).as_standard_type(),
-                                sigmas = MarkerFrame(sigmas, **kw).as_standard_type(),
-                                errors = MarkerFrame(errs, **kw).as_standard_type(),
-                                intensities = MarkerFrame(ab, 
-                                                          columns=str(coords.col_axes)[:-ndim]+"ab",
-                                                          dtype=np.float32))
-                
-                out.means.set_scale(coords.scale)
-                out.sigmas.set_scale(coords.scale)
-                out.errors.set_scale(coords.scale)
-                    
-            else:
-                out = MarkerFrame(means, **kw)
-                out.set_scale(coords.scale)
-            
+            coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
         else:
-            coords = MarkerFrame(coords, columns=dims, dtype="uint16")
-            coords.set_scale(self)
-            return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
-                                    percentile=percentile, dims=dims)
+            coords = check_coordinates(coords, self)    
+        ndim = len(dims)
+        filt = check_filter_func(filt)
+        
+        radius = np.asarray(check_nd(radius, ndim))
+        
+        shape = self.sizesof(dims)
+        
+        means = []  # fitting results of means
+        sigmas = [] # fitting results of sigmas
+        errs = []   # fitting errors of means
+        ab = []
+        print("gauss_sm ... ", end="")
+        timer = Timer()
+        for crd in coords.values:
+            center = tuple(crd[-ndim:])
+            label_sl = tuple(crd[:-ndim])
+            sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
+            input_img = self.value[label_sl][sl]
+            if input_img.size == 0 or not filt(input_img):
+                continue
+            
+            gaussian = GaussianParticle(initial_sg=sigma)
+            res = gaussian.fit(input_img, method="BFGS")
+            
+            if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
+                gaussian.shift(center - radius)
+                # calculate fitting error with Jacobian
+                # TODO: is this error correct?
+                if return_all:
+                    jac = res.jac[:2].reshape(1,-1)
+                    cov = pseudo_inverse(jac.T @ jac)
+                    err = np.sqrt(np.diag(cov))
+                    sigmas.append(label_sl + tuple(gaussian.sg))
+                    errs.append(label_sl + tuple(err))
+                    ab.append(label_sl + (gaussian.a, gaussian.b))
+                
+                means.append(label_sl + tuple(gaussian.mu))
+                
+        timer.toc()
+        print(f"\rgauss_sm completed ({timer})")
+        
+        kw = dict(columns=coords.col_axes, dtype=np.float32)
+        
+        if return_all:
+            out = FrameDict(means = MarkerFrame(means, **kw).as_standard_type(),
+                            sigmas = MarkerFrame(sigmas, **kw).as_standard_type(),
+                            errors = MarkerFrame(errs, **kw).as_standard_type(),
+                            intensities = MarkerFrame(ab, 
+                                                        columns=str(coords.col_axes)[:-ndim]+"ab",
+                                                        dtype=np.float32))
+            
+            out.means.set_scale(coords.scale)
+            out.sigmas.set_scale(coords.scale)
+            out.errors.set_scale(coords.scale)
+                
+        else:
+            out = MarkerFrame(means, **kw)
+            out.set_scale(coords.scale)
                             
         return out
     
@@ -1606,6 +1620,7 @@ class ImgArray(LabeledArray):
             selem = ball_like(radius, len(dims))
         else:
             selem = None
+        
         return self.parallel(skeletonize_, complement_axes(dims, self.axes), selem, outdtype=bool)
         
     
@@ -2664,4 +2679,25 @@ def stack(imgs, axis="c", dtype=None):
     
     return out
 
-
+def check_coordinates(coords, img):
+    if not isinstance(coords, MarkerFrame):
+        coords = np.asarray(coords)
+        if coords.ndim == 1:
+            coords = coords.reshape(1, -1)
+        elif coords.ndim != 2:
+            raise ValueError("Input `coords` cannot be interpreted as coordinate(s).")
+        ndim = coords.shape[1]
+        coords = MarkerFrame(coords, columns=img.axes[-ndim:], dtype=np.uint16)
+        coords.set_scale(img)
+    
+    if coords.col_axes != img.axes:
+        
+        # axes_to_append = complement_axes(coords.col_axes, img.axes)
+        # sizes = img.sizesof(axes_to_append)
+        # cols_to_append = np.array(*itertools.product(*map(range, sizes)), dtype=np.uint16)
+        # for sl in coords.values:
+        #     coords[[a for a in axes_to_append]] = sl
+        # coords = coords.sort()
+        raise ImageAxesError(f"Image has {img.axes}-axes but {len(coords.col_axes)} values are given.")
+    
+    return coords
