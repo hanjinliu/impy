@@ -75,9 +75,11 @@ class ImgArray(LabeledArray):
         order : float, optional
             order of rescaling.
         """        
+        # TODO: set_scale
         scale_ = [scale if a in dims else 1 for a in self.axes]
         out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
         out = out.view(self.__class__)
+        out.set_scale({scale_})
         return out
     
     @record()
@@ -764,10 +766,44 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype()
-    def wavelet_denoising(self, noise_sigma:float=None, *, wavelet:str="db1", mode:str="soft", wavelet_levels:int=None, 
-                          method:str="BayesShrink", max_shifts:int=0, shift_steps:int=1, dims=None) -> ImgArray:
-        func_kw=dict(sigma=noise_sigma, wavelet=wavelet, mode=mode, wavelet_levels=wavelet_levels, method=method)
-        return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), func_kw, max_shifts, shift_steps)
+    def wavelet_denoising(self, noise_sigma:float=None, *, wavelet:str="db1", mode:str="soft", 
+                          wavelet_levels:int=None, method:str="BayesShrink", max_shifts:int|tuple=0,
+                          shift_steps:int|tuple=1, dims=None) -> ImgArray:
+        """
+        Wavelet denoising. Because it is not shift invariant, `cycle_spin` is called inside the 
+        function.
+
+        Parameters
+        ----------
+        noise_sigma : float, optional
+            Standard deviation of noise, if known.
+        wavelet : str, default is "db1"
+            Any options of `pywt.wavelist`.
+        mode : {"soft", "hard"}, default is "soft"
+            Type of denoising.
+        wavelet_levels : int, optional
+            The number of wavelet decomposition levels to use.
+        method : {"BayesShrink", "VisuShrink"}, default is "BayesShrink"
+            Thresholding method to be used
+        max_shifts : int or tuple, default is 0
+            Shifts in range(0, max_shifts+1) will be used.
+        shift_steps : int or tuple, default is 1
+            Step size of shifts.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Denoised image.
+        """        
+        func_kw=dict(sigma=noise_sigma, 
+                     wavelet=wavelet, 
+                     mode=mode, 
+                     wavelet_levels=wavelet_levels,
+                     method=method)
+        return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
+                             func_kw, max_shifts, shift_steps)
     
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
@@ -911,6 +947,24 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def corner_harris(self, sigma=1, k=0.05, *, dims=None) -> ImgArray:
+        """
+        Calculate Harris response image.
+
+        Parameters
+        ----------
+        sigma : float, optional
+            Standard deviation of Gaussian prefilter.
+        k : float, optional
+            Sensitivity factor to separate corners from edges, typically in range [0, 0.2].
+            Small values of k result in detection of sharp corners.
+        dims : str or int, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Harris response
+        """        
         return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
     
     @dims_to_spatial_axes
@@ -974,18 +1028,15 @@ class ImgArray(LabeledArray):
         
         labels = largest_zeros(self.shape)
         n_label = 1
-        print("voronoi ... ", end="")
-        timer = Timer()
-        for sl, crds in coords.iter(complement_axes(dims, self.axes)):
-            vor = Voronoi(crds.values.tolist() + infpoints)
-            for r in vor.regions:
-                if all(r0 > 0 for r0 in r):
-                    poly = vor.vertices[r]
-                    grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
-                    labels[sl][grids] = n_label
-                    n_label += 1
-        timer.toc()
-        print(f"\rvoronoi completed ({timer})")
+        with Progress("voronoi"):
+            for sl, crds in coords.iter(complement_axes(dims, self.axes)):
+                vor = Voronoi(crds.values.tolist() + infpoints)
+                for r in vor.regions:
+                    if all(r0 > 0 for r0 in r):
+                        poly = vor.vertices[r]
+                        grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
+                        labels[sl][grids] = n_label
+                        n_label += 1
         self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
         self.labels.set_scale(self)
 
@@ -1042,10 +1093,10 @@ class ImgArray(LabeledArray):
         ----------
         coords : MarkerFrame or (N, D) array, optional
             Coordinates of peaks. If None, this will be determined by `find_sm`.
-        radius : float, by default 4.
+        radius : float, default is 4.
             Range to mask single molecules.
-        percentile : int, optional
-            [description], by default 90
+        percentile : int, default is 90
+            Passed to peak_local_max()
         n_iter : int, default is 10
             Number of iteration of refinement.
         sigma : float, default is 1.5
@@ -1148,7 +1199,7 @@ class ImgArray(LabeledArray):
         ----------
         coords : MarkerFrame or (N, 2) array, optional
             Coordinates of peaks. If None, this will be determined by find_sm.
-        radius : float, by default 4.
+        radius : float, default is 4.
             Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
             to calculate moments.
         sigma : float, default is 1.5
@@ -2608,7 +2659,7 @@ def set_cpu(n_cpu:int) -> None:
     return None
 
 def set_verbose(b:bool) -> None:
-    ImgArray.show_progress = b
+    Progress.show_progress = b
     return None
 
 def stack(imgs, axis="c", dtype=None):

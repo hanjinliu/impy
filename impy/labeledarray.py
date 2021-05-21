@@ -824,13 +824,14 @@ class LabeledArray(HistoryArray):
     def append_label(self, label_image:np.ndarray, new:bool=False) -> LabeledArray:
         if not isinstance(label_image, np.ndarray):
             raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")
-        
+        elif label_image.dtype == bool:
+            label_image = label_image.astype(np.uint8)
+            
         if hasattr(self, "labels") and not new:
             if label_image.shape != self.labels.shape:
                 raise ImageAxesError(f"Shape mismatch. Existing labels have shape {self.labels.shape} "
                                      f"while labels with shape {label_image.shape} is given.")
-            if label_image.dtype == bool:
-                label_image = label_image.astype(np.uint8)
+            
             self.labels = self.labels.add_label(label_image)
         else:
             # when label_image is simple ndarray
