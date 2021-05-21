@@ -805,6 +805,23 @@ class ImgArray(LabeledArray):
         return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
                              func_kw, max_shifts, shift_steps)
     
+    def split_polarization(self, center=(0, 0)):
+        # 0 1 0 1
+        # 3 2 3 2
+        # 0 1 0 1
+        # 3 2 3 2
+        imgs = []
+        # TODO: translate x 3
+        imgs.append(self["y=0::2;x=0::2"].value)
+        imgs.append(self["y=1::2;x=0::2"].value)
+        imgs.append(self["y=1::2;x=1::2"].value)
+        imgs.append(self["y=0::2;x=1::2"].value)
+        imgs = np.stack(imgs, axis=0)
+        imgs = imgs.view(self.__class__)
+        imgs._set_info(self, "split_polarization", "<"+self.axes.axes)
+        imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
+        return imgs
+        
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
                        topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,

@@ -495,7 +495,11 @@ class LabeledArray(HistoryArray):
             Subimage
         """        
         name = getattr(self, "ongoing", "iteration")
-        with Progress(name):
+        if showprogress:
+            with Progress(name):
+                for x in super().iter(axes, israw=israw, exclude=exclude):
+                    yield x
+        else:
             return super().iter(axes, israw=israw, exclude=exclude)
             
     
