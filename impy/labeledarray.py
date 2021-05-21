@@ -561,17 +561,17 @@ class LabeledArray(HistoryArray):
         LabeledArray and LabeledArray
         """        
         ndim = len(complement_axes(dims, self.axes))
-        eigval = np.empty(self.shape+(ndim,), dtype="float32")
-        eigvec = np.empty(self.shape+(ndim, ndim), dtype="float32")
+        eigval = np.empty(self.shape+(ndim,), dtype=np.float32)
+        eigvec = np.empty(self.shape+(ndim, ndim), dtype=np.float32)
         
-        if self.__class__.n_cpu > 1:
+        if self.__class__.n_cpu > 1 and self.size > 10**7:
             results = self._parallel(func, dims, *args)
             for sl, eigval_, eigvec_ in results:
                 eigval[sl] = eigval_
                 eigvec[sl] = eigvec_
         else:
             for sl, img in self.iter(dims):
-                sl, eigval_, eigvec_ = func((sl, img, dims, *args))
+                sl, eigval_, eigvec_ = func((sl, img, *args))
                 eigval[sl] = eigval_
                 eigvec[sl] = eigvec_
             
@@ -584,7 +584,7 @@ class LabeledArray(HistoryArray):
         with Progress(name):
             with multi.Pool(self.__class__.n_cpu) as p:
                 results = p.map(func, map(lmd, self.iter(axes, False, israw)))
-        return results
+            return results
     
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

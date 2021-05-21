@@ -805,22 +805,66 @@ class ImgArray(LabeledArray):
         return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
                              func_kw, max_shifts, shift_steps)
     
-    def split_polarization(self, center=(0, 0)):
-        # 0 1 0 1
-        # 3 2 3 2
-        # 0 1 0 1
-        # 3 2 3 2
+    def split_polarization(self, center:tuple[float, float]=(0, 0), *, order:int=4) -> ImgArray:
+        """
+        Split a (2*N, 2*M)-image into four (N, M)-images for each other pixels. 
+        [0] [1] [0] [1] [0] [1] ...
+        [3] [2] [3] [2] [3] [2]
+        [0] [1] [0] [1] [0] [1]
+        [3] [2] [3] [2] [3] [2] ...
+         :                   :
+        will generate images only consist of positions of [0], [1], [2] or [3].
+         
+        Parameters
+        ----------
+        center : tuple (a, b), where 0 <= a <= 1 and 0 <= b <= 1, default is (0, 0)
+            Coordinate that will be considered as the center. For example, center=(0, 0) means the most
+            upper left pixel , by default (0, 0)
+        order : int, default is 4.
+            Spline interpolation order.
+
+        Returns
+        -------
+        ImgArray
+            Axis "<" is added in the first dimension.
+        
+        Example
+        -------
+        Extract polarization in 0-, 45-, 90- and 135-degree directions from an image that is acquired
+        from a polarization camera, and calculate total intensity of light by averaging.
+        
+        >>> img_pol = img.split_polarization()
+        >>> img_total = img_pol.proj(axis="<")
+        """        
+        yc, xc = center
         imgs = []
-        # TODO: translate x 3
-        imgs.append(self["y=0::2;x=0::2"].value)
-        imgs.append(self["y=1::2;x=0::2"].value)
-        imgs.append(self["y=1::2;x=1::2"].value)
-        imgs.append(self["y=0::2;x=1::2"].value)
-        imgs = np.stack(imgs, axis=0)
+        with Progress("split_polarization"):
+            for y, x in [(0,0), (0,1), (1,1), (1,0)]:
+                dr = [(xc-x)/2, (yc-y)/2]
+                imgs.append(self[f"y={y}::2;x={x}::2"].translate(translation=dr, order=order).value)
+            imgs = np.stack(imgs, axis=0)
         imgs = imgs.view(self.__class__)
-        imgs._set_info(self, "split_polarization", "<"+self.axes.axes)
+        imgs._set_info(self, "split_polarization", "<" + str(self.axes))
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
+    
+    @record(append_history=False)
+    def polarization_angle(self, *, along="<", deg=False):
+        # TODO: background!
+        img0, img45, img90, img135 = [a.as_float().value for a in self.split(along)]
+        s0 = img90 + img135
+        s1 = img0 - img90
+        s2 = img45 - img135
+        sq = s0**2 - s1**2
+        sq[sq<0] = 0
+        cos_psi = s2/(np.sqrt(sq + 1e-12))
+        cos_psi = np.clip(cos_psi, -1, 1)
+        psi = np.arccos(cos_psi)
+        psi = PhaseArray(psi, name=self.name, axes=complement_axes(along, self.axes), dirpath=self.dirpath,
+                         history=self.history, metadata=self.metadata, periodicity=np.pi)
+        psi.set_scale(self)
+        deg and psi.rad2deg(update=True)
+        return psi
         
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
@@ -1130,7 +1174,9 @@ class ImgArray(LabeledArray):
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         else:
             coords = check_coordinates(coords, self)
-            
+        
+        labels_now = getattr(self, "labels", None)
+        self.labels = None
         self.specify(coords, radius, labeltype="circle")
         radius = check_nd(radius, len(dims))
         sigma = check_nd(sigma, len(dims))
@@ -1159,6 +1205,8 @@ class ImgArray(LabeledArray):
         mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
         mf.set_scale(self.scale)
         df = df_all[df_all.columns[df_all.columns.isin([a for a in df_all.columns if a not in dims])]]
+        if labels_now is not None:
+            self.labels = labels_now
         return FrameDict(coords=mf, results=df)
         
     
@@ -1390,6 +1438,7 @@ class ImgArray(LabeledArray):
         
         arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
                          metadata=self.metadata, periodicity=np.pi)
+        arg.set_scale(self)
         deg and arg.rad2deg(update=True)
         return arg
     
@@ -1443,6 +1492,7 @@ class ImgArray(LabeledArray):
         
         argmax_ = PhaseArray(argmax_, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
                              metadata=self.metadata, periodicity=np.pi)
+        argmax_.set_scale(self)
         deg and argmax_.rad2deg(update=True)
         return argmax_
     
