@@ -1016,21 +1016,18 @@ class ImgArray(LabeledArray):
         seeds = check_coordinates(seeds, self)
         labels = largest_zeros(self.shape)
         n_label_next = 1
-        print("flood ... ", end="")
-        timer = Timer()
-        for sl, crds in seeds.iter(complement_axes(dims, self.axes)):
-            for crd in crds.values:
-                crd = tuple(crd)
-                if labels[sl][crd] > 0:
-                    n_label = labels[sl][crd]
-                else:
-                    n_label = n_label_next
-                    n_label_next += 1
-                fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
-                labels[sl][fill_area] = n_label
+        with Progress("flood"):
+            for sl, crds in seeds.iter(complement_axes(dims, self.axes)):
+                for crd in crds.values:
+                    crd = tuple(crd)
+                    if labels[sl][crd] > 0:
+                        n_label = labels[sl][crd]
+                    else:
+                        n_label = n_label_next
+                        n_label_next += 1
+                    fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
+                    labels[sl][fill_area] = n_label
             
-        timer.toc()
-        print(f"\rflood completed ({timer})")
         self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
         self.labels.set_scale(self)
         return self
@@ -1183,24 +1180,20 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(dims)
         
         centroids = []  # fitting results of means
-        print("centroid_sm ... ", end="")
-        timer = Timer()
-        for crd in coords.values:
-            center = tuple(crd[-ndim:])
-            label_sl = tuple(crd[:-ndim])
-            sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
-            input_img = self.value[label_sl][sl]
-            if input_img.size == 0 or not filt(input_img):
-                continue
-            
-            mom = skmes.moments(input_img, order=1)
-            shift = center - radius
-            centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
-            centroids.append(label_sl + tuple(centroid + shift))
+        with Progress("centroid_sm"):
+            for crd in coords.values:
+                center = tuple(crd[-ndim:])
+                label_sl = tuple(crd[:-ndim])
+                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
+                input_img = self.value[label_sl][sl]
+                if input_img.size == 0 or not filt(input_img):
+                    continue
                 
-        timer.toc()
-        print(f"\rcentroid_sm completed ({timer})")
-        
+                mom = skmes.moments(input_img, order=1)
+                shift = center - radius
+                centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
+                centroids.append(label_sl + tuple(centroid + shift))
+                
         out = MarkerFrame(centroids, columns=coords.col_axes, dtype=np.float32).as_standard_type()
         out.set_scale(coords.scale)
 
@@ -1255,36 +1248,32 @@ class ImgArray(LabeledArray):
         sigmas = [] # fitting results of sigmas
         errs = []   # fitting errors of means
         ab = []
-        print("gauss_sm ... ", end="")
-        timer = Timer()
-        for crd in coords.values:
-            center = tuple(crd[-ndim:])
-            label_sl = tuple(crd[:-ndim])
-            sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
-            input_img = self.value[label_sl][sl]
-            if input_img.size == 0 or not filt(input_img):
-                continue
-            
-            gaussian = GaussianParticle(initial_sg=sigma)
-            res = gaussian.fit(input_img, method="BFGS")
-            
-            if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
-                gaussian.shift(center - radius)
-                # calculate fitting error with Jacobian
-                # TODO: is this error correct?
-                if return_all:
-                    jac = res.jac[:2].reshape(1,-1)
-                    cov = pseudo_inverse(jac.T @ jac)
-                    err = np.sqrt(np.diag(cov))
-                    sigmas.append(label_sl + tuple(gaussian.sg))
-                    errs.append(label_sl + tuple(err))
-                    ab.append(label_sl + (gaussian.a, gaussian.b))
+        with Progress("gauss_sm"):
+            for crd in coords.values:
+                center = tuple(crd[-ndim:])
+                label_sl = tuple(crd[:-ndim])
+                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
+                input_img = self.value[label_sl][sl]
+                if input_img.size == 0 or not filt(input_img):
+                    continue
                 
-                means.append(label_sl + tuple(gaussian.mu))
+                gaussian = GaussianParticle(initial_sg=sigma)
+                res = gaussian.fit(input_img, method="BFGS")
                 
-        timer.toc()
-        print(f"\rgauss_sm completed ({timer})")
-        
+                if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
+                    gaussian.shift(center - radius)
+                    # calculate fitting error with Jacobian
+                    # TODO: is this error correct?
+                    if return_all:
+                        jac = res.jac[:2].reshape(1,-1)
+                        cov = pseudo_inverse(jac.T @ jac)
+                        err = np.sqrt(np.diag(cov))
+                        sigmas.append(label_sl + tuple(gaussian.sg))
+                        errs.append(label_sl + tuple(err))
+                        ab.append(label_sl + (gaussian.a, gaussian.b))
+                    
+                    means.append(label_sl + tuple(gaussian.mu))
+                    
         kw = dict(columns=coords.col_axes, dtype=np.float32)
         
         if return_all:
@@ -1370,25 +1359,19 @@ class ImgArray(LabeledArray):
         max_ = np.empty(self.shape, dtype=np.float32)
         argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle array.
         
-        ifshow = self.__class__.show_progress
-        self.__class__.show_progress = False
-        print("gabor_angle ... ", end="")
-        timer = Timer()
         c_axes = complement_axes(dims, self.axes)
-        for i, theta in enumerate(thetas):
-            ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
-            out_ = self.as_float().parallel(gabor_real_, c_axes, ker)
-            if i > 0:
-                where_update = out_ > max_
-                max_[where_update] = out_[where_update]
-                argmax_[where_update] = i
-            else:
-                max_ = out_
-        argmax_ *= (thetas[1] - thetas[0])
-        argmax_[:] = np.pi/2 - argmax_
-        timer.toc()
-        print(f"\rgabor_angle completed ({timer})")
-        self.__class__.show_progress = ifshow
+        with Progress("gabor_angle"):
+            for i, theta in enumerate(thetas):
+                ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
+                out_ = self.as_float().parallel(gabor_real_, c_axes, ker)
+                if i > 0:
+                    where_update = out_ > max_
+                    max_[where_update] = out_[where_update]
+                    argmax_[where_update] = i
+                else:
+                    max_ = out_
+            argmax_ *= (thetas[1] - thetas[0])
+            argmax_[:] = np.pi/2 - argmax_
         
         argmax_ = PhaseArray(argmax_, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
                              metadata=self.metadata, periodicity=np.pi)
@@ -1719,19 +1702,11 @@ class ImgArray(LabeledArray):
                         axes="p"+prop_axes, dirpath=self.dirpath,
                         propname = f"lineprops<{func.__name__}>", dtype=np.float32)
         
-        print("lineprops ... ", end="")
-        timer = Timer()
-        ifshow = self.__class__.show_progress
-        self.__class__.show_progress = False
+        with Progress("lineprops"):
+            for i, (s, d) in enumerate(zip(src.values, dst.values)):
+                resliced = self.reslice(s, d, linewidth, order=order, dims=dims)
+                out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
         
-        for i, (s, d) in enumerate(zip(src.values, dst.values)):
-            resliced = self.reslice(s, d, linewidth, order=order, dims=dims)
-            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
-            
-        self.__class__.show_progress = ifshow
-        timer.toc()
-        print(f"\rlineprops completed ({timer})")
-
         if l == 1 and squeeze:
             out = out[0]
         

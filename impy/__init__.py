@@ -1,4 +1,4 @@
-__version__ = "1.7.2"
+__version__ = "1.7.3"
 
 import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 

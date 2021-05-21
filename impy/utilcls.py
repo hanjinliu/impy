@@ -1,7 +1,7 @@
 import time
 from importlib import import_module
 
-__all__ = ["ArrayDict", "FrameDict", "Timer", "ImportOnRequest"]
+__all__ = ["ArrayDict", "FrameDict", "Timer", "ImportOnRequest", "Progress"]
 
 class BaseDict(dict):
     def __init__(self, d=None, **kwargs):
@@ -81,3 +81,22 @@ class ImportOnRequest:
             self.mod = import_module(self.name)
             mod = super().__getattribute__("mod")
         return getattr(mod, name)
+
+class Progress:
+    show_progress = True
+    n_ongoing = 0
+    def __init__(self, name):
+        self.name = name
+        self.timer = None
+    
+    def __enter__(self):
+        self.__class__.n_ongoing += 1
+        if self.__class__.show_progress and self.__class__.n_ongoing == 1:
+            print(f"{self.name} ... ", end="")
+            self.timer = Timer()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__class__.n_ongoing -= 1
+        if self.__class__.show_progress and self.__class__.n_ongoing == 0:
+            self.timer.toc()
+            print(f"\r{self.name} completed ({self.timer})")

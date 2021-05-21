@@ -480,8 +480,8 @@ class LabeledArray(HistoryArray):
         ----------
         axes : str or int
             On which axes iteration is performed. Or the number of spatial dimension.
-        showprogress : bool, optional
-            If show progress of algorithm, by default True
+        showprogress : bool, default is True
+            If show progress of algorithm.
         israw : bool, default is False
             If True, MetaArray will be returned. If False, np.ndarray will be returned.
         exclude : str, optional
@@ -491,19 +491,13 @@ class LabeledArray(HistoryArray):
 
         Yields
         -------
-        np.ndarray
+        np.ndarray or LabeledArray
             Subimage
         """        
         name = getattr(self, "ongoing", "iteration")
-        timer = Timer()
-        if showprogress and self.__class__.show_progress:
-            print(f"{name} ...", end="")
-        for x in super().iter(axes, israw=israw, exclude=exclude):
-            yield x
+        with Progress(name):
+            return super().iter(axes, israw=israw, exclude=exclude)
             
-        timer.toc()
-        if showprogress and self.__class__.show_progress:
-            print(f"\r{name} completed ({timer})")
     
     def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32):
         """
@@ -583,14 +577,9 @@ class LabeledArray(HistoryArray):
     def _parallel(self, func, axes, *args, israw=False):
         lmd = lambda x : (x[0], x[1], *args)
         name = getattr(self, "ongoing", "iteration")
-        timer = Timer()
-        if self.__class__.show_progress:
-            print(f"{name} ...", end="")
-        with multi.Pool(self.__class__.n_cpu) as p:
-            results = p.map(func, map(lmd, self.iter(axes, False, israw)))
-        timer.toc()
-        if self.__class__.show_progress:
-            print(f"\r{name} completed ({timer})")
+        with Progress(name):
+            with multi.Pool(self.__class__.n_cpu) as p:
+                results = p.map(func, map(lmd, self.iter(axes, False, israw)))
         return results
     
     
