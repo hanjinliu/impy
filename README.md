@@ -43,6 +43,7 @@ This module also provides many image analysis tools and seamless interface betwe
 - `directional_median_filter` &rarr; Smoothing without blurring edges.
 - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
 - `sobel_filter`, `laplacian_filter` &rarr; Edge detection.
+- `split_polarization`, `stokes` &rarr; Analyze polarization.
 - `entropy_filter`, `gabor_filter` &rarr; Object detection method.
 - `enhance_contrast` &rarr; Enhancing contrast.
 - `erosion`, `dilation`, `opening`, `closing` &rarr; Morphological processing.

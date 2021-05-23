@@ -204,6 +204,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected image.
         """
+        # TODO: test this
+        
         def check_c_axis(self):
             if not hasattr(self, "axes"):
                 raise AttributeError("Image dose not have axes.")
@@ -249,15 +251,15 @@ class ImgArray(LabeledArray):
             nchn = self.sizeof(axis)
             raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
         
-        # TODO: do not use stack()
         corrected = []
         for i, m in enumerate(mtx):
             if np.isscalar(m) and m==1:
-                corrected.append(self[f"{axis}={i}"])
+                corrected.append(self[f"{axis}={i}"].value)
             else:
-                corrected.append(self[f"{axis}={i}"].affine(order=order, matrix=m))
+                corrected.append(self[f"{axis}={i}"].affine(order=order, matrix=m).value)
 
-        out = stack(corrected, axis=axis, dtype=self.dtype)
+        out = np.stack(corrected, axis=self.axisof(axis), dtype=self.dtype)
+        out.view(self.__class__)
         out.temp = mtx
         return out
     
@@ -534,7 +536,7 @@ class ImgArray(LabeledArray):
             Kernel radius of the filter. Here, radius must be int.
         dims : int or str, optional
             Dimension of axes.
-        update : bool, by default False
+        update : bool, default is False
             If update self to filtered image.
 
         Returns
@@ -547,7 +549,6 @@ class ImgArray(LabeledArray):
         Modified from following paper:
         Chen, Z., & Zhang, L. (2009). Multi-stage directional median filter. International Journal 
         of Signal Processing, 5(4), 249-252.
-
         """        
         if len(dims) != 2:
             raise ValueError("Directional median filter is defined only for 2D images.")
@@ -611,7 +612,7 @@ class ImgArray(LabeledArray):
     @same_dtype(True)
     def fill_hole(self, thr="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
-        Filling holes
+        Filling holes.
         
         Reference
         ---------
@@ -829,15 +830,15 @@ class ImgArray(LabeledArray):
             polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
             np.ndarray like `arr[angle_order]` to sort it. For example, if a pixel unit receives 
             polarized light like below:
-            [0] [1]    [ 90] [ 45]
-            [2] [3] -> [135] [  0]
+            [0] [1]    [ 90] [ 45]    [|] [/]
+            [2] [3] -> [135] [  0] or [\] [-]
             then angle_order should be [2, 1, 0, 3].
             
         Returns
         -------
         ImgArray
-            Axis "<" is added in the first dimension.　For example, If input is tyx-axes, then output
-            will be <tyx-axes.
+            Axis "<" is added in the first dimension.　For example, If input is "tyx"-axes, then output
+            will be "<tyx"-axes.
         
         Example
         -------
@@ -874,7 +875,7 @@ class ImgArray(LabeledArray):
         ----------
         along : str, default is "<"
             To define which axis is polarization angle axis. Along this axis the angle of polarizer must be
-            in order of 0, 45, 190, 135 degree.
+            in order of 0, 45, 90, 135 degree.
 
         Returns
         -------
@@ -897,30 +898,32 @@ class ImgArray(LabeledArray):
         - Feng, B., Guo, R., Zhang, F., Zhao, F., & Dong, Y. (2021). Calculation and hue mapping of AoP in 
           polarization imaging. May. https://doi.org/10.1117/12.2523643
         """
+        new_axes = complement_axes(along, self.axes)
         img0, img45, img90, img135 = [a.as_float().value for a in self.split(along)]
+        # Stokes parameters
         s0 = (img0 + img45 + img90 + img135)/2
         s1 = img0 - img90
         s2 = img45 - img135
-        new_axes = complement_axes(along, self.axes)
         
-        # Degree of Linear Polarization
+        # Degree of Linear Polarization (DoLP)
+        # DoLP is defined as:
+        # d = sqrt(s1^2 + s2^2)/s0
         s0[s0==0] = np.inf
         dolp = np.sqrt(s1**2 + s2**2)/s0
         dolp = dolp.view(self.__class__)
         dolp._set_info(self, "dolp", new_axes=new_axes)
         dolp.set_scale(self)
         
-        # Angle of Polarization
+        # Angle of Polarization (AoP)
+        # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because left side
+        # has range of [0, pi) while right side has range of [-pi/4, pi/4). The correct formulation is:
+        #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
+        # psi = { 1/2argtan(s2/s1) + pi/2   (s1<0)
+        #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
         with warnings.catch_warnings():
             # In this block RuntimeWarning of zero division is ignored because infinity is not a problem
             # when calculating arctan.
             warnings.simplefilter("ignore", RuntimeWarning)
-            
-            # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because left side
-            # has range of [0, pi) while right side has range of [-pi/4, pi/4). The correct formulation is:
-            #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
-            # psi = { 1/2argtan(s2/s1) + pi/2   (s1<0)
-            #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
             aop = np.arctan(s2/s1)/2
             aop[(s1>0)&(s2<0)] += np.pi
             aop[s1<0] += np.pi/2
@@ -946,7 +949,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        min_distance : int, by default 1
+        min_distance : int, default is 1
             Minimum distance allowed for each two peaks. This parameter is slightly
             different from that in `skimage.feature.peak_local_max` because here float
             input is allowed and every time footprint is calculated.
@@ -1353,8 +1356,6 @@ class ImgArray(LabeledArray):
         """     
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
-            return self.centroid_sm(coords, radius=radius, sigma=sigma, filt=filt, 
-                                    percentile=percentile, dims=dims)
         else:
             coords = check_coordinates(coords, self)
             
@@ -1395,10 +1396,10 @@ class ImgArray(LabeledArray):
         ----------
         coords : MarkerFrame or (N, 2) array, optional
             Coordinates of peaks. If None, this will be determined by find_sm.
-        radius : float, by default 4.
+        radius : float, default is 4.
             Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian
             fitting function.
-        sigma : float, by default 1.5
+        sigma : float, default is 1.5
             Expected standard deviation of particles.
         filt : callable, optional
             For every slice `sl`, label is added only when filt(`input`) == True is satisfied.
@@ -1406,7 +1407,7 @@ class ImgArray(LabeledArray):
             will save time.
         percentile, dims :
             Passed to peak_local_max()
-        return_all : bool, by default False
+        return_all : bool, default is False
             If True, fitting results are all returned as Frame Dict.
         dims : int or str, optional
             Dimension of axes.
@@ -1467,8 +1468,8 @@ class ImgArray(LabeledArray):
                             sigmas = MarkerFrame(sigmas, **kw).as_standard_type(),
                             errors = MarkerFrame(errs, **kw).as_standard_type(),
                             intensities = MarkerFrame(ab, 
-                                                        columns=str(coords.col_axes)[:-ndim]+"ab",
-                                                        dtype=np.float32))
+                                                      columns=str(coords.col_axes)[:-ndim]+"ab",
+                                                      dtype=np.float32))
             
             out.means.set_scale(coords.scale)
             out.sigmas.set_scale(coords.scale)
@@ -1513,8 +1514,8 @@ class ImgArray(LabeledArray):
         return arg
     
     @record(append_history=False)
-    def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, 
-                     phi=0, *, deg=False, dims="yx") -> PhaseArray:
+    def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, phi=0, *, deg=False, 
+                    dims="yx") -> PhaseArray:
         """
         Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
         calculated, and the strongest response is returned as output array.
@@ -1567,8 +1568,8 @@ class ImgArray(LabeledArray):
         return argmax_
     
     @record()
-    def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma=1, 
-                     phi=0, *, return_imag=False, dims="yx") -> ImgArray:
+    def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma=1, phi=0, *, return_imag=False,
+                     dims="yx") -> ImgArray:
         """
         Make a Gabor kernel and convolve it.
 
@@ -1583,12 +1584,12 @@ class ImgArray(LabeledArray):
             Standard deviation of Gaussian factor of Gabor kernel.
         gamma : float, default is 1
             Anisotropy of Gabor kernel, i.e. the standard deviation orthogonal to theta will be sigma/gamma.
-        phi : float, by default 0
+        phi : float, default is 0
             Phase offset of harmonic factor of Gabor kernel.
         return_imag : bool, default is False
             If True, a complex image that contains both real and imaginary part of Gabor response is returned.
-        dims : str, by default "yx"
-            Spatial axes.
+        dims : str, default is "yx"
+            Spatial dimensions.
 
         Returns
         -------
@@ -1741,7 +1742,6 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Distance map, the further the brighter
-
         """        
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
     
@@ -1821,8 +1821,8 @@ class ImgArray(LabeledArray):
         -------
         >>> skl = img.threshold().skeletonize()
         >>> edge = skl.count_neighbors()
-        >>> np.argwhere(edge==1) # get coordinates of filament edges.
-        >>> np.argwhere(edge>3) # get coordinates of filament cross sections.
+        >>> np.argwhere(edge == 1) # get coordinates of filament edges.
+        >>> np.argwhere(edge >= 3) # get coordinates of filament cross sections.
         
         """        
         ndim = len(dims)
@@ -2187,7 +2187,7 @@ class ImgArray(LabeledArray):
         rescale_max : bool, default is False
             If True, the contrast of the input image is maximized by multiplying an integer.
         dims : str or int, optional
-            Spatial dimension.
+            Spatial dimensions.
 
         Returns
         -------
