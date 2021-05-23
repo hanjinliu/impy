@@ -60,7 +60,6 @@ class ImgArray(LabeledArray):
         return out
 
     @dims_to_spatial_axes
-    @record()
     @same_dtype(True)
     def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
         """
@@ -75,11 +74,12 @@ class ImgArray(LabeledArray):
         order : float, optional
             order of rescaling.
         """        
-        # TODO: set_scale
         scale_ = [scale if a in dims else 1 for a in self.axes]
         out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
         out = out.view(self.__class__)
-        out.set_scale({scale_})
+        out._set_info(self, f"rescale(scale={scale})")
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        out.set_scale({a:1/scale for a, scale in zip(self.axes, scale_)})
         return out
     
     @record()
@@ -805,9 +805,11 @@ class ImgArray(LabeledArray):
         return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
                              func_kw, max_shifts, shift_steps)
     
-    def split_polarization(self, center:tuple[float, float]=(0, 0), *, order:int=4) -> ImgArray:
+    def split_polarization(self, center:tuple[float, float]=(0, 0), *, order:int=4,
+                           angle_order:list[int]=None) -> ImgArray:
         """
         Split a (2*N, 2*M)-image into four (N, M)-images for each other pixels. 
+        
         [0] [1] [0] [1] [0] [1] ...
         [3] [2] [3] [2] [3] [2]
         [0] [1] [0] [1] [0] [1]
@@ -819,14 +821,23 @@ class ImgArray(LabeledArray):
         ----------
         center : tuple (a, b), where 0 <= a <= 1 and 0 <= b <= 1, default is (0, 0)
             Coordinate that will be considered as the center. For example, center=(0, 0) means the most
-            upper left pixel , by default (0, 0)
+            upper left pixel.
         order : int, default is 4.
-            Spline interpolation order.
-
+            Spline interpolation order. For detail see `skimage.transform.warp`.
+        angle_order : list of int, default is [2, 1, 0, 3]
+            Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 corresponds to
+            polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
+            np.ndarray like `arr[angle_order]` to sort it. For example, if a pixel unit receives 
+            polarized light like below:
+            [0] [1]    [ 90] [ 45]
+            [2] [3] -> [135] [  0]
+            then angle_order should be [2, 1, 0, 3].
+            
         Returns
         -------
         ImgArray
-            Axis "<" is added in the first dimension.
+            Axis "<" is added in the first dimension.　For example, If input is tyx-axes, then output
+            will be <tyx-axes.
         
         Example
         -------
@@ -837,34 +848,83 @@ class ImgArray(LabeledArray):
         >>> img_total = img_pol.proj(axis="<")
         """        
         yc, xc = center
+        if angle_order is None:
+            angle_order = [2, 1, 0, 3]
         imgs = []
         with Progress("split_polarization"):
             for y, x in [(0,0), (0,1), (1,1), (1,0)]:
                 dr = [(xc-x)/2, (yc-y)/2]
                 imgs.append(self[f"y={y}::2;x={x}::2"].translate(translation=dr, order=order).value)
             imgs = np.stack(imgs, axis=0)
+            imgs = imgs[angle_order]
         imgs = imgs.view(self.__class__)
         imgs._set_info(self, "split_polarization", "<" + str(self.axes))
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
-    
-    @record(append_history=False)
-    def polarization_angle(self, *, along="<", deg=False):
-        # TODO: background!
+        
+    def stokes(self, *, along:str="<"):
+        """
+        Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
+        Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
+        (np.nan, np.inf) will be replaced with 0.
+
+        Parameters
+        ----------
+        along : str, default is "<"
+            To define which axis is polarization angle axis. Along this axis the angle of polarizer must be
+            in order of 0, 45, 190, 135 degree.
+
+        Returns
+        -------
+        ArrayDict
+            Dictionaly with keys "dolp" for DoLP and "aop" for "AoP"
+        
+        References
+        ----------
+        - https://mavic.ne.jp/indutrialcamera-polarization-inline/
+        - Yang, J., Qiu, S., Jin, W., Wang, X., & Xue, F. (2020). Polarization imaging model considering the 
+          non-ideality of polarizers. Applied optics, 59(2), 306-314.
+        - Feng, B., Guo, R., Zhang, F., Zhao, F., & Dong, Y. (2021). Calculation and hue mapping of AoP in 
+          polarization imaging. May. https://doi.org/10.1117/12.2523643
+        """
         img0, img45, img90, img135 = [a.as_float().value for a in self.split(along)]
-        s0 = img90 + img135
+        s0 = (img0 + img45 + img90 + img135)/2
         s1 = img0 - img90
         s2 = img45 - img135
-        sq = s0**2 - s1**2
-        sq[sq<0] = 0
-        cos_psi = s2/(np.sqrt(sq + 1e-12))
-        cos_psi = np.clip(cos_psi, -1, 1)
-        psi = np.arccos(cos_psi)
-        psi = PhaseArray(psi, name=self.name, axes=complement_axes(along, self.axes), dirpath=self.dirpath,
-                         history=self.history, metadata=self.metadata, periodicity=np.pi)
-        psi.set_scale(self)
-        deg and psi.rad2deg(update=True)
-        return psi
+        new_axes = complement_axes(along, self.axes)
+        
+        # Degree of Linear Polarization
+        s0[s0==0] = np.inf
+        dolp = np.sqrt(s1**2 + s2**2)/s0
+        dolp = dolp.view(self.__class__)
+        dolp._set_info(self, "dolp", new_axes=new_axes)
+        dolp.set_scale(self)
+        
+        # Angle of Polarization
+        with warnings.catch_warnings():
+            # In this block RuntimeWarning of zero division is ignored because infinity is not a problem
+            # when calculating arctan.
+            warnings.simplefilter("ignore", RuntimeWarning)
+            
+            # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because left side
+            # has range of [0, pi) while right side has range of [-pi/4, pi/4). The correct formulation is:
+            #       [ 1/2argtan(s2/s1)          (s1>0 and s2>0)
+            # psi = [ 1/2argtan(s2/s1) + pi/2   (s1<0)
+            #       [ 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
+            aop = np.arctan(s2/s1)/2
+            aop[(s1>0)&(s2<0)] += np.pi
+            aop[s1<0] += np.pi/2
+            aop[aop>np.pi/2] -= np.pi
+            np.nan_to_num(aop, copy=False)
+            
+        aop = aop.view(PhaseArray)
+        aop._set_info(self, "aop", new_axes=new_axes)
+        aop.unit = "rad"
+        aop.periodicity = np.pi
+        aop.set_scale(self)
+        
+        out = ArrayDict(dolp=dolp, aop=aop)
+        return out
         
     @dims_to_spatial_axes
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 

@@ -41,7 +41,7 @@ class LabeledArray(HistoryArray):
                f"   history    : {'->'.join(self.history)}\n"
     
     
-    def imsave(self, tifname:str, dtype="uint16"):
+    def imsave(self, tifname:str, dtype=None):
         """
         Save image (at the same directory as the original image by default).
         """
@@ -51,6 +51,8 @@ class LabeledArray(HistoryArray):
             tifname = os.path.join(self.dirpath, tifname)
         if self.metadata is None:
             self.metadata = {}
+        if dtype is None:
+            dtype = self.dtype
             
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
