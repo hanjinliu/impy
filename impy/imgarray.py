@@ -862,11 +862,13 @@ class ImgArray(LabeledArray):
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
         
-    def stokes(self, *, along:str="<"):
+    def stokes(self, *, along:str="<") -> ArrayDict:
         """
         Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
         Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
-        (np.nan, np.inf) will be replaced with 0.
+        (np.nan, np.inf) will be replaced with 0. Be sure that to calculate DoPL correctly background
+        subtraction must be applied beforehand because stokes parameter `s0` is affected by absolute
+        intensities.
 
         Parameters
         ----------
@@ -877,7 +879,15 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ArrayDict
-            Dictionaly with keys "dolp" for DoLP and "aop" for "AoP"
+            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP respectively.
+        
+        Example
+        -------
+        Calculate AoP image from the raw image and display them.
+        >>> img_pol = img.split_polarization()
+        >>> dpol = img_pol.stokes()
+        >>> ip.window.add(img_pol.proj)
+        >>> ip.window.add(dpol.aop.rad2deg())
         
         References
         ----------
@@ -908,13 +918,13 @@ class ImgArray(LabeledArray):
             
             # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because left side
             # has range of [0, pi) while right side has range of [-pi/4, pi/4). The correct formulation is:
-            #       [ 1/2argtan(s2/s1)          (s1>0 and s2>0)
-            # psi = [ 1/2argtan(s2/s1) + pi/2   (s1<0)
-            #       [ 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
+            #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
+            # psi = { 1/2argtan(s2/s1) + pi/2   (s1<0)
+            #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
             aop = np.arctan(s2/s1)/2
             aop[(s1>0)&(s2<0)] += np.pi
             aop[s1<0] += np.pi/2
-            aop[aop>np.pi/2] -= np.pi
+            aop[aop>np.pi/2] -= np.pi   # [0, pi) to [-pi/2, pi/2)
             np.nan_to_num(aop, copy=False)
             
         aop = aop.view(PhaseArray)
