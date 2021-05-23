@@ -156,6 +156,7 @@ def gabor_kernel_nd(lmd, theta, psi:float, sigma:float, gamma:float, radius:int,
         
     return ker
 
+
 def affinefit(img, imgref, bins=256, order=3):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
     

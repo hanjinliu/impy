@@ -102,7 +102,6 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Fit image.
-
         """
         if self.ndim != 2:
             raise TypeError(f"input must be two dimensional, but got {self.shape}")
@@ -577,8 +576,8 @@ class ImgArray(LabeledArray):
     
     def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
         """
-        Compute focus map using variance of Laplacian method. yx-plane with higher value is likely a
-        focal plane.
+        Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
+        focal plane because sharper image causes higher value of Laplacian on the edges.
 
         Parameters
         ----------
@@ -673,12 +672,12 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        low_sigma : scalar or array of scalars, optional
-            lower standard deviation(s) of Gaussian, by default 1
-        high_sigma : scalar or array of scalars, optional
-            higher standard deviation(s) of Gaussian, by default 1
+        low_sigma : scalar or array of scalars, default is 1.
+            lower standard deviation(s) of Gaussian.
+        high_sigma : scalar or array of scalars, default is 1.
+            higher standard deviation(s) of Gaussian.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
             
         Returns
         -------
@@ -701,7 +700,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array of scalars, optional
+        sigma : scalar or array of scalars, default is 1.
             Standard deviation(s) of Gaussian filter.
         dims : int or str, optional
             Dimension of axes.
@@ -725,7 +724,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array of scalars, optional
+        sigma : scalar or array of scalars, default is 1.
             Standard deviation(s) of Gaussian filter.
         dims : int or str, optional
             Dimension of axes.
@@ -747,8 +746,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : int, optional
-            Radius of rolling ball, by default 50
+        radius : int, default is 50.
+            Radius of rolling ball.
         smoothing : bool, optional
             If apply 3x3 averaging before creating background.
         dims : int or str, optional
@@ -809,22 +808,30 @@ class ImgArray(LabeledArray):
     def split_polarization(self, center:tuple[float, float]=(0, 0), *, order:int=4,
                            angle_order:list[int]=None) -> ImgArray:
         """
-        Split a (2*N, 2*M)-image into four (N, M)-images for each other pixels. 
+        Split a (2*N, 2*M)-image into four (N, M)-images for each other pixels. Generally, image 
+        acquisition with a polarization camera will output (2*N, 2*M)-image with N x M pixel units:
         
         [0] [1] [0] [1] [0] [1] ...
         [3] [2] [3] [2] [3] [2]
         [0] [1] [0] [1] [0] [1]
         [3] [2] [3] [2] [3] [2] ...
          :                   :
-        will generate images only consist of positions of [0], [1], [2] or [3].
+        
+        This function generates images only consist of positions of [0], [1], [2] or [3]. Strictly,
+        each image is acquired from different position (the pixel (i,j) in [0]-image and the pixel
+        (i,j) in [1]-image are acquired from different positions). This function also complement for
+        this difference by Affine transformation and spline interpolation.
          
         Parameters
         ----------
         center : tuple (a, b), where 0 <= a <= 1 and 0 <= b <= 1, default is (0, 0)
             Coordinate that will be considered as the center. For example, center=(0, 0) means the most
-            upper left pixel.
+            upper left pixel, and center=(0.5, 0.5) means the middle point of a pixel unit.
+            [0] [1]    (0, 0) (0, 1)
+            [2] [3] -> (1, 0) (1, 1)
         order : int, default is 4.
-            Spline interpolation order. For detail see `skimage.transform.warp`.
+            Spline interpolation order. For detail see `skimage.transform.warp`. To speed up you can
+            pass smaller integer in the expense of accuracy.
         angle_order : list of int, default is [2, 1, 0, 3]
             Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 corresponds to
             polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
@@ -832,7 +839,7 @@ class ImgArray(LabeledArray):
             polarized light like below:
             [0] [1]    [ 90] [ 45]    [|] [/]
             [2] [3] -> [135] [  0] or [\] [-]
-            then angle_order should be [2, 1, 0, 3].
+            then `angle_order` should be [2, 1, 0, 3].
             
         Returns
         -------
@@ -907,7 +914,7 @@ class ImgArray(LabeledArray):
         
         # Degree of Linear Polarization (DoLP)
         # DoLP is defined as:
-        # d = sqrt(s1^2 + s2^2)/s0
+        # DoLP = sqrt(s1^2 + s2^2)/s0
         s0[s0==0] = np.inf
         dolp = np.sqrt(s1**2 + s2**2)/s0
         dolp = dolp.view(self.__class__)
@@ -918,17 +925,12 @@ class ImgArray(LabeledArray):
         # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because left side
         # has range of [0, pi) while right side has range of [-pi/4, pi/4). The correct formulation is:
         #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
-        # psi = { 1/2argtan(s2/s1) + pi/2   (s1<0)
+        # AoP = { 1/2argtan(s2/s1) + pi/2   (s1<0)
         #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
-        with warnings.catch_warnings():
-            # In this block RuntimeWarning of zero division is ignored because infinity is not a problem
-            # when calculating arctan.
-            warnings.simplefilter("ignore", RuntimeWarning)
-            aop = np.arctan(s2/s1)/2
-            aop[(s1>0)&(s2<0)] += np.pi
-            aop[s1<0] += np.pi/2
-            aop[aop>np.pi/2] -= np.pi   # [0, pi) to [-pi/2, pi/2)
-            np.nan_to_num(aop, copy=False)
+        aop = np.arctan2(s2, s1)/2
+        aop[(s1>0)&(s2<0)] += np.pi
+        aop[s1<0] += np.pi/2
+        aop[aop>np.pi/2] -= np.pi   # [0, pi) to [-pi/2, pi/2)
             
         aop = aop.view(PhaseArray)
         aop._set_info(self, "aop", new_axes=new_axes)
@@ -1326,12 +1328,12 @@ class ImgArray(LabeledArray):
                                         topn=topn, dims=dims, exclude_border=exclude_border)
         return coords
     
-    
+        
     @dims_to_spatial_axes
     def centroid_sm(self, coords=None, radius:float=4, sigma:float=1.5, filt=None,
                     percentile:float=90, *, dims=None) -> MarkerFrame:
         """
-        Calculate positions of particles in subpixel precision using centroids.
+        Calculate positions of particles in subpixel precision using centroid.
 
         Parameters
         ----------
@@ -1361,9 +1363,7 @@ class ImgArray(LabeledArray):
             
         ndim = len(dims)
         filt = check_filter_func(filt)
-        
         radius = np.asarray(check_nd(radius, ndim))
-        
         shape = self.sizesof(dims)
         
         centroids = []  # fitting results of means
@@ -1501,11 +1501,7 @@ class ImgArray(LabeledArray):
             Phase image with range [-90, 90] if deg==True, otherwise [-pi, pi].
         """        
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
-        with warnings.catch_warnings():
-            # In this block RuntimeWarning of zero division is ignored because infinity is not a problem
-            # when calculating arctan.
-            warnings.simplefilter("ignore", RuntimeWarning)
-            arg = -np.arctan(eigvec["r=0;l=1"]/eigvec["r=1;l=1"])
+        arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
         
         arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
                          metadata=self.metadata, periodicity=np.pi)
@@ -1836,21 +1832,19 @@ class ImgArray(LabeledArray):
         return out
     
     
-    def lineprops(self, src, dst, func="mean", linewidth:int=1, *, order=None,
-                  dims="yx", squeeze=True) -> PropArray:
+    def lineprops(self, src, dst, func="mean", *, order:int=1, dims="yx", 
+                  squeeze:bool=True) -> PropArray:
         """
         Measure line property using by func(line_scan).
 
         Parameters
         ----------
-        src : MarkerFrame or (N, 2) array-like
+        src : MarkerFrame or array-like
             Source coordinates.
-        dst : MarkerFrame of (N, 2) array-like
+        dst : MarkerFrame of array-like
             Destination coordinates.
         func : str or callable, default is "mean".
             Measurement function.
-        linewidth : int, default is 1.
-            Line width.
         order : int, optional
             Spline interpolation order.
         dims : str, default is "yx"
@@ -1876,8 +1870,15 @@ class ImgArray(LabeledArray):
             raise TypeError("`func` must be callable.")
         
         if not (isinstance(src, MarkerFrame) and isinstance(dst, MarkerFrame)):
+            src = np.asarray(src, dtype=np.float32)
+            if src.ndim == 1:
+                src = src.reshape(1, -1)
+            dst = np.asarray(dst, dtype=np.float32)
+            if dst.ndim == 1:
+                dst = dst.reshape(1, -1)
+            
             return self.lineprops(MarkerFrame(src, columns=dims), MarkerFrame(src, columns=dims),
-                                  func, linewidth, order=order, dims=dims, squeeze=squeeze)
+                                  func, order=order, dims=dims, squeeze=squeeze)
             
         if len(src) != len(dst):
             raise ValueError(f"Shape mismatch between `src` and `dst`: {len(src)} and {len(dst)}")
@@ -1892,7 +1893,7 @@ class ImgArray(LabeledArray):
         
         with Progress("lineprops"):
             for i, (s, d) in enumerate(zip(src.values, dst.values)):
-                resliced = self.reslice(s, d, linewidth, order=order, dims=dims)
+                resliced = self.reslice(s, d, order=order, dims=dims)
                 out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
         
         if l == 1 and squeeze:

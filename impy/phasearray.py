@@ -1,9 +1,11 @@
 from __future__ import annotations
+from impy.utilcls import Progress
 import numpy as np
 from .labeledarray import LabeledArray
 from ._process import *
 from .deco import *
 from .func import *
+from .specials import PropArray
 
 class PhaseArray(LabeledArray):
     additional_props = ["dirpath", "metadata", "name", "unit", "periodicity"]
@@ -89,3 +91,34 @@ class PhaseArray(LabeledArray):
                    angles="xy", scale_units="xy", lw=1)
         self.hist()
         return self
+    
+    @dims_to_spatial_axes
+    def reslice(self, src, dst, *, order:int=1, dims=None) -> PropArray:
+        """
+        Measure line profile iteratively for every slice of image. Because input is phase, we can
+        not apply standard interpolation to calculate intensities on float-coordinates.
+
+        Parameters
+        ----------
+        src : array, shape (2,)
+            Source coordinate.
+        dst : array, shape (2,)
+            Destination coordinate.
+        order : int, default is 1
+            Spline interpolation order.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        PropArray
+            Line scans.
+        """        
+        a = 2*np.pi/self.periodicity
+        vec_re = np.cos(a*self).view(LabeledArray)
+        vec_im = np.sin(a*self).view(LabeledArray)
+        with Progress("reslice"):
+            out_re = vec_re.reslice(src, dst, order=order, dims=dims)
+            out_im = vec_im.reslice(src, dst, order=order, dims=dims)
+        out = (np.arctan2(out_im, out_re)/a)
+        return out

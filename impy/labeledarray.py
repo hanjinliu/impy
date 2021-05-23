@@ -16,6 +16,7 @@ from skimage.exposure import histogram
 from skimage import segmentation as skseg
 from skimage import measure as skmes
 from skimage.color import label2rgb
+from scipy import ndimage as ndi
 
 class LabeledArray(HistoryArray):
     n_cpu = 4
@@ -698,22 +699,23 @@ class LabeledArray(HistoryArray):
         
         return self
     
-    def reslice(self, src, dst, linewidth:int=1, *, order:int=None, dims="yx") -> PropArray:
+    @dims_to_spatial_axes
+    def reslice(self, src, dst, *, order:int=1, dims=None) -> PropArray:
         """
-        Measure line profile iteratively for every slice of image.
+        Measure line profile iteratively for every slice of image. This function is almost same as
+        `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is not 
+        implemented here because it is useless.
 
         Parameters
         ----------
-        src : array, shape (2,)
+        src : array-like
             Source coordinate.
-        dst : array, shape (2,)
+        dst : array-like
             Destination coordinate.
-        linewidth : int, by default 1.
-            Line width.
-        order : int, optional
+        order : int, default is 1
             Spline interpolation order.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
 
         Returns
         -------
@@ -728,21 +730,25 @@ class LabeledArray(HistoryArray):
         >>> plt.plot(scan[0])
         >>> plt.plot(out.fit[0])
         """        
-        # determine length
-        src = np.asarray(src, dtype=float)
-        dst = np.asarray(dst, dtype=float)
-        d_row, d_col = dst - src
-        length = int(np.ceil(np.hypot(d_row, d_col) + 1))
+        src = np.asarray(src, dtype=np.float32)
+        dst = np.asarray(dst, dtype=np.float32)
+        d = dst - src
+        length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
+        perp_lines = np.stack([np.linspace(src_, dst_, length).reshape(-1,1) 
+                               for src_, dst_ in zip(src, dst)])
         
         c_axes = complement_axes(dims, self.axes)
         out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
                         name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
+        
         self.ongoing = "reslice"
         for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = skmes.profile_line(img, src, dst, linewidth=linewidth, 
-                                         order=order, mode="reflect")
+            out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
+                                         order=order, mode="constant", cval=0)[:, 0]
+            
         out.set_scale(self)
         return out
+    
     
     @dims_to_spatial_axes
     @record(False)
