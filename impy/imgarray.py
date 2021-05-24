@@ -1833,11 +1833,30 @@ class ImgArray(LabeledArray):
             
         return out
     
+    @dims_to_spatial_axes
+    def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True):
+        # TODO: check
+        coords = np.asarray(coords, dtype=np.float32).T
+        prop_axes = complement_axes(dims, self.axes)
+        shape = self.sizesof(prop_axes)
+        l = coords.shape[1]
+        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
+                        axes="p"+prop_axes, dirpath=self.dirpath,
+                        propname = f"pointprops", dtype=np.float32)
+        
+        with Progress("pointprops"):
+            for sl, img in self.iter(prop_axes, exclude=dims):
+                out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
+                                                  order=order, mode="constant", cval=0)
+        if l == 1 and squeeze:
+            out = out[0]
+        return out
     
-    def lineprops(self, src, dst, func="mean", *, order:int=1, dims="yx", 
+    @dims_to_spatial_axes
+    def lineprops(self, src, dst, func="mean", *, order:int=1, dims=None, 
                   squeeze:bool=True) -> PropArray:
         """
-        Measure line property using by func(line_scan).
+        Measure line property using func(line_scan).
 
         Parameters
         ----------
@@ -1849,7 +1868,7 @@ class ImgArray(LabeledArray):
             Measurement function.
         order : int, optional
             Spline interpolation order.
-        dims : str, default is "yx"
+        dims : int or str.
             Spatial dimension.
         squeeze : bool, default is True.
             If True and only one line is measured, the redundant dimension "p" will be deleted.
@@ -1865,11 +1884,15 @@ class ImgArray(LabeledArray):
         >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
         >>> pr.plot()
         """        
-        func_dict = {"mean": np.mean, "std": np.std, "min": np.min, "max": np.max, "median": np.median}
-        if isinstance(func, str) and func in func_dict.keys():
-            func = func_dict[func]
-        elif not callable(func):
-            raise TypeError("`func` must be callable.")
+        if isinstance(func, str):
+            method_ = getattr(np, func, None)
+        else:
+            method_ = func
+        
+        if callable(method_):
+            func = method_
+        else:
+            raise TypeError("'func' must be one of numpy methods or callable object.")
         
         if not (isinstance(src, MarkerFrame) and isinstance(dst, MarkerFrame)):
             src = np.asarray(src, dtype=np.float32)

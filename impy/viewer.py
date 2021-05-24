@@ -78,7 +78,7 @@ class napariWindow:
             self._add_labels(img.labels, name=f"Label of {img.name}",
                              scale=[img.labels.scale[a] for a in img.labels.axes if a != "c"])
         
-        new_axes = [a for a in img.axes if a != chn_ax]
+        new_axes = [a for a in img.axes if a != "c"]
         if len(new_axes) >= len(self.viewer.dims.axis_labels):
             self.viewer.dims.axis_labels = new_axes
         return None
