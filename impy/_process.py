@@ -97,6 +97,10 @@ def difference_of_gaussian_(args):
     sl, data, low_sigma, high_sigma = args
     return sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma)
 
+def population_(args):
+    sl, data, selem = args
+    return sl, skfil.rank.pop(data, selem, mask=data)
+
 def hessian_det_(args):
     sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
@@ -273,10 +277,6 @@ def fill_hole_(args):
     seed = np.copy(data)
     seed[1:-1, 1:-1] = data.max()
     return sl, skmorph.reconstruction(seed, mask, method="erosion")
-
-def count_neighbors_(args):
-    sl, data, selem = args
-    return sl, ndi.convolve(data.astype(np.uint8), selem, mode="constant") - data
 
 def corner_harris_(args):
     sl, data, k, sigma = args

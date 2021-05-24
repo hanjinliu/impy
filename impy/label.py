@@ -61,6 +61,11 @@ class Label(HistoryArray):
         self = self.astype(label_image.dtype)
         self[label_image>0] = label_image[label_image>0]
         return self
+    
+    def delete_label(self, label_ids):
+        to_del = np.isin(self.value, label_ids)
+        self[to_del] = 0
+        return None
         
     def imshow(self, **kwargs):
         plt.figure()

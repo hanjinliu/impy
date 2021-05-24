@@ -99,4 +99,4 @@ class Progress:
         self.__class__.n_ongoing -= 1
         if self.__class__.show_progress and self.__class__.n_ongoing == 0:
             self.timer.toc()
-            print(f"\r{self.name} completed ({self.timer})")
+            print(f"\r{self.name} finished ({self.timer})")

@@ -1538,8 +1538,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Phase image with range [-90, 90] if deg==True, otherwise [-pi, pi].
         """        
-        eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
-        arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
+        with Progress("hessian_angle"):
+            eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
+            arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
         
         arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, 
                          history=self.history + ["hessian_angle"], 
@@ -1866,12 +1867,12 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         connectivity = ndim if connectivity is None else connectivity
         selem = ndi.morphology.generate_binary_structure(ndim, connectivity)
-        
-        out = self.parallel(count_neighbors_, complement_axes(dims, self.axes), selem)
+        selem[(1,)*ndim] = 0
+        out = self.as_uint8().parallel(population_, complement_axes(dims, self.axes), selem)
         if mask:
             out[~self.value] = 0
             
-        return out
+        return out.astype(np.uint8)
     
     @dims_to_spatial_axes
     def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True) -> PropArray:
