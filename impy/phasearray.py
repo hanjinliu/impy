@@ -91,6 +91,7 @@ class PhaseArray(LabeledArray):
         if b - a != self.periodicity:
             raise ValueError("New border does not match current periodicity.")
         self.border = (b, a)
+        self.fix_border()
         return None
     
     @record()

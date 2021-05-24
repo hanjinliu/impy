@@ -138,3 +138,14 @@ class Axes:
     
     def copy(self):
         return self.__class__(self)
+
+    def replace(self, old:str, new:str):
+        if len(old) != 1 or len(new) != 1:
+            raise ValueError("Both `old` and `new` must be single character.")
+        if old not in self.axes:
+            raise ImageAxesError(f"Axes {old} does not exist: {self.axes}")
+        if new in self.axes:
+            raise ImageAxesError(f"Axes {new} already exists: {self.axes}")
+        
+        self.axes = self.axes.replace(old, new)
+        return None
