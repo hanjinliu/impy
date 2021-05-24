@@ -28,6 +28,46 @@ from .glcm import *
 
 class ImgArray(LabeledArray):
     
+    @same_dtype(asfloat=True)
+    def __add__(self, value):
+        return super().__add__(value)
+    
+    @same_dtype(asfloat=True)
+    def __iadd__(self, value):
+        return super().__iadd__(value)
+    
+    @same_dtype(asfloat=True)
+    def __sub__(self, value):
+        return super().__sub__(value)
+    
+    @same_dtype(asfloat=True)
+    def __isub__(self, value):
+        return super().__isub__(value)
+    
+    @same_dtype(asfloat=True)
+    @check_value
+    def __mul__(self, value):
+        return super().__mul__(value)
+    
+    @same_dtype(asfloat=True)
+    @check_value
+    def __imul__(self, value):
+        return super().__imul__(value)
+    
+    @check_value
+    def __truediv__(self, value):
+        self = self.astype(np.float32)
+        if isinstance(value, np.ndarray):
+            value[value==0] = np.inf
+        return super().__truediv__(value)
+    
+    @check_value
+    def __itruediv__(self, value):
+        self = self.astype(np.float32)
+        if isinstance(value, np.ndarray):
+            value[value==0] = np.inf
+        return super().__itruediv__(value)
+    
     def freeze(self):
         """
         To avoid further image analysis, convert to LabeledArray.

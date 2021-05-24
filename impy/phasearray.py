@@ -24,6 +24,46 @@ class PhaseArray(LabeledArray):
         self.border = border
         return self
     
+    def __add__(self, value):
+        out = super().__add__(value)
+        out.fix_border()
+        return out
+    
+    def __iadd__(self, value):
+        out = super().__iadd__(value)
+        out.fix_border()
+        return out
+    
+    def __sub__(self, value):
+        out = super().__sub__(value)
+        out.fix_border()
+        return out
+    
+    def __isub__(self, value):
+        out = super().__isub__(value)
+        out.fix_border()
+        return out
+    
+    def __mul__(self, value):
+        out = super().__mul__(value)
+        out.fix_border()
+        return out
+        
+    def __imul__(self, value):
+        out = super().__imul__(value)
+        out.fix_border()
+        return out
+        
+    def __truediv__(self, value):
+        out = super().__truediv__(value)
+        out.fix_border()
+        return out
+    
+    def __itruediv__(self, value):
+        out = super().__itruediv__(value)
+        out.fix_border()
+        return out
+    
     @property
     def periodicity(self):
         a, b = self.border
@@ -34,6 +74,23 @@ class PhaseArray(LabeledArray):
         Considering periodic boundary condition, fix the values by `__divmod__` method.
         """        
         self[:] = (self.value - self.border[0]) % self.periodicity + self.border[0]
+        return None
+    
+    def set_border(self, a, b) -> None:
+        """
+        Set new border safely.
+
+        Parameters
+        ----------
+        border : tuple[float]
+            New border
+        """        
+        if not (np.isscalar(a) and np.isscalar(b)):
+            raise TypeError("Both border values must be scalars.")
+            
+        if b - a != self.periodicity:
+            raise ValueError("New border does not match current periodicity.")
+        self.border = (b, a)
         return None
     
     @record()
