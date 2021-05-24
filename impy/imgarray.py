@@ -805,8 +805,8 @@ class ImgArray(LabeledArray):
         return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
                              func_kw, max_shifts, shift_steps)
     
-    def split_polarization(self, center:tuple[float, float]=(0, 0), *, order:int=4,
-                           angle_order:list[int]=None) -> ImgArray:
+    def split_pixel_unit(self, center:tuple[float, float]=(0, 0), *, order:int=1,
+                           angle_order:list[int]=None, newaxis="<") -> ImgArray:
         """
         Split a (2*N, 2*M)-image into four (N, M)-images for each other pixels. Generally, image 
         acquisition with a polarization camera will output (2*N, 2*M)-image with N x M pixel units:
@@ -852,21 +852,21 @@ class ImgArray(LabeledArray):
         Extract polarization in 0-, 45-, 90- and 135-degree directions from an image that is acquired
         from a polarization camera, and calculate total intensity of light by averaging.
         
-        >>> img_pol = img.split_polarization()
+        >>> img_pol = img.split_pixel_unit()
         >>> img_total = img_pol.proj(axis="<")
         """        
         yc, xc = center
         if angle_order is None:
             angle_order = [2, 1, 0, 3]
         imgs = []
-        with Progress("split_polarization"):
+        with Progress("split_pixel_unit"):
             for y, x in [(0,0), (0,1), (1,1), (1,0)]:
                 dr = [(xc-x)/2, (yc-y)/2]
                 imgs.append(self[f"y={y}::2;x={x}::2"].translate(translation=dr, order=order).value)
             imgs = np.stack(imgs, axis=0)
             imgs = imgs[angle_order]
         imgs = imgs.view(self.__class__)
-        imgs._set_info(self, "split_polarization", "<" + str(self.axes))
+        imgs._set_info(self, "split_pixel_unit", newaxis + str(self.axes))
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
         
@@ -1680,7 +1680,7 @@ class ImgArray(LabeledArray):
         """
         if dims is None:
             dims = complement_axes("c", self.axes)
-
+            
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
                     "local": skfil.threshold_local,
@@ -1698,9 +1698,9 @@ class ImgArray(LabeledArray):
         if isinstance(thr, str) and thr.endswith("%"):
             p = float(thr[:-1])
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.iter(complement_axes(dims, self.axes), False):
+            for sl, img in self.iter(complement_axes(dims, self.axes), False):
                 thr = np.percentile(img, p)
-                out[t] = img >= thr
+                out[sl] = img >= thr
                 
         elif isinstance(thr, str):
             method = thr.lower()
@@ -1711,9 +1711,9 @@ class ImgArray(LabeledArray):
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
             out = np.zeros(self.shape, dtype=bool)
-            for t, img in self.iter(complement_axes(dims, self.axes), False):
+            for sl, img in self.iter(complement_axes(dims, self.axes), False):
                 thr = func(img, **kwargs)
-                out[t] = img >= thr
+                out[sl] = img >= thr
             
 
         elif np.isscalar(thr):
@@ -1834,8 +1834,32 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True):
-        # TODO: check
+    def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True) -> PropArray:
+        """
+        Measure interpolated intensity at points with float coordinates.
+
+        Parameters
+        ----------
+        coords : MarkerFrame or array-like
+            Coordinates of point to be measured.
+        order : int, default is 1
+            Spline interpolation order.
+        dims : int or str, optional
+            Spatial dimensions.
+        squeeze : bool, default is True
+            If True and only one point is measured, the redundant dimension "p" will be deleted.
+
+        Returns
+        -------
+        PropArray
+            Point properties.
+        
+        Example
+        -------
+        Calculate centroids and measure intensities.
+        >>> coords = img.proj("t").centroid_sm()
+        >>> prop = img.pointprops(coords)
+        """        
         coords = np.asarray(coords, dtype=np.float32).T
         prop_axes = complement_axes(dims, self.axes)
         shape = self.sizesof(prop_axes)
@@ -1847,7 +1871,7 @@ class ImgArray(LabeledArray):
         with Progress("pointprops"):
             for sl, img in self.iter(prop_axes, exclude=dims):
                 out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
-                                                  order=order, mode="constant", cval=0)
+                                                  order=order, mode="reflect")
         if l == 1 and squeeze:
             out = out[0]
         return out
@@ -2100,10 +2124,12 @@ class ImgArray(LabeledArray):
         
         if isinstance(properties, str):
             properties = (properties,)
+        if extra_properties is not None:
+            properties = properties + tuple(ex.__name__ for ex in extra_properties)
 
         if "p" in self.axes:
             # this dimension will be label
-            raise ValueError("axis 'p' is forbidden, in regionprop().")
+            raise ValueError("axis 'p' is forbidden in regionprops().")
         
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
@@ -2881,6 +2907,7 @@ def check_coordinates(coords, img):
     
     if coords.col_axes != img.axes:
         
+        # TODO: Need support?
         # axes_to_append = complement_axes(coords.col_axes, img.axes)
         # sizes = img.sizesof(axes_to_append)
         # cols_to_append = np.array(*itertools.product(*map(range, sizes)), dtype=np.uint16)

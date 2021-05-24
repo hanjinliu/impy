@@ -503,7 +503,8 @@ class LabeledArray(HistoryArray):
                 for x in super().iter(axes, israw=israw, exclude=exclude):
                     yield x
         else:
-            return super().iter(axes, israw=israw, exclude=exclude)
+            for x in super().iter(axes, israw=israw, exclude=exclude):
+                yield x
             
     
     def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32):
@@ -744,7 +745,7 @@ class LabeledArray(HistoryArray):
         self.ongoing = "reslice"
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
-                                         order=order, mode="constant", cval=0)[:, 0]
+                                         order=order, mode="reflect")[:, 0]
             
         out.set_scale(self)
         return out

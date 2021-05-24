@@ -6,6 +6,7 @@ from ._process import *
 from .deco import *
 from .func import *
 from .specials import PropArray
+from .utilcls import *
 
 class PhaseArray(LabeledArray):
     additional_props = ["dirpath", "metadata", "name", "unit", "border"]
@@ -60,7 +61,7 @@ class PhaseArray(LabeledArray):
     @same_dtype(asfloat=True)
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> PhaseArray:
         """
-        Mean filter using phase averaging method, which is:
+        Mean filter using phase averaging method:
         arg(sum(e^j(X0 + X1 + ...)))
 
         Parameters
@@ -112,9 +113,9 @@ class PhaseArray(LabeledArray):
 
         Parameters
         ----------
-        src : array, shape (2,)
+        src : array-like
             Source coordinate.
-        dst : array, shape (2,)
+        dst : array-like
             Destination coordinate.
         order : int, default is 1
             Spline interpolation order.
@@ -132,5 +133,83 @@ class PhaseArray(LabeledArray):
         with Progress("reslice"):
             out_re = vec_re.reslice(src, dst, order=order, dims=dims)
             out_im = vec_im.reslice(src, dst, order=order, dims=dims)
-        out = (np.arctan2(out_im, out_re)/a)
+        out = np.arctan2(out_im, out_re)/a
+        return out
+    
+    @need_labels
+    @record(append_history=False)
+    def regionprops(self, properties:tuple[str,...]|str=("phase_mean",), *, 
+                    extra_properties=None) -> ArrayDict:
+        """
+        Run skimage's regionprops() function and return the results as PropArray, so
+        that you can access using flexible slicing. For example, if a tcyx-image is
+        analyzed with properties=("X", "Y"), then you can get X's time-course profile
+        of channel 1 at label 3 by prop["X"]["p=5;c=1"] or prop.X["p=5;c=1"].
+        In PhaseArray, instead of mean_intensity you should use "phase_mean". The
+        phase_mean function is included so that it can be passed in `properties` argument.
+
+        Parameters
+        ----------
+        properties : iterable, optional
+            properties to analyze, see skimage.measure.regionprops.
+        extra_properties : iterable of callable, optional
+            extra properties to analyze, see skimage.measure.regionprops.
+
+        Returns
+        -------
+            ArrayDict of PropArray
+            
+        Example
+        -------
+        Measure region properties around single molecules.
+        >>> coords = reference_img.centroid_sm()
+        >>> img.specify(coords, 3, labeltype="circle")
+        >>> props = img.regionprops()
+        """        
+        def phase_mean(sl, img):
+            a = 2 * np.pi / self.periodicity
+            out = np.sum(np.exp(1j*a*img[sl]))
+            return np.angle(out)/a
+        
+        # check arguments
+        if isinstance(properties, str):
+            properties = (properties,)
+        if "phase_mean" in properties:
+            if extra_properties is None:
+                extra_properties = (phase_mean,)
+            else:
+                properties = properties + tuple(ex.__name__ for ex in extra_properties)
+                extra_properties = (phase_mean,) + extra_properties
+        elif extra_properties is not None:
+            properties = properties + tuple(ex.__name__ for ex in extra_properties)
+                
+        if extra_properties is not None:
+            properties = properties + tuple(ex.__name__ for ex in extra_properties)
+
+        if "p" in self.axes:
+            # this dimension will be label
+            raise ValueError("axis 'p' is forbidden in regionprops().")
+        
+        prop_axes = complement_axes(self.labels.axes, self.axes)
+        shape = self.sizesof(prop_axes)
+        
+        out = ArrayDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
+                                      name=self.name, 
+                                      axes="p"+prop_axes,
+                                      dirpath=self.dirpath,
+                                      propname=p)
+                         for p in properties})
+        
+        # calculate property value for each slice
+        for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
+            props = skmes.regionprops(self.labels, img, cache=False,
+                                      extra_properties=extra_properties)
+            label_sl = (slice(None),) + sl
+            for prop_name in properties:
+                # Both sides have length of p-axis (number of labels) so that values
+                # can be correctly substituted.
+                out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
+        
+        for parr in out.values():
+            parr.set_scale(self)
         return out
