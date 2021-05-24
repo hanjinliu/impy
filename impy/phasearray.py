@@ -8,39 +8,51 @@ from .func import *
 from .specials import PropArray
 
 class PhaseArray(LabeledArray):
-    additional_props = ["dirpath", "metadata", "name", "unit", "periodicity"]
+    additional_props = ["dirpath", "metadata", "name", "unit", "border"]
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, history=None, 
-                metadata=None, dtype=None, unit="rad", periodicity=None):
+                metadata=None, dtype=None, unit="rad", border=None):
         if dtype is None:
             dtype = np.float32
-        if periodicity is None:
-            periodicity = {"rad": 2*np.pi, "deg": 360.0}[unit]
+        if border is None:
+            border = {"rad": (0, 2*np.pi), "deg": (0, 360.0)}[unit]
             
         self = super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath, 
                                history=history, metadata=metadata, dtype=dtype)
         self.unit = unit
-        self.periodicity = periodicity
+        self.border = border
         return self
-        
+    
+    @property
+    def periodicity(self):
+        a, b = self.border
+        return b - a
+    
+    def fix_border(self) -> None:
+        """
+        Considering periodic boundary condition, fix the values by `__divmod__` method.
+        """        
+        self[:] = (self.value - self.border[0]) % self.periodicity + self.border[0]
+        return None
+    
     @record()
-    def deg2rad(self, *, update=False):
+    def deg2rad(self, *, update:bool=False) -> PhaseArray:
         if self.unit == "rad":
             raise ValueError("Array is already in radian.")
         out = np.deg2rad(self)
         out.history.pop(-1)
         out.unit = "rad"
-        out.periodicity = np.deg2rad(out.periodicity)
+        out.border = tuple(np.deg2rad(out.border))
         return out
     
     @record()
-    def rad2deg(self, *, update=False):
+    def rad2deg(self, *, update:bool=False) -> PhaseArray:
         if self.unit == "deg":
             raise ValueError("Array is already in degree.")
         out = np.rad2deg(self)
         out.history.pop(-1)
         out.unit = "deg"
-        out.periodicity = np.rad2deg(out.periodicity)
+        out.border = tuple(np.rad2deg(out.border))
         return out
     
     @record()

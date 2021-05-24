@@ -927,15 +927,13 @@ class ImgArray(LabeledArray):
         #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
         # AoP = { 1/2argtan(s2/s1) + pi/2   (s1<0)
         #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
+        # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns correct values.
         aop = np.arctan2(s2, s1)/2
-        aop[(s1>0)&(s2<0)] += np.pi
-        aop[s1<0] += np.pi/2
-        aop[aop>np.pi/2] -= np.pi   # [0, pi) to [-pi/2, pi/2)
-            
         aop = aop.view(PhaseArray)
         aop._set_info(self, "aop", new_axes=new_axes)
         aop.unit = "rad"
-        aop.periodicity = np.pi
+        aop.border = (-np.pi/2, np.pi/2)
+        aop.fix_border()
         aop.set_scale(self)
         
         out = ArrayDict(dolp=dolp, aop=aop)
@@ -1503,8 +1501,10 @@ class ImgArray(LabeledArray):
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
         arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
         
-        arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
-                         metadata=self.metadata, periodicity=np.pi)
+        arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, 
+                         history=self.history + ["hessian_angle"], 
+                         metadata=self.metadata, border=(-np.pi/2, np.pi/2))
+        arg.fix_border()
         arg.set_scale(self)
         deg and arg.rad2deg(update=True)
         return arg
@@ -1557,8 +1557,10 @@ class ImgArray(LabeledArray):
             argmax_ *= (thetas[1] - thetas[0])
             argmax_[:] = np.pi/2 - argmax_
         
-        argmax_ = PhaseArray(argmax_, name=self.name, axes=self.axes, dirpath=self.dirpath, history=self.history, 
-                             metadata=self.metadata, periodicity=np.pi)
+        argmax_ = PhaseArray(argmax_, name=self.name, axes=self.axes, dirpath=self.dirpath, 
+                             history=self.history + ["gabor_angle"], 
+                             metadata=self.metadata, border=(-np.pi/2, np.pi/2))
+        argmax_.fix_border()
         argmax_.set_scale(self)
         deg and argmax_.rad2deg(update=True)
         return argmax_
@@ -1803,7 +1805,7 @@ class ImgArray(LabeledArray):
         ----------
         connectivity : int, optional
             See label().
-        mask : bool, by default True
+        mask : bool,　default is True
             If True, only neighbors of pixels that satisfy self==True is returned.
         dims : int or str, optional
             Dimension of axes.

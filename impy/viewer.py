@@ -6,6 +6,7 @@ from .specials import *
 from .utilcls import ImportOnRequest
 
 napari = ImportOnRequest("napari")
+
 """
 # marker
 viewer.layers[-1].name="peaks"
@@ -35,6 +36,8 @@ class napariWindow:
         
     def start(self):
         self.viewer = napari.Viewer(title="impy")
+        self.viewer.scale_bar.visible=True
+        self.viewer.axes.visible=True
     
     def add(self, obj, **kwargs):
         if self.viewer is None:
@@ -50,10 +53,21 @@ class napariWindow:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
+    # def get_line(self):
+    #     src = []
+    #     dst = []
+    #     for ly in self.layers:
+    #         if isinstance(ly, napari.layers.shape):
+    #             data = ly.data
+    #             src.append(data)
+                
+    
     def _add_image(self, img:LabeledArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
+            
         if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
             kwargs["colormap"] = "hsv"
+            kwargs["contrast_limits"] = img.border
         self.viewer.add_image(img,
                               channel_axis=chn_ax,
                               scale=[img.scale[a] for a in img.axes if a != "c"],
@@ -63,6 +77,10 @@ class napariWindow:
         if hasattr(img, "labels"):
             self._add_labels(img.labels, name=f"Label of {img.name}",
                              scale=[img.labels.scale[a] for a in img.labels.axes if a != "c"])
+        
+        new_axes = [a for a in img.axes if a != chn_ax]
+        if len(new_axes) >= len(self.viewer.dims.axis_labels):
+            self.viewer.dims.axis_labels = new_axes
         return None
     
     def _add_points(self, points, **kwargs):
