@@ -161,7 +161,7 @@ for (t in t_all) {
 
 ```python
 img.label_threshold(thr="yen") # Label image using Yen's thresholding
-props = img.regionprop(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
+props = img.regionprops(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
 props.perimeter.plot() # Plot results of perimeter
 props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
 fit_result = props.mean_intensity.curve_fit(func) # curve fitting
