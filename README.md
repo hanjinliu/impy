@@ -1,71 +1,88 @@
 # impy
 
-## More Numpy in image analysis! 
+## More Numpy in Image Analysis! 
 
-```python
-import impy as ip
-img = ip.imread(r"...\images\Image_0.tif")
-peaks = img.find_sm(percentile=90)
-img.specify(center=peaks, radius=3, labeltype="circle")
-img.imshow()
-img.imshow_label()
-```
-
-![](Figs/2021-04-22-21-35-08.png)
+![](Figs/Img.png)
 
 ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility are usually hard to achieve with ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not suited for biological image analysis because many functions do not support standard multi-dimensional tiff files.
 
-Here with `ImgArray`, this module solved major problems that happens when you code image analysis in Python. Because axial information such as xy plane, channels and time are also included in the arrays, many functions can automatically optimize multi-dimensional image analysis such as filtering, background subtraction and deconvolution. You can also access its contents in an intuitive way called "axis-targeted slicing" like `img["t=1:5;z=4"]`.
+This module solves major problems that happens when you code image analysis in Python. 
 
-Other types of objects are defined in `impy` for other purposes. 
+- `ImgArray` is an array mainly used for image analysis here. Many `skimage`'s functions are wrapped in this class.
 - `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
 - `Label` is also an array type while it is only used for labeling of another image and is always attached to it. 
-- `PhaseArray` is an array that contains phase information. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about it. 
+- `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
 - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`.
-- `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking methods in `trackpy`. It has information of track ID.
+- `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
 
-This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize images, and [trackpy](https://github.com/soft-matter/trackpy), which enables efficient molecule tracking.
+This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize n-D images, and [trackpy](https://github.com/soft-matter/trackpy), which enables efficient molecule tracking.
 
 
 ## Image Analysis Tools
 
 `ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
-- `track_drift`, `drift_correction` &rarr; Automatic drift correction.
-- `wiener`, `lucy` &rarr; Deconvolution of images.
-- `pad`, `defocus` &rarr; Effective padding.
-- `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
-- `focus_map` &rarr; Find focus using variance of Laplacian method. 
-- `hessian_eigval`, `hessian_eig` &rarr; Feature detection using Hessian method.
-- `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Feature detection using structure tensor.
-- `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection.
-- `mean_filter`, `meadian_filter`, `gaussian_filter` &rarr; n-dimensional smoothing.
-- `directional_median_filter` &rarr; Smoothing without blurring edges.
-- `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
-- `sobel_filter`, `laplacian_filter` &rarr; Edge detection.
-- `split_polarization`, `stokes` &rarr; Analyze polarization.
-- `entropy_filter`, `gabor_filter` &rarr; Object detection method.
-- `enhance_contrast` &rarr; Enhancing contrast.
-- `erosion`, `dilation`, `opening`, `closing` &rarr; Morphological processing.
-- `rolling_ball`, `tophat` &rarr; Background subtraction.
-- `convolve` &rarr; Any convolution.
-- `hessian_angle`, `gabor_angle` &rarr; Calculate angles of filaments for each pixel.
-- `gaussfit`, `gauss_correction` &rarr; Fit the image to 2-D Gaussian, and use it for image correction.
-- `distance_map`, `skeletonize`, `fill_hole`, `count_neighbors` &rarr; Processing binary images.
-- `fft`, `ifft` &rarr; Fourier transformation.
-- `threshold` &rarr; Thresholding (many methods included).
-- `find_sm`, `peak_local_max`, `corner_peaks` &rarr; Find maxima.
-- `centroid_sm`, `gauss_sm` &rarr; Find single molecule in subpixel precision.
-- `label`, `label_threshold`, `specify`, `append_label` &rarr; Label images.
-- `expand_labels`, `watershed`, `random_walker` &rarr; Adjuct/segment labels.
-- `extract` &rarr; Substitute values that do not satisfy certain condition.
-- `regionprops`, `lineprops` &rarr; Measure properties on labels/lines.
-- `reslice` &rarr; Get line scan.
-- `lbp`, `glcm`, `glcm_props` &rarr; Texture classification.
-- `crop_center` &rarr; Crop image.
-- `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
-- `proj` &rarr; Z-projection along any axis.
-- `split` &rarr; Split the image along any axis.
+- **Drift/Aberration Correction**
+  - `track_drift`, `drift_correction`
+  - `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
+
+- **3D Deconvolution**
+  - `wiener`, `lucy`
+
+- **Filters**
+  - `mean_filter`, `meadian_filter`, `gaussian_filter`, `directional_median_filter` &rarr; Smoothing.
+  - `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection.
+  - `sobel_filter`, `laplacian_filter` &rarr; Edge detection.
+  - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
+  - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
+
+- **Morphological Image Processing**
+  - `erosion`, `dilation`, `opening`, `closing` &rarr; Basic ones.
+  - `area_opening`, `area_closing`, `diameter_opening`, `diameter_closing` &rarr; Advanced ones.
+  - `skeletonize`, `fill_hole` &rarr; Binary processing.
+  - `count_neighbors` &rarr; For structure detection in binary images.
+  - `remove_large_objects`, `remove_fine_objects` `remove_skeleton_structure` &rarr; Detect and remove objects.
+
+- **Single Molecule Detection**
+  - `find_sm`, `peak_local_max` &rarr; Return coordinates of single molecules.
+  - `centroid_sm`, `gauss_sm`, `refine_sm` &rarr; Return coordinates in subpixel precision.
+
+- **Background Correction**
+  - `rolling_ball`, `tophat` &rarr; Background subtraction.
+  - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
+
+- **Labeling**
+  - `label`, `label_if`, `label_threshold` &rarr; Labeling using binary images.
+  - `specify` &rarr; Labeling around coordinates.
+  - `append_label` &rarr; Label images.
+  - `expand_labels`, `watershed`, `random_walker` &rarr; Adjuct or segment labels.
+
+- **Feature Detection**
+  - `hessian_eigval`, `hessian_eig` &rarr; Hessian.
+  - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Structure tensor.
+
+- **Filament Angle Estimation**
+  - `hessian_angle` &rarr; Using Hessian eigenvector's orientations.
+  - `gabor_angle` &rarr; Using Gabor filter's responses.
+
+- **Property Measurement**
+  - `regionprops` &rarr; Measure region properties such as mean intensity, Euler number, centroid, moment etc.
+  - `lineprops`, `pointprops` &rarr; Measure line/point properties.
+
+- **Texture Classification**
+  - `lbp`, `glcm`, `glcm_props`
+
+- **Others**
+  - `focus_map` &rarr; Find focus using variance of Laplacian method. 
+  - `stokes` &rarr; Analyze polarization using Stokes parameters.
+  - `fft`, `ifft` &rarr; Fourier transformation.
+  - `threshold` &rarr; Thresholding (many methods included).
+  - `reslice` &rarr; Get line scan.
+  - `crop_center`, `remove_edges` &rarr; Crop image.
+  - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
+  - `proj` &rarr; Z-projection along any axis.
+  - `split`, `split_pixel_unit` &rarr; Split the image.
+  - `pad`, `defocus` &rarr; Padding.
 
 ## Brief Examples
 
@@ -102,8 +119,9 @@ img
 You can also access any parts of image with string that contains axis information.
 
 ```python
-img_new = img["z=1;t=4,6,8"]
-img_new.axes = "p*@e"
+img1 = img["z=1;t=4,6,8"]
+img1.axes = "p*@e"
+img2 = img["z=3:6;t=2:15,18:-1"]
 ```
 
 #### 3. Axis-Targeted Iteration
@@ -135,8 +153,9 @@ for (t in t_all) {
 ```python
 img.label_threshold(thr="yen") # Label image using Yen's thresholding
 props = img.regionprop(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
-props.perimeter.p() # Plot results of perimeter
+props.perimeter.plot() # Plot results of perimeter
 props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
+fit_result = props.mean_intensity.curve_fit(func) # curve fitting
 ```
 
 ## Basic Functions in impy

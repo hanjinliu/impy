@@ -103,21 +103,21 @@ class PhaseArray(LabeledArray):
         self.fix_border()
         return None
     
-    def deg2rad(self) -> None:
+    def deg2rad(self) -> PhaseArray:
         if self.unit == "rad":
             raise ValueError("Array is already in radian.")
         np.deg2rad(self, out=self.value[:])
         self.unit = "rad"
         self.border = tuple(np.deg2rad(self.border))
-        return None
+        return self
     
-    def rad2deg(self) -> None:
+    def rad2deg(self) -> PhaseArray:
         if self.unit == "deg":
             raise ValueError("Array is already in degree.")
         np.rad2deg(self, out=self.value[:])
         self.unit = "deg"
         self.border = tuple(np.rad2deg(self.border))
-        return None
+        return self
     
     @record()
     @dims_to_spatial_axes
