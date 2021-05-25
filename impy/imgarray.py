@@ -1957,6 +1957,7 @@ class ImgArray(LabeledArray):
             Processed image.
         """        
         with Progress("remove_skeleton_structure"):
+            out = self.copy()
             neighbor = self.count_neighbors(connectivity=connectivity, dims=dims)
             if structure == "tip":
                 sl = neighbor == 1
@@ -1966,9 +1967,8 @@ class ImgArray(LabeledArray):
                 sl = neighbor > 3
             else:
                 raise ValueError("`mode` must be one of {'tip', 'branch', 'cross'}.")
-            out = self.copy()
             out.value[sl] = 0
-        return self
+        return out
     
     @dims_to_spatial_axes
     def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True) -> PropArray:

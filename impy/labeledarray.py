@@ -409,7 +409,6 @@ class LabeledArray(HistoryArray):
         -------
         LabeledArray
             Extracted image
-
         """        
         if not callable(filt):
             raise TypeError("`filt` must be callable if given.")

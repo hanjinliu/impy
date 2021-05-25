@@ -8,6 +8,15 @@ from .func import *
 from .specials import PropArray
 from .utilcls import *
 
+def _calc_phase_mean(sl, img, periodicity):
+    a = 2 * np.pi / periodicity
+    out = np.sum(np.exp(1j*a*img[sl]))
+    return np.angle(out)/a
+
+def _calc_phase_std(sl, img, periodicity):
+    a = 2 * np.pi / periodicity
+    return np.sqrt(-2*np.log(np.abs(np.mean(np.exp(1j*a*img[sl])))))/a
+
 class PhaseArray(LabeledArray):
     additional_props = ["dirpath", "metadata", "name", "unit", "border"]
     
@@ -94,25 +103,21 @@ class PhaseArray(LabeledArray):
         self.fix_border()
         return None
     
-    @record()
-    def deg2rad(self, *, update:bool=False) -> PhaseArray:
+    def deg2rad(self) -> None:
         if self.unit == "rad":
             raise ValueError("Array is already in radian.")
-        out = np.deg2rad(self)
-        out.history.pop(-1)
-        out.unit = "rad"
-        out.border = tuple(np.deg2rad(out.border))
-        return out
+        np.deg2rad(self, out=self.value[:])
+        self.unit = "rad"
+        self.border = tuple(np.deg2rad(self.border))
+        return None
     
-    @record()
-    def rad2deg(self, *, update:bool=False) -> PhaseArray:
+    def rad2deg(self) -> None:
         if self.unit == "deg":
             raise ValueError("Array is already in degree.")
-        out = np.rad2deg(self)
-        out.history.pop(-1)
-        out.unit = "deg"
-        out.border = tuple(np.rad2deg(out.border))
-        return out
+        np.rad2deg(self, out=self.value[:])
+        self.unit = "deg"
+        self.border = tuple(np.rad2deg(self.border))
+        return None
     
     @record()
     @dims_to_spatial_axes
@@ -225,25 +230,24 @@ class PhaseArray(LabeledArray):
         >>> props = img.regionprops()
         """        
         def phase_mean(sl, img):
-            a = 2 * np.pi / self.periodicity
-            out = np.sum(np.exp(1j*a*img[sl]))
-            return np.angle(out)/a
-        
+            return _calc_phase_mean(sl, img, self.periodicity)
+        def phase_std(sl, img):
+            return _calc_phase_std(sl, img, self.periodicity)
+        additional_props = {"phase_mean": phase_mean, "phase_std": phase_std}
+                
         # check arguments
         if isinstance(properties, str):
             properties = (properties,)
-        if "phase_mean" in properties:
-            if extra_properties is None:
-                extra_properties = (phase_mean,)
-            else:
-                properties = properties + tuple(ex.__name__ for ex in extra_properties)
-                extra_properties = (phase_mean,) + extra_properties
-        elif extra_properties is not None:
-            properties = properties + tuple(ex.__name__ for ex in extra_properties)
+        
+        if extra_properties is None:
+            extra_properties = tuple()
+        
+        # add extra_properties and move additional properties to extra_properties
+        properties = properties + tuple(ex.__name__ for ex in extra_properties)
+        for prop in properties:
+            if prop in additional_props.keys():
+                extra_properties = (additional_props[prop],) + extra_properties
                 
-        if extra_properties is not None:
-            properties = properties + tuple(ex.__name__ for ex in extra_properties)
-
         if "p" in self.axes:
             # this dimension will be label
             raise ValueError("axis 'p' is forbidden in regionprops().")
@@ -271,3 +275,6 @@ class PhaseArray(LabeledArray):
         for parr in out.values():
             parr.set_scale(self)
         return out
+
+
+

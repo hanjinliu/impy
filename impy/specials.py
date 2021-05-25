@@ -15,10 +15,10 @@ SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
     "extent", "feret_diameter_max", "filled_area", "label", "major_axis_length", "max_intensity",
     "mean_intensity", "min_intensity", "minor_axis_length", "orientation", "perimeter",
-    "perimeter_crofton", "solidity", "phase_mean")
+    "perimeter_crofton", "solidity", "phase_mean", "phase_std")
 
 tp = ImportOnRequest("trackpy")
-
+# TODO: Write docs.
 class PropArray(MetaArray):
     additional_props = ["dirpath", "metadata", "name", "propname"]
     def __new__(cls, obj, *, name=None, axes=None, dirpath=None, 
