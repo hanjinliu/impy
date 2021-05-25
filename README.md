@@ -4,9 +4,18 @@
 
 ![](Figs/Img.png)
 
-ImageJ is generally used for image analysis especially in biological backgrounds. However, recent demands for batch analysis, machine learning and high reproducibility are usually hard to achieve with ImageJ. On the other hand, the famous image analysis toolkit, [scikit-image](https://github.com/scikit-image/scikit-image), is not suited for biological image analysis because many functions do not support standard multi-dimensional tiff files.
+[scikit-image](https://github.com/scikit-image/scikit-image) is very useful but sometimes troublesome like ...
+1. for multi-dimensional images, you need to check which is time-axis and which is channel axis and so on.
+2. you need to consider the output data types and shapes for every iteration of image processing.
+3. you need to care about all the images' information such as the names and directories of original images.
 
-This module solves major problems that happens when you code image analysis in Python. 
+With extended `numpy.ndarray` this module solves major problems above that happens when you code image analysis in Python. 
+
+1. **Image axes are automatically read** from Tiff file and arrays support **axis targeted slicing** like `img["t=3;z=5:7"]`.
+2. Almost all the image processing functions can **automatically iterate** along all the axes needed.
+3. All the information and metadata are inherited to outputs.
+
+This module contains several classes.
 
 - `ImgArray` is an array mainly used for image analysis here. Many `skimage`'s functions are wrapped in this class.
 - `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
