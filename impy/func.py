@@ -86,12 +86,12 @@ def specify_one(center, radius, shape:tuple) -> tuple[slice]:
     return sl
 
 
-def check_matrix(ref):
+def check_matrix(matrices):
     """
     Check Affine transformation matrix
     """    
     mtx = []
-    for m in ref:
+    for m in matrices:
         if np.isscalar(m): 
             if m == 1:
                 mtx.append(m)

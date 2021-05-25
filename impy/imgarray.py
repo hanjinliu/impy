@@ -82,7 +82,7 @@ class ImgArray(LabeledArray):
         Affine transformation
         kwargs: matrix, scale, rotation, shear, translation
         """
-        if dims != 2:
+        if len(dims) != 2:
             raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
         out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
@@ -214,17 +214,16 @@ class ImgArray(LabeledArray):
                 
     
     @record()
-    def affine_correction(self, ref=None, bins:int=256, 
-                          order:int=3, prefilter:bool=True, axis:str="c") -> ImgArray:
+    def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, 
+                          prefilter:bool=True, along:str="c") -> ImgArray:
         """
         Correct chromatic aberration using Affine transformation. Input matrix is
         determined by maximizing normalized mutual information.
         
         Parameters
         ----------
-        ref : int, optional
-            Reference image-stack to calculate Affine transformation matrices, or
-            matrices themselves.
+        matrices : array or iterable of arrays, optional
+            Affine matrices.
         bins : int, optional
             Number of bins that is generated on calculating mutual information, 
             by default 256
@@ -233,7 +232,7 @@ class ImgArray(LabeledArray):
         prefilter : bool
             If median filter is applied to all images before fitting. This does not
             change original images. By default True.
-        axis : str
+        along : str
             Along which axis correction will be performed, by default "c".
             Chromatic aberration -> "c"
             Some drift during time lapse movie -> "t"
@@ -243,63 +242,50 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected image.
         """
-        # TODO: test this
-        
         def check_c_axis(self):
             if not hasattr(self, "axes"):
                 raise AttributeError("Image dose not have axes.")
-            elif axis not in self.axes:
+            elif along not in self.axes:
                 raise ValueError("Image does not have channel axis.")
-            elif self.sizeof(axis) < 2:
+            elif self.sizeof(along) < 2:
                 raise ValueError("Image must have two channels or more.")
         
         check_c_axis(self)
-        mtx = None
         
-        # check `ref`
-        if ref is None:
-            # correct self
-            ref = self
-            
-        elif isinstance(ref, np.ndarray):
+        if isinstance(matrices, np.ndarray):
             # ref is single Affine transformation matrix or a reference image stack.
-            if ref.shape == (3, 3) and np.allclose(ref[2,:2], 0):
-                mtx = [1, ref]
-            else:
-                check_c_axis(ref)
+            matrices = [1, matrices]
                 
-        elif isinstance(ref, (list, tuple)):
+        elif isinstance(matrices, (list, tuple)):
             # ref is a list of Affine transformation matrix
-            mtx = check_matrix(ref)
-        
-        else:
-            raise TypeError("`ref` must be image or (list of) Affine transformation matrices.")
-        
-        
+            matrices = check_matrix(matrices)
+            
         # Determine matrices by fitting
-        if mtx is None:
-            if prefilter:
-                imgs = [img for img in ref.median_filter(radius=1).split(axis)]
-            else:
-                imgs = [img for img in ref.split(axis)]
-                
-            print("fitting ... ", end="")
-            mtx = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
-        
-        if len(mtx) != self.sizeof(axis):
-            nchn = self.sizeof(axis)
-            raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
-        
-        corrected = []
-        for i, m in enumerate(mtx):
-            if np.isscalar(m) and m==1:
-                corrected.append(self[f"{axis}={i}"].value)
-            else:
-                corrected.append(self[f"{axis}={i}"].affine(order=order, matrix=m).value)
+        with Progress("affine_correction"):
+            # if Affine matrix is not given
+            if matrices is None:
+                if prefilter:
+                    imgs = self.median_filter(radius=1).split(along)
+                else:
+                    imgs = self.split(along)
+                matrices = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
+            
+            # check Affine matrix shape
+            if len(matrices) != self.sizeof(along):
+                nchn = self.sizeof(along)
+                raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
+            
+            # Affine transformation
+            corrected = []
+            for i, m in enumerate(matrices):
+                if np.isscalar(m) and m==1:
+                    corrected.append(self[f"{along}={i}"].value)
+                else:
+                    corrected.append(self[f"{along}={i}"].affine(order=order, matrix=m).value)
 
-        out = np.stack(corrected, axis=self.axisof(axis), dtype=self.dtype)
-        out.view(self.__class__)
-        out.temp = mtx
+        out = np.stack(corrected, axis=self.axisof(along)).astype(self.dtype)
+        out = out.view(self.__class__)
+        out.temp = matrices
         return out
     
     @dims_to_spatial_axes
@@ -1548,7 +1534,7 @@ class ImgArray(LabeledArray):
                          metadata=self.metadata, border=(-np.pi/2, np.pi/2))
         arg.fix_border()
         arg.set_scale(self)
-        deg and arg.rad2deg(update=True)
+        deg and arg.rad2deg()
         return arg
     
     @record(append_history=False)
@@ -1604,7 +1590,7 @@ class ImgArray(LabeledArray):
                              metadata=self.metadata, border=(-np.pi/2, np.pi/2))
         argmax_.fix_border()
         argmax_.set_scale(self)
-        deg and argmax_.rad2deg(update=True)
+        deg and argmax_.rad2deg()
         return argmax_
     
     @record()
