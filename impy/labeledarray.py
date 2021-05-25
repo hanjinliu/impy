@@ -3,6 +3,7 @@ import numpy as np
 import multiprocessing as multi
 import matplotlib.pyplot as plt
 import os
+import inspect
 from .axes import ImageAxesError
 from .func import *
 from .deco import *
@@ -575,6 +576,23 @@ class LabeledArray(HistoryArray):
         
         return out
     
+    @record()
+    def remove_edges(self, pixel:int=1) -> LabeledArray:
+        """
+        Remove pixels from the edges.
+
+        Parameters
+        ----------
+        pixel : int, default is 1
+            Number of pixels to remove.
+
+        Returns
+        -------
+        LabeledArray
+            Cropped image.
+        """        
+        out = self[f"y={pixel}:-{pixel};x={pixel}:-{pixel}"]
+        return out
     
     @dims_to_spatial_axes
     def specify(self, center, radius, *, dims=None, labeltype="square") -> LabeledArray:
@@ -661,6 +679,7 @@ class LabeledArray(HistoryArray):
         return self
     
     @dims_to_spatial_axes
+    @record(append_history=False)
     def reslice(self, src, dst, *, order:int=1, dims=None) -> PropArray:
         """
         Measure line profile iteratively for every slice of image. This function is almost same as
@@ -702,7 +721,6 @@ class LabeledArray(HistoryArray):
         out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
                         name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
         
-        self.ongoing = "reslice"
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
                                          order=order, mode="reflect")[:, 0]
@@ -724,7 +742,7 @@ class LabeledArray(HistoryArray):
         dims : int or str, optional
             Dimension of axes.
         connectivity : int, optional
-            Passed to skimage's label(), by default None
+            Passed to `skimage.measure.label()`.
 
         Returns
         -------
@@ -750,21 +768,104 @@ class LabeledArray(HistoryArray):
             raise ImageAxesError("Shape mismatch.")
         
         c_axes = complement_axes(dims, self.axes)
-        label_image.ongoing = "label"
-        labels = largest_zeros(label_image.shape)
-        labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
-        label_image.ongoing = None
-        del label_image.ongoing
-        
-        min_nlabel = 0
-        for sl, _ in label_image.iter(c_axes, False):
-            labels[sl][labels[sl]>0] += min_nlabel
-            min_nlabel += labels[sl].max()
+        with Progress("label"):
+            labels = largest_zeros(label_image.shape)
+            labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
+            # increment labels in different slices
+            min_nlabel = 0
+            for sl, _ in label_image.iter(c_axes, False):
+                labels[sl][labels[sl]>0] += min_nlabel
+                min_nlabel += labels[sl].max()
         
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label")
         self.labels.set_scale(self)
         return self
+    
+    @dims_to_spatial_axes
+    @record(False)
+    def label_if(self, label_image=None, filt=None, *, dims=None, 
+                 connectivity=None) -> LabeledArray:
+        """
+        Label image using `label_image` as reference image only if certain condition
+        dictated in `filt` is satisfied. skimage.measure.regionprops_table is called
+        inside everytime image is labeled.
+
+        Parameters
+        ----------
+        label_image : array, optional
+            Image to make label, by default self is used.
+        filt : callable, positional argument but not optional
+            Filter function. This function must take argument in following style:
+                def filt(img, lbl, area, major_axis_length):
+                    return area>10 and major_axis_length>5
+            where the first argument is intensity image sliced from `self`, the second
+            is label image sliced from `label_image`, and the rest arguments is properties
+            that will be calculated using `regionprops` function. The property arguments
+            **must be named exactly same** as the properties in `regionprops`.
+            
+        dims : int or str, optional
+            Dimension of axes.
+        connectivity : int, optional
+            Passed to `skimage.measure.label()`.
+
+        Returns
+        -------
+        LabeledArray
+            Labeled image
+        
+        Example
+        -------
+        1. Label regions if only intensity is high.
+        >>> def high_intensity(img, lbl, slice):
+        >>>     return np.mean(img[slice]) > 10000
+        >>> img.label_if(lbl, filt)
+        
+        2. Label regions if no hole exists.
+        >>> def no_hole(img, lbl, euler_number):
+        >>>     return euler_number > 0
+        >>> img.label_if(lbl, filt)
+        """        
+        # check the shape of label_image
+        if label_image is None:
+            label_image = self
+        elif not hasattr(label_image, "axes") or label_image.axes.is_none():
+            raise ValueError("Use Array with axes for label_image.")
+        elif not axes_included(self, label_image):
+            raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
+                                 f"{label_image.axes} and {self.axes}")
+        elif not shape_match(self, label_image):
+            raise ImageAxesError("Shape mismatch.")
+        
+        # check filter function
+        if filt is None:
+            raise ValueError("`filt` must be given.")
+        if not callable(filt):
+            raise TypeError("`filt` must be callable.")
+        
+        # TODO: regionprops_table return tuple properties in different columns
+        # such as centroid-0 and centroid-1. This causes unexpected keyword
+        # argument error.
+        properties = tuple(inspect.signature(filt).parameters)[2:]
+            
+        c_axes = complement_axes(dims, self.axes)
+        with Progress("label_if"):
+            labels = largest_zeros(label_image.shape)
+            offset = 1
+            for sl, lbl in label_image.iter(c_axes):
+                lbl = skmes.label(lbl, background=0, connectivity=connectivity)
+                img = self.value[sl]
+                df = pd.DataFrame(skmes.regionprops_table(lbl, img, properties=properties, cache=False))
+                del_list = [i+1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
+                labels[sl] = skseg.relabel_sequential(np.where(np.isin(lbl, del_list),
+                                                            0, lbl), offset=offset)[0]
+                offset += labels.max()
+        
+        self.labels = labels.view(Label)
+        self.labels._set_info(label_image, "label_if")
+        self.labels.set_scale(self)
+        return self       
+            
     
     @dims_to_spatial_axes
     @need_labels

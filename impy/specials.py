@@ -59,7 +59,6 @@ class PropArray(MetaArray):
             along = find_first_appeared("tzpyxc", include=self.axes)
         
         iteraxes = del_axis(self.axes, self.axisof(along))
-        plt.figure(figsize=(4, 1.7))
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
         x = np.arange(self.sizeof(along))*self.scale[along]
@@ -68,6 +67,22 @@ class PropArray(MetaArray):
         
         plt.title(f"{self.propname}")
         plt.xlabel(along)
+        plt.show()
+        
+        return self
+    
+    def hist(self, along="p", bins=None, cmap="jet", cmap_range=(0, 1)):
+        if self.dtype == object:
+            raise TypeError(f"Cannot call plot_profile for {self.propname} "
+                            "because dtype == object.")
+        
+        iteraxes = del_axis(self.axes, self.axisof(along))
+        cmap = plt.get_cmap(cmap)
+        positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
+        for i, (sl, y) in enumerate(self.iter(iteraxes)):
+            plt.hist(y, color=cmap(positions[i]), bins=bins, alpha=0.5)
+        
+        plt.title(f"{self.propname}")
         plt.show()
         
         return self

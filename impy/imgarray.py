@@ -671,6 +671,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Hole-filled image.
         """        
+        # TODO: use ndimage.binary_fill_holes?
         if self.dtype != bool:
             mask = self.threshold(thr=thr).value
         else:
@@ -1787,6 +1788,63 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @only_binary
     @record()
+    def remove_large_objects(self, radius:float=5, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Remove large objects using opening. Those objects that were not removed by opening
+        will be removed in output.
+
+        Parameters
+        ----------
+        radius : float, optional
+            Objects with radius larger than this value will be removed.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self to output.
+
+        Returns
+        -------
+        ImgArray
+            Image with large objects removed.
+        """        
+        out = self.copy()
+        with Progress("remove_large_objects"):
+            large_obj = self.opening(radius, dims=dims)
+            out.value[large_obj] = 0
+            
+        return out
+    
+    @dims_to_spatial_axes
+    @only_binary
+    @record()
+    def remove_fine_objects(self, length:float=10, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Remove fine objects using diameter_opening.
+
+        Parameters
+        ----------
+        length : float, default is 10
+            Objects longer than this will be removed.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self to output.
+
+        Returns
+        -------
+        ImgArray
+            Image with large objects removed.
+        """        
+        out = self.copy()
+        with Progress("remove_fine_objects"):
+            fine_obj = self.diameter_opening(length, connectivity=len(dims))
+            out.value[fine_obj] = 0
+            
+        return out
+    
+    @dims_to_spatial_axes
+    @only_binary
+    @record()
     def convex_hull(self, *, dims=None, update=False):
         """
         Compute convex hull image.
@@ -1837,7 +1895,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @only_binary
     @record()
-    def count_neighbors(self, connectivity=None, mask=True, *, dims=None) -> ImgArray:
+    def count_neighbors(self, *, connectivity=None, mask=True, dims=None) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
         or branch detection. Only works for binary images.
@@ -1873,6 +1931,44 @@ class ImgArray(LabeledArray):
             out[~self.value] = 0
             
         return out.astype(np.uint8)
+    
+    @dims_to_spatial_axes
+    @only_binary
+    @record()
+    def remove_skeleton_structure(self, structure="tip", *, connectivity=None,
+                                  dims=None, update:bool=False) -> ImgArray:
+        """
+        Remove certain structure from skeletonized images.
+
+        Parameters
+        ----------
+        structure : str, default is "tip"
+            What type of structure to remove.
+        connectivity : int, optional
+            See label().
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default if False
+            If update self.
+
+        Returns
+        -------
+        ImgArray
+            Processed image.
+        """        
+        with Progress("remove_skeleton_structure"):
+            neighbor = self.count_neighbors(connectivity=connectivity, dims=dims)
+            if structure == "tip":
+                sl = neighbor == 1
+            elif structure == "branch":
+                sl = neighbor > 2
+            elif structure == "cross":
+                sl = neighbor > 3
+            else:
+                raise ValueError("`mode` must be one of {'tip', 'branch', 'cross'}.")
+            out = self.copy()
+            out.value[sl] = 0
+        return self
     
     @dims_to_spatial_axes
     def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True) -> PropArray:
@@ -2035,25 +2131,22 @@ class ImgArray(LabeledArray):
             coords = input_img.peak_local_max(min_distance=min_distance, dims=dims)
         
         labels = largest_zeros(input_img.shape)
-        input_img.ongoing = "watershed"
         shape = self.sizesof(dims)
         n_labels = 0
         c_axes = complement_axes(dims, self.axes)
         markers = np.zeros(shape, dtype=labels.dtype) # placeholder for maxima
-        for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
-                                       coords.groupby([a for a in c_axes])):
-            # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
-            crd = crd.values.T.tolist()
-            markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
-            labels[sl] = skseg.watershed(-img.value, markers, 
-                                         mask=img.labels.value, 
-                                         connectivity=connectivity)
-            labels[sl][labels[sl]>0] += n_labels
-            n_labels = labels[sl].max()
-            markers[:] = 0 # reset placeholder
-            
-        input_img.ongoing = None
-        del input_img.ongoing
+        with Progress("watershed"):
+            for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
+                                        coords.groupby([a for a in c_axes])):
+                # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
+                crd = crd.values.T.tolist()
+                markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
+                labels[sl] = skseg.watershed(-img.value, markers, 
+                                            mask=img.labels.value, 
+                                            connectivity=connectivity)
+                labels[sl][labels[sl]>0] += n_labels
+                n_labels = labels[sl].max()
+                markers[:] = 0 # reset placeholder
         
         labels = labels.view(Label)
         self.labels = labels.optimize()
@@ -2431,7 +2524,6 @@ class ImgArray(LabeledArray):
         corr_kwargs = {"upsample_factor": 10}
         corr_kwargs.update(kwargs)
         
-        # self.ongoing = "drift tracking"
         result = [[0.0, 0.0]]
         last_img = None
         for _, img in self.iter(axis):
