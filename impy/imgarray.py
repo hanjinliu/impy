@@ -91,7 +91,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def translate(self, translation=None, *, dims=2, order:int=1) -> ImgArray:
+    def translate(self, translation=None, *, dims=None, order:int=1) -> ImgArray:
         """
         Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
         """

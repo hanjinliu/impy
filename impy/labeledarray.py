@@ -80,7 +80,6 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def __array_finalize__(self, obj):
-        
         super().__array_finalize__(obj)
         self._view_labels(obj)
         if hasattr(obj, "ongoing"):
@@ -100,14 +99,16 @@ class LabeledArray(HistoryArray):
         # set labels correctly
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
-            label_sl = []
+            # label_sl = []
             if isinstance(key, tuple):
                 _keys = key
             else:
                 _keys = (key,)
-            for i, a in enumerate(other.axes):
-                if a in other.labels.axes and i < len(_keys):
-                    label_sl.append(_keys[i])
+            label_sl = [_keys[i] for i, a in enumerate(other.axes) 
+                        if a in other.labels.axes and i < len(_keys)]
+            # for i, a in enumerate(other.axes):
+            #     if a in other.labels.axes and i < len(_keys):
+            #         label_sl.append(_keys[i])
                     
             if len(label_sl) == 0 or len(label_sl) > other.labels.ndim:
                 label_sl = (slice(None),)
@@ -293,7 +294,7 @@ class LabeledArray(HistoryArray):
         return self
     
     @need_labels
-    def imshow_label(self, alpha=0.3, **kwargs):
+    def imshow_label(self, alpha=0.3, dims="yx", **kwargs):
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
             imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -310,7 +311,7 @@ class LabeledArray(HistoryArray):
             self.hist()
         elif self.ndim == 3:
             if "c" not in self.axes:
-                imglist = [s[1] for s in self.iter("ptz", False, israw=True)]
+                imglist = self.split(axis=find_first_appeared(self.axes, exclude=dims))
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
@@ -770,11 +771,12 @@ class LabeledArray(HistoryArray):
         with Progress("label"):
             labels = largest_zeros(label_image.shape)
             labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
+
             # increment labels in different slices
             min_nlabel = 0
             for sl, _ in label_image.iter(c_axes, False):
                 labels[sl][labels[sl]>0] += min_nlabel
-                min_nlabel += labels[sl].max()
+                min_nlabel += int(labels[sl].max())
         
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label")
@@ -799,9 +801,9 @@ class LabeledArray(HistoryArray):
                 def filt(img, lbl, area, major_axis_length):
                     return area>10 and major_axis_length>5
             where the first argument is intensity image sliced from `self`, the second
-            is label image sliced from `label_image`, and the rest arguments is properties
-            that will be calculated using `regionprops` function. The property arguments
-            **must be named exactly same** as the properties in `regionprops`.
+            is label image sliced from labeled `label_image`, and the rest arguments is 
+            properties that will be calculated using `regionprops` function. The property 
+            arguments **must be named exactly same** as the properties in `regionprops`.
             
         dims : int or str, optional
             Dimension of axes.
@@ -824,6 +826,12 @@ class LabeledArray(HistoryArray):
         >>> def no_hole(img, lbl, euler_number):
         >>>     return euler_number > 0
         >>> img.label_if(lbl, filt)
+        
+        3. Label regions if centroids are inside themselves.
+        >>> def no_hole(img, lbl, centroid):
+        >>>     yc, xc = map(int, centroid)
+        >>>     return lbl[yc, xc] > 0
+        >>> img.label_if(lbl, filt)
         """        
         # check the shape of label_image
         if label_image is None:
@@ -842,9 +850,6 @@ class LabeledArray(HistoryArray):
         if not callable(filt):
             raise TypeError("`filt` must be callable.")
         
-        # TODO: regionprops_table return tuple properties in different columns
-        # such as centroid-0 and centroid-1. This causes unexpected keyword
-        # argument error.
         properties = tuple(inspect.signature(filt).parameters)[2:]
             
         c_axes = complement_axes(dims, self.axes)
@@ -854,7 +859,13 @@ class LabeledArray(HistoryArray):
             for sl, lbl in label_image.iter(c_axes):
                 lbl = skmes.label(lbl, background=0, connectivity=connectivity)
                 img = self.value[sl]
-                df = pd.DataFrame(skmes.regionprops_table(lbl, img, properties=properties, cache=False))
+                # Following lines are essentially doing the same thing as `skmes.regionprops_table`.
+                # However, `skmes.regionprops_table` returns tuples in the separated columns in
+                # DataFrame and rename property names like "centroid-0" and "centroid-1".
+                props_obj = skmes.regionprops(lbl, img, cache=False)
+                d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
+                     for prop_name in properties}
+                df = pd.DataFrame(d)
                 del_list = [i+1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
                 labels[sl] = skseg.relabel_sequential(np.where(np.isin(lbl, del_list),
                                                             0, lbl), offset=offset)[0]
@@ -863,7 +874,7 @@ class LabeledArray(HistoryArray):
         self.labels = labels.view(Label)
         self.labels._set_info(label_image, "label_if")
         self.labels.set_scale(self)
-        return self       
+        return self
             
     
     @dims_to_spatial_axes
@@ -895,10 +906,20 @@ class LabeledArray(HistoryArray):
         return self
     
     def append_label(self, label_image:np.ndarray, new:bool=False) -> LabeledArray:
+        # check and cast label dtype
         if not isinstance(label_image, np.ndarray):
             raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")
         elif label_image.dtype == bool:
             label_image = label_image.astype(np.uint8)
+        elif label_image.dtype == np.int32:
+            label_image = label_image.astype(np.uint16)
+        elif label_image.dtype == np.int64:
+            label_image = label_image.astype(np.uint32)
+        elif label_image.dtype.kind == "i":
+            label_image = label_image.astype(np.uint8)
+        else:
+            raise ValueError(f"`label_image` has dtype {label_image.dtype}, which is unable to be "
+                             "interpreted as an label.")
             
         if hasattr(self, "labels") and not new:
             if label_image.shape != self.labels.shape:

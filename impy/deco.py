@@ -25,6 +25,7 @@ def record(append_history=True, record_label=False):
             # temporary record ongoing function
             self.ongoing = func.__name__
             if record_label:
+                # TODO: if self does not have labels, this raises error.
                 label_axes = self.labels.axes
                 
             out = func(self, *args, **kwargs)
