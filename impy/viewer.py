@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from .metaarray import MetaArray
 from .labeledarray import LabeledArray
 from .phasearray import PhaseArray
 from .label import Label
@@ -19,13 +20,21 @@ a.size = 0.2
 # - read layers
 # - different name for different window?
 
+def get_axes(obj):
+    if isinstance(obj, MetaArray):
+        return obj.axes
+    elif isinstance(obj, AxesFrame):
+        return obj.col_axes
+    else:
+        return None
+
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
     
     def __init__(self):
         self.viewer = None
         self.point_color_id = 0
-    
+        
     @property
     def layers(self):
         return self.viewer.layers
@@ -33,6 +42,10 @@ class napariWindow:
     @property
     def last_layer(self):
         return self.viewer.layers[-1]
+    
+    @property
+    def axes(self):
+        return "".join(self.viewer.dims.axis_labels)
         
     def start(self):
         self.viewer = napari.Viewer(title="impy")
@@ -56,15 +69,51 @@ class napariWindow:
     # def get_line(self):
     #     src = []
     #     dst = []
-    #     for ly in self.layers:
-    #         if isinstance(ly, napari.layers.shape):
-    #             data = ly.data
-    #             src.append(data)
+    #     for layer in self.layers:
+    #         if isinstance(layer, napari.layers.shape):
+    #             for data, type_ in zip(layer.data, layer.shape_type):
+    #                 if type_ == "line":
+    #                     mf = MarkerFrame(data, columns=self.axes)
                 
+    def shapes_to_labels(self, destination:LabeledArray=None, index=0, projection=False):
+        # TODO: different scale image causes wrong to_labels result
+        if destination is None:
+            destination = self.get_front_image()
+            
+        shapes = [layer.to_labels(destination.shape) for layer in self.iter_layer("shape")]
+        
+        if not projection:
+            label = shapes[index]
+        else:
+            label = np.sum(shapes, axis=0)
+        
+        destination.append_label(label)
+        return destination
     
+    def iter_layer(self, layer_type):
+        if layer_type == "shape":
+            layer_type = napari.layers.shapes.shapes.Shapes
+        elif layer_type == "image":
+            layer_type = napari.layers.image.Image
+        else:
+            raise NotImplementedError
+        
+        for layer in self.layers:
+            if isinstance(layer, layer_type):
+                yield layer
+    
+    def get_front_image(self):
+        front = None
+        for img in self.iter_layer("image"):
+            if img.visible:
+                front = img.data
+        if front is None:
+            raise ValueError("There is no visible image layer.")
+        return front
+        
     def _add_image(self, img:LabeledArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
-            
+        
         if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
             kwargs["colormap"] = "hsv"
             kwargs["contrast_limits"] = img.border
@@ -79,6 +128,7 @@ class napariWindow:
                              scale=[img.labels.scale[a] for a in img.labels.axes if a != "c"])
         
         new_axes = [a for a in img.axes if a != "c"]
+        # add axis labels to slide bars and image orientation.
         if len(new_axes) >= len(self.viewer.dims.axis_labels):
             self.viewer.dims.axis_labels = new_axes
         return None
