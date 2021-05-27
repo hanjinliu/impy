@@ -5,7 +5,6 @@ from .phasearray import PhaseArray
 from .label import Label
 from .specials import *
 from .utilcls import ImportOnRequest
-
 napari = ImportOnRequest("napari")
 
 """
@@ -19,7 +18,6 @@ a.size = 0.2
 # TODO: 
 # - read layers
 # - different name (different scale or shape) for different window?
-# - magic command for ip.window.add(...)
 
 def get_axes(obj):
     if isinstance(obj, MetaArray):
@@ -29,6 +27,9 @@ def get_axes(obj):
     else:
         return None
 
+def to_labels(layer, labels_shape, zoom_factor=1):
+    return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
+    
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
     
@@ -51,7 +52,7 @@ class napariWindow:
     @property
     def scale(self):
         d = self.viewer.dims
-        return {a: r[2] for a in d.axis_labels for r in d.range}
+        return {a: r[2] for a, r in zip(d.axis_labels, d.range)}
         
     def start(self):
         self.viewer = napari.Viewer(title="impy")
@@ -71,36 +72,49 @@ class napariWindow:
             self._add_tracks(obj, **kwargs)
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
-    
-    # def get_line(self):
-    #     src = []
-    #     dst = []
-    #     for layer in self.layers:
-    #         if isinstance(layer, napari.layers.shape):
-    #             for data, type_ in zip(layer.data, layer.shape_type):
-    #                 if type_ == "line":
-    #                     mf = MarkerFrame(data, columns=self.axes)
                 
     def shapes_to_labels(self, destination:LabeledArray=None, index=0, projection=False):
-        # TODO: different scale image causes wrong to_labels result
         if destination is None:
             destination = self.get_front_image()
-            
-        shapes = [layer.to_labels(destination.shape) for layer in self.iter_layer("shape")]
+        zoom_factors = [self.scale[a]/destination.scale[a] for a in "yx"]
+        if np.unique(zoom_factors).size == 1:
+            zoom_factor = zoom_factors[0]
+        else:
+            raise ValueError("Scale mismatch in images and napari world.")
+        
+        shapes = [to_labels(layer, destination.shape, zoom_factor=zoom_factor) 
+                  for layer in self.iter_layer("shape")]
         
         if not projection:
             label = shapes[index]
         else:
             label = np.sum(shapes, axis=0)
-        
+        if hasattr(destination, "labels"):
+            print("Label already exist. Overlapped.")
+            del destination.labels
         destination.append_label(label)
-        return destination
+        return destination.labels
+    
+    def points_to_frames(self, ref:LabeledArray=None, index=0, projection=False):
+        if ref is None:
+            ref = self.get_front_image()
+        zoom_factors = [self.scale[a]/ref.scale[a] for a in ref.axes]
+        points = [points.data/zoom_factors for points in self.iter_layer("point")]
+        if not projection:
+            data = points[index]
+        else:
+            data = np.vstack(points)
+        mf = MarkerFrame(data, columns = self.axes)
+        mf.set_scale(self)
+        return mf
     
     def iter_layer(self, layer_type:str):
         if layer_type == "shape":
             layer_type = napari.layers.shapes.shapes.Shapes
         elif layer_type == "image":
             layer_type = napari.layers.image.Image
+        elif layer_type == "point":
+            layer_type = napari.layers.points.Points
         else:
             raise NotImplementedError
         
@@ -123,15 +137,21 @@ class napariWindow:
         if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
             kwargs["colormap"] = "hsv"
             kwargs["contrast_limits"] = img.border
-        self.viewer.add_image(img,
-                              channel_axis=chn_ax,
-                              scale=[img.scale[a] for a in img.axes if a != "c"],
-                              name=img.name,
+        
+        scale = []
+        for a in img.axes:
+            if a in "zyx":
+                scale.append(img.scale[a])
+            elif a == "c":
+                pass
+            else:
+                scale.append(1)
+                
+        self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, name=img.name,
                               **kwargs)
         
         if hasattr(img, "labels"):
-            self._add_labels(img.labels, name=f"Label of {img.name}",
-                             scale=[img.labels.scale[a] for a in img.labels.axes if a != "c"])
+            self._add_labels(img.labels, name=f"Label of {img.name}")
         
         new_axes = [a for a in img.axes if a != "c"]
         # add axis labels to slide bars and image orientation.
@@ -167,7 +187,8 @@ class napariWindow:
             lbls = [labels]
             
         for lbl in lbls:
-            self.viewer.add_labels(lbl, opacity=opacity, **kwargs)
+            scale=[lbl.scale[a] for a in lbl.axes if a != "c"]
+            self.viewer.add_labels(lbl, opacity=opacity, scale=scale, **kwargs)
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):

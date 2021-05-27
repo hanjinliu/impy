@@ -99,16 +99,12 @@ class LabeledArray(HistoryArray):
         # set labels correctly TODO: check me
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
-            # label_sl = []
             if isinstance(key, tuple):
                 _keys = key
             else:
                 _keys = (key,)
             label_sl = [_keys[i] for i, a in enumerate(other.axes) 
                         if a in other.labels.axes and i < len(_keys)]
-            # for i, a in enumerate(other.axes):
-            #     if a in other.labels.axes and i < len(_keys):
-            #         label_sl.append(_keys[i])
                     
             if len(label_sl) == 0 or len(label_sl) > other.labels.ndim:
                 label_sl = (slice(None),)
@@ -959,3 +955,28 @@ class LabeledArray(HistoryArray):
                 
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
         return self
+    
+    @need_labels
+    @dims_to_spatial_axes
+    def proj_labels(self, *, dims=None, forbid_overlap=False):
+        """
+        Label projection. This function is useful when yx-labels are drawn in different z but
+        you want to merge them.
+
+        Parameters
+        ----------
+        dims : int or str, optional
+            Spatial dimensions.
+        forbid_overlap : bool, default is False
+            If True and there were any label overlap, this function will raise ValueError.
+
+        """        
+        axis = tuple(self.axisof(a) for a in complement_axes(dims, self.axes))
+        new_labels = np.max(self.labels, axis=axis)
+        if forbid_overlap:
+            test_array = np.sum(self.labels>0, axis=axis)
+            if (test_array>1).any():
+                raise ValueError("Label overlapped.")
+        new_labels._set_info(self.labels, "proj", new_axes=dims)
+        self.labels = new_labels
+        return None

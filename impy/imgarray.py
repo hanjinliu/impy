@@ -1048,7 +1048,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        min_distance : int, by default 1
+        min_distance : int, default is 1
             Minimum distance allowed for each two peaks. This parameter is slightly
             different from that in `skimage.feature.peak_local_max` because here float
             input is allowed and every time footprint is calculated.
@@ -1348,7 +1348,7 @@ class ImgArray(LabeledArray):
                     "log": "log_filter",
                     }
         try:
-            fil_img = getattr(self, methods_[method])(sigma, dims=dims)
+            fil_img = getattr(self, methods_[method.lower()])(sigma, dims=dims)
         except KeyError:
             raise ValueError(f"Currently `method` only supports {', '.join(methods_.keys())}")
         
@@ -1986,16 +1986,18 @@ class ImgArray(LabeledArray):
         >>> coords = img.proj("t").centroid_sm()
         >>> prop = img.pointprops(coords)
         """        
+        coords = check_coordinates(coords, self, dims)
+        col_axes = coords.col_axes
+        prop_axes = complement_axes(coords.col_axes, self.axes)
         coords = np.asarray(coords, dtype=np.float32).T
-        prop_axes = complement_axes(dims, self.axes)
         shape = self.sizesof(prop_axes)
-        l = coords.shape[1]
+        l = coords.shape[1] # Number of points
         out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
                         axes="p"+prop_axes, dirpath=self.dirpath,
                         propname = f"pointprops", dtype=np.float32)
         
         with Progress("pointprops"):
-            for sl, img in self.iter(prop_axes, exclude=dims):
+            for sl, img in self.iter(prop_axes, exclude=col_axes):
                 out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
                                                   order=order, mode="reflect")
         if l == 1 and squeeze:
@@ -2034,32 +2036,15 @@ class ImgArray(LabeledArray):
         >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
         >>> pr.plot()
         """        
-        if isinstance(func, str):
-            method_ = getattr(np, func, None)
-        else:
-            method_ = func
+        func = check_function(func)
+        src = check_coordinates(src, self, dims)
+        dst = check_coordinates(dst, self, dims)
         
-        if callable(method_):
-            func = method_
-        else:
-            raise TypeError("'func' must be one of numpy methods or callable object.")
+        if src.shape != dst.shape:
+            raise ValueError(f"Shape mismatch between `src` and `dst`: {src.shape} and {dst.shape}")
         
-        if not (isinstance(src, MarkerFrame) and isinstance(dst, MarkerFrame)):
-            src = np.asarray(src, dtype=np.float32)
-            if src.ndim == 1:
-                src = src.reshape(1, -1)
-            dst = np.asarray(dst, dtype=np.float32)
-            if dst.ndim == 1:
-                dst = dst.reshape(1, -1)
-            
-            return self.lineprops(MarkerFrame(src, columns=dims), MarkerFrame(src, columns=dims),
-                                  func, order=order, dims=dims, squeeze=squeeze)
-            
-        if len(src) != len(dst):
-            raise ValueError(f"Shape mismatch between `src` and `dst`: {len(src)} and {len(dst)}")
-        
-        l = len(src)
-        prop_axes = complement_axes(dims, self.axes)
+        l = src.shape[0]
+        prop_axes = complement_axes(src.col_axes, self.axes)
         shape = self.sizesof(prop_axes)
         
         out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
@@ -2425,16 +2410,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Projected image.
         """        
-        if isinstance(method, str):
-            method_ = getattr(np, method, None)
-        else:
-            method_ = method
-        
-        if callable(method_):
-            func = method_
-        else:
-            raise TypeError("'method' must be one of numpy methods or callable object.")
-        
+        func = check_function(method)
         if axis is None:
             axis = find_first_appeared(self.axes, exclude="yx")
         axisint = self.axisof(axis)
@@ -3017,18 +2993,18 @@ def stack(imgs, axis="c", dtype=None):
     
     return out
 
-def check_coordinates(coords, img):
+def check_coordinates(coords, img, dims=None):
     if not isinstance(coords, MarkerFrame):
         coords = np.asarray(coords)
         if coords.ndim == 1:
             coords = coords.reshape(1, -1)
         elif coords.ndim != 2:
             raise ValueError("Input `coords` cannot be interpreted as coordinate(s).")
-        ndim = coords.shape[1]
-        coords = MarkerFrame(coords, columns=img.axes[-ndim:], dtype=np.uint16)
+
+        coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
         coords.set_scale(img)
     
-    if coords.col_axes != img.axes:
+    # if coords.col_axes != img.axes:
         
         # TODO: Need support?
         # axes_to_append = complement_axes(coords.col_axes, img.axes)
@@ -3037,6 +3013,15 @@ def check_coordinates(coords, img):
         # for sl in coords.values:
         #     coords[[a for a in axes_to_append]] = sl
         # coords = coords.sort()
-        raise ImageAxesError(f"Image has {img.axes}-axes but {len(coords.col_axes)} values are given.")
+        # raise ImageAxesError(f"Image has {img.axes}-axes but {len(coords.col_axes)} values are given.")
     
     return coords
+
+def check_function(func):
+    if isinstance(func, str):
+        func = getattr(np, func, None)
+    if callable(func):
+        return func
+    else:
+        raise TypeError("Must be one of numpy methods or callable object.")
+    

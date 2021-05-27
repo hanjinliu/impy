@@ -245,7 +245,7 @@ class AxesFrame(pd.DataFrame):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
             self._axes.scale.update(other)
             
-        elif isinstance(other, (AxesFrame, MetaArray)):
+        elif hasattr(other, "scale"):
             self.set_scale({a: s for a, s in other.scale.items() if a in self._axes})
             
         elif kwargs:

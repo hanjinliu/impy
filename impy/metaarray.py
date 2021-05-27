@@ -306,7 +306,6 @@ class MetaArray(np.ndarray):
         iterlist = self._get_iterlist(axes)
         selfview = self if israw else self.value
         it = itertools.product(*iterlist)
-
         i = 0 # counter
         for sl in it:
             if len(exclude) == 0:

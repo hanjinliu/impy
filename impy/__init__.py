@@ -1,4 +1,4 @@
-__version__ = "1.8.2"
+__version__ = "1.8.3"
 
 import warnings
 from .imgarray import (array, zeros, zeros_like, empty, empty_like, 
@@ -27,4 +27,3 @@ ImgArray PhaseArray
 warnings.resetwarnings()
 warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", DeprecationWarning)
-
