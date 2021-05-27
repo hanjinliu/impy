@@ -1176,7 +1176,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Image labeled with segmentation.
         """        
-        coords = check_coordinates(coords, self)
+        coords = check_coordinates(coords, self, dims=self.axes)
         
         ny, nx = self.sizesof(dims)
         
@@ -1228,7 +1228,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """        
-        seeds = check_coordinates(seeds, self)
+        seeds = check_coordinates(seeds, self, dims=self.axes)
         labels = largest_zeros(self.shape)
         n_label_next = 1
         with Progress("flood"):
@@ -1276,7 +1276,7 @@ class ImgArray(LabeledArray):
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         else:
-            coords = check_coordinates(coords, self)
+            coords = check_coordinates(coords, self, dims=self.axes)
         
         labels_now = getattr(self, "labels", None)
         self.labels = None
@@ -1959,8 +1959,7 @@ class ImgArray(LabeledArray):
             out.value[sl] = 0
         return out
     
-    @dims_to_spatial_axes
-    def pointprops(self, coords, *, order:int=1, dims=None, squeeze:bool=True) -> PropArray:
+    def pointprops(self, coords, *, order:int=1, squeeze:bool=True) -> PropArray:
         """
         Measure interpolated intensity at points with float coordinates.
 
@@ -1970,8 +1969,6 @@ class ImgArray(LabeledArray):
             Coordinates of point to be measured.
         order : int, default is 1
             Spline interpolation order.
-        dims : int or str, optional
-            Spatial dimensions.
         squeeze : bool, default is True
             If True and only one point is measured, the redundant dimension "p" will be deleted.
 
@@ -1986,7 +1983,7 @@ class ImgArray(LabeledArray):
         >>> coords = img.proj("t").centroid_sm()
         >>> prop = img.pointprops(coords)
         """        
-        coords = check_coordinates(coords, self, dims)
+        coords = check_coordinates(coords, self)
         col_axes = coords.col_axes
         prop_axes = complement_axes(coords.col_axes, self.axes)
         coords = np.asarray(coords, dtype=np.float32).T
@@ -2004,9 +2001,7 @@ class ImgArray(LabeledArray):
             out = out[0]
         return out
     
-    @dims_to_spatial_axes
-    def lineprops(self, src, dst, func="mean", *, order:int=1, dims=None, 
-                  squeeze:bool=True) -> PropArray:
+    def lineprops(self, src, dst, func="mean", *, order:int=1, squeeze:bool=True) -> PropArray:
         """
         Measure line property using func(line_scan).
 
@@ -2020,8 +2015,6 @@ class ImgArray(LabeledArray):
             Measurement function.
         order : int, optional
             Spline interpolation order.
-        dims : int or str.
-            Spatial dimension.
         squeeze : bool, default is True.
             If True and only one line is measured, the redundant dimension "p" will be deleted.
 
@@ -2037,8 +2030,8 @@ class ImgArray(LabeledArray):
         >>> pr.plot()
         """        
         func = check_function(func)
-        src = check_coordinates(src, self, dims)
-        dst = check_coordinates(dst, self, dims)
+        src = check_coordinates(src, self)
+        dst = check_coordinates(dst, self)
         
         if src.shape != dst.shape:
             raise ValueError(f"Shape mismatch between `src` and `dst`: {src.shape} and {dst.shape}")
@@ -2053,7 +2046,7 @@ class ImgArray(LabeledArray):
         
         with Progress("lineprops"):
             for i, (s, d) in enumerate(zip(src.values, dst.values)):
-                resliced = self.reslice(s, d, order=order, dims=dims)
+                resliced = self.reslice(s, d, order=order)
                 out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
         
         if l == 1 and squeeze:
@@ -2999,21 +2992,15 @@ def check_coordinates(coords, img, dims=None):
         if coords.ndim == 1:
             coords = coords.reshape(1, -1)
         elif coords.ndim != 2:
-            raise ValueError("Input `coords` cannot be interpreted as coordinate(s).")
-
+            raise ValueError("Input cannot be interpreted as coordinate(s).")
+        if dims is None:
+            ndim = coords.shape[1]
+            if ndim == img.ndim:
+                dims = img.axes
+            else:
+                dims = complement_axes("c", img.axes)[-ndim:]
         coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
         coords.set_scale(img)
-    
-    # if coords.col_axes != img.axes:
-        
-        # TODO: Need support?
-        # axes_to_append = complement_axes(coords.col_axes, img.axes)
-        # sizes = img.sizesof(axes_to_append)
-        # cols_to_append = np.array(*itertools.product(*map(range, sizes)), dtype=np.uint16)
-        # for sl in coords.values:
-        #     coords[[a for a in axes_to_append]] = sl
-        # coords = coords.sort()
-        # raise ImageAxesError(f"Image has {img.axes}-axes but {len(coords.col_axes)} values are given.")
     
     return coords
 

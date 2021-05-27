@@ -59,7 +59,7 @@ class LabeledArray(HistoryArray):
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
-        
+        # TODO: save scale (XResolution?)
         try:
             info = load_json(metadata["Info"])
         except:
@@ -674,9 +674,8 @@ class LabeledArray(HistoryArray):
         
         return self
     
-    @dims_to_spatial_axes
     @record(append_history=False)
-    def reslice(self, src, dst, *, order:int=1, dims=None) -> PropArray:
+    def reslice(self, src, dst, *, order:int=1) -> PropArray:
         """
         Measure line profile iteratively for every slice of image. This function is almost same as
         `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is not 
@@ -690,8 +689,6 @@ class LabeledArray(HistoryArray):
             Destination coordinate.
         order : int, default is 1
             Spline interpolation order.
-        dims : int or str, optional
-            Spatial dimensions.
 
         Returns
         -------
@@ -713,6 +710,11 @@ class LabeledArray(HistoryArray):
         perp_lines = np.stack([np.linspace(src_, dst_, length).reshape(-1,1) 
                                for src_, dst_ in zip(src, dst)])
         
+        ndim = src.size
+        if ndim == self.ndim:
+            dims = self.axes
+        else:
+            dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
         out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
                         name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")

@@ -168,8 +168,7 @@ class PhaseArray(LabeledArray):
         self.hist()
         return self
     
-    @dims_to_spatial_axes
-    def reslice(self, src, dst, *, order:int=1, dims=None) -> PropArray:
+    def reslice(self, src, dst, *, order:int=1) -> PropArray:
         """
         Measure line profile iteratively for every slice of image. Because input is phase, we can
         not apply standard interpolation to calculate intensities on float-coordinates.
@@ -194,8 +193,8 @@ class PhaseArray(LabeledArray):
         vec_re = np.cos(a*self).view(LabeledArray)
         vec_im = np.sin(a*self).view(LabeledArray)
         with Progress("reslice"):
-            out_re = vec_re.reslice(src, dst, order=order, dims=dims)
-            out_im = vec_im.reslice(src, dst, order=order, dims=dims)
+            out_re = vec_re.reslice(src, dst, order=order)
+            out_im = vec_im.reslice(src, dst, order=order)
         out = np.arctan2(out_im, out_re)/a
         return out
     
