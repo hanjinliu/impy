@@ -16,20 +16,8 @@ a.size = 0.2
 """
 
 # TODO: 
-# - read layers
 # - different name (different scale or shape) for different window?
 
-def get_axes(obj):
-    if isinstance(obj, MetaArray):
-        return obj.axes
-    elif isinstance(obj, AxesFrame):
-        return obj.col_axes
-    else:
-        return None
-
-def to_labels(layer, labels_shape, zoom_factor=1):
-    return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
-    
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
     
@@ -138,14 +126,7 @@ class napariWindow:
             kwargs["colormap"] = "hsv"
             kwargs["contrast_limits"] = img.border
         
-        scale = []
-        for a in img.axes:
-            if a in "zyx":
-                scale.append(img.scale[a])
-            elif a == "c":
-                pass
-            else:
-                scale.append(1)
+        scale = make_world_scale(img)
                 
         self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, name=img.name,
                               **kwargs)
@@ -181,13 +162,13 @@ class napariWindow:
         return None
     
     def _add_labels(self, labels:Label, opacity:float=0.3, **kwargs):
+        scale = make_world_scale(labels)
         if "c" in labels.axes:
             lbls = labels.split("c")
         else:
             lbls = [labels]
             
         for lbl in lbls:
-            scale=[lbl.scale[a] for a in lbl.axes if a != "c"]
             self.viewer.add_labels(lbl, opacity=opacity, scale=scale, **kwargs)
         return None
 
@@ -203,5 +184,28 @@ class napariWindow:
         
         return None
             
+            
+def get_axes(obj):
+    if isinstance(obj, MetaArray):
+        return obj.axes
+    elif isinstance(obj, AxesFrame):
+        return obj.col_axes
+    else:
+        return None
+
+def to_labels(layer, labels_shape, zoom_factor=1):
+    return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
+    
+
+def make_world_scale(img):
+    scale = []
+    for a in img.axes:
+        if a in "zyx":
+            scale.append(img.scale[a])
+        elif a == "c":
+            pass
+        else:
+            scale.append(1)
+    return scale
 
 window = napariWindow()

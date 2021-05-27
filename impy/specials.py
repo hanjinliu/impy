@@ -162,7 +162,7 @@ class AxesFrame(pd.DataFrame):
             kwargs["columns"] = data.columns.tolist()
         else:
             kwargs["columns"] = columns
-            
+        
         super().__init__(data, **kwargs)
         self._axes = Axes(columns)
     
