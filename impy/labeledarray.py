@@ -96,7 +96,7 @@ class LabeledArray(HistoryArray):
     
     def _getitem_additional_set_info(self, other, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
-        # set labels correctly
+        # set labels correctly TODO: check me
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
             # label_sl = []
@@ -804,6 +804,7 @@ class LabeledArray(HistoryArray):
             is label image sliced from labeled `label_image`, and the rest arguments is 
             properties that will be calculated using `regionprops` function. The property 
             arguments **must be named exactly same** as the properties in `regionprops`.
+            Number of arguments can be two.
             
         dims : int or str, optional
             Dimension of axes.
@@ -871,7 +872,7 @@ class LabeledArray(HistoryArray):
                                                             0, lbl), offset=offset)[0]
                 offset += labels.max()
         
-        self.labels = labels.view(Label)
+        self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label_if")
         self.labels.set_scale(self)
         return self
@@ -906,6 +907,21 @@ class LabeledArray(HistoryArray):
         return self
     
     def append_label(self, label_image:np.ndarray, new:bool=False) -> LabeledArray:
+        """
+        Append new labels from an array. This function works for boolean or signed int arrays.
+
+        Parameters
+        ----------
+        label_image : np.ndarray
+            Labeled image.
+        new : bool, default is False
+            If True, existing labels will be removed anyway.
+        
+        Returns
+        -------
+        LabeledArray
+            Image with new labels.
+        """
         # check and cast label dtype
         if not isinstance(label_image, np.ndarray):
             raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")

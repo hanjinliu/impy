@@ -3,7 +3,6 @@ import numpy as np
 import os
 import glob
 import collections
-import warnings
 from skimage import io
 from skimage import transform as sktrans
 from skimage import filters as skfil
@@ -25,6 +24,10 @@ from .specials import *
 from .utilcls import *
 from ._process import *
 from .glcm import *
+
+# TODO: new functions
+# - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
+# - max-tree based thresholding
 
 class ImgArray(LabeledArray):
     
@@ -119,7 +122,7 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         out._set_info(self, f"rescale(scale={scale})")
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
-        out.set_scale({a:1/scale for a, scale in zip(self.axes, scale_)})
+        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
     @record()
@@ -2916,6 +2919,7 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
     ignore_exception : bool, optional
         If true, arrays with wrong shape will be ignored, by default False
     """    
+    # TODO: sort
     paths = glob.glob(f"{dirname}{os.sep}**{os.sep}*.{ext}", recursive=True)
     imgs = []
     shapes = []

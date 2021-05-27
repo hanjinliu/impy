@@ -18,7 +18,8 @@ a.size = 0.2
 
 # TODO: 
 # - read layers
-# - different name for different window?
+# - different name (different scale or shape) for different window?
+# - magic command for ip.window.add(...)
 
 def get_axes(obj):
     if isinstance(obj, MetaArray):
@@ -46,6 +47,11 @@ class napariWindow:
     @property
     def axes(self):
         return "".join(self.viewer.dims.axis_labels)
+    
+    @property
+    def scale(self):
+        d = self.viewer.dims
+        return {a: r[2] for a in d.axis_labels for r in d.range}
         
     def start(self):
         self.viewer = napari.Viewer(title="impy")
@@ -90,7 +96,7 @@ class napariWindow:
         destination.append_label(label)
         return destination
     
-    def iter_layer(self, layer_type):
+    def iter_layer(self, layer_type:str):
         if layer_type == "shape":
             layer_type = napari.layers.shapes.shapes.Shapes
         elif layer_type == "image":
@@ -154,7 +160,7 @@ class napariWindow:
             self.point_color_id += 1
         return None
     
-    def _add_labels(self, labels:Label, opacity=0.3, **kwargs):
+    def _add_labels(self, labels:Label, opacity:float=0.3, **kwargs):
         if "c" in labels.axes:
             lbls = labels.split("c")
         else:
