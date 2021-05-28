@@ -487,6 +487,21 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def std_filter(self, radius:float=1, *, dims=None) -> ImgArray:
+        """
+        Standard deviation filter.
+
+        Parameters
+        ----------
+        radius : float, by default 1
+            Radius of kernel.
+        dims : str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """        
         disk = ball_like(radius, len(dims))
         return self.as_float().parallel(std_, complement_axes(dims, self.axes), disk)
     
@@ -598,6 +613,23 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Edge detection using Laplacian filter. Kernel is made by skimage's function.
+
+        Parameters
+        ----------
+        radius : int, default is 1
+            Radius of kernel. Shape of kernel will be (2*radius+1, 2*radius+1).
+        dims : int or str, optional
+            Dimension of axes.
+        update : bool, default is False
+            If update self to filtered image.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
         return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, 
@@ -1176,7 +1208,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Image labeled with segmentation.
         """        
-        coords = check_coordinates(coords, self, dims=self.axes)
+        coords = _check_coordinates(coords, self, dims=self.axes)
         
         ny, nx = self.sizesof(dims)
         
@@ -1228,7 +1260,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """        
-        seeds = check_coordinates(seeds, self, dims=self.axes)
+        seeds = _check_coordinates(seeds, self, dims=self.axes)
         labels = largest_zeros(self.shape)
         n_label_next = 1
         with Progress("flood"):
@@ -1276,7 +1308,7 @@ class ImgArray(LabeledArray):
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         else:
-            coords = check_coordinates(coords, self, dims=self.axes)
+            coords = _check_coordinates(coords, self, dims=self.axes)
         
         labels_now = getattr(self, "labels", None)
         self.labels = None
@@ -1387,7 +1419,7 @@ class ImgArray(LabeledArray):
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
         else:
-            coords = check_coordinates(coords, self)
+            coords = _check_coordinates(coords, self)
             
         ndim = len(dims)
         filt = check_filter_func(filt)
@@ -1451,7 +1483,7 @@ class ImgArray(LabeledArray):
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
         else:
-            coords = check_coordinates(coords, self)    
+            coords = _check_coordinates(coords, self)    
         ndim = len(dims)
         filt = check_filter_func(filt)
         
@@ -1983,7 +2015,7 @@ class ImgArray(LabeledArray):
         >>> coords = img.proj("t").centroid_sm()
         >>> prop = img.pointprops(coords)
         """        
-        coords = check_coordinates(coords, self)
+        coords = _check_coordinates(coords, self)
         col_axes = coords.col_axes
         prop_axes = complement_axes(coords.col_axes, self.axes)
         coords = np.asarray(coords, dtype=np.float32).T
@@ -2029,9 +2061,9 @@ class ImgArray(LabeledArray):
         >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
         >>> pr.plot()
         """        
-        func = check_function(func)
-        src = check_coordinates(src, self)
-        dst = check_coordinates(dst, self)
+        func = _check_function(func)
+        src = _check_coordinates(src, self)
+        dst = _check_coordinates(dst, self)
         
         if src.shape != dst.shape:
             raise ValueError(f"Shape mismatch between `src` and `dst`: {src.shape} and {dst.shape}")
@@ -2365,6 +2397,7 @@ class ImgArray(LabeledArray):
         outshape = self.sizesof(c_axes) + (len(distances), len(angles)) + self.sizesof(dims)
         out = {}
         for prop in properties:
+            # TODO: do not use empty
             if isinstance(prop, str):
                 out[prop] = empty(outshape, dtype=np.float32)
             elif callable(prop):
@@ -2403,7 +2436,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Projected image.
         """        
-        func = check_function(method)
+        func = _check_function(method)
         if axis is None:
             axis = find_first_appeared(self.axes, exclude="yx")
         axisint = self.axisof(axis)
@@ -2899,9 +2932,8 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
     dtype : str, optional
         dtype of the images.
     """    
-    # TODO: sort?
     paths = glob.glob(os.path.join(dirname, "**", f"*.{ext}"), recursive=True)
-    print(paths)
+    
     imgs = []
     shapes = []
     for path in paths:
@@ -2909,6 +2941,7 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
         imgs.append(img)
         shapes.append(img.shape)
     
+    # check shape compatibility
     list_of_shape = list(set(shapes))
     if len(list_of_shape) > 1:
         if ignore_exception:
@@ -2922,6 +2955,7 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
     out = stack(imgs, axis=axis)
     out.dirpath, out.name = os.path.split(dirname)
     out.history[-1] = "imread_collection"
+    out.temp = paths
     return out
     
 
@@ -2963,8 +2997,8 @@ def stack(imgs, axis="c", dtype=None):
     ----------
     imgs : iterable object of images.
         Images to stack. These images must have exactly the same shapes.
-    axis : str, optional
-        Which axis will be the new one, by default "c"
+    axis : str, default is "c"
+        Which axis will be the new one.
     dtype : str, optional
         Output dtype.
 
@@ -2998,7 +3032,7 @@ def stack(imgs, axis="c", dtype=None):
     
     return out
 
-def check_coordinates(coords, img, dims=None):
+def _check_coordinates(coords, img, dims=None):
     if not isinstance(coords, MarkerFrame):
         coords = np.asarray(coords)
         if coords.ndim == 1:
@@ -3016,7 +3050,7 @@ def check_coordinates(coords, img, dims=None):
     
     return coords
 
-def check_function(func):
+def _check_function(func):
     if isinstance(func, str):
         func = getattr(np, func, None)
     if callable(func):
