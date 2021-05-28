@@ -2815,7 +2815,7 @@ def empty_like(img:ImgArray, name:str=None) -> ImgArray:
     
     return empty(img.shape, dtype=img.dtype, name=img.name, axes=img.axes)
 
-def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
+def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     """
     Load image from path.
 
@@ -2824,7 +2824,7 @@ def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
     path : str
         Path to the image.
     dtype : str, optional
-        dtype of the image, by default "uint16"
+        dtype of the image.
     axes : str or None, optional
         If the image does not have axes metadata, this value will be used.
 
@@ -2855,7 +2855,6 @@ def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
     else:
         name = fname
         history = []
-        
     
     self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
                     history=history, metadata=metadata)
@@ -2867,13 +2866,23 @@ def imread(path:str, dtype:str="uint16", *, axes=None) -> ImgArray:
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
+    if dtype is None:
+        dtype = self.dtype
+        
     if self.axes.is_none():
         return self
     else:
-        return self.sort_axes().as_img_type(dtype) # arrange in ptzcyx-order
+        try:
+            tags = meta["tags"]
+            xres = tags["XResolution"]
+            yres = tags["YResolution"]
+            self.set_scale(x=xres[1]/xres[0], y=yres[1]/yres[0])
+        except KeyError:
+            pass
+        return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def imread_collection(dirname:str, axis:str="p", *, ext:str="tif", 
-                      ignore_exception:bool=False, dtype="uint16") -> ImgArray:
+                      ignore_exception:bool=False, dtype=None) -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -2881,15 +2890,18 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
     ----------
     dirname : str
         Path to the directory
-    axis : str, optional
-        To specify which axis will be the new one, by default "p"
-    ext : str, optional
-        Extension of files, by default "tif"
-    ignore_exception : bool, optional
-        If true, arrays with wrong shape will be ignored, by default False
+    axis : str, default is "p"
+        To specify which axis will be the new one.
+    ext : str, default is "tif"
+        Extension of files.
+    ignore_exception : bool, default is False
+        If true, arrays with wrong shape will be ignored.
+    dtype : str, optional
+        dtype of the images.
     """    
-    # TODO: sort
-    paths = glob.glob(f"{dirname}{os.sep}**{os.sep}*.{ext}", recursive=True)
+    # TODO: sort?
+    paths = glob.glob(os.path.join(dirname, "**", f"*.{ext}"), recursive=True)
+    print(paths)
     imgs = []
     shapes = []
     for path in paths:

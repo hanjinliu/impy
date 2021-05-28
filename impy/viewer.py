@@ -17,6 +17,7 @@ a.size = 0.2
 
 # TODO: 
 # - different name (different scale or shape) for different window?
+# - show PropArray as 3D plot (need new window anyway)
 
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
@@ -183,7 +184,7 @@ class napariWindow:
             self.viewer.add_tracks(tr, scale=scale, **kwargs)
         
         return None
-            
+
             
 def get_axes(obj):
     if isinstance(obj, MetaArray):

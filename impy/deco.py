@@ -24,9 +24,11 @@ def record(append_history=True, record_label=False):
         def wrapper(self, *args, **kwargs):
             # temporary record ongoing function
             self.ongoing = func.__name__
-            if record_label:
-                # TODO: if self does not have labels, this raises error.
+            
+            if record_label and hasattr(self, "labels"):
                 label_axes = self.labels.axes
+            else:
+                label_axes = None
                 
             out = func(self, *args, **kwargs)
             
@@ -35,7 +37,7 @@ def record(append_history=True, record_label=False):
             
             temp = getattr(out, "temp", None)
             
-            if record_label:
+            if label_axes is not None:
                 self.labels.axes = label_axes
                 
             if type(out) is np.ndarray:

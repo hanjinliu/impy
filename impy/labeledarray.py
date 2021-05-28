@@ -59,7 +59,6 @@ class LabeledArray(HistoryArray):
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
-        # TODO: save scale (XResolution?)
         try:
             info = load_json(metadata["Info"])
         except:
@@ -69,8 +68,12 @@ class LabeledArray(HistoryArray):
         metadata["Info"] = str(info)
         if self.axes:
             metadata["axes"] = str(self.axes).upper()
+            try:
+                res = (1/self.scale["x"], 1/self.scale["y"])
+            except Exception:
+                res = None
 
-        imwrite(tifname, self.as_img_type(dtype).value, imagej=True, metadata=metadata)
+        imwrite(tifname, self.as_img_type(dtype).value, imagej=True, resolution=res, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
@@ -728,7 +731,7 @@ class LabeledArray(HistoryArray):
     
     
     @dims_to_spatial_axes
-    @record(False)
+    @record(append_history=False, record_label=True)
     def label(self, label_image=None, *, dims=None, connectivity=None) -> LabeledArray:
         """
         Run skimage's label() and store the results as attribute.
@@ -782,7 +785,7 @@ class LabeledArray(HistoryArray):
         return self
     
     @dims_to_spatial_axes
-    @record(False)
+    @record(append_history=False, record_label=True)
     def label_if(self, label_image=None, filt=None, *, dims=None, 
                  connectivity=None) -> LabeledArray:
         """
@@ -878,7 +881,7 @@ class LabeledArray(HistoryArray):
     
     @dims_to_spatial_axes
     @need_labels
-    @record(record_label=True)
+    @record(append_history=False, record_label=True)
     def expand_labels(self, distance:int=1, *, dims=None) -> LabeledArray:
         """
         Expand areas of labels.
@@ -904,6 +907,7 @@ class LabeledArray(HistoryArray):
         
         return self
     
+    @record(append_history=False, record_label=True)
     def append_label(self, label_image:np.ndarray, new:bool=False) -> LabeledArray:
         """
         Append new labels from an array. This function works for boolean or signed int arrays.
@@ -960,6 +964,7 @@ class LabeledArray(HistoryArray):
     
     @need_labels
     @dims_to_spatial_axes
+    @record(append_history=False, record_label=True)
     def proj_labels(self, *, dims=None, forbid_overlap=False):
         """
         Label projection. This function is useful when yx-labels are drawn in different z but
