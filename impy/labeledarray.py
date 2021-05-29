@@ -771,13 +771,16 @@ class LabeledArray(HistoryArray):
         c_axes = complement_axes(dims, self.axes)
         with Progress("label"):
             labels = largest_zeros(label_image.shape)
+            imax = np.iinfo(labels.dtype).max
             labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
 
             # increment labels in different slices
             min_nlabel = 0
             for sl, _ in label_image.iter(c_axes, False):
                 labels[sl][labels[sl]>0] += min_nlabel
-                min_nlabel += int(labels[sl].max())
+                min_nlabel = labels[sl].max()
+                if min_nlabel > imax:
+                    raise OverflowError("Number of labels exceeded maximum.")
         
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label")
