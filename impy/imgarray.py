@@ -475,13 +475,49 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def sobel_filter(self, *, dims=None, update:bool=False):
+    def sobel_filter(self, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Sobel filter. This filter is useful for edge detection.
+
+        Parameters
+        ----------
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default is False
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         return self.parallel(sobel_, complement_axes(dims, self.axes))
     
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def convolve(self, kernel, *, mode="reflect", cval=0, dims=None, update:bool=False):
+    def convolve(self, kernel, *, mode="reflect", cval=0, dims=None, update:bool=False) -> ImgArray:
+        """
+        General linear convolution by running kernel filtering.
+
+        Parameters
+        ----------
+        kernel : array-like
+            Convolution kernel.
+        mode : str, default is "reflect".
+            Padding mode. See `scipy.ndimage.convolve`.
+        cval : int, default is 0
+            Constant value to fill outside the image if mode == "constant".
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default is False
+            If update self after convolution.
+
+        Returns
+        -------
+        ImgArray
+            Convolved image.
+        """        
         return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, mode, cval, outdtype=self.dtype)
     
     @dims_to_spatial_axes
@@ -492,30 +528,136 @@ class ImgArray(LabeledArray):
     
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Morphological erosion. If input is binary image, the running function will automatically switched to
+        `binary_erosion` to speed up calculation.
+
+        Parameters
+        ----------
+        radius : float, default is 1.
+            Radius of kernel.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         f = binary_erosion_ if self.dtype == bool else erosion_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Morphological dilation. If input is binary image, the running function will automatically switched to
+        `binary_dilation` to speed up calculation.
+
+        Parameters
+        ----------
+        radius : float, default is 1.
+            Radius of kernel.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         f = binary_dilation_ if self.dtype == bool else dilation_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Morphological opening. If input is binary image, the running function will automatically switched to
+        `binary_opening` to speed up calculation.
+
+        Parameters
+        ----------
+        radius : float, default is 1.
+            Radius of kernel.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         f = binary_opening_ if self.dtype == bool else opening_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Morphological closing. If input is binary image, the running function will automatically switched to
+        `binary_closing` to speed up calculation.
+
+        Parameters
+        ----------
+        radius : float, default is 1.
+            Radius of kernel.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         f = binary_closing_ if self.dtype == bool else closing_
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
     def tophat(self, radius:float=50, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Tophat morphological image processing. This is useful for background subtraction.
+
+        Parameters
+        ----------
+        radius : float, default is 50.
+            Radius of kernel.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         return self._running_kernel(radius, tophat_, dims=dims, update=update)
     
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Mean filter. Kernel is filled with same values.
+
+        Parameters
+        ----------
+        radius : float, default is 1
+            Radius of kernel.
+        dims : str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+            
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """        
         return self._running_kernel(radius, mean_, dims=dims, update=update)
     
     @dims_to_spatial_axes
@@ -526,7 +668,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, by default 1
+        radius : float, default is 1
             Radius of kernel.
         dims : str, optional
             Spatial dimensions.
@@ -548,7 +690,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, by default 1
+        radius : float, default is 1
             Radius of kernel.
         dims : str, optional
             Spatial dimensions.
@@ -563,6 +705,23 @@ class ImgArray(LabeledArray):
     
     @record()
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Running median filter. This filter is useful for deleting outliers generated by noise.
+
+        Parameters
+        ----------
+        radius : float, default is 1.
+            Radius of kernel.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         return self._running_kernel(radius, median_, dims=dims, update=update)
     
     @record()
@@ -584,18 +743,16 @@ class ImgArray(LabeledArray):
     @record()
     @dims_to_spatial_axes
     @same_dtype()
-    def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
-                     update:bool=False) -> ImgArray:
-        return self.parallel(area_opening_, complement_axes(dims, self.axes), 
-                             area, connectivity)
+    def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, update:bool=False) -> ImgArray:
+        f = binary_area_opening_ if self.dtype == bool else area_opening_
+        return self.parallel(f, complement_axes(dims, self.axes), area, connectivity)
         
     @record()
     @dims_to_spatial_axes
     @same_dtype()
-    def area_closing(self, area:int=64, *, connectivity:int=1, dims=None,
-                     update:bool=False) -> ImgArray:
-        return self.parallel(area_closing_, complement_axes(dims, self.axes), 
-                             area, connectivity)
+    def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, update:bool=False) -> ImgArray:
+        f = binary_area_closing_ if self.dtype == bool else area_closing_
+        return self.parallel(f, complement_axes(dims, self.axes), area, connectivity)
         
     @dims_to_spatial_axes
     @record()

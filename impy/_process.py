@@ -178,9 +178,17 @@ def area_opening_(args):
     sl, data, area, connectivity = args
     return sl, skmorph.area_opening(data, area, connectivity)
 
+def binary_area_opening_(args):
+    sl, data, area, connectivity = args
+    return sl, skmorph.remove_small_objects(data, area, connectivity)
+
 def area_closing_(args):
     sl, data, area, connectivity = args
     return sl, skmorph.area_closing(data, area, connectivity)
+
+def binary_area_closing_(args):
+    sl, data, area, connectivity = args
+    return sl, skmorph.remove_small_holes(data, area, connectivity)
 
 def tophat_(args):
     sl, data, selem = args

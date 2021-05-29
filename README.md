@@ -56,9 +56,10 @@ This module also provides many image analysis tools and seamless interface betwe
   - `find_sm`, `peak_local_max` &rarr; Return coordinates of single molecules.
   - `centroid_sm`, `gauss_sm`, `refine_sm` &rarr; Return coordinates in subpixel precision.
 
-- **Background Correction**
+- **Background/Intensity Correction**
   - `rolling_ball`, `tophat` &rarr; Background subtraction.
   - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
+  - `unmix` &rarr; Unmixing of leakage between channels.
 
 - **Labeling**
   - `label`, `label_if`, `label_threshold` &rarr; Labeling using binary images.
