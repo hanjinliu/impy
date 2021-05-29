@@ -82,11 +82,25 @@ class ImgArray(LabeledArray):
     @same_dtype(True)
     def affine(self, *, dims=None, order:int=1, **kwargs) -> ImgArray:
         """
-        Affine transformation
-        kwargs: matrix, scale, rotation, shear, translation
+        Convert image by Affine transformation. 2D Affine transformation is written as:
+        [x']   [A00 A01 A02]   [x]
+        [y'] = [A10 A11 A12] * [y]
+        [1 ]   [  0   0   1]   [1]
+
+        Parameters
+        ----------
+        dims : int or str, optional
+            Spatial dimensions.
+        order : int, default is 1.
+            Interpolation order after transformation.
+        kwargs : matrix, scale, rotation, shear, translation. 
+            See `skimage.transform.AffineTransform`.
+            
+        Returns
+        -------
+        ImgArray
+            Transformed image.
         """
-        if len(dims) != 2:
-            raise ValueError("dims != 2 version have yet been implemented")
         mx = sktrans.AffineTransform(**kwargs)
         out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
         return out
@@ -96,11 +110,31 @@ class ImgArray(LabeledArray):
     @same_dtype(True)
     def translate(self, translation=None, *, dims=None, order:int=1) -> ImgArray:
         """
-        Simple translation of image, i.e. (x, y) -> (x+dx, y+dy)
-        """
-        mx = sktrans.AffineTransform(translation=translation)
+        Translation of an image. for skimage < 0.19, only 2D translation is implemented.
+
+        Parameters
+        ----------
+        translation : array-like, optional
+            Inverse map of translation. This is xyz-order., by default None
+        dims : int or str, optional
+            Spatial dimensions.
+        order : int, default is 1.
+            Interpolation order after transformation.
+
+        Returns
+        -------
+        ImgArray
+            Translated image.
+        """        
+        ndim = len(dims)
+        if translation is None:
+            translation = np.zeros(ndim)
+        mtx = np.eye(ndim + 1)
+        mtx[0:ndim, ndim] = translation
+        mx = sktrans.AffineTransform(matrix=mtx)
         out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
         return out
+
 
     @dims_to_spatial_axes
     @same_dtype(True)
