@@ -41,7 +41,7 @@ This module also provides many image analysis tools and seamless interface betwe
 - **Filters**
   - `mean_filter`, `meadian_filter`, `gaussian_filter`, `directional_median_filter` &rarr; Smoothing.
   - `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection.
-  - `sobel_filter`, `laplacian_filter` &rarr; Edge detection.
+  - `edge_filter`, `laplacian_filter` &rarr; Edge detection.
   - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
   - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
 
@@ -71,7 +71,10 @@ This module also provides many image analysis tools and seamless interface betwe
   - `hessian_eigval`, `hessian_eig` &rarr; Hessian.
   - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Structure tensor.
 
-- **Filament Angle Estimation**
+- **Gradient Orientation Estimation**
+  - `edge_grad`
+
+- **Filament Orientation Estimation**
   - `hessian_angle` &rarr; Using Hessian eigenvector's orientations.
   - `gabor_angle` &rarr; Using Gabor filter's responses.
 
