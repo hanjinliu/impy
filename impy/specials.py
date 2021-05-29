@@ -18,7 +18,7 @@ SCALAR_PROP = (
     "perimeter_crofton", "solidity", "phase_mean", "phase_std")
 
 tp = ImportOnRequest("trackpy")
-# TODO: Write docs.
+
 class PropArray(MetaArray):
     additional_props = ["dirpath", "metadata", "name", "propname"]
     def __new__(cls, obj, *, name=None, axes=None, dirpath=None, 
@@ -39,19 +39,26 @@ class PropArray(MetaArray):
         return self
     
     def __repr__(self):
-        if self.axes.is_none():
-            shape_info = self.shape
-        else:
-            shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-
         return f"\n"\
-               f"    shape     : {shape_info}\n"\
+               f"    shape     : {self.shape_info}\n"\
                f"    dtype     : {self.dtype}\n"\
                f"  directory   : {self.dirpath}\n"\
                f"original image: {self.name}\n"\
                f"property name : {self.propname}\n"
     
     def plot(self, along=None, cmap="jet", cmap_range=(0, 1)):
+        """
+        Plot all the results with x-axis defined by `along`.
+
+        Parameters
+        ----------
+        along : str, optional
+            Which axis will be the x-axis of plot, by default None
+        cmap : str, default is "jet"
+            Colormap of each graph.
+        cmap_range : tuple, default is (0, 1)
+            Range of float for colormap iteration.
+        """        
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
@@ -71,7 +78,31 @@ class PropArray(MetaArray):
         
         return self
     
-    def hist(self, along="p", bins=None, cmap="jet", cmap_range=(0, 1)):
+    def hist(self, along="p", bins:int=None, cmap="jet", cmap_range=(0, 1)):
+        """
+        Plot histogram.
+
+        Parameters
+        ----------
+        along : str, optional
+            Which axis will be the x-axis of plot, by default None
+        bins : int, optional
+            Bin number of histogram.
+        cmap : str, default is "jet"
+            Colormap of each graph.
+        cmap_range : tuple, default is (0, 1)
+            Range of float for colormap iteration.
+        
+        Returns
+        -------
+        [type]
+            [description]
+
+        Raises
+        ------
+        TypeError
+            [description]
+        """        
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
@@ -147,9 +178,24 @@ class PropArray(MetaArray):
         else:
             return ArrayDict(params=params, errs=errs)
     
-    def as_frame(self, colname="f"):
+    def as_frame(self, colname="f") -> AxesFrame:
+        """
+        N-dimensional data to DataFrame. The intensity data is stored in the `colname` column.
+
+        Parameters
+        ----------
+        colname : str, default is "f"
+            The name of new column.
+
+        Returns
+        -------
+        AxesFrame
+            DataFrame with PropArray data.
+        """        
         if colname in self.axes:
             raise ImageAxesError(f"Axis {colname} already exists.")
+        if self.dtype == object:
+            raise TypeError("Cannot make AxesFrame with dtype object.")
         indices = np.indices(self.shape)
         new_axes = str(self.axes) + colname
         data_list = [ind.ravel() for ind in indices] + [self.value.ravel()]

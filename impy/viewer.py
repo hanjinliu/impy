@@ -17,7 +17,6 @@ a.size = 0.2
 
 # TODO: 
 # - different name (different scale or shape) for different window?
-# - show PropArray as 3D plot (need new window anyway)
 
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
@@ -50,6 +49,14 @@ class napariWindow:
         self.viewer.axes.visible=True
     
     def add(self, obj, **kwargs):
+        """
+        Add images, points, labels, tracks or graph to viewer.
+
+        Parameters
+        ----------
+        obj : Any
+            Object to add.
+        """        
         if self.viewer is None:
             self.start()
         if isinstance(obj, LabeledArray):
@@ -66,6 +73,24 @@ class napariWindow:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
     def shapes_to_labels(self, destination:LabeledArray=None, index=0, projection=False):
+        """
+        Convert manually drawn shapes to labels and store in `destination`.
+
+        Parameters
+        ----------
+        destination : LabeledArray, optional
+            To which labels will be stored, by default None
+        index : int, default is 0
+            Index of shape layer. This needs consideration only if there are multiple shape layers.
+        projection : bool, default is False
+            If collect all the shapes in different layers by projection. This argument is taken into
+            account only if there are multiple shape layers.
+
+        Returns
+        -------
+        Label
+            Label image that was made from shapes.
+        """        
         if destination is None:
             destination = self.get_front_image()
         zoom_factors = [self.scale[a]/destination.scale[a] for a in "yx"]
