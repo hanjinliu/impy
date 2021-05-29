@@ -27,7 +27,6 @@ from .glcm import *
 
 # TODO: new functions
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
-# - max-tree based thresholding
 
 class ImgArray(LabeledArray):
     

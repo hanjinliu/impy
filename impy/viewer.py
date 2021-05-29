@@ -1,3 +1,4 @@
+from __future__ import annotations
 import matplotlib.pyplot as plt
 from .metaarray import MetaArray
 from .labeledarray import LabeledArray
@@ -7,13 +8,6 @@ from .specials import *
 from .utilcls import ImportOnRequest
 napari = ImportOnRequest("napari")
 
-"""
-# marker
-viewer.layers[-1].name="peaks"
-a=viewer.layers[-1]
-a.symbol="arrow"
-a.size = 0.2
-"""
 
 # TODO: 
 # - different name (different scale or shape) for different window?
@@ -126,6 +120,19 @@ class napariWindow:
         return mf
     
     def iter_layer(self, layer_type:str):
+        """
+        Iterate over layers and yield only certain type of layers.
+
+        Parameters
+        ----------
+        layer_type : str, {"shape", "image", "point"}
+            Type of layer.
+
+        Yields
+        -------
+        napari.layers
+            Layers specified by layer_type
+        """        
         if layer_type == "shape":
             layer_type = napari.layers.shapes.shapes.Shapes
         elif layer_type == "image":
@@ -159,12 +166,23 @@ class napariWindow:
             kwargs["contrast_limits"] = img.border
         
         scale = make_world_scale(img)
-                
-        self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, name=img.name,
+        
+        if len(img.history) > 0:
+            suffix = "-" + img.history[-1]
+        else:
+            suffix = ""
+            
+        if chn_ax is not None:
+            name = [f"[C{i}]{img.name}{suffix}" for i in range(img.sizeof("c"))]
+        else:
+            name = [img.name + suffix]
+        
+        self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
+                              name=name if len(name)>1 else name[0],
                               **kwargs)
         
         if hasattr(img, "labels"):
-            self._add_labels(img.labels, name=f"Label of {img.name}")
+            self._add_labels(img.labels, name=name)
         
         new_axes = [a for a in img.axes if a != "c"]
         # add axis labels to slide bars and image orientation.
@@ -193,15 +211,24 @@ class napariWindow:
             self.point_color_id += 1
         return None
     
-    def _add_labels(self, labels:Label, opacity:float=0.3, **kwargs):
+    def _add_labels(self, labels:Label, opacity:float=0.3, name:str|list[str]=None, **kwargs):
         scale = make_world_scale(labels)
+        # prepare label list
         if "c" in labels.axes:
             lbls = labels.split("c")
         else:
             lbls = [labels]
+        
+        # prepare name list
+        if isinstance(name, list):
+            names = [f"[L]{n}" for n in name]
+        elif isinstance(name, str):
+            names = [f"[L]{name}"]*len(lbls)
+        else:
+            names = [labels.name]
             
-        for lbl in lbls:
-            self.viewer.add_labels(lbl, opacity=opacity, scale=scale, **kwargs)
+        for lbl, name in zip(lbls, names):
+            self.viewer.add_labels(lbl, opacity=opacity, scale=scale, name=name, **kwargs)
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
