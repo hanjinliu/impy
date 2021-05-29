@@ -21,6 +21,7 @@ a.size = 0.2
 
 class napariWindow:
     point_cmap = plt.get_cmap("rainbow", 16)
+    plot_cmap = plt.get_cmap("autumn", 16)
     
     def __init__(self):
         self.viewer = None
@@ -59,6 +60,8 @@ class napariWindow:
             self._add_labels(obj, **kwargs)
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
+        elif isinstance(obj, PropArray):
+            self._add_plot(obj, **kwargs)
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
@@ -112,10 +115,13 @@ class napariWindow:
                 yield layer
     
     def get_front_image(self):
+        """
+        From list of image layers return the most front visible image.
+        """        
         front = None
         for img in self.iter_layer("image"):
             if img.visible:
-                front = img.data
+                front = img.data # This is a view of ImgArray
         if front is None:
             raise ValueError("There is no visible image layer.")
         return front
@@ -185,6 +191,44 @@ class napariWindow:
         
         return None
 
+    def _add_plot(self, prop:PropArray, **kwargs):
+        input_df = prop.as_frame()
+        if "c" in input_df.columns:
+            dfs = input_df.split("c")
+        else:
+            dfs = [input_df]
+        
+        if len(dfs[0].columns) > 2:
+            groupax = find_first_appeared(input_df.col_axes, include="ptz<yx")
+        else:
+            groupax = []
+        
+        for df in dfs:
+            maxima = df.max(axis=0).values
+            order = list(np.argsort(maxima))
+            df = df[df.columns[order]]
+            maxima = maxima[order]
+            scale = [1] * maxima.size
+            scale[-1] = max(maxima[:-1])/maxima[-1]
+            cmap = self.__class__.plot_cmap
+            paths = []
+            ec = []
+            for sl, data in df.groupby(groupax):
+                path = data.values.tolist()
+                paths.append(path)
+                ec.append(list(cmap(self.point_color_id * (cmap.N//2+1) % cmap.N)))
+                self.point_color_id += 1
+            
+            kw = dict(edge_width=0.8, opacity=0.75, scale=scale, edge_color=ec, face_color=ec)
+            kw.update(kwargs)
+            self.viewer.add_shapes(paths, shape_type="path", **kw)
+        
+        new_axes = list(df.columns)
+        # add axis labels to slide bars and image orientation.
+        if len(new_axes) >= len(self.viewer.dims.axis_labels):
+            self.viewer.dims.axis_labels = new_axes
+        
+        return None
             
 def get_axes(obj):
     if isinstance(obj, MetaArray):

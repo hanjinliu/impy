@@ -56,7 +56,7 @@ class PropArray(MetaArray):
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
         if along is None:
-            along = find_first_appeared("tzpyxc", include=self.axes)
+            along = find_first_appeared("tzp<yxc", include=self.axes)
         
         iteraxes = del_axis(self.axes, self.axisof(along))
         cmap = plt.get_cmap(cmap)
@@ -146,7 +146,18 @@ class PropArray(MetaArray):
             return ArrayDict(params=params, errs=errs, fit=fit)
         else:
             return ArrayDict(params=params, errs=errs)
-       
+    
+    def as_frame(self, colname="f"):
+        if colname in self.axes:
+            raise ImageAxesError(f"Axis {colname} already exists.")
+        indices = np.indices(self.shape)
+        new_axes = str(self.axes) + colname
+        data_list = [ind.ravel() for ind in indices] + [self.value.ravel()]
+        data_dict = {a: data for a, data in zip(new_axes, data_list)}
+        df = AxesFrame(data_dict, columns=new_axes)
+        df.set_scale(self)
+        return df
+        
 
 
 class AxesFrame(pd.DataFrame):

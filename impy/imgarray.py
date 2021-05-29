@@ -667,6 +667,57 @@ class ImgArray(LabeledArray):
             out[sl] = np.var(img)
         return out
     
+    @record()
+    @same_dtype(True)
+    def unmix(self, matrix, bg=None, *, update:bool=False) -> ImgArray:
+        """
+        Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
+        fluorescent leakage can be written as following equation:
+            { B_obs =     B_real + a * G_real
+            { G_obs = b * B_real +     G_real
+        where "obs" means observed intensities, "real" means the real intensity. In this linear case, 
+        leakage matrix:
+        M = [ 1, a]  Vobs = M * Vreal
+            [ b, 1], 
+        must be predefined. If M is given, then real intensities can be restored by:
+            Vreal = M^-1 * Vobs
+        
+        Parameters
+        ----------
+        matrix : array-like
+            Leakage matrix. The (i, j) component of the matrix is the leakage from i-th channel to
+            j-th channel.
+        bg : array-like, optional
+            Vector of background intensities for each channel. If not given, it is assumed to be the
+            minimum value of each channel.
+        update : bool, default is False
+            If update self to unmixed image.
+
+        Returns
+        -------
+        ImgArray
+            Unmixed image.
+        """        
+        n_chn = self.sizeof("c")
+        c_ax = self.axisof("c")
+        
+        # check matrix and bg
+        matrix = np.asarray(matrix, dtype=np.float32)
+        if matrix.shape != (n_chn, n_chn):
+            raise ValueError(f"`map_matrix` must have shape {(n_chn, n_chn)}")
+        if bg is None:
+            bg = np.array([self.value[i].min() for i in range(n_chn)])
+        bg = np.asarray(bg, dtype=np.float32).ravel()
+        if bg.size != n_chn:
+            raise ValueError(f"`bg` must have length {n_chn}")
+        
+        input_ = np.moveaxis(np.asarray(self, dtype=np.float32), c_ax, -1)
+        out = (input_ - bg) @ np.linalg.inv(matrix) + bg
+        out = np.moveaxis(out, -1, c_ax)
+        
+        return out.view(self.__class__)
+        
+    
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -736,7 +787,7 @@ class ImgArray(LabeledArray):
         ----------
         low_sigma : scalar or array of scalars, default is 1.
             lower standard deviation(s) of Gaussian.
-        high_sigma : scalar or array of scalars, default is 1.
+        high_sigma : scalar or array of scalars, default is x1.6 of low_sigma.
             higher standard deviation(s) of Gaussian.
         dims : int or str, optional
             Spatial dimensions.
