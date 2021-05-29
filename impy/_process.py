@@ -133,7 +133,51 @@ def rolling_ball_(args):
 def sobel_(args):
     sl, data = args
     return sl, skfil.sobel(data)
-    
+
+def farid_(args):
+    sl, data = args
+    return sl, skfil.farid(data)
+
+def scharr_(args):
+    sl, data = args
+    return sl, skfil.scharr(data)
+
+def prewitt_(args):
+    sl, data = args
+    return sl, skfil.prewitt(data)
+
+def sobel_h_(args):
+    sl, data = args
+    return sl, skfil.sobel_h(data)
+
+def sobel_v_(args):
+    sl, data = args
+    return sl, skfil.sobel_v(data)
+
+def farid_h_(args):
+    sl, data = args
+    return sl, skfil.farid_h(data)
+
+def farid_v_(args):
+    sl, data = args
+    return sl, skfil.farid_v(data)
+
+def scharr_h_(args):
+    sl, data = args
+    return sl, skfil.scharr_h(data)
+
+def scharr_v_(args):
+    sl, data = args
+    return sl, skfil.scharr_v(data)
+
+def prewitt_h_(args):
+    sl, data = args
+    return sl, skfil.prewitt_h(data)
+
+def prewitt_v_(args):
+    sl, data = args
+    return sl, skfil.prewitt_v(data)
+
 def opening_(args):
     sl, data, selem = args
     return sl, skmorph.opening(data, selem)

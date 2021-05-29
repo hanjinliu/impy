@@ -474,12 +474,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def sobel_filter(self, *, dims=None, update:bool=False) -> ImgArray:
+    def edge_filter(self, method="scharr", *, dims=None, update:bool=False) -> ImgArray:
         """
         Sobel filter. This filter is useful for edge detection.
 
         Parameters
         ----------
+        method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "scharr"
+            Edge operator name.
         dims : int or str, optional
             Spatial dimensions.
         update : bool, default is False
@@ -490,7 +492,17 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return self.parallel(sobel_, complement_axes(dims, self.axes))
+        # Get operator
+        method_dict = {"sobel": sobel_,
+                       "farid": farid_,
+                       "scharr": scharr_,
+                       "prewitt": prewitt_}
+        try:
+            f = method_dict[method]
+        except KeyError:
+            raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
+        
+        return self.parallel(f, complement_axes(dims, self.axes))
     
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -768,7 +780,7 @@ class ImgArray(LabeledArray):
         radius : int, optional
             Kernel radius of the filter. Here, radius must be int.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, default is False
             If update self to filtered image.
 
@@ -792,12 +804,44 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def entropy_filter(self, radius:float=5, *, dims=None) -> ImgArray:
+        """
+        Running entropy filter. This filter is useful for detecting change in background distribution.
+
+        Parameters
+        ----------
+        radius : float, default is 5
+            Kernel radius of the filter.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """        
         disk = ball_like(radius, len(dims))
-        self = self.as_float() / self.max() # skimage's entropy filter only accept [-1,1] float images.
+        self = self.as_float() / self.max() # skimage's entropy filter only accept [-1, 1] float images.
         return self.parallel(entropy_, complement_axes(dims, self.axes), disk)
     
     @record()
     def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Enhance contrast filter.
+
+        Parameters
+        ----------
+        radius : int, optional
+            Kernel radius of the filter.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default is False
+            If update self to filtered image.
+
+        Returns
+        -------
+        ImgArray
+            Contrast enhanced image.
+        """        
         return self._running_kernel(radius, enhance_contrast_, dims=dims, update=update)
     
     @dims_to_spatial_axes
@@ -867,8 +911,8 @@ class ImgArray(LabeledArray):
             { G_obs = b * B_real +     G_real
         where "obs" means observed intensities, "real" means the real intensity. In this linear case, 
         leakage matrix:
-        M = [ 1, a]  Vobs = M * Vreal
-            [ b, 1], 
+            M = [ 1, a]  Vobs = M * Vreal
+                [ b, 1], 
         must be predefined. If M is given, then real intensities can be restored by:
             Vreal = M^-1 * Vobs
         
@@ -887,6 +931,14 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Unmixed image.
+        
+        Example
+        -------
+        Complement the channel-0 to channel-1 leakage.
+        >>> mtx = [[1.0, 0.4],
+        >>>        [0.0, 1.0]]
+        >>> bg = [1500, 1200]
+        >>> unmixed_img = img.unmix(mtx, bg)
         """        
         n_chn = self.sizeof("c")
         c_ax = self.axisof("c")
@@ -901,8 +953,10 @@ class ImgArray(LabeledArray):
         if bg.size != n_chn:
             raise ValueError(f"`bg` must have length {n_chn}")
         
+        # move channel axis to the last
         input_ = np.moveaxis(np.asarray(self, dtype=np.float32), c_ax, -1)
         out = (input_ - bg) @ np.linalg.inv(matrix) + bg
+        # restore the axes order
         out = np.moveaxis(out, -1, c_ax)
         
         return out.view(self.__class__)
@@ -1782,7 +1836,53 @@ class ImgArray(LabeledArray):
                             
         return out
     
-    @record(append_history=False)
+    @record()
+    def edge_grad(self, sigma:float=1.0, method="scharr", *, deg=False, dims="yx") -> PhaseArray:
+        """
+        Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
+        is the direction with maximum gradient, i.e., intensity increase is largest.
+
+        Parameters
+        ----------
+        sigma : float, optional
+            Standard deviation of Gaussian prefilter, by default 1.0
+        method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "scharr"
+            Edge operator name.
+        deg : bool, default is True
+            If True, degree rather than radian is returned.
+        dims : str, default is "yx"
+            Spatial dimensions.
+
+        Returns
+        -------
+        PhaseArray
+            Phase image with range [-180, 180) if deg==True, otherwise [-pi, pi).
+        """        
+        # Get operator
+        method_dict = {"sobel": (sobel_h_, sobel_v_),
+                       "farid": (farid_h_, farid_v_),
+                       "scharr": (scharr_h_, scharr_v_),
+                       "prewitt": (prewitt_h_, prewitt_v_)}
+        try:
+            op_h, op_v = method_dict[method]
+        except KeyError:
+            raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
+        
+        # Start
+        c_axes = complement_axes(dims, self.axes)
+        with Progress("edge_grad"):
+            if sigma > 0:
+                self = self.gaussian_filter(sigma, dims=dims)
+            grad_h = self.parallel(op_h, c_axes)
+            grad_v = self.parallel(op_v, c_axes)
+            grad = np.arctan2(-grad_h, grad_v)
+        
+        grad = PhaseArray(grad, border=(-np.pi, np.pi))
+        grad.fix_border()
+        deg and grad.rad2deg()
+        return grad
+    
+    @record()
     def hessian_angle(self, sigma:float=1., *, deg=False, dims="yx") -> PhaseArray:
         """
         Calculate filament angles using Hessian's eigenvectors.
@@ -1791,29 +1891,26 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, default is 1
             Standard deviation of Gaussian filter applied before running Hessian.
-        deg : bool, default is True
+        deg : bool, default is False
             If True, degree rather than radian is returned.
-        dims : str, optional
+        dims : str, default is "yx"
             Spatial dimensions.
 
         Returns
         -------
         ImgArray
-            Phase image with range [-90, 90] if deg==True, otherwise [-pi, pi].
+            Phase image with range [-90, 90] if deg==True, otherwise [-pi/2, pi/2].
         """        
         with Progress("hessian_angle"):
             eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
             arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
         
-        arg = PhaseArray(arg, name=self.name, axes=self.axes, dirpath=self.dirpath, 
-                         history=self.history + ["hessian_angle"], 
-                         metadata=self.metadata, border=(-np.pi/2, np.pi/2))
+        arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
         arg.fix_border()
-        arg.set_scale(self)
         deg and arg.rad2deg()
         return arg
     
-    @record(append_history=False)
+    @record()
     def gabor_angle(self, n_sample=180, lmd:float=5, sigma:float=2.5, gamma=1, phi=0, *, deg=False, 
                     dims="yx") -> PhaseArray:
         """
@@ -1835,13 +1932,13 @@ class ImgArray(LabeledArray):
             Phase offset of harmonic factor of Gabor kernel.
         deg : bool, default is False
             If True, degree rather than radian is returned.
-        dims : str, by default "yx"
+        dims : str, default is "yx"
             Spatial axes.
             
         Returns
         -------
         ImgArray
-            Phase image with range [-90, 90] if deg==True, otherwise [-pi, pi].
+            Phase image with range [-90, 90) if deg==True, otherwise [-pi/2, pi/2).
         """        
         thetas = np.linspace(0, np.pi, n_sample, False)
         max_ = np.empty(self.shape, dtype=np.float32)
@@ -1861,11 +1958,8 @@ class ImgArray(LabeledArray):
             argmax_ *= (thetas[1] - thetas[0])
             argmax_[:] = np.pi/2 - argmax_
         
-        argmax_ = PhaseArray(argmax_, name=self.name, axes=self.axes, dirpath=self.dirpath, 
-                             history=self.history + ["gabor_angle"], 
-                             metadata=self.metadata, border=(-np.pi/2, np.pi/2))
+        argmax_ = PhaseArray(argmax_, border=(-np.pi/2, np.pi/2))
         argmax_.fix_border()
-        argmax_.set_scale(self)
         deg and argmax_.rad2deg()
         return argmax_
     
@@ -2100,7 +2194,8 @@ class ImgArray(LabeledArray):
         out = self.copy()
         with Progress("remove_fine_objects"):
             fine_obj = self.diameter_opening(length, connectivity=len(dims))
-            out.value[fine_obj] = 0
+            large_obj = self.opening(length//2)
+            out.value[~large_obj & fine_obj] = 0
             
         return out
     

@@ -115,7 +115,9 @@ class MetaArray(np.ndarray):
     def _set_additional_props(self, other):
         # set additional properties
         for p in self.__class__.additional_props:
-            setattr(self, p, getattr(other, p, None))
+            setattr(self, p, getattr(other, p, 
+                                     getattr(self, p, 
+                                             None)))
     
     def _set_info(self, other, new_axes:str="inherit"):
         self._set_additional_props(other)

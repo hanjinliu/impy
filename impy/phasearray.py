@@ -83,6 +83,7 @@ class PhaseArray(LabeledArray):
         Considering periodic boundary condition, fix the values by `__divmod__` method.
         """        
         self[:] = (self.value - self.border[0]) % self.periodicity + self.border[0]
+        self.history.pop(-1) # delete "setitem" history
         return None
     
     def set_border(self, a, b) -> None:

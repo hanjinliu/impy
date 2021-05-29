@@ -287,7 +287,7 @@ def get_axes(obj):
     elif isinstance(obj, AxesFrame):
         return obj.col_axes
     else:
-        return None
+        raise AttributeError(f"Type {type(obj)} does not have axes.")
 
 def to_labels(layer, labels_shape, zoom_factor=1):
     return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
