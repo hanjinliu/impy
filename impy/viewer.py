@@ -51,8 +51,7 @@ class napariWindow:
         obj : Any
             Object to add.
         """        
-        if self.viewer is None:
-            self.start()
+        self.viewer is None and self.start()
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
         elif isinstance(obj, MarkerFrame):
@@ -66,7 +65,7 @@ class napariWindow:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
-    def shapes_to_labels(self, destination:LabeledArray=None, index=0, projection=False):
+    def shapes_to_labels(self, destination:LabeledArray=None, index:int=0, projection:bool=False):
         """
         Convert manually drawn shapes to labels and store in `destination`.
 
