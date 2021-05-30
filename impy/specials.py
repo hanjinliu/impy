@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .axes import Axes, ImageAxesError
-from .metaarray import MetaArray
+from .bases import MetaArray
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import matplotlib.pyplot as plt
-from .metaarray import MetaArray
+from .bases import MetaArray
 from .labeledarray import LabeledArray
 from .phasearray import PhaseArray
 from .label import Label

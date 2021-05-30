@@ -3,7 +3,7 @@ from .func import *
 from .utilcls import *
 from .deco import *
 from ._process import *
-from .historyarray import HistoryArray
+from .bases import HistoryArray
 from skimage.color import label2rgb
 from skimage import segmentation as skseg
 import matplotlib.pyplot as plt

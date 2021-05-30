@@ -1,6 +1,6 @@
 import numpy as np
-from .axes import Axes, ImageAxesError
-from .func import *
+from ..axes import Axes, ImageAxesError
+from ..func import *
 import itertools
 
 class MetaArray(np.ndarray):

@@ -1,5 +1,5 @@
-from .func import *
-from .utilcls import *
+from ..func import *
+from ..utilcls import *
 from .metaarray import MetaArray
 
 

@@ -9,7 +9,7 @@ from .func import *
 from .deco import *
 from .utilcls import *
 from ._process import label_
-from .historyarray import HistoryArray
+from .bases import HistoryArray
 from .label import Label
 from .specials import *
 from tifffile import imwrite
