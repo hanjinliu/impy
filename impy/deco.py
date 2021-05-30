@@ -1,6 +1,7 @@
 from functools import wraps
 import numpy as np
 from .func import add_axes
+from .utilcls import Progress
 
 def check_value(__op__):
     def wrapper(self, value):
@@ -22,18 +23,14 @@ def record(append_history=True, record_label=False):
     def _record(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            # temporary record ongoing function
-            self.ongoing = func.__name__
             
             if record_label and hasattr(self, "labels"):
                 label_axes = self.labels.axes
             else:
                 label_axes = None
-                
-            out = func(self, *args, **kwargs)
             
-            self.ongoing = None
-            del self.ongoing
+            with Progress(func.__name__):
+                out = func(self, *args, **kwargs)
             
             temp = getattr(out, "temp", None)
             

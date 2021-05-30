@@ -84,8 +84,6 @@ class LabeledArray(HistoryArray):
     def __array_finalize__(self, obj):
         super().__array_finalize__(obj)
         self._view_labels(obj)
-        if hasattr(obj, "ongoing"):
-            self.ongoing = obj.ongoing    
     
     def _view_labels(self, other):
         """
@@ -118,9 +116,6 @@ class LabeledArray(HistoryArray):
 
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
         super()._set_info(other, next_history, new_axes)
-        # if any function is on-going
-        if hasattr(other, "ongoing"):
-            self.ongoing = other.ongoing
         
         # inherit labels
         self._view_labels(other)
@@ -433,38 +428,6 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def iter(self, axes, showprogress:bool=True, israw:bool=False, exclude:str=""):
-        """
-        Iteration along axes.
-
-        Parameters
-        ----------
-        axes : str or int
-            On which axes iteration is performed. Or the number of spatial dimension.
-        showprogress : bool, default is True
-            If show progress of algorithm.
-        israw : bool, default is False
-            If True, MetaArray will be returned. If False, np.ndarray will be returned.
-        exclude : str, optional
-            Which axes will be excluded in output. For example, self.axes="tcyx" and 
-            exclude="c" then the axes of output will be "tyx" and slice is also correctly 
-            arranged.
-
-        Yields
-        -------
-        np.ndarray or LabeledArray
-            Subimage
-        """        
-        name = getattr(self, "ongoing", "iteration")
-        if showprogress:
-            with Progress(name):
-                for x in super().iter(axes, israw=israw, exclude=exclude):
-                    yield x
-        else:
-            for x in super().iter(axes, israw=israw, exclude=exclude):
-                yield x
-            
-    
     def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32):
         """
         Multiprocessing tool.
@@ -546,11 +509,9 @@ class LabeledArray(HistoryArray):
     
     def _parallel(self, func, axes, *args, israw=False):
         lmd = lambda x : (x[0], x[1], *args)
-        name = getattr(self, "ongoing", "iteration")
-        with Progress(name):
-            with multi.Pool(self.__class__.n_cpu) as p:
-                results = p.map(func, map(lmd, self.iter(axes, False, israw)))
-            return results
+        with multi.Pool(self.__class__.n_cpu) as p:
+            results = p.map(func, map(lmd, self.iter(axes, israw)))
+        return results
     
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -778,7 +739,7 @@ class LabeledArray(HistoryArray):
 
             # increment labels in different slices
             min_nlabel = 0
-            for sl, _ in label_image.iter(c_axes, False):
+            for sl, _ in label_image.iter(c_axes):
                 labels[sl][labels[sl]>0] += min_nlabel
                 min_nlabel = labels[sl].max()
                 if min_nlabel > imax:

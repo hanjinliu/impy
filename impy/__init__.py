@@ -9,10 +9,10 @@ import warnings
 from .core import (array, zeros, zeros_like, empty, empty_like, 
                    imread, imread_collection, read_meta, 
                    stack, set_cpu, set_verbose)
+from .imgarray import ImgArray
 from .specials import PropArray, MarkerFrame, TrackFrame
 from .label import Label
 from .phasearray import PhaseArray
-
 from .viewer import window
 
 r"""

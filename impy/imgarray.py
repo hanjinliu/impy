@@ -214,7 +214,7 @@ class ImgArray(LabeledArray):
             else:
                 refs = [ref]*self.sizeof("c")
                 
-            for i, (sl, img) in enumerate(self.iter("c", showprogress=False, israw=True)):
+            for i, (sl, img) in enumerate(self.iter("c", israw=True)):
                 ref_ = refs[i]
                 out[sl] = img.gauss_correction(ref=ref_, scale=scale, median_radius=median_radius)
             out = out.view(self.__class__)
@@ -288,27 +288,26 @@ class ImgArray(LabeledArray):
             matrices = check_matrix(matrices)
             
         # Determine matrices by fitting
-        with Progress("affine_correction"):
-            # if Affine matrix is not given
-            if matrices is None:
-                if prefilter:
-                    imgs = self.median_filter(radius=1).split(along)
-                else:
-                    imgs = self.split(along)
-                matrices = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
-            
-            # check Affine matrix shape
-            if len(matrices) != self.sizeof(along):
-                nchn = self.sizeof(along)
-                raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
-            
-            # Affine transformation
-            corrected = []
-            for i, m in enumerate(matrices):
-                if np.isscalar(m) and m==1:
-                    corrected.append(self[f"{along}={i}"].value)
-                else:
-                    corrected.append(self[f"{along}={i}"].affine(order=order, matrix=m).value)
+        # if Affine matrix is not given
+        if matrices is None:
+            if prefilter:
+                imgs = self.median_filter(radius=1).split(along)
+            else:
+                imgs = self.split(along)
+            matrices = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
+        
+        # check Affine matrix shape
+        if len(matrices) != self.sizeof(along):
+            nchn = self.sizeof(along)
+            raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
+        
+        # Affine transformation
+        corrected = []
+        for i, m in enumerate(matrices):
+            if np.isscalar(m) and m==1:
+                corrected.append(self[f"{along}={i}"].value)
+            else:
+                corrected.append(self[f"{along}={i}"].affine(order=order, matrix=m).value)
 
         out = np.stack(corrected, axis=self.axisof(along)).astype(self.dtype)
         out = out.view(self.__class__)
@@ -860,6 +859,7 @@ class ImgArray(LabeledArray):
         return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, 
                              "reflect", 0, outdtype=self.dtype)
     
+    @record(append_history=False)
     def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
         """
         Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
@@ -887,7 +887,7 @@ class ImgArray(LabeledArray):
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
         out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
                         axes=c_axes, propname="variance_of_laplacian")
-        laplace_img.ongoing = "focus_map"
+        
         for sl, img in laplace_img.iter(c_axes, exclude=dims):
             out[sl] = np.var(img)
         return out
@@ -1153,6 +1153,7 @@ class ImgArray(LabeledArray):
         return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
                              func_kw, max_shifts, shift_steps)
     
+    @record(append_history=False)
     def split_pixel_unit(self, center:tuple[float, float]=(0, 0), *, order:int=1,
                            angle_order:list[int]=None, newaxis="<") -> ImgArray:
         """
@@ -1207,12 +1208,11 @@ class ImgArray(LabeledArray):
         if angle_order is None:
             angle_order = [2, 1, 0, 3]
         imgs = []
-        with Progress("split_pixel_unit"):
-            for y, x in [(0,0), (0,1), (1,1), (1,0)]:
-                dr = [(xc-x)/2, (yc-y)/2]
-                imgs.append(self[f"y={y}::2;x={x}::2"].translate(translation=dr, order=order).value)
-            imgs = np.stack(imgs, axis=0)
-            imgs = imgs[angle_order]
+        for y, x in [(0,0), (0,1), (1,1), (1,0)]:
+            dr = [(xc-x)/2, (yc-y)/2]
+            imgs.append(self[f"y={y}::2;x={x}::2"].translate(translation=dr, order=order).value)
+        imgs = np.stack(imgs, axis=0)
+        imgs = imgs[angle_order]
         imgs = imgs.view(self.__class__)
         imgs._set_info(self, "split_pixel_unit", newaxis + str(self.axes))
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
@@ -1288,6 +1288,7 @@ class ImgArray(LabeledArray):
         return out
         
     @dims_to_spatial_axes
+    @record(append_history=False)
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
                        topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
                        use_labels:bool=True, dims=None) -> MarkerFrame:
@@ -1331,7 +1332,6 @@ class ImgArray(LabeledArray):
                 
         out = []
         
-        self.ongoing = "peak_local_max"
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -1351,13 +1351,10 @@ class ImgArray(LabeledArray):
             
         out = MarkerFrame(out, columns=self.axes, dtype="uint16")
         out.set_scale(self)
-        
-        self.ongoing = None
-        del self.ongoing
-            
         return out
     
     @dims_to_spatial_axes
+    @record(append_history=False)
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, exclude_border=True,
                      use_labels:bool=True, dims=None) -> MarkerFrame:
@@ -1400,7 +1397,6 @@ class ImgArray(LabeledArray):
                 
         out = []
         
-        self.ongoing = "corner_peaks"
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -1420,9 +1416,6 @@ class ImgArray(LabeledArray):
             
         out = MarkerFrame(out, columns=self.axes, dtype="uint16")
         out.set_scale(self)
-        
-        self.ongoing = None
-        del self.ongoing
             
         return out
     
@@ -1474,6 +1467,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
+    @record(append_history=False)
     def voronoi(self, coords, *, inf=None, dims="yx") -> ImgArray:
         """
         Voronoi segmentation of an image. Image region labeled with $i$ means that all
@@ -1510,21 +1504,21 @@ class ImgArray(LabeledArray):
         
         labels = largest_zeros(self.shape)
         n_label = 1
-        with Progress("voronoi"):
-            for sl, crds in coords.iter(complement_axes(dims, self.axes)):
-                vor = Voronoi(crds.values.tolist() + infpoints)
-                for r in vor.regions:
-                    if all(r0 > 0 for r0 in r):
-                        poly = vor.vertices[r]
-                        grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
-                        labels[sl][grids] = n_label
-                        n_label += 1
+        for sl, crds in coords.iter(complement_axes(dims, self.axes)):
+            vor = Voronoi(crds.values.tolist() + infpoints)
+            for r in vor.regions:
+                if all(r0 > 0 for r0 in r):
+                    poly = vor.vertices[r]
+                    grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
+                    labels[sl][grids] = n_label
+                    n_label += 1
         self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
         self.labels.set_scale(self)
 
         return self
     
     @dims_to_spatial_axes
+    @record(append_history=False)
     def flood(self, seeds, *, connectivity:int=1, tolerance:float=None, dims=None):
         """
         Flood filling with a list of seed points. By repeating skimage's `flood` function,
@@ -1549,18 +1543,17 @@ class ImgArray(LabeledArray):
         seeds = _check_coordinates(seeds, self, dims=self.axes)
         labels = largest_zeros(self.shape)
         n_label_next = 1
-        with Progress("flood"):
-            for sl, crds in seeds.iter(complement_axes(dims, self.axes)):
-                for crd in crds.values:
-                    crd = tuple(crd)
-                    if labels[sl][crd] > 0:
-                        n_label = labels[sl][crd]
-                    else:
-                        n_label = n_label_next
-                        n_label_next += 1
-                    fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
-                    labels[sl][fill_area] = n_label
-            
+        for sl, crds in seeds.iter(complement_axes(dims, self.axes)):
+            for crd in crds.values:
+                crd = tuple(crd)
+                if labels[sl][crd] > 0:
+                    n_label = labels[sl][crd]
+                else:
+                    n_label = n_label_next
+                    n_label_next += 1
+                fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
+                labels[sl][fill_area] = n_label
+        
         self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
         self.labels.set_scale(self)
         return self
@@ -1861,12 +1854,11 @@ class ImgArray(LabeledArray):
         
         # Start
         c_axes = complement_axes(dims, self.axes)
-        with Progress("edge_grad"):
-            if sigma > 0:
-                self = self.gaussian_filter(sigma, dims=dims)
-            grad_h = self.parallel(op_h, c_axes)
-            grad_v = self.parallel(op_v, c_axes)
-            grad = np.arctan2(-grad_h, grad_v)
+        if sigma > 0:
+            self = self.gaussian_filter(sigma, dims=dims)
+        grad_h = self.parallel(op_h, c_axes)
+        grad_v = self.parallel(op_v, c_axes)
+        grad = np.arctan2(-grad_h, grad_v)
         
         grad = PhaseArray(grad, border=(-np.pi, np.pi))
         grad.fix_border()
@@ -1892,9 +1884,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Phase image with range [-90, 90] if deg==True, otherwise [-pi/2, pi/2].
         """        
-        with Progress("hessian_angle"):
-            eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
-            arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
+        eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
+        arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
         
         arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
         arg.fix_border()
@@ -1936,18 +1927,17 @@ class ImgArray(LabeledArray):
         argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle array.
         
         c_axes = complement_axes(dims, self.axes)
-        with Progress("gabor_angle"):
-            for i, theta in enumerate(thetas):
-                ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
-                out_ = self.as_float().parallel(gabor_real_, c_axes, ker)
-                if i > 0:
-                    where_update = out_ > max_
-                    max_[where_update] = out_[where_update]
-                    argmax_[where_update] = i
-                else:
-                    max_ = out_
-            argmax_ *= (thetas[1] - thetas[0])
-            argmax_[:] = np.pi/2 - argmax_
+        for i, theta in enumerate(thetas):
+            ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
+            out_ = self.as_float().parallel(gabor_real_, c_axes, ker)
+            if i > 0:
+                where_update = out_ > max_
+                max_[where_update] = out_[where_update]
+                argmax_[where_update] = i
+            else:
+                max_ = out_
+        argmax_ *= (thetas[1] - thetas[0])
+        argmax_[:] = np.pi/2 - argmax_
         
         argmax_ = PhaseArray(argmax_, border=(-np.pi/2, np.pi/2))
         argmax_.fix_border()
@@ -2087,7 +2077,7 @@ class ImgArray(LabeledArray):
         if isinstance(thr, str) and thr.endswith("%"):
             p = float(thr[:-1])
             out = np.zeros(self.shape, dtype=bool)
-            for sl, img in self.iter(complement_axes(dims, self.axes), False):
+            for sl, img in self.iter(complement_axes(dims, self.axes)):
                 thr = np.percentile(img, p)
                 out[sl] = img >= thr
                 
@@ -2100,7 +2090,7 @@ class ImgArray(LabeledArray):
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
             out = np.zeros(self.shape, dtype=bool)
-            for sl, img in self.iter(complement_axes(dims, self.axes), False):
+            for sl, img in self.iter(complement_axes(dims, self.axes)):
                 thr = func(img, **kwargs)
                 out[sl] = img >= thr
             
@@ -2155,9 +2145,8 @@ class ImgArray(LabeledArray):
             Image with large objects removed.
         """        
         out = self.copy()
-        with Progress("remove_large_objects"):
-            large_obj = self.opening(radius, dims=dims)
-            out.value[large_obj] = 0
+        large_obj = self.opening(radius, dims=dims)
+        out.value[large_obj] = 0
             
         return out
     
@@ -2183,10 +2172,9 @@ class ImgArray(LabeledArray):
             Image with large objects removed.
         """        
         out = self.copy()
-        with Progress("remove_fine_objects"):
-            fine_obj = self.diameter_opening(length, connectivity=len(dims))
-            large_obj = self.opening(length//2)
-            out.value[~large_obj & fine_obj] = 0
+        fine_obj = self.diameter_opening(length, connectivity=len(dims))
+        large_obj = self.opening(length//2)
+        out.value[~large_obj & fine_obj] = 0
             
         return out
     
@@ -2304,20 +2292,20 @@ class ImgArray(LabeledArray):
         ImgArray
             Processed image.
         """        
-        with Progress("remove_skeleton_structure"):
-            out = self.copy()
-            neighbor = self.count_neighbors(connectivity=connectivity, dims=dims)
-            if structure == "tip":
-                sl = neighbor == 1
-            elif structure == "branch":
-                sl = neighbor > 2
-            elif structure == "cross":
-                sl = neighbor > 3
-            else:
-                raise ValueError("`mode` must be one of {'tip', 'branch', 'cross'}.")
-            out.value[sl] = 0
+        out = self.copy()
+        neighbor = self.count_neighbors(connectivity=connectivity, dims=dims)
+        if structure == "tip":
+            sl = neighbor == 1
+        elif structure == "branch":
+            sl = neighbor > 2
+        elif structure == "cross":
+            sl = neighbor > 3
+        else:
+            raise ValueError("`mode` must be one of {'tip', 'branch', 'cross'}.")
+        out.value[sl] = 0
         return out
     
+    @record(append_history=False)
     def pointprops(self, coords, *, order:int=1, squeeze:bool=True) -> PropArray:
         """
         Measure interpolated intensity at points with float coordinates.
@@ -2352,14 +2340,14 @@ class ImgArray(LabeledArray):
                         axes="p"+prop_axes, dirpath=self.dirpath,
                         propname = f"pointprops", dtype=np.float32)
         
-        with Progress("pointprops"):
-            for sl, img in self.iter(prop_axes, exclude=col_axes):
-                out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
-                                                  order=order, mode="reflect")
+        for sl, img in self.iter(prop_axes, exclude=col_axes):
+            out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
+                                                order=order, mode="reflect")
         if l == 1 and squeeze:
             out = out[0]
         return out
     
+    @record(append_history=False)
     def lineprops(self, src, dst, func="mean", *, order:int=1, squeeze:bool=True) -> PropArray:
         """
         Measure line property using func(line_scan).
@@ -2403,10 +2391,9 @@ class ImgArray(LabeledArray):
                         axes="p"+prop_axes, dirpath=self.dirpath,
                         propname = f"lineprops<{func.__name__}>", dtype=np.float32)
         
-        with Progress("lineprops"):
-            for i, (s, d) in enumerate(zip(src.values, dst.values)):
-                resliced = self.reslice(s, d, order=order)
-                out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
+        for i, (s, d) in enumerate(zip(src.values, dst.values)):
+            resliced = self.reslice(s, d, order=order)
+            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
         
         if l == 1 and squeeze:
             out = out[0]
@@ -2461,18 +2448,18 @@ class ImgArray(LabeledArray):
         n_labels = 0
         c_axes = complement_axes(dims, self.axes)
         markers = np.zeros(shape, dtype=labels.dtype) # placeholder for maxima
-        with Progress("watershed"):
-            for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
-                                        coords.groupby([a for a in c_axes])):
-                # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
-                crd = crd.values.T.tolist()
-                markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
-                labels[sl] = skseg.watershed(-img.value, markers, 
-                                            mask=img.labels.value, 
-                                            connectivity=connectivity)
-                labels[sl][labels[sl]>0] += n_labels
-                n_labels = labels[sl].max()
-                markers[:] = 0 # reset placeholder
+        
+        for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
+                                    coords.groupby([a for a in c_axes])):
+            # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
+            crd = crd.values.T.tolist()
+            markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
+            labels[sl] = skseg.watershed(-img.value, markers, 
+                                        mask=img.labels.value, 
+                                        connectivity=connectivity)
+            labels[sl][labels[sl]>0] += n_labels
+            n_labels = labels[sl].max()
+            markers[:] = 0 # reset placeholder
         
         labels = labels.view(Label)
         self.labels = labels.optimize()
@@ -2669,7 +2656,6 @@ class ImgArray(LabeledArray):
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
             
         c_axes = complement_axes(dims, self.axes)
-        self.ongoing = "glcm"
         outshape = self.sizesof(c_axes) + (bins, bins, len(distances), len(angles))
         out = self.parallel(glcm_, c_axes, distances, angles, bins, outshape=outshape, outdtype=np.uint32)
         out._set_info(self, "glcm", new_axes=c_axes+"ijd<")
@@ -2719,8 +2705,8 @@ class ImgArray(LabeledArray):
             properties = ("contrast", "dissimilarity", "idm", 
                           "asm", "max", "entropy", "correlation")
         c_axes = complement_axes(dims, self.axes)
-        distances = np.ascontiguousarray(distances, dtype=np.uint8)
-        angles = np.ascontiguousarray(angles, dtype=np.float32)
+        # distances = np.ascontiguousarray(distances, dtype=np.uint8)
+        # angles = np.ascontiguousarray(angles, dtype=np.float32)
         outshape = self.sizesof(c_axes) + (len(distances), len(angles)) + self.sizesof(dims)
         out = {}
         for prop in properties:
@@ -2733,7 +2719,6 @@ class ImgArray(LabeledArray):
         out = ArrayDict(out)
         self = self.pad(radius, mode="reflect", dims=dims)
         self.history.pop()
-        self.ongoing = "glcm_props"
         for sl, img in self.iter(c_axes):
             propout = glcm_props_(img, distances, angles, bins, radius, properties)
             for prop in properties:
@@ -2907,7 +2892,6 @@ class ImgArray(LabeledArray):
                 raise ValueError(f"Cannot track drift using {ref.axes} image")
 
             shift = ref.track_drift(axis=along)
-            self.ongoing = "drift_correction"
         
         elif isinstance(shift, MarkerFrame):
             if len(shift) != self.sizeof("t"):
@@ -3044,7 +3028,6 @@ class ImgArray(LabeledArray):
             
         # convolve psf
         out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
-        out.ongoing = "defocus"
         for sl, img in out.iter(complement_axes("zyx", self.axes), israw=True):
             img[:depth] = ndi.gaussian_filter(img[:depth*2].value, sigma, mode="constant", cval=bg)[:depth]
             img[-depth:] = ndi.gaussian_filter(img[-depth*2:].value, sigma, mode="constant", cval=bg)[-depth:]

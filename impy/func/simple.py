@@ -72,15 +72,12 @@ def gabor_kernel_nd(lmd, theta, psi:float, sigma:float, gamma:float, radius:int,
         * np.exp(1j * (2*np.pi*r_rot[0]/lmd + psi))
         
     return ker
-
-
     
 def find_first_appeared(axes, include="", exclude=""):
     for a in axes:
         if a in include or not a in exclude:
             return a
     raise ValueError(f"Inappropriate axes: {axes}")
-        
 
 def del_axis(axes, axis) -> str:
     """
@@ -104,7 +101,6 @@ def del_axis(axes, axis) -> str:
         new_axes = complement_axes(axis, axes)
         
     return new_axes
-
 
 def add_axes(axes, shape, key, key_axes="yx"):
     if shape == key.shape:
@@ -136,7 +132,6 @@ def determine_dims(img):
     if dims not in (2, 3):
         raise ValueError("Image must be 2 or 3 dimensional.")
     return dims
-
 
 def check_clip_range(in_range, img):
     """
