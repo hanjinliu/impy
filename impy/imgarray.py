@@ -2915,7 +2915,7 @@ class ImgArray(LabeledArray):
 
     @dims_to_spatial_axes
     @record(append_history=False)
-    def estimate_sigma(self, *, squeeze=True, dims=None):
+    def estimate_sigma(self, *, squeeze=True, dims=None) -> ImgArray|float:
         """
         Wavelet-based estimation of Gaussian noise.
 
@@ -2937,7 +2937,7 @@ class ImgArray(LabeledArray):
         if out.ndim == 0 and squeeze:
             out = out[()]
         else:
-            out = out.view(self.__class__)
+            out = out.view(self.__class__) # should return PropArray??
             out._set_info(self, f"estimate_sigma(dims={dims})", new_axes=c_axes)
         return out       
         

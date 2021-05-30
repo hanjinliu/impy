@@ -15,7 +15,7 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     if isinstance(arr, str):
         raise TypeError(f"String is invalid input. Do you mean imread(path)?")
     if isinstance(arr, np.ndarray) and dtype is None:
-        if arr.dtype in ("uint8", "uint16", "float32"):
+        if arr.dtype in (np.uint8, np.uint16, np.float32):
             dtype = arr.dtype
         elif arr.dtype.kind == "f":
             dtype = np.float32
@@ -32,7 +32,7 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     
     return self
 
-def zeros(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
+def zeros(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
 def zeros_like(img:ImgArray, name:str=None) -> ImgArray:
@@ -41,7 +41,7 @@ def zeros_like(img:ImgArray, name:str=None) -> ImgArray:
     
     return zeros(img.shape, dtype=img.dtype, name=name, axes=img.axes)
 
-def empty(shape, dtype="uint16", *, name=None, axes=None) -> ImgArray:
+def empty(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
 def empty_like(img:ImgArray, name:str=None) -> ImgArray:
@@ -108,6 +108,7 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
         return self
     else:
         try:
+            # read scale if possible
             tags = meta["tags"]
             xres = tags["XResolution"]
             yres = tags["YResolution"]
