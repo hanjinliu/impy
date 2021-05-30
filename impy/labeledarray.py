@@ -21,7 +21,6 @@ from scipy import ndimage as ndi
 
 class LabeledArray(HistoryArray):
     n_cpu = 4
-    show_progress = True
         
     @property
     def range(self):
@@ -99,7 +98,6 @@ class LabeledArray(HistoryArray):
     
     def _getitem_additional_set_info(self, other, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
-        # set labels correctly TODO: check me
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
             if isinstance(key, tuple):
@@ -378,7 +376,7 @@ class LabeledArray(HistoryArray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, "cztp")
+            axis = find_first_appeared(self.axes, "cztp<")
         axisint = self.axisof(axis)
         
         imgs = super().split(axisint)
@@ -410,10 +408,10 @@ class LabeledArray(HistoryArray):
         LabeledArray
             Extracted image
         """        
-        if not callable(filt):
-            raise TypeError("`filt` must be callable if given.")
-        elif filt is None:
+        if filt is None:
             filt = lambda arr, lbl: True
+        elif not callable(filt):
+            raise TypeError("`filt` must be callable if given.")
         
         if np.isscalar(label_ids):
             label_ids = [label_ids]
@@ -478,6 +476,8 @@ class LabeledArray(HistoryArray):
             sl, img = func(arg). arg must be packed into tuple or list.
         axes : str or int
             passed to iter()
+        args
+            Additional arguments of `func`.
         outshape : tuple, optional
             shape of output. By default shape of input image because this
             function is used almost for filtering
@@ -519,6 +519,8 @@ class LabeledArray(HistoryArray):
             sl, img = func(arg). arg must be packed into tuple or list.
         dims : str or int
             passed to iter()
+        args
+            Additional arguments of `func`.
 
         Returns
         -------
@@ -926,10 +928,23 @@ class LabeledArray(HistoryArray):
         -------
         LabeledArray
             Image with new labels.
+        
+        Example
+        -------
+        Make label from different channels.
+        >>> thr0 = img["c=0"].threshold("90%")
+        >>> thr0.label() # binary to label
+        >>> thr1 = img["c=1"].threshold("90%")
+        >>> thr1.label() # binary to label
+        >>> img.append_label(thr0.labels)
+        >>> img.append_label(thr1.labels)
+        If `thr0` has 100 labels and `thr1` has 150 labels then `img` will have 100+150=250 labels.
         """
         # check and cast label dtype
         if not isinstance(label_image, np.ndarray):
             raise TypeError(f"`label_image` must be ndarray, but got {type(label_image)}")
+        elif label_image.dtype.kind == "u":
+            pass
         elif label_image.dtype == bool:
             label_image = label_image.astype(np.uint8)
         elif label_image.dtype == np.int32:

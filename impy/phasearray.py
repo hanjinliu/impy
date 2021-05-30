@@ -80,20 +80,22 @@ class PhaseArray(LabeledArray):
     
     def fix_border(self) -> None:
         """
-        Considering periodic boundary condition, fix the values by `__divmod__` method.
+        Considering periodic boundary condition, fix the values by `__mod__` method.
         """        
         self[:] = (self.value - self.border[0]) % self.periodicity + self.border[0]
         self.history.pop(-1) # delete "setitem" history
         return None
     
-    def set_border(self, a, b) -> None:
+    def set_border(self, a:float, b:float) -> None:
         """
         Set new border safely.
 
         Parameters
         ----------
-        border : tuple[float]
-            New border
+        a : float
+            New lower border.
+        b : float
+            New higher border.
         """        
         if not (np.isscalar(a) and np.isscalar(b)):
             raise TypeError("Both border values must be scalars.")
