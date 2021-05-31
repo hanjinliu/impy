@@ -26,6 +26,11 @@ class LabeledArray(HistoryArray):
     def range(self):
         return self.min(), self.max()
     
+    def set_scale(self, other=None, **kwargs) -> None:
+        super().set_scale(other, **kwargs)
+        if hasattr(self, "labels"):
+            self.labels.set_scale(other, **kwargs)
+        return None
         
     def __repr__(self):
         if hasattr(self, "labels"):
@@ -614,14 +619,11 @@ class LabeledArray(HistoryArray):
             label_shape = self.sizesof(label_axes)
             labels = largest_zeros(label_shape)
             
-            print("specify ... ", end="")
-            timer = Timer()
-            n_label = 1
-            for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
-                _specify(labels[sl], crds.values, radius, n_label)
-                n_label += len(crds)
-            timer.toc()
-            print(f"\rspecify completed ({timer})")
+            with Progress("specify"):
+                n_label = 1
+                for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
+                    _specify(labels[sl], crds.values, radius, n_label)
+                    n_label += len(crds)
             
             if hasattr(self, "labels"):
                 print("Existing labels are updated.")
@@ -732,18 +734,17 @@ class LabeledArray(HistoryArray):
             raise ImageAxesError("Shape mismatch.")
         
         c_axes = complement_axes(dims, self.axes)
-        with Progress("label"):
-            labels = largest_zeros(label_image.shape)
-            imax = np.iinfo(labels.dtype).max
-            labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
+        labels = largest_zeros(label_image.shape)
+        imax = np.iinfo(labels.dtype).max
+        labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
 
-            # increment labels in different slices
-            min_nlabel = 0
-            for sl, _ in label_image.iter(c_axes):
-                labels[sl][labels[sl]>0] += min_nlabel
-                min_nlabel = labels[sl].max()
-                if min_nlabel > imax:
-                    raise OverflowError("Number of labels exceeded maximum.")
+        # increment labels in different slices
+        min_nlabel = 0
+        for sl, _ in label_image.iter(c_axes):
+            labels[sl][labels[sl]>0] += min_nlabel
+            min_nlabel = labels[sl].max()
+            if min_nlabel > imax:
+                raise OverflowError("Number of labels exceeded maximum.")
         
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label")
@@ -821,23 +822,22 @@ class LabeledArray(HistoryArray):
         properties = tuple(inspect.signature(filt).parameters)[2:]
             
         c_axes = complement_axes(dims, self.axes)
-        with Progress("label_if"):
-            labels = largest_zeros(label_image.shape)
-            offset = 1
-            for sl, lbl in label_image.iter(c_axes):
-                lbl = skmes.label(lbl, background=0, connectivity=connectivity)
-                img = self.value[sl]
-                # Following lines are essentially doing the same thing as `skmes.regionprops_table`.
-                # However, `skmes.regionprops_table` returns tuples in the separated columns in
-                # DataFrame and rename property names like "centroid-0" and "centroid-1".
-                props_obj = skmes.regionprops(lbl, img, cache=False)
-                d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
-                     for prop_name in properties}
-                df = pd.DataFrame(d)
-                del_list = [i+1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
-                labels[sl] = skseg.relabel_sequential(np.where(np.isin(lbl, del_list),
-                                                            0, lbl), offset=offset)[0]
-                offset += labels.max()
+        labels = largest_zeros(label_image.shape)
+        offset = 1
+        for sl, lbl in label_image.iter(c_axes):
+            lbl = skmes.label(lbl, background=0, connectivity=connectivity)
+            img = self.value[sl]
+            # Following lines are essentially doing the same thing as `skmes.regionprops_table`.
+            # However, `skmes.regionprops_table` returns tuples in the separated columns in
+            # DataFrame and rename property names like "centroid-0" and "centroid-1".
+            props_obj = skmes.regionprops(lbl, img, cache=False)
+            d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
+                    for prop_name in properties}
+            df = pd.DataFrame(d)
+            del_list = [i+1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
+            labels[sl] = skseg.relabel_sequential(np.where(np.isin(lbl, del_list),
+                                                        0, lbl), offset=offset)[0]
+            offset += labels.max()
         
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label_if")
