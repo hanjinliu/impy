@@ -105,7 +105,25 @@ class napariWindow:
         destination.append_label(label)
         return destination.labels
     
-    def points_to_frames(self, ref:LabeledArray=None, index=0, projection=False):
+    def points_to_frames(self, ref:LabeledArray=None, index=0, projection=False) -> MarkerFrame:
+        """
+        Convert manually selected points to MarkerFrame.
+
+        Parameters
+        ----------
+        ref : LabeledArray, optional
+            Reference image to determine extent of point coordinates.
+        index : int, optional
+            Index of point layer. This needs consideration only if there are multiple point layers.
+        projection : bool, default is False
+            If collect all the points in different layers by projection. This argument is taken into
+            account only if there are multiple point layers.
+
+        Returns
+        -------
+        MarkerFrame
+            DataFrame of points.
+        """        
         if ref is None:
             ref = self.get_front_image()
         zoom_factors = [self.scale[a]/ref.scale[a] for a in ref.axes]

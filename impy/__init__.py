@@ -2,7 +2,9 @@ __version__ = "1.8.9"
 
 # TODO
 # - 3D Gabor filter
+# - get line from shape layers
 # - defocus with any kernels
+# - 2D Kalman filter
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
 
 import warnings

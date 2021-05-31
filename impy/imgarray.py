@@ -813,6 +813,7 @@ class ImgArray(LabeledArray):
         self = self.as_float() / self.max() # skimage's entropy filter only accept [-1, 1] float images.
         return self.parallel(entropy_, complement_axes(dims, self.axes), disk)
     
+    @dims_to_spatial_axes
     @record()
     def enhance_contrast(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -1323,15 +1324,16 @@ class ImgArray(LabeledArray):
         
         # separate spatial dimensions and others
         ndim = len(dims)
+        dims_list = [a for a in dims]
         c_axes = complement_axes(dims, self.axes)
+        c_axes_list = [a for a in c_axes]
         
         if isinstance(exclude_border, bool):
             exclude_border = int(min_distance) if exclude_border else False
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
                 
-        out = []
-        
+        out = pd.DataFrame()
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -1346,8 +1348,9 @@ class ImgArray(LabeledArray):
                                             num_peaks_per_label=topn_per_label,
                                             labels=labels,
                                             exclude_border=exclude_border)
-            out += [sl + tuple(ind) for ind in indices]
-        
+            indices = pd.DataFrame(indices, columns=dims_list)
+            indices[c_axes_list] = sl
+            out = pd.concat([out, indices], axis=0)
             
         out = MarkerFrame(out, columns=self.axes, dtype="uint16")
         out.set_scale(self)
@@ -1388,15 +1391,16 @@ class ImgArray(LabeledArray):
         
         # separate spatial dimensions and others
         ndim = len(dims)
+        dims_list = [a for a in dims]
         c_axes = complement_axes(dims, self.axes)
+        c_axes_list = [a for a in c_axes]
         
         if isinstance(exclude_border, bool):
             exclude_border = int(min_distance) if exclude_border else False
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
                 
-        out = []
-        
+        out = pd.DataFrame()
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -1411,12 +1415,12 @@ class ImgArray(LabeledArray):
                                           num_peaks_per_label=topn_per_label,
                                           labels=labels,
                                           exclude_border=exclude_border)
-            out += [sl + tuple(ind) for ind in indices]
-        
+            indices = pd.DataFrame(indices, columns=dims_list)
+            indices[c_axes_list] = sl
+            out = pd.concat([out, indices], axis=0)
             
         out = MarkerFrame(out, columns=self.axes, dtype="uint16")
         out.set_scale(self)
-            
         return out
     
     @dims_to_spatial_axes
@@ -1443,6 +1447,7 @@ class ImgArray(LabeledArray):
         return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
     
     @dims_to_spatial_axes
+    @record(append_history=False)
     def find_corners(self, sigma:float=1, k:float=0.05, *, dims=None) -> ImgArray:
         """
         Corner detection using Harris response.
@@ -1540,6 +1545,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """        
+        # TODO:check zcyx-image
         seeds = _check_coordinates(seeds, self, dims=self.axes)
         labels = largest_zeros(self.shape)
         n_label_next = 1
@@ -1589,33 +1595,43 @@ class ImgArray(LabeledArray):
         else:
             coords = _check_coordinates(coords, self, dims=self.axes)
         
-        labels_now = getattr(self, "labels", None)
+        if hasattr(self, "labels"):
+            labels_now = self.labels.copy()
+        else:
+            labels_now = None
         self.labels = None
         self.specify(coords, radius, labeltype="circle")
+        
+        # set parameters
         radius = check_nd(radius, len(dims))
-        sigma = check_nd(sigma, len(dims))
+        sigma = tuple(map(int, check_nd(sigma, len(dims))))
         sigma = tuple([int(x) for x in sigma])
+        
         df_all = pd.DataFrame()
         c_axes = complement_axes(dims, self.axes)
-        for sl, crds in coords.iter(c_axes):
-            img = self[sl]
-            refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
-                                                  max_iterations=n_iter, pos_columns=[a for a in dims])
-            bg = img.value[img.labels==0]
-            black_level = np.mean(bg)
-            noise = np.std(bg)
-            area = np.sum(ball_like_odd(radius[0], len(dims)))
-            mass = refined_coords["raw_mass"].values - area * black_level
-            ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
-            
-            if ep.ndim == 1:
-                refined_coords["ep"] = ep
-            else:
-                ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in [a for a in dims]])
-                refined_coords = pd.concat([refined_coords, ep], axis=1)
-            refined_coords[[a for a in c_axes]] = sl
-            df_all = pd.concat([df_all, refined_coords])
-            
+        c_axes_list = [a for a in c_axes]
+        dims_list = [a for a in dims]
+        with Progress("refine_sm"):
+            for sl, crds in coords.iter(c_axes):
+                img = self[sl]
+                refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
+                                                      max_iterations=n_iter, pos_columns=dims_list)
+                bg = img.value[img.labels==0]
+                black_level = np.mean(bg)
+                noise = np.std(bg)
+                area = np.sum(ball_like_odd(radius[0], len(dims)))
+                mass = refined_coords["raw_mass"].values - area * black_level
+                ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
+                
+                if ep.ndim == 1:
+                    refined_coords["ep"] = ep
+                else:
+                    ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in dims_list])
+                    refined_coords = pd.concat([refined_coords, ep], axis=1)
+                
+                refined_coords[c_axes_list] = [s for s, a in zip(sl, coords.col_axes) if a not in dims]
+                df_all = pd.concat([df_all, refined_coords])
+                
         mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
         mf.set_scale(self.scale)
         df = df_all[df_all.columns[df_all.columns.isin([a for a in df_all.columns if a not in dims])]]
@@ -2450,7 +2466,7 @@ class ImgArray(LabeledArray):
         markers = np.zeros(shape, dtype=labels.dtype) # placeholder for maxima
         
         for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
-                                    coords.groupby([a for a in c_axes])):
+                                       coords.groupby([a for a in c_axes])):
             # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
             crd = crd.values.T.tolist()
             markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
@@ -2559,7 +2575,9 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-            ArrayDict of PropArray
+        ArrayDict of PropArray
+            Dictionary has keys of properties that are specified by `properties`. Each value
+            has the array of properties.
             
         Example
         -------
@@ -2705,8 +2723,8 @@ class ImgArray(LabeledArray):
             properties = ("contrast", "dissimilarity", "idm", 
                           "asm", "max", "entropy", "correlation")
         c_axes = complement_axes(dims, self.axes)
-        # distances = np.ascontiguousarray(distances, dtype=np.uint8)
-        # angles = np.ascontiguousarray(angles, dtype=np.float32)
+        distances = np.asarray(distances, dtype=np.uint8)
+        angles = np.asarray(angles, dtype=np.float32)
         outshape = self.sizesof(c_axes) + (len(distances), len(angles)) + self.sizesof(dims)
         out = {}
         for prop in properties:
@@ -3091,7 +3109,7 @@ class ImgArray(LabeledArray):
         ----------
         psf : np.ndarray
             Point spread function.
-        niters : int, by default 50.
+        niters : int, default is 50.
             Number of iteration.
         dims : int or str, optional
             Dimension of axes.
