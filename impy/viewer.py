@@ -13,12 +13,12 @@ napari = ImportOnRequest("napari")
 # - different name (different scale or shape) for different window?
 
 class napariWindow:
-    point_cmap = plt.get_cmap("rainbow", 16)
-    plot_cmap = plt.get_cmap("autumn", 16)
+    _point_cmap = plt.get_cmap("rainbow", 16)
+    _plot_cmap = plt.get_cmap("autumn", 16)
     
     def __init__(self):
         self.viewer = None
-        self.point_color_id = 0
+        self._point_color_id = 0
         
     @property
     def layers(self):
@@ -214,7 +214,7 @@ class napariWindow:
         else:
             scale=None
         
-        cmap = self.__class__.point_cmap
+        cmap = self.__class__._point_cmap
         if "c" in points._axes:
             pnts = points.split("c")
         else:
@@ -222,10 +222,10 @@ class napariWindow:
             
         for each in pnts:
             kw = dict(size=3.2, face_color=[0,0,0,0], 
-                      edge_color=list(cmap(self.point_color_id * (cmap.N//2+1) % cmap.N)))
+                      edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
             kw.update(kwargs)
             self.viewer.add_points(each.values, scale=scale, **kw)
-            self.point_color_id += 1
+            self._point_color_id += 1
         return None
     
     def _add_labels(self, labels:Label, opacity:float=0.3, name:str|list[str]=None, **kwargs):
@@ -279,14 +279,14 @@ class napariWindow:
             maxima = maxima[order]
             scale = [1] * maxima.size
             scale[-1] = max(maxima[:-1])/maxima[-1]
-            cmap = self.__class__.plot_cmap
+            cmap = self.__class__._plot_cmap
             paths = []
             ec = []
             for sl, data in df.groupby(groupax):
                 path = data.values.tolist()
                 paths.append(path)
-                ec.append(list(cmap(self.point_color_id * (cmap.N//2+1) % cmap.N)))
-                self.point_color_id += 1
+                ec.append(list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
+                self._point_color_id += 1
             
             kw = dict(edge_width=0.8, opacity=0.75, scale=scale, edge_color=ec, face_color=ec)
             kw.update(kwargs)

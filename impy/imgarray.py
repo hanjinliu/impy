@@ -1847,8 +1847,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : float, optional
-            Standard deviation of Gaussian prefilter, by default 1.0
+        sigma : float, default is 1.0
+            Standard deviation of Gaussian prefilter. If <= 0 then no prefilter is applied.
         method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "scharr"
             Edge operator name.
         deg : bool, default is True
@@ -2477,14 +2477,12 @@ class ImgArray(LabeledArray):
         n_labels = 0
         c_axes = complement_axes(dims, self.axes)
         markers = np.zeros(shape, dtype=labels.dtype) # placeholder for maxima
-        
-        for (sl, img), (_, crd) in zip(input_img.iter(c_axes, israw=True),
-                                       coords.groupby([a for a in c_axes])):
+        for sl, crd in coords.iter(c_axes):
             # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
             crd = crd.values.T.tolist()
             markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
-            labels[sl] = skseg.watershed(-img.value, markers, 
-                                        mask=img.labels.value, 
+            labels[sl] = skseg.watershed(-input_img.value[sl], markers, 
+                                        mask=input_img.labels.value[sl], 
                                         connectivity=connectivity)
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
@@ -2946,20 +2944,20 @@ class ImgArray(LabeledArray):
 
     @dims_to_spatial_axes
     @record(append_history=False)
-    def estimate_sigma(self, *, squeeze=True, dims=None) -> ImgArray|float:
+    def estimate_sigma(self, *, squeeze=True, dims=None) -> PropArray|float:
         """
         Wavelet-based estimation of Gaussian noise.
 
         Parameters
         ----------
-        squeeze : bool, by default True
+        squeeze : bool, default is True
             If True and output can be converted to a scalar, then convert it.
         dims : str, optional
             Spatial dimension.
 
         Returns
         -------
-        ImgArray or float
+        PropArray or float
             Estimated standard deviation. sigma["t=0;c=1"] means the estimated value of
             image slice at t=0 and c=1.
         """        
@@ -2968,8 +2966,9 @@ class ImgArray(LabeledArray):
         if out.ndim == 0 and squeeze:
             out = out[()]
         else:
-            out = out.view(self.__class__) # should return PropArray??
-            out._set_info(self, f"estimate_sigma(dims={dims})", new_axes=c_axes)
+            out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
+                            axes=c_axes, propname="background_sigma")
+            out._set_info(self, new_axes=c_axes)
         return out       
         
     

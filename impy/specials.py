@@ -313,14 +313,34 @@ class AxesFrame(pd.DataFrame):
         
         return None
     
-    def as_standard_type(self):
+    def as_standard_type(self) -> AxesFrame:
+        """
+        t or c -> uint16
+        p -> uint32
+        z, y, x -> float32
+        """
         dtype = lambda a: np.uint16 if a in "tc" else (np.uint32 if a == "p" else np.float32)
         out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
         out._axes = self._axes
         return out
         
     
-    def split(self, axis="c"):
+    def split(self, axis="c") -> list[AxesFrame]:
+        """
+        Split DataFrame according to its indices. For example, if self is an DataFrame with columns
+        "t", "c", "y", "x" and it is split along "c" axis, then output is a list of DataFrame with 
+        columns "t", "y", "x".
+
+        Parameters
+        ----------
+        axis : str, default is "c"
+            Along which axis to split
+
+        Returns
+        -------
+        list of AxesFrame
+            Separate DataFrames.
+        """
         out_list = []
         for _, af in self.groupby(axis):
             out = af[af.columns[af.columns != axis]]
@@ -328,7 +348,21 @@ class AxesFrame(pd.DataFrame):
             out_list.append(out)
         return out_list
 
-    def iter(self, axes):
+    def iter(self, axes:str):
+        """
+        Iteration along any axes. This method is almost doing the same thing as `groupby`, but sub-
+        DataFrames without axes in columns are yielded.
+
+        Parameters
+        ----------
+        axes : str
+            Along which axes to iterate.
+
+        Yields
+        -------
+        tuple and AxesFrame
+            slice to generate the AxesFrame.
+        """
         indices = [i for i, a in enumerate(self.col_axes) if a in axes]
         outsl = [slice(None)]*len(self.col_axes)
         cols = [a for a in self.col_axes if a not in axes]
@@ -364,8 +398,10 @@ def tp_no_verbose(func):
 class MarkerFrame(AxesFrame):
     @tp_no_verbose
     def link(self, search_range, memory=0, min_dwell=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
-             neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None):
-        
+             neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None) -> TrackFrame:
+        """
+        Link sepaprate positions to generate tracks.
+        """
         linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
                          adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
                          link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
