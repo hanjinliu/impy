@@ -329,15 +329,21 @@ class AxesFrame(pd.DataFrame):
         return out_list
 
     def iter(self, axes):
-        reg = "|".join(a for a in self.col_axes if a not in axes)
+        indices = [i for i, a in enumerate(self.col_axes) if a in axes]
+        outsl = [slice(None)]*len(self.col_axes)
+        cols = [a for a in self.col_axes if a not in axes]
         groupkeys = [a for a in axes]
+        
         if len(groupkeys) == 0:
             yield slice(None), self
         
         else:
             for sl, af in self.groupby(groupkeys):
-                af = af.filter(regex=reg)
-                yield sl, af
+                af = af[cols]
+                if isinstance(sl, int):
+                    sl = (sl,)
+                [outsl.__setitem__(i, s) for i, s in zip(indices, sl)]
+                yield tuple(outsl), af
     
     def sort(self):
         ids = np.argsort([ORDER[k] for k in self._axes])
