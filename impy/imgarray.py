@@ -7,6 +7,7 @@ from skimage import measure as skmes
 from skimage import segmentation as skseg
 from skimage import feature as skfeat
 from skimage import registration as skreg
+from skimage import graph as skgraph
 from scipy.linalg import pinv as pseudo_inverse
 from scipy.spatial import Voronoi
 from .func import *
@@ -895,7 +896,7 @@ class ImgArray(LabeledArray):
     
     @record()
     @same_dtype(True)
-    def unmix(self, matrix, bg=None, *, update:bool=False) -> ImgArray:
+    def unmix(self, matrix, bg=None, *, along="c", update:bool=False) -> ImgArray:
         """
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
         fluorescent leakage can be written as following equation:
@@ -916,6 +917,8 @@ class ImgArray(LabeledArray):
         bg : array-like, optional
             Vector of background intensities for each channel. If not given, it is assumed to be the
             minimum value of each channel.
+        along : str, default is "c"
+            The axis of channel.
         update : bool, default is False
             If update self to unmixed image.
 
@@ -932,8 +935,8 @@ class ImgArray(LabeledArray):
         >>> bg = [1500, 1200]
         >>> unmixed_img = img.unmix(mtx, bg)
         """        
-        n_chn = self.sizeof("c")
-        c_ax = self.axisof("c")
+        n_chn = self.sizeof(along)
+        c_ax = self.axisof(along)
         
         # check matrix and bg
         matrix = np.asarray(matrix, dtype=np.float32)
@@ -947,6 +950,7 @@ class ImgArray(LabeledArray):
         
         # move channel axis to the last
         input_ = np.moveaxis(np.asarray(self, dtype=np.float32), c_ax, -1)
+        # multiply inverse matrix
         out = (input_ - bg) @ np.linalg.inv(matrix) + bg
         # restore the axes order
         out = np.moveaxis(out, -1, c_ax)
@@ -979,7 +983,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Hole-filled image.
         """        
-        # TODO: use ndimage.binary_fill_holes?
         if self.dtype != bool:
             mask = self.threshold(thr=thr).value
         else:
@@ -1545,7 +1548,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """        
-        # TODO:check zcyx-image
         seeds = _check_coordinates(seeds, self, dims=self.axes)
         labels = largest_zeros(self.shape)
         n_label_next = 1
@@ -1565,7 +1567,7 @@ class ImgArray(LabeledArray):
         return self
     
     @dims_to_spatial_axes
-    def refine_sm(self, coords=None, radius:float=4, *, percentile=90, n_iter=10, sigma=1.5, dims=None):
+    def refine_sm(self, coords=None, radius:float=4, *, percentile=95, n_iter=10, sigma=1.5, dims=None):
         """
         Refine coordinates of peaks and calculate positional errors using `trackpy`'s functions. Mean
         and noise level are determined using original method.
@@ -1576,7 +1578,7 @@ class ImgArray(LabeledArray):
             Coordinates of peaks. If None, this will be determined by `find_sm`.
         radius : float, default is 4.
             Range to mask single molecules.
-        percentile : int, default is 90
+        percentile : int, default is 95
             Passed to peak_local_max()
         n_iter : int, default is 10
             Number of iteration of refinement.
@@ -1635,6 +1637,7 @@ class ImgArray(LabeledArray):
         mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
         mf.set_scale(self.scale)
         df = df_all[df_all.columns[df_all.columns.isin([a for a in df_all.columns if a not in dims])]]
+        del self.labels
         if labels_now is not None:
             self.labels = labels_now
         return FrameDict(coords=mf, results=df)
@@ -2004,6 +2007,16 @@ class ImgArray(LabeledArray):
         else:
             out = self.as_float().parallel(gabor_real_, complement_axes(dims, self.axes), ker, outdtype=np.float32)
         return out
+    
+    @record()
+    def optimal_path(self, src, dst) -> ImgArray:
+        src = np.round(src).astype(np.uint16)
+        dst = np.round(dst).astype(np.uint16)
+        ind, cost = skgraph.route_through_array(self.value, np.round(src), dst, geometric=False)
+        ind = np.array(ind)
+        route = np.zeros(self.shape, dtype=bool)
+        route[tuple(ind[:,i] for i in range(ind.shape[1]))] = True
+        return route
     
     @dims_to_spatial_axes
     @record()

@@ -97,6 +97,14 @@ This module also provides many image analysis tools and seamless interface betwe
   - `split`, `split_pixel_unit` &rarr; Split the image.
   - `pad`, `defocus` &rarr; Padding.
 
+## Napari Interface
+
+`impy.window` has methods for better interface with `napari`.
+
+- `add` &rarr; Add almost any objects (images, labels, points, ...) to viewer.
+- `shapes_to_labels` &rarr; Convert manually drawn shapes into `Label`.
+- `points_to_frames` &rarr; Convert manually spotted points into `AxesFrame`.
+
 ## Brief Examples
 
 #### 1. Input/Output and Visualization
