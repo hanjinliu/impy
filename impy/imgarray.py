@@ -2019,6 +2019,8 @@ class ImgArray(LabeledArray):
         ind = np.array(ind)
         route = np.zeros(self.shape, dtype=bool)
         route[tuple(ind[:,i] for i in range(ind.shape[1]))] = True
+        route = route.view(self.__class__)
+        route.temp = cost
         return route
     
     @dims_to_spatial_axes
@@ -2121,7 +2123,7 @@ class ImgArray(LabeledArray):
                 s = ", ".join(list(methods_.keys()))
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
-            out = np.zeros(self.shape, dtype=bool)
+            out = np.zeros(self.shape, dtype=bool) # TODO: may not be bool
             for sl, img in self.iter(complement_axes(dims, self.axes)):
                 thr = func(img, **kwargs)
                 out[sl] = img >= thr
@@ -2835,13 +2837,13 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def track_drift(self, axis="t", show_drift=True, **kwargs) -> MarkerFrame:
+    def track_drift(self, along=None, show_drift=True, **kwargs) -> MarkerFrame:
         """
         Calculate xy-directional drift using `skimage.registration.phase_cross_correlation`.
 
         Parameters
         ----------
-        axis : str, default is "t"
+        along : str, optional
             Along which axis drift will be calculated.
         show_drift : bool, default is True
             If True, plot the result.
@@ -2851,6 +2853,9 @@ class ImgArray(LabeledArray):
         MarkerFrame
             DataFrame structure with x,y columns
         """        
+        if along is None:
+            along = find_first_appeared(self.axes, "tpzc")
+            
         if self.ndim != 3:
             raise TypeError(f"input must be three dimensional, but got {self.shape}")
 
@@ -2860,7 +2865,7 @@ class ImgArray(LabeledArray):
         
         result = [[0.0, 0.0]]
         last_img = None
-        for _, img in self.iter(axis):
+        for _, img in self.iter(along):
             if last_img is not None:
                 shift = skreg.phase_cross_correlation(last_img, img, return_error=False, **corr_kwargs)
                 shift_total = shift + result[-1]    # list + ndarray -> ndarray
@@ -2872,7 +2877,7 @@ class ImgArray(LabeledArray):
         result = MarkerFrame(np.array(result), columns="yx")
         
         show_drift and plot_drift(result)
-        result.index.name = axis
+        result.index.name = along
         return result
     
     
@@ -2880,7 +2885,7 @@ class ImgArray(LabeledArray):
     @record()
     @same_dtype(asfloat=True)
     def drift_correction(self, shift=None, ref:ImgArray=None, *, order:int=1, 
-                         along:str="t", dims=None, update:bool=False):
+                         along:str=None, dims=None, update:bool=False):
         """
         Drift correction using iterative Affine translation. If translation vectors `shift`
         is not given, then it will be determined using `track_drift` method of ImgArray.
@@ -2893,7 +2898,7 @@ class ImgArray(LabeledArray):
             The reference 3D image to determine drift, if `shift` was not given.
         order : int, default is 1
             The order of interpolation.
-        along : str, default is "t"
+        along : str, optional
             Along which axis drift will be corrected.
         dims : str, optional
             Spatial dimension.
@@ -2911,6 +2916,9 @@ class ImgArray(LabeledArray):
         >>> img.drift_correction(ref=img["c=0"])
         """        
         
+        if along is None:
+            along = find_first_appeared(self.axes, include="tpzc", exclude=dims)
+        
         if len(dims) == 3:
             raise NotImplementedError("3-dimensional correction is not implemented. yet")
         
@@ -2923,7 +2931,7 @@ class ImgArray(LabeledArray):
             elif ref.axes != along + dims:
                 raise ValueError(f"Cannot track drift using {ref.axes} image")
 
-            shift = ref.track_drift(axis=along)
+            shift = ref.track_drift(along=along)
         
         elif isinstance(shift, MarkerFrame):
             if len(shift) != self.sizeof("t"):

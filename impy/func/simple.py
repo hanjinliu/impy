@@ -213,3 +213,13 @@ def largest_zeros(shape) -> np.ndarray:
         except MemoryError:
             out = np.zeros(shape, dtype=np.uint16)
     return out
+
+def radial_profile(data, center, scales):
+    ind = np.indices((data.shape))
+    r = np.sqrt(sum(((x - c)/s)**2 for x, c, s in zip(ind, center, scales)))
+    r = r.astype(np.int)
+
+    tbin = np.bincount(r.ravel(), data.ravel())
+    nr = np.bincount(r.ravel())
+    radialprofile = tbin / nr
+    return radialprofile

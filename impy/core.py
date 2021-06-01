@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import os
 import glob
@@ -5,6 +6,7 @@ import collections
 from skimage import io
 from .imgarray import ImgArray
 from .func import *
+from .bases.metaarray import MetaArray
 from .axes import Axes
 from .utilcls import Progress
 
@@ -125,7 +127,7 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
             self.set_scale(z=dz)
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", *, ext:str="tif", 
+def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", template:dict|MetaArray=None,
                       ignore_exception:bool=False, dtype=None) -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
@@ -136,19 +138,47 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
         Path to the directory
     axis : str, default is "p"
         To specify which axis will be the new one.
-    ext : str, default is "tif"
-        Extension of files.
+    filname : str, default is "*.tif"
+        File name that satisfies this string will be read. This variable will be passed to `glob.glob`.
+    template : dict or MetaArray, optional
+        Images that matches the template will added to image stack.
     ignore_exception : bool, default is False
         If true, arrays with wrong shape will be ignored.
     dtype : str, optional
         dtype of the images.
+    
+    Example
+    -------
+    (1) Read Tiff images that start with "100nM-":
+    >>> img = ip.imread_collection(r"C:\...", filename="100nM-*.tif")
+    
+    (2) Read Tiff images that have tyx-axes:
+    >>> img = ip.imread_collection(r"C:\...", template={"axes: "tyx"})
+    
+    (3) Read Tiff images that have strictly same features as a reference image `ref`:
+    >>> img = ip.imread_collection(r"C:\...", template=ref)
     """    
-    paths = glob.glob(os.path.join(dirname, "**", f"*.{ext}"), recursive=True)
+    paths = glob.glob(os.path.join(dirname, "**", filename), recursive=True)
+    
+    # determine template
+    template_keys = {"shape", "axes", "scale"}
+    if template is None:
+        template = {}
+    elif isinstance(template, dict):
+        if not set(template.keys()) <= template_keys:
+            raise ValueError(f"template only takes {template_keys} as keys.")
+    elif isinstance(template, MetaArray):
+        template = {k: getattr(template, k) for k in template_keys}
+    else:
+        raise TypeError(f"template must be dict or MetaArray, but got {type(template)}.")
     
     imgs = []
     shapes = []
     for path in paths:
         img = imread(path, dtype=dtype)
+        for k, v in template.items():
+            if getattr(img, k) != v:
+                continue
         imgs.append(img)
         shapes.append(img.shape)
     
@@ -162,6 +192,9 @@ def imread_collection(dirname:str, axis:str="p", *, ext:str="tif",
         else:
             raise ValueError("Input directory has images with different shapes: "
                             f"{', '.join(map(str, list_of_shape))}")
+    
+    if len(imgs) == 0:
+        raise RuntimeError("Could not read any images.")
     
     out = stack(imgs, axis=axis)
     out.dirpath, out.name = os.path.split(dirname)
