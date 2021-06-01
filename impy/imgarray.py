@@ -1335,8 +1335,7 @@ class ImgArray(LabeledArray):
             exclude_border = int(min_distance) if exclude_border else False
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
-                
-        out = pd.DataFrame()
+        df_all = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -1353,11 +1352,12 @@ class ImgArray(LabeledArray):
                                             exclude_border=exclude_border)
             indices = pd.DataFrame(indices, columns=dims_list)
             indices[c_axes_list] = sl
-            out = pd.concat([out, indices], axis=0)
+            df_all.append(indices)
             
-        out = MarkerFrame(out, columns=self.axes, dtype="uint16")
-        out.set_scale(self)
-        return out
+        df_all = pd.concat(df_all, axis=0)
+        df_all = MarkerFrame(df_all, columns=self.axes, dtype=np.uint16)
+        df_all.set_scale(self)
+        return df_all
     
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -1402,8 +1402,8 @@ class ImgArray(LabeledArray):
             exclude_border = int(min_distance) if exclude_border else False
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
-                
-        out = pd.DataFrame()
+        
+        df_all = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -1420,11 +1420,12 @@ class ImgArray(LabeledArray):
                                           exclude_border=exclude_border)
             indices = pd.DataFrame(indices, columns=dims_list)
             indices[c_axes_list] = sl
-            out = pd.concat([out, indices], axis=0)
+            df_all.append(indices)
             
-        out = MarkerFrame(out, columns=self.axes, dtype="uint16")
-        out.set_scale(self)
-        return out
+        df_all = pd.concat([df_all], axis=0)
+        df_all = MarkerFrame(df_all, columns=self.axes, dtype="uint16")
+        df_all.set_scale(self)
+        return df_all
     
     @dims_to_spatial_axes
     @record()
@@ -1602,14 +1603,15 @@ class ImgArray(LabeledArray):
         else:
             labels_now = None
         self.labels = None
+        del self.labels
         self.specify(coords, radius, labeltype="circle")
         
         # set parameters
         radius = check_nd(radius, len(dims))
         sigma = tuple(map(int, check_nd(sigma, len(dims))))
         sigma = tuple([int(x) for x in sigma])
-        
-        df_all = pd.DataFrame()
+        # TODO test
+        df_all = []
         c_axes = complement_axes(dims, self.axes)
         c_axes_list = [a for a in c_axes]
         dims_list = [a for a in dims]
@@ -1632,9 +1634,11 @@ class ImgArray(LabeledArray):
                     refined_coords = pd.concat([refined_coords, ep], axis=1)
                 
                 refined_coords[c_axes_list] = [s for s, a in zip(sl, coords.col_axes) if a not in dims]
-                df_all = pd.concat([df_all, refined_coords])
+                df_all.append(refined_coords)
+            df_all = pd.concat(df_all, axis=0)
                 
-        mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), columns=str(self.axes))
+        mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), 
+                         columns=str(self.axes), dtype=np.float32).as_standard_type()
         mf.set_scale(self.scale)
         df = df_all[df_all.columns[df_all.columns.isin([a for a in df_all.columns if a not in dims])]]
         del self.labels
@@ -1675,8 +1679,7 @@ class ImgArray(LabeledArray):
         """        
         methods_ = {"dog": "dog_filter",
                     "doh": "doh_filter",
-                    "log": "log_filter",
-                    }
+                    "log": "log_filter"}
         try:
             fil_img = getattr(self, methods_[method.lower()])(sigma, dims=dims)
         except KeyError:

@@ -294,6 +294,13 @@ class AxesFrame(pd.DataFrame):
             raise ImageAxesError("Frame does not have axes.")
         
         elif isinstance(other, dict):
+            # yx-scale can be set with one keyword.
+            if "yx" in other:
+                yxscale = other.pop("yx")
+                other["x"] = other["y"] = yxscale
+            if "xy" in other:
+                yxscale = other.pop("xy")
+                other["x"] = other["y"] = yxscale
             # check if all the keys are contained in axes.
             for a, val in other.items():
                 if a not in self._axes:
@@ -402,20 +409,22 @@ class MarkerFrame(AxesFrame):
         """
         Link sepaprate positions to generate tracks.
         """
-        linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
-                         adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
-                         link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
-        
-        linked.rename(columns = {"particle":"p"}, inplace=True)
-        linked = linked.reindex(columns=[a for a in "p"+str(self.col_axes)])
-        
-        track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
-        track.set_scale(self)
-        if min_dwell > 0:
-            out = track.filter_stubs(min_dwell)
-        else:
-            out = track.as_standard_type()
-        out.index = np.arange(len(out))
+        # TODO batch
+        with Progress("link"):
+            linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
+                            adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
+                            link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
+            
+            linked.rename(columns = {"particle":"p"}, inplace=True)
+            linked = linked.reindex(columns=[a for a in "p"+str(self.col_axes)])
+            
+            track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
+            track.set_scale(self)
+            if min_dwell > 0:
+                out = track.filter_stubs(min_dwell)
+            else:
+                out = track.as_standard_type()
+            out.index = np.arange(len(out))
         return out
         
 

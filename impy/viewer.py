@@ -188,11 +188,12 @@ class napariWindow:
             suffix = "-" + img.history[-1]
         else:
             suffix = ""
-            
+        
+        name = "No-Name" if img.name is None else img.name
         if chn_ax is not None:
-            name = [f"[C{i}]{img.name}{suffix}" for i in range(img.sizeof("c"))]
+            name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
         else:
-            name = [img.name + suffix]
+            name = [name + suffix]
         
         self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                               name=name if len(name)>1 else name[0],
