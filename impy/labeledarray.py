@@ -63,6 +63,8 @@ class LabeledArray(HistoryArray):
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
+        if "z" in self.axes:
+            metadata["spacing"] = self.scale["z"]
         try:
             info = load_json(metadata["Info"])
         except:
@@ -94,9 +96,7 @@ class LabeledArray(HistoryArray):
         """
         Make a view of label **if possible**.
         """
-        if (hasattr(other, "labels") and 
-            axes_included(self, other.labels) and
-            shape_match(self, other.labels)):
+        if hasattr(other, "labels") and axes_included(self, other.labels) and shape_match(self, other.labels):
             self.labels = other.labels
     
     def _getitem_additional_set_info(self, other, **kwargs):
@@ -136,12 +136,12 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def as_uint8(self):
-        if self.dtype == "uint8":
+        if self.dtype == np.uint8:
             return self
         
-        if self.dtype == "uint16":
+        if self.dtype == np.uint16:
             out = self.value / 256
-        elif self.dtype == "bool":
+        elif self.dtype == bool:
             out = self.value
         elif self.dtype.kind == "f":
             if 0 <= self.min() and self.max() < 1:
@@ -158,11 +158,11 @@ class LabeledArray(HistoryArray):
 
 
     def as_uint16(self):
-        if self.dtype == "uint16":
+        if self.dtype == np.uint16:
             return self
-        if self.dtype == "uint8":
+        if self.dtype == np.uint8:
             out = self.value * 256
-        elif self.dtype == "bool":
+        elif self.dtype == bool:
             out = self.value
         elif self.dtype.kind == "f":
             if 0 <= self.min() and self.max() < 1:
@@ -179,12 +179,13 @@ class LabeledArray(HistoryArray):
         return out
     
     def as_float(self):
-        out = self.value.astype("float32").view(self.__class__)
+        out = self.value.astype(np.float32).view(self.__class__)
         out._set_info(self)
         return out
         
     
     def as_img_type(self, dtype="uint16"):
+        dtype = str(dtype)
         if str(self.dtype) == dtype:
             return self
         elif dtype == "uint16":
@@ -448,7 +449,7 @@ class LabeledArray(HistoryArray):
             Additional arguments of `func`.
         outshape : tuple, optional
             shape of output. By default shape of input image because this
-            function is used almost for filtering
+            function is used almost for filtering.
         
         Returns
         -------

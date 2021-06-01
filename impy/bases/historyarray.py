@@ -33,7 +33,6 @@ class HistoryArray(MetaArray):
         self._set_info(self, new_history)
         
     def __array_finalize__(self, obj):
-        
         super().__array_finalize__(obj)
         self.history = getattr(obj, "history", [])
     

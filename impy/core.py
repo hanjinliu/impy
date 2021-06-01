@@ -107,14 +107,22 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     if self.axes.is_none():
         return self
     else:
+        # read xy scale if possible
         try:
-            # read scale if possible
             tags = meta["tags"]
             xres = tags["XResolution"]
             yres = tags["YResolution"]
-            self.set_scale(x=xres[1]/xres[0], y=yres[1]/yres[0])
+            dx = xres[1]/xres[0]
+            dy = yres[1]/yres[0]
         except KeyError:
-            pass
+            dx = dy = 1.0
+        
+        self.set_scale(x=dx, y=dy)
+        
+        # read z scale if needed
+        if "z" in self.axes:
+            dz = meta["ijmeta"].get("spacing", max(dx, dy))
+            self.set_scale(z=dz)
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def imread_collection(dirname:str, axis:str="p", *, ext:str="tif", 

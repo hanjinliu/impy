@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 from ..axes import Axes, ImageAxesError
 from ..func import *
@@ -75,6 +76,13 @@ class MetaArray(np.ndarray):
             raise ImageAxesError("Image does not have axes.")
         
         elif isinstance(other, dict):
+            # yx-scale can be set with one keyword.
+            if "yx" in other:
+                yxscale = other.pop("yx")
+                other["x"] = other["y"] = yxscale
+            if "xy" in other:
+                yxscale = other.pop("xy")
+                other["x"] = other["y"] = yxscale
             # check if all the keys are contained in axes.
             for a, val in other.items():
                 if a not in self.axes:
@@ -114,6 +122,7 @@ class MetaArray(np.ndarray):
     
     def _set_additional_props(self, other):
         # set additional properties
+        # If `other` does not have it and `self` has, then the property will be inherited.
         for p in self.__class__.additional_props:
             setattr(self, p, getattr(other, p, 
                                      getattr(self, p, 
@@ -200,7 +209,7 @@ class MetaArray(np.ndarray):
 
         try:
             self.axes = getattr(obj, "axes", None)
-        except:
+        except Exception:
             self.axes = None
         if not self.axes.is_none() and len(self.axes) != self.ndim:
             self.axes = None
