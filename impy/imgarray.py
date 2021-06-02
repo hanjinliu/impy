@@ -2156,6 +2156,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Labeled image.
         """        
+        if self.dtype != np.uint8:
+            raise ValueError("dtypes other than uint8 seem not working.")
         if dims is None:
             dims = complement_axes("c", self.axes)
         labels = np.zeros(self.shape, dtype=np.uint8)
@@ -3063,15 +3065,15 @@ class ImgArray(LabeledArray):
     
     @record()
     @same_dtype(asfloat=True)
-    def defocus(self, sigma, depth:int=3, bg:float=None) -> ImgArray:
+    def defocus(self, kernel, depth:int=3, bg:float=None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
         useful when applying FFT to 3D images.
         
         Parameters
         ----------
-        sigma : float or array of float
-            Standard deviation of Gaussian filter for defocusing.
+        kernel : float or array-like
+            
         depth : int, default is 3
             Depth of defocusing. For an image with z-axis size L, then output image will have
             size L + 2*depth.
@@ -3097,12 +3099,21 @@ class ImgArray(LabeledArray):
         
         if bg is None:
             bg = self.min()
-            
+        kernel = np.asanyarray(kernel)
+        
         # convolve psf
         out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
+        if kernel.ndim <= 1:
+            def filter_func(img):
+                return ndi.gaussian_filter(img, kernel, mode="constant", cval=bg)
+        elif kernel.ndim == 3:
+            def filter_func(img):
+                return ndi.convolve(img, kernel, mode="constant", cval=bg)
+        else:
+            raise ValueError
         for sl, img in out.iter(complement_axes("zyx", self.axes), israw=True):
-            img[:depth] = ndi.gaussian_filter(img[:depth*2].value, sigma, mode="constant", cval=bg)[:depth]
-            img[-depth:] = ndi.gaussian_filter(img[-depth*2:].value, sigma, mode="constant", cval=bg)[-depth:]
+            img[:depth] = filter_func(img[:depth*2].value)[:depth]
+            img[-depth:] = filter_func(img[-depth*2:].value)[-depth:]
             
         return out
     

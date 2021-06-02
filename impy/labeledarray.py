@@ -525,41 +525,66 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         
     @record()
-    def crop_center(self, scale:float=0.5) -> LabeledArray:
+    def crop_center(self, scale=0.5, *, dims="yx") -> LabeledArray:
         """
-        Crop out the center of an image.
-        e.g. when scale=0.5, create 512x512 image from 1024x1024 image.
+        Crop out the center of an image. 
+        
+        Parameters
+        ----------
+        scale : float or array-like, default is 0.5
+            Scale of the cropped image. If an array is given, each axis will be cropped in different scales,
+            using each value respectively.
+        dims : str, default is "yx"
+            Dimensions to be cropped.
+            
+        Example
+        -------
+        (1) Create 512x512 image from 1024x1024 image.
+        >>> img_cropped = img.crop_center(scale=0.5)
+        (2) Create 21x256x256 image from 63x1024x1024 image.
+        >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
         """
-        if scale <= 0 or 1 < scale:
+        # check scale
+        scale = np.asarray(check_nd(scale, len(dims)))
+        if np.any((scale <= 0) | (1 < scale)):
             raise ValueError(f"scale must be (0, 1], but got {scale}")
         
-        sizey, sizex = self.sizesof("yx")
-        
-        x0 = int(sizex / 2 * (1 - scale))
-        x1 = int(sizex / 2 * (1 + scale)) + 1
-        y0 = int(sizey / 2 * (1 - scale))
-        y1 = int(sizey / 2 * (1 + scale)) + 1
+        # Make axis-targeted slicing string
+        sizes = self.sizesof(dims)
+        slices = []
+        for a, size, sc in zip(dims, sizes, scale):
+            x0 = int(size / 2 * (1 - sc))
+            x1 = int(size / 2 * (1 + sc)) + 1
+            slices.append(f"{a}={x0}:{x1}")
 
-        out = self[f"y={y0}:{y1};x={x0}:{x1}"]
+        out = self[";".join(slices)]
         
         return out
     
     @record()
-    def remove_edges(self, pixel:int=1) -> LabeledArray:
+    def remove_edges(self, pixel:int=1, *, dims="yx") -> LabeledArray:
         """
         Remove pixels from the edges.
 
         Parameters
         ----------
-        pixel : int, default is 1
-            Number of pixels to remove.
+        pixel : int or array-like, default is 1
+            Number of pixels to remove. If an array is given, each axis will be cropped with different pixels,
+            using each value respectively.
 
         Returns
         -------
         LabeledArray
             Cropped image.
         """        
-        out = self[f"y={pixel}:-{pixel};x={pixel}:-{pixel}"]
+        pixel = np.asarray(check_nd(pixel, len(dims)), dtype=np.int64)
+        if np.any(pixel < 0):
+            raise ValueError("`pixel` must be positive.")
+        slices = []
+        for a, px in zip(dims, pixel):
+            slices.append(f"{a}={px}:-{px}")
+        
+        out = self[";".join(slices)]
         return out
     
     @dims_to_spatial_axes
