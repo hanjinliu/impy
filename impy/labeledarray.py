@@ -71,16 +71,19 @@ class LabeledArray(HistoryArray):
             
         # change axes
         rest_axes = complement_axes(self.axes, "tzcyx")
-        axes_to_save = ""
+        new_axes = ""
         for a in self.axes:
             if a in "tzcyx":
-                axes_to_save += a
+                new_axes += a
             else:
                 if len(rest_axes) == 0:
                     raise ImageAxesError(f"Cannot save image with axes {self.axes}")
-                axes_to_save += rest_axes[0]
+                new_axes += rest_axes[0]
                 rest_axes = rest_axes[1:]
-            
+        
+        img = self.__class__(self.as_img_type(dtype).value, axes=new_axes)
+        img = img.sort_axes()
+        
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
@@ -94,14 +97,14 @@ class LabeledArray(HistoryArray):
         info["impyhist"] = "->".join([self.name] + self.history)
         metadata["Info"] = str(info)
         if self.axes:
-            # metadata["axes"] = str(self.axes).upper()
-            metadata["axes"] = axes_to_save.upper()
+            metadata["axes"] = str(img.axes).upper()
             try:
                 res = (1/self.scale["x"], 1/self.scale["y"])
             except Exception:
                 res = None
-
-        imwrite(tifname, self.as_img_type(dtype).value, imagej=True, resolution=res, metadata=metadata)
+        
+        
+        imwrite(tifname, img, imagej=True, resolution=res, metadata=metadata)
         
         print(f"Succesfully saved: {tifname}")
         return None
