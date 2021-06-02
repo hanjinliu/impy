@@ -21,7 +21,7 @@ from ._process import *
 
 
 class ImgArray(LabeledArray):
-    
+    # TODO: broadcasting operations
     @same_dtype(asfloat=True)
     def __add__(self, value):
         return super().__add__(value)
@@ -185,6 +185,8 @@ class ImgArray(LabeledArray):
         show_result and plot_gaussfit_result(self, fit)
         return fit
     
+    
+    
     @record()
     @same_dtype(True)
     def gauss_correction(self, ref=None, scale:float=1/16, median_radius:float=15):
@@ -208,6 +210,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected and background subtracted image.
         """        
+        # TODO: loop over such as t,z
         if "c" in self.axes:
             out = np.empty(self.shape, dtype=np.float32)
             if isinstance(ref, self.__class__) and "c" in ref.axes:
@@ -238,8 +241,7 @@ class ImgArray(LabeledArray):
         a = fit.max()
         out = self.value / fit * a - a
         out = out.view(self.__class__)
-        return out
-                
+        return out    
     
     @record()
     def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, 
@@ -2887,7 +2889,7 @@ class ImgArray(LabeledArray):
             DataFrame structure with x,y columns
         """        
         if along is None:
-            along = find_first_appeared(self.axes, "tpzc")
+            along = find_first_appeared("tpzc", include=self.axes)
             
         if self.ndim != 3:
             raise TypeError(f"input must be three dimensional, but got {self.shape}")
@@ -2950,7 +2952,7 @@ class ImgArray(LabeledArray):
         """        
         
         if along is None:
-            along = find_first_appeared(self.axes, include="tpzc", exclude=dims)
+            along = find_first_appeared("tpzc", include=self.axes, exclude=dims)
         
         if len(dims) == 3:
             raise NotImplementedError("3-dimensional correction is not implemented. yet")

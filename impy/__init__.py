@@ -1,4 +1,4 @@
-__version__ = "1.9.4"
+__version__ = "1.9.6"
 
 # TODO
 # - FSC, FRC
@@ -10,7 +10,7 @@ __version__ = "1.9.4"
 import warnings
 from .core import (array, zeros, zeros_like, empty, empty_like, 
                    imread, imread_collection, read_meta, 
-                   stack, set_cpu, set_verbose, sample_image)
+                   stack, set_cpu, set_verbose, sample_image, squeeze)
 from .imgarray import ImgArray
 from .specials import PropArray, MarkerFrame, TrackFrame
 from .label import Label

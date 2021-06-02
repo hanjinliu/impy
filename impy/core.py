@@ -286,3 +286,10 @@ def sample_image(name:str) -> ImgArray:
         out.axes = "yxc"
         out = out.sort_axes()
     return out
+
+def squeeze(img:MetaArray):
+    out = np.squeeze(img)
+    out.axes = "".join(a for a in img.axes if img.sizeof(a) > 1)
+    return out
+    
+    
