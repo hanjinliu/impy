@@ -10,7 +10,7 @@ __version__ = "1.9.2"
 import warnings
 from .core import (array, zeros, zeros_like, empty, empty_like, 
                    imread, imread_collection, read_meta, 
-                   stack, set_cpu, set_verbose)
+                   stack, set_cpu, set_verbose, sample_image)
 from .imgarray import ImgArray
 from .specials import PropArray, MarkerFrame, TrackFrame
 from .label import Label

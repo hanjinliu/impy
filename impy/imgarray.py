@@ -1610,7 +1610,7 @@ class ImgArray(LabeledArray):
         radius = check_nd(radius, len(dims))
         sigma = tuple(map(int, check_nd(sigma, len(dims))))
         sigma = tuple([int(x) for x in sigma])
-        # TODO test
+        
         df_all = []
         c_axes = complement_axes(dims, self.axes)
         c_axes_list = [a for a in c_axes]
@@ -2075,8 +2075,8 @@ class ImgArray(LabeledArray):
         ----------
         thr: int or array or None, optional
             Threshold value, or thresholding algorithm.
-        dims : int or str, optional
-            Dimension of axes.
+        dims : int or str, default is all the axes except for channel axis.
+            Dimensions that will share the same threshold.
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
 
@@ -2100,7 +2100,6 @@ class ImgArray(LabeledArray):
                     "mean": skfil.threshold_mean,
                     "min": skfil.threshold_minimum,
                     "minimum": skfil.threshold_minimum,
-                    "multiotsu": skfil.threshold_multiotsu,
                     "niblack": skfil.threshold_niblack,
                     "otsu": skfil.threshold_otsu,
                     "sauvola": skfil.threshold_sauvola,
@@ -2123,7 +2122,7 @@ class ImgArray(LabeledArray):
                 s = ", ".join(list(methods_.keys()))
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
-            out = np.zeros(self.shape, dtype=bool) # TODO: may not be bool
+            out = np.zeros(self.shape, dtype=bool)
             for sl, img in self.iter(complement_axes(dims, self.axes)):
                 thr = func(img, **kwargs)
                 out[sl] = img >= thr
@@ -2135,7 +2134,39 @@ class ImgArray(LabeledArray):
             raise TypeError("'thr' must be numeric, or str specifying a thresholding method.")                
         
         return out
+    
+    @record(append_history=False, record_label=True)
+    def label_multiotsu(self, classes:int=3, nbins:int=256, *, dims:str=None) -> ImgArray:
+        """
+        Label images using multi-Otsu method. Region lower than the lowest threshold will be labeled
+        zero. This function will take very long time with large `classes` value.
+
+        Parameters
+        ----------
+        classes : int, default is 3
+            Number of classes input images will be classified. The result label will have values 0, 1,
+            ..., classes-1.
+        nbins : int, default is 256
+            Number of bins.
+        dims : str, optional
+            Dimensions that will share the same thresholding results.
+
+        Returns
+        -------
+        ImgArray
+            Labeled image.
+        """        
+        if dims is None:
+            dims = complement_axes("c", self.axes)
+        labels = np.zeros(self.shape, dtype=np.uint8)
+        for sl, img in self.iter(complement_axes(dims, self.axes)):
+            thr = skfil.threshold_multiotsu(img, classes=classes, nbins=nbins)
+            labels[sl] = np.digitize(img, bins=thr)
         
+        self.labels = labels.view(Label)
+        self.labels._set_info(self, "label_multiotsu")
+        self.labels.set_scale(self)
+        return self
     
     @dims_to_spatial_axes
     @only_binary
@@ -3032,16 +3063,16 @@ class ImgArray(LabeledArray):
     
     @record()
     @same_dtype(asfloat=True)
-    def defocus(self, sigma, depth:int, bg:float=None) -> ImgArray:
+    def defocus(self, sigma, depth:int=3, bg:float=None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
         useful when applying FFT to 3D images.
         
         Parameters
         ----------
-        sigma : float or array or float
+        sigma : float or array of float
             Standard deviation of Gaussian filter for defocusing.
-        depth : int
+        depth : int, default is 3
             Depth of defocusing. For an image with z-axis size L, then output image will have
             size L + 2*depth.
         bg : float, optional

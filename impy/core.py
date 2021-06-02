@@ -9,6 +9,7 @@ from .func import *
 from .bases.metaarray import MetaArray
 from .axes import Axes
 from .utilcls import Progress
+from skimage import data as skdata
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
@@ -24,7 +25,7 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
         else:
             dtype = arr.dtype
     
-    arr = np.array(arr, dtype=dtype)
+    arr = np.asarray(arr, dtype=dtype)
         
     # Automatically determine axes
     if axes is None:
@@ -203,7 +204,7 @@ def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", templa
     return out
     
 
-def read_meta(path:str) -> dict:
+def read_meta(path:str) -> dict[str]:
     """
     Read the metadata of a tiff file. 
 
@@ -221,17 +222,10 @@ def read_meta(path:str) -> dict:
         "history": impy history
         "tags": tiff tags
     """    
-    
+    if not path.endswith(".tif"):
+        raise ValueError("Cannot read metadata from file extension other than tif.")
     meta = get_meta(path)
     return meta
-
-def set_cpu(n_cpu:int) -> None:
-    ImgArray.n_cpu = n_cpu
-    return None
-
-def set_verbose(b:bool) -> None:
-    Progress.show_progress = b
-    return None
 
 def stack(imgs, axis="c", dtype=None):
     """
@@ -275,3 +269,15 @@ def stack(imgs, axis="c", dtype=None):
     out._set_info(imgs[0], f"Make-Stack(axis={axis})", new_axes)
     
     return out
+
+def set_cpu(n_cpu:int) -> None:
+    ImgArray.n_cpu = n_cpu
+    return None
+
+def set_verbose(b:bool) -> None:
+    Progress.show_progress = b
+    return None
+
+def sample_image(name:str) -> ImgArray:
+    img = getattr(skdata, name)()
+    return array(img, name=name)
