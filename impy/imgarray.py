@@ -3068,12 +3068,14 @@ class ImgArray(LabeledArray):
     def defocus(self, kernel, depth:int=3, bg:float=None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
-        useful when applying FFT to 3D images.
+        useful when applying FFT to a 3D image.
         
         Parameters
         ----------
-        kernel : float or array-like
-            
+        kernel : 0-, 1- or 3-dimensional array.
+            If 0- (scalar) or 1-dimensional array was given, this is interpreted as standard
+            deviation of Gaussian kernel. If 3-dimensional array was given, this is directly
+            used as convolution kernel. Other dimension will raise ValueError.
         depth : int, default is 3
             Depth of defocusing. For an image with z-axis size L, then output image will have
             size L + 2*depth.
@@ -3101,19 +3103,23 @@ class ImgArray(LabeledArray):
             bg = self.min()
         kernel = np.asanyarray(kernel)
         
-        # convolve psf
-        out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
         if kernel.ndim <= 1:
             def filter_func(img):
                 return ndi.gaussian_filter(img, kernel, mode="constant", cval=bg)
         elif kernel.ndim == 3:
+            kernel = kernel.astype(np.float32)
+            kernel = kernel / np.sum(kernel)
             def filter_func(img):
                 return ndi.convolve(img, kernel, mode="constant", cval=bg)
         else:
-            raise ValueError
-        for sl, img in out.iter(complement_axes("zyx", self.axes), israw=True):
-            img[:depth] = filter_func(img[:depth*2].value)[:depth]
-            img[-depth:] = filter_func(img[-depth*2:].value)[-depth:]
+            raise ValueError("`kernel` only take 0, 1, 3 dimensional array as input.")
+        
+        out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
+        
+        # convolve psf
+        for sl, img in out.iter(complement_axes("zyx", self.axes)):
+            img[:depth] = filter_func(img[:depth*2])[:depth]
+            img[-depth:] = filter_func(img[-depth*2:])[-depth:]
             
         return out
     
