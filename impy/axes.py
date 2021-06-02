@@ -148,4 +148,5 @@ class Axes:
             raise ImageAxesError(f"Axes {new} already exists: {self.axes}")
         
         self.axes = self.axes.replace(old, new)
+        self.scale[new] = self.scale.pop(old)
         return None
