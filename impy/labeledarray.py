@@ -49,8 +49,17 @@ class LabeledArray(HistoryArray):
     
     def imsave(self, tifname:str, dtype=None):
         """
-        Save image (at the same directory as the original image by default).
-        """
+        Save image at the same directory as the original image by default. If the image contains
+        wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.
+        zyx-scale is also saved.
+
+        Parameters
+        ----------
+        tifname : str
+            File name.
+        dtype : Any that can be interpreted as numpy.dtype, optional
+            In what data type img will be saved.
+        """        
         if not tifname.endswith(".tif"):
             tifname += ".tif"
         if os.sep not in tifname:
