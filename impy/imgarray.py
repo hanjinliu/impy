@@ -3035,6 +3035,19 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Padded image.
+        
+        Example
+        -------
+        Suppose `img` has zyx-axes.
+        
+        (1) Padding 5 pixels in zyx-direction:
+        >>> img.pad(5)
+        (2) Padding 5 pixels in yx-direction:
+        >>> img.pad(5, dims="yx")
+        (3) Padding 5 pixels in yx-direction and 2 pixels in z-direction:
+        >>> img.pad([(5,5), (4,4), (4,4)])
+        (4) Padding 10 pixels in z-(-)-direction and 5 pixels in z-(+)-direction.
+        >>> img.pad([(10, 5)], dims="z")
         """        
         pad_width_ = []
         
@@ -3101,9 +3114,11 @@ class ImgArray(LabeledArray):
         
         if bg is None:
             bg = self.min()
-        kernel = np.asanyarray(kernel)
+        kernel = np.asarray(kernel)
         
         if kernel.ndim <= 1:
+            if kernel.ndim == 0:
+                kernel = float(kernel)
             def filter_func(img):
                 return ndi.gaussian_filter(img, kernel, mode="constant", cval=bg)
         elif kernel.ndim == 3:
@@ -3128,7 +3143,8 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def wiener(self, psf, lmd, *, dims=None, update:bool=False) -> ImgArray:
         """
-        Classical wiener deconvolution. This algorithm has the serious ringing problem.
+        Classical wiener deconvolution. This algorithm has the serious ringing problem
+        if parameters are set to wrong values.
 
         Parameters
         ----------
