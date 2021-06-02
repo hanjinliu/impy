@@ -21,7 +21,6 @@ from ._process import *
 
 
 class ImgArray(LabeledArray):
-    # TODO: broadcasting operations
     @same_dtype(asfloat=True)
     def __add__(self, value):
         return super().__add__(value)
@@ -230,9 +229,7 @@ class ImgArray(LabeledArray):
                     raise ValueError("`ref` must be given except for images with axes 'yx' or 'cyx'.")
                 else:
                     return self.gauss_correction(ref=self, scale=scale, median_radius=median_radius)
-            elif isinstance(ref, self.__class__):
-                pass
-            else:
+            elif not isinstance(ref, self.__class__):
                 raise TypeError(f"`ref` must be None or ImgArray, but got {type(ref)}")
         
         if median_radius >= 1:
@@ -254,16 +251,15 @@ class ImgArray(LabeledArray):
         ----------
         matrices : array or iterable of arrays, optional
             Affine matrices.
-        bins : int, optional
-            Number of bins that is generated on calculating mutual information, 
-            by default 256
+        bins : int, default is 256
+            Number of bins that is generated on calculating mutual information.
         order : int, optional
             Interporation order, by default 3
-        prefilter : bool
+        prefilter : bool, default is True.
             If median filter is applied to all images before fitting. This does not
-            change original images. By default True.
-        along : str
-            Along which axis correction will be performed, by default "c".
+            change original images.
+        along : str, default is "c"
+            Along which axis correction will be performed.
             Chromatic aberration -> "c"
             Some drift during time lapse movie -> "t"
 
@@ -2035,7 +2031,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
             
         Returns
         -------
@@ -2056,7 +2052,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
             
         Returns
         -------
@@ -2819,8 +2815,10 @@ class ImgArray(LabeledArray):
         func = _check_function(method)
         if axis is None:
             axis = find_first_appeared(self.axes, exclude="yx")
-        axisint = self.axisof(axis)
-        out = func(self.value, axis=axisint).view(self.__class__)
+        elif not isinstance(axis, str):
+            raise TypeError("`axis` must be str.")
+        axisint = [self.axisof(a) for a in axis]
+        out = func(self.value, axis=tuple(axisint)).view(self.__class__)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
 

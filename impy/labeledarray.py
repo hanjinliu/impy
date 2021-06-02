@@ -215,15 +215,15 @@ class LabeledArray(HistoryArray):
         return out
         
     
-    def as_img_type(self, dtype="uint16"):
-        dtype = str(dtype)
-        if str(self.dtype) == dtype:
+    def as_img_type(self, dtype=np.uint16):
+        dtype = np.dtype(dtype)
+        if self.dtype == dtype:
             return self
         elif dtype == "uint16":
             return self.as_uint16()
         elif dtype == "uint8":
             return self.as_uint8()
-        elif dtype in ("float", "f", "float32"):
+        elif dtype == "float32":
             return self.as_float()
         elif dtype == "bool":
             return self.astype("bool")
