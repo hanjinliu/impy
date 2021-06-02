@@ -346,14 +346,15 @@ def richardson_lucy_(args):
     # Identical to the algorithm in Deconvolution.jl of Julia.
     sl, obs, psf_ft, psf_ft_conj, niter = args
     
+    factor = np.empty(obs.shape, dtype=np.float32) # placeholder
+    
     def lucy_step(estimated):
-        factor = ifft(fft(obs / ifft(fft(estimated) * psf_ft)) * psf_ft_conj)
-        return estimated * np.real(factor)
-    
+        factor[:] = ifft(fft(obs / ifft(fft(estimated) * psf_ft)) * psf_ft_conj).real
+        estimated *= factor
+        return None
+        
     estimated = np.real(ifft(fft(obs) * psf_ft))
-    for _ in range(niter):
-        estimated = lucy_step(estimated)
-    
+    [lucy_step(estimated) for _ in range(niter)]
     return sl, np.fft.fftshift(estimated)
 
 def estimate_sigma_(args):
