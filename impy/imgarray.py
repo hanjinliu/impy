@@ -210,7 +210,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected and background subtracted image.
         """        
-        # TODO: loop over such as t,z
+        # TODO: loop over such as t, z
         if "c" in self.axes:
             out = np.empty(self.shape, dtype=np.float32)
             if isinstance(ref, self.__class__) and "c" in ref.axes:
@@ -2890,9 +2890,11 @@ class ImgArray(LabeledArray):
         """        
         if along is None:
             along = find_first_appeared("tpzc", include=self.axes)
+        elif len(along) != 1:
+            raise ValueError("`along` must be single character.")
             
         if self.ndim != 3:
-            raise TypeError(f"input must be three dimensional, but got {self.shape}")
+            raise TypeError(f"Input must be three dimensional, but got {self.shape}.")
 
         # slow drift needs large upsampling numbers
         corr_kwargs = {"upsample_factor": 10}
@@ -2915,12 +2917,10 @@ class ImgArray(LabeledArray):
         result.index.name = along
         return result
     
-    
-    @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
     def drift_correction(self, shift=None, ref:ImgArray=None, *, order:int=1, 
-                         along:str=None, dims=None, update:bool=False):
+                         along:str=None, dims="yx", update:bool=False):
         """
         Drift correction using iterative Affine translation. If translation vectors `shift`
         is not given, then it will be determined using `track_drift` method of ImgArray.
@@ -2935,7 +2935,7 @@ class ImgArray(LabeledArray):
             The order of interpolation.
         along : str, optional
             Along which axis drift will be corrected.
-        dims : str, optional
+        dims : str, default is "yx"
             Spatial dimension.
         update : bool, optional
             If update self to filtered image.
@@ -2953,6 +2953,8 @@ class ImgArray(LabeledArray):
         
         if along is None:
             along = find_first_appeared("tpzc", include=self.axes, exclude=dims)
+        elif len(along) != 1:
+            raise ValueError("`along` must be single character.")
         
         if len(dims) == 3:
             raise NotImplementedError("3-dimensional correction is not implemented. yet")
@@ -2964,18 +2966,15 @@ class ImgArray(LabeledArray):
             elif not isinstance(ref, self.__class__):
                 raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
-                raise ValueError(f"Cannot track drift using {ref.axes} image")
+                raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
+                                 f"axes of `ref`({ref.axes})")
 
             shift = ref.track_drift(along=along)
-        
         elif isinstance(shift, MarkerFrame):
             if len(shift) != self.sizeof("t"):
                 raise ValueError("Wrong shape of 'shift'.")
-        
         else:
             shift = MarkerFrame(shift, columns="yx", dtype=np.float32)
-            return self.drift_correction(shift, ref, order=order, along=along, 
-                                         dims=dims,update=update)
 
         out = np.empty(self.shape)
         t_index = self.axisof(along)

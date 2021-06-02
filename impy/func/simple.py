@@ -223,3 +223,8 @@ def radial_profile(data, center, scales):
     nr = np.bincount(r.ravel())
     radialprofile = tbin / nr
     return radialprofile
+
+def iter_radial_profile(data, center, scales):
+    ind = np.indices((data.shape))
+    r = np.sqrt(sum(((x - c)/s)**2 for x, c, s in zip(ind, center, scales)))
+    ...

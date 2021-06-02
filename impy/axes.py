@@ -140,6 +140,17 @@ class Axes:
         return self.__class__(self)
 
     def replace(self, old:str, new:str):
+        """
+        Replace axis symbol. To avoid unexpected effect between images, new scale attribute
+        will be copied.
+
+        Parameters
+        ----------
+        old : str
+            Old symbol.
+        new : str
+            New symbol.
+        """        
         if len(old) != 1 or len(new) != 1:
             raise ValueError("Both `old` and `new` must be single character.")
         if old not in self.axes:

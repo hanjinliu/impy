@@ -72,6 +72,7 @@ class LabeledArray(HistoryArray):
         # change axes
         rest_axes = complement_axes(self.axes, "tzcyx")
         new_axes = ""
+        axes_changed = False
         for a in self.axes:
             if a in "tzcyx":
                 new_axes += a
@@ -80,6 +81,7 @@ class LabeledArray(HistoryArray):
                     raise ImageAxesError(f"Cannot save image with axes {self.axes}")
                 new_axes += rest_axes[0]
                 rest_axes = rest_axes[1:]
+                axes_changed = True
         
         img = self.__class__(self.as_img_type(dtype).value, axes=new_axes)
         img = img.sort_axes()
@@ -96,16 +98,20 @@ class LabeledArray(HistoryArray):
         
         info["impyhist"] = "->".join([self.name] + self.history)
         metadata["Info"] = str(info)
-        if self.axes:
-            metadata["axes"] = str(img.axes).upper()
-            try:
-                res = (1/self.scale["x"], 1/self.scale["y"])
-            except Exception:
-                res = None
-        
+        metadata["axes"] = str(img.axes).upper()
+        if img.ndim > 3:
+            metadata["hyperstack"] = True
+        try:
+            res = (1/self.scale["x"], 1/self.scale["y"])
+        except Exception:
+            res = None
         
         imwrite(tifname, img, imagej=True, resolution=res, metadata=metadata)
-        
+        if axes_changed:
+            if new_axes == str(img.axes):
+                print(f"Image axes changed: {self.axes} -> {new_axes}")
+            else:
+                print(f"Image axes changed and sorted: {self.axes} -> {new_axes} -> {img.axes}")
         print(f"Succesfully saved: {tifname}")
         return None
     
