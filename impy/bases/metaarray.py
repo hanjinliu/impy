@@ -76,7 +76,7 @@ class MetaArray(np.ndarray):
             raise ImageAxesError("Image does not have axes.")
         
         elif isinstance(other, dict):
-            # yx-scale can be set with one keyword.
+            # lateral-scale can be set with one keyword.
             if "yx" in other:
                 yxscale = other.pop("yx")
                 other["x"] = other["y"] = yxscale

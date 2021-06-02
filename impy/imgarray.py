@@ -3114,18 +3114,25 @@ class ImgArray(LabeledArray):
         
         if bg is None:
             bg = self.min()
-        kernel = np.asarray(kernel)
+        elif isinstance(bg, str) and bg.endswith("%"):
+            bg = np.percentile(self.value, float(bg[:-1]))
+            
+        if np.isscalar(kernel):
+            kernel = np.array([kernel]*3)
+        else:
+            kernel = np.asarray(kernel)
         
         if kernel.ndim <= 1:
-            if kernel.ndim == 0:
-                kernel = float(kernel)
             def filter_func(img):
                 return ndi.gaussian_filter(img, kernel, mode="constant", cval=bg)
+            dz = kernel[0]*3
+            
         elif kernel.ndim == 3:
             kernel = kernel.astype(np.float32)
             kernel = kernel / np.sum(kernel)
             def filter_func(img):
                 return ndi.convolve(img, kernel, mode="constant", cval=bg)
+            dz = kernel.shape[0]//2
         else:
             raise ValueError("`kernel` only take 0, 1, 3 dimensional array as input.")
         
@@ -3133,8 +3140,8 @@ class ImgArray(LabeledArray):
         
         # convolve psf
         for sl, img in out.iter(complement_axes("zyx", self.axes)):
-            img[:depth] = filter_func(img[:depth*2])[:depth]
-            img[-depth:] = filter_func(img[-depth*2:])[-depth:]
+            img[:depth] = filter_func(img[:depth+dz])[:depth]
+            img[-depth:] = filter_func(img[-depth-dz:])[-depth:]
             
         return out
     

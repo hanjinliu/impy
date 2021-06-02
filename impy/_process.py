@@ -356,5 +356,6 @@ def richardson_lucy_(args):
     return sl, np.fft.fftshift(estimated)
 
 def estimate_sigma_(args):
+    # TODO: do not work for zcyx-image
     sl, data = args
     return sl[:-data.ndim], skres.estimate_sigma(data)

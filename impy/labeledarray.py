@@ -545,6 +545,8 @@ class LabeledArray(HistoryArray):
         >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
         """
         # check scale
+        if hasattr(scale, "__iter__") and len(scale) == 3 and dims == "yx":
+            dims = "zyx"
         scale = np.asarray(check_nd(scale, len(dims)))
         if np.any((scale <= 0) | (1 < scale)):
             raise ValueError(f"scale must be (0, 1], but got {scale}")
@@ -577,9 +579,12 @@ class LabeledArray(HistoryArray):
         LabeledArray
             Cropped image.
         """        
+        if hasattr(pixel, "__iter__") and len(pixel) == 3 and dims == "yx":
+            dims = "zyx"
         pixel = np.asarray(check_nd(pixel, len(dims)), dtype=np.int64)
         if np.any(pixel < 0):
             raise ValueError("`pixel` must be positive.")
+            
         slices = []
         for a, px in zip(dims, pixel):
             slices.append(f"{a}={px}:-{px}")

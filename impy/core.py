@@ -110,7 +110,8 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     if self.axes.is_none():
         return self
     else:
-        # read xy scale if possible
+        # read lateral scale if possible
+        spacing = meta["ijmeta"].get("spacing", 1.0)
         try:
             tags = meta["tags"]
             xres = tags["XResolution"]
@@ -118,13 +119,13 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
             dx = xres[1]/xres[0]
             dy = yres[1]/yres[0]
         except KeyError:
-            dx = dy = 1.0
+            dx = dy = spacing
         
         self.set_scale(x=dx, y=dy)
         
         # read z scale if needed
         if "z" in self.axes:
-            dz = meta["ijmeta"].get("spacing", max(dx, dy))
+            dz = spacing
             self.set_scale(z=dz)
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
@@ -280,4 +281,8 @@ def set_verbose(b:bool) -> None:
 
 def sample_image(name:str) -> ImgArray:
     img = getattr(skdata, name)()
-    return array(img, name=name)
+    out = array(img, name=name)
+    if out.shape[-1] == 3:
+        out.axes = "yxc"
+        out = out.sort_axes()
+    return out
