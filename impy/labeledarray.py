@@ -60,6 +60,18 @@ class LabeledArray(HistoryArray):
         if dtype is None:
             dtype = self.dtype
             
+        # change axes
+        rest_axes = complement_axes(self.axes, "tzcyx")
+        axes_to_save = ""
+        for a in self.axes:
+            if a in "tzcyx":
+                axes_to_save += a
+            else:
+                if len(rest_axes) == 0:
+                    raise ImageAxesError(f"Cannot save image with axes {self.axes}")
+                axes_to_save += rest_axes[0]
+                rest_axes = rest_axes[1:]
+            
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
@@ -73,7 +85,8 @@ class LabeledArray(HistoryArray):
         info["impyhist"] = "->".join([self.name] + self.history)
         metadata["Info"] = str(info)
         if self.axes:
-            metadata["axes"] = str(self.axes).upper()
+            # metadata["axes"] = str(self.axes).upper()
+            metadata["axes"] = axes_to_save.upper()
             try:
                 res = (1/self.scale["x"], 1/self.scale["y"])
             except Exception:
