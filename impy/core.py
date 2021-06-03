@@ -268,11 +268,12 @@ def imread_stack(path:str, dtype=None):
     paths = glob.glob(finder_path)
     indices = [pattern.findall(p) for p in paths]
     ranges = [list(np.unique(ind)) for ind in np.array(indices).T]
+    ranges_sorted = [[r[i] for i in np.argsort(list(map(int, r)))] for r in ranges]
     
     # read all the images
     img0 = None
     imgs = []
-    for i in itertools.product(*ranges):
+    for i in itertools.product(*ranges_sorted):
         # check if the image to read is unique
         found_paths = glob.glob(fpath.format(*i))
         n_found = len(found_paths)
