@@ -2,12 +2,13 @@ from __future__ import annotations
 import numpy as np
 import os
 import glob
+import itertools
 import collections
 from skimage import io
 from .imgarray import ImgArray
 from .func import *
 from .bases import MetaArray, HistoryArray
-from .axes import Axes
+from .axes import Axes, ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata
 
@@ -61,8 +62,8 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     ----------
     path : str
         Path to the image.
-    dtype : str, optional
-        dtype of the image.
+    dtype : Any type that np.dtype accepts
+        dtype of the images.
     axes : str or None, optional
         If the image does not have axes metadata, this value will be used.
 
@@ -146,7 +147,7 @@ def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", templa
         Images that matches the template will added to image stack.
     ignore_exception : bool, default is False
         If true, arrays with wrong shape will be ignored.
-    dtype : str, optional
+    dtype : Any type that np.dtype accepts
         dtype of the images.
     
     Example
@@ -203,6 +204,96 @@ def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", templa
     out.history[-1] = "imread_collection"
     out.temp = paths
     return out
+
+def imread_stack(path:str, dtype=None):
+    r"""
+    Read separate image files using formated string. This function is useful when files/folders
+    are named in a certain rule, such as ".../pos_0/img_0.tif", ".../pos_0/img_1.tif".
+
+    Parameters
+    ----------
+    path : str
+        Formated path string.
+    dtype : Any type that np.dtype accepts
+        dtype of the images.
+    
+    Returns
+    -------
+    ImgArray
+        Image stack
+    
+    Example
+    -------
+    (1) For following file structure, read pos0, pos1, ... as p-stack.
+        Base
+        |- pos0.tif
+        |- pos1.tif
+        |- pos2.tif
+        :
+    >>> img = ip.imread_stack(r"C:\...\Base\pos$p.tif")
+    
+    (2) For following file structure, read xxx0, xxx1, ... as z-stack, and read yyy0, yyy1, ...
+    as t-stack.
+        Base
+        |- xxx0
+        |   |- yyy0.tif
+        |   |- yyy1.tif
+        |       :
+        |- xxx1
+        |   |- yyy0.tif
+        |   |- yyy1.tif
+        |       :
+        :
+    >>> img = ip.imread_stack(r"C:\...\Base\xxx$z\yyy$t.tif")
+    """
+    FORMAT = r"\$[a-z]"
+    new_axes = list(map(lambda x: x[1:], re.findall(r"\$[a-z]", path)))
+    
+    finder_path = re.sub(FORMAT, "*", path)
+    path = repr(path)[1:-1]
+    pattern = re.sub(r"\.", r"\.",path)
+    pattern = re.sub(r"\*", ".*", pattern)
+    pattern = re.sub(FORMAT, r"(\\d+)", pattern)
+    fpath = re.sub(FORMAT, "{}", path)
+    
+    paths = glob.glob(finder_path)
+    get_nums = lambda p: list(map(int, re.findall(pattern, p)[0]))
+    indices = [get_nums(p) for p in paths]
+    ranges = [list(np.unique(ind)) for ind in np.array(indices).T]
+    
+    # read all the images
+    img0 = None
+    imgs = []
+    for i in itertools.product(*ranges):
+        # check if the image to read is unique
+        found_paths = glob.glob(fpath.format(*i))
+        n_found = len(found_paths)
+        if n_found > 1:
+            raise ValueError(f"{n_found} paths found at {fpath.format(*i)}.")
+        elif n_found == 0:
+            raise FileNotFoundError(f"No path found at {fpath.format(*i)}.")
+        
+        img = imread(found_paths[0], dtype=dtype)
+        
+        # To speed up error handling, check shape and axes here.
+        if img0 is None:
+            img0 = img
+            for a in new_axes:
+                if a in img0.axes:
+                    raise ImageAxesError(f"{a} appeared twice.")
+        else:
+            if img.shape != img0.shape:
+                raise ValueError(f"Shape mismatch at {fpath.format(*i)}. Make sure all "
+                                  "the input images have exactly the same shapes.")
+                
+        imgs.append(img)
+    
+    # reshape image and set metadata
+    new_shape = tuple(len(r) for r in ranges) + imgs[0].shape
+    self = np.array(imgs, dtype=dtype).reshape(*new_shape).view(ImgArray)
+    self._set_info(imgs[0])
+    self.axes = "".join(new_axes) + str(img.axes)
+    return self.sort_axes()
     
 
 def read_meta(path:str) -> dict[str]:
