@@ -194,10 +194,8 @@ class ImgArray(LabeledArray):
         show_result and plot_gaussfit_result(self, fit)
         return fit
     
-    
-    
     @record()
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     def gauss_correction(self, ref=None, scale:float=1/16, median_radius:float=15):
         """
         Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
@@ -212,43 +210,40 @@ class ImgArray(LabeledArray):
         scale : float, default is 1/16.
             Scale of rough image (to speed up fitting).
         median_radius : float, default is 15.
-            Radius of median prefilter's kernel.
+            Radius of median prefilter's kernel. If smaller than 1, prefiltering will be skipped.
 
         Returns
         -------
         ImgArray
             Corrected and background subtracted image.
-        """        
-        # TODO: loop over such as t, z
-        if "c" in self.axes:
-            out = np.empty(self.shape, dtype=np.float32)
-            if isinstance(ref, self.__class__) and "c" in ref.axes:
-                refs = ref.split("c")
-            else:
-                refs = [ref]*self.sizeof("c")
-                
-            for i, (sl, img) in enumerate(self.iter("c", israw=True)):
-                ref_ = refs[i]
-                out[sl] = img.gauss_correction(ref=ref_, scale=scale, median_radius=median_radius)
-            out = out.view(self.__class__)
-            return out
         
-        else:
-            if ref is None:
-                if self.ndim != 2:
-                    raise ValueError("`ref` must be given except for images with axes 'yx' or 'cyx'.")
-                else:
-                    return self.gauss_correction(ref=self, scale=scale, median_radius=median_radius)
-            elif not isinstance(ref, self.__class__):
-                raise TypeError(f"`ref` must be None or ImgArray, but got {type(ref)}")
+        Example
+        -------
+        (1) When input image has "ptcyx"-axes, and you want to estimate the background intensity
+        for each channel by averaging all the positions and times.
+        >>> img_cor = img.gauss_correction(ref=img.proj("pt"))
         
-        if median_radius >= 1:
-            ref = ref.median_filter(radius=median_radius)
-        fit = ref.gaussfit(scale=scale, show_result=False).value
-        a = fit.max()
-        out = self.value / fit * a - a
-        out = out.view(self.__class__)
-        return out    
+        (2) When input image has "ptcyx"-axes, and you want to estimate the background intensity
+        for each channel and time point by averaging all the positions.
+        >>> img_cor = img.gauss_correction(ref=img.proj("p"))
+        """
+        if ref is None:
+            ref = self
+        elif not isinstance(ref, self.__class__):
+            raise TypeError(f"`ref` must be None or ImgArray, but got {type(ref)}")
+        
+        self_loop_axes = complement_axes(ref.axes, self.axes)
+        ref_loop_axes = complement_axes("yx", ref.axes)
+        out = np.empty(self.shape, dtype=np.float32)
+        for sl0, ref_ in ref.iter(ref_loop_axes, israw=True):
+            if median_radius >= 1:
+                ref_ = ref_.median_filter(radius=median_radius)
+            fit = ref_.gaussfit(scale=scale, show_result=False)
+            a = fit.max()
+            for sl, img in self.iter(self_loop_axes, israw=True):
+                out[sl][sl0] = (img[sl0] / fit * a - a).value
+        
+        return out.view(self.__class__)
     
     @record()
     def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, 
