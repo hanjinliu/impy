@@ -257,8 +257,9 @@ def imread_stack(path:str, dtype=None):
     fpath = re.sub(FORMAT, "{}", path)
     
     paths = glob.glob(finder_path)
-    get_nums = lambda p: list(map(int, re.findall(pattern, p)[0]))
-    indices = [get_nums(p) for p in paths]
+    # get_nums = lambda p: list(map(int, re.findall(pattern, p)[0]))
+    indices = [re.findall(pattern, p) for p in paths]
+    # indices = [get_nums(p) for p in paths]
     ranges = [list(np.unique(ind)) for ind in np.array(indices).T]
     
     # read all the images
