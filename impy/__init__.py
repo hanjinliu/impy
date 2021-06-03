@@ -1,7 +1,6 @@
-__version__ = "1.9.9"
+__version__ = "1.10.0"
 
 # TODO
-# - gauss_correction with loop
 # - FSC, FRC
 # - nD Kalman filter
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
