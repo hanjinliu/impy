@@ -60,6 +60,7 @@ class LabeledArray(HistoryArray):
         dtype : Any that can be interpreted as numpy.dtype, optional
             In what data type img will be saved.
         """        
+        # set default values
         if not tifname.endswith(".tif"):
             tifname += ".tif"
         if os.sep not in tifname:
@@ -69,7 +70,7 @@ class LabeledArray(HistoryArray):
         if dtype is None:
             dtype = self.dtype
             
-        # change axes
+        # change axes if needed
         rest_axes = complement_axes(self.axes, "tzcyx")
         new_axes = ""
         axes_changed = False
@@ -83,30 +84,35 @@ class LabeledArray(HistoryArray):
                 rest_axes = rest_axes[1:]
                 axes_changed = True
         
+        # make a copy of the image for saving
         img = self.__class__(self.as_img_type(dtype).value, axes=new_axes)
         img = img.sort_axes()
         
         metadata = self.metadata.copy()
         metadata.update({"min":np.percentile(self, 1), 
                          "max":np.percentile(self, 99)})
-        if "z" in self.axes:
-            metadata["spacing"] = self.scale["z"]
-        try:
-            info = load_json(metadata["Info"])
-        except:
-            info = {}
-        
-        info["impyhist"] = "->".join([self.name] + self.history)
-        metadata["Info"] = str(info)
-        metadata["axes"] = str(img.axes).upper()
-        if img.ndim > 3:
-            metadata["hyperstack"] = True
+        # set lateral scale
         try:
             res = (1/self.scale["x"], 1/self.scale["y"])
         except Exception:
             res = None
-        
+        # set z-scale
+        if "z" in self.axes:
+            metadata["spacing"] = self.scale["z"]
+        # add history to Info
+        try:
+            info = load_json(metadata["Info"])
+        except:
+            info = {}
+        info["impyhist"] = "->".join([self.name] + self.history)
+        metadata["Info"] = str(info)
+        # set axes in tiff metadata
+        metadata["axes"] = str(img.axes).upper()
+        if img.ndim > 3:
+            metadata["hyperstack"] = True
+        # save image
         imwrite(tifname, img, imagej=True, resolution=res, metadata=metadata)
+        # notifications
         if axes_changed:
             if new_axes == str(img.axes):
                 print(f"Image axes changed: {self.axes} -> {new_axes}")
@@ -242,7 +248,7 @@ class LabeledArray(HistoryArray):
             plt.figure(figsize=(4, 1.7))
 
         nbin = min(int(np.sqrt(self.size / 3)), 256)
-        d = self.astype("uint8").ravel() if self.dtype == bool else self.ravel()
+        d = self.astype(np.uint8).ravel() if self.dtype==bool else self.ravel()
         y, x = histogram(d, nbins=nbin)
         plt.plot(x, y, color="gray")
         plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
@@ -525,6 +531,7 @@ class LabeledArray(HistoryArray):
         Returns
         -------
         LabeledArray and LabeledArray
+            Eigenvalues and eigenvectors
         """        
         ndim = len(complement_axes(dims, self.axes))
         eigval = np.empty(self.shape+(ndim,), dtype=np.float32)
@@ -552,7 +559,7 @@ class LabeledArray(HistoryArray):
     
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Label handling
+    #   Cropping
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         
     @record()
@@ -622,6 +629,10 @@ class LabeledArray(HistoryArray):
         
         out = self[";".join(slices)]
         return out
+    
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Label handling
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     @dims_to_spatial_axes
     def specify(self, center, radius, *, dims=None, labeltype="square") -> LabeledArray:

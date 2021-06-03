@@ -38,27 +38,37 @@ class ImgArray(LabeledArray):
         return super().__isub__(value)
     
     @same_dtype(asfloat=True)
-    @check_value
     def __mul__(self, value):
+        if isinstance(value, np.ndarray):
+            value = value.astype(np.float32)
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot multiply negative value.")
         return super().__mul__(value)
     
     @same_dtype(asfloat=True)
-    @check_value
     def __imul__(self, value):
+        if isinstance(value, np.ndarray):
+            value = value.astype(np.float32)
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot multiply negative value.")
         return super().__imul__(value)
     
-    @check_value
     def __truediv__(self, value):
         self = self.astype(np.float32)
         if isinstance(value, np.ndarray):
+            value = value.astype(np.float32)
             value[value==0] = np.inf
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot devide negative value.")
         return super().__truediv__(value)
     
-    @check_value
     def __itruediv__(self, value):
         self = self.astype(np.float32)
         if isinstance(value, np.ndarray):
+            value = value.astype(np.float32)
             value[value==0] = np.inf
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot devide negative value.")
         return super().__itruediv__(value)
     
     def freeze(self):

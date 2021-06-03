@@ -3,18 +3,18 @@ import numpy as np
 from .func import add_axes
 from .utilcls import Progress
 
-def check_value(__op__):
-    def wrapper(self, value):
-        if isinstance(value, np.ndarray):
-            value = value.astype(np.float32)
-            if self.ndim >= 3 and value.shape == self.sizesof("yx"):
-                value = add_axes(self.axes, self.shape, value)
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot multiply or divide negative value.")
+# def check_value(__op__):
+#     def wrapper(self, value):
+#         if isinstance(value, np.ndarray):
+#             value = value.astype(np.float32)
+#             if self.ndim >= 3 and value.shape == self.sizesof("yx"):
+#                 value = add_axes(self.axes, self.shape, value)
+#         elif np.isscalar(value) and value < 0:
+#             raise ValueError("Cannot multiply or divide negative value.")
 
-        out = __op__(self, value)
-        return out
-    return wrapper
+#         out = __op__(self, value)
+#         return out
+#     return wrapper
     
 def record(append_history=True, record_label=False):
     """

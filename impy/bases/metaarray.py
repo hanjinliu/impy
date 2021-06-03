@@ -144,16 +144,12 @@ class MetaArray(np.ndarray):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like method
+            # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
             sl = self._str_to_slice(key)
             return self.__getitem__(sl)
 
-        if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
-            key = add_axes(self.axes, self.shape, key, key.axes)
-            
-        elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
-            # img[arr] ... where arr is 2-D boolean array
-            key = add_axes(self.axes, self.shape, key)
+        if isinstance(key, np.ndarray):
+            key = self._broadcast(key)
         
         out = super().__getitem__(key)         # get item as np.ndarray
         keystr = key_repr(key)                 # write down key e.g. "0,*,*"
@@ -393,3 +389,35 @@ class MetaArray(np.ndarray):
     
     def sizesof(self, axes:str):
         return tuple(self.sizeof(a) for a in axes)
+
+    def _broadcast(self, value):
+        """
+        More flexible broadcasting. If `self` has "zcyx"-axes and `value` has "zyx"-axes, then
+        they should be broadcasted by stacking `value` along "c"-axes
+        """        
+        if isinstance(value, MetaArray) and not value.axes.is_none():
+            value = add_axes(self.axes, self.shape, value, value.axes)
+        elif isinstance(value, np.ndarray):
+            try:
+                if self.sizesof("yx") == value.shape:
+                    value = add_axes(self.axes, self.shape, value)
+            except ImageAxesError:
+                pass
+        return value
+    
+    def __add__(self, value):
+        value = self._broadcast(value)
+        return super().__add__(value)
+    
+    def __sub__(self, value):
+        value = self._broadcast(value)
+        return super().__sub__(value)
+    
+    def __mul__(self, value):
+        value = self._broadcast(value)
+        return super().__mul__(value)
+    
+    def __truediv__(self, value):
+        value = self._broadcast(value)
+        return super().__truediv__(value)
+    

@@ -6,7 +6,7 @@ import collections
 from skimage import io
 from .imgarray import ImgArray
 from .func import *
-from .bases.metaarray import MetaArray
+from .bases import MetaArray, HistoryArray
 from .axes import Axes
 from .utilcls import Progress
 from skimage import data as skdata
@@ -289,7 +289,14 @@ def sample_image(name:str) -> ImgArray:
 
 def squeeze(img:MetaArray):
     out = np.squeeze(img)
-    out.axes = "".join(a for a in img.axes if img.sizeof(a) > 1)
+    new_axes = "".join(a for a in img.axes if img.sizeof(a) > 1)
+    if isinstance(img, HistoryArray):
+        out._set_info(img, "squeeze", new_axes=new_axes)
+    else:
+        try:
+            out._set_info(img, new_axes=new_axes)
+        except Exception:
+            pass
     return out
     
     

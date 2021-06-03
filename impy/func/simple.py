@@ -103,6 +103,9 @@ def del_axis(axes, axis) -> str:
     return new_axes
 
 def add_axes(axes, shape, key, key_axes="yx"):
+    """
+    Stack `key` to make its shape key_axes-> axes.
+    """    
     if shape == key.shape:
         return key
     key = np.asarray(key)
