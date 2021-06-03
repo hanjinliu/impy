@@ -249,17 +249,24 @@ def imread_stack(path:str, dtype=None):
     FORMAT = r"\$[a-z]"
     new_axes = list(map(lambda x: x[1:], re.findall(r"\$[a-z]", path)))
     
+    # To convert input path string into that for glob.glob, replace $X with wildcard
+    # e.g.) ~\XX$t_YY$z -> ~\XX*_YY*
     finder_path = re.sub(FORMAT, "*", path)
+    
+    # To convert input path string into file-finding regex pattern.
+    # e.g.) ~\XX$t_YY$z\*.tif -> ~\\XX(\d)_YY(\d)\\.*\.tif
     path = repr(path)[1:-1]
-    pattern = re.sub(r"\.", r"\.",path)
-    pattern = re.sub(r"\*", ".*", pattern)
-    pattern = re.sub(FORMAT, r"(\\d+)", pattern)
+    pattern = re.sub(r"\.", r"\.",path)          # dots to non-escape
+    pattern = re.sub(r"\*", ".*", pattern)       # asters to non-escape
+    pattern = re.sub(FORMAT, r"(\\d+)", pattern) # make number finders
+    pattern = re.compile(pattern)
+    
+    # To convert input path string into format string to execute imread.
+    # e.g.) ~\XX$t_YY$z -> ~\XX{}_YY{}
     fpath = re.sub(FORMAT, "{}", path)
     
     paths = glob.glob(finder_path)
-    # get_nums = lambda p: list(map(int, re.findall(pattern, p)[0]))
-    indices = [re.findall(pattern, p) for p in paths]
-    # indices = [get_nums(p) for p in paths]
+    indices = [pattern.findall(p) for p in paths]
     ranges = [list(np.unique(ind)) for ind in np.array(indices).T]
     
     # read all the images
