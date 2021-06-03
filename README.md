@@ -105,6 +105,16 @@ This module also provides many image analysis tools and seamless interface betwe
 - `shapes_to_labels` &rarr; Convert manually drawn shapes into `Label`.
 - `points_to_frames` &rarr; Convert manually spotted points into `AxesFrame`.
 
+## Basic Functions in impy module
+
+- `imread` &rarr; Load an image. `e.g. >>> ip.imread(path)`
+- `imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
+- `imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\100nM_pos3"`.
+- `read_meta` &rarr; Read metadata of a tiff file.
+- `array`, `zeros`, `zeros_like`, `empty`, `empty_like` = similar to those in `numpy` but return `ImgArray`.
+- `set_cpu` &rarr; Set the numbers of CPU used in image analysis.
+- `stack` &rarr; Make a image stack from a list of images along any axis. ` e.g. >>> ip.stack(imglist, axis="c")`
+
 ## Brief Examples
 
 #### 1. Input/Output and Visualization
@@ -122,8 +132,6 @@ ip.window.add(img) # send to napari
 ```
 
 #### 2. Metadata and Axis-Targeted Slicing
-
-Suppose an `np.ndarray` with shape (10, 20, 256, 256), which axis is time and which is z-slice? The file path of original image, what analysis have been applied are also confusing. `ImgArray` retains all the axis information and histories. You can use any character as axis symbols.
 
 ```python
 img
@@ -179,16 +187,6 @@ props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
 fit_result = props.mean_intensity.curve_fit(func) # curve fitting
 ```
 
-## Basic Functions in impy
-
-- `imread` = Load an image. `e.g. >>> ip.imread(path)`
-- `imread_collection` = Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
-- `read_meta` = Read metadata of a tiff file.
-- `array`, `zeros`, `zeros_like`, `empty`, `empty_like` = similar to those in `numpy` but return `ImgArray`.
-- `set_cpu` = Set the numbers of CPU used in image analysis.
-- `stack` = Make a image stack from a list of images along any axis. ` e.g. >>> ip.stack(imglist, axis="c")`
-- `window` &rarr; interface between `napari`. `ImgArray`, `Label`, `MarkerFrame` and `TrackFrame` can be sent to viewer with a simple code `ip.window.add(X)`.
-
 ## Common Attributes and Methods of Arrays
 
 ### Attributes
@@ -211,13 +209,6 @@ fit_result = props.mean_intensity.curve_fit(func) # curve fitting
 - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
 - `set_scale` &rarr; set scales of any axes.
 
-## Data Type Conversion
-
-`uint8`, `uint16`, `bool` and `float32` (sometimes `complex64`) are supported for type conversion.
-- `as_uint8` &rarr; convert to `uint8`.
-- `as_uint16` &rarr; convert to `uint16`.
-- `as_float` &rarr; convert to `float32`.
-- `as_img_type` &rarr; convert to any supported types.
 
 ## Automatic Saturation and Type Conversion
 
