@@ -1,4 +1,7 @@
 from __future__ import annotations
+from impy.label import Label
+from .specials import PropArray
+from .deco import dims_to_spatial_axes, safe_str, record
 import numpy as np
 import os
 import glob
@@ -11,6 +14,7 @@ from .bases import MetaArray, HistoryArray
 from .axes import Axes, ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata
+from typing import Callable
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
@@ -302,6 +306,7 @@ def imread_stack(path:str, dtype=None):
     self = np.array(imgs, dtype=dtype).reshape(*new_shape).view(ImgArray)
     self._set_info(imgs[0])
     self.axes = "".join(new_axes) + str(img.axes)
+    self.set_scale(imgs[0])
     return self.sort_axes()
     
 
@@ -380,6 +385,19 @@ def set_verbose(b:bool) -> None:
     return None
 
 def sample_image(name:str) -> ImgArray:
+    """
+    Get sample images from `skimage` and convert it into ImgArray.
+
+    Parameters
+    ----------
+    name : str
+        Name of sample image, such as "camera".
+
+    Returns
+    -------
+    ImgArray
+        Sample image.
+    """    
     img = getattr(skdata, name)()
     out = array(img, name=name)
     if out.shape[-1] == 3:
@@ -399,4 +417,143 @@ def squeeze(img:MetaArray):
             pass
     return out
     
+def bind_method(func:Callable, funcname:str=None, *, indtype=None, outdtype=None, kind="image",
+                mapping:dict[str, tuple[str, Callable]]=None) -> None:
+    """
+    Dynamically define ImgArray function that can iterate over axes. You can integrate your own
+    function, or useful functions from `skimage` or `opencv`. History of functiom call will be 
+    similarly recorded in `self.history`.
+
+    Parameters
+    ----------
+    func : callable
+        Function to wrapped and bound to ImgArray.
+    funcname : str, optional
+        Method name after set to ImgArray. The name of `func` itself will be set by default.
+    indtype : dtype, optional
+        If given, input data type will be converted by `as_img_type` method before passed to `func`.
+    outdtype : dtype, optional
+        If given, output data array will be defined in this type.
+    kind : str, default is "image"
+        What kind of function will be defined.
+    mapping : dict of str -> (str, callable), optional
+        If given, keyword arguments are converted using this mapping before passed to `func`. This
+        keyword is used for modifing original function without wrapping it. For more detail see
+        Example (2).
+
+    Example
+    -------
+    (1) Bind "normalize" method that 
+    >>> def normalize(img):
+    >>>    min_, max_ = img.min(), img.max()
+    >>>    return (img - min_)/(max_ - min_)
+    >>> ip.bind_method(normalize, indtype=np.float32, outdtype=np.float32)
+    >>> img = ip.imread(...)
+    >>> img.max_filter(radius=3)
     
+    (2) Bind `skimage.filters.rank.maximum` for filtering, but make it take "radius" rather than
+    "selem" as a keyword argument.
+    >>> from impy.func import ball_like
+    >>> from skimage.filters.rank import maximum
+    >>> ip.bind_method(maximum, "max_filter", mapping={"radius":("selem": ball_like)})
+    >>> img = ip.imread(...)
+    >>> img.max_filter(radius=3)
+    
+    (3) Bind a method `calc_mean` that calculate mean value around spatial dimensions. For one yx-
+    or zyx-image, a scalar value is returned, so that `calc_mean` should return `PropArray`.
+    >>> ip.bind_method(np.mean, "calc_mean", outdtype=np.float32, kind="property")
+    >>> img = ip.imread(...)
+    >>> img.calc_mean()
+    """    
+    # check function's name
+    if funcname is None:
+        fn = func.__name__
+    elif isinstance(funcname, str):
+        fn = funcname
+    else:
+        raise TypeError("`funcname` must be str if given.")
+    
+    if mapping is None:
+        mapping = {}
+    
+    # Dynamically define functions used inside the plugin method, depending on `kind` option.
+    # _prepare_output_array : returns a subclass of ndarray for output.
+    # _iter : returns an iterator around spatial dimensions.
+    # _exit : overwrites output attributes.
+    if kind == "image":
+        def _prepare_output_array(self, dims):
+            dtype = outdtype if outdtype is not None else self.dtype
+            return np.empty(self.shape, dtype=dtype)
+        
+        def _iter(self, dims):
+            return self.iter(complement_axes(dims, self.axes))
+        
+        def _exit(out, self, func, *args, **kwargs):
+            out = out.view(ImgArray)
+            _args = list(map(safe_str, args))
+            _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
+            history = f"{func.__name__}({','.join(_args + _kwargs)})"
+            out._set_info(self, history)
+            return out
+        
+    elif kind == "property":
+        def _prepare_output_array(self, dims):
+            dtype = outdtype if outdtype is not None else object
+            c_axes = complement_axes(dims, self.axes)
+            shape = self.sizesof(c_axes)
+            return PropArray(np.empty(shape, dtype=dtype), name=self.name, dirpath=self.dirpath, 
+                             axes=c_axes, dtype=dtype)
+        
+        def _iter(self, dims):
+            return self.iter(complement_axes(dims, self.axes), exclude=dims)
+        
+        def _exit(out, self, func, *args, **kwargs):
+            out.propname = fn
+            return out
+            
+    elif kind == "label":
+        def _prepare_output_array(self, dims):
+            return largest_zeros(self.shape)
+        
+        def _iter(self, dims):
+            return self.iter(complement_axes(dims, self.axes))
+        
+        def _exit(out, self, func, *args, **kwargs):
+            self.labels = Label(out, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+            self.labels.history.append(fn)
+            self.labels.set_scale(self)
+            return out    
+        
+    else:
+        raise NotImplementedError(kind)
+    
+    # Define method
+    @dims_to_spatial_axes
+    def _func(self, *args, dims=None, **kwargs):
+        if indtype is not None:
+            self = self.as_img_type(indtype)
+        
+        # mapping keyword arguments if necessary
+        kw = dict()
+        for k, v in kwargs.items():
+            m = mapping.get(k, None)
+            if m is None:
+                kw[k] = v
+            else:
+                newkey, val = m
+                try:
+                    kw[newkey] = val(v, len(dims))
+                except TypeError:
+                    kw[newkey] = val(v)
+            
+        out = _prepare_output_array(self, dims)
+            
+        with Progress(fn):
+            for sl, img in _iter(self, dims):
+                out[sl] = func(img, *args, **kw)
+            out = _exit(out, self, func, *args, **kwargs)
+        return out
+    
+    if hasattr(ImgArray, fn):
+        print(f"ImgArray already has attribute '{fn}'. It is overwritten.")
+    return setattr(ImgArray, fn, _func)
