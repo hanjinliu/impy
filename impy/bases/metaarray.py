@@ -69,6 +69,15 @@ class MetaArray(np.ndarray):
             unit = None
         return unit
     
+    @scale_unit.setter
+    def scale_unit(self, unit):
+        if not isinstance(unit, str):
+            raise TypeError("Can only set str to scale unit.")
+        if isinstance(self.metadata, dict):
+            self.metadata["unit"] = unit
+        else:
+            self.metadata = {"unit": unit}
+    
     def set_scale(self, other=None, **kwargs) -> None:
         """
         Set scales of each axis.
@@ -323,7 +332,7 @@ class MetaArray(np.ndarray):
         iterlist = self._get_iterlist(axes)
         selfview = self if israw else self.value
         it = itertools.product(*iterlist)
-        i = 0 # counter
+        c = 0 # counter
         for sl in it:
             if len(exclude) == 0:
                 outsl = sl
@@ -331,10 +340,10 @@ class MetaArray(np.ndarray):
                 outsl = tuple(s for i, s in enumerate(sl) 
                               if self.axes[i] not in exclude)
             yield outsl, selfview[sl]
-            i += 1
+            c += 1
             
         # if iterlist = []
-        if i == 0:
+        if c == 0:
             outsl = (slice(None),) * (self.ndim - len(exclude))
             yield outsl, selfview
             

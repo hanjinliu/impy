@@ -1,7 +1,8 @@
-__version__ = "1.10.2"
+__version__ = "1.10.3"
 
 # TODO
 # - crop image from shape
+# - lucy lower bound
 # - nD Kalman filter
 # - FSC, FRC
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
@@ -39,6 +40,10 @@ warnings.simplefilter("ignore", UserWarning)
 warnings.simplefilter("ignore", DeprecationWarning)
 
 class Random:
+    """
+    This class enables practically any numpy.random functions to return ImgArray by such as the
+    `ip.random.normal(size=(10, 256, 256))`.
+    """
     def __init__(self):
         pass
     
@@ -50,9 +55,14 @@ class Random:
         return _func
 
 random = Random()
-            
 
 def __getattr__(key):
+    """
+    This builtin function enables practically any numpy functions to take string `axis` argument
+    by such as `ip.mean(img, axis="z")`. Also, unlike `np.mean(img)`, ImgArray is converted to 
+    np.ndarray inside so that functions are executed as fast as np.ndarray except for the 
+    overhead before and after function calls.
+    """
     from .func import complement_axes
     from .deco import make_history
     npfunc = getattr(numpy, key)

@@ -3010,11 +3010,15 @@ class ImgArray(LabeledArray):
             image slice at t=0 and c=1.
         """        
         c_axes = complement_axes(dims, self.axes)
-        out = self.parallel(estimate_sigma_, c_axes, outshape=self.sizesof(c_axes))
+        out = np.empty(self.sizesof(c_axes))
+        
+        for sl, img in self.iter(c_axes, exclude="dims"):
+            out[sl] = skres.estimate_sigma(img)
+            
         if out.ndim == 0 and squeeze:
             out = out[()]
         else:
-            out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
+            out = PropArray(out, dtype=np.float32, name=self.name, 
                             axes=c_axes, propname="background_sigma")
             out._set_info(self, new_axes=c_axes)
         return out       
