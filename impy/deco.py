@@ -32,9 +32,7 @@ def record(append_history=True, record_label=False):
             ifupdate = kwargs.pop("update", False)
             
             if append_history:
-                _args = list(map(safe_str, args))
-                _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
-                history = f"{func.__name__}({','.join(_args + _kwargs)})"
+                history = make_history(func.__name__, args, kwargs)
                 if record_label:
                     out.labels._set_info(self.labels, history)
                 else:
@@ -134,4 +132,9 @@ def safe_str(obj):
             return s
     except Exception:
         return str(type(obj))
-  
+
+def make_history(funcname, args, kwargs):
+    _args = list(map(safe_str, args))
+    _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
+    history = f"{funcname}({','.join(_args + _kwargs)})"
+    return history

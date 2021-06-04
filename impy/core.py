@@ -1,7 +1,7 @@
 from __future__ import annotations
 from impy.label import Label
 from .specials import PropArray
-from .deco import dims_to_spatial_axes, safe_str, record
+from .deco import dims_to_spatial_axes, make_history
 import numpy as np
 import os
 import glob
@@ -526,9 +526,7 @@ class bind:
             
             def _exit(out, self, func, *args, **kwargs):
                 out = out.view(ImgArray)
-                _args = list(map(safe_str, args))
-                _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
-                history = f"{func.__name__}({','.join(_args + _kwargs)})"
+                history = make_history(func.__name__, args, kwargs)
                 out._set_info(self, history)
                 return out
             
