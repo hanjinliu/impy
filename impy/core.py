@@ -437,6 +437,10 @@ class bind:
         If given, output data array will be defined in this type.
     kind : str, default is "image"
         What kind of function will be defined.
+    ndim : {None, 2, 3}, default is None
+        Dimension of image that the original function supports. If None, then it is assumed to
+        support both 2 and 3 dimensional images and automatically determined by the universal
+        `dims_to_spatial_axes` method.
     mapping : dict of str -> (str, callable), optional
         If given, keyword arguments are converted using this mapping before passed to `func`. This
         keyword is used for modifing original function without wrapping it. For more detail see
@@ -476,27 +480,28 @@ class bind:
     """    
     bound = set()
     def __init__(self, func:Callable=None, funcname:str=None, *, indtype=None, outdtype=None, 
-                 kind="image", mapping:dict[str, tuple[str, Callable]]=None):
+                 kind:str="image", ndim:int|None=None, mapping:dict[str, tuple[str, Callable]]=None):
         
         if callable(func):
             self._bind_method(func, funcname=funcname, indtype=indtype, outdtype=outdtype, 
-                              kind=kind, mapping=mapping)
+                              kind=kind, ndim=ndim, mapping=mapping)
         else:
             self.funcname = func
             self.indtype = indtype
             self.outdtype = outdtype
             self.kind = kind
+            self.ndim = ndim
             self.mapping = mapping
     
     def __call__(self, func:Callable):
         # If binder is used as decorator
         if callable(func):
             self._bind_method(func, funcname=self.funcname, indtype=self.indtype, 
-                              outdtype=self.outdtype, kind=self.kind, mapping=self.mapping)
+                              outdtype=self.outdtype, kind=self.kind, ndim=self.ndim, mapping=self.mapping)
         return func
     
     def _bind_method(self, func:Callable, funcname:str=None, *, indtype=None, outdtype=None,
-                     kind="image", mapping:dict[str, tuple[str, Callable]]=None):
+                     kind="image", ndim=None, mapping:dict[str, tuple[str, Callable]]=None):
         # check function's name
         if funcname is None:
             fn = func.__name__
@@ -508,6 +513,15 @@ class bind:
         # If the function name conflicts with ImgArray's native methods, raise an error.
         if hasattr(ImgArray, fn) and fn not in self.bound:
             raise AssertionError(f"ImgArray already has attribute '{fn}'. Consider other names.")
+        
+        if ndim is None:
+            dims = None
+        elif ndim == 2:
+            dims = "yx"
+        elif ndim == 3:
+            dims = "zyx"
+        else:
+            raise ValueError(f"`ndim` must be None, 2 or 3, but got {ndim}.")
         
         if mapping is None:
             mapping = {}
@@ -563,7 +577,7 @@ class bind:
         
         # Define method
         @dims_to_spatial_axes
-        def _func(self, *args, dims=None, **kwargs):
+        def _func(self, *args, dims=dims, **kwargs):
             if indtype is not None:
                 self = self.as_img_type(indtype)
             
