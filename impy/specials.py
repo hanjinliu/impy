@@ -364,19 +364,19 @@ class AxesFrame(pd.DataFrame):
         ----------
         axes : str
             Along which axes to iterate.
-
+            
         Yields
         -------
         tuple and AxesFrame
             slice to generate the AxesFrame.
         """
         indices = [i for i, a in enumerate(self.col_axes) if a in axes]
-        outsl = [slice(None)]*len(self.col_axes)
+        outsl = [slice(None)] * len(self.col_axes)
         cols = [a for a in self.col_axes if a not in axes]
         groupkeys = [a for a in axes]
         
         if len(groupkeys) == 0:
-            yield slice(None), self
+            yield (slice(None),), self
         
         else:
             for sl, af in self.groupby(groupkeys):
@@ -404,16 +404,31 @@ def tp_no_verbose(func):
 
 class MarkerFrame(AxesFrame):
     @tp_no_verbose
-    def link(self, search_range, memory=0, min_dwell=0, predictor=None, adaptive_stop=None, adaptive_step=0.95,
-             neighbor_strategy=None, link_strategy=None, dist_func=None, to_eucl=None) -> TrackFrame:
+    @dims_to_spatial_axes
+    def link(self, search_range:float|tuple[float, ...], *, memory:int=0, min_dwell:int=0, dims=None,
+             **kwargs) -> TrackFrame:
         """
-        Link sepaprate positions to generate tracks.
-        """
-        # TODO batch
+        Link separate points to generate tracks.
+
+        Parameters
+        ----------
+        search_range : float or tuple of float
+            How far a molecule can move in the next frame. Large value causes long calculation time.
+        memory : int, default is 0
+            How long a molecule can vanish.
+        min_dwell : int, default is 0
+            Minimum number of frames that single track should dwell.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        TrackFrame
+            Result of particle tracking.
+        """        
+            
         with Progress("link"):
-            linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, predictor=predictor, 
-                            adaptive_stop=adaptive_stop, adaptive_step=adaptive_step, neighbor_strategy=neighbor_strategy, 
-                            link_strategy=link_strategy, dist_func=dist_func, to_eucl=to_eucl)
+            linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, **kwargs)
             
             linked.rename(columns = {"particle":"p"}, inplace=True)
             linked = linked.reindex(columns=[a for a in "p"+str(self.col_axes)])
@@ -426,11 +441,10 @@ class MarkerFrame(AxesFrame):
                 out = track.as_standard_type()
             out.index = np.arange(len(out))
         return out
-        
 
 class TrackFrame(AxesFrame):
     def _renamed_df(self):
-        df = pd.DataFrame(self, copy=True, dtype="float32")
+        df = pd.DataFrame(self, copy=True, dtype=np.float32)
         df.rename(columns = {"t":"frame", "p":"particle"}, inplace=True)
         return df
         
@@ -439,7 +453,7 @@ class TrackFrame(AxesFrame):
         df = self._renamed_df()
         shift = -tp.compute_drift(df, smoothing=smoothing)
         # trackpy.compute_drift does not return the initial drift so that here we need to start with [0, 0]
-        ori = pd.DataFrame({"y":[0.], "x":[0.]}, dtype="float32")
+        ori = pd.DataFrame({"y":[0.], "x":[0.]}, dtype=np.float32)
         shift = pd.concat([ori, shift], axis=0)
         show_drift and plot_drift(shift)
         return MarkerFrame(shift)
