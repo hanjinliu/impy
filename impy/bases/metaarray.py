@@ -59,6 +59,16 @@ class MetaArray(np.ndarray):
     def scale(self):
         return self.axes.scale
     
+    @property
+    def scale_unit(self):
+        try:
+            unit = self.metadata["unit"]
+            if unit.startswith(r"\u"):
+                unit = "u" + unit[6:]
+        except Exception:
+            unit = "pixel"
+        return unit
+    
     def set_scale(self, other=None, **kwargs) -> None:
         """
         Set scales of each axis.

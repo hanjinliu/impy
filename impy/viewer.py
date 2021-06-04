@@ -39,8 +39,11 @@ class napariWindow:
         
     def start(self):
         self.viewer = napari.Viewer(title="impy")
-        self.viewer.scale_bar.visible=True
-        self.viewer.axes.visible=True
+        self.viewer.scale_bar.visible = True
+        self.viewer.scale_bar.ticks = False
+        self.viewer.scale_bar.font_size = 8
+        self.viewer.axes.visible = True
+        self.viewer.axes.colored = False
     
     def add(self, obj, **kwargs):
         """
@@ -198,7 +201,7 @@ class napariWindow:
         self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                               name=name if len(name)>1 else name[0],
                               **kwargs)
-        
+        self.viewer.scale_bar.unit = img.scale_unit
         if hasattr(img, "labels"):
             self._add_labels(img.labels, name=name)
         
