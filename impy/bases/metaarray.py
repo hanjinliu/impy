@@ -66,7 +66,7 @@ class MetaArray(np.ndarray):
             if unit.startswith(r"\u"):
                 unit = "u" + unit[6:]
         except Exception:
-            unit = "pixel"
+            unit = None
         return unit
     
     def set_scale(self, other=None, **kwargs) -> None:

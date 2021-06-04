@@ -1,7 +1,8 @@
-__version__ = "1.10.1"
+__version__ = "1.10.2"
 
 # TODO
-# - napari 0.4.8
+# - crop image from shape
+# - bind_key decorator
 # - nD Kalman filter
 # - FSC, FRC
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
@@ -12,7 +13,7 @@ import warnings
 from .core import (array, zeros, zeros_like, empty, empty_like, 
                    imread, imread_stack, imread_collection, read_meta, 
                    stack, set_cpu, set_verbose, sample_image, squeeze,
-                   bind_method)
+                   bind)
 from .imgarray import ImgArray
 from .specials import PropArray, MarkerFrame, TrackFrame
 from .label import Label
