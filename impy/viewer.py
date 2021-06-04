@@ -8,9 +8,10 @@ from .specials import *
 from .utilcls import ImportOnRequest
 napari = ImportOnRequest("napari")
 
-
 # TODO: 
 # - different name (different scale or shape) for different window?
+# crop
+# crop = ip.window.last_layer.data[tuple(slice(int(i[0]), int(i[1])) for i in ip.window.last_layer.corner_pixels.T)]
 
 class napariWindow:
     _point_cmap = plt.get_cmap("rainbow", 16)
@@ -36,6 +37,19 @@ class napariWindow:
     def scale(self):
         d = self.viewer.dims
         return {a: r[2] for a, r in zip(d.axis_labels, d.range)}
+    
+    @property
+    def front_image(self):
+        """
+        From list of image layers return the most front visible image.
+        """        
+        front = None
+        for img in self.iter_layer("image"):
+            if img.visible:
+                front = img # This is a view of ImgArray
+        if front is None:
+            raise ValueError("There is no visible image layer.")
+        return front
         
     def start(self):
         self.viewer = napari.Viewer(title="impy")
@@ -87,8 +101,9 @@ class napariWindow:
         Label
             Label image that was made from shapes.
         """        
+        # TODO: does not work for multichannel images because axes is aborted by np.take
         if destination is None:
-            destination = self.get_front_image()
+            destination = self.front_image.data
         zoom_factors = [self.scale[a]/destination.scale[a] for a in "yx"]
         if np.unique(zoom_factors).size == 1:
             zoom_factor = zoom_factors[0]
@@ -128,7 +143,7 @@ class napariWindow:
             DataFrame of points.
         """        
         if ref is None:
-            ref = self.get_front_image()
+            ref = self.front_image.data
         zoom_factors = [self.scale[a]/ref.scale[a] for a in ref.axes]
         points = [points.data/zoom_factors for points in self.iter_layer("point")]
         if not projection:
@@ -138,6 +153,20 @@ class napariWindow:
         mf = MarkerFrame(data, columns = self.axes)
         mf.set_scale(self)
         return mf
+    
+    def crop_front_image(self, dims="tzc"):
+        layer = self.front_image
+        sl = []
+        for i, (start, end) in enumerate(layer.corner_pixels.T):
+            start, end = int(start), int(end)
+            if start+1 < end:
+                sl.append(slice(start, end))
+            else:
+                if layer.data.axes[i] in dims:
+                    sl.append(slice(None))
+                else:
+                    sl.append(start)
+        return layer.data[tuple(sl)]
     
     def iter_layer(self, layer_type:str):
         """
@@ -165,18 +194,6 @@ class napariWindow:
         for layer in self.layers:
             if isinstance(layer, layer_type):
                 yield layer
-    
-    def get_front_image(self):
-        """
-        From list of image layers return the most front visible image.
-        """        
-        front = None
-        for img in self.iter_layer("image"):
-            if img.visible:
-                front = img.data # This is a view of ImgArray
-        if front is None:
-            raise ValueError("There is no visible image layer.")
-        return front
         
     def _add_image(self, img:LabeledArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
@@ -213,7 +230,8 @@ class napariWindow:
     
     def _add_points(self, points, **kwargs):
         if isinstance(points, MarkerFrame):
-            scale = [points.scale[a] for a in points._axes if a != "c"]
+            # scale = [points.scale[a] for a in points._axes if a != "c"]
+            scale = make_world_scale(points)
             points = points.get_coords()
         else:
             scale=None
@@ -258,7 +276,7 @@ class napariWindow:
         else:
             track_list = [track]
             
-        scale = [track.scale[a] for a in track._axes if a not in "pc"]
+        scale = make_world_scale(track[[a for a in track._axes if a != "p"]])
         for tr in track_list:
             self.viewer.add_tracks(tr, scale=scale, **kwargs)
         
@@ -302,24 +320,16 @@ class napariWindow:
             self.viewer.dims.axis_labels = new_axes
         
         return None
-            
-def get_axes(obj):
-    if isinstance(obj, MetaArray):
-        return obj.axes
-    elif isinstance(obj, AxesFrame):
-        return obj.col_axes
-    else:
-        raise AttributeError(f"Type {type(obj)} does not have axes.")
 
 def to_labels(layer, labels_shape, zoom_factor=1):
     return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
     
 
-def make_world_scale(img):
+def make_world_scale(obj):
     scale = []
-    for a in img.axes:
+    for a in obj._axes:
         if a in "zyx":
-            scale.append(img.scale[a])
+            scale.append(obj.scale[a])
         elif a == "c":
             pass
         else:
