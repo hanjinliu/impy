@@ -9,10 +9,8 @@ __version__ = "1.10.5"
 # - get line from shape layers
 
 import warnings
-from .core import (array, zeros, zeros_like, empty, empty_like, 
-                   imread, imread_stack, imread_collection, read_meta, 
-                   stack, set_cpu, set_verbose, sample_image, squeeze,
-                   bind)
+from .core import (array, zeros, empty, imread, imread_stack, imread_collection, read_meta, 
+                   stack, set_cpu, set_verbose, sample_image, bind)
 from .imgarray import ImgArray
 from .specials import PropArray, MarkerFrame, TrackFrame
 from .label import Label

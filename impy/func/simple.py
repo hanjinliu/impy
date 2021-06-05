@@ -114,7 +114,10 @@ def add_axes(axes, shape, key, key_axes="yx"):
             key = np.stack([key]*(shape[i]), axis=i)
     return key
 
-def replace_axis_kwargs(kwargs, img):
+def replace_inputs(img, args, kwargs):
+    _as_np_ndarray = lambda a: a.value if a is img else a
+    # convert arguments
+    args = tuple(_as_np_ndarray(a) for a in args)
     if "axis" in kwargs:
         axis = kwargs["axis"]
         if isinstance(axis, str):
@@ -128,6 +131,14 @@ def replace_axis_kwargs(kwargs, img):
             axis = img.axes.axes[axis]
     else:
         axis = ""
+    
+    if "keepdims" in kwargs and kwargs["keepdims"] == True:
+        axis = ""
+    
+    if "out" in kwargs:
+        kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
+    
+    return args, kwargs
 
 def determine_range(arr):
     """

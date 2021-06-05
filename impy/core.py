@@ -454,7 +454,7 @@ def block(imgs):
     
     imgs = _recursive_view(imgs)
     out = np.block(imgs).view(img0.__class__)
-    safe_set_info(out, img0, f"block", img0.axes)
+    safe_set_info(out, img0, "block", img0.axes)
     return out
 
 
@@ -474,6 +474,19 @@ def empty_like(img, name:str=None):
         out.name = name
     return out
 
+@MetaArray.implements(np.expand_dims)
+def expand_dims(img, axis):
+    if isinstance(axis, str):
+        new_axes = Axes(axis + str(img.axes))
+        new_axes.sort()
+        axisint = tuple(new_axes.find(a) for a in axis)
+    else:
+        axisint = axis
+        new_axes = img.axes
+    
+    out = np.expand_dims(img.value, axisint).view(img.__class__)
+    safe_set_info(out, img, f"expand_dims({axis})", new_axes)
+    return out
 
 class bind:
     """

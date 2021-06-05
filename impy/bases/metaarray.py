@@ -235,13 +235,7 @@ class MetaArray(np.ndarray):
         Every time a numpy universal function (add, subtract, ...) is called,
         this function will be called to set/update essential attributes.
         """
-        _replace_self = lambda a: a.value if a is self else a
-        # convert arguments
-        args_ = tuple(_replace_self(a) for a in args)
-
-        # convert keyword arguments
-        if "out" in kwargs:
-            kwargs["out"] = tuple(_replace_self(a) for a in kwargs["out"])
+        args_, _ = replace_inputs(self, args, kwargs)
 
         result = getattr(ufunc, method)(*args_, **kwargs)
 
@@ -254,15 +248,7 @@ class MetaArray(np.ndarray):
         if not isinstance(result, self.__class__):
             return result
         
-        # find the largest MetaArray. Largest because of broadcasting.
-        arr = None
-        for arg in args:
-            if isinstance(arg, self.__class__):
-                if arr is None or arr.ndim < arg.ndim:
-                    arr = arg
-        
-        if isinstance(arr, self.__class__):
-            result._inherit_meta(arr, ufunc, **kwargs)
+        result._process_output(ufunc, args, kwargs)
         
         return result
     
@@ -285,15 +271,7 @@ class MetaArray(np.ndarray):
             all(issubclass(t, MetaArray) for t in types)):
             return self.__class__.NP_DISPATCH[func](*args, **kwargs)
         
-        _as_np_ndarray = lambda a: a.value if a is self else a
-        # convert arguments
-        args_ = tuple(_as_np_ndarray(a) for a in args)
-        
-        replace_axis_kwargs(kwargs, self)
-
-        # convert keyword arguments
-        if "out" in kwargs:
-            kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
+        args_, _ = replace_inputs(self, args, kwargs)
 
         result = func(*args_, **kwargs)
 
