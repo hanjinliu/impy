@@ -671,20 +671,12 @@ class LabeledArray(HistoryArray):
             
             if labeltype in ("square", "s"):
                 radius = radius.astype(np.uint8)
-                if ndim == 2:
-                    _specify = _specify_square_2d
-                elif ndim == 3:
-                    _specify = _specify_square_3d
-                else:
-                    raise NotImplementedError("Only ndim = 2,3 is implemented.")
+                _specify = {2: _specify_square_2d,
+                            3: _specify_square_3d}[ndim]
                 
             elif labeltype in ("circle", "c"):
-                if ndim == 2:
-                    _specify = _specify_circ_2d
-                elif ndim == 3:
-                    _specify = _specify_circ_3d
-                else:
-                    raise NotImplementedError("Only ndim = 2,3 is implemented.")
+                _specify = {2: _specify_circ_2d,
+                            3: _specify_circ_3d}[ndim]
             
             else:
                 raise ValueError("`labeltype` must be 'square' or 'circle'.")

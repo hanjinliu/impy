@@ -43,20 +43,8 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
 def zeros(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
-def zeros_like(img:ImgArray, name:str=None) -> ImgArray:
-    if not isinstance(img, ImgArray):
-        raise TypeError("'zeros_like' in impy can only take ImgArray as an input")
-    
-    return zeros(img.shape, dtype=img.dtype, name=name, axes=img.axes)
-
 def empty(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
-
-def empty_like(img:ImgArray, name:str=None) -> ImgArray:
-    if not isinstance(img, ImgArray):
-        raise TypeError("'empty_like' in impy can only take ImgArray as an input")
-    
-    return empty(img.shape, dtype=img.dtype, name=name, axes=img.axes)
 
 def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     """
@@ -436,6 +424,39 @@ def stack(imgs:list[MetaArray], axis="c", dtype=None):
     out = out.view(imgs[0].__class__)
     safe_set_info(out, imgs[0], f"stack(axis={axis})", new_axes)
     return out
+
+@MetaArray.implements(np.concatenate)
+def concatenate(imgs, axis="c", dtype=None, casting="same_kind"):
+    if not isinstance(axis, (int, str)):
+        raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
+    axis = imgs[0].axisof(axis)
+    out = np.concatenate([img.value for img in imgs], axis=axis, dtype=dtype, casting=casting)
+    out = out.view(imgs[0].__class__)
+    safe_set_info(out, imgs[0], f"concatenate(axis={axis})", imgs[0].axes)
+    return out
+
+@MetaArray.implements(np.block)
+def block(imgs):
+    def _recursive_view(obj):
+        if isinstance(obj, MetaArray):
+            return obj.value
+        else:
+            return [_recursive_view(a) for a in obj]
+    
+    def _recursive_get0(obj):
+        first = obj[0]
+        if isinstance(first, MetaArray):
+            return first
+        else:
+            return _recursive_get0(first)
+    
+    img0 = _recursive_get0(imgs)
+    
+    imgs = _recursive_view(imgs)
+    out = np.block(imgs).view(img0.__class__)
+    safe_set_info(out, img0, f"block", img0.axes)
+    return out
+
 
 @MetaArray.implements(np.zeros_like)
 def zeros_like(img, name:str=None):
