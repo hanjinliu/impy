@@ -11,11 +11,26 @@
 
 With extended `numpy.ndarray` this module solves major problems above that happens when you code image analysis in Python. 
 
-1. **Image axes are automatically read** from Tiff file and arrays support **axis targeted slicing** like `img["t=3;z=5:7"]`.
-2. Almost all the image processing functions can **automatically iterate** along all the axes needed.
-3. All the information and metadata are inherited to outputs.
+## Features
 
-This module contains several classes.
+1. **Image axes/scales are automatically read** from TIFF file and arrays support **axis targeted slicing** like `img["t=3;z=5:7"]`.
+2. Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`.
+3. All the information, history and metadata are inherited to outputs, like:
+
+```python
+img
+```
+
+```
+    shape     : 10(t), 20(z), 256(y), 256(x)
+  label shape : No label
+    dtype     : uint16
+  directory   : ...\images
+original image: XXX
+  history    : gaussian_filter(sigma=1)
+```
+
+## Contents
 
 - `ImgArray` is an array mainly used for image analysis here. Many `skimage`'s functions are wrapped in this class.
 - `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
@@ -32,11 +47,12 @@ This module also provides many image analysis tools and seamless interface betwe
 `ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
 
 - **Drift/Aberration Correction**
-  - `track_drift`, `drift_correction`
+  - `track_drift`, `drift_correction` &rarr; Correction of xy-drift.
   - `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
 
-- **3D Deconvolution**
-  - `wiener`, `lucy`
+- **2D/3D Deconvolution**
+  - `wiener`, `lucy` &rarr; Classical Wiener's and Richardson-Lucy's algorithm.
+  - `lucy_tv` &rarr; Richardson-Lucy's algorithm with total variance (TV) regularization.
 
 - **Filters**
   - `mean_filter`, `meadian_filter`, `gaussian_filter`, `directional_median_filter` &rarr; Smoothing.
@@ -97,131 +113,64 @@ This module also provides many image analysis tools and seamless interface betwe
   - `split`, `split_pixel_unit` &rarr; Split the image.
   - `pad`, `defocus` &rarr; Padding.
 
+## Image I/O and Other Functions
+
+- `imread` &rarr; Load an image. `e.g. >>> ip.imread(path)`
+- `imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
+- `imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\50nM_pos3"`.
+- `read_meta` &rarr; Read metadata of a tiff file.
+- `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
+- `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
+- `set_scale` &rarr; set scales of any axes.
+
+... and many `numpy` functions are also accessible with such as `ip.array` or `ip.random.normal`.
+
+
 ## Napari Interface
 
-`impy.window` has methods for better interface with `napari`.
+`impy.window` has methods for better interface with the image viewer `napari`.
 
 - `add` &rarr; Add almost any objects (images, labels, points, ...) to viewer.
 - `shapes_to_labels` &rarr; Convert manually drawn shapes into `Label`.
 - `points_to_frames` &rarr; Convert manually spotted points into `AxesFrame`.
 
-## Basic Functions in impy module
 
-- `imread` &rarr; Load an image. `e.g. >>> ip.imread(path)`
-- `imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
-- `imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\100nM_pos3"`.
-- `read_meta` &rarr; Read metadata of a tiff file.
-- `array`, `zeros`, `zeros_like`, `empty`, `empty_like` = similar to those in `numpy` but return `ImgArray`.
-- `set_cpu` &rarr; Set the numbers of CPU used in image analysis.
-- `stack` &rarr; Make a image stack from a list of images along any axis. ` e.g. >>> ip.stack(imglist, axis="c")`
 
-## Brief Examples
+## Integrating Your Own Functions
 
-#### 1. Input/Output and Visualization
+`ImgArray` is designed highly extensible. With `impy.bind`, You can easily integrate functions that converts:
+
+- image &rarr; image (image filtering, thresholding etc.)
+- image &rarr; scalar (measuring/estimating properties)
+- image &rarr; label (feature detection, image segmentation etc.)
+
+Suppose you want to use `imfilter`, a image filtering function that works on float images, for batch processing of multi-dimensional images. Just write
 
 ```python
-import impy as ip
+@ip.bind(indtype="float32")
+def imfilter(img, param=None):
+    # do something for a 2D or 3D image.
+    return out
+```
+
+or
+
+```python
+ip.bind(imfilter, indtype="float32")
+```
+
+and now it's ready to execute batch-`imfilter`!
+
+```python
 img = ip.imread(r"...\images\XXX.tif")
-img.gaussian_filter(sigma=1, update=True)
-img.imsave("image_name")
+img.imfilter(param=3)
 ```
 
-```python
-img.imshow() # matplotlib based visualization
-ip.window.add(img) # send to napari
+## Installation
+
+```
+pip install git+https://github.com/hanjinliu/impy
 ```
 
-#### 2. Metadata and Axis-Targeted Slicing
-
-```python
-img
-```
-
-    [Out]
-        shape     : 10(t), 20(z), 256(y), 256(x)
-      label shape : No label
-        dtype     : uint16
-      directory   : ...\images
-    original image: XXX
-       history    : gaussian_filter(sigma=1)
-
-You can also access any parts of image with string that contains axis information.
-
-```python
-img1 = img["z=1;t=4,6,8"]
-img1.axes = "p*@e"
-img2 = img["z=3:6;t=2:15,18:-1"]
-```
-
-#### 3. Axis-Targeted Iteration
-
-Usually we want to iterate analysis along random axes. `ImgArray` has `iter` method that simplify this process, which is similar to `groupby` function in `pandas`:
-
-```python
-for sl, img2d in img.iter("tzc"): # iterate along t, z and c axis
-    # Here, img[sl] == img2d
-    print(img2d.range) # do something
-```
-
-which is equivalent to something like ...
-
-```C
-for (t in t_all) {
-    for (z in z_all) {
-        for (c in c_all) {
-            print(min(img[t,z,c]), max(img[t,z,c]))
-        }
-    }
-}
-```
-
-#### 4. Labeling and Measurement
-
-`scikit-image` has a powerful measurement function called `regionprops`. `ImgArray` also has a method that wrapped the `regionprops` function while enables multi-measurement.
-
-```python
-img.label_threshold(thr="yen") # Label image using Yen's thresholding
-props = img.regionprops(properties=("mean_intensity", "perimeter")) # Measure mean intensity and perimeter for every labeled region
-props.perimeter.plot() # Plot results of perimeter
-props.perimeter["p=10;t=2"] # Get the perimeter of 10-th label in the slice t=2.
-fit_result = props.mean_intensity.curve_fit(func) # curve fitting
-```
-
-## Common Attributes and Methods of Arrays
-
-### Attributes
-
-- `name` &rarr; name of the original image.
-- `dirpath` &rarr; absolute path to the original image.
-- `history` &rarr; history of applied analysis.
-- `axes` &rarr; dimensions of image, `ptzcyx`-order.
-- `scale` *property* &rarr; scales of each axis.
-- `value` *property* &rarr; show the array in numpy format.
-- `range` *property* &rarr; return a tuple of min/max of the image.
-- `spatial_shape` *property* &rarr; such as `"yx"` or `"zyx"`.
-
-### Basic Functions
-
-- `imshow` &rarr; visualize 2-D or 3-D image.
-- `imshow_label` &rarr; visualize 2-D or 3-D image and its labels.
-- `imshow_comparewith` &rarr; compare two 2-D images.
-- `hist` &rarr; show the histogram of image intensity profile.
-- `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
-- `set_scale` &rarr; set scales of any axes.
-
-
-## Automatic Saturation and Type Conversion
-
-Overflow, underflow and type conversion is considered for operations `+`, `-`, `*` and `/`.
-```python
-# img = <uint16 image>
-
-img + 10000     # pixel values larger than 65535 is substituted to 63353
-
-img - 10000     # pixel values smaller than 0 is substituted to 0
-
-img / 10        # output is converted to float32 
-```
-
-# References
+## References
 For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.

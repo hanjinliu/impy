@@ -1694,8 +1694,8 @@ class ImgArray(LabeledArray):
     
         
     @dims_to_spatial_axes
-    def centroid_sm(self, coords=None, radius:float=4, sigma:float=1.5, filt=None,
-                    percentile:float=90, *, dims=None) -> MarkerFrame:
+    def centroid_sm(self, coords=None, radius:int=4, sigma:float=1.5, filt=None,
+                    percentile:float=95, *, dims=None) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroid.
 
@@ -1703,7 +1703,7 @@ class ImgArray(LabeledArray):
         ----------
         coords : MarkerFrame or (N, 2) array, optional
             Coordinates of peaks. If None, this will be determined by find_sm.
-        radius : float, default is 4.
+        radius : int, default is 4.
             Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
             to calculate moments.
         sigma : float, default is 1.5
@@ -1729,7 +1729,7 @@ class ImgArray(LabeledArray):
         filt = check_filter_func(filt)
         radius = np.asarray(check_nd(radius, ndim))
         shape = self.sizesof(dims)
-        
+        # TODO: cannot apply to zcyx image
         centroids = []  # fitting results of means
         with Progress("centroid_sm"):
             for crd in coords.values:
@@ -2463,7 +2463,7 @@ class ImgArray(LabeledArray):
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
             resliced = self.reslice(s, d, order=order)
-            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced)
+            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
         
         if l == 1 and squeeze:
             out = out[0]
@@ -3242,7 +3242,7 @@ class ImgArray(LabeledArray):
         Freg(x), is calculated as:
         
                                          1
-            Freg(x) = ----------------------------------------  (I(x): image, λ: constant)
+            Freg(x) = ----------------------------------------       (I(x): image, λ: constant)
                        1 - λ*div( grad(I(x)) / |grad(I(x))| )
         
         and this factor is multiplied for every estimation made in each iteration.
@@ -3272,6 +3272,12 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Deconvolved image.
+        
+        Reference
+        ---------
+        - Dey, N., Blanc-Féraud, L., Zimmer, C., Roux, P., Kam, Z., Olivo-Marin, J. C., 
+          & Zerubia, J. (2004). 3D microscopy deconvolution using Richardson-Lucy algorithm 
+          with total variation regularization (Doctoral dissertation, INRIA).
         """
         psf = check_psf(self, psf, dims)
         if lmd <= 0:

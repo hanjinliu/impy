@@ -14,9 +14,10 @@ setup(name="impy",
       license="GPLv2",
       packages=find_packages(),
       install_requires=[
-            "scikit-image",
-            "numpy",
+            "scikit-image>=0.18",
+            "numpy>=1.17",
             "matplotlib",
+            "pandas>=0",
       ],
-      python_requires=">=3.6",
+      python_requires=">=3.7",
       )

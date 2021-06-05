@@ -6,6 +6,7 @@ import itertools
 
 class MetaArray(np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
+    NP_DISPATCH = {}
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
@@ -235,7 +236,6 @@ class MetaArray(np.ndarray):
         this function will be called to set/update essential attributes.
         """
         _replace_self = lambda a: a.value if a is self else a
-        
         # convert arguments
         args_ = tuple(_replace_self(a) for a in args)
 
@@ -279,6 +279,60 @@ class MetaArray(np.ndarray):
             new_axes = "inherit"
         self._set_info(obj, new_axes=new_axes)
         return self
+    
+    def __array_function__(self, func, types, args, kwargs):
+        if (func in self.__class__.NP_DISPATCH and 
+            all(issubclass(t, MetaArray) for t in types)):
+            return self.__class__.NP_DISPATCH[func](*args, **kwargs)
+        
+        _as_np_ndarray = lambda a: a.value if a is self else a
+        # convert arguments
+        args_ = tuple(_as_np_ndarray(a) for a in args)
+        
+        replace_axis_kwargs(kwargs, self)
+
+        # convert keyword arguments
+        if "out" in kwargs:
+            kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
+
+        result = func(*args_, **kwargs)
+
+        if result is NotImplemented:
+            return NotImplemented
+        
+        if isinstance(result, (tuple, list)):
+            _as_meta_array = lambda a: a.view(self.__class__)._process_output(func, args, kwargs) \
+                if type(a) is np.ndarray else a
+            result = type(result)(_as_meta_array(r) for r in result)
+            
+        else:
+            result = result.view(self.__class__)
+            # in the case result is such as np.float64
+            if isinstance(result, self.__class__):
+                result._process_output(func, args, kwargs)
+        
+        return result
+    
+    def _process_output(self, func, args, kwargs):
+        # find the largest MetaArray. Largest because of broadcasting.
+        arr = None
+        for arg in args:
+            if isinstance(arg, self.__class__):
+                if arr is None or arr.ndim < arg.ndim:
+                    arr = arg
+                    
+        if isinstance(arr, self.__class__):
+            self._inherit_meta(arr, func, **kwargs)
+        
+        return self
+        
+    
+    @classmethod
+    def implements(cls, numpy_function):
+        def decorator(func):
+            cls.NP_DISPATCH[numpy_function] = func
+            return func
+        return decorator
     
     def _str_to_slice(self, string:str):
         """
@@ -380,28 +434,12 @@ class MetaArray(np.ndarray):
         out._set_info(self, new_axes=new_axes)
         return out
     
-    def flatten(self):
-        out = super().flatten()
-        out._set_info(self, new_axes=None)
-        return out
-    
-    def ravel(self):
-        out = super().ravel()
-        out._set_info(self, new_axes=None)
-        return out
-    
-    def reshape(self, shape, order="C"):
-        out = super().reshape(shape, order)
-        out._set_info(self, new_axes=None)
-        return out
-    
     
     def axisof(self, axisname):
         if type(axisname) is int:
             return axisname
         else:
             return self.axes.find(axisname)
-    
     
     def sizeof(self, axis:str):
         return self.shape[self.axes.find(axis)]
@@ -439,4 +477,3 @@ class MetaArray(np.ndarray):
     def __truediv__(self, value):
         value = self._broadcast(value)
         return super().__truediv__(value)
-    

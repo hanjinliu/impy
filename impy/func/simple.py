@@ -93,7 +93,7 @@ def del_axis(axes, axis) -> str:
     else:
         axes = str(axes)
     
-    if isinstance(axis, list):
+    if isinstance(axis, (list, tuple)):
         for i, o in enumerate(axes):
             if i not in axis:
                 new_axes += o
@@ -113,6 +113,21 @@ def add_axes(axes, shape, key, key_axes="yx"):
         if o not in key_axes:
             key = np.stack([key]*(shape[i]), axis=i)
     return key
+
+def replace_axis_kwargs(kwargs, img):
+    if "axis" in kwargs:
+        axis = kwargs["axis"]
+        if isinstance(axis, str):
+            _axis = tuple(img.axisof(a) for a in axis)
+            if len(_axis) == 1:
+                _axis = _axis[0]
+            kwargs["axis"] = _axis
+        elif isinstance(axis, tuple):
+            axis = "".join(img.axes.axes[i] for i in kwargs["axis"])
+        elif isinstance(axis, int):
+            axis = img.axes.axes[axis]
+    else:
+        axis = ""
 
 def determine_range(arr):
     """
