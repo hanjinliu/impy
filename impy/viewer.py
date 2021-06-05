@@ -47,7 +47,7 @@ class napariWindow:
         front = None
         for img in self.iter_layer("image"):
             if img.visible:
-                front = img # This is a view of ImgArray
+                front = img # This is ImgArray
         if front is None:
             raise ValueError("There is no visible image layer.")
         return front
@@ -102,7 +102,9 @@ class napariWindow:
         Label
             Label image that was made from shapes.
         """        
-        # TODO: does not work for multichannel images because axes is aborted by np.take
+        # TODO: does not raise Error by default, but:
+        # - for multi-channel, label is discarded because destination is a slice of original image
+        # - when destination's shape is wrong, error.
         if destination is None:
             destination = self.front_image.data
         zoom_factors = [self.scale[a]/destination.scale[a] for a in "yx"]
