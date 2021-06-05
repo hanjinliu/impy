@@ -1,7 +1,6 @@
-__version__ = "1.10.3"
+__version__ = "1.10.4"
 
 # TODO
-# - crop image from shape
 # - lucy lower bound
 # - nD Kalman filter
 # - FSC, FRC

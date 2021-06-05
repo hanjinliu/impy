@@ -1,6 +1,5 @@
 from __future__ import annotations
 import matplotlib.pyplot as plt
-from .bases import MetaArray
 from .labeledarray import LabeledArray
 from .phasearray import PhaseArray
 from .label import Label
@@ -9,9 +8,11 @@ from .utilcls import ImportOnRequest
 napari = ImportOnRequest("napari")
 
 # TODO: 
-# - different name (different scale or shape) for different window?
-# crop
-# crop = ip.window.last_layer.data[tuple(slice(int(i[0]), int(i[1])) for i in ip.window.last_layer.corner_pixels.T)]
+# - Start different window if added object is apparently different. To do this, self.viewer should be
+#   a property that returns the most recent window.
+# - Layer does not remember the original data after c-split.
+# - `bind_key` of cropping image
+# - 
 
 class napariWindow:
     _point_cmap = plt.get_cmap("rainbow", 16)
@@ -230,7 +231,6 @@ class napariWindow:
     
     def _add_points(self, points, **kwargs):
         if isinstance(points, MarkerFrame):
-            # scale = [points.scale[a] for a in points._axes if a != "c"]
             scale = make_world_scale(points)
             points = points.get_coords()
         else:
@@ -262,7 +262,7 @@ class napariWindow:
         if isinstance(name, list):
             names = [f"[L]{n}" for n in name]
         elif isinstance(name, str):
-            names = [f"[L]{name}"]*len(lbls)
+            names = [f"[L]{name}"] * len(lbls)
         else:
             names = [labels.name]
             

@@ -492,6 +492,7 @@ class LabeledArray(HistoryArray):
         -------
         LabeledArray
         """
+        # TODO: like iter(), outshape -> exclude
         if outshape is None:
             outshape = self.shape
             
@@ -505,8 +506,8 @@ class LabeledArray(HistoryArray):
                 out[sl] = imgf
         else:
             for sl, img in self.iter(axes):
-                sl, out2d = func((sl, img, *args))
-                out[sl] = out2d
+                sl, imgf = func((sl, img, *args))
+                out[sl] = imgf
         
         out = out.view(self.__class__)
         return out
@@ -553,8 +554,9 @@ class LabeledArray(HistoryArray):
     
     def _parallel(self, func, axes, *args, israw=False):
         lmd = lambda x : (x[0], x[1], *args)
+        inputs = list(self.iter(axes, israw))
         with multi.Pool(self.__class__.n_cpu) as p:
-            results = p.map(func, map(lmd, self.iter(axes, israw)))
+            results = p.map(func, map(lmd, inputs))
         return results
     
     

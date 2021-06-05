@@ -354,3 +354,27 @@ def richardson_lucy_(args):
         estimated *= factor
         
     return sl, np.fft.fftshift(estimated)
+
+def richardson_lucy_tv_(args):
+    sl, obs, psf_ft, psf_ft_conj, max_iter, lmd, tol = args
+    
+    est_old = ifft(fft(obs) * psf_ft).real
+    est_new= np.empty(obs.shape, dtype=np.float32)
+    factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
+    
+    with np.errstate(divide="ignore"):
+        for _ in range(max_iter):
+            factor[:] = ifft(fft(obs / ifft(fft(est_old) * psf_ft)) * psf_ft_conj).real
+            est_new[:] = est_old * factor
+            grad = np.gradient(est_old)
+            norm[:] = np.sqrt(sum(g**2 for g in grad))
+            
+            gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
+                        for i in range(obs.ndim))
+            est_new /= (1 - lmd * gg)
+            err = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
+            if err < tol:
+                break
+            est_old[:] = est_new
+        
+    return sl, np.fft.fftshift(est_new)

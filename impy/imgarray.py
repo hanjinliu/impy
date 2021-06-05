@@ -3204,19 +3204,18 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def lucy(self, psf, niter:int=50, *, dims=None, update:bool=False):
         """
-        Deconvolution of N-dimensional image obtained from confocal microscopy, 
-        using Richardson-Lucy's algorithm.
+        Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
         
         Parameters
         ----------
         psf : np.ndarray
             Point spread function.
-        niters : int, default is 50.
-            Number of iteration.
+        niter : int, default is 50.
+            Number of iterations.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, optional
-            If update self to filtered image.
+            If update self to the result.
         
         Returns
         -------
@@ -3226,11 +3225,65 @@ class ImgArray(LabeledArray):
         
         psf = check_psf(self, psf, dims)
         
+        # calculate FFT of PSF and its conjugate in advance
         psf_ft = fft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
-        # start deconvolution
+        
         return self.parallel(richardson_lucy_, complement_axes(dims), 
                              psf_ft, psf_ft_conj, niter)
+    
+    @dims_to_spatial_axes
+    @record()
+    @same_dtype(asfloat=True)
+    def lucy_tv(self, psf, max_iter:int=50, lmd:float=1e-3, tol=5e-3, *, dims=None, update:bool=False):
+        """
+        Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
+        regularization (so called RL-TV algorithm). The TV regularization factor at pixel position x,
+        Freg(x), is calculated as:
+        
+                                         1
+            Freg(x) = ----------------------------------------  (I(x): image, λ: constant)
+                       1 - λ*div( grad(I(x)) / |grad(I(x))| )
+        
+        and this factor is multiplied for every estimation made in each iteration.
+        
+        Parameters
+        ----------
+        psf : np.ndarray
+            Point spread function.
+        max_iter : int, default is 50.
+            Maximum number of iterations.
+        lmd : float, default is 1e-3
+            The constant lambda of TV regularization factor.
+        tol : float, default is 5e-3
+            Iteration stops if regularized absolute summation is lower than this value.
+            
+                       Σ|I'(x) - I(x)|
+                err = -----------------
+                           Σ|I(x)|
+            (I'(x): estimation of k+1-th iteration, I(x): estimation of k-th iteration)
+            
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self to the result.
+        
+        Returns
+        -------
+        ImgArray
+            Deconvolved image.
+        """
+        psf = check_psf(self, psf, dims)
+        if lmd <= 0:
+            raise ValueError("In Richadson-Lucy with total-variance-regularization, parameter `lmd` "
+                             "must be positive.")
+        
+        # calculate FFT of PSF and its conjugate in advance
+        psf_ft = fft(psf)
+        psf_ft_conj = np.conjugate(psf_ft)
+        
+        return self.parallel(richardson_lucy_tv_, complement_axes(dims), 
+                             psf_ft, psf_ft_conj, max_iter, lmd, tol)
 
 def _check_coordinates(coords, img, dims=None):
     if not isinstance(coords, MarkerFrame):
