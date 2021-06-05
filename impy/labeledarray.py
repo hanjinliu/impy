@@ -340,7 +340,7 @@ class LabeledArray(HistoryArray):
                 image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
             else:
                 image = self.value
-            overlay = label2rgb(self.labels, image=image, bg_label=0, 
+            overlay = label2rgb(self.labels.value, image=image, bg_label=0, 
                                 alpha=alpha, image_alpha=1)
             plt.imshow(overlay, **imshow_kwargs)
             self.hist()
@@ -368,7 +368,7 @@ class LabeledArray(HistoryArray):
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
                     else:
                         image = self.value
-                    overlay = label2rgb(img.labels, image=image, bg_label=0, 
+                    overlay = label2rgb(img.labels.value, image=image, bg_label=0, 
                                         alpha=alpha, image_alpha=1)
                     ax[i].imshow(overlay, **imshow_kwargs)
                     ax[i].axis("off")
@@ -492,7 +492,6 @@ class LabeledArray(HistoryArray):
         -------
         LabeledArray
         """
-        # TODO: like iter(), outshape -> exclude
         if outshape is None:
             outshape = self.shape
             
