@@ -267,6 +267,10 @@ class MetaArray(np.ndarray):
         return self
     
     def __array_function__(self, func, types, args, kwargs):
+        """
+        Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
+        function can be overloaded with this method.
+        """
         if (func in self.__class__.NP_DISPATCH and 
             all(issubclass(t, MetaArray) for t in types)):
             return self.__class__.NP_DISPATCH[func](*args, **kwargs)
@@ -307,6 +311,9 @@ class MetaArray(np.ndarray):
     
     @classmethod
     def implements(cls, numpy_function):
+        """
+        Add functions to NP_DISPATCH so that numpy functions can be overloaded.
+        """        
         def decorator(func):
             cls.NP_DISPATCH[numpy_function] = func
             return func
@@ -397,8 +404,7 @@ class MetaArray(np.ndarray):
                 iterlist.append([slice(None)])
         return iterlist
             
-            
-    # numpy functions that will change/discard order
+    
     def transpose(self, axes):
         """
         change the order of image dimensions.

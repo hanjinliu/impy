@@ -29,6 +29,16 @@ class Label(HistoryArray):
             self[self>0] += n
             return self
     
+    def increment_iter(self, axes):
+        min_nlabel = 0
+        imax = np.iinfo(self.dtype).max
+        for sl, _ in self.iter(axes):
+            self[sl][self[sl]>0] += min_nlabel
+            min_nlabel = self[sl].max()
+            if min_nlabel > imax:
+                raise OverflowError("Number of labels exceeded maximum.")
+        return self
+    
     def as_larger_type(self):
         if self.dtype == np.uint8:
             return self.astype(np.uint16)

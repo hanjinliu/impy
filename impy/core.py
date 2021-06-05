@@ -1,4 +1,6 @@
 from __future__ import annotations
+from functools import wraps
+from impy.labeledarray import LabeledArray
 from impy.label import Label
 from .specials import PropArray
 from .deco import dims_to_spatial_axes, make_history
@@ -488,6 +490,13 @@ def expand_dims(img, axis):
     safe_set_info(out, img, f"expand_dims({axis})", new_axes)
     return out
 
+@MetaArray.implements(np.transpose)
+def transpose(img, axes):
+    return img.transpose(axes)
+
+
+# Extend ImgArray with costum functions.
+
 class bind:
     """
     Dynamically define ImgArray function that can iterate over axes. You can integrate your own
@@ -505,9 +514,19 @@ class bind:
     indtype : dtype, optional
         If given, input data type will be converted by `as_img_type` method before passed to `func`.
     outdtype : dtype, optional
-        If given, output data array will be defined in this type.
-    kind : str, default is "image"
-        What kind of function will be defined.
+        If given, output data array will be defined in this type if needed.
+    kind : str, {"image", "property", "label", "label_binary"}, default is "image"
+        What kind of function will be bound.
+        - "image" ... Given an image, calculate a new image that has the exactily same shape.
+          Bound method will return `ImgArray` that has the same shape and axes as the input image.
+        - "property" ... Given an image, calculate a scalar value or any other object such as
+        tuple, and store them in a `PropArray`. Axes of returned `PropArray` is (the axes of input
+        image) - (axes of spatial dimensions specified by `dims` argument of bound method).
+        - "label" ... Given an image, calculate a label image with value 0 being background and set
+        it to `labels` attribute. The label image must have the exactly same shape as input image.
+        - "label_binary" ... Given an image, calculate a binary image. Label image is generated from
+        the binary image with `label` method in `LabeledArray`. The connectivity is None. The binary
+        image must have the exactly same shape as input image.
     ndim : {None, 2, 3}, default is None
         Dimension of image that the original function supports. If None, then it is assumed to
         support both 2 and 3 dimensional images and automatically determined by the universal
@@ -517,8 +536,8 @@ class bind:
         keyword is used for modifing original function without wrapping it. For more detail see
         Example (2).
 
-    Example
-    -------
+    Examples
+    --------
     (1) Bind "normalize" method that 
     >>> def normalize(img):
     >>>    min_, max_ = img.min(), img.max()
@@ -548,11 +567,24 @@ class bind:
     >>>    return (img - min_)/(max_ - min_)
     >>> img = ip.imread(...)
     >>> img.normalize(img)
+    
+    (5) Bind custom percentile labeling function (although `label_threshold` method can do the 
+    exactly same thing).
+    >>> @ip.bind(kind="label_binary")
+    >>> def mylabel(img, p=90):
+    >>>     per = np.percentile(img, p)
+    >>>     thr = img > per
+    >>>     return thr
+    >>> img = ip.imread(...)
+    >>> img.mylabel(img, 95)   # img.labels is added here
     """    
     bound = set()
     def __init__(self, func:Callable=None, funcname:str=None, *, indtype=None, outdtype=None, 
                  kind:str="image", ndim:int|None=None, mapping:dict[str, tuple[str, Callable]]=None):
-        
+        """
+        Method binding is done inside this when bind object is used as function like:
+        >>> ip.bind(func, "funcname", ...)
+        """        
         if callable(func):
             self._bind_method(func, funcname=funcname, indtype=indtype, outdtype=outdtype, 
                               kind=kind, ndim=ndim, mapping=mapping)
@@ -565,7 +597,11 @@ class bind:
             self.mapping = mapping
     
     def __call__(self, func:Callable):
-        # If binder is used as decorator
+        """
+        Method binding is done inside this when bind object is used as decorator like:
+        >>> @ip.bind(...)
+        >>> def ...
+        """
         if callable(func):
             self._bind_method(func, funcname=self.funcname, indtype=self.indtype, 
                               outdtype=self.outdtype, kind=self.kind, ndim=self.ndim, mapping=self.mapping)
@@ -601,6 +637,7 @@ class bind:
         # _prepare_output_array : returns a subclass of ndarray for output.
         # _iter : returns an iterator around spatial dimensions.
         # _exit : overwrites output attributes.
+        
         if kind == "image":
             def _prepare_output_array(self, dims):
                 dtype = outdtype if outdtype is not None else self.dtype
@@ -641,12 +678,26 @@ class bind:
                 self.labels = Label(out, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
                 self.labels.history.append(fn)
                 self.labels.set_scale(self)
-                return out    
+                return self.labels
             
+        elif kind == "label_binary":
+            def _prepare_output_array(self, dims):
+                return largest_zeros(self.shape)
+            
+            def _iter(self, dims):
+                return self.iter(complement_axes(dims, self.axes))
+            
+            def _exit(out, self, func, *args, **kwargs):
+                self.labels = LabeledArray(out, axes=self.axes).label().labels
+                self.labels.history.append(fn)
+                self.labels.set_scale(self)
+                return self.labels
+                        
         else:
             raise NotImplementedError(kind)
         
         # Define method
+        @wraps(func)
         @dims_to_spatial_axes
         def _func(self, *args, dims=dims, **kwargs):
             if indtype is not None:
