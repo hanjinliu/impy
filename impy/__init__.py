@@ -1,6 +1,7 @@
 __version__ = "1.10.5"
 
 # TODO
+# - multichannel problem in viewer
 # - nD Kalman filter
 # - FSC, FRC
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U

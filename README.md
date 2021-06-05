@@ -5,29 +5,73 @@
 ![](Figs/Img.png)
 
 [scikit-image](https://github.com/scikit-image/scikit-image) is very useful but sometimes troublesome like ...
+
 1. for multi-dimensional images, you need to check which is time-axis and which is channel axis and so on.
-2. you need to consider the output data types and shapes for every iteration of image processing.
+2. you need to consider the output data types and shapes for every batch image processing.
 3. you need to care about all the images' information such as the names and directories of original images.
 
-With extended `numpy.ndarray` this module solves major problems above that happens when you code image analysis in Python. 
+With `ImgArray` and its relatives, this module solves major problems above.
+
+
+## Installation
+
+```
+pip install git+https://github.com/hanjinliu/impy
+```
+
+For full usage of `impy` you also need to install `napari` and `trackpy`.
 
 ## Features
 
-1. **Image axes/scales are automatically read** from TIFF file and arrays support **axis targeted slicing** like `img["t=3;z=5:7"]`.
-2. Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`.
-3. All the information, history and metadata are inherited to outputs, like:
+#### 1. Handling Axes Easily
+**Image axes/scales are automatically read** from TIFF file and arrays support **axis-targeted slicing** like:
+```python
+img["t=3;z=5:7"]
+img["y=3,5,7"] = 0
+```
+Accordingly, broadcasting is more flexible. You can also set your original axes symbol if you like, by such as `img.axes = "!yx"`.
+
+#### 2. Automatic Batch Processing
+Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
+
+You can even run batch processing with your own functions by adding single line `@ip.bind()`. See [Integrating Your Own Functions](#integrating-your-own-functions) part.
+   
+#### 3. Metadata and History
+All the information, history and metadata are inherited to outputs, like:
 
 ```python
 img
 ```
-
 ```
     shape     : 10(t), 20(z), 256(y), 256(x)
   label shape : No label
     dtype     : uint16
   directory   : ...\images
 original image: XXX
-  history    : gaussian_filter(sigma=1)
+    history   : gaussian_filter(sigma=1)
+```
+
+#### 4. Image Viewer
+
+You can view images with `matplotlib` of course, but this module also provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
+
+You can also manually crop or label `ImgArray` manually. See [Napari Interface](#napari-interface) for details.
+
+#### 5. Extended Numpy Functions
+In almost all the numpy functions, the keyword argument `axis` can be given as the symbol of axis like:
+
+```python
+np.mean(img, axis="z") # Z-projection
+np.stack([img1, img2], axis="c") # color-merging
+```
+
+This is achieved by defining `__array_function__` method. See [here](https://numpy.org/devdocs/reference/arrays.classes.html) for details.
+
+You can also make an `ImgArray` in a way similar to `numpy`:
+
+```python
+ip.array([2,4,6], dtype="uint16")
+ip.random.normal(size=(100, 100))
 ```
 
 ## Contents
@@ -36,11 +80,8 @@ original image: XXX
 - `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
 - `Label` is also an array type while it is only used for labeling of another image and is always attached to it. 
 - `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
-- `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`.
+- `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
 - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
-
-This module also provides many image analysis tools and seamless interface between [napari](https://github.com/napari/napari), which help you to operate with and visualize n-D images, and [trackpy](https://github.com/soft-matter/trackpy), which enables efficient molecule tracking.
-
 
 ## Image Analysis Tools
 
@@ -115,10 +156,10 @@ This module also provides many image analysis tools and seamless interface betwe
 
 ## Image I/O and Other Functions
 
-- `imread` &rarr; Load an image. `e.g. >>> ip.imread(path)`
-- `imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
-- `imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\50nM_pos3"`.
-- `read_meta` &rarr; Read metadata of a tiff file.
+- `impy.imread` &rarr; Load an image. `e.g. >>> ip.imread(path)`
+- `impy.imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
+- `impy.imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\50nM_pos3"`.
+- `impy.read_meta` &rarr; Read metadata of a tiff file.
 - `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
 - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
 - `set_scale` &rarr; set scales of any axes.
@@ -130,11 +171,12 @@ This module also provides many image analysis tools and seamless interface betwe
 
 `impy.window` has methods for better interface with the image viewer `napari`.
 
-- `add` &rarr; Add almost any objects (images, labels, points, ...) to viewer.
-- `shapes_to_labels` &rarr; Convert manually drawn shapes into `Label`.
+- `add` &rarr; Add any objects (images, labels, points, ...) to viewer.
+- `shapes_to_labels` &rarr; Convert manually drawn shapes into `Label`, and label the front image.
 - `points_to_frames` &rarr; Convert manually spotted points into `AxesFrame`.
+- `crop_front_image` &rarr; Crop the front image at the edge of the viewer window.
 
-
+`napari` is now under development itself so I'll add more and more functions (I'm looking forward to grouping image layers).
 
 ## Integrating Your Own Functions
 
@@ -147,6 +189,7 @@ This module also provides many image analysis tools and seamless interface betwe
 Suppose you want to use `imfilter`, a image filtering function that works on float images, for batch processing of multi-dimensional images. Just write
 
 ```python
+import impy as ip
 @ip.bind(indtype="float32")
 def imfilter(img, param=None):
     # do something for a 2D or 3D image.
@@ -166,11 +209,3 @@ img = ip.imread(r"...\images\XXX.tif")
 img.imfilter(param=3)
 ```
 
-## Installation
-
-```
-pip install git+https://github.com/hanjinliu/impy
-```
-
-## References
-For deconvolution, function `lucy` from Julia-coded package [Deconvolution.jl](https://github.com/JuliaDSP/Deconvolution.jl) is translated into Python.
