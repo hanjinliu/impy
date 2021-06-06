@@ -21,7 +21,7 @@ pip install git+https://github.com/hanjinliu/impy
 
 For full usage of `impy` you also need to install `napari` and `trackpy`.
 
-## Features
+## Highlights
 
 #### 1. Handling Axes Easily
 **Image axes/scales are automatically read** from TIFF file and arrays support **axis-targeted slicing** like:
@@ -55,7 +55,7 @@ original image: XXX
 
 You can view images with `matplotlib` of course, but this module also provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
 
-You can also manually crop or label `ImgArray` manually. See [Napari Interface](#napari-interface) for details.
+You can also manually crop or label `ImgArray`, or run its functions inside the viewer. See [Napari Interface](#napari-interface) for details.
 
 #### 5. Extended Numpy Functions
 In almost all the numpy functions, the keyword argument `axis` can be given as the symbol of axis like:
@@ -169,14 +169,17 @@ ip.random.normal(size=(100, 100))
 
 ## Napari Interface
 
-`impy.window` has methods for better interface with the image viewer `napari`.
+`impy.window` has methods for better interface between images and `napari`.
 
-- `add` &rarr; Add any objects (images, labels, points, ...) to viewer.
-- `shapes_to_labels` &rarr; Convert manually drawn shapes into `Label`, and label the front image.
-- `points_to_frames` &rarr; Convert manually spotted points into `AxesFrame`.
-- `crop_front_image` &rarr; Crop the front image at the edge of the viewer window.
+- Add any objects (images, labels, points, ...) to the viewer by `ip.window.add(...)`.
+- Return all the manually selected layers by `layers = ip.window.selection`.
+- Crop selected images at the edge of the viewer window by key-binding `Ctrl+Shift+X`.
+- Convert manually drawn shapes into `Label`, and label the front image by `ip.window.shapes_to_labels()`.
+- Convert manually spotted points into `AxesFrame` by `ip.window.points_to_frames()`.
+- Run `ImgArray`'s method inside viewers, in the docked widget.
+- Select viewers or create a new viewer by such as `ip.window["viewer_name"].add(...)`.
 
-`napari` is now under development itself so I'll add more and more functions (I'm looking forward to grouping image layers).
+`napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to grouping image layers).
 
 ## Integrating Your Own Functions
 
@@ -209,3 +212,4 @@ img = ip.imread(r"...\images\XXX.tif")
 img.imfilter(param=3)
 ```
 
+This function is also accessible inside napari viewers.
