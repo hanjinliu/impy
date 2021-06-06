@@ -34,7 +34,7 @@ Accordingly, broadcasting is more flexible. You can also set your original axes 
 #### 2. Automatic Batch Processing
 Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
 
-You can even run batch processing with your own functions by adding single line `@ip.bind()`. See [Integrating Your Own Functions](#integrating-your-own-functions) part.
+You can even run batch processing **with your own functions** by decorating them (`@ip.bind`). See [Integrating Your Own Functions](#integrating-your-own-functions) part.
    
 #### 3. Metadata and History
 All the information, history and metadata are inherited to outputs, like:
@@ -55,7 +55,7 @@ original image: XXX
 
 You can view images with `matplotlib` of course, but this module also provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
 
-You can also manually crop or label `ImgArray`, or run its functions inside the viewer. See [Napari Interface](#napari-interface) for details.
+You can also **manually crop or label** `ImgArray`, or **run its functions inside the viewer**. See [Napari Interface](#napari-interface) for details.
 
 #### 5. Extended Numpy Functions
 In almost all the numpy functions, the keyword argument `axis` can be given as the symbol of axis like:
@@ -82,6 +82,7 @@ ip.random.normal(size=(100, 100))
 - `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
 - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
 - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
+- `window` is a controller object that connects console and `napari.Viewer`.
 
 ## Image Analysis Tools
 
@@ -172,11 +173,14 @@ ip.random.normal(size=(100, 100))
 `impy.window` has methods for better interface between images and `napari`.
 
 - Add any objects (images, labels, points, ...) to the viewer by `ip.window.add(...)`.
-- Return all the manually selected layers by `layers = ip.window.selection`.
+- Return all the manually selected layers' data by `layers = ip.window.selection`.
 - Crop selected images at the edge of the viewer window by key-binding `Ctrl+Shift+X`.
 - Convert manually drawn shapes into `Label`, and label the front image by `ip.window.shapes_to_labels()`.
 - Convert manually spotted points into `AxesFrame` by `ip.window.points_to_frames()`.
-- Run `ImgArray`'s method inside viewers, in the docked widget.
+- Run `ImgArray`'s method inside viewers like below.
+  
+  ![](Figs/Img2.png)
+
 - Select viewers or create a new viewer by such as `ip.window["viewer_name"].add(...)`.
 
 `napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to grouping image layers).
@@ -212,4 +216,4 @@ img = ip.imread(r"...\images\XXX.tif")
 img.imfilter(param=3)
 ```
 
-This function is also accessible inside napari viewers.
+This function is also accessible inside `napari` viewers.
