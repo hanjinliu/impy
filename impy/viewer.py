@@ -1,11 +1,15 @@
 from __future__ import annotations
+from inspect import getmembers, signature
 import matplotlib.pyplot as plt
+from .imgarray import ImgArray
 from .labeledarray import LabeledArray
 from .phasearray import PhaseArray
 from .label import Label
 from .specials import *
 from .utilcls import ImportOnRequest
 napari = ImportOnRequest("napari")
+from magicgui import magicgui
+from enum import Enum
 
 # TODO: 
 # - Start different window if added object is apparently different. To do this, self.viewer should be
@@ -14,13 +18,59 @@ napari = ImportOnRequest("napari")
 # - `bind_key` of cropping image
 # - 
 
+class Dims(Enum):
+    ZYX = "zyx"
+    YX = "yx"
+    NONE = None
+    
+# Get all the ImgArray methods
+
+# def _iter_methods():
+#     for name, func in getmembers(ImgArray):
+#         if callable(func) and not func.__name__.startswith("_"):
+#             try:
+#                 outtype = signature(func).return_annotation
+#                 if outtype in ("ImgArray", "LabeledArray", "Label", "MarkerFrame", "TrackFrame"):
+#                     yield func.__name__
+#             except ValueError:
+#                 pass
+
+# IMG_METHODS = Enum("ImgArrayMethods", {name: name for name in _iter_methods()})
+
 class napariWindow:
     _point_cmap = plt.get_cmap("rainbow", 16)
     _plot_cmap = plt.get_cmap("autumn", 16)
     
     def __init__(self):
-        self.viewer = None
+        self._viewers = {}
+        self._front_viewer = None
         self._point_color_id = 0
+    
+    def __repr__(self):
+        w = "".join([f"<{k}>" for k in self._viewers.keys()])
+        return f"{self.__class__}{w}"
+    
+    def __getitem__(self, key):
+        """
+        This method looks strange but intuitive because you can access the last viewer by
+        >>> ip.window.add(...)
+        while turn to another by
+        >>> ip.window["X"].add(...)
+
+        Parameters
+        ----------
+        key : str
+            Viewer's title
+        """        
+        if key in self._viewers.keys():
+            self._front_viewer = key
+        else:
+            self.start(key)
+        return self
+    
+    @property
+    def viewer(self):
+        return self._viewers[self._front_viewer]
         
     @property
     def layers(self):
@@ -51,16 +101,95 @@ class napariWindow:
         if front is None:
             raise ValueError("There is no visible image layer.")
         return front
-        
-    def start(self):
-        self.viewer = napari.Viewer(title="impy")
-        self.viewer.scale_bar.visible = True
-        self.viewer.scale_bar.ticks = False
-        self.viewer.scale_bar.font_size = 8
-        self.viewer.axes.visible = True
-        self.viewer.axes.colored = False
     
-    def add(self, obj, **kwargs):
+    @magicgui(call_button="Run", 
+              img={"label": "input:"},
+              func={"label": "method"},
+              )
+    def run_func(self,
+                 img: napari.layers.Image,
+                 func="gaussian_filter", 
+                 firstparam="None",
+                 dims=Dims.NONE,
+                 update=False) -> napari.types.LayerDataTuple:
+        """
+        Run image analysis in napari window.
+
+        Parameters
+        ----------
+        img : napari.layers.Image
+            Input image layer.
+        func : str, default is "gaussian_filter"
+            Name of method to be called.
+        firstparam : str, optional
+            First parameter if exists.
+        dims : str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        napari.types.LayerDataTuple
+            This is passed to napari and is directly visualized.
+        """        
+        if img is None:
+            return
+        
+        if firstparam == "None":
+            out = getattr(img.data, func)(dims=dims.value)
+        else:
+            try:
+                firstparam = float(firstparam)
+            except ValueError:
+                pass
+            out = getattr(img.data, func)(float(firstparam), dims=dims.value)
+        scale = make_world_scale(img.data)
+        
+        # determine name of the new layer
+        if update and type(img.data) is type(out):
+            name = img.name
+        else:
+            layer_names = [l.name for l in self.layers]
+            name = func
+            i = 0
+            while name in layer_names:
+                name = f"{func}-{i}"
+                
+        if isinstance(out, ImgArray):
+            return (out, dict(scale=scale, name=name, colormap=img.colormap), "image")
+        elif isinstance(out, PhaseArray):
+            return (out, dict(scale=scale, name=name, colormap="hsv"), "image")
+        elif isinstance(out, Label):
+            return (out, dict(opacity=0.3, scale=scale, name=name), "labels")
+        elif isinstance(out, MarkerFrame):
+            cmap = self.__class__._point_cmap
+            kw = dict(size=3.2, face_color=[0,0,0,0], 
+                      edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)), 
+                      scale=scale)
+            self._point_color_id += 1
+            return (out, kw, "points")
+        # elif isinstance(out, TrackFrame):
+        #     return (out, dict(scale=scale), "tracks")
+        
+    def start(self, key:str):
+        """
+        Create a napari window with name `key`.
+        """        
+        if not isinstance(key, str):
+            raise TypeError("`key` must be str.")
+        if key in self._viewers.keys():
+            raise ValueError(f"Key {key} already exists.")
+        viewer = napari.Viewer(title=key)
+        viewer.scale_bar.visible = True
+        viewer.scale_bar.ticks = False
+        viewer.scale_bar.font_size = 8
+        viewer.axes.visible = True
+        viewer.axes.colored = False
+        viewer.window.add_dock_widget(self.run_func, area="bottom")
+        self._viewers[key] = viewer
+        self._front_viewer = key
+        return None
+    
+    def add(self, obj, title=None, **kwargs):
         """
         Add images, points, labels, tracks or graph to viewer.
 
@@ -68,8 +197,18 @@ class napariWindow:
         ----------
         obj : Any
             Object to add.
-        """        
-        self.viewer is None and self.start()
+        """
+        if title is None:
+            if self._front_viewer is None:
+                title = "impy"
+            else:
+                title = self._front_viewer
+                
+        if title not in self._viewers.keys():
+            title = self._name(title)
+            self.start(title)
+        self._front_viewer = title
+            
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
         elif isinstance(obj, MarkerFrame):
@@ -158,6 +297,7 @@ class napariWindow:
         return mf
     
     def crop_front_image(self, dims="tzc"):
+        print("do not use this anymore")
         layer = self.front_image
         sl = []
         for i, (start, end) in enumerate(layer.corner_pixels.T):
@@ -170,6 +310,9 @@ class napariWindow:
                 else:
                     sl.append(start)
         return layer.data[tuple(sl)]
+    
+    # def crop(self, dims="tzc"):
+        
     
     def iter_layer(self, layer_type:str):
         """
@@ -186,11 +329,11 @@ class napariWindow:
             Layers specified by layer_type
         """        
         if layer_type == "shape":
-            layer_type = napari.layers.shapes.shapes.Shapes
+            layer_type = napari.layers.Shapes
         elif layer_type == "image":
-            layer_type = napari.layers.image.Image
+            layer_type = napari.layers.Image
         elif layer_type == "point":
-            layer_type = napari.layers.points.Points
+            layer_type = napari.layers.Points
         else:
             raise NotImplementedError
         
@@ -306,7 +449,7 @@ class napariWindow:
             cmap = self.__class__._plot_cmap
             paths = []
             ec = []
-            for sl, data in df.groupby(groupax):
+            for sl, data in df.groupby(groupax): # TODO: doesn't work for []
                 path = data.values.tolist()
                 paths.append(path)
                 ec.append(list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
@@ -323,6 +466,16 @@ class napariWindow:
         
         return None
 
+    def _name(self, name="impy"):
+        i = 0
+        existing = self._viewers.keys()
+        while name in existing:
+            name += f"-{i}"
+            i += 1
+        return name
+        
+        
+
 def to_labels(layer, labels_shape, zoom_factor=1):
     return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
     
@@ -337,5 +490,6 @@ def make_world_scale(obj):
         else:
             scale.append(1)
     return scale
+
 
 window = napariWindow()
