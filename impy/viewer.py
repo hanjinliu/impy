@@ -1,5 +1,4 @@
 from __future__ import annotations
-from inspect import getmembers, signature
 import matplotlib.pyplot as plt
 from .imgarray import ImgArray
 from .labeledarray import LabeledArray
@@ -23,20 +22,6 @@ class Dims(Enum):
     YX = "yx"
     NONE = None
     
-# Get all the ImgArray methods
-
-# def _iter_methods():
-#     for name, func in getmembers(ImgArray):
-#         if callable(func) and not func.__name__.startswith("_"):
-#             try:
-#                 outtype = signature(func).return_annotation
-#                 if outtype in ("ImgArray", "LabeledArray", "Label", "MarkerFrame", "TrackFrame"):
-#                     yield func.__name__
-#             except ValueError:
-#                 pass
-
-# IMG_METHODS = Enum("ImgArrayMethods", {name: name for name in _iter_methods()})
-
 class napariWindow:
     _point_cmap = plt.get_cmap("rainbow", 16)
     _plot_cmap = plt.get_cmap("autumn", 16)

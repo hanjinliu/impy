@@ -172,7 +172,7 @@ class LabeledArray(HistoryArray):
     #   Type Conversions
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def as_uint8(self):
+    def as_uint8(self) -> LabeledArray:
         if self.dtype == np.uint8:
             return self
         
@@ -194,7 +194,7 @@ class LabeledArray(HistoryArray):
         return out
 
 
-    def as_uint16(self):
+    def as_uint16(self) -> LabeledArray:
         if self.dtype == np.uint16:
             return self
         if self.dtype == np.uint8:
@@ -215,13 +215,13 @@ class LabeledArray(HistoryArray):
         out._set_info(self)
         return out
     
-    def as_float(self):
+    def as_float(self) -> LabeledArray:
         out = self.value.astype(np.float32).view(self.__class__)
         out._set_info(self)
         return out
         
     
-    def as_img_type(self, dtype=np.uint16):
+    def as_img_type(self, dtype=np.uint16) -> LabeledArray:
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -428,7 +428,7 @@ class LabeledArray(HistoryArray):
         return imgs
     
     @need_labels
-    def extract(self, label_ids=None, filt=None, cval:float=0):
+    def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
         """
         Extract certain regions of the image and substitute others to `cval`.
 
@@ -471,7 +471,7 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32):
+    def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32) -> LabeledArray:
         """
         Multiprocessing tool.
 
@@ -511,7 +511,7 @@ class LabeledArray(HistoryArray):
         out = out.view(self.__class__)
         return out
     
-    def parallel_eig(self, func, dims, *args):
+    def parallel_eig(self, func, dims, *args) -> tuple[LabeledArray, LabeledArray]:
         """
         Similar to `parallel()` but this function returns two arrays.
         `eigval` has shape of `(L,) + self.shape` and contains eigenvalues for 
@@ -636,7 +636,7 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     @dims_to_spatial_axes
-    def specify(self, center, radius, *, dims=None, labeltype="square") -> LabeledArray:
+    def specify(self, center, radius, *, dims=None, labeltype="square") -> Label:
         """
         Make rectangle or ellipse labels from points.
         
@@ -706,7 +706,7 @@ class LabeledArray(HistoryArray):
 
             return self.specify(center, radius, dims=dims, labeltype=labeltype)     
         
-        return self
+        return self.labels
     
     @record(append_history=False)
     def reslice(self, src, dst, *, order:int=1) -> PropArray:
@@ -763,7 +763,7 @@ class LabeledArray(HistoryArray):
     
     @dims_to_spatial_axes
     @record(append_history=False, record_label=True)
-    def label(self, label_image=None, *, dims=None, connectivity=None) -> LabeledArray:
+    def label(self, label_image=None, *, dims=None, connectivity=None) -> Label:
         """
         Run skimage's label() and store the results as attribute.
 
@@ -778,7 +778,7 @@ class LabeledArray(HistoryArray):
 
         Returns
         -------
-        LabeledArray
+        Label
             Labeled image.
         
         Example
@@ -807,12 +807,11 @@ class LabeledArray(HistoryArray):
         self.labels._set_info(label_image, "label")
         self.labels = self.labels.increment_iter(c_axes).optimize()
         self.labels.set_scale(self)
-        return self
+        return self.labels
     
     @dims_to_spatial_axes
     @record(append_history=False, record_label=True)
-    def label_if(self, label_image=None, filt=None, *, dims=None, 
-                 connectivity=None) -> LabeledArray:
+    def label_if(self, label_image=None, filt=None, *, dims=None, connectivity=None) -> Label:
         """
         Label image using `label_image` as reference image only if certain condition
         dictated in `filt` is satisfied. skimage.measure.regionprops_table is called
@@ -900,13 +899,13 @@ class LabeledArray(HistoryArray):
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label_if")
         self.labels.set_scale(self)
-        return self
+        return self.labels
             
     
     @dims_to_spatial_axes
     @need_labels
     @record(append_history=False, record_label=True)
-    def expand_labels(self, distance:int=1, *, dims=None) -> LabeledArray:
+    def expand_labels(self, distance:int=1, *, dims=None) -> Label:
         """
         Expand areas of labels.
 
@@ -919,7 +918,7 @@ class LabeledArray(HistoryArray):
 
         Returns
         -------
-        ImgArray
+        Label
             Same array but labels are updated.
         """        
         
@@ -929,10 +928,10 @@ class LabeledArray(HistoryArray):
         
         self.labels.value[:] = labels
         
-        return self
+        return self.labels
     
     @record(append_history=False, record_label=True)
-    def append_label(self, label_image:np.ndarray, new:bool=False) -> LabeledArray:
+    def append_label(self, label_image:np.ndarray, new:bool=False) -> Label:
         """
         Append new labels from an array. This function works for boolean or signed int arrays.
 
@@ -945,8 +944,8 @@ class LabeledArray(HistoryArray):
         
         Returns
         -------
-        LabeledArray
-            Image with new labels.
+        Label
+            New labels.
         
         Example
         -------
@@ -997,12 +996,12 @@ class LabeledArray(HistoryArray):
                     raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
                 
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
-        return self
+        return self.labels
     
     @need_labels
     @dims_to_spatial_axes
     @record(append_history=False, record_label=True)
-    def proj_labels(self, *, dims=None, forbid_overlap=False):
+    def proj_labels(self, *, dims=None, forbid_overlap=False) -> Label:
         """
         Label projection. This function is useful when yx-labels are drawn in different z but
         you want to merge them.
@@ -1014,6 +1013,10 @@ class LabeledArray(HistoryArray):
         forbid_overlap : bool, default is False
             If True and there were any label overlap, this function will raise ValueError.
 
+        Returns
+        -------
+        Label
+            Projected labels.
         """        
         axis = tuple(self.axisof(a) for a in complement_axes(dims, self.axes))
         new_labels = np.max(self.labels, axis=axis)
@@ -1023,4 +1026,4 @@ class LabeledArray(HistoryArray):
                 raise ValueError("Label overlapped.")
         new_labels._set_info(self.labels, "proj", new_axes=dims)
         self.labels = new_labels
-        return None
+        return self.labels

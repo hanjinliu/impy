@@ -2251,7 +2251,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @only_binary
     @record()
-    def convex_hull(self, *, dims=None, update=False):
+    def convex_hull(self, *, dims=None, update=False) -> ImgArray:
         """
         Compute convex hull image.
 
@@ -2474,7 +2474,7 @@ class ImgArray(LabeledArray):
     @need_labels
     @record(record_label=True)
     def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 
-                  min_distance:float=2, dims=None) -> ImgArray:
+                  min_distance:float=2, dims=None) -> Label:
         """
         Label segmentation using watershed algorithm.
 
@@ -2493,8 +2493,8 @@ class ImgArray(LabeledArray):
             
         Returns
         -------
-        ImgArray
-            Same array but labels are updated.
+        Label
+            Updated labels.
         """
         
         # Prepare the input image.
@@ -2533,7 +2533,7 @@ class ImgArray(LabeledArray):
         self.labels = labels.optimize()
         self.labels._set_info(self)
         self.labels.set_scale(self)
-        return self
+        return self.labels
     
     @dims_to_spatial_axes
     @need_labels
@@ -2556,11 +2556,11 @@ class ImgArray(LabeledArray):
             Relabeled image.
         """        
         c_axes = complement_axes(dims, self.axes)
-        
+        # is labels updated here?
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol)
         
-        return self
+        return self.labels
     
     # @dims_to_spatial_axes
     # @record(append_history=False)
@@ -2589,7 +2589,7 @@ class ImgArray(LabeledArray):
     #     self.labels.set_scale(self)
     #     return self
     
-    def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> ImgArray:
+    def label_threshold(self, thr="otsu", *, dims=None, **kwargs) -> Label:
         """
         Make labels with threshold(). Be sure that keyword argument `dims` can be
         different (in most cases for >4D images) between threshold() and label().
@@ -2923,7 +2923,7 @@ class ImgArray(LabeledArray):
     @record()
     @same_dtype(asfloat=True)
     def drift_correction(self, shift=None, ref:ImgArray=None, *, order:int=1, 
-                         along:str=None, dims="yx", update:bool=False):
+                         along:str=None, dims="yx", update:bool=False) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors `shift`
         is not given, then it will be determined using `track_drift` method of ImgArray.
@@ -3202,7 +3202,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def lucy(self, psf, niter:int=50, *, dims=None, update:bool=False):
+    def lucy(self, psf, niter:int=50, *, dims=None, update:bool=False) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
         
@@ -3235,7 +3235,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def lucy_tv(self, psf, max_iter:int=50, lmd:float=1e-3, tol=5e-3, *, dims=None, update:bool=False):
+    def lucy_tv(self, psf, max_iter:int=50, lmd:float=1e-3, tol=5e-3, *, dims=None, update:bool=False) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position x,
