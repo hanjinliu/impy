@@ -1,4 +1,4 @@
-__version__ = "1.10.7"
+__version__ = "1.10.8"
 
 # TODO
 # - multichannel problem in viewer

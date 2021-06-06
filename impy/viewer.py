@@ -10,6 +10,7 @@ napari = ImportOnRequest("napari")
 from magicgui import magicgui
 from enum import Enum
 
+# import napari.viewer
 # TODO: 
 # - Start different window if added object is apparently different. To do this, self.viewer should be
 #   a property that returns the most recent window.
@@ -62,8 +63,8 @@ class napariWindow:
         return self.viewer.layers
     
     @property
-    def last_layer(self):
-        return self.viewer.layers[-1]
+    def selection(self):
+        return [l.data for l in self.viewer.layers.selection]
     
     @property
     def axes(self):
@@ -87,13 +88,10 @@ class napariWindow:
             raise ValueError("There is no visible image layer.")
         return front
     
-    @magicgui(call_button="Run", 
-              img={"label": "input:"},
-              func={"label": "method"},
-              )
+    @magicgui(call_button="Run", img={"label": "input:"})
     def run_func(self,
                  img: napari.layers.Image,
-                 func="gaussian_filter", 
+                 method="gaussian_filter", 
                  firstparam="None",
                  dims=Dims.NONE,
                  update=False) -> napari.types.LayerDataTuple:
@@ -104,7 +102,7 @@ class napariWindow:
         ----------
         img : napari.layers.Image
             Input image layer.
-        func : str, default is "gaussian_filter"
+        method : str, default is "gaussian_filter"
             Name of method to be called.
         firstparam : str, optional
             First parameter if exists.
@@ -117,16 +115,19 @@ class napariWindow:
             This is passed to napari and is directly visualized.
         """        
         if img is None:
-            return
+            return None
         
         if firstparam == "None":
-            out = getattr(img.data, func)(dims=dims.value)
+            try:
+                out = getattr(img.data, method)(dims=dims.value)
+            except TypeError:
+                out = getattr(img.data, method)()
         else:
             try:
                 firstparam = float(firstparam)
             except ValueError:
                 pass
-            out = getattr(img.data, func)(float(firstparam), dims=dims.value)
+            out = getattr(img.data, method)(float(firstparam), dims=dims.value)
         scale = make_world_scale(img.data)
         
         # determine name of the new layer
@@ -134,17 +135,24 @@ class napariWindow:
             name = img.name
         else:
             layer_names = [l.name for l in self.layers]
-            name = func
+            name = method
             i = 0
             while name in layer_names:
-                name = f"{func}-{i}"
+                name = f"{method}-{i}"
                 
         if isinstance(out, ImgArray):
-            return (out, dict(scale=scale, name=name, colormap=img.colormap), "image")
+            return (out, 
+                    dict(scale=scale, name=name, colormap=img.colormap, 
+                         contrast_limits=[float(x) for x in out.range]), 
+                    "image")
         elif isinstance(out, PhaseArray):
-            return (out, dict(scale=scale, name=name, colormap="hsv"), "image")
+            return (out, 
+                    dict(scale=scale, name=name, colormap="hsv"), 
+                    "image")
         elif isinstance(out, Label):
-            return (out, dict(opacity=0.3, scale=scale, name=name), "labels")
+            return (out, 
+                    dict(opacity=0.3, scale=scale, name=name), 
+                    "labels")
         elif isinstance(out, MarkerFrame):
             cmap = self.__class__._point_cmap
             kw = dict(size=3.2, face_color=[0,0,0,0], 
@@ -152,8 +160,6 @@ class napariWindow:
                       scale=scale)
             self._point_color_id += 1
             return (out, kw, "points")
-        # elif isinstance(out, TrackFrame):
-        #     return (out, dict(scale=scale), "tracks")
         
     def start(self, key:str):
         """
@@ -164,12 +170,10 @@ class napariWindow:
         if key in self._viewers.keys():
             raise ValueError(f"Key {key} already exists.")
         viewer = napari.Viewer(title=key)
-        viewer.scale_bar.visible = True
-        viewer.scale_bar.ticks = False
-        viewer.scale_bar.font_size = 8
-        viewer.axes.visible = True
-        viewer.axes.colored = False
+        default_viewer_settings(viewer)
         viewer.window.add_dock_widget(self.run_func, area="bottom")
+        cropfunc = lambda viewer: self.crop(dims="tzc", viewer=viewer)
+        viewer.bind_key("Control-Shift-X")(cropfunc)
         self._viewers[key] = viewer
         self._front_viewer = key
         return None
@@ -280,23 +284,49 @@ class napariWindow:
         mf = MarkerFrame(data, columns = self.axes)
         mf.set_scale(self)
         return mf
-    
-    def crop_front_image(self, dims="tzc"):
-        print("do not use this anymore")
-        layer = self.front_image
-        sl = []
-        for i, (start, end) in enumerate(layer.corner_pixels.T):
-            start, end = int(start), int(end)
-            if start+1 < end:
-                sl.append(slice(start, end))
-            else:
-                if layer.data.axes[i] in dims:
-                    sl.append(slice(None))
+        
+    def crop(self, dims:str="tzc", viewer:napari.Viewer=None):
+        """
+        Crop images at the edges of the napari viewer. This function can be called with key binding by
+        default.
+
+        Parameters
+        ----------
+        dims : str, optional
+            Which axes will not be cropped. Generally when an image stack is cropped at the edges, all 
+            the images along t-axis should be cropped at the same edges. On the other hand, images at
+            different positions (different p-coordinates) should not. That is why default is "tzc".
+        viewer : napari.Viewer, optional
+            Target viewer.
+        """        
+        if viewer is None:
+            viewer = self.viewer
+            
+        imglist = list(filter(lambda x: isinstance(x, napari.layers.Image), viewer.layers.selection))
+        count = 0
+        for layer in imglist:
+            sl = []
+            translate = []
+            for i, (start, end) in enumerate(layer.corner_pixels.T):
+                start, end = int(start), int(end+1)
+                if start+1 < end:
+                    if layer.data.axes[i] in "yx":
+                        translate.append(start*layer.data.scale[layer.data.axes[i]])
+                    sl.append(slice(start, end))
                 else:
-                    sl.append(start)
-        return layer.data[tuple(sl)]
-    
-    # def crop(self, dims="tzc"):
+                    if layer.data.axes[i] in dims:
+                        sl.append(slice(None))
+                    else:
+                        sl.append(start)
+            
+            img = layer.data[tuple(sl)]
+            if img.size > 0:
+                self._add_image(img, translate=translate, blending=layer.blending, colormap=layer.colormap)
+                count += 1
+        
+        if count == 0:
+            raise ValueError("No image was cropped")
+        
         
     
     def iter_layer(self, layer_type:str):
@@ -442,12 +472,12 @@ class napariWindow:
             
             kw = dict(edge_width=0.8, opacity=0.75, scale=scale, edge_color=ec, face_color=ec)
             kw.update(kwargs)
-            self.viewer.add_shapes(paths, shape_type="path", **kw)
+            self._viewers["Plot"].add_shapes(paths, shape_type="path", **kw)
         
         new_axes = list(df.columns)
         # add axis labels to slide bars and image orientation.
-        if len(new_axes) >= len(self.viewer.dims.axis_labels):
-            self.viewer.dims.axis_labels = new_axes
+        if len(new_axes) >= len(self._viewers["Plot"].dims.axis_labels):
+            self._viewers["Plot"].dims.axis_labels = new_axes
         
         return None
 
@@ -476,5 +506,12 @@ def make_world_scale(obj):
             scale.append(1)
     return scale
 
+def default_viewer_settings(viewer):
+    viewer.scale_bar.visible = True
+    viewer.scale_bar.ticks = False
+    viewer.scale_bar.font_size = 8
+    viewer.axes.visible = True
+    viewer.axes.colored = False
+    return None
 
 window = napariWindow()
