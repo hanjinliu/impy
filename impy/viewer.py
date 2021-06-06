@@ -322,7 +322,8 @@ class napariWindow:
             pnts = [points]
             
         for each in pnts:
-            kw = dict(size=3.2, face_color=[0,0,0,0], metadata={"axes": str(each._axes)},
+            metadata = {"axes": str(each._axes), "scale": each.scale}
+            kw = dict(size=3.2, face_color=[0,0,0,0], metadata=metadata,
                       edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
             kw.update(kwargs)
             self.viewer.add_points(each.values, scale=scale, **kw)
@@ -357,7 +358,8 @@ class napariWindow:
             
         scale = make_world_scale(track[[a for a in track._axes if a != "p"]])
         for tr in track_list:
-            self.viewer.add_tracks(tr, scale=scale, metadata={"axes": str(track._axes)}, **kwargs)
+            metadata = {"axes": str(tr._axes), "scale": tr.scale}
+            self.viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
         
         return None
 
@@ -485,13 +487,13 @@ class napariWindow:
                     cmap = self.__class__._point_cmap
                     kw = dict(size=3.2, face_color=[0,0,0,0], 
                                 edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)),
-                                metadata={"axes": str(out._axes)},
+                                metadata={"axes": str(out._axes), "scale": out.scale},
                                 scale=scale)
                     self._point_color_id += 1
                     out_ = (out, kw, "points")
                 elif isinstance(out, TrackFrame):
                     out_ = (out, 
-                            dict(scale=scale, metadata={"axes": str(out._axes)}), 
+                            dict(scale=scale, metadata={"axes": str(out._axes), "scale":out.scale}), 
                             "tracks")
                 else:
                     continue
@@ -543,9 +545,13 @@ def get_data(layer):
     if isinstance(layer, (napari.layers.Image, napari.layers.Labels, napari.layers.Shapes)):
         return layer.data
     elif isinstance(layer, napari.layers.Points):
-        return MarkerFrame(layer.data, columns=layer.metadata["axes"])
+        df = MarkerFrame(layer.data, columns=layer.metadata["axes"])
+        df.set_scale(layer.metadata["scale"])
+        return df
     elif isinstance(layer, napari.layers.Tracks):
-        return TrackFrame(layer.data, columns=layer.metadata["axes"])
+        df = TrackFrame(layer.data, columns=layer.metadata["axes"])
+        df.set_scale(layer.metadata["scale"])
+        return df
     else:
         raise NotImplementedError(type(layer))
 
