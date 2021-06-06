@@ -6,8 +6,6 @@ from .phasearray import PhaseArray
 from .label import Label
 from .specials import *
 from .utilcls import ImportOnRequest
-from enum import Enum
-from typing import List
 
 napari = ImportOnRequest("napari")
 magicgui = ImportOnRequest("magicgui")
@@ -18,11 +16,6 @@ magicgui = ImportOnRequest("magicgui")
 #   a property that returns the most recent window.
 # - Layer does not remember the original data after c-split.
 # - 
-
-class Dims(Enum):
-    ZYX = "zyx"
-    YX = "yx"
-    NONE = None
     
 class napariWindow:
     _point_cmap = plt.get_cmap("rainbow", 16)
@@ -65,7 +58,7 @@ class napariWindow:
     
     @property
     def selection(self):
-        return [l.data for l in self.viewer.layers.selection]
+        return list(map(get_data, self.viewer.layers.selection))
     
     @property
     def axes(self):
@@ -99,7 +92,7 @@ class napariWindow:
             raise ValueError(f"Key {key} already exists.")
         viewer = napari.Viewer(title=key)
         default_viewer_settings(viewer)
-        viewer.window.add_dock_widget(self._make_dock_window(), area="bottom")
+        viewer.window.add_dock_widget(self._make_dock_window(), area="left")
         viewer.bind_key("Control-Shift-X")(lambda v: self.crop(dims="tzc", viewer=v))
         self._viewers[key] = viewer
         self._front_viewer = key
@@ -253,8 +246,7 @@ class napariWindow:
         
         if count == 0:
             raise ValueError("No image was cropped")
-        
-        
+        return None
     
     def iter_layer(self, layer_type:str):
         """
@@ -330,7 +322,7 @@ class napariWindow:
             pnts = [points]
             
         for each in pnts:
-            kw = dict(size=3.2, face_color=[0,0,0,0], 
+            kw = dict(size=3.2, face_color=[0,0,0,0], metadata={"axes": str(each._axes)},
                       edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
             kw.update(kwargs)
             self.viewer.add_points(each.values, scale=scale, **kw)
@@ -358,14 +350,14 @@ class napariWindow:
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
-        if "c" in track.col_axes:
+        if "c" in track._axes:
             track_list = track.split("c")
         else:
             track_list = [track]
             
         scale = make_world_scale(track[[a for a in track._axes if a != "p"]])
         for tr in track_list:
-            self.viewer.add_tracks(tr, scale=scale, **kwargs)
+            self.viewer.add_tracks(tr, scale=scale, metadata={"axes": str(track._axes)}, **kwargs)
         
         return None
 
@@ -377,7 +369,7 @@ class napariWindow:
             dfs = [input_df]
         
         if len(dfs[0].columns) > 2:
-            groupax = find_first_appeared(input_df.col_axes, include="ptz<yx")
+            groupax = find_first_appeared(input_df._axes, include="ptz<yx")
         else:
             groupax = []
         
@@ -419,8 +411,7 @@ class napariWindow:
     def _make_dock_window(self):
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
-                     firstparam="None",
-                     dims=Dims.NONE,
+                     arguments="",
                      update=False) -> napari.types.LayerDataTuple:
             """
             Run image analysis in napari window.
@@ -429,11 +420,12 @@ class napariWindow:
             ----------
             method : str, default is "gaussian_filter"
                 Name of method to be called.
-            firstparam : str, optional
-                First parameter if exists.
-            dims : str, optional
-                Spatial dimensions.
-
+            arguments : str, default is ""
+                Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
+                the value should be `"2, dims=2"`.
+            update : bool, default is False
+                If update the layer's data. The original data will NOT be updated.
+                
             Returns
             -------
             napari.types.LayerDataTuple
@@ -447,24 +439,26 @@ class napariWindow:
             outlist = []
             i = 0
             for input in inputs:
+                data = get_data(input)
                 try:
-                    if firstparam == "None":
-                        try:
-                            out = getattr(input.data, method)(dims=dims.value)
-                        except TypeError:
-                            out = getattr(input.data, method)()
-                    else:
-                        try:
-                            firstparam = float(firstparam)
-                        except ValueError:
-                            pass
-                        out = getattr(input.data, method)(float(firstparam), dims=dims.value)
-                except AttributeError:
+                    func = getattr(data, method)
+                except AttributeError as e:
+                    self.viewer.status = f"{method} finished with AttributeError: {e}"
                     continue
-                scale = make_world_scale(input.data)
+                
+                self.viewer.status = f"{method} ..."
+                try:
+                    args, kwargs = str_to_args(arguments)
+                    out = func(*args, **kwargs)
+                except Exception as e:
+                    self.viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
+                    continue
+                else:
+                    self.viewer.status = f"{method} finished"
+                scale = make_world_scale(data)
                 
                 # determine name of the new layer
-                if update and type(input.data) is type(out):
+                if update and type(data) is type(out):
                     name = input.name
                 else:
                     name = f"{method}-{i}"
@@ -472,7 +466,7 @@ class napariWindow:
                     while name in layer_names:
                         name = f"{method}-{i}"
                         i += 1
-                        
+                
                 if isinstance(out, ImgArray):
                     contrast_limits = [float(x) for x in out.range]
                     out_ = (out, 
@@ -490,17 +484,23 @@ class napariWindow:
                 elif isinstance(out, MarkerFrame):
                     cmap = self.__class__._point_cmap
                     kw = dict(size=3.2, face_color=[0,0,0,0], 
-                                edge_color=list(cmap(self.__class__._point_color_id * (cmap.N//2+1) % cmap.N)), 
+                                edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)),
+                                metadata={"axes": str(out._axes)},
                                 scale=scale)
-                    self.__class__._point_color_id += 1
+                    self._point_color_id += 1
                     out_ = (out, kw, "points")
                 elif isinstance(out, TrackFrame):
-                    out_ = (out, dict(scale=scale), "tracks")
+                    out_ = (out, 
+                            dict(scale=scale, metadata={"axes": str(out._axes)}), 
+                            "tracks")
                 else:
                     continue
                 outlist.append(out_)
             
-            return outlist
+            if len(outlist) == 0:
+                return None
+            else:
+                return outlist
             
         return run_func  
 
@@ -526,5 +526,53 @@ def default_viewer_settings(viewer):
     viewer.axes.visible = True
     viewer.axes.colored = False
     return None
+
+def get_data(layer):
+    """
+    Convert layer to real data.
+
+    Parameters
+    ----------
+    layer : napari.layers.Layer
+        Input layer.
+
+    Returns
+    -------
+    ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
+    """    
+    if isinstance(layer, (napari.layers.Image, napari.layers.Labels, napari.layers.Shapes)):
+        return layer.data
+    elif isinstance(layer, napari.layers.Points):
+        return MarkerFrame(layer.data, columns=layer.metadata["axes"])
+    elif isinstance(layer, napari.layers.Tracks):
+        return TrackFrame(layer.data, columns=layer.metadata["axes"])
+    else:
+        raise NotImplementedError(type(layer))
+
+def str_to_args(s:str) -> tuple[list, dict]:
+    args_or_kwargs = [s.strip() for s in s.split(",")]
+    if args_or_kwargs[0] == "":
+        return [], {}
+    args = []
+    kwargs = {}
+    for a in args_or_kwargs:
+        if "=" in a:
+            k, v = a.split("=")
+            v = interpret_type(v)
+            kwargs[k] = v
+        else:
+            a = interpret_type(a)
+            args.append(a)
+    return args, kwargs
+            
+def interpret_type(s:str):
+    try:
+        s = int(s)
+    except ValueError:
+        try:
+            s = float(s)
+        except ValueError:
+            pass
+    return s
 
 window = napariWindow()
