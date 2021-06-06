@@ -6,16 +6,17 @@ from .phasearray import PhaseArray
 from .label import Label
 from .specials import *
 from .utilcls import ImportOnRequest
-napari = ImportOnRequest("napari")
-from magicgui import magicgui
 from enum import Enum
+from typing import List
+
+napari = ImportOnRequest("napari")
+magicgui = ImportOnRequest("magicgui")
 
 # import napari.viewer
 # TODO: 
 # - Start different window if added object is apparently different. To do this, self.viewer should be
 #   a property that returns the most recent window.
 # - Layer does not remember the original data after c-split.
-# - `bind_key` of cropping image
 # - 
 
 class Dims(Enum):
@@ -88,79 +89,6 @@ class napariWindow:
             raise ValueError("There is no visible image layer.")
         return front
     
-    @magicgui(call_button="Run", img={"label": "input:"})
-    def run_func(self,
-                 img: napari.layers.Image,
-                 method="gaussian_filter", 
-                 firstparam="None",
-                 dims=Dims.NONE,
-                 update=False) -> napari.types.LayerDataTuple:
-        """
-        Run image analysis in napari window.
-
-        Parameters
-        ----------
-        img : napari.layers.Image
-            Input image layer.
-        method : str, default is "gaussian_filter"
-            Name of method to be called.
-        firstparam : str, optional
-            First parameter if exists.
-        dims : str, optional
-            Spatial dimensions.
-
-        Returns
-        -------
-        napari.types.LayerDataTuple
-            This is passed to napari and is directly visualized.
-        """        
-        if img is None:
-            return None
-        
-        if firstparam == "None":
-            try:
-                out = getattr(img.data, method)(dims=dims.value)
-            except TypeError:
-                out = getattr(img.data, method)()
-        else:
-            try:
-                firstparam = float(firstparam)
-            except ValueError:
-                pass
-            out = getattr(img.data, method)(float(firstparam), dims=dims.value)
-        scale = make_world_scale(img.data)
-        
-        # determine name of the new layer
-        if update and type(img.data) is type(out):
-            name = img.name
-        else:
-            layer_names = [l.name for l in self.layers]
-            name = method
-            i = 0
-            while name in layer_names:
-                name = f"{method}-{i}"
-                
-        if isinstance(out, ImgArray):
-            return (out, 
-                    dict(scale=scale, name=name, colormap=img.colormap, 
-                         contrast_limits=[float(x) for x in out.range]), 
-                    "image")
-        elif isinstance(out, PhaseArray):
-            return (out, 
-                    dict(scale=scale, name=name, colormap="hsv"), 
-                    "image")
-        elif isinstance(out, Label):
-            return (out, 
-                    dict(opacity=0.3, scale=scale, name=name), 
-                    "labels")
-        elif isinstance(out, MarkerFrame):
-            cmap = self.__class__._point_cmap
-            kw = dict(size=3.2, face_color=[0,0,0,0], 
-                      edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)), 
-                      scale=scale)
-            self._point_color_id += 1
-            return (out, kw, "points")
-        
     def start(self, key:str):
         """
         Create a napari window with name `key`.
@@ -171,9 +99,8 @@ class napariWindow:
             raise ValueError(f"Key {key} already exists.")
         viewer = napari.Viewer(title=key)
         default_viewer_settings(viewer)
-        viewer.window.add_dock_widget(self.run_func, area="bottom")
-        cropfunc = lambda viewer: self.crop(dims="tzc", viewer=viewer)
-        viewer.bind_key("Control-Shift-X")(cropfunc)
+        viewer.window.add_dock_widget(self._make_dock_window(), area="bottom")
+        viewer.bind_key("Control-Shift-X")(lambda v: self.crop(dims="tzc", viewer=v))
         self._viewers[key] = viewer
         self._front_viewer = key
         return None
@@ -472,12 +399,12 @@ class napariWindow:
             
             kw = dict(edge_width=0.8, opacity=0.75, scale=scale, edge_color=ec, face_color=ec)
             kw.update(kwargs)
-            self._viewers["Plot"].add_shapes(paths, shape_type="path", **kw)
+            self["Plot"].viewer.add_shapes(paths, shape_type="path", **kw)
         
         new_axes = list(df.columns)
         # add axis labels to slide bars and image orientation.
         if len(new_axes) >= len(self._viewers["Plot"].dims.axis_labels):
-            self._viewers["Plot"].dims.axis_labels = new_axes
+            self["Plot"].viewer.dims.axis_labels = new_axes
         
         return None
 
@@ -488,8 +415,94 @@ class napariWindow:
             name += f"-{i}"
             i += 1
         return name
-        
-        
+    
+    def _make_dock_window(self):
+        @magicgui.magicgui(call_button="Run")
+        def run_func(method="gaussian_filter", 
+                     firstparam="None",
+                     dims=Dims.NONE,
+                     update=False) -> napari.types.LayerDataTuple:
+            """
+            Run image analysis in napari window.
+
+            Parameters
+            ----------
+            method : str, default is "gaussian_filter"
+                Name of method to be called.
+            firstparam : str, optional
+                First parameter if exists.
+            dims : str, optional
+                Spatial dimensions.
+
+            Returns
+            -------
+            napari.types.LayerDataTuple
+                This is passed to napari and is directly visualized.
+            """
+            try:
+                inputs = list(l for l in self.viewer.layers.selection)
+            except StopIteration:
+                return None
+            layer_names = [l.name for l in self.layers]
+            outlist = []
+            i = 0
+            for input in inputs:
+                try:
+                    if firstparam == "None":
+                        try:
+                            out = getattr(input.data, method)(dims=dims.value)
+                        except TypeError:
+                            out = getattr(input.data, method)()
+                    else:
+                        try:
+                            firstparam = float(firstparam)
+                        except ValueError:
+                            pass
+                        out = getattr(input.data, method)(float(firstparam), dims=dims.value)
+                except AttributeError:
+                    continue
+                scale = make_world_scale(input.data)
+                
+                # determine name of the new layer
+                if update and type(input.data) is type(out):
+                    name = input.name
+                else:
+                    name = f"{method}-{i}"
+                    i += 1
+                    while name in layer_names:
+                        name = f"{method}-{i}"
+                        i += 1
+                        
+                if isinstance(out, ImgArray):
+                    contrast_limits = [float(x) for x in out.range]
+                    out_ = (out, 
+                            dict(scale=scale, name=name, colormap=input.colormap, 
+                                 blending=input.blending, contrast_limits=contrast_limits), 
+                            "image")
+                elif isinstance(out, PhaseArray):
+                    out_ = (out, 
+                            dict(scale=scale, name=name, colormap="hsv", contrast_limits=out.border), 
+                            "image")
+                elif isinstance(out, Label):
+                    out_ = (out, 
+                            dict(opacity=0.3, scale=scale, name=name), 
+                            "labels")
+                elif isinstance(out, MarkerFrame):
+                    cmap = self.__class__._point_cmap
+                    kw = dict(size=3.2, face_color=[0,0,0,0], 
+                                edge_color=list(cmap(self.__class__._point_color_id * (cmap.N//2+1) % cmap.N)), 
+                                scale=scale)
+                    self.__class__._point_color_id += 1
+                    out_ = (out, kw, "points")
+                elif isinstance(out, TrackFrame):
+                    out_ = (out, dict(scale=scale), "tracks")
+                else:
+                    continue
+                outlist.append(out_)
+            
+            return outlist
+            
+        return run_func  
 
 def to_labels(layer, labels_shape, zoom_factor=1):
     return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
