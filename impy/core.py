@@ -1,7 +1,8 @@
 from __future__ import annotations
 from functools import wraps
-from impy.labeledarray import LabeledArray
-from impy.label import Label
+from inspect import signature
+from .labeledarray import LabeledArray
+from .label import Label
 from .specials import PropArray
 from .deco import dims_to_spatial_axes, make_history
 import numpy as np
@@ -377,12 +378,12 @@ def squeeze(img:MetaArray):
 
 @MetaArray.implements(np.take)
 def take(a:MetaArray, indices, axis:int=None, out=None, mode="raise"):
-    if isinstance(axis, int):
-        new_axes = del_axis(a.axes, axis)
-    else:
-        new_axes = a.axes
+    new_axes = del_axis(a.axes, axis)
+    if isinstance(axis, str):
+        axis = a.axes.find(axis)
     out = np.take(a.value, indices, axis=axis, out=out, mode=mode).view(a.__class__)
-    out._set_info(a, new_axes=new_axes)
+    if isinstance(out, a.__class__):
+        out._set_info(a, new_axes=new_axes)
     return out
 
 @MetaArray.implements(np.stack)
@@ -538,13 +539,13 @@ class bind:
 
     Examples
     --------
-    (1) Bind "normalize" method that 
+    (1) Bind "normalize" method that will normalize images separately.
     >>> def normalize(img):
     >>>    min_, max_ = img.min(), img.max()
     >>>    return (img - min_)/(max_ - min_)
     >>> ip.bind(normalize, indtype=np.float32, outdtype=np.float32)
     >>> img = ip.imread(...)
-    >>> img.normalize(img)
+    >>> img.normalize()
     
     (2) Bind `skimage.filters.rank.maximum` for filtering, but make it take "radius" rather than
     "selem" as a keyword argument.
@@ -566,7 +567,11 @@ class bind:
     >>>    min_, max_ = img.min(), img.max()
     >>>    return (img - min_)/(max_ - min_)
     >>> img = ip.imread(...)
-    >>> img.normalize(img)
+    >>> img.normalize()
+    or if you thick `indtype` and `outdtype` are unnecessary:
+    >>> @ip.bind
+    >>> def normalize(img):
+    >>>     ...
     
     (5) Bind custom percentile labeling function (although `label_threshold` method can do the 
     exactly same thing).
@@ -576,7 +581,7 @@ class bind:
     >>>     thr = img > per
     >>>     return thr
     >>> img = ip.imread(...)
-    >>> img.mylabel(img, 95)   # img.labels is added here
+    >>> img.mylabel(95)   # img.labels is added here
     """    
     bound = set()
     def __init__(self, func:Callable=None, funcname:str=None, *, indtype=None, outdtype=None, 
@@ -616,22 +621,24 @@ class bind:
             fn = funcname
         else:
             raise TypeError("`funcname` must be str if given.")
-        
-        # If the function name conflicts with ImgArray's native methods, raise an error.
         if hasattr(ImgArray, fn) and fn not in self.bound:
-            raise AssertionError(f"ImgArray already has attribute '{fn}'. Consider other names.")
+            raise AttributeError(f"ImgArray already has attribute '{fn}'. Consider other names.")
         
+        # check ndim and define default value of dims
         if ndim is None:
-            dims = None
+            default_dims = None
         elif ndim == 2:
-            dims = "yx"
+            default_dims = "yx"
         elif ndim == 3:
-            dims = "zyx"
+            default_dims = "zyx"
         else:
             raise ValueError(f"`ndim` must be None, 2 or 3, but got {ndim}.")
         
+        # check mapping
         if mapping is None:
             mapping = {}
+        elif not isinstance(mapping, dict):
+            raise TypeError(f"`mapping` must be dict, but got {type(mapping)}")
         
         # Dynamically define functions used inside the plugin method, depending on `kind` option.
         # _prepare_output_array : returns a subclass of ndarray for output.
@@ -696,31 +703,33 @@ class bind:
         else:
             raise NotImplementedError(kind)
         
-        # Define method
+        # Define method and bind it to ImgArray
         @wraps(func)
         @dims_to_spatial_axes
-        def _func(self, *args, dims=dims, **kwargs):
+        def _func(self, *args, dims=default_dims, **kwargs):
             if indtype is not None:
                 self = self.as_img_type(indtype)
             
-            # mapping keyword arguments if necessary
-            kw = dict()
-            for k, v in kwargs.items():
-                m = mapping.get(k, None)
-                if m is None:
-                    kw[k] = v
-                else:
-                    newkey, val = m
-                    try:
-                        kw[newkey] = val(v, len(dims))
-                    except TypeError:
-                        kw[newkey] = val(v)
+            # map keyword arguments if necessary
+            if mapping:
+                kw = dict()
+                for k, v in kwargs.items():
+                    m = mapping.get(k, None)
+                    if m is None:
+                        kw[k] = v
+                    else:
+                        newkey, val = m
+                        try:
+                            kw[newkey] = val(v, len(dims))
+                        except TypeError:
+                            kw[newkey] = val(v)
+                kwargs = kw
                 
             out = _prepare_output_array(self, dims)
                 
             with Progress(fn):
                 for sl, img in _iter(self, dims):
-                    out[sl] = func(img, *args, **kw)
+                    out[sl] = func(img, *args, **kwargs)
                 out = _exit(out, self, func, *args, **kwargs)
             return out
         

@@ -259,8 +259,7 @@ class MetaArray(np.ndarray):
         considered because it changes `ndim`.
         """
         if "axis" in kwargs.keys() and not obj.axes.is_none():
-            axis = kwargs["axis"]
-            new_axes = del_axis(obj.axes, axis)
+            new_axes = del_axis(obj.axes, kwargs["axis"])
         else:
             new_axes = "inherit"
         self._set_info(obj, new_axes=new_axes)
