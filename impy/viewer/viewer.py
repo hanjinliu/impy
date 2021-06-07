@@ -1,14 +1,13 @@
 from __future__ import annotations
 import matplotlib.pyplot as plt
-from time import time as tic
-from .imgarray import ImgArray
-from .labeledarray import LabeledArray
-from .phasearray import PhaseArray
-from .label import Label
-from .specials import *
-from .utilcls import ImportOnRequest
+from ..imgarray import ImgArray
+from ..labeledarray import LabeledArray
+from ..phasearray import PhaseArray
+from ..label import Label
+from ..specials import *
+from ..utilcls import ImportOnRequest
+from .utils import *
 
-napari = ImportOnRequest("napari")
 magicgui = ImportOnRequest("magicgui")
 
 # import napari.viewer
@@ -84,7 +83,7 @@ class napariWindow:
         if key in self._viewers.keys():
             raise ValueError(f"Key {key} already exists.")
         if not self._viewers:
-            bind_keys()
+            from . import keybinds
         viewer = napari.Viewer(title=key)
         default_viewer_settings(viewer)
         # Add dock widgets
@@ -211,10 +210,10 @@ class napariWindow:
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     
     def _iter_layer(self, layer_type:str):
-        return _iter_layer(self.viewer, layer_type)
+        return iter_layer(self.viewer, layer_type)
     
     def _iter_selected_layer(self, layer_type:str):
-        return _iter_selected_layer(self.viewer, layer_type)
+        return iter_selected_layer(self.viewer, layer_type)
         
     def _add_image(self, img:LabeledArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
@@ -447,22 +446,6 @@ class napariWindow:
             
         return run_func  
     
-
-def to_labels(layer, labels_shape, zoom_factor=1):
-    return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
-    
-
-def make_world_scale(obj):
-    scale = []
-    for a in obj._axes:
-        if a in "zyx":
-            scale.append(obj.scale[a])
-        elif a == "c":
-            pass
-        else:
-            scale.append(1)
-    return scale
-
 def default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
@@ -470,32 +453,6 @@ def default_viewer_settings(viewer):
     viewer.axes.visible = True
     viewer.axes.colored = False
     return None
-
-def get_data(layer):
-    """
-    Convert layer to real data.
-
-    Parameters
-    ----------
-    layer : napari.layers.Layer
-        Input layer.
-
-    Returns
-    -------
-    ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
-    """    
-    if isinstance(layer, (napari.layers.Image, napari.layers.Labels, napari.layers.Shapes)):
-        return layer.data
-    elif isinstance(layer, napari.layers.Points):
-        df = MarkerFrame(layer.data, columns=layer.metadata["axes"])
-        df.set_scale(layer.metadata["scale"])
-        return df
-    elif isinstance(layer, napari.layers.Tracks):
-        df = TrackFrame(layer.data, columns=layer.metadata["axes"])
-        df.set_scale(layer.metadata["scale"])
-        return df
-    else:
-        raise NotImplementedError(type(layer))
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = [s.strip() for s in s.split(",")]
@@ -522,182 +479,4 @@ def interpret_type(s:str):
         except ValueError:
             pass
     return s
-
-def _iter_layer(viewer, layer_type:str):
-    """
-    Iterate over layers and yield only certain type of layers.
-
-    Parameters
-    ----------
-    layer_type : str, {"shape", "image", "point"}
-        Type of layer.
-
-    Yields
-    -------
-    napari.layers
-        Layers specified by layer_type
-    """        
-    if layer_type == "shape":
-        layer_type = napari.layers.Shapes
-    elif layer_type == "image":
-        layer_type = napari.layers.Image
-    elif layer_type == "point":
-        layer_type = napari.layers.Points
-    else:
-        raise NotImplementedError
-    
-    for layer in viewer.layers:
-        if isinstance(layer, layer_type):
-            yield layer
-
-def _iter_selected_layer(viewer, layer_type:str):
-    if layer_type == "shape":
-        layer_type = napari.layers.Shapes
-    elif layer_type == "image":
-        layer_type = napari.layers.Image
-    elif layer_type == "point":
-        layer_type = napari.layers.Points
-    else:
-        raise NotImplementedError
-    
-    for layer in viewer.layers.selection:
-        if isinstance(layer, layer_type):
-            yield layer
-
-def front_image(viewer):
-    """
-    From list of image layers return the most front visible image.
-    """        
-    front = None
-    for img in _iter_layer(viewer, "image"):
-        if img.visible:
-            front = img # This is ImgArray
-    if front is None:
-        raise ValueError("There is no visible image layer.")
-    return front
-
-# key binding
-def bind_keys():
-    @napari.Viewer.bind_key("Control-Shift-a")
-    def hide_others(viewer):
-        """
-        Make selected layers visible and others invisible. If key is pushed for a long time, then the visibility
-        is restored upon release
-
-        Parameters
-        ----------
-        viewer : napari.Viewer, optional
-            Target viewer.
-        """
-        visibility = []
-        selected = viewer.layers.selection
-        for layer in viewer.layers:
-            visibility.append(layer.visible)
-            if layer in selected:
-                layer.visible = True
-            else:
-                layer.visible = False
-        
-
-    @napari.Viewer.bind_key("Control-h")
-    def hello(viewer):
-        viewer.status = "Hello world"
-        yield
-        viewer.status = "goodbye world"
-
-    @napari.Viewer.bind_key("Alt-l")
-    def shapes_to_labels(viewer):
-        """
-        Convert manually drawn shapes to labels and store in `destination`.
-
-        Parameters
-        ----------
-        destination : (list of) LabeledArray, optional
-            To which labels will be stored, by default None
-        viewer : napari.Viewer, optional
-            Target viewer.
-            
-        Returns
-        -------
-        Label
-            Last appended label.
-        """        
-        
-        # determine
-        destinations = [l.data for l in _iter_selected_layer(viewer, "image")]
-        if len(destinations) == 0:
-            destinations = [front_image(viewer).data]
-        
-        for dst in destinations:
-            # check zoom_factors
-            d = viewer.dims
-            scale = {a: r[2] for a, r in zip(d.axis_labels, d.range)}
-            zoom_factors = [scale[a]/dst.scale[a] for a in "yx"]
-            if np.unique(zoom_factors).size == 1:
-                zoom_factor = zoom_factors[0]
-            else:
-                raise ValueError("Scale mismatch in images and napari world.")
-            # make labels from selected shapes
-            shapes = [to_labels(layer, dst.shape, zoom_factor=zoom_factor) 
-                        for layer in _iter_selected_layer(viewer, "shape")]
-            # append labels to each destination
-            label = sum(shapes)
-            if hasattr(dst, "labels"):
-                print(f"Label already exist in {dst}. Overlapped.")
-                del dst.labels
-            dst.append_label(label)
-            
-        return dst.labels
-
-    @napari.Viewer.bind_key("Control-Shift-x")
-    def crop(viewer):
-        """
-        Crop images at the edges of the napari viewer. This function can be called with key binding by
-        default.
-
-        Parameters
-        ----------
-        dims : str, optional
-            Which axes will not be cropped. Generally when an image stack is cropped at the edges, all 
-            the images along t-axis should be cropped at the same edges. On the other hand, images at
-            different positions (different p-coordinates) should not. That is why default is "tzc".
-        viewer : napari.Viewer, optional
-            Target viewer.
-        """        
-        
-        imglist = list(filter(lambda x: isinstance(x, napari.layers.Image), viewer.layers.selection))
-        count = 0
-        for layer in imglist:
-            sl = []
-            translate = []
-            for i, (start, end) in enumerate(layer.corner_pixels.T):
-                start, end = int(start), int(end+1)
-                if start+1 < end:
-                    if layer.data.axes[i] in "yx":
-                        translate.append(start*layer.data.scale[layer.data.axes[i]])
-                    sl.append(slice(start, end))
-                else:
-                    if layer.data.axes[i] in "tzc":
-                        sl.append(slice(None))
-                    else:
-                        sl.append(start)
-            
-            img = layer.data[tuple(sl)]
-            if img.size > 0:
-                kwargs = dict(name=img.name+"-crop", translate=translate)
-                if isinstance(img, PhaseArray):
-                    kwargs["colormap"] = "hsv"
-                    kwargs["contrast_limits"] = img.border
-                
-                scale = make_world_scale(img)
-                            
-                viewer.add_image(img, scale=scale, **kwargs)
-                count += 1
-        
-        if count == 0:
-            viewer.status = "No image was cropped"
-        return None
-
-window = napariWindow()
-
 
