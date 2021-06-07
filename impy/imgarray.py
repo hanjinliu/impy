@@ -1039,6 +1039,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
+        low_sigma = np.array(check_nd(low_sigma, len(dims)))
         high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
         
         return self.parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
@@ -1064,9 +1065,8 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
-        ndim = len(dims)
-        sigma = check_nd(sigma, ndim)
+        """    
+        sigma = check_nd(sigma, len(dims))
         pxsize = np.array([self.scale[a] for a in dims])
         return self.as_float().parallel(hessian_det_, complement_axes(dims, self.axes), 
                                         sigma, pxsize)
@@ -1330,9 +1330,9 @@ class ImgArray(LabeledArray):
         
         # separate spatial dimensions and others
         ndim = len(dims)
-        dims_list = [a for a in dims]
+        dims_list = list(dims)
         c_axes = complement_axes(dims, self.axes)
-        c_axes_list = [a for a in c_axes]
+        c_axes_list = list(c_axes)
         
         if isinstance(exclude_border, bool):
             exclude_border = int(min_distance) if exclude_border else False
@@ -1397,9 +1397,9 @@ class ImgArray(LabeledArray):
         
         # separate spatial dimensions and others
         ndim = len(dims)
-        dims_list = [a for a in dims]
+        dims_list = list(dims)
         c_axes = complement_axes(dims, self.axes)
-        c_axes_list = [a for a in c_axes]
+        c_axes_list = list(c_axes)
         
         if isinstance(exclude_border, bool):
             exclude_border = int(min_distance) if exclude_border else False
@@ -1425,7 +1425,7 @@ class ImgArray(LabeledArray):
             indices[c_axes_list] = sl
             df_all.append(indices)
             
-        df_all = pd.concat([df_all], axis=0)
+        df_all = pd.concat(df_all, axis=0)
         df_all = MarkerFrame(df_all, columns=self.axes, dtype="uint16")
         df_all.set_scale(self)
         return df_all
@@ -1616,8 +1616,8 @@ class ImgArray(LabeledArray):
         
         df_all = []
         c_axes = complement_axes(dims, self.axes)
-        c_axes_list = [a for a in c_axes]
-        dims_list = [a for a in dims]
+        c_axes_list = list(c_axes)
+        dims_list = list(dims)
         with Progress("refine_sm"):
             for sl, crds in coords.iter(c_axes):
                 img = self[sl]
@@ -1640,7 +1640,7 @@ class ImgArray(LabeledArray):
                 df_all.append(refined_coords)
             df_all = pd.concat(df_all, axis=0)
                 
-        mf = MarkerFrame(df_all.reindex(columns=[a for a in self.axes]), 
+        mf = MarkerFrame(df_all.reindex(columns=list(self.axes)), 
                          columns=str(self.axes), dtype=np.float32).as_standard_type()
         mf.set_scale(self.scale)
         df = df_all[df_all.columns[df_all.columns.isin([a for a in df_all.columns if a not in dims])]]
@@ -1729,24 +1729,33 @@ class ImgArray(LabeledArray):
         filt = check_filter_func(filt)
         radius = np.asarray(check_nd(radius, ndim))
         shape = self.sizesof(dims)
-        # TODO: cannot apply to zcyx image
         centroids = []  # fitting results of means
         with Progress("centroid_sm"):
-            for crd in coords.values:
-                center = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
-                input_img = self.value[label_sl][sl]
-                if input_img.size == 0 or not filt(input_img):
-                    continue
-                
-                mom = skmes.moments(input_img, order=1)
-                shift = center - radius
-                centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] for i in range(ndim)])/mom[(0,)*ndim]
-                centroids.append(label_sl + tuple(centroid + shift))
-                
-        out = MarkerFrame(centroids, columns=coords.col_axes, dtype=np.float32).as_standard_type()
-        out.set_scale(coords.scale)
+            out = []
+            columns = list(dims)
+            c_axes = complement_axes(dims, coords._axes)
+            for sl, crds in coords.iter(c_axes):
+                centroids = []
+                for center in crds.values:
+                    bbox = specify_one(center, radius, shape)
+                    input_img = self.value[sl][bbox]
+                    if input_img.size == 0 or not filt(input_img):
+                        continue
+                    
+                    mom = skmes.moments(input_img, order=1)
+                    shift = center - radius
+                    centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
+                                         for i in range(ndim)]) / mom[(0,)*ndim] + shift
+                    
+                    centroids.append(centroid.tolist())
+                df = pd.DataFrame(centroids, columns=columns)
+                df[list(c_axes)] = sl[:-ndim]
+                out.append(df)
+            out = pd.concat(out, axis=0)
+            
+            out = MarkerFrame(out.reindex(columns=list(coords._axes)),
+                              columns=str(coords._axes), dtype=np.float32).as_standard_type()
+            out.set_scale(coords.scale)
 
         return out
     
@@ -1783,6 +1792,8 @@ class ImgArray(LabeledArray):
         FrameDict with keys {means, sigmas, errors}, if return_all == True
             Dictionary that contains means, standard deviations and fitting errors.
         """        
+        # TODO: Error formulation has not been checked yet. For loop should be like centroid_sm
+        # because currently does not work for zcyx-image
         
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
@@ -1814,7 +1825,6 @@ class ImgArray(LabeledArray):
                 if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
                     gaussian.shift(center - radius)
                     # calculate fitting error with Jacobian
-                    # TODO: is this error correct?
                     if return_all:
                         jac = res.jac[:2].reshape(1,-1)
                         cov = pseudo_inverse(jac.T @ jac)

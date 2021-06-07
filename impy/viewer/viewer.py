@@ -127,7 +127,6 @@ class napariWindow:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
     
-    
     def points_to_frames(self, ref:LabeledArray=None, index=0, projection=False) -> MarkerFrame:
         """
         Convert manually selected points to MarkerFrame.
