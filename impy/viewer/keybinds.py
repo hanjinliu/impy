@@ -1,5 +1,4 @@
 from .utils import *
-import napari
 import numpy as np
 
 @napari.Viewer.bind_key("Control-Shift-a")
@@ -23,11 +22,11 @@ def hide_others(viewer):
             layer.visible = False
     
 
-@napari.Viewer.bind_key("Control-h")
-def hello(viewer):
-    viewer.status = "Hello world"
-    yield
-    viewer.status = "goodbye world"
+# @napari.Viewer.bind_key("Control-h")
+# def hello(viewer):
+#     viewer.status = "Hello world"
+#     yield
+#     viewer.status = "goodbye world"
 
 @napari.Viewer.bind_key("Alt-l")
 def shapes_to_labels(viewer):
@@ -88,7 +87,7 @@ def crop(viewer):
     viewer : napari.Viewer, optional
         Target viewer.
     """        
-    
+    # TODO: now working for already translated images
     imglist = list(filter(lambda x: isinstance(x, napari.layers.Image), viewer.layers.selection))
     count = 0
     for layer in imglist:
@@ -96,15 +95,19 @@ def crop(viewer):
         translate = []
         for i, (start, end) in enumerate(layer.corner_pixels.T):
             start, end = int(start), int(end+1)
-            if start+1 < end:
-                if layer.data.axes[i] in "yx":
-                    translate.append(start*layer.data.scale[layer.data.axes[i]])
-                sl.append(slice(start, end))
-            else:
-                if layer.data.axes[i] in "tzc":
-                    sl.append(slice(None))
+            if layer.data.axes[i] in "tzc":
+                sl.append(slice(None))
+                translate.append(0.0)
+            elif layer.data.axes[i] in "yx":
+                if start+1 < end:
+                    sl.append(slice(start, end))
                 else:
-                    sl.append(start)
+                    viewer.status = "Failed to crop."
+                    return None
+                translate.append(start*layer.data.scale[layer.data.axes[i]])
+            else:
+                translate.append(0.0)
+                sl.append(start)
         
         img = layer.data[tuple(sl)]
         if img.size > 0:
@@ -115,7 +118,7 @@ def crop(viewer):
             
             scale = make_world_scale(img)
                         
-            viewer.add_image(img, scale=scale, **kwargs)
+            layer = viewer.add_image(img, scale=scale, **kwargs)
             count += 1
     
     if count == 0:

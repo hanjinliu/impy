@@ -7,6 +7,8 @@ from ..label import Label
 from ..specials import *
 from ..utilcls import ImportOnRequest
 from .utils import *
+from .mouse import *
+# from magicgui.widgets import TextEdit, LineEdit, Table
 
 magicgui = ImportOnRequest("magicgui")
 
@@ -88,7 +90,8 @@ class napariWindow:
         default_viewer_settings(viewer)
         # Add dock widgets
         viewer.window.add_dock_widget(self._make_dock_window(), area="left")
-        
+        # Add event
+        viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
         self._front_viewer = key
         return None
@@ -158,51 +161,6 @@ class napariWindow:
         mf.set_scale(self)
         return mf
     
-    def crop(self, dims:str="tzc", viewer:napari.Viewer=None):
-        """
-        Crop images at the edges of the napari viewer. This function can be called with key binding by
-        default.
-
-        Parameters
-        ----------
-        dims : str, optional
-            Which axes will not be cropped. Generally when an image stack is cropped at the edges, all 
-            the images along t-axis should be cropped at the same edges. On the other hand, images at
-            different positions (different p-coordinates) should not. That is why default is "tzc".
-        viewer : napari.Viewer, optional
-            Target viewer.
-        """        
-        if viewer is None:
-            viewer = self.viewer
-            
-        imglist = list(filter(lambda x: isinstance(x, napari.layers.Image), viewer.layers.selection))
-        count = 0
-        for layer in imglist:
-            sl = []
-            translate = []
-            for i, (start, end) in enumerate(layer.corner_pixels.T):
-                start, end = int(start), int(end+1)
-                if start+1 < end:
-                    if layer.data.axes[i] in "yx":
-                        translate.append(start*layer.data.scale[layer.data.axes[i]])
-                    sl.append(slice(start, end))
-                else:
-                    if layer.data.axes[i] in dims:
-                        sl.append(slice(None))
-                    else:
-                        sl.append(start)
-            
-            img = layer.data[tuple(sl)]
-            if img.size > 0:
-                self._add_image(img, translate=translate, blending=layer.blending, colormap=layer.colormap)
-                count += 1
-        
-        if count == 0:
-            raise ValueError("No image was cropped")
-        return None
-        
-    
-
         
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
@@ -237,6 +195,7 @@ class napariWindow:
         self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                               name=name if len(name)>1 else name[0],
                               **kwargs)
+        
         self.viewer.scale_bar.unit = img.scale_unit
         if hasattr(img, "labels"):
             self._add_labels(img.labels, name=name)
@@ -303,6 +262,7 @@ class napariWindow:
         return None
 
     def _add_plot(self, prop:PropArray, **kwargs):
+        # TODO: Delete this. Use magicgui for plotting inside
         input_df = prop.as_frame()
         if "c" in input_df.columns:
             dfs = input_df.split("c")
@@ -324,7 +284,7 @@ class napariWindow:
             cmap = self.__class__._plot_cmap
             paths = []
             ec = []
-            for sl, data in df.groupby(groupax): # TODO: doesn't work for []
+            for sl, data in df.groupby(groupax): 
                 path = data.values.tolist()
                 paths.append(path)
                 ec.append(list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))

@@ -1,5 +1,7 @@
 from ..specials import MarkerFrame, TrackFrame
 from ..utilcls import ImportOnRequest
+import numpy as np
+from .mouse import *
 napari = ImportOnRequest("napari")
 
 def get_data(layer):
@@ -95,3 +97,14 @@ def make_world_scale(obj):
         else:
             scale.append(1)
     return scale
+
+def upon_add_layer(event):
+    try:
+        new_layer = event.sources[0][-1]
+    except IndexError:
+        return None
+    if isinstance(new_layer, napari.layers.Image):
+        new_layer.translate = new_layer.translate.astype(np.float64)
+        new_layer.mouse_drag_callbacks.append(drag_translation)
+        
+    return None
