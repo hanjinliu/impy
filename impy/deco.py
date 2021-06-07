@@ -1,4 +1,5 @@
 from functools import wraps
+from .axes import ImageAxesError
 import numpy as np
 from .utilcls import Progress
 import re
@@ -12,19 +13,11 @@ def record(append_history=True, record_label=False):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             
-            if record_label and hasattr(self, "labels"):
-                label_axes = self.labels.axes
-            else:
-                label_axes = None
-            
             with Progress(func.__name__):
                 out = func(self, *args, **kwargs)
             
             temp = getattr(out, "temp", None)
-            
-            if label_axes is not None:
-                self.labels.axes = label_axes
-                
+                            
             if type(out) is np.ndarray:
                 out = out.view(self.__class__)
             

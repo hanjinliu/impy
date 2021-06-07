@@ -1,7 +1,8 @@
 __version__ = "1.11.0"
 
 # TODO
-# - multichannel problem in viewer
+# - multi-channel problems in viewer
+# - total variance. See ImageFeature.jl
 # - nD Kalman filter
 # - FSC, FRC
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U

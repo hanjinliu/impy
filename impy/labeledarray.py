@@ -762,7 +762,7 @@ class LabeledArray(HistoryArray):
     
     
     @dims_to_spatial_axes
-    @record(append_history=False, record_label=True)
+    @record(append_history=False)
     def label(self, label_image=None, *, dims=None, connectivity=None) -> Label:
         """
         Run skimage's label() and store the results as attribute.
@@ -810,7 +810,7 @@ class LabeledArray(HistoryArray):
         return self.labels
     
     @dims_to_spatial_axes
-    @record(append_history=False, record_label=True)
+    @record(append_history=False)
     def label_if(self, label_image=None, filt=None, *, dims=None, connectivity=None) -> Label:
         """
         Label image using `label_image` as reference image only if certain condition
@@ -904,7 +904,7 @@ class LabeledArray(HistoryArray):
     
     @dims_to_spatial_axes
     @need_labels
-    @record(append_history=False, record_label=True)
+    @record(append_history=False)
     def expand_labels(self, distance:int=1, *, dims=None) -> Label:
         """
         Expand areas of labels.
@@ -930,7 +930,7 @@ class LabeledArray(HistoryArray):
         
         return self.labels
     
-    @record(append_history=False, record_label=True)
+    @record(append_history=False)
     def append_label(self, label_image:np.ndarray, new:bool=False) -> Label:
         """
         Append new labels from an array. This function works for boolean or signed int arrays.
@@ -1000,7 +1000,7 @@ class LabeledArray(HistoryArray):
     
     @need_labels
     @dims_to_spatial_axes
-    @record(append_history=False, record_label=True)
+    @record(append_history=False)
     def proj_labels(self, *, dims=None, forbid_overlap=False) -> Label:
         """
         Label projection. This function is useful when yx-labels are drawn in different z but
@@ -1018,10 +1018,10 @@ class LabeledArray(HistoryArray):
         Label
             Projected labels.
         """        
-        axis = tuple(self.axisof(a) for a in complement_axes(dims, self.axes))
-        new_labels = np.max(self.labels, axis=axis)
+        c_axes = complement_axes(dims, self.labels.axes)
+        new_labels = np.max(self.labels, axis=c_axes)
         if forbid_overlap:
-            test_array = np.sum(self.labels>0, axis=axis)
+            test_array = np.sum(self.labels>0, axis=c_axes)
             if (test_array>1).any():
                 raise ValueError("Label overlapped.")
         new_labels._set_info(self.labels, "proj", new_axes=dims)

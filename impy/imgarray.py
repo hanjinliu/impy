@@ -2138,7 +2138,7 @@ class ImgArray(LabeledArray):
         
         return out
     
-    @record(append_history=False, record_label=True)
+    @record(append_history=False)
     def label_multiotsu(self, classes:int=3, nbins:int=256, *, dims:str=None) -> ImgArray:
         """
         Label images using multi-Otsu method. Region lower than the lowest threshold will be labeled
@@ -2472,7 +2472,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @need_labels
-    @record(record_label=True)
+    @record()
     def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 
                   min_distance:float=2, dims=None) -> Label:
         """
@@ -2537,7 +2537,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @need_labels
-    @record(record_label=True)
+    @record()
     def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None) -> ImgArray:
         """
         Random walker segmentation. Only wrapped skimage segmentation. `self.labels` will be
