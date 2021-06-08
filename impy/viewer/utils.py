@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..specials import MarkerFrame, TrackFrame
 from ..utilcls import ImportOnRequest
 import numpy as np
@@ -44,28 +45,18 @@ def iter_layer(viewer, layer_type:str):
     napari.layers
         Layers specified by layer_type
     """        
-    if layer_type == "shape":
-        layer_type = napari.layers.Shapes
-    elif layer_type == "image":
-        layer_type = napari.layers.Image
-    elif layer_type == "point":
-        layer_type = napari.layers.Points
-    else:
-        raise NotImplementedError
+    if isinstance(layer_type, str):
+        layer_type = [layer_type]
+    layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
     
     for layer in viewer.layers:
         if isinstance(layer, layer_type):
             yield layer
 
-def iter_selected_layer(viewer, layer_type:str):
-    if layer_type == "shape":
-        layer_type = napari.layers.Shapes
-    elif layer_type == "image":
-        layer_type = napari.layers.Image
-    elif layer_type == "point":
-        layer_type = napari.layers.Points
-    else:
-        raise NotImplementedError
+def iter_selected_layer(viewer, layer_type:str|list[str]):
+    if isinstance(layer_type, str):
+        layer_type = [layer_type]
+    layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
     
     for layer in viewer.layers.selection:
         if isinstance(layer, layer_type):
@@ -76,7 +67,7 @@ def front_image(viewer):
     From list of image layers return the most front visible image.
     """        
     front = None
-    for img in iter_layer(viewer, "image"):
+    for img in iter_layer(viewer, "Image"):
         if img.visible:
             front = img # This is ImgArray
     if front is None:

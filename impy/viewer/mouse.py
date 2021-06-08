@@ -2,7 +2,7 @@ import numpy as np
 
 def drag_translation(layer, event):
     """
-    Manually translate image layer in xy-plane while pushing Alt.
+    Manually translate image layer in xy-plane while pushing "Alt".
     """    
     if "Alt" in event.modifiers:
         last_event_position = event.position

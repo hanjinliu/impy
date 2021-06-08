@@ -8,18 +8,19 @@ from ..specials import *
 from ..utilcls import ImportOnRequest
 from .utils import *
 from .mouse import *
-# from magicgui.widgets import TextEdit, LineEdit, Table
+# from matplotlib.backends.backend_qt5agg import FigureCanvas
+# from matplotlib.figure import Figure
 
 magicgui = ImportOnRequest("magicgui")
 
 # import napari.viewer
 # TODO: 
 # - Layer does not remember the original data after c-split.
-# - 
-    
+# - plot widget
+
+        
 class napariWindow:
     _point_cmap = plt.get_cmap("rainbow", 16)
-    _plot_cmap = plt.get_cmap("autumn", 16)
     
     def __init__(self):
         self._viewers = {}
@@ -76,7 +77,7 @@ class napariWindow:
     def front_image(self):
         return front_image(self.viewer)
     
-    def start(self, key:str):
+    def start(self, key:str="impy"):
         """
         Create a napari window with name `key`.
         """        
@@ -86,12 +87,19 @@ class napariWindow:
             raise ValueError(f"Key {key} already exists.")
         if not self._viewers:
             from . import keybinds
+        
         viewer = napari.Viewer(title=key)
         default_viewer_settings(viewer)
         # Add dock widgets
-        viewer.window.add_dock_widget(self._make_dock_window(), area="left")
+        viewer.window.add_dock_widget(self._function_handler(), area="left", name="Function Handler")
+        viewer.window.add_dock_widget(magicgui.widgets.TextEdit(), area="right", name="memo")
+        viewer.window.add_dock_widget(self._table(), area="right", name="table")
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
+        # Add menu
+        viewer.window.file_menu.addSeparator()
+        self._add_imread_menu(viewer)
+        
         self._viewers[key] = viewer
         self._front_viewer = key
         return None
@@ -152,7 +160,7 @@ class napariWindow:
         if ref is None:
             ref = self.front_image.data
         zoom_factors = [self.scale[a]/ref.scale[a] for a in ref.axes]
-        points = [points.data/zoom_factors for points in self._iter_layer("point")]
+        points = [points.data/zoom_factors for points in self._iter_layer("Points")]
         if not projection:
             data = points[index]
         else:
@@ -261,7 +269,7 @@ class napariWindow:
         
         return None
 
-    def _add_plot(self, prop:PropArray, **kwargs):
+    def __add_plot(self, prop:PropArray, **kwargs):
         # TODO: Delete this. Use magicgui for plotting inside
         input_df = prop.as_frame()
         if "c" in input_df.columns:
@@ -300,6 +308,12 @@ class napariWindow:
             self["Plot"].viewer.dims.axis_labels = new_axes
         
         return None
+    
+    # def _add_plot(self, data):
+        # static_canvas = FigureCanvas(Figure(figsize=(5, 3)))
+        # axes = static_canvas.figure.subplots()
+        # axes.plot(data)
+        # TODO: write this
 
     def _name(self, name="impy"):
         i = 0
@@ -309,7 +323,46 @@ class napariWindow:
             i += 1
         return name
     
-    def _make_dock_window(self):
+    def _table(self):
+        # TODO: 
+        # - this should be keybinding of points/tracks layers 
+        # - add in a tab
+        @magicgui.magicgui(call_button="Get")
+        def make_table():
+            dfs = list(self._iter_selected_layer(["Points", "Tracks"]))
+            if len(dfs) == 0:
+                return
+            for df in dfs:
+                columns = list(df.metadata["axes"])
+                table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
+                self.viewer.window.add_dock_widget(table, area="right", name=df.name)
+            return None
+        
+        return make_table
+    
+    def _add_imread_menu(self, viewer):
+        from qtpy.QtWidgets import QFileDialog, QAction
+        from ..core import imread
+        def open_img():
+            dlg = QFileDialog()
+            hist = napari.utils.history.get_open_history()
+            dlg.setHistory(hist)
+            filenames, _ = dlg.getOpenFileNames(
+                parent=self.viewer.window.qt_viewer,
+                caption='Select file ...',
+                directory=hist[0],
+            )
+            if (filenames != []) and (filenames is not None):
+                img = imread(filenames[0])
+                self.add(img)
+            napari.utils.history.update_open_history(filenames[0])
+            return None
+        action = QAction('imread ...', viewer.window._qt_window)
+        action.triggered.connect(open_img)
+        viewer.window.file_menu.addAction(action)
+        return None
+    
+    def _function_handler(self):
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
                      arguments="",
@@ -334,7 +387,7 @@ class napariWindow:
             """
             try:
                 inputs = list(l for l in self.viewer.layers.selection)
-            except StopIteration:
+            except StopIteration: # ???
                 return None
             layer_names = [l.name for l in self.viewer.layers]
             outlist = []
@@ -371,7 +424,7 @@ class napariWindow:
                 if isinstance(out, ImgArray):
                     contrast_limits = [float(x) for x in out.range]
                     out_ = (out, 
-                            dict(scale=scale, name=name, colormap=input.colormap, 
+                            dict(scale=scale, name=name, colormap=input.colormap, translate=input.translate,
                                  blending=input.blending, contrast_limits=contrast_limits), 
                             "image")
                 elif isinstance(out, PhaseArray):

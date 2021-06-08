@@ -1,9 +1,10 @@
 from .utils import *
 import numpy as np
 
-KEYS = {"hide_others": "Control-Shift-a",
-        "layers_to_labels": "Alt-l",
-        "crop": "Control-Shift-x"}
+KEYS = {"hide_others": "Control-Shift-A",
+        "layers_to_labels": "Alt-L",
+        "crop": "Control-Shift-X",
+        "to_front": "Control-Shift-F"}
 
 
 __all__ = list(KEYS.keys())
@@ -14,14 +15,27 @@ def bind_key(func):
 @bind_key
 def hide_others(viewer):
     """
-    Make selected layers visible and others invisible. If key is pushed for a long time, then the visibility
-    is restored upon release
+    Make selected layers visible and others invisible. 
     """
-    visibility = []
     selected = viewer.layers.selection
-    for layer in viewer.layers:
-        visibility.append(layer.visible)
-        layer.visible = layer in selected
+    visibility_old = [layer.visible for layer in viewer.layers]
+    visibility_new = [layer in selected for layer in viewer.layers]
+    if visibility_old != visibility_new:
+        for layer, vis in zip(viewer.layers, visibility_new):
+            layer.visible = vis
+    else:
+        for layer in viewer.layers:
+            layer.visible = True
+
+@bind_key
+def to_front(viewer):
+    """
+    Let selected layers move to front.
+    """
+    not_selected_index = [i for i, l in enumerate(viewer.layers) 
+                          if l not in viewer.layers.selection]
+    viewer.layers.move_multiple(not_selected_index, 0)
+    
     
 
 @bind_key
