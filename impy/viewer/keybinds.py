@@ -1,53 +1,36 @@
 from .utils import *
 import numpy as np
 
-@napari.Viewer.bind_key("Control-Shift-a")
+KEYS = {"hide_others": "Control-Shift-a",
+        "layers_to_labels": "Alt-l",
+        "crop": "Control-Shift-x"}
+
+
+__all__ = list(KEYS.keys())
+
+def bind_key(func):
+    return napari.Viewer.bind_key(KEYS[func.__name__])(func)
+
+@bind_key
 def hide_others(viewer):
     """
     Make selected layers visible and others invisible. If key is pushed for a long time, then the visibility
     is restored upon release
-
-    Parameters
-    ----------
-    viewer : napari.Viewer, optional
-        Target viewer.
     """
     visibility = []
     selected = viewer.layers.selection
     for layer in viewer.layers:
         visibility.append(layer.visible)
-        if layer in selected:
-            layer.visible = True
-        else:
-            layer.visible = False
+        layer.visible = layer in selected
     
 
-# @napari.Viewer.bind_key("Control-h")
-# def hello(viewer):
-#     viewer.status = "Hello world"
-#     yield
-#     viewer.status = "goodbye world"
-
-@napari.Viewer.bind_key("Alt-l")
-def shapes_to_labels(viewer):
+@bind_key
+def layers_to_labels(viewer):
     """
-    Convert manually drawn shapes to labels and store in `destination`.
-
-    Parameters
-    ----------
-    destination : (list of) LabeledArray, optional
-        To which labels will be stored, by default None
-    viewer : napari.Viewer, optional
-        Target viewer.
-        
-    Returns
-    -------
-    Label
-        Last appended label.
+    Convert manually drawn shapes to labels and store it.
     """        
-    
-    # determine
-    destinations = [l.data for l in iter_selected_layer(viewer, "image")]
+    # determine destinations.
+    destinations = [l.data for l in iter_selected_layer(viewer, "Image")]
     if len(destinations) == 0:
         destinations = [front_image(viewer).data]
     
@@ -60,35 +43,40 @@ def shapes_to_labels(viewer):
             zoom_factor = zoom_factors[0]
         else:
             raise ValueError("Scale mismatch in images and napari world.")
-        # make labels from selected shapes
+        
+        # make labels from selected layers
         shapes = [to_labels(layer, dst.shape, zoom_factor=zoom_factor) 
-                    for layer in iter_selected_layer(viewer, "shape")]
+                  for layer in iter_selected_layer(viewer, "Shapes")]
+        labels = [layer.data for layer in iter_selected_layer(viewer, "Labels")]
+        
+        if len(shapes) > 0 and len(labels) > 0:
+            viewer.status = "Both Shapes and Labels were selected"
+            return None
+        elif len(shapes) > 0:
+            labelout = np.max(shapes, axis=0)
+            viewer.add_labels(labelout, opacity=0.3, scale=list(scale.values()), name="Labeled by Shapes")
+        elif len(labels) > 0:
+            labelout = np.max(labels, axis=0)
+        else:
+            return None
+        
         # append labels to each destination
-        label = sum(shapes)
         if hasattr(dst, "labels"):
             print(f"Label already exist in {dst}. Overlapped.")
             del dst.labels
-        dst.append_label(label)
+        dst.append_label(labelout)
         
-    return dst.labels
+    return None
 
-@napari.Viewer.bind_key("Control-Shift-x")
+@bind_key
 def crop(viewer):
     """
     Crop images at the edges of the napari viewer. This function can be called with key binding by
     default.
-
-    Parameters
-    ----------
-    dims : str, optional
-        Which axes will not be cropped. Generally when an image stack is cropped at the edges, all 
-        the images along t-axis should be cropped at the same edges. On the other hand, images at
-        different positions (different p-coordinates) should not. That is why default is "tzc".
-    viewer : napari.Viewer, optional
-        Target viewer.
     """        
-    # TODO: now working for already translated images
-    imglist = list(filter(lambda x: isinstance(x, napari.layers.Image), viewer.layers.selection))
+    imglist = list(iter_selected_layer(viewer, "Image"))
+    if len(imglist) == 0:
+        imglist = [front_image(viewer)]
     count = 0
     for layer in imglist:
         sl = []
@@ -104,7 +92,7 @@ def crop(viewer):
                 else:
                     viewer.status = "Failed to crop."
                     return None
-                translate.append(start*layer.data.scale[layer.data.axes[i]])
+                translate.append(start*layer.data.scale[layer.data.axes[i]] + layer.translate[i])
             else:
                 translate.append(0.0)
                 sl.append(start)
@@ -124,3 +112,6 @@ def crop(viewer):
     if count == 0:
         viewer.status = "No image was cropped"
     return None
+
+def project_labels(viewer):
+    pass
