@@ -93,7 +93,8 @@ class napariWindow:
         # Add dock widgets
         viewer.window.add_dock_widget(self._function_handler(), area="left", name="Function Handler")
         viewer.window.add_dock_widget(magicgui.widgets.TextEdit(), area="right", name="memo")
-        viewer.window.add_dock_widget(self._table(), area="right", name="table")
+        # viewer.window.add_dock_widget(self._table(), area="right", name="table")
+        self._table(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
         # Add menu
@@ -323,21 +324,36 @@ class napariWindow:
             i += 1
         return name
     
-    def _table(self):
-        # TODO: 
-        # - this should be keybinding of points/tracks layers 
-        # - add in a tab
-        @magicgui.magicgui(call_button="Get")
+    def _table(self, viewer):
+        from qtpy.QtWidgets import QPushButton, QWidget, QGridLayout
+        QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
+        
+        button = QPushButton("Get")
+        @button.clicked.connect
         def make_table():
             dfs = list(self._iter_selected_layer(["Points", "Tracks"]))
             if len(dfs) == 0:
                 return
             for df in dfs:
+                widget = QWidget()
+                widget.setLayout(QGridLayout())
                 columns = list(df.metadata["axes"])
                 table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
-                self.viewer.window.add_dock_widget(table, area="right", name=df.name)
+                copy_button = QPushButton("Copy")
+                @copy_button.clicked.connect
+                def copy():
+                    table.to_dataframe().to_clipboard()
+                widget.layout().addWidget(table.native)
+                widget.layout().addWidget(copy_button)
+                
+                widget = QtViewerDockWidget(viewer.window.qt_viewer, widget, name=df.name,
+                                            area="right", add_vertical_stretch=True)
+                viewer.window._add_viewer_dock_widget(widget, tabify=viewer.window.n_table>0)
+                viewer.window.n_table += 1
             return None
         
+        viewer.window.add_dock_widget(button, area="left")
+        viewer.window.n_table = 0
         return make_table
     
     def _add_imread_menu(self, viewer):
