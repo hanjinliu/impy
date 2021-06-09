@@ -26,18 +26,20 @@ def drag_translation(layer, event):
         Manually crop image.
         """ 
         if event.button == 1:
-            start = (event.position[-2:] - layer.translate[-2:]).astype("int64")
-            while event.type == "mouse_move":
+            pos0 = event.position
+            start = ((event.position - layer.translate)/layer.scale).astype("int64")
+            while event.type != "mouse_release":
                 # draw rectangle
                 yield
-            end = (event.position[-2:] - layer.translate[-2:]).astype("int64")
+            end = ((event.position - layer.translate)/layer.scale).astype("int64")
+            sl = []
+            for i in range(layer.ndim):
+                sl0 = sorted([start[i], end[i]])
+                sl0[1] += 1
+                sl.append(slice(*sl0))
             
-            sl0 = slice(*sorted([start[0], end[0]]))
-            sl1 = slice(*sorted([start[1], end[1]]))
-            
-            
-            layer.data = layer.data[..., sl0, sl1]
-                    
+            layer.data = layer.data[tuple(sl)]
+            layer.translate += np.round(pos0/layer.scale)*layer.scale
             return None
             
 
