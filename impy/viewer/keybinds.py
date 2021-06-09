@@ -4,7 +4,10 @@ import numpy as np
 KEYS = {"hide_others": "Control-Shift-A",
         "layers_to_labels": "Alt-L",
         "crop": "Control-Shift-X",
-        "to_front": "Control-Shift-F"}
+        "to_front": "Control-Shift-F",
+        "reset_view": "Control-Shift-R",
+        "proj": "Control-Shift-P",
+        "duplicate_layer": "Control-Shift-D"}
 
 
 __all__ = list(KEYS.keys())
@@ -36,7 +39,12 @@ def to_front(viewer):
                           if l not in viewer.layers.selection]
     viewer.layers.move_multiple(not_selected_index, 0)
     
-    
+@bind_key
+def reset_view(viewer):
+    for layer in viewer.layers.selection:
+        # layer.translte[:] = 0. did not work
+        layer.translate -= (layer.translate - layer.metadata["init_translate"])
+        layer.scale = layer.metadata["init_scale"]
 
 @bind_key
 def layers_to_labels(viewer):
@@ -113,10 +121,13 @@ def crop(viewer):
         
         img = layer.data[tuple(sl)]
         if img.size > 0:
-            kwargs = dict(name=layer.name+"-crop", 
-                          colormap=layer.colormap,
-                          contrast_limits=layer.contrast_limits,
-                          translate=translate)
+            # kwargs = dict(name=layer.name+"-crop", 
+            #               colormap=layer.colormap,
+            #               contrast_limits=layer.contrast_limits,
+            #               blending=layer.blending,
+            #               translate=translate)
+            kwargs = layer.get_state()
+            kwargs.update(dict(name=layer.name+"-crop", translate=translate))
             
             scale = make_world_scale(img)
                         
@@ -127,5 +138,30 @@ def crop(viewer):
         viewer.status = "No image was cropped"
     return None
 
-def project_labels(viewer):
-    pass
+@bind_key
+def proj(viewer):
+    # TODO: test this
+    layers = list(viewer.layers.selection)
+    for layer in layers:
+        data = layer.data
+        if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+            raise TypeError("Projection not supported.")
+        elif isinstance(layer, napari.layers.Shapes):
+            data = [d[:,-2:] for d in data]
+            viewer.add_shapes(data)
+        elif isinstance(layer, napari.layers.Points):
+            data = data[:, -2:]
+            viewer.add_points(data)
+        elif isinstance(layer, napari.layers.Tracks):
+            data = data[:, [0,-2,-1]]
+            viewer.add_tracks(data)
+        else:
+            raise NotImplementedError(type(layer))
+        
+@bind_key
+def duplicate_layer(viewer):
+    layers = list(viewer.layers.selection)
+    for layer in layers:
+        states = layer.as_layer_data_tuple()
+        copy = layer.__class__(states[0], **states[1])
+        viewer.add_layer(copy)

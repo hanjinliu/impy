@@ -389,7 +389,13 @@ class AxesFrame(pd.DataFrame):
     def sort(self):
         ids = np.argsort([ORDER[k] for k in self._axes])
         return self[[self._axes[i] for i in ids]]
-  
+    
+    def proj(self, axis=None):
+        if axis is None:
+            axis = complement_axes("yx", self._axes)
+        cols = [a for a in self.col_axes if a not in axis]
+        return self[cols]
+        
 def tp_no_verbose(func):
     """
     Temporary suppress logging in trackpy.

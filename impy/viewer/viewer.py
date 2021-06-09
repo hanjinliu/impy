@@ -203,6 +203,7 @@ class napariWindow:
         MarkerFrame
             DataFrame of points.
         """        
+        # TODO: check compatibility with get_data
         if ref is None:
             ref = self.front_image.data
         zoom_factors = [self.scale[a]/ref.scale[a] for a in ref.axes]
@@ -444,10 +445,8 @@ class napariWindow:
             napari.types.LayerDataTuple
                 This is passed to napari and is directly visualized.
             """
-            try:
-                inputs = list(l for l in self.viewer.layers.selection)
-            except StopIteration: # ???
-                return None
+            inputs = list(self.viewer.layers.selection)
+            
             layer_names = [l.name for l in self.viewer.layers]
             outlist = []
             i = 0

@@ -72,9 +72,8 @@ def upon_add_layer(event):
     if isinstance(new_layer, napari.layers.Image):
         new_layer.translate = new_layer.translate.astype(np.float64)
         new_layer.mouse_drag_callbacks.append(drag_translation)
+        new_layer.mouse_wheel_callbacks.append(wheel_resize)
+        new_layer.metadata["init_translate"] = new_layer.translate.copy()
+        new_layer.metadata["init_scale"] = new_layer.scale.copy()
         
     return None
-
-def proj_layer(event):
-    # TODO
-    ...

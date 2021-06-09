@@ -1,7 +1,6 @@
-__version__ = "1.11.3"
+__version__ = "1.11.4"
 
 # TODO
-# - multi-channel problems in viewer
 # - total variance. See ImageFeature.jl
 # - nD Kalman filter
 # - FSC, FRC
