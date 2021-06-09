@@ -1,35 +1,10 @@
 from __future__ import annotations
-from ..specials import MarkerFrame, TrackFrame
 from ..utilcls import ImportOnRequest
 import numpy as np
 from .mouse import *
 napari = ImportOnRequest("napari")
 
-def get_data(layer):
-    """
-    Convert layer to real data.
 
-    Parameters
-    ----------
-    layer : napari.layers.Layer
-        Input layer.
-
-    Returns
-    -------
-    ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
-    """    
-    if isinstance(layer, (napari.layers.Image, napari.layers.Labels, napari.layers.Shapes)):
-        return layer.data
-    elif isinstance(layer, napari.layers.Points):
-        df = MarkerFrame(layer.data, columns=layer.metadata["axes"])
-        df.set_scale(layer.metadata["scale"])
-        return df
-    elif isinstance(layer, napari.layers.Tracks):
-        df = TrackFrame(layer.data, columns=layer.metadata["axes"])
-        df.set_scale(layer.metadata["scale"])
-        return df
-    else:
-        raise NotImplementedError(type(layer))
 
 def iter_layer(viewer, layer_type:str):
     """
@@ -99,3 +74,7 @@ def upon_add_layer(event):
         new_layer.mouse_drag_callbacks.append(drag_translation)
         
     return None
+
+def proj_layer(event):
+    # TODO
+    ...

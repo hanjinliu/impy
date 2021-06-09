@@ -59,7 +59,7 @@ class napariWindow:
     
     @property
     def selection(self) -> list:
-        return list(map(get_data, self.viewer.layers.selection))
+        return list(map(self.get_data, self.viewer.layers.selection))
     
     @property
     def axes(self) -> str:
@@ -105,6 +105,51 @@ class napariWindow:
         self._front_viewer = key
         return None
     
+    def get_data(self, layer):
+        """
+        Convert layer to real data.
+
+        Parameters
+        ----------
+        layer : napari.layers.Layer
+            Input layer.
+
+        Returns
+        -------
+        ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
+        """ 
+        data = layer.data
+        if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+            # manually drawn ones are np.ndarray, need conversion
+            ndim = data.ndim
+            axes = self.axes[-ndim:]
+            if type(data) is np.ndarray:
+                if isinstance(layer, napari.layers.Image):
+                    dtype = np.float32 # <-
+                    data = ImgArray(data, name=layer.name, axes=axes, dtype=dtype)
+                else:
+                    data = Label(data, name=layer.name, axes=axes, dtype=np.uint32).optimize()
+                data.set_scale({k: v for k, v in self.scale.items() if k in axes})
+            return data
+        elif isinstance(layer, napari.layers.Shapes):
+            return data
+        elif isinstance(layer, napari.layers.Points):
+            ndim = data.shape[1]
+            axes = self.axes[-ndim:]
+            df = MarkerFrame(data, columns=layer.metadata.get("axes", axes))
+            df.set_scale(layer.metadata.get("scale", 
+                                            {k: v for k, v in self.scale.items() if k in axes}))
+            return df
+        elif isinstance(layer, napari.layers.Tracks):
+            ndim = data.shape[1]
+            axes = self.axes[-ndim:]
+            df = TrackFrame(data, columns=layer.metadata.get("axes", axes))
+            df.set_scale(layer.metadata.get("scale", 
+                                            {k: v for k, v in self.scale.items() if k in axes}))
+            return df
+        else:
+            raise NotImplementedError(type(layer))
+
     def add(self, obj, title=None, **kwargs):
         """
         Add images, points, labels, tracks or graph to viewer.
@@ -340,9 +385,7 @@ class napariWindow:
                 columns = list(df.metadata["axes"])
                 table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
                 copy_button = QPushButton("Copy")
-                @copy_button.clicked.connect
-                def copy():
-                    table.to_dataframe().to_clipboard()
+                copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
                 widget.layout().addWidget(table.native)
                 widget.layout().addWidget(copy_button)
                 
@@ -409,7 +452,7 @@ class napariWindow:
             outlist = []
             i = 0
             for input in inputs:
-                data = get_data(input)
+                data = self.get_data(input)
                 try:
                     func = getattr(data, method)
                 except AttributeError as e:
