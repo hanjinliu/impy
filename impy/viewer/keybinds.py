@@ -42,6 +42,9 @@ def to_front(viewer):
     
 @bind_key
 def reset_view(viewer):
+    """
+    Reset translate/scale parameters to the initial value.
+    """    
     for layer in viewer.layers.selection:
         # layer.translte[:] = 0. did not work
         layer.translate -= (layer.translate - layer.metadata["init_translate"])
@@ -94,7 +97,7 @@ def layers_to_labels(viewer):
 @bind_key
 def crop(viewer):
     """
-    Crop images with rectangles.
+    Crop images with rectangle shapes.
     """        
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
@@ -102,9 +105,10 @@ def crop(viewer):
     
     corners = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
-        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
+        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type, shape_layer.face_color):
             if type_ == "rectangle":
                 corners.append((shape[0,-2:], shape[2,-2:])) # float pixel
+                
     
     for start, end in corners:
         for layer in imglist:

@@ -410,12 +410,10 @@ class napariWindow:
             napari.types.LayerDataTuple
                 This is passed to napari and is directly visualized.
             """
-            inputs = list(self.viewer.layers.selection)
-            
             layer_names = [l.name for l in self.viewer.layers]
             outlist = []
             i = 0
-            for input in inputs:
+            for input in self.viewer.layers.selection:
                 data = self.get_data(input)
                 try:
                     func = getattr(data, method)
@@ -452,7 +450,8 @@ class napariWindow:
                             "image")
                 elif isinstance(out, PhaseArray):
                     out_ = (out, 
-                            dict(scale=scale, name=name, colormap="hsv", contrast_limits=out.border), 
+                            dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
+                                 contrast_limits=out.border), 
                             "image")
                 elif isinstance(out, Label):
                     out_ = (out, 
@@ -460,7 +459,7 @@ class napariWindow:
                             "labels")
                 elif isinstance(out, MarkerFrame):
                     cmap = self.__class__._point_cmap
-                    kw = dict(size=3.2, face_color=[0,0,0,0], 
+                    kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
                                 edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)),
                                 metadata={"axes": str(out._axes), "scale": out.scale},
                                 scale=scale)
@@ -468,7 +467,8 @@ class napariWindow:
                     out_ = (out, kw, "points")
                 elif isinstance(out, TrackFrame):
                     out_ = (out, 
-                            dict(scale=scale, metadata={"axes": str(out._axes), "scale":out.scale}), 
+                            dict(scale=scale, translate=input.translate,
+                                 metadata={"axes": str(out._axes), "scale":out.scale}), 
                             "tracks")
                 else:
                     continue
@@ -487,6 +487,9 @@ def default_viewer_settings(viewer):
     viewer.scale_bar.font_size = 8
     viewer.axes.visible = True
     viewer.axes.colored = False
+    viewer.mouse_drag_callbacks.append(drag_translation)
+    viewer.mouse_wheel_callbacks.append(wheel_resize)
+    
     return None
 
 def str_to_args(s:str) -> tuple[list, dict]:
@@ -512,6 +515,6 @@ def interpret_type(s:str):
         try:
             s = float(s)
         except ValueError:
-            pass
+            s = s.strip('"').strip("'")
     return s
 
