@@ -25,6 +25,8 @@ def drag_translation(layer, event):
         """
         Manually crop image.
         """ 
+        # This is not the best practice because multiple images cannot be cropped at the
+        # same time
         if event.button == 1:
             pos0 = event.position
             start = ((event.position - layer.translate)/layer.scale).astype("int64")

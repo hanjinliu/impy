@@ -8,12 +8,9 @@ from ..specials import *
 from ..utilcls import ImportOnRequest
 from .utils import *
 from .mouse import *
-# from matplotlib.backends.backend_qt5agg import FigureCanvas
-# from matplotlib.figure import Figure
 
 magicgui = ImportOnRequest("magicgui")
 
-# import napari.viewer
 # TODO: 
 # - Layer does not remember the original data after c-split.
 # - plot widget
@@ -93,7 +90,7 @@ class napariWindow:
         # Add dock widgets
         viewer.window.add_dock_widget(self._function_handler(), area="left", name="Function Handler")
         viewer.window.add_dock_widget(magicgui.widgets.TextEdit(), area="right", name="memo")
-        # viewer.window.add_dock_widget(self._table(), area="right", name="table")
+        
         self._table(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
@@ -125,10 +122,9 @@ class napariWindow:
             axes = self.axes[-ndim:]
             if type(data) is np.ndarray:
                 if isinstance(layer, napari.layers.Image):
-                    dtype = np.float32 # <-
-                    data = ImgArray(data, name=layer.name, axes=axes, dtype=dtype)
+                    data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
                 else:
-                    data = Label(data, name=layer.name, axes=axes, dtype=np.uint32).optimize()
+                    data = Label(data, name=layer.name, axes=axes)
                 data.set_scale({k: v for k, v in self.scale.items() if k in axes})
             return data
         elif isinstance(layer, napari.layers.Shapes):
@@ -183,38 +179,6 @@ class napariWindow:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
-    
-    def points_to_frames(self, ref:LabeledArray=None, index=0, projection=False) -> MarkerFrame:
-        """
-        Convert manually selected points to MarkerFrame.
-
-        Parameters
-        ----------
-        ref : LabeledArray, optional
-            Reference image to determine extent of point coordinates.
-        index : int, optional
-            Index of point layer. This needs consideration only if there are multiple point layers.
-        projection : bool, default is False
-            If collect all the points in different layers by projection. This argument is taken into
-            account only if there are multiple point layers.
-
-        Returns
-        -------
-        MarkerFrame
-            DataFrame of points.
-        """        
-        # TODO: check compatibility with get_data
-        if ref is None:
-            ref = self.front_image.data
-        zoom_factors = [self.scale[a]/ref.scale[a] for a in ref.axes]
-        points = [points.data/zoom_factors for points in self._iter_layer("Points")]
-        if not projection:
-            data = points[index]
-        else:
-            data = np.vstack(points)
-        mf = MarkerFrame(data, columns = self.axes)
-        mf.set_scale(self)
-        return mf
     
         
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -316,7 +280,7 @@ class napariWindow:
         
         return None
 
-    def __add_plot(self, prop:PropArray, **kwargs):
+    def _add_plot(self, prop:PropArray, **kwargs):
         # TODO: Delete this. Use magicgui for plotting inside
         input_df = prop.as_frame()
         if "c" in input_df.columns:
@@ -356,11 +320,6 @@ class napariWindow:
         
         return None
     
-    # def _add_plot(self, data):
-        # static_canvas = FigureCanvas(Figure(figsize=(5, 3)))
-        # axes = static_canvas.figure.subplots()
-        # axes.plot(data)
-        # TODO: write this
 
     def _name(self, name="impy"):
         i = 0
@@ -396,7 +355,7 @@ class napariWindow:
                 viewer.window.n_table += 1
             return None
         
-        viewer.window.add_dock_widget(button, area="left")
+        viewer.window.add_dock_widget(button, area="left", name="Get Coordinates")
         viewer.window.n_table = 0
         return make_table
     

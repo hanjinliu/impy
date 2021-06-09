@@ -6,7 +6,7 @@ KEYS = {"hide_others": "Control-Shift-A",
         "crop": "Control-Shift-X",
         "to_front": "Control-Shift-F",
         "reset_view": "Control-Shift-R",
-        "proj": "Control-Shift-P",
+        "proj": "Control-P",
         "duplicate_layer": "Control-Shift-D"}
 
 
@@ -121,45 +121,97 @@ def crop(viewer):
         
         img = layer.data[tuple(sl)]
         if img.size > 0:
-            # kwargs = dict(name=layer.name+"-crop", 
-            #               colormap=layer.colormap,
-            #               contrast_limits=layer.contrast_limits,
-            #               blending=layer.blending,
-            #               translate=translate)
-            kwargs = layer.get_state()
+            kwargs = layer.as_layer_data_tuple()[1]
             kwargs.update(dict(name=layer.name+"-crop", translate=translate))
             
-            scale = make_world_scale(img)
-                        
-            layer = viewer.add_image(img, scale=scale, **kwargs)
+            layer = viewer.add_image(img, **kwargs)
             count += 1
     
     if count == 0:
         viewer.status = "No image was cropped"
     return None
 
+# @bind_key
+# def crop(viewer):
+#     """
+#     Crop images with rectangles.
+#     """        
+#     imglist = list(iter_selected_layer(viewer, "Image"))
+#     if len(imglist) == 0:
+#         imglist = [front_image(viewer)]
+    
+#     rectangles = []
+#     corners = []
+#     for shape_layer in iter_selected_layer(viewer, "Shapes"):
+#         for shape, type_ in zip(shape_layer.data, shape_layer.type):
+#             if type_ == "Rectangle":
+#                 rectangles.append(shape)
+#                 corners.append(shape[0])
+    
+#     count = 0
+#     for layer in imglist:
+#         sl = []
+#         translate = []
+#         layer.data = 
+#         for area in rectangles:
+            
+#             start, end = int(start), int(end+1)
+#             if layer.data.axes[i] in "tzc":
+#                 sl.append(slice(None))
+#                 translate.append(0.0)
+#             elif layer.data.axes[i] in "yx":
+#                 if start+1 < end:
+#                     sl.append(slice(start, end))
+#                 else:
+#                     viewer.status = "Failed to crop."
+#                     return None
+#                 translate.append(start*layer.data.scale[layer.data.axes[i]] + layer.translate[i])
+#             else:
+#                 translate.append(0.0)
+#                 sl.append(start)
+        
+#         img = layer.data[tuple(sl)]
+#         if img.size > 0:
+#             kwargs = layer.as_layer_data_tuple()[1]
+#             kwargs.update(dict(name=layer.name+"-crop", translate=translate))
+            
+#             layer = viewer.add_image(img, **kwargs)
+#             count += 1
+    
+#     if count == 0:
+#         viewer.status = "No image was cropped"
+#     return None
+
 @bind_key
 def proj(viewer):
-    # TODO: test this
+    # TODO: Not all the parameters will be copied to new ones.
     layers = list(viewer.layers.selection)
     for layer in layers:
         data = layer.data
+        kwargs = {}
+        kwargs.update({"scale": layer.scale[-2:], 
+                       "translate":layer.translate[-2:],
+                       "blending":layer.blending,
+                       "name":layer.name+"-proj"})
         if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
             raise TypeError("Projection not supported.")
         elif isinstance(layer, napari.layers.Shapes):
             data = [d[:,-2:] for d in data]
-            viewer.add_shapes(data)
+            viewer.add_shapes(data, **kwargs)
         elif isinstance(layer, napari.layers.Points):
             data = data[:, -2:]
-            viewer.add_points(data)
+            viewer.add_points(data, **kwargs)
         elif isinstance(layer, napari.layers.Tracks):
             data = data[:, [0,-2,-1]]
-            viewer.add_tracks(data)
+            viewer.add_tracks(data, **kwargs)
         else:
             raise NotImplementedError(type(layer))
         
 @bind_key
 def duplicate_layer(viewer):
+    """
+    Duplicate selected layer(s).
+    """
     layers = list(viewer.layers.selection)
     for layer in layers:
         states = layer.as_layer_data_tuple()

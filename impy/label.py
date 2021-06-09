@@ -19,6 +19,13 @@ def best_dtype(n:int):
         return np.uint64
 
 class Label(HistoryArray):
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+                history=None, metadata=None, dtype=None):
+        if dtype is None:
+            dtype = best_dtype(np.max(obj))
+        self = super().__new__(cls, obj, name, axes, dirpath, history, metadata, dtype)
+        return self
+    
     def increment(self, n:int):
         # return view if possible
         if self.max() + n > np.iinfo(self.dtype).max:
