@@ -3,7 +3,6 @@ import numpy as np
 def drag_translation(layer, event):
     
     # TODO: other modifiers or combinations of modifiers
-    # - x, y restricted
     
     if ("Alt",) == event.modifiers:
         """
@@ -21,28 +20,29 @@ def drag_translation(layer, event):
             # something here?
             pass
     
-    elif ("Control", "Alt") == event.modifiers:
+    elif ("Shift", "Alt") == event.modifiers:
+        
         """
-        Manually crop image.
+        Manually translate image layer in x/y-direction.
         """ 
-        # This is not the best practice because multiple images cannot be cropped at the
-        # same time
         if event.button == 1:
-            pos0 = event.position
-            start = ((event.position - layer.translate)/layer.scale).astype("int64")
-            while event.type != "mouse_release":
-                # draw rectangle
+            last_event_position = event.position
+            yield
+            while event.type == "mouse_move":
+                dpos = np.array(last_event_position) - np.array(event.position)
+                dpos[-2] = 0.
+                last_event_position = event.position
+                layer.translate -= dpos
                 yield
-            end = ((event.position - layer.translate)/layer.scale).astype("int64")
-            sl = []
-            for i in range(layer.ndim):
-                sl0 = sorted([start[i], end[i]])
-                sl0[1] += 1
-                sl.append(slice(*sl0))
-            
-            layer.data = layer.data[tuple(sl)]
-            layer.translate += np.round(pos0/layer.scale)*layer.scale
-            return None
+        elif event.button == 2:
+            last_event_position = event.position
+            yield
+            while event.type == "mouse_move":
+                dpos = np.array(last_event_position) - np.array(event.position)
+                dpos[-1] = 0.
+                last_event_position = event.position
+                layer.translate -= dpos
+                yield
             
 
 def wheel_resize(layer, event):

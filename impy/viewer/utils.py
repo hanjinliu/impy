@@ -4,7 +4,10 @@ import numpy as np
 from .mouse import *
 napari = ImportOnRequest("napari")
 
-
+def copy_layer(layer):
+    states = layer.as_layer_data_tuple()
+    copy = layer.__class__(states[0], **states[1])
+    return copy
 
 def iter_layer(viewer, layer_type:str):
     """

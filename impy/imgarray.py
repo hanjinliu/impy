@@ -1115,6 +1115,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
+        # TODO: generate background, custom filtering
         return self.parallel(rolling_ball_, complement_axes(dims, self.axes), 
                              radius, smoothing)
         

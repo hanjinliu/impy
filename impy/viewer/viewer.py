@@ -88,9 +88,8 @@ class napariWindow:
         viewer = napari.Viewer(title=key)
         default_viewer_settings(viewer)
         # Add dock widgets
-        viewer.window.add_dock_widget(self._function_handler(), area="left", name="Function Handler")
-        viewer.window.add_dock_widget(magicgui.widgets.TextEdit(), area="right", name="memo")
-        
+        self._function_handler(viewer)
+        self._memo(viewer)
         self._table(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
@@ -329,6 +328,12 @@ class napariWindow:
             i += 1
         return name
     
+    def _memo(self, viewer):
+        text = magicgui.widgets.TextEdit(tooltip="Memo")
+        text = viewer.window.add_dock_widget(text, area="right", name="Memo")
+        text.setVisible(False)
+        return None
+        
     def _table(self, viewer):
         from qtpy.QtWidgets import QPushButton, QWidget, QGridLayout
         QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
@@ -357,7 +362,7 @@ class napariWindow:
         
         viewer.window.add_dock_widget(button, area="left", name="Get Coordinates")
         viewer.window.n_table = 0
-        return make_table
+        return None
     
     def _add_imread_menu(self, viewer):
         from qtpy.QtWidgets import QFileDialog, QAction
@@ -381,7 +386,8 @@ class napariWindow:
         viewer.window.file_menu.addAction(action)
         return None
     
-    def _function_handler(self):
+    
+    def _function_handler(self, viewer):
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
                      arguments="",
@@ -472,8 +478,8 @@ class napariWindow:
                 return None
             else:
                 return outlist
-            
-        return run_func  
+        viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
+        return None
     
 def default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
