@@ -91,47 +91,6 @@ def layers_to_labels(viewer):
         
     return None
 
-# @bind_key
-def crop_old(viewer):
-    """
-    Crop images at the edges of the napari viewer. This function can be called with key binding by
-    default.
-    """        
-    imglist = list(iter_selected_layer(viewer, "Image"))
-    if len(imglist) == 0:
-        imglist = [front_image(viewer)]
-    count = 0
-    for layer in imglist:
-        sl = []
-        translate = []
-        for i, (start, end) in enumerate(layer.corner_pixels.T):
-            start, end = int(start), int(end+1)
-            if layer.data.axes[i] in "tzc":
-                sl.append(slice(None))
-                translate.append(0.0)
-            elif layer.data.axes[i] in "yx":
-                if start+1 < end:
-                    sl.append(slice(start, end))
-                else:
-                    viewer.status = "Failed to crop."
-                    return None
-                translate.append(start*layer.data.scale[layer.data.axes[i]] + layer.translate[i])
-            else:
-                translate.append(0.0)
-                sl.append(start)
-        
-        img = layer.data[tuple(sl)]
-        if img.size > 0:
-            kwargs = layer.as_layer_data_tuple()[1]
-            kwargs.update(dict(name=layer.name+"-crop", translate=translate))
-            
-            layer = viewer.add_image(img, **kwargs)
-            count += 1
-    
-    if count == 0:
-        viewer.status = "No image was cropped"
-    return None
-
 @bind_key
 def crop(viewer):
     """
@@ -159,18 +118,25 @@ def crop(viewer):
                 sl.append(slice(*map(lambda x: int(x-xy[i]), sl0)))
                 
             ndim = layer.ndim
-            layer.data = layer.data[(slice(None),)*(ndim-2)+tuple(sl)]
+            newdata = layer.data[(slice(None),)*(ndim-2)+tuple(sl)]
+            if newdata.size <= 0:
+                continue
+            layer.data = newdata
             translate = layer.translate
             translate[-2:] += (start-xy) * layer.scale[-2:]
             layer.translate = translate
+            layer.metadata.update({"init_translate": layer.translate, 
+                                   "init_scale": layer.scale})
+        # TODO:
+        # delete original
     return None
 
-@bind_key
-def add_new_shape(viewer):
-    d = viewer.dims
-    scale = [r[2] for a, r in zip(d.axis_labels, d.range)]
-    viewer.add_shapes(scale=scale)
-    return None
+# @bind_key
+# def add_new_shape(viewer):
+#     d = viewer.dims
+#     scale = [r[2] for r in d.range]
+#     viewer.add_shapes(scale=scale)
+#     return None
 
 @bind_key
 def proj(viewer):
@@ -205,5 +171,5 @@ def duplicate_layer(viewer):
     """
     Duplicate selected layer(s).
     """
-    [viewer.add_layer(copy_layer) for layer in viewer.layers.selection]
+    [viewer.add_layer(copy_layer(layer)) for layer in viewer.layers.selection]
 

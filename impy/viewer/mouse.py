@@ -3,7 +3,6 @@ import numpy as np
 def drag_translation(layer, event):
     
     # TODO: other modifiers or combinations of modifiers
-    
     if ("Alt",) == event.modifiers:
         """
         Manually translate image layer in xy-plane while pushing "Alt".
@@ -14,7 +13,7 @@ def drag_translation(layer, event):
             while event.type == "mouse_move":
                 dpos = np.array(last_event_position) - np.array(event.position)
                 last_event_position = event.position
-                layer.translate -= dpos
+                layer.translate -= dpos[-layer.translate.size:]
                 yield
         elif event.button == 2:
             # something here?
@@ -32,7 +31,7 @@ def drag_translation(layer, event):
                 dpos = np.array(last_event_position) - np.array(event.position)
                 dpos[-2] = 0.
                 last_event_position = event.position
-                layer.translate -= dpos
+                layer.translate -= dpos[-layer.translate.size:]
                 yield
         elif event.button == 2:
             last_event_position = event.position
@@ -41,7 +40,7 @@ def drag_translation(layer, event):
                 dpos = np.array(last_event_position) - np.array(event.position)
                 dpos[-1] = 0.
                 last_event_position = event.position
-                layer.translate -= dpos
+                layer.translate -= dpos[-layer.translate.size:]
                 yield
             
 
