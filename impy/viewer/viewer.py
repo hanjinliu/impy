@@ -12,8 +12,10 @@ from .mouse import *
 magicgui = ImportOnRequest("magicgui")
 
 # TODO: 
-# - Layer does not remember the original data after c-split.
+# - Layer does not remember the original data after c-split ... this will be solved after 
+#   layer group is implemented in napari.
 # - plot widget
+# - line profiler
 
         
 class napariWindow:
@@ -191,37 +193,13 @@ class napariWindow:
         return iter_selected_layer(self.viewer, layer_type)
         
     def _add_image(self, img:LabeledArray, **kwargs):
-        chn_ax = img.axisof("c") if "c" in img.axes else None
-        
-        if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
-            kwargs["colormap"] = "hsv"
-            kwargs["contrast_limits"] = img.border
-        
-        scale = make_world_scale(img)
-        
-        if len(img.history) > 0:
-            suffix = "-" + img.history[-1]
+        layer = add_labeledarray(self.viewer, img, **kwargs)
+        if isinstance(layer, list):
+            name = [l.name for l in layer]
         else:
-            suffix = ""
-        
-        name = "No-Name" if img.name is None else img.name
-        if chn_ax is not None:
-            name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
-        else:
-            name = [name + suffix]
-        
-        self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
-                              name=name if len(name)>1 else name[0],
-                              **kwargs)
-        
-        self.viewer.scale_bar.unit = img.scale_unit
+            name = layer.name
         if hasattr(img, "labels"):
             self._add_labels(img.labels, name=name)
-        
-        new_axes = [a for a in img.axes if a != "c"]
-        # add axis labels to slide bars and image orientation.
-        if len(new_axes) >= len(self.viewer.dims.axis_labels):
-            self.viewer.dims.axis_labels = new_axes
         return None
     
     def _add_points(self, points, **kwargs):
@@ -364,7 +342,25 @@ class napariWindow:
         viewer.window.n_table = 0
         return None
     
+    def _line_profiler(self, viewer):
+        # TODO: search for how to add plot widgets
+        from skimage.measure import profile_line
+        shapes_layer = viewer.add_shapes(shape_type="line", edge_width=1, edge_color="yellow")
+        shapes_layer.mode = "select"
+        img = list(iter_selected_layer(viewer, "image"))[-1]
+        
+        @shapes_layer.mouse_drag_callbacks.append
+        def profile_lines_drag(layer, event):
+            profile_line(img, layer)
+            yield
+            while event.type == 'mouse_move':
+                linescan = [
+                    profile_line(img, line[0], line[1], mode="reflect")
+                    for line in layer.data]
+                yield
+    
     def _add_imread_menu(self, viewer):
+        # TODO: move to other files
         from qtpy.QtWidgets import QFileDialog, QAction
         from ..core import imread
         def open_img():
@@ -372,13 +368,13 @@ class napariWindow:
             hist = napari.utils.history.get_open_history()
             dlg.setHistory(hist)
             filenames, _ = dlg.getOpenFileNames(
-                parent=self.viewer.window.qt_viewer,
+                parent=viewer.window.qt_viewer,
                 caption='Select file ...',
                 directory=hist[0],
             )
             if (filenames != []) and (filenames is not None):
                 img = imread(filenames[0])
-                self.add(img)
+                add_labeledarray(img)
             napari.utils.history.update_open_history(filenames[0])
             return None
         action = QAction('imread ...', viewer.window._qt_window)

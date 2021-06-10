@@ -105,7 +105,7 @@ def crop(viewer):
     
     corners = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
-        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type, shape_layer.face_color):
+        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
             if type_ == "rectangle":
                 corners.append((shape[0,-2:], shape[2,-2:])) # float pixel
                 

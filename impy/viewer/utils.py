@@ -1,6 +1,9 @@
 from __future__ import annotations
 from ..utilcls import ImportOnRequest
 import numpy as np
+from ..labeledarray import LabeledArray
+from ..label import Label
+from ..phasearray import PhaseArray
 from .mouse import *
 napari = ImportOnRequest("napari")
 
@@ -73,7 +76,47 @@ def upon_add_layer(event):
     except IndexError:
         return None
     new_layer.translate = new_layer.translate.astype(np.float64)
+    if isinstance(new_layer, napari.layers.Shapes):
+        @new_layer.bind_key("Alt-A")
+        def select_all_shapes(layer):
+            layer.selected_data = set(np.arange(layer.nshapes))
+    if isinstance(new_layer, napari.layers.Points):
+        @new_layer.bind_key("Alt-A")
+        def select_all_points(layer):
+            layer.selected_data = set(np.arange(layer.data.shape[0]))
+            
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
     new_layer.metadata["init_scale"] = new_layer.scale.copy()
         
     return None
+
+def add_labeledarray(viewer, img:LabeledArray, **kwargs):
+    chn_ax = img.axisof("c") if "c" in img.axes else None
+        
+    if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
+        kwargs["colormap"] = "hsv"
+        kwargs["contrast_limits"] = img.border
+    
+    scale = make_world_scale(img)
+    
+    if len(img.history) > 0:
+        suffix = "-" + img.history[-1]
+    else:
+        suffix = ""
+    
+    name = "No-Name" if img.name is None else img.name
+    if chn_ax is not None:
+        name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
+    else:
+        name = [name + suffix]
+    
+    layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
+                             name=name if len(name)>1 else name[0],
+                             **kwargs)
+    
+    viewer.scale_bar.unit = img.scale_unit
+    new_axes = [a for a in img.axes if a != "c"]
+    # add axis labels to slide bars and image orientation.
+    if len(new_axes) >= len(viewer.dims.axis_labels):
+        viewer.dims.axis_labels = new_axes
+    return layer

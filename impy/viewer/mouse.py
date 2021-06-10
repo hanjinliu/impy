@@ -13,7 +13,9 @@ def trace_mouse_drag(viewer, event, func=None):
         yield
     
 def drag_translation(viewer, event):
-    # TODO: other modifiers or combinations of modifiers
+    if viewer.dims.ndisplay == 3:
+        # forbid translation in 3D mode
+        return None
     if ("Alt",) == event.modifiers:
         """
         Manually translate image layer in xy-plane while pushing "Alt".
@@ -22,15 +24,8 @@ def drag_translation(viewer, event):
             def func(layer, dpos):
                 layer.translate -= dpos[-layer.translate.size:]
                 return None
-            
-        elif event.button == 2:
-            # something here?
-            func = None
-        
         else:
             func = None
-        
-        return trace_mouse_drag(viewer, event, func)
         
     elif ("Shift", "Alt") == event.modifiers:
         """
@@ -50,7 +45,10 @@ def drag_translation(viewer, event):
         
         else:
             func = None
-        return trace_mouse_drag(viewer, event, func)
+    else:
+        return None
+    
+    return trace_mouse_drag(viewer, event, func)
                 
 def wheel_resize(viewer, event):
     """
@@ -63,3 +61,4 @@ def wheel_resize(viewer, event):
             scale = layer.scale.copy()
             scale[-2:] *= factor
             layer.scale = scale
+

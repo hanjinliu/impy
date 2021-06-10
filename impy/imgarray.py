@@ -1116,7 +1116,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        # TODO: check
         method = ("mean", "median", "none")
         if not prefilter in method:
             raise ValueError(f"`prefilter` must be {', '.join(method)}.")
@@ -1803,8 +1802,8 @@ class ImgArray(LabeledArray):
         FrameDict with keys {means, sigmas, errors}, if return_all == True
             Dictionary that contains means, standard deviations and fitting errors.
         """        
-        # TODO: Error formulation has not been checked yet. For loop should be like centroid_sm
-        # because currently does not work for zcyx-image
+        # TODO: Whether error is correctly calculated has not been checked yet. For loop should be 
+        # like centroid_sm because currently does not work for zcyx-image
         
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
