@@ -1095,7 +1095,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def rolling_ball(self, radius:float=50, smoothing:bool=True, *, dims=None, update:bool=False) -> ImgArray:
+    def rolling_ball(self, radius:float=50, prefilter:str="mean", *, return_bg=False,
+                     dims=None, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -1103,7 +1104,7 @@ class ImgArray(LabeledArray):
         ----------
         radius : int, default is 50.
             Radius of rolling ball.
-        smoothing : bool, optional
+        prefilter : str, {"mean", "median", "none"}
             If apply 3x3 averaging before creating background.
         dims : int or str, optional
             Dimension of axes.
@@ -1115,9 +1116,18 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        # TODO: generate background, custom filtering
-        return self.parallel(rolling_ball_, complement_axes(dims, self.axes), 
-                             radius, smoothing)
+        # TODO: check
+        method = ("mean", "median", "none")
+        if not prefilter in method:
+            raise ValueError(f"`prefilter` must be {', '.join(method)}.")
+        
+        back = self.parallel(rolling_ball_, complement_axes(dims, self.axes), 
+                             radius, prefilter)
+        if not return_bg:
+            out = self.value - back
+            return out
+        else:
+            return back
         
     @dims_to_spatial_axes
     @record()

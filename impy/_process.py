@@ -119,16 +119,15 @@ def gaussian_laplace_(args):
     return sl, ndi.gaussian_laplace(data, sigma)
 
 def rolling_ball_(args):
-    sl, data, radius, smooth = args
-    if smooth:
-        _, ref = mean_((sl, data, np.ones((3, 3))))
-        back = skres.rolling_ball(ref, radius=radius)
-        tozero = (back > data)
-        back[tozero] = data[tozero]
-    else:
-        back = skres.rolling_ball(data, radius=radius)
+    sl, data, radius, prefilter = args
+    if prefilter == "mean":
+        _, data = mean_((sl, data, np.ones((3, 3))))
+    elif prefilter == "median":
+        _, data = median_((sl, data, np.ones((3, 3))))
     
-    return sl, data - back
+    back = skres.rolling_ball(data, radius=radius)
+    
+    return sl, back
 
 def sobel_(args):
     sl, data = args
