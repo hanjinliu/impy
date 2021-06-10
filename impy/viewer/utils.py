@@ -1,6 +1,10 @@
 from __future__ import annotations
 from ..utilcls import ImportOnRequest
 import numpy as np
+import matplotlib.pyplot as plt
+from ..imgarray import ImgArray
+from ..label import Label
+from ..specials import *
 from ..labeledarray import LabeledArray
 from ..phasearray import PhaseArray
 from .mouse import *
@@ -119,3 +123,60 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     if len(new_axes) >= len(viewer.dims.axis_labels):
         viewer.dims.axis_labels = new_axes
     return layer
+
+
+def layer_to_impy_object(viewer, layer):
+    """
+    Convert layer to real data.
+
+    Parameters
+    ----------
+    layer : napari.layers.Layer
+        Input layer.
+
+    Returns
+    -------
+    ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
+    """ 
+    data = layer.data
+    axes = "".join(viewer.dims.axis_labels)
+    scale = {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
+    if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+        # manually drawn ones are np.ndarray, need conversion
+        ndim = data.ndim
+        axes = axes[-ndim:]
+        if type(data) is np.ndarray:
+            if isinstance(layer, napari.layers.Image):
+                data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
+            else:
+                data = Label(data, name=layer.name, axes=axes)
+            data.set_scale({k: v for k, v in scale.items() if k in axes})
+        return data
+    elif isinstance(layer, napari.layers.Shapes):
+        return data
+    elif isinstance(layer, napari.layers.Points):
+        ndim = data.shape[1]
+        axes = axes[-ndim:]
+        df = MarkerFrame(data, columns=layer.metadata.get("axes", axes))
+        df.set_scale(layer.metadata.get("scale", 
+                                        {k: v for k, v in scale.items() if k in axes}))
+        return df
+    elif isinstance(layer, napari.layers.Tracks):
+        ndim = data.shape[1]
+        axes = axes[-ndim:]
+        df = TrackFrame(data, columns=layer.metadata.get("axes", axes))
+        df.set_scale(layer.metadata.get("scale", 
+                                        {k: v for k, v in scale.items() if k in axes}))
+        return df
+    else:
+        raise NotImplementedError(type(layer))
+
+
+class ColorCycle:
+    def __init__(self) -> None:
+        self.cmap = plt.get_cmap("rainbow", 16)
+        self.color_id = 0
+    
+    def __call__(self):
+        """return next colormap"""
+        return list(self.cmap(self.color_id * (self.cmap.N//2+1) % self.cmap.N))

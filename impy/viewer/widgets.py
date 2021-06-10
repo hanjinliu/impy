@@ -1,9 +1,11 @@
+from __future__ import annotations
 import napari
 import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
 
-__all__ = ["add_imread_menu", "add_table_widget", "add_note_widget"]
+
+__all__ = ["add_imread_menu", "add_table_widget", "add_note_widget", "function_handler"]
 
 def add_imread_menu(viewer):
     from ..core import imread
@@ -65,3 +67,123 @@ def add_note_widget(viewer):
     text = viewer.window.add_dock_widget(text, area="right", name="Note")
     text.setVisible(False)
     return None
+
+
+def function_handler(viewer):
+    @magicgui.magicgui(call_button="Run")
+    def run_func(method="gaussian_filter", 
+                    arguments="",
+                    update=False) -> napari.types.LayerDataTuple:
+        """
+        Run image analysis in napari window.
+
+        Parameters
+        ----------
+        method : str, default is "gaussian_filter"
+            Name of method to be called.
+        arguments : str, default is ""
+            Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
+            the value should be `"2, dims=2"`.
+        update : bool, default is False
+            If update the layer's data. The original data will NOT be updated.
+            
+        Returns
+        -------
+        napari.types.LayerDataTuple
+            This is passed to napari and is directly visualized.
+        """
+        layer_names = [l.name for l in viewer.layers]
+        outlist = []
+        i = 0
+        for input in viewer.layers.selection:
+            data = layer_to_impy_object(viewer, input)
+            try:
+                func = getattr(data, method)
+            except AttributeError as e:
+                viewer.status = f"{method} finished with AttributeError: {e}"
+                continue
+            
+            viewer.status = f"{method} ..."
+            try:
+                args, kwargs = str_to_args(arguments)
+                out = func(*args, **kwargs)
+            except Exception as e:
+                viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
+                continue
+            else:
+                viewer.status = f"{method} finished"
+            scale = make_world_scale(data)
+            
+            # determine name of the new layer
+            if update and type(data) is type(out):
+                name = input.name
+            else:
+                name = f"{method}-{i}"
+                i += 1
+                while name in layer_names:
+                    name = f"{method}-{i}"
+                    i += 1
+            
+            if isinstance(out, ImgArray):
+                contrast_limits = [float(x) for x in out.range]
+                out_ = (out, 
+                        dict(scale=scale, name=name, colormap=input.colormap, translate=input.translate,
+                                blending=input.blending, contrast_limits=contrast_limits), 
+                        "image")
+            elif isinstance(out, PhaseArray):
+                out_ = (out, 
+                        dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
+                                contrast_limits=out.border), 
+                        "image")
+            elif isinstance(out, Label):
+                out_ = (out, 
+                        dict(opacity=0.3, scale=scale, name=name), 
+                        "labels")
+            elif isinstance(out, MarkerFrame):
+                kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
+                            edge_color=viewer.window.cmap(),
+                            metadata={"axes": str(out._axes), "scale": out.scale},
+                            scale=scale)
+                out_ = (out, kw, "points")
+            elif isinstance(out, TrackFrame):
+                out_ = (out, 
+                        dict(scale=scale, translate=input.translate,
+                                metadata={"axes": str(out._axes), "scale":out.scale}), 
+                        "tracks")
+            else:
+                continue
+            outlist.append(out_)
+        
+        if len(outlist) == 0:
+            return None
+        else:
+            return outlist
+    viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
+    return None
+
+
+def str_to_args(s:str) -> tuple[list, dict]:
+    args_or_kwargs = [s.strip() for s in s.split(",")]
+    if args_or_kwargs[0] == "":
+        return [], {}
+    args = []
+    kwargs = {}
+    for a in args_or_kwargs:
+        if "=" in a:
+            k, v = a.split("=")
+            v = interpret_type(v)
+            kwargs[k] = v
+        else:
+            a = interpret_type(a)
+            args.append(a)
+    return args, kwargs
+            
+def interpret_type(s:str):
+    try:
+        s = int(s)
+    except ValueError:
+        try:
+            s = float(s)
+        except ValueError:
+            s = s.strip('"').strip("'")
+    return s

@@ -1,5 +1,4 @@
 from __future__ import annotations
-import matplotlib.pyplot as plt
 from ..imgarray import ImgArray
 from ..labeledarray import LabeledArray
 from ..phasearray import PhaseArray
@@ -15,12 +14,10 @@ from .mouse import *
 
         
 class napariViewers:
-    _point_cmap = plt.get_cmap("rainbow", 16)
     
     def __init__(self):
         self._viewers = {}
         self._front_viewer = None
-        self._point_color_id = 0
     
     def __repr__(self):
         w = "".join([f"<{k}>" for k in self._viewers.keys()])
@@ -90,8 +87,6 @@ class napariViewers:
         default_viewer_settings(viewer)
         load_mouse_callbacks(viewer)
         load_widgets(viewer)
-        # Add dock widgets
-        self._function_handler(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
@@ -111,37 +106,8 @@ class napariViewers:
         -------
         ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
         """ 
-        data = layer.data
-        if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
-            # manually drawn ones are np.ndarray, need conversion
-            ndim = data.ndim
-            axes = self.axes[-ndim:]
-            if type(data) is np.ndarray:
-                if isinstance(layer, napari.layers.Image):
-                    data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
-                else:
-                    data = Label(data, name=layer.name, axes=axes)
-                data.set_scale({k: v for k, v in self.scale.items() if k in axes})
-            return data
-        elif isinstance(layer, napari.layers.Shapes):
-            return data
-        elif isinstance(layer, napari.layers.Points):
-            ndim = data.shape[1]
-            axes = self.axes[-ndim:]
-            df = MarkerFrame(data, columns=layer.metadata.get("axes", axes))
-            df.set_scale(layer.metadata.get("scale", 
-                                            {k: v for k, v in self.scale.items() if k in axes}))
-            return df
-        elif isinstance(layer, napari.layers.Tracks):
-            ndim = data.shape[1]
-            axes = self.axes[-ndim:]
-            df = TrackFrame(data, columns=layer.metadata.get("axes", axes))
-            df.set_scale(layer.metadata.get("scale", 
-                                            {k: v for k, v in self.scale.items() if k in axes}))
-            return df
-        else:
-            raise NotImplementedError(type(layer))
-
+        return layer_to_impy_object(self.viewer, layer)
+        
     def add(self, obj, title=None, **kwargs):
         """
         Add images, points, labels, tracks or graph to viewer.
@@ -202,7 +168,6 @@ class napariViewers:
         else:
             scale=None
         
-        cmap = self.__class__._point_cmap
         if "c" in points._axes:
             pnts = points.split("c")
         else:
@@ -211,10 +176,10 @@ class napariViewers:
         for each in pnts:
             metadata = {"axes": str(each._axes), "scale": each.scale}
             kw = dict(size=3.2, face_color=[0,0,0,0], metadata=metadata,
-                      edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
+                      edge_color=self.viewer.window.cmap())
             kw.update(kwargs)
             self.viewer.add_points(each.values, scale=scale, **kw)
-            self._point_color_id += 1
+            
         return None
     
     def _add_labels(self, labels:Label, opacity:float=0.3, name:str|list[str]=None, **kwargs):
@@ -260,108 +225,13 @@ class napariViewers:
         return name
     
     
-    def _function_handler(self, viewer):
-        import magicgui
-        @magicgui.magicgui(call_button="Run")
-        def run_func(method="gaussian_filter", 
-                     arguments="",
-                     update=False) -> napari.types.LayerDataTuple:
-            """
-            Run image analysis in napari window.
-
-            Parameters
-            ----------
-            method : str, default is "gaussian_filter"
-                Name of method to be called.
-            arguments : str, default is ""
-                Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
-                the value should be `"2, dims=2"`.
-            update : bool, default is False
-                If update the layer's data. The original data will NOT be updated.
-                
-            Returns
-            -------
-            napari.types.LayerDataTuple
-                This is passed to napari and is directly visualized.
-            """
-            layer_names = [l.name for l in self.viewer.layers]
-            outlist = []
-            i = 0
-            for input in self.viewer.layers.selection:
-                data = self.get_data(input)
-                try:
-                    func = getattr(data, method)
-                except AttributeError as e:
-                    self.viewer.status = f"{method} finished with AttributeError: {e}"
-                    continue
-                
-                self.viewer.status = f"{method} ..."
-                try:
-                    args, kwargs = str_to_args(arguments)
-                    out = func(*args, **kwargs)
-                except Exception as e:
-                    self.viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
-                    continue
-                else:
-                    self.viewer.status = f"{method} finished"
-                scale = make_world_scale(data)
-                
-                # determine name of the new layer
-                if update and type(data) is type(out):
-                    name = input.name
-                else:
-                    name = f"{method}-{i}"
-                    i += 1
-                    while name in layer_names:
-                        name = f"{method}-{i}"
-                        i += 1
-                
-                if isinstance(out, ImgArray):
-                    contrast_limits = [float(x) for x in out.range]
-                    out_ = (out, 
-                            dict(scale=scale, name=name, colormap=input.colormap, translate=input.translate,
-                                 blending=input.blending, contrast_limits=contrast_limits), 
-                            "image")
-                elif isinstance(out, PhaseArray):
-                    out_ = (out, 
-                            dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
-                                 contrast_limits=out.border), 
-                            "image")
-                elif isinstance(out, Label):
-                    out_ = (out, 
-                            dict(opacity=0.3, scale=scale, name=name), 
-                            "labels")
-                elif isinstance(out, MarkerFrame):
-                    cmap = self.__class__._point_cmap
-                    kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
-                                edge_color=list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)),
-                                metadata={"axes": str(out._axes), "scale": out.scale},
-                                scale=scale)
-                    self._point_color_id += 1
-                    out_ = (out, kw, "points")
-                elif isinstance(out, TrackFrame):
-                    out_ = (out, 
-                            dict(scale=scale, translate=input.translate,
-                                 metadata={"axes": str(out._axes), "scale":out.scale}), 
-                            "tracks")
-                else:
-                    continue
-                outlist.append(out_)
-            
-            if len(outlist) == 0:
-                return None
-            else:
-                return outlist
-        viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
-        return None
-    
 def default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
     viewer.scale_bar.font_size = 8
     viewer.axes.visible = True
     viewer.axes.colored = False
-    
+    viewer.window.cmap = ColorCycle()
     return None
 
 def load_mouse_callbacks(viewer):
@@ -376,28 +246,3 @@ def load_widgets(viewer):
     for f in widgets.__all__:
         getattr(widgets, f)(viewer)
 
-def str_to_args(s:str) -> tuple[list, dict]:
-    args_or_kwargs = [s.strip() for s in s.split(",")]
-    if args_or_kwargs[0] == "":
-        return [], {}
-    args = []
-    kwargs = {}
-    for a in args_or_kwargs:
-        if "=" in a:
-            k, v = a.split("=")
-            v = interpret_type(v)
-            kwargs[k] = v
-        else:
-            a = interpret_type(a)
-            args.append(a)
-    return args, kwargs
-            
-def interpret_type(s:str):
-    try:
-        s = int(s)
-    except ValueError:
-        try:
-            s = float(s)
-        except ValueError:
-            s = s.strip('"').strip("'")
-    return s
