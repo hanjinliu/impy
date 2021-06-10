@@ -1,5 +1,8 @@
 import numpy as np
 
+mouse_drag_callbacks = ["drag_translation"]
+mouse_wheel_callbacks = ["wheel_resize"]
+
 def trace_mouse_drag(viewer, event, func=None):
     if func is None:
         return None
@@ -11,7 +14,7 @@ def trace_mouse_drag(viewer, event, func=None):
         [func(layer, dpos) for layer in selected_visible_layers]
         last_event_position = event.position
         yield
-    
+
 def drag_translation(viewer, event):
     if viewer.dims.ndisplay == 3:
         # forbid translation in 3D mode
@@ -49,7 +52,7 @@ def drag_translation(viewer, event):
         return None
     
     return trace_mouse_drag(viewer, event, func)
-                
+
 def wheel_resize(viewer, event):
     """
     Manually resize image layer in xy-plane while pushing "Alt".

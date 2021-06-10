@@ -2,7 +2,6 @@ from __future__ import annotations
 from ..utilcls import ImportOnRequest
 import numpy as np
 from ..labeledarray import LabeledArray
-from ..label import Label
 from ..phasearray import PhaseArray
 from .mouse import *
 napari = ImportOnRequest("napari")

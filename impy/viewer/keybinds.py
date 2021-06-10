@@ -8,7 +8,8 @@ KEYS = {"hide_others": "Control-Shift-A",
         "reset_view": "Control-Shift-R",
         "add_new_shape": "S",
         "proj": "Control-P",
-        "duplicate_layer": "Control-Shift-D"}
+        "duplicate_layer": "Control-Shift-D",
+        }
 
 
 __all__ = list(KEYS.keys())
@@ -134,13 +135,6 @@ def crop(viewer):
         # TODO:
         # delete original
     return None
-
-# @bind_key
-# def add_new_shape(viewer):
-#     d = viewer.dims
-#     scale = [r[2] for r in d.range]
-#     viewer.add_shapes(scale=scale)
-#     return None
 
 @bind_key
 def proj(viewer):

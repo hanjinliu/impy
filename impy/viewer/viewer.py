@@ -5,17 +5,13 @@ from ..labeledarray import LabeledArray
 from ..phasearray import PhaseArray
 from ..label import Label
 from ..specials import *
-from ..utilcls import ImportOnRequest
 from .utils import *
 from .mouse import *
 
-magicgui = ImportOnRequest("magicgui")
 
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
 #   layer group is implemented in napari.
-# - plot widget
-# - line profiler
 
         
 class napariViewers:
@@ -33,9 +29,9 @@ class napariViewers:
     def __getitem__(self, key):
         """
         This method looks strange but intuitive because you can access the last viewer by
-        >>> ip.window.add(...)
+        >>> ip.gui.add(...)
         while turn to another by
-        >>> ip.window["X"].add(...)
+        >>> ip.gui["X"].add(...)
 
         Parameters
         ----------
@@ -84,21 +80,20 @@ class napariViewers:
             raise TypeError("`key` must be str.")
         if key in self._viewers.keys():
             raise ValueError(f"Key {key} already exists.")
+        
+        # load keybindings
         if not self._viewers:
             from . import keybinds
         
         viewer = napari.Viewer(title=key)
+        
         default_viewer_settings(viewer)
+        load_mouse_callbacks(viewer)
+        load_widgets(viewer)
         # Add dock widgets
         self._function_handler(viewer)
-        self._memo(viewer)
-        self._table(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
-        # Add menu
-        viewer.window.file_menu.addSeparator()
-        self._add_imread_menu(viewer)
-        
         self._viewers[key] = viewer
         self._front_viewer = key
         return None
@@ -175,8 +170,6 @@ class napariViewers:
             self._add_labels(obj, **kwargs)
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
-        elif isinstance(obj, PropArray):
-            self._add_plot(obj, **kwargs)
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
@@ -256,46 +249,6 @@ class napariViewers:
             self.viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
         
         return None
-
-    def _add_plot(self, prop:PropArray, **kwargs):
-        # TODO: Delete this. Use magicgui for plotting inside
-        input_df = prop.as_frame()
-        if "c" in input_df.columns:
-            dfs = input_df.split("c")
-        else:
-            dfs = [input_df]
-        
-        if len(dfs[0].columns) > 2:
-            groupax = find_first_appeared(input_df._axes, include="ptz<yx")
-        else:
-            groupax = []
-        
-        for df in dfs:
-            maxima = df.max(axis=0).values
-            order = list(np.argsort(maxima))
-            df = df[df.columns[order]]
-            maxima = maxima[order]
-            scale = [1] * maxima.size
-            scale[-1] = max(maxima[:-1])/maxima[-1]
-            cmap = self.__class__._plot_cmap
-            paths = []
-            ec = []
-            for sl, data in df.groupby(groupax): 
-                path = data.values.tolist()
-                paths.append(path)
-                ec.append(list(cmap(self._point_color_id * (cmap.N//2+1) % cmap.N)))
-                self._point_color_id += 1
-            
-            kw = dict(edge_width=0.8, opacity=0.75, scale=scale, edge_color=ec, face_color=ec)
-            kw.update(kwargs)
-            self["Plot"].viewer.add_shapes(paths, shape_type="path", **kw)
-        
-        new_axes = list(df.columns)
-        # add axis labels to slide bars and image orientation.
-        if len(new_axes) >= len(self["Plot"].viewer.dims.axis_labels):
-            self["Plot"].viewer.dims.axis_labels = new_axes
-        
-        return None
     
 
     def _name(self, name="impy"):
@@ -306,84 +259,9 @@ class napariViewers:
             i += 1
         return name
     
-    def _memo(self, viewer):
-        text = magicgui.widgets.TextEdit(tooltip="Memo")
-        text = viewer.window.add_dock_widget(text, area="right", name="Memo")
-        text.setVisible(False)
-        return None
-        
-    def _table(self, viewer):
-        from qtpy.QtWidgets import QPushButton, QWidget, QGridLayout
-        QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
-        
-        button = QPushButton("Get")
-        @button.clicked.connect
-        def make_table():
-            dfs = list(self._iter_selected_layer(["Points", "Tracks"]))
-            if len(dfs) == 0:
-                return
-            for df in dfs:
-                widget = QWidget()
-                widget.setLayout(QGridLayout())
-                columns = list(df.metadata["axes"])
-                table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
-                copy_button = QPushButton("Copy")
-                copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
-                widget.layout().addWidget(table.native)
-                widget.layout().addWidget(copy_button)
-                
-                widget = QtViewerDockWidget(viewer.window.qt_viewer, widget, name=df.name,
-                                            area="right", add_vertical_stretch=True)
-                viewer.window._add_viewer_dock_widget(widget, tabify=viewer.window.n_table>0)
-                viewer.window.n_table += 1
-            return None
-        
-        viewer.window.add_dock_widget(button, area="left", name="Get Coordinates")
-        viewer.window.n_table = 0
-        return None
-    
-    def _line_profiler(self, viewer):
-        # TODO: search for how to add plot widgets
-        from skimage.measure import profile_line
-        shapes_layer = viewer.add_shapes(shape_type="line", edge_width=1, edge_color="yellow")
-        shapes_layer.mode = "select"
-        img = list(iter_selected_layer(viewer, "image"))[-1]
-        
-        @shapes_layer.mouse_drag_callbacks.append
-        def profile_lines_drag(layer, event):
-            profile_line(img, layer)
-            yield
-            while event.type == 'mouse_move':
-                linescan = [
-                    profile_line(img, line[0], line[1], mode="reflect")
-                    for line in layer.data]
-                yield
-    
-    def _add_imread_menu(self, viewer):
-        # TODO: move to other files
-        from qtpy.QtWidgets import QFileDialog, QAction
-        from ..core import imread
-        def open_img():
-            dlg = QFileDialog()
-            hist = napari.utils.history.get_open_history()
-            dlg.setHistory(hist)
-            filenames, _ = dlg.getOpenFileNames(
-                parent=viewer.window.qt_viewer,
-                caption='Select file ...',
-                directory=hist[0],
-            )
-            if (filenames != []) and (filenames is not None):
-                img = imread(filenames[0])
-                add_labeledarray(img)
-            napari.utils.history.update_open_history(filenames[0])
-            return None
-        action = QAction('imread ...', viewer.window._qt_window)
-        action.triggered.connect(open_img)
-        viewer.window.file_menu.addAction(action)
-        return None
-    
     
     def _function_handler(self, viewer):
+        import magicgui
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
                      arguments="",
@@ -483,10 +361,20 @@ def default_viewer_settings(viewer):
     viewer.scale_bar.font_size = 8
     viewer.axes.visible = True
     viewer.axes.colored = False
-    viewer.mouse_drag_callbacks.append(drag_translation)
-    viewer.mouse_wheel_callbacks.append(wheel_resize)
     
     return None
+
+def load_mouse_callbacks(viewer):
+    from . import mouse
+    for f in mouse.mouse_drag_callbacks:
+        viewer.mouse_drag_callbacks.append(getattr(mouse, f))
+    for f in mouse.mouse_wheel_callbacks:
+        viewer.mouse_wheel_callbacks.append(getattr(mouse, f))
+
+def load_widgets(viewer):
+    from . import widgets
+    for f in widgets.__all__:
+        getattr(widgets, f)(viewer)
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = [s.strip() for s in s.split(",")]
@@ -513,4 +401,3 @@ def interpret_type(s:str):
         except ValueError:
             s = s.strip('"').strip("'")
     return s
-
