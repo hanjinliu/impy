@@ -15,7 +15,7 @@ from .imgarray import ImgArray
 from .specials import PropArray, MarkerFrame, TrackFrame
 from .label import Label
 from .phasearray import PhaseArray
-from .viewer import window
+from .viewer import gui
 import numpy
 
 r"""

@@ -1259,8 +1259,8 @@ class ImgArray(LabeledArray):
         Calculate AoP image from the raw image and display them.
         >>> img_pol = img.split_polarization()
         >>> dpol = img_pol.stokes()
-        >>> ip.window.add(img_pol.proj)
-        >>> ip.window.add(dpol.aop.rad2deg())
+        >>> ip.gui.add(img_pol.proj)
+        >>> ip.gui.add(dpol.aop.rad2deg())
         
         References
         ----------
@@ -1687,8 +1687,8 @@ class ImgArray(LabeledArray):
         Track single molecules and view the tracks with napari.
         >>> coords = img.find_sm()
         >>> lnk = coords.link(3, min_dwell=10)
-        >>> ip.window.add(img)
-        >>> ip.window.add(lnk)
+        >>> ip.gui.add(img)
+        >>> ip.gui.add(lnk)
         """        
         methods_ = {"dog": "dog_filter",
                     "doh": "doh_filter",

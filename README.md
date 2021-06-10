@@ -172,16 +172,16 @@ ip.random.normal(size=(100, 100))
 
 `impy.window` has methods for better interface between images and `napari`.
 
-- Add any objects (images, labels, points, ...) to the viewer by `ip.window.add(...)`.
-- Return all the manually selected layers' data by `layers = ip.window.selection`.
+- Add any objects (images, labels, points, ...) to the viewer by `ip.gui.add(...)`.
+- Return all the manually selected layers' data by `layers = ip.gui.selection`.
 - Crop selected images at the edge of the viewer window by key-binding `Ctrl+Shift+X`.
-- Convert manually drawn shapes into `Label`, and label the front image by `ip.window.shapes_to_labels()`.
-- Convert manually spotted points into `AxesFrame` by `ip.window.points_to_frames()`.
+- Convert manually drawn shapes into `Label`, and label the front image by `ip.gui.shapes_to_labels()`.
+- Convert manually spotted points into `AxesFrame` by `ip.gui.points_to_frames()`.
 - Run `ImgArray`'s method inside viewers like below.
   
   ![](Figs/Img2.png)
 
-- Select viewers or create a new viewer by such as `ip.window["viewer_name"].add(...)`.
+- Select viewers or create a new viewer by such as `ip.gui["viewer_name"].add(...)`.
 
 `napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to grouping image layers).
 

@@ -18,7 +18,7 @@ magicgui = ImportOnRequest("magicgui")
 # - line profiler
 
         
-class napariWindow:
+class napariViewers:
     _point_cmap = plt.get_cmap("rainbow", 16)
     
     def __init__(self):

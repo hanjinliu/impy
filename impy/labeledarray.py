@@ -662,7 +662,7 @@ class LabeledArray(HistoryArray):
         >>> coords = img.find_sm()
         >>> filter_func = lambda a: np.mean(a) > 100
         >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
-        >>> ip.window.add(img)
+        >>> ip.gui.add(img)
         """
         if isinstance(center, MarkerFrame):
             from ._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
@@ -786,7 +786,7 @@ class LabeledArray(HistoryArray):
         Label the image with threshold and visualize with napari.
         >>> thr = img.threshold()
         >>> img.label(thr)
-        >>> ip.window.add(img)
+        >>> ip.gui.add(img)
         """        
         # check the shape of label_image
         if label_image is None:

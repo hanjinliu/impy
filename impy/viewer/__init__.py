@@ -1,4 +1,4 @@
-from .viewer import napariWindow
+from .viewer import napariViewers
 
 
-window = napariWindow()
+gui = napariViewers()
