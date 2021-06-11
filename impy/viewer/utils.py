@@ -80,18 +80,28 @@ def upon_add_layer(event):
         return None
     new_layer.translate = new_layer.translate.astype(np.float64)
     if isinstance(new_layer, napari.layers.Shapes):
-        @new_layer.bind_key("Alt-A")
-        def select_all_shapes(layer):
-            layer.selected_data = set(np.arange(layer.nshapes))
+        _text_bound_init(new_layer)
+        
     if isinstance(new_layer, napari.layers.Points):
-        @new_layer.bind_key("Alt-A")
-        def select_all_points(layer):
-            layer.selected_data = set(np.arange(layer.data.shape[0]))
+        _text_bound_init(new_layer)
+    
+    if isinstance(new_layer, napari.layers.Labels):
+        _text_bound_init(new_layer)
             
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
     new_layer.metadata["init_scale"] = new_layer.scale.copy()
         
     return None
+
+def _text_bound_init(new_layer):
+    @new_layer.bind_key("Alt-A")
+    def select_all_shapes(layer):
+        layer.selected_data = set(np.arange(len(layer.data)))
+    # new_layer.text._text_format_string = "{text}"
+    # new_layer.text.size = 8
+    # new_layer.text.color = "yellow"
+    # new_layer.text.translation = [-8, 0]
+    # new_layer.text.refresh_text(new_layer.properties)
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
@@ -124,6 +134,8 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
         viewer.dims.axis_labels = new_axes
     return layer
 
+def get_viewer_scale(viewer):
+    return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
 
 def layer_to_impy_object(viewer, layer):
     """
@@ -140,7 +152,7 @@ def layer_to_impy_object(viewer, layer):
     """ 
     data = layer.data
     axes = "".join(viewer.dims.axis_labels)
-    scale = {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
+    scale = get_viewer_scale(viewer)
     if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
         # manually drawn ones are np.ndarray, need conversion
         ndim = data.ndim
@@ -160,14 +172,14 @@ def layer_to_impy_object(viewer, layer):
         df = MarkerFrame(data, columns=layer.metadata.get("axes", axes))
         df.set_scale(layer.metadata.get("scale", 
                                         {k: v for k, v in scale.items() if k in axes}))
-        return df
+        return df.as_standard_type()
     elif isinstance(layer, napari.layers.Tracks):
         ndim = data.shape[1]
         axes = axes[-ndim:]
         df = TrackFrame(data, columns=layer.metadata.get("axes", axes))
         df.set_scale(layer.metadata.get("scale", 
                                         {k: v for k, v in scale.items() if k in axes}))
-        return df
+        return df.as_standard_type()
     else:
         raise NotImplementedError(type(layer))
 

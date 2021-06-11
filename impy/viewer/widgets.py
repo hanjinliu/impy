@@ -5,7 +5,11 @@ from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayo
 from .utils import *
 
 
-__all__ = ["add_imread_menu", "add_table_widget", "add_note_widget", "function_handler"]
+__all__ = ["add_imread_menu",
+           "add_table_widget", 
+           "add_note_widget",
+        #    "edit_properties",
+           "function_handler"]
 
 def add_imread_menu(viewer):
     from ..core import imread
@@ -31,6 +35,31 @@ def add_imread_menu(viewer):
     return None
 
 
+# def edit_properties(viewer):
+#     @magicgui.magicgui(call_button="Apply")
+#     def edit_prop(format_="{text}", prop="text", value=""):
+#         # TODO:
+#         layers = list(viewer.layers.selection)
+#         if len(layers) != 1:
+#             return None
+        
+#         layer = layers[0]
+#         if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
+#             return None
+#         props = layer.properties
+#         if prop not in layer.properties.keys():
+#             props[prop] = np.zeros(len(layer.data), dtype="<U12")
+        
+#         # new format of texts
+#         layer.text._text_format_string = format_
+#         # new values
+#         for i in layer.selected_data:
+#             props[prop][i] = value
+#         layer.properties = props
+#         layer.text.refresh_text(props)
+    
+#     viewer.window.add_dock_widget(edit_prop, area="right", name="Property editor")
+#     return None
 
 def add_table_widget(viewer):
     QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
@@ -44,7 +73,8 @@ def add_table_widget(viewer):
         for df in dfs:
             widget = QWidget()
             widget.setLayout(QGridLayout())
-            columns = list(df.metadata["axes"])
+            axes = list(viewer.dims.axis_labels)
+            columns = list(df.metadata.get("axes", axes[-df.data.shape[1]:]))
             table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
             copy_button = QPushButton("Copy")
             copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
@@ -72,8 +102,8 @@ def add_note_widget(viewer):
 def function_handler(viewer):
     @magicgui.magicgui(call_button="Run")
     def run_func(method="gaussian_filter", 
-                    arguments="",
-                    update=False) -> napari.types.LayerDataTuple:
+                 arguments="",
+                 update=False) -> napari.types.LayerDataTuple:
         """
         Run image analysis in napari window.
 

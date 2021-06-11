@@ -154,9 +154,16 @@ def proj(viewer):
             raise TypeError("Projection not supported.")
         elif isinstance(layer, napari.layers.Shapes):
             data = [d[:,-2:] for d in data]
+            for k in ["face_color", "edge_color", "edge_width"]:
+                kwargs[k] = getattr(layer, k)
+            
             viewer.add_shapes(data, **kwargs)
         elif isinstance(layer, napari.layers.Points):
             data = data[:, -2:]
+            for k in ["face_color", "edge_color", "size", "symbol"]:
+                kwargs[k] = getattr(layer, k)
+            kwargs["size"] = layer.size[:,-2:]
+            
             viewer.add_points(data, **kwargs)
         elif isinstance(layer, napari.layers.Tracks):
             data = data[:, [0,-2,-1]]
