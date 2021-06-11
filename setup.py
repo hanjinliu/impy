@@ -17,7 +17,7 @@ setup(name="impy",
             "scikit-image>=0.18",
             "numpy>=1.17",
             "matplotlib",
-            "pandas>=0",
+            "pandas>=1",
       ],
       python_requires=">=3.7",
       )

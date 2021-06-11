@@ -55,7 +55,7 @@ original image: XXX
 
 You can view images with `matplotlib` of course, but this module also provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
 
-You can also **manually crop or label** `ImgArray`, or **run its functions inside the viewer**. See [Napari Interface](#napari-interface) for details.
+You can also **manually crop or label** `ImgArray` with `napari`'s `Shapes` objects, or **run impy functions inside the viewer**. I also implemented useful custom keybindings and widgets. See [Napari Interface](#napari-interface) for details.
 
 #### 5. Extended Numpy Functions
 In almost all the numpy functions, the keyword argument `axis` can be given as the symbol of axis like:
@@ -82,7 +82,7 @@ ip.random.normal(size=(100, 100))
 - `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
 - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
 - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
-- `window` is a controller object that connects console and `napari.Viewer`.
+- `gui` is a controller object that connects console and `napari.Viewer`.
 
 ## Image Analysis Tools
 
@@ -170,18 +170,35 @@ ip.random.normal(size=(100, 100))
 
 ## Napari Interface
 
-`impy.window` has methods for better interface between images and `napari`.
+`impy.gui` has methods for better interface between images and `napari`.
 
 - Add any objects (images, labels, points, ...) to the viewer by `ip.gui.add(...)`.
 - Return all the manually selected layers' data by `layers = ip.gui.selection`.
-- Crop selected images at the edge of the viewer window by key-binding `Ctrl+Shift+X`.
-- Convert manually drawn shapes into `Label`, and label the front image by `ip.gui.shapes_to_labels()`.
-- Convert manually spotted points into `AxesFrame` by `ip.gui.points_to_frames()`.
 - Run `ImgArray`'s method inside viewers like below.
   
   ![](Figs/Img2.png)
 
 - Select viewers or create a new viewer by such as `ip.gui["viewer_name"].add(...)`.
+- Translate and rescale layers with mouse.
+  - `Alt` + mouse drag &rarr; lateral translation
+  - `Alt` + `Shift` + mouse drag &rarr; lateral translation restricted in either x- or y-orientation (left button or right button respectively).
+  - `Alt` + mouse wheel &rarr; rescaling
+  - `Ctrl` + `Shift` + `R` &rarr; reset original states.
+
+  ![](Figs/Img3.png)
+
+- Fast layer selection and manipulation.
+  - `Ctrl` + `Shift` + `A` &rarr; Hide non-selected layers. Display all the layers by push again.
+  - `Ctrl` + `Shift` + `F` &rarr; Move selected layers to front.
+  - `Alt` + `L` &rarr; Convert all the shapes in seleted shape-layers into labels of selected image-layers.
+  - `Ctrl` + `Shift` + `X` &rarr; Crop selected image-layers with all the rectangles in selected shape-layers.
+  - `Ctrl` + `P` &rarr; Projection of shape-layers or point-layers to 2D layers.
+- Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.
+  
+  ![](Figs/Img4.png)
+
+- Note pad in `Window > Note`.
+- Call `impy.imread` in `File > imread ...`.
 
 `napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to grouping image layers).
 

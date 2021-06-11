@@ -1,4 +1,4 @@
-__version__ = "1.11.6"
+__version__ = "1.12.0"
 
 # TODO
 # - total variance. See ImageFeature.jl
