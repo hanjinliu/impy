@@ -132,8 +132,8 @@ def crop(viewer):
             layer.translate = translate
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
-        # TODO:
-        # delete original
+    # remove original images
+    [viewer.layers.remove(img) for img in imglist]
     return None
 
 @bind_key
@@ -147,9 +147,10 @@ def proj(viewer):
         data = layer.data
         kwargs = {}
         kwargs.update({"scale": layer.scale[-2:], 
-                       "translate":layer.translate[-2:],
-                       "blending":layer.blending,
-                       "name":layer.name+"-proj"})
+                       "translate": layer.translate[-2:],
+                       "blending": layer.blending,
+                       "opacity": layer.opacity,
+                       "name": layer.name+"-proj"})
         if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
             raise TypeError("Projection not supported.")
         elif isinstance(layer, napari.layers.Shapes):

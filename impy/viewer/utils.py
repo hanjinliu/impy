@@ -97,11 +97,14 @@ def _text_bound_init(new_layer):
     @new_layer.bind_key("Alt-A")
     def select_all_shapes(layer):
         layer.selected_data = set(np.arange(len(layer.data)))
-    # new_layer.text._text_format_string = "{text}"
-    # new_layer.text.size = 8
-    # new_layer.text.color = "yellow"
-    # new_layer.text.translation = [-8, 0]
-    # new_layer.text.refresh_text(new_layer.properties)
+        
+    # txt_manager = napari.layers.utils.text.TextManager
+    # init_prop = {"text": np.zeros(0, dtype="<U12")}
+    # new_layer._text = txt_manager("{text}", 0, properties=init_prop,
+    #                               color="yellow", translation=[-8, 0], size=8)
+    # new_layer._properties, new_layer._property_choices = new_layer._prepare_properties(
+    #                         init_prop, init_prop, save_choices=True)
+    # new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
@@ -185,8 +188,8 @@ def layer_to_impy_object(viewer, layer):
 
 
 class ColorCycle:
-    def __init__(self) -> None:
-        self.cmap = plt.get_cmap("rainbow", 16)
+    def __init__(self, cmap="rainbow") -> None:
+        self.cmap = plt.get_cmap(cmap, 16)
         self.color_id = 0
     
     def __call__(self):

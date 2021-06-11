@@ -37,25 +37,32 @@ def add_imread_menu(viewer):
 
 # def edit_properties(viewer):
 #     @magicgui.magicgui(call_button="Apply")
-#     def edit_prop(format_="{text}", prop="text", value=""):
+#     def edit_prop(format_="{text}", propname="text", value=""):
 #         # TODO:
+        
+#         # get the selected shape layer
 #         layers = list(viewer.layers.selection)
 #         if len(layers) != 1:
 #             return None
-        
 #         layer = layers[0]
 #         if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
 #             return None
-#         props = layer.properties
-#         if prop not in layer.properties.keys():
-#             props[prop] = np.zeros(len(layer.data), dtype="<U12")
         
+#         # current properties
+#         # props = layer.properties
+#         # if prop not in layer.properties.keys():
+#         props = np.zeros(len(layer.data), dtype="<U12")
+#         old = layer.properties.get(propname, [""]*len(props))
 #         # new format of texts
 #         layer.text._text_format_string = format_
-#         # new values
-#         for i in layer.selected_data:
-#             props[prop][i] = value
-#         layer.properties = props
+#         # set new values to selected shapes
+#         for i in range(len(props)):
+#             if layer.selected_data:
+#                 props[i] = value
+#             else:
+#                 props[i] = old[i]
+                
+#         layer.properties = {propname: props}
 #         layer.text.refresh_text(props)
     
 #     viewer.window.add_dock_widget(edit_prop, area="right", name="Property editor")

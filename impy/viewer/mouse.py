@@ -7,7 +7,7 @@ def trace_mouse_drag(viewer, event, func=None):
     if func is None:
         return None
     last_event_position = event.position
-    selected_visible_layers = list(filter(lambda x: x.visible, viewer.layers.selection))
+    selected_visible_layers = [x for x in viewer.layers.selection if x.visible]
     yield
     while event.type == "mouse_move":
         dpos = np.array(last_event_position) - np.array(event.position)
@@ -58,7 +58,7 @@ def wheel_resize(viewer, event):
     Manually resize image layer in xy-plane while pushing "Alt".
     """ 
     if "Alt" in event.modifiers:
-        selected_visible_layers = list(filter(lambda x: x.visible, viewer.layers.selection))
+        selected_visible_layers = [x for x in viewer.layers.selection if x.visible]
         factor = 1 + event.delta[0]*0.1
         for layer in selected_visible_layers:
             scale = layer.scale.copy()
