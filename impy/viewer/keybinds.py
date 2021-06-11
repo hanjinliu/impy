@@ -113,25 +113,27 @@ def crop(viewer):
     
     for start, end in corners:
         for layer in imglist:
-            # BUG: for translated images, cropped results are shifted a little
             layer = viewer.add_layer(copy_layer(layer))
             sl = []
             xy = layer.translate[-2:] / layer.scale[-2:]
             
-            for i in range(2):
-                sl0 = sorted([start[i], end[i]])
-                sl.append(slice(*map(lambda x: int(x-xy[i]), sl0)))
-                
+            sl0 = sorted([start[0], end[0]])
+            sl.append(slice(*map(lambda x: int(x-xy[0])+1, sl0)))
+            sl0 = sorted([start[1], end[1]])
+            sl.append(slice(*map(lambda x: int(x-xy[1])+1, sl0)))
+            
             ndim = layer.ndim
-            newdata = layer.data[(slice(None),)*(ndim-2)+tuple(sl)]
+            area_to_crop = (slice(None),)*(ndim-2)+tuple(sl)
+            newdata = layer.data[area_to_crop]
             if newdata.size <= 0:
                 continue
             layer.data = newdata
             translate = layer.translate
-            translate[-2:] += (start-xy) * layer.scale[-2:]
+            translate[-2:] += np.array([s.start for s in sl]) * layer.scale[-2:]
             layer.translate = translate
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
+            
     # remove original images
     [viewer.layers.remove(img) for img in imglist]
     return None
@@ -177,5 +179,5 @@ def duplicate_layer(viewer):
     """
     Duplicate selected layer(s).
     """
-    [viewer.add_layer(copy_layer(layer)) for layer in viewer.layers.selection]
+    [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
