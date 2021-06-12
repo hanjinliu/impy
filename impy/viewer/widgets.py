@@ -160,7 +160,7 @@ def function_handler(viewer):
                 while name in layer_names:
                     name = f"{method}-{i}"
                     i += 1
-            
+            # TODO: translate
             if isinstance(out, ImgArray):
                 contrast_limits = [float(x) for x in out.range]
                 out_ = (out, 
@@ -178,9 +178,9 @@ def function_handler(viewer):
                         "labels")
             elif isinstance(out, MarkerFrame):
                 kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
-                            edge_color=viewer.window.cmap(),
-                            metadata={"axes": str(out._axes), "scale": out.scale},
-                            scale=scale)
+                          edge_color=viewer.window.cmap(),
+                          metadata={"axes": str(out._axes), "scale": out.scale},
+                          scale=scale)
                 out_ = (out, kw, "points")
             elif isinstance(out, TrackFrame):
                 out_ = (out, 

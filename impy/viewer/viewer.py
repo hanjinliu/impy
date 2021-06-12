@@ -1,7 +1,5 @@
 from __future__ import annotations
-from ..imgarray import ImgArray
 from ..labeledarray import LabeledArray
-from ..phasearray import PhaseArray
 from ..label import Label
 from ..specials import *
 from .utils import *

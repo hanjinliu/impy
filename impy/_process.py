@@ -1,10 +1,5 @@
-from skimage import morphology as skmorph
-from skimage import transform as sktrans
-from skimage import filters as skfil
-from skimage import restoration as skres
-from skimage import measure as skmes
+from ._skimage import *
 from skimage.feature.corner import _symmetric_image
-from skimage import feature as skfeat
 from scipy import ndimage as ndi
 import numpy as np
 from scipy.fftpack import fftn as fft
@@ -129,6 +124,31 @@ def rolling_ball_(args):
     
     return sl, back
 
+def rof_filter_(args):
+    sl, obs, lmd, tol, max_iter = args
+    
+    est_old = obs
+    est_new = np.empty(obs.shape, dtype=np.float32)
+    norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
+    
+    with np.errstate(divide="ignore"):
+        for _ in range(max_iter):
+            
+            grad = np.gradient(est_old)
+            norm[:] = np.sqrt(sum(g**2 for g in grad))
+            
+            gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
+                        for i in range(obs.ndim))
+            
+            est_new[:] = est_old + lmd*(obs - est_old) + gg
+            gain = np.mean(np.abs(est_new - est_old)) / np.mean(np.abs(est_old))
+            
+            est_old[:] = est_new
+            if gain < tol:
+                break
+    
+    return sl, est_new    
+    
 def sobel_(args):
     sl, data = args
     return sl, skfil.sobel(data)
@@ -358,7 +378,7 @@ def richardson_lucy_tv_(args):
     sl, obs, psf_ft, psf_ft_conj, max_iter, lmd, tol = args
     
     est_old = ifft(fft(obs) * psf_ft).real
-    est_new= np.empty(obs.shape, dtype=np.float32)
+    est_new = np.empty(obs.shape, dtype=np.float32)
     factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
     
     with np.errstate(divide="ignore"):
@@ -371,8 +391,8 @@ def richardson_lucy_tv_(args):
             gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
                         for i in range(obs.ndim))
             est_new /= (1 - lmd * gg)
-            err = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
-            if err < tol:
+            gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
+            if gain < tol:
                 break
             est_old[:] = est_new
         

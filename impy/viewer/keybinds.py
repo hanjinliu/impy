@@ -100,6 +100,7 @@ def crop(viewer):
     """
     Crop images with rectangle shapes.
     """        
+    # TODO: translation of shape layer itself
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
