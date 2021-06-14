@@ -200,7 +200,7 @@ def function_handler(viewer):
 
 
 def str_to_args(s:str) -> tuple[list, dict]:
-    args_or_kwargs = [s.strip() for s in s.split(",")]
+    args_or_kwargs = list(_iter_args_and_kwargs(s))
     if args_or_kwargs[0] == "":
         return [], {}
     args = []
@@ -216,11 +216,28 @@ def str_to_args(s:str) -> tuple[list, dict]:
     return args, kwargs
             
 def interpret_type(s:str):
-    try:
-        s = int(s)
-    except ValueError:
-        try:
-            s = float(s)
-        except ValueError:
-            s = s.strip('"').strip("'")
-    return s
+    return eval(s, {"np":np})
+
+def _iter_args_and_kwargs(string:str):
+    stack = 0
+    start = 0
+    for i, s in enumerate(string):
+        if s in ("(", "["):
+            stack += 1
+        elif s in (")", "]"):
+            stack -= 1
+        elif stack == 0 and s == ",":
+            yield string[start:i].strip()
+            print(string[start:i].strip())
+            start = i + 1
+    if start == 0:
+        yield string
+        
+# class nDFloatLineEdit(magicgui.widgets.LineEdit):
+#     def bind(self, value, call: bool = True) -> None:
+#         self._call_bound = call
+#         val = eval(value)
+#         if isinstance(val, (float, list)):
+#             self._bound_value = val
+#         else:
+#             raise TypeError(val)
