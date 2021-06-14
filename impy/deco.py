@@ -76,7 +76,7 @@ def dims_to_spatial_axes(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         dims = kwargs.get("dims", None)
-        if dims is None:
+        if dims is None or dims=="":
             dims = len([a for a in "zyx" if a in self._axes])
             if dims not in (2, 3):
                 raise ValueError("Image must be 2 or 3 dimensional.")

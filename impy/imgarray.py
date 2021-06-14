@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from typing import Sequence, Union, Callable
+from ._types import *
 from scipy.linalg import pinv as pseudo_inverse
 from scipy.spatial import Voronoi
 from ._skimage import *
@@ -13,9 +13,6 @@ from .specials import *
 from .utilcls import *
 from ._process import *
 
-nDFloat = Union[Sequence[float], float]
-nDInt = Union[Sequence[int], int]
-Coords = Union[np.ndarray, MarkerFrame]
 
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)

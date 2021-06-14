@@ -465,7 +465,7 @@ class TrackFrame(AxesFrame):
         return MarkerFrame(shift)
     
     @tp_no_verbose
-    def msd(self, max_lagt=100, detail=False):
+    def msd(self, max_lagt:int=100, detail:bool=False):
         df = self._renamed_df()
         return tp.motion.msd(df, self.scale["x"], self.scale["t"], 
                              max_lagtime=max_lagt, detail=detail)

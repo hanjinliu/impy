@@ -1,6 +1,5 @@
 from ._skimage import *
 from skimage.feature.corner import _symmetric_image
-from scipy import ndimage as ndi
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
@@ -126,29 +125,9 @@ def rolling_ball_(args):
 
 def rof_filter_(args):
     sl, obs, lmd, tol, max_iter = args
-    
-    est_old = obs
-    est_new = np.empty(obs.shape, dtype=np.float32)
-    norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
-    
-    with np.errstate(divide="ignore"):
-        for _ in range(max_iter):
-            
-            grad = np.gradient(est_old)
-            norm[:] = np.sqrt(sum(g**2 for g in grad))
-            
-            gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
-                        for i in range(obs.ndim))
-            
-            est_new[:] = est_old + lmd*(obs - est_old) + gg
-            gain = np.mean(np.abs(est_new - est_old)) / np.mean(np.abs(est_old))
-            
-            est_old[:] = est_new
-            if gain < tol:
-                break
-    
-    return sl, est_new    
-    
+    out = skres.denoise_tv_chambolle(obs, weight=lmd, eps=tol, n_iter_max=max_iter)
+    return sl, out
+
 def sobel_(args):
     sl, data = args
     return sl, skfil.sobel(data)
@@ -381,17 +360,21 @@ def richardson_lucy_tv_(args):
     est_new = np.empty(obs.shape, dtype=np.float32)
     factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
     
-    with np.errstate(divide="ignore"):
+    with np.errstate(all="ignore"):
+        # NOTE: During iteration, sometimes the line `gg[:] = ...` returns RuntimeWarning due to
+        # unknown reasons. I checked with np.isfinite but could not find anything wrong. I set
+        # error state to `all="ingore"`` for now as a quick solution.
         for _ in range(max_iter):
             factor[:] = ifft(fft(obs / ifft(fft(est_old) * psf_ft)) * psf_ft_conj).real
             est_new[:] = est_old * factor
             grad = np.gradient(est_old)
             norm[:] = np.sqrt(sum(g**2 for g in grad))
-            
+            # TODO: do not use np.gradient
             gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
                         for i in range(obs.ndim))
             est_new /= (1 - lmd * gg)
             gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
+            
             if gain < tol:
                 break
             est_old[:] = est_new

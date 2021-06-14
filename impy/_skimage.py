@@ -8,3 +8,4 @@ from skimage import feature as skfeat
 from skimage import registration as skreg
 from skimage import morphology as skmorph
 from skimage import graph as skgraph
+from scipy import ndimage as ndi

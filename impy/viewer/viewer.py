@@ -2,6 +2,7 @@ from __future__ import annotations
 from ..labeledarray import LabeledArray
 from ..label import Label
 from ..specials import *
+from ..core import array
 from .utils import *
 from .mouse import *
 
@@ -49,7 +50,8 @@ class napariViewers:
     
     @property
     def selection(self) -> list:
-        return list(map(self.get_data, self.viewer.layers.selection))
+        return [layer_to_impy_object(self.viewer, layer) 
+                for layer in self.viewer.layers.selection]
     
     @property
     def axes(self) -> str:
@@ -134,6 +136,8 @@ class napariViewers:
             self._add_labels(obj, **kwargs)
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
+        elif type(obj) is np.ndarray:
+            self._add_image(array(obj))
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 

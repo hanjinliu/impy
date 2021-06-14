@@ -1,7 +1,6 @@
 __version__ = "1.12.1"
 
 # TODO
-# - total variance. See ImageFeature.jl
 # - nD Kalman filter
 # - FSC, FRC
 # - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U

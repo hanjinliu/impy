@@ -13,11 +13,9 @@ from .bases import HistoryArray
 from .label import Label
 from .specials import *
 from tifffile import imwrite
-from skimage.exposure import histogram
-from skimage import segmentation as skseg
-from skimage import measure as skmes
+from ._skimage import *
+from ._types import *
 from skimage.color import label2rgb
-from scipy import ndimage as ndi
 
 class LabeledArray(HistoryArray):
     n_cpu = 4
@@ -249,7 +247,7 @@ class LabeledArray(HistoryArray):
 
         nbin = min(int(np.sqrt(self.size / 3)), 256)
         d = self.astype(np.uint8).ravel() if self.dtype==bool else self.ravel()
-        y, x = histogram(d, nbins=nbin)
+        y, x = skexp.histogram(d, nbins=nbin)
         plt.plot(x, y, color="gray")
         plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
         
@@ -564,7 +562,7 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         
     @record()
-    def crop_center(self, scale=0.5, *, dims="yx") -> LabeledArray:
+    def crop_center(self, scale:nDFloat=0.5, *, dims="yx") -> LabeledArray:
         """
         Crop out the center of an image. 
         
@@ -603,7 +601,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @record()
-    def remove_edges(self, pixel:int=1, *, dims="yx") -> LabeledArray:
+    def remove_edges(self, pixel:nDInt=1, *, dims="yx") -> LabeledArray:
         """
         Remove pixels from the edges.
 
@@ -636,7 +634,7 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     @dims_to_spatial_axes
-    def specify(self, center, radius, *, dims=None, labeltype="square") -> Label:
+    def specify(self, center:Coords, radius:Coords, *, dims=None, labeltype:str="square") -> Label:
         """
         Make rectangle or ellipse labels from points.
         
