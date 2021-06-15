@@ -2497,6 +2497,108 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
+    @record(append_history=False)
+    def pearson_coeff(self, mask=None, *, along:str="c", squeeze:bool=True, dims=None) -> PropArray|float:
+        """
+        Masked Pearson's correlation coefficient. This is defined as following:
+        
+                        Σ[(Ai - Amean)(Bi - Bmean)]
+            r = -----------------------------------------
+                 sqrt{Σ[(Ai - Amean)^2 Σ(Bi - Bmean)^2]}
+        
+        This value is independent of constant background intensity and the scale of intensity, 
+        while is strongly affected by outliers.
+
+        Parameters
+        ----------
+        mask : np.ndarray, optional
+            If given, pixels with True value will not be account for correlation. If MetaArray,
+            this array will be broadcasted.
+        along : str, optional
+            Which axis will be the channel axis.
+        squeeze : bool, default is True
+            If True and output can be converted to scalar, then a float value will be returned.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        PropArray or float
+            Correlation coefficient(s).
+        
+        Examples
+        --------
+        (1) Make a mask by thresholding and calculate correlation.
+        >>> mask = ~img.threshold()
+        >>> coeff = img.pcc(mask=mask) 
+        """        
+        self = self.as_float()
+        img0, img1 = self.split(axis="c")
+        sumaxes = tuple(img0.axisof(a) for a in dims)
+        img0_norm = img0 - np.mean(img0)
+        img1_norm = img1 - np.mean(img1)
+        if mask is not None:
+            img0_norm[mask] = 0
+            img1_norm[mask] = 0
+        cov = np.sum(img0_norm * img1_norm, axis=sumaxes)
+        var0 = np.sum(img0_norm**2, axis=sumaxes)
+        var1 = np.sum(img1_norm**2, axis=sumaxes)
+        out = cov / np.sqrt(var0 * var1)
+        
+        if out.ndim == 0 and squeeze:
+            out = out[()]
+        else:
+            out = PropArray(out, name=self.name, axes=complement_axes(along+dims, self.axes), 
+                            dirpath=self.dirpath, metadata=self.metadata, 
+                            propname="pearson_coeff", dtype=np.float32)
+        return out
+    
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def manders_coeff(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
+        """
+        Manders' correlation coefficient. This is defined as following:
+        
+                 Σ(Ai[ref])
+            r = -----------
+                   Σ(Ai)
+        
+        This value is NOT independent of background intensity. You need to correctly subtract
+        background from self. This value is NOT interchangable between channels.
+        
+        Parameters
+        ----------
+        ref : np.ndarray
+            Reference image to calculate coefficent. If MetaArray, this array will be broadcasted.
+        squeeze : bool, default is True
+            If True and output can be converted to scalar, then a float value will be returned.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        PropArray or float
+            Correlation coefficient(s).
+        """        
+        if ref.dtype != bool:
+            raise TypeError("`ref` must be a binary image.")
+        
+        sumaxes = tuple(self.axisof(a) for a in dims)
+        total = np.sum(self.value, axis=sumaxes)
+        self = self.copy()
+        self[~ref] = 0
+        
+        out = np.sum(self.value, axis=sumaxes) / total
+        
+        if out.ndim == 0 and squeeze:
+            out = out[()]
+        else:
+            out = PropArray(out, name=self.name, axes=complement_axes(dims, self.axes), 
+                            dirpath=self.dirpath, metadata=self.metadata, 
+                            propname="manders_coeff", dtype=np.float32)
+        return out
+    
+    @dims_to_spatial_axes
     @need_labels
     @record()
     def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 

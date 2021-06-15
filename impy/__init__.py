@@ -1,9 +1,8 @@
-__version__ = "1.12.3"
+__version__ = "1.12.4"
 
 # TODO
 # - nD Kalman filter
 # - FSC, FRC
-# - Colocalization ... https://note.com/sakulab/n/n0e2cf293cc1e#BGd2U
 # - 3D Gabor filter
 # - get line from shape layers
 
