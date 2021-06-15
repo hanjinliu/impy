@@ -6,7 +6,6 @@ from .func import *
 from .utilcls import Progress
 from .deco import *
 
-
 # Extend ImgArray with custom functions.
 
 class bind:

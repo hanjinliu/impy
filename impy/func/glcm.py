@@ -87,7 +87,7 @@ def glcm_props_(data, distances, angles, levels, radius, properties):
     ref = ref[:, :, np.newaxis, np.newaxis]
     nei = nei[:, :, np.newaxis, np.newaxis]
     
-    from .._process_numba import _calc_glcm
+    from ..arrays._process_numba import _calc_glcm
     
     for x in range(outshape[3]):
         for y in range(outshape[2]):
