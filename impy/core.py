@@ -1,9 +1,8 @@
 from __future__ import annotations
 from functools import wraps
 from inspect import signature
-from .labeledarray import LabeledArray
-from .label import Label
-from .specials import PropArray
+from .array import LabeledArray, Label, PropArray, ImgArray
+from .array.bases import MetaArray, HistoryArray
 from .deco import dims_to_spatial_axes, make_history
 import numpy as np
 import os
@@ -11,9 +10,7 @@ import glob
 import itertools
 import collections
 from skimage import io
-from .imgarray import ImgArray
 from .func import *
-from .bases import MetaArray, HistoryArray
 from .axes import Axes, ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata

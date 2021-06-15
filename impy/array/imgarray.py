@@ -1,17 +1,19 @@
 from __future__ import annotations
 import numpy as np
-from ._types import *
+import pandas as pd
 from scipy.linalg import pinv as pseudo_inverse
 from scipy.spatial import Voronoi
+from .._types import *
 from ._skimage import *
-from .func import *
-from .deco import *
+from ..func import *
+from ..deco import *
 from .labeledarray import LabeledArray
 from .label import Label
 from .phasearray import PhaseArray
-from .specials import *
-from .utilcls import *
+from .specials import PropArray
+from ..utilcls import *
 from ._process import *
+from ..frame.frames import tp
 
 
 class ImgArray(LabeledArray):
@@ -1127,7 +1129,6 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims=None, update:bool=False):
         # Rudin–Osher–Fatemi
-        # Δu/Δt = div( grad(I(x)) / |grad(I(x))| ) + λ*(Iobs(x) - I(x))
         # TODO
         return self.parallel(rof_filter_, complement_axes(dims, self.axes), lmd, tol, max_iter)
         
@@ -1995,7 +1996,7 @@ class ImgArray(LabeledArray):
     
     @record()
     def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma:float=1, phi:float=0, 
-                     *, return_imag=False, dims="yx") -> ImgArray:
+                     *, return_imag:bool=False, dims="yx") -> ImgArray:
         """
         Make a Gabor kernel and convolve it.
 
@@ -2582,9 +2583,10 @@ class ImgArray(LabeledArray):
         """        
         c_axes = complement_axes(dims, self.axes)
         # TODO: is labels updated here?
+        labels_old = self.labels.copy()
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol)
-        
+        print(np.all(labels_old==self.labels))
         return self.labels
     
     # @dims_to_spatial_axes

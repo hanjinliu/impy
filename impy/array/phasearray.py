@@ -1,12 +1,11 @@
 from __future__ import annotations
-from impy.utilcls import Progress
 import numpy as np
-from .labeledarray import LabeledArray
 from ._process import *
-from .deco import *
-from .func import *
+from ..deco import *
+from ..func import *
 from .specials import PropArray
-from .utilcls import *
+from .labeledarray import LabeledArray
+from ..utilcls import *
 
 def _calc_phase_mean(sl, img, periodicity):
     a = 2 * np.pi / periodicity

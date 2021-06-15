@@ -1,11 +1,8 @@
 from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
-from ..imgarray import ImgArray
-from ..label import Label
-from ..specials import *
-from ..labeledarray import LabeledArray
-from ..phasearray import PhaseArray
+from ..array import *
+from ..frame import *
 from .mouse import *
 import napari
 
@@ -80,7 +77,8 @@ def upon_add_layer(event):
     new_layer.translate = new_layer.translate.astype(np.float64)
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
-        # new_layer.face_color = [0, 0, 0, 0] this does not change the default
+        new_layer.current_face_color = [1, 1, 1, 0]
+        new_layer.current_edge_color = "#dd23cb"
         
     if isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
@@ -95,7 +93,7 @@ def upon_add_layer(event):
 
 def _text_bound_init(new_layer):
     @new_layer.bind_key("Alt-A")
-    def select_all_shapes(layer):
+    def select_all(layer):
         layer.selected_data = set(np.arange(len(layer.data)))
         
     # txt_manager = napari.layers.utils.text.TextManager

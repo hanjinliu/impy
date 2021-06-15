@@ -10,10 +10,8 @@ __version__ = "1.12.1"
 import warnings
 from .core import (array, zeros, empty, imread, imread_stack, imread_collection, read_meta, 
                    stack, set_cpu, set_verbose, sample_image, bind)
-from .imgarray import ImgArray
-from .specials import PropArray, MarkerFrame, TrackFrame
-from .label import Label
-from .phasearray import PhaseArray
+from .array import ImgArray,  PropArray, Label, PhaseArray
+from .frame import MarkerFrame, TrackFrame
 from .viewer import gui
 import numpy
 

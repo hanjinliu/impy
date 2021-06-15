@@ -1,5 +1,4 @@
 from functools import wraps
-from .axes import ImageAxesError
 import numpy as np
 from .utilcls import Progress
 import re
