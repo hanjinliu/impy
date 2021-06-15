@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .array import ImgArray
-from .array.bases import MetaArray
+from .arrays import ImgArray
+from .arrays.bases import MetaArray
 import numpy as np
 import os
 import glob

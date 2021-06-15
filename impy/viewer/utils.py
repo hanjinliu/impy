@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
-from ..array import *
+from ..arrays import *
 from ..frame import *
 from .mouse import *
 import napari

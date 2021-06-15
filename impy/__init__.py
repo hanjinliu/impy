@@ -11,7 +11,7 @@ import warnings
 from .core import (array, zeros, empty, imread, imread_stack, imread_collection, read_meta, 
                    set_cpu, set_verbose, sample_image)
 from .binder import bind
-from .array import ImgArray,  PropArray, Label, PhaseArray
+from .arrays import ImgArray,  PropArray, Label, PhaseArray
 from .frame import MarkerFrame, TrackFrame
 from .viewer import gui
 import numpy
