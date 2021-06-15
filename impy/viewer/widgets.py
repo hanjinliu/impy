@@ -35,38 +35,38 @@ def add_imread_menu(viewer):
     return None
 
 
-# def edit_properties(viewer):
-#     @magicgui.magicgui(call_button="Apply")
-#     def edit_prop(format_="{text}", propname="text", value=""):
-#         # TODO:
+def edit_properties(viewer):
+    @magicgui.magicgui(call_button="Apply")
+    def edit_prop(format_="{text}", propname="text", value=""):
+        # TODO:
         
-#         # get the selected shape layer
-#         layers = list(viewer.layers.selection)
-#         if len(layers) != 1:
-#             return None
-#         layer = layers[0]
-#         if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
-#             return None
+        # get the selected shape layer
+        layers = list(viewer.layers.selection)
+        if len(layers) != 1:
+            return None
+        layer = layers[0]
+        if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
+            return None
         
-#         # current properties
-#         # props = layer.properties
-#         # if prop not in layer.properties.keys():
-#         props = np.zeros(len(layer.data), dtype="<U12")
-#         old = layer.properties.get(propname, [""]*len(props))
-#         # new format of texts
-#         layer.text._text_format_string = format_
-#         # set new values to selected shapes
-#         for i in range(len(props)):
-#             if layer.selected_data:
-#                 props[i] = value
-#             else:
-#                 props[i] = old[i]
+        # current properties
+        # props = layer.properties
+        # if prop not in layer.properties.keys():
+        props = np.zeros(len(layer.data), dtype="<U12")
+        old = layer.properties.get(propname, [""]*len(props))
+        # new format of texts
+        layer.text._text_format_string = format_
+        # set new values to selected shapes
+        for i in range(len(props)):
+            if layer.selected_data:
+                props[i] = value
+            else:
+                props[i] = old[i]
                 
-#         layer.properties = {propname: props}
-#         layer.text.refresh_text(props)
+        layer.properties = {propname: props}
+        layer.text.refresh_text(props)
     
-#     viewer.window.add_dock_widget(edit_prop, area="right", name="Property editor")
-#     return None
+    viewer.window.add_dock_widget(edit_prop, area="right", name="Property editor")
+    return None
 
 def add_table_widget(viewer):
     QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
@@ -222,9 +222,9 @@ def _iter_args_and_kwargs(string:str):
     stack = 0
     start = 0
     for i, s in enumerate(string):
-        if s in ("(", "["):
+        if s in ("(", "[", "{"):
             stack += 1
-        elif s in (")", "]"):
+        elif s in (")", "]", "}"):
             stack -= 1
         elif stack == 0 and s == ",":
             yield string[start:i].strip()

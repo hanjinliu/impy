@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ..utilcls import ImportOnRequest
 import numpy as np
 import matplotlib.pyplot as plt
 from ..imgarray import ImgArray
@@ -8,7 +7,7 @@ from ..specials import *
 from ..labeledarray import LabeledArray
 from ..phasearray import PhaseArray
 from .mouse import *
-napari = ImportOnRequest("napari")
+import napari
 
 def copy_layer(layer):
     states = layer.as_layer_data_tuple()
@@ -81,6 +80,7 @@ def upon_add_layer(event):
     new_layer.translate = new_layer.translate.astype(np.float64)
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
+        # new_layer.face_color = [0, 0, 0, 0] this does not change the default
         
     if isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)

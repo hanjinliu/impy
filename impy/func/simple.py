@@ -244,6 +244,7 @@ def largest_zeros(shape) -> np.ndarray:
     return out
 
 def radial_profile(data, center, scales):
+    # TODO: use this
     ind = np.indices((data.shape))
     r = np.sqrt(sum(((x - c)/s)**2 for x, c, s in zip(ind, center, scales)))
     r = r.astype(np.int)

@@ -1,7 +1,10 @@
 from .utils import *
 import numpy as np
+from napari.layers.utils._link_layers import link_layers, unlink_layers
 
 KEYS = {"hide_others": "Control-Shift-A",
+        "link_selected_layers": "Control-G",
+        "unlink_selected_layers": "Control-Shift-G",
         "layers_to_labels": "Alt-L",
         "crop": "Control-Shift-X",
         "to_front": "Control-Shift-F",
@@ -31,6 +34,20 @@ def hide_others(viewer):
     else:
         for layer in viewer.layers:
             layer.visible = True
+
+@bind_key
+def link_selected_layers(viewer):
+    """
+    Link selected layers.
+    """
+    link_layers(viewer.layers.selection)
+    
+@bind_key
+def unlink_selected_layers(viewer):
+    """
+    Unlink selected layers.
+    """
+    unlink_layers(viewer.layers.selection)
 
 @bind_key
 def to_front(viewer):

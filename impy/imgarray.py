@@ -2581,7 +2581,7 @@ class ImgArray(LabeledArray):
             Relabeled image.
         """        
         c_axes = complement_axes(dims, self.axes)
-        # is labels updated here?
+        # TODO: is labels updated here?
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol)
         
@@ -3044,7 +3044,7 @@ class ImgArray(LabeledArray):
             out = out[()]
         else:
             out = PropArray(out, dtype=np.float32, name=self.name, 
-                            axes=c_axes, propname="background_sigma")
+                            axes=c_axes, propname="estimate_sigma")
             out._set_info(self, new_axes=c_axes)
         return out       
         
@@ -3167,7 +3167,7 @@ class ImgArray(LabeledArray):
                 return ndi.convolve(img, kernel, mode="constant", cval=bg)
             dz = kernel.shape[0]//2
         else:
-            raise ValueError("`kernel` only take 0, 1, 3 dimensional array as input.")
+            raise ValueError("`kernel` only take 0, 1, 3 dimensional array as ani input.")
         
         out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
         
