@@ -1,4 +1,5 @@
 from __future__ import annotations
+import napari
 from ..array import *
 from ..frame import *
 from ..core import array
