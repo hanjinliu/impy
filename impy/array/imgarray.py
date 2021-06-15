@@ -2563,8 +2563,8 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @need_labels
-    @record()
-    def random_walker(self, beta=130, mode="cg_j", tol=1e-3, *, dims=None) -> ImgArray:
+    @record(append_history=False)
+    def random_walker(self, beta:float=130, mode:str="cg_j", tol:float=1e-3, *, dims=None) -> Label:
         """
         Random walker segmentation. Only wrapped skimage segmentation. `self.labels` will be
         segmented.
@@ -2582,39 +2582,39 @@ class ImgArray(LabeledArray):
             Relabeled image.
         """        
         c_axes = complement_axes(dims, self.axes)
-        # TODO: is labels updated here?
-        labels_old = self.labels.copy()
+        
         for sl, img in self.iter(c_axes, israw=True):
-            img.labels[:] = skseg.random_walker(img, img.labels, beta=beta, mode=mode, tol=tol)
-        print(np.all(labels_old==self.labels))
+            img.labels[:] = skseg.random_walker(img.value, img.labels.value, beta=beta, mode=mode, tol=tol)
+            
+        self.labels._set_info(self, "random_walker")
         return self.labels
     
-    # @dims_to_spatial_axes
-    # @record(append_history=False)
-    # def slic(self, n_segments=100, *, compactness=10.0, max_iter=10, sigma=1, multichannel=False,
-    #          min_size_factor=0.5, max_size_factor=3, mask=None, dims=None):
-    #     # multichannel not working, needs sort_axes
-    #     # issue: slic returns a strange label with grayscale images.
-    #     if multichannel:
-    #         c_axes = complement_axes("c"+dims, self.axes)
-    #         labels = largest_zeros(self["c=0"].shape)
-    #         exclude = "c"
-    #     else:
-    #         c_axes = complement_axes(dims, self.axes)
-    #         labels = largest_zeros(self.shape)
-    #         exclude = ""
+    @dims_to_spatial_axes
+    @record(append_history=False)
+    def slic(self, n_segments=100, *, compactness=10.0, max_iter=10, sigma=1, multichannel=False,
+             min_size_factor=0.5, max_size_factor=3, mask=None, dims=None):
+        # multichannel not working, needs sort_axes
+        # issue: slic returns a strange label with grayscale images.
+        if multichannel:
+            c_axes = complement_axes("c"+dims, self.axes)
+            labels = largest_zeros(self["c=0"].shape)
+            exclude = "c"
+        else:
+            c_axes = complement_axes(dims, self.axes)
+            labels = largest_zeros(self.shape)
+            exclude = ""
         
-    #     for sl, img in self.iter(c_axes, exclude=exclude):
-    #         plt.imshow(img)
-    #         labels[sl] = \
-    #         skseg.slic(img, n_segments=n_segments, compactness=compactness, max_iter=max_iter,
-    #                    sigma=sigma, multichannel=multichannel, min_size_factor=min_size_factor,
-    #                    max_size_factor=max_size_factor, start_label=1, mask=mask)
+        for sl, img in self.iter(c_axes, exclude=exclude):
+            plt.imshow(img)
+            labels[sl] = \
+            skseg.slic(img, n_segments=n_segments, compactness=compactness, max_iter=max_iter,
+                       sigma=sigma, multichannel=multichannel, min_size_factor=min_size_factor,
+                       max_size_factor=max_size_factor, start_label=1, mask=mask)
         
-    #     self.labels = labels.view(Label).optimize()
-    #     self.labels._set_info(self, "slic")
-    #     self.labels.set_scale(self)
-    #     return self
+        self.labels = labels.view(Label).optimize()
+        self.labels._set_info(self, "slic")
+        self.labels.set_scale(self)
+        return self
     
     def label_threshold(self, thr:float|str="otsu", *, dims=None, **kwargs) -> Label:
         """

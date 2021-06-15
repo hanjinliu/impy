@@ -86,7 +86,7 @@ class Label(HistoryArray):
         
     def imshow(self, **kwargs):
         plt.figure()
-        plt.imshow(label2rgb(self, bg_label=0), **kwargs)
+        plt.imshow(label2rgb(self.value, bg_label=0), **kwargs)
         return self
     
     def __truediv__(self, value):
