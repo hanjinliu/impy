@@ -84,6 +84,7 @@ class napariViewers:
         
         viewer = napari.Viewer(title=key)
         
+        viewer.window.file_menu.addSeparator()
         default_viewer_settings(viewer)
         load_mouse_callbacks(viewer)
         load_widgets(viewer)

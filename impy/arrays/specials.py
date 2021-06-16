@@ -1,11 +1,11 @@
 from __future__ import annotations
-from ..axes import ImageAxesError
-from ..frame import AxesFrame
-from .bases import MetaArray
 import numpy as np
 import matplotlib.pyplot as plt
 from inspect import signature
 from scipy import optimize as opt
+from ..axes import ImageAxesError
+from ..frame import AxesFrame
+from .bases import MetaArray
 from ..func import *
 from ..utilcls import *
 

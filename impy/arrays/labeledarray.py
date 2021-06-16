@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import inspect
+from skimage.color import label2rgb
+from tifffile import imwrite
 from ..axes import ImageAxesError
 from ..func import *
 from ..deco import *
@@ -13,10 +15,8 @@ from ._process import label_
 from .bases import HistoryArray
 from .label import Label
 from .specials import *
-from tifffile import imwrite
 from ._skimage import *
 from .._types import *
-from skimage.color import label2rgb
 
 class LabeledArray(HistoryArray):
     n_cpu = 4

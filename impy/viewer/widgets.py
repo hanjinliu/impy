@@ -1,11 +1,15 @@
 from __future__ import annotations
 import napari
 import magicgui
+import os
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
 
+# TODO: Integrate ImgArray functions after napari new version comes out.
+# -> https://github.com/napari/napari/pull/263
 
 __all__ = ["add_imread_menu",
+           "add_imsave_menu",
            "add_table_widget", 
            "add_note_widget",
         #    "edit_properties",
@@ -19,7 +23,7 @@ def add_imread_menu(viewer):
         dlg.setHistory(hist)
         filenames, _ = dlg.getOpenFileNames(
             parent=viewer.window.qt_viewer,
-            caption='Select file ...',
+            caption="Select file ...",
             directory=hist[0],
         )
         if (filenames != []) and (filenames is not None):
@@ -28,9 +32,43 @@ def add_imread_menu(viewer):
         napari.utils.history.update_open_history(filenames[0])
         return None
     
-    viewer.window.file_menu.addSeparator()
     action = QAction('imread ...', viewer.window._qt_window)
     action.triggered.connect(open_img)
+    viewer.window.file_menu.addAction(action)
+    return None
+
+def add_imsave_menu(viewer):
+    def save_img():
+        dlg = QFileDialog()
+        layers = list(viewer.layers.selection)
+        if len(layers) == 0:
+            viewer.status = "Select a layer first."
+            return None
+        elif len(layers) > 1:
+            viewer.status = "Select only one layer."
+            return None
+        img = layer_to_impy_object(viewer, layers[0])
+        hist = napari.utils.history.get_save_history()
+        dlg.setHistory(hist)
+        
+        if img.dirpath:
+            last_hist = img.dirpath
+        else:
+            last_hist = hist[0]
+        filename, _ = dlg.getSaveFileName(
+            parent=viewer.window.qt_viewer,
+            caption="Save image layer",
+            directory=last_hist,
+        )
+
+        if filename:
+            # TODO: multichannel?
+            img.imsave(filename)
+            napari.utils.history.update_save_history(filename)
+        return None
+    
+    action = QAction('imsave ...', viewer.window._qt_window)
+    action.triggered.connect(save_img)
     viewer.window.file_menu.addAction(action)
     return None
 
@@ -38,8 +76,6 @@ def add_imread_menu(viewer):
 def edit_properties(viewer):
     @magicgui.magicgui(call_button="Apply")
     def edit_prop(format_="{text}", propname="text", value=""):
-        # TODO:
-        
         # get the selected shape layer
         layers = list(viewer.layers.selection)
         if len(layers) != 1:

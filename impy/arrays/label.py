@@ -1,12 +1,12 @@
 from __future__ import annotations
+from skimage.color import label2rgb
+from skimage import segmentation as skseg
+import matplotlib.pyplot as plt
 from ..func import *
 from ..utilcls import *
 from ..deco import *
 from ._process import *
 from .bases import HistoryArray
-from skimage.color import label2rgb
-from skimage import segmentation as skseg
-import matplotlib.pyplot as plt
 
 def best_dtype(n:int):
     if n < 2**8:

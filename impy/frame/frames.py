@@ -293,3 +293,13 @@ class TrackFrame(AxesFrame):
         out = TrackFrame(df, columns=self.col_axes)
         out.set_scale(self)
         return out.as_standard_type()
+
+class PathFrame(AxesFrame):
+    # TODO: Path objects should be converted to this class, like
+    # p  y  x
+    # 0  2  3
+    # :  :  :
+    # 0  9  7
+    # 1  :  :
+    # where subframe with same p corresponds to a path in yx-plane.
+    pass
