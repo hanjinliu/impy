@@ -364,17 +364,16 @@ def richardson_lucy_tv_(args):
         # NOTE: During iteration, sometimes the line `gg[:] = ...` returns RuntimeWarning due to
         # unknown reasons. I checked with np.isfinite but could not find anything wrong. I set
         # error state to `all="ingore"`` for now as a quick solution.
+        
         for _ in range(max_iter):
             factor[:] = ifft(fft(obs / ifft(fft(est_old) * psf_ft)) * psf_ft_conj).real
             est_new[:] = est_old * factor
             grad = np.gradient(est_old)
             norm[:] = np.sqrt(sum(g**2 for g in grad))
-            # TODO: do not use np.gradient
             gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
                         for i in range(obs.ndim))
             est_new /= (1 - lmd * gg)
             gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
-            
             if gain < tol:
                 break
             est_old[:] = est_new

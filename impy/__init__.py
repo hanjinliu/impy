@@ -1,4 +1,4 @@
-__version__ = "1.12.4"
+__version__ = "1.12.5"
 
 # TODO
 # - nD Kalman filter

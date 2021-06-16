@@ -102,6 +102,7 @@ ip.random.normal(size=(100, 100))
   - `edge_filter`, `laplacian_filter` &rarr; Edge detection.
   - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
   - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
+  - `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
 
 - **Morphological Image Processing**
   - `erosion`, `dilation`, `opening`, `closing` &rarr; Basic ones.
@@ -119,6 +120,10 @@ ip.random.normal(size=(100, 100))
   - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
   - `unmix` &rarr; Unmixing of leakage between channels.
 
+- **Cololalization Analysis**
+  - `pearson_coloc` &rarr; Pearson's correlation coefficient.
+  - `manders_coloc` &rarr; Manders' correlation coefficient.
+  
 - **Labeling**
   - `label`, `label_if`, `label_threshold` &rarr; Labeling using binary images.
   - `specify` &rarr; Labeling around coordinates.
@@ -149,7 +154,7 @@ ip.random.normal(size=(100, 100))
   - `fft`, `ifft` &rarr; Fourier transformation.
   - `threshold` &rarr; Thresholding (many methods included).
   - `reslice` &rarr; Get line scan.
-  - `crop_center`, `remove_edges` &rarr; Crop image.
+  - `crop_center`, `crop_kernel`, `remove_edges` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
   - `proj` &rarr; Z-projection along any axis.
   - `split`, `split_pixel_unit` &rarr; Split the image.
@@ -193,6 +198,7 @@ ip.random.normal(size=(100, 100))
   - `Alt` + `L` &rarr; Convert all the shapes in seleted shape-layers into labels of selected image-layers.
   - `Ctrl` + `Shift` + `X` &rarr; Crop selected image-layers with all the rectangles in selected shape-layers.
   - `Ctrl` + `P` &rarr; Projection of shape-layers or point-layers to 2D layers.
+  - `Ctrl` + `G` / `Ctrl` + `Shift` + `G` &rarr; Link/Unlink layers. Like "grouping" in PowerPoint.
 - Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.
   
   ![](Figs/Img4.png)

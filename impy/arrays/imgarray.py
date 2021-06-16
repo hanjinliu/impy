@@ -2498,7 +2498,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def pearson_coeff(self, mask=None, *, along:str="c", squeeze:bool=True, dims=None) -> PropArray|float:
+    def pearson_coloc(self, mask=None, *, along:str="c", squeeze:bool=True, dims=None) -> PropArray|float:
         """
         Masked Pearson's correlation coefficient. This is defined as following:
         
@@ -2550,12 +2550,12 @@ class ImgArray(LabeledArray):
         else:
             out = PropArray(out, name=self.name, axes=complement_axes(along+dims, self.axes), 
                             dirpath=self.dirpath, metadata=self.metadata, 
-                            propname="pearson_coeff", dtype=np.float32)
+                            propname="pearson_coloc", dtype=np.float32)
         return out
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def manders_coeff(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
+    def manders_coloc(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
         """
         Manders' correlation coefficient. This is defined as following:
         
@@ -2595,7 +2595,7 @@ class ImgArray(LabeledArray):
         else:
             out = PropArray(out, name=self.name, axes=complement_axes(dims, self.axes), 
                             dirpath=self.dirpath, metadata=self.metadata, 
-                            propname="manders_coeff", dtype=np.float32)
+                            propname="manders_coloc", dtype=np.float32)
         return out
     
     @dims_to_spatial_axes
@@ -3271,7 +3271,7 @@ class ImgArray(LabeledArray):
                 return ndi.convolve(img, kernel, mode="constant", cval=bg)
             dz = kernel.shape[0]//2
         else:
-            raise ValueError("`kernel` only take 0, 1, 3 dimensional array as ani input.")
+            raise ValueError("`kernel` only take 0, 1, 3 dimensional array as an input.")
         
         out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
         
@@ -3364,7 +3364,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=5e-3, *, dims=None, 
+    def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=1e-3, *, dims=None, 
                 update:bool=False) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
@@ -3385,7 +3385,7 @@ class ImgArray(LabeledArray):
             Maximum number of iterations.
         lmd : float, default is 1e-3
             The constant lambda of TV regularization factor.
-        tol : float, default is 5e-3
+        tol : float, default is 1e-3
             Iteration stops if regularized absolute summation is lower than this value.
             
                         Σ|I'(x) - I(x)|

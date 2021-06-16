@@ -602,6 +602,34 @@ class LabeledArray(HistoryArray):
         return out
     
     @record()
+    def crop_kernel(self, radius:nDInt=2) -> LabeledArray:
+        """
+        Make a kernel from an image by cropping out the center region. This function is useful especially
+        in `ImgArray.defocus()`.
+
+        Parameters
+        ----------
+        radius : int or array-like of int, default is 2
+            Radius of the kernel.
+
+        Returns
+        -------
+        LabeledArray
+            Kernel
+        
+        Examples
+        --------
+        Make a 4x4x4 kernel from a point spread function image (suppose the image shapes are all even numbers).
+        >>> psf = ip.imread(r".../PSF.tif")
+        >>> psfker = psf.crop_kernel()
+        >>> psfer.shape
+        (4, 4, 4)
+        """        
+        sizes = self.shape
+        radii = check_nd(radius, len(sizes))
+        return self[tuple(slice(s//2-r, (s+1)//2+r) for s, r in zip(sizes, radii))]
+    
+    @record()
     def remove_edges(self, pixel:nDInt=1, *, dims="yx") -> LabeledArray:
         """
         Remove pixels from the edges.
