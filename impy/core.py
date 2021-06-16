@@ -234,6 +234,9 @@ def imread_stack(path:str, dtype=None):
         :
     >>> img = ip.imread_stack(r"C:\...\Base\xxx$z\yyy$t.tif")
     """
+    if "$" not in path:
+        raise ValueError("`path` must contain '$' to specify variables in the string.")
+    
     FORMAT = r"\$[a-z]"
     new_axes = list(map(lambda x: x[1:], re.findall(r"\$[a-z]", path)))
     

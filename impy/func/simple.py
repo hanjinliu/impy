@@ -218,7 +218,7 @@ def complement_axes(axes, all_axes="ptzcyx"):
 
 def check_psf(img, psf, dims):
     psf = np.asarray(psf, dtype=np.float32)
-    psf /= np.max(psf)
+    psf /= np.sum(psf)
     
     if img.sizesof(dims) != psf.shape:
         raise ValueError("observation and PSF have different shape: "

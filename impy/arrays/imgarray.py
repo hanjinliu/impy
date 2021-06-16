@@ -3331,7 +3331,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def lucy(self, psf:np.ndarray, niter:int=50, *, dims=None, update:bool=False) -> ImgArray:
+    def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
+             update:bool=False) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
         
@@ -3341,6 +3342,10 @@ class ImgArray(LabeledArray):
             Point spread function.
         niter : int, default is 50.
             Number of iterations.
+        eps : float, default is 1e-5
+            During deconvolution, division by small values in the convolve image of estimation and 
+            PSF may cause divergence. Therefore, division by values under `eps` is substituted
+            to zero.
         dims : int or str, optional
             Spatial dimensions.
         update : bool, optional
@@ -3359,13 +3364,13 @@ class ImgArray(LabeledArray):
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.parallel(richardson_lucy_, complement_axes(dims), 
-                             psf_ft, psf_ft_conj, niter)
+                             psf_ft, psf_ft_conj, niter, eps)
     
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=1e-3, *, dims=None, 
-                update:bool=False) -> ImgArray:
+    def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=1e-3, eps=1e-5, 
+                *, dims=None, update:bool=False) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position x,
@@ -3392,7 +3397,11 @@ class ImgArray(LabeledArray):
                 gain = -----------------
                             Σ|I(x)|
             (I'(x): estimation of k+1-th iteration, I(x): estimation of k-th iteration)
-            
+        
+        eps : float, default is 1e-5
+            During deconvolution, division by small values in the convolve image of estimation and 
+            PSF may cause divergence. Therefore, division by values under `eps` is substituted
+            to zero.
         dims : int or str, optional
             Spatial dimensions.
         update : bool, optional
@@ -3419,7 +3428,7 @@ class ImgArray(LabeledArray):
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.parallel(richardson_lucy_tv_, complement_axes(dims), 
-                             psf_ft, psf_ft_conj, max_iter, lmd, tol)
+                             psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
 
 def _check_coordinates(coords, img, dims=None):
     if not isinstance(coords, MarkerFrame):

@@ -342,23 +342,24 @@ def wiener_(args):
     
 def richardson_lucy_(args):
     # Identical to the algorithm in Deconvolution.jl of Julia.
-    sl, obs, psf_ft, psf_ft_conj, niter = args
+    sl, obs, psf_ft, psf_ft_conj, niter, eps = args
     
-    factor = np.empty(obs.shape, dtype=np.float32) # placeholder
+    conv = factor = np.empty(obs.shape, dtype=np.float32) # placeholder
     estimated = np.real(ifft(fft(obs) * psf_ft))   # initialization
     
     for _ in range(niter):
-        factor[:] = ifft(fft(obs / ifft(fft(estimated) * psf_ft)) * psf_ft_conj).real
+        conv[:] = ifft(fft(estimated) * psf_ft).real
+        factor[:] = ifft(fft(np.where(conv<eps, 0, obs/conv)) * psf_ft_conj).real
         estimated *= factor
         
     return sl, np.fft.fftshift(estimated)
 
 def richardson_lucy_tv_(args):
-    sl, obs, psf_ft, psf_ft_conj, max_iter, lmd, tol = args
+    sl, obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps = args
     
     est_old = ifft(fft(obs) * psf_ft).real
     est_new = np.empty(obs.shape, dtype=np.float32)
-    factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
+    conv = factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
     
     with np.errstate(all="ignore"):
         # NOTE: During iteration, sometimes the line `gg[:] = ...` returns RuntimeWarning due to
@@ -366,7 +367,8 @@ def richardson_lucy_tv_(args):
         # error state to `all="ingore"`` for now as a quick solution.
         
         for _ in range(max_iter):
-            factor[:] = ifft(fft(obs / ifft(fft(est_old) * psf_ft)) * psf_ft_conj).real
+            conv[:] = ifft(fft(est_old) * psf_ft).real
+            factor[:] = ifft(fft(np.where(conv<eps, 0, obs/conv)) * psf_ft_conj).real
             est_new[:] = est_old * factor
             grad = np.gradient(est_old)
             norm[:] = np.sqrt(sum(g**2 for g in grad))
