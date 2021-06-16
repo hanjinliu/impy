@@ -243,15 +243,15 @@ def imread_stack(path:str, dtype=None):
     
     # To convert input path string into file-finding regex pattern.
     # e.g.) ~\XX$t_YY$z\*.tif -> ~\\XX(\d)_YY(\d)\\.*\.tif
-    path = repr(path)[1:-1]
-    pattern = re.sub(r"\.", r"\.",path)          # dots to non-escape
+    path_ = repr(path)[1:-1]
+    pattern = re.sub(r"\.", r"\.",path_)          # dots to non-escape
     pattern = re.sub(r"\*", ".*", pattern)       # asters to non-escape
     pattern = re.sub(FORMAT, r"(\\d+)", pattern) # make number finders
     pattern = re.compile(pattern)
     
     # To convert input path string into format string to execute imread.
     # e.g.) ~\XX$t_YY$z -> ~\XX{}_YY{}
-    fpath = re.sub(FORMAT, "{}", path)
+    fpath = re.sub(FORMAT, "{}", path_)
     
     paths = glob.glob(finder_path)
     indices = [pattern.findall(p) for p in paths]
@@ -291,6 +291,19 @@ def imread_stack(path:str, dtype=None):
     self._set_info(imgs[0])
     self.axes = "".join(new_axes) + str(img.axes)
     self.set_scale(imgs[0])
+    # determine dirpath and name
+    name_list = []
+    for p in path.split(os.sep):
+        if "$" in p or "*" in p:
+            break
+        else:
+            name_list.append(p)
+    if len(name_list) > 0:
+        self.dirpath = os.path.join(*name_list[:-1])
+        self.name = name_list[-1]
+    else:
+        self.dirpath = None
+        self.name = None
     return self.sort_axes()
     
 
