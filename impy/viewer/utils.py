@@ -192,4 +192,5 @@ class ColorCycle:
     
     def __call__(self):
         """return next colormap"""
+        self.color_id += 1
         return list(self.cmap(self.color_id * (self.cmap.N//2+1) % self.cmap.N))

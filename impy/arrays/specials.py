@@ -75,7 +75,7 @@ class PropArray(MetaArray):
         
         return self
     
-    def hist(self, along="p", bins:int=None, cmap="jet", cmap_range=(0, 1)):
+    def hist(self, along="p", bins:int=None, cmap="jet", cmap_range=(0, 1)) -> PropArray:
         """
         Plot histogram.
 
@@ -92,13 +92,7 @@ class PropArray(MetaArray):
         
         Returns
         -------
-        [type]
-            [description]
-
-        Raises
-        ------
-        TypeError
-            [description]
+        self
         """        
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "

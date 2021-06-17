@@ -322,6 +322,11 @@ def distance_transform_edt_(args):
     sl, data = args
     return sl, ndi.distance_transform_edt(data)
 
+def match_template_(args):
+    sl, data, template, bg = args
+    out = skfeat.match_template(data, template, pad_input=True, constant_values=bg)
+    return sl, out
+
 def fill_hole_(args):
     sl, data, mask = args
     seed = np.copy(data)

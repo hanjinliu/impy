@@ -2208,7 +2208,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         dims : int or str, optional
-            Dimension of axes.
+            spatial dimensions.
 
         Returns
         -------
@@ -2216,6 +2216,31 @@ class ImgArray(LabeledArray):
             Distance map, the further the brighter
         """        
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
+    
+    @record()
+    def match_template(self, template:np.ndarray, bg:float=None):
+        # TODO: 
+        # - other methods
+        #   https://pystyle.info/opencv-template-matching/
+        # - do not use original method.
+        if not isinstance(template, np.ndarray):
+            raise TypeError(f"`template` must be np.ndarray, but got {type(template)}")
+        
+        # determine bg
+        if bg is None:
+            bg = self.min()
+        elif isinstance(bg, str) and bg.endswith("%"):
+            bg = np.percentile(self.value, float(bg[:-1]))
+        
+        # determine dims
+        dims = {2: "yx", 3: "zyx"}[template.ndim]
+        
+        out = self.parallel(match_template_, complement_axes(dims, self.axes), template, bg)
+        return out
+    
+    def orb(self, template:np.ndarray):
+        
+        ...
     
     @dims_to_spatial_axes
     @only_binary
@@ -3215,7 +3240,7 @@ class ImgArray(LabeledArray):
     
     @record()
     @same_dtype(asfloat=True)
-    def defocus(self, kernel, depth:int=3, bg:float=None) -> ImgArray:
+    def defocus(self, kernel, *, depth:int=3, width:int=6, bg:float=None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
         useful when applying FFT to a 3D image.
@@ -3229,6 +3254,9 @@ class ImgArray(LabeledArray):
         depth : int, default is 3
             Depth of defocusing. For an image with z-axis size L, then output image will have
             size L + 2*depth.
+        width : int, default is 6
+            Width of defocusing. For an image with yx-shape (M, N), then output image will have
+            shape (M * 2*width, N + 2*width).
         bg : float, optional
             Background intensity. If not given, it will calculated as the minimum value of 
             the original image.
@@ -3238,22 +3266,22 @@ class ImgArray(LabeledArray):
         ImgArray
             Padded image.
             
-        Example
-        -------
-        depth = 2, radius = 2
+        Examples
+        --------
+        depth = 2,
         
         ----|   |----| o |--     o ... center of kernel
         ----| o |----|   |--
         ++++|   |++++|___|++  <- the upper edge of original image 
         ++++|___|+++++++++++
 
-        """        
+        """
         
         if bg is None:
             bg = self.min()
         elif isinstance(bg, str) and bg.endswith("%"):
             bg = np.percentile(self.value, float(bg[:-1]))
-            
+        
         if np.isscalar(kernel):
             kernel = np.array([kernel]*3)
         else:
@@ -3262,25 +3290,39 @@ class ImgArray(LabeledArray):
         if kernel.ndim <= 1:
             def filter_func(img):
                 return ndi.gaussian_filter(img, kernel, mode="constant", cval=bg)
-            dz = kernel[0]*3
+            dz, dy, dx = kernel*3 # 3-sigma
             
         elif kernel.ndim == 3:
             kernel = kernel.astype(np.float32)
             kernel = kernel / np.sum(kernel)
             def filter_func(img):
                 return ndi.convolve(img, kernel, mode="constant", cval=bg)
-            dz = kernel.shape[0]//2
+            dz, dy, dx = np.array(kernel.shape)//2
         else:
             raise ValueError("`kernel` only take 0, 1, 3 dimensional array as an input.")
         
-        out = self.pad(depth, mode="constant", constant_values=bg, dims="z")
-        
+        pad_width = [(depth, depth), (width, width), (width, width)]
+        padimg = self.pad(pad_width, mode="constant", constant_values=bg, dims="zyx")
+        out = np.copy(padimg.value)
         # convolve psf
-        for sl, img in out.iter(complement_axes("zyx", self.axes)):
-            img[:depth] = filter_func(img[:depth+dz])[:depth]
-            img[-depth:] = filter_func(img[-depth-dz:])[-depth:]
+        z_edge0 = slice(None, depth, None)
+        z_mid = slice(depth, -depth, None)
+        z_edge1 = slice(-depth, None, None)
+        y_edge0 = x_edge0 = slice(None, width, None)
+        y_mid = slice(width, -width, None)
+        y_edge1 = x_edge1 = slice(-width, None, None)
+        
+        for sl, img in padimg.iter(complement_axes("zyx", self.axes)):
+            out_ = out[sl]
+            out_[z_edge0] = filter_func(img[:depth+dz ])[z_edge0]
+            out_[z_edge1] = filter_func(img[-depth-dz:])[z_edge1]
+            out_[z_mid, y_edge0] = filter_func(img[:, :width+dy ])[z_mid, y_edge0]
+            out_[z_mid, y_edge1] = filter_func(img[:, -width-dy:])[z_mid, y_edge1]
+            out_[z_mid, y_mid, x_edge0] = filter_func(img[:, :, :width+dx ])[z_mid, y_mid, x_edge0]
+            out_[z_mid, y_mid, x_edge1] = filter_func(img[:, :, -width-dx:])[z_mid, y_mid, x_edge1]
             
-        return out
+        return out.view(self.__class__)
+    
     
     @dims_to_spatial_axes
     @record()

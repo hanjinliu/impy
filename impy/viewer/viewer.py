@@ -10,6 +10,7 @@ from .mouse import *
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
 #   layer group is implemented in napari.
+# - 3D viewing in two viewers -> bug
 
         
 class napariViewers:
