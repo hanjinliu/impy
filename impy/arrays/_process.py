@@ -1,5 +1,7 @@
 from ._skimage import *
 from skimage.feature.corner import _symmetric_image
+from skimage.feature.template import _window_sum_2d, _window_sum_3d
+from scipy.signal import fftconvolve
 import numpy as np
 from scipy.fftpack import fftn as fft
 from scipy.fftpack import ifftn as ifft
@@ -59,7 +61,7 @@ def std_(args):
     selem = selem / np.sum(selem)
     x1 = ndi.convolve(data, selem)
     x2 = ndi.convolve(data**2, selem)
-    std_img = np.sqrt(x2 - x1**2)
+    std_img = _safe_sqrt(x2 - x1**2, fill=0)
     return sl, std_img
 
 def coef_(args):
@@ -67,8 +69,7 @@ def coef_(args):
     selem = selem / np.sum(selem)
     x1 = ndi.convolve(data, selem)
     x2 = ndi.convolve(data**2, selem)
-    # sometimes x2 is almost same as x1^2 and this causes negative value.
-    out = np.sqrt(np.abs(x2 - x1**2))/x1
+    out = _safe_sqrt(x2 - x1**2, fill=0)/x1
     return sl, out
     
 def convolve_(args):
@@ -321,10 +322,31 @@ def label_(args):
 def distance_transform_edt_(args):
     sl, data = args
     return sl, ndi.distance_transform_edt(data)
-
-def match_template_(args):
+    
+def tm_ncc_(args):
     sl, data, template, bg = args
-    out = skfeat.match_template(data, template, pad_input=True, constant_values=bg)
+    ndim = template.ndim
+    _win_sum = _window_sum_2d if ndim == 2 else _window_sum_3d
+    pad_width = [(w, w) for w in template.shape]
+    padimg = np.pad(data, pad_width=pad_width, mode="constant", constant_values=bg)
+    
+    corr = fftconvolve(padimg, template[(slice(None,None,-1),)*ndim], mode="valid")[(slice(1,-1,None),)*ndim]
+    
+    win_sum1 = _win_sum(padimg, template.shape)
+    win_sum2 = _win_sum(padimg**2, template.shape)
+    
+    template_mean = np.mean(template)
+    template_volume = np.prod(template.shape)
+    template_ssd = np.sum((template - template_mean)**2)
+    
+    sq = (win_sum2 - win_sum1**2/template_volume) * template_ssd
+    response = (corr - win_sum1 * template_mean) / _safe_sqrt(sq, fill=np.inf)
+    slices = []
+    for i in range(ndim):
+        d0 = (template.shape[i] - 1) // 2
+        d1 = d0 + data.shape[i]
+        slices.append(slice(d0, d1))
+    out = response[tuple(slices)]
     return sl, out
 
 def fill_hole_(args):
@@ -354,7 +376,7 @@ def richardson_lucy_(args):
     
     for _ in range(niter):
         conv[:] = ifft(fft(estimated) * psf_ft).real
-        factor[:] = ifft(fft(np.where(conv<eps, 0, obs/conv)) * psf_ft_conj).real
+        factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
         estimated *= factor
         
     return sl, np.fft.fftshift(estimated)
@@ -373,11 +395,11 @@ def richardson_lucy_tv_(args):
         
         for _ in range(max_iter):
             conv[:] = ifft(fft(est_old) * psf_ft).real
-            factor[:] = ifft(fft(np.where(conv<eps, 0, obs/conv)) * psf_ft_conj).real
+            factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
             est_new[:] = est_old * factor
             grad = np.gradient(est_old)
             norm[:] = np.sqrt(sum(g**2 for g in grad))
-            gg[:] = sum(np.gradient(np.where(norm<1e-8, 0, grad[i]/norm), axis=i) 
+            gg[:] = sum(np.gradient(_safe_div(grad[i], norm, eps=1e-8), axis=i) 
                         for i in range(obs.ndim))
             est_new /= (1 - lmd * gg)
             gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
@@ -386,3 +408,10 @@ def richardson_lucy_tv_(args):
             est_old[:] = est_new
         
     return sl, np.fft.fftshift(est_new)
+
+
+def _safe_sqrt(a, fill=0):
+    return np.where(a>0, np.sqrt(a), fill)
+
+def _safe_div(a, b, eps=1e-8):
+    return np.where(b<eps, 0, a/b)

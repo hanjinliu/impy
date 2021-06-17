@@ -1,4 +1,4 @@
-__version__ = "1.12.6"
+__version__ = "1.12.7"
 
 # TODO
 # - nD Kalman filter
@@ -7,8 +7,7 @@ __version__ = "1.12.6"
 # - get line from shape layers
 
 import warnings
-from .core import (array, zeros, empty, imread, imread_stack, imread_collection, read_meta, 
-                   set_cpu, set_verbose, sample_image)
+from .core import *
 from .binder import bind
 from .arrays import ImgArray,  PropArray, Label, PhaseArray
 from .frame import MarkerFrame, TrackFrame

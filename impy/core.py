@@ -12,6 +12,9 @@ from .axes import ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata
 
+__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "imread_stack",
+           "read_meta", "set_cpu", "set_verbose", "sample_image"]
+
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
@@ -41,6 +44,15 @@ def zeros(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
 
 def empty(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
+
+def gaussian_kernel(shape:tuple[int], sigma=1, peak=1):
+    if np.isscalar(sigma):
+        sigma = (sigma,)*len(shape)
+    ker = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
+    ker = array(ker, name="Gaussian-Kernel")
+    if ker.ndim == 3:
+        ker.axes = "zyx"
+    return ker
 
 def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     """

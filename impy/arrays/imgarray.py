@@ -2218,25 +2218,26 @@ class ImgArray(LabeledArray):
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
     
     @record()
-    def match_template(self, template:np.ndarray, bg:float=None):
-        # TODO: 
-        # - other methods
-        #   https://pystyle.info/opencv-template-matching/
-        # - do not use original method.
+    def tm_ncc(self, template:np.ndarray, bg:float=None):
+        # check template
         if not isinstance(template, np.ndarray):
             raise TypeError(f"`template` must be np.ndarray, but got {type(template)}")
+        elif template.ndim not in (2, 3):
+            raise ValueError("`template must be 2 or 3 dimensional.`")
+        template = template.astype(np.float32)
         
         # determine bg
         if bg is None:
             bg = self.min()
         elif isinstance(bg, str) and bg.endswith("%"):
             bg = np.percentile(self.value, float(bg[:-1]))
+        elif not np.isscalar(bg):
+            raise TypeError("Wrong type of `bg`.")
         
         # determine dims
-        dims = {2: "yx", 3: "zyx"}[template.ndim]
+        dims = "yx" if template.ndim == 2 else "zyx"
         
-        out = self.parallel(match_template_, complement_axes(dims, self.axes), template, bg)
-        return out
+        return self.as_float().parallel(tm_ncc_, complement_axes(dims, self.axes), template, bg)
     
     def orb(self, template:np.ndarray):
         
