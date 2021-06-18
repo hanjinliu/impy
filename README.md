@@ -98,7 +98,7 @@ ip.random.normal(size=(100, 100))
 
 - **Filters**
   - `mean_filter`, `meadian_filter`, `gaussian_filter`, `directional_median_filter` &rarr; Smoothing.
-  - `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection.
+  - `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection by DoG, DoH, LoG filter.
   - `edge_filter`, `laplacian_filter` &rarr; Edge detection.
   - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
   - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
@@ -133,6 +133,7 @@ ip.random.normal(size=(100, 100))
 - **Feature Detection**
   - `hessian_eigval`, `hessian_eig` &rarr; Hessian.
   - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Structure tensor.
+  - `ncc`, `track_template` &rarr; Template matching and tracking.
 
 - **Gradient Orientation Estimation**
   - `edge_grad`
