@@ -48,7 +48,8 @@ def empty(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
 def gaussian_kernel(shape:tuple[int], sigma=1, peak=1):
     if np.isscalar(sigma):
         sigma = (sigma,)*len(shape)
-    ker = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
+    g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
+    ker = g.generate(shape)
     ker = array(ker, name="Gaussian-Kernel")
     if ker.ndim == 3:
         ker.axes = "zyx"

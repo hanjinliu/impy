@@ -126,7 +126,7 @@ def rolling_ball_(args):
 
 def rof_filter_(args):
     sl, obs, lmd, tol, max_iter = args
-    out = skres.denoise_tv_chambolle(obs, weight=lmd, eps=tol, n_iter_max=max_iter)
+    out = skres._denoise._denoise_tv_chambolle_nd(obs, weight=lmd, eps=tol, n_iter_max=max_iter)
     return sl, out
 
 def sobel_(args):
@@ -323,7 +323,7 @@ def distance_transform_edt_(args):
     sl, data = args
     return sl, ndi.distance_transform_edt(data)
     
-def tm_ncc_(args):
+def ncc_(args):
     sl, data, template, bg = args
     ndim = template.ndim
     _win_sum = _window_sum_2d if ndim == 2 else _window_sum_3d

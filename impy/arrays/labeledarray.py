@@ -397,75 +397,6 @@ class LabeledArray(HistoryArray):
         plt.show()
         return self
     
-    def split(self, axis=None) -> list[LabeledArray]:
-        """
-        Split n-dimensional image into (n-1)-dimensional images.
-
-        Parameters
-        ----------
-        axis : str or int, optional
-            Along which axis the original image will be split, by default "c"
-
-        Returns
-        -------
-        list of arrays
-            Separate images
-        """
-        # determine axis in int.
-        if axis is None:
-            axis = find_first_appeared(self.axes, "cztp<")
-        axisint = self.axisof(axis)
-        
-        imgs = super().split(axisint)
-        if hasattr(self, "labels"):
-            labels = self.labels.split(axisint)
-            for img, lbl in zip(imgs, labels):
-                lbl.axes = del_axis(self.labels.axes, axisint)
-                lbl.set_scale(self.labels)
-                img.labels = lbl
-            
-        return imgs
-    
-    @need_labels
-    def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
-        """
-        Extract certain regions of the image and substitute others to `cval`.
-
-        Parameters
-        ----------
-        label_ids : int or iterable of int, by default all the label IDs.
-            Which label regions are extracted.
-        filt : callable, optional
-            If given, only regions `X` that satisfy filt(self, X) will extracted.
-        cval : float, by default 0.
-            Constant value to fill regions outside the extracted labeled regions.
-            
-        Returns
-        -------
-        LabeledArray
-            Extracted image
-        """        
-        if filt is None:
-            filt = lambda arr, lbl: True
-        elif not callable(filt):
-            raise TypeError("`filt` must be callable if given.")
-        
-        if np.isscalar(label_ids):
-            label_ids = [label_ids]
-        elif label_ids is None:
-            # All the labels except for 0 (which means not labeled)
-            label_ids = [i for i in np.unique(self.labels) if i != 0]
-            
-        region = np.zeros_like(self.labels.value, dtype=np.uint8)
-        for i in label_ids:
-            subregion = (self.labels == i)
-            if filt(self, subregion):
-                region += subregion.astype(np.uint8)
-            
-        out = self.copy()
-        out[region == 0] = cval
-        return out
-    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -659,7 +590,7 @@ class LabeledArray(HistoryArray):
         return out
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Label handling
+    #   Label handling and others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     @dims_to_spatial_axes
@@ -1054,3 +985,73 @@ class LabeledArray(HistoryArray):
         new_labels._set_info(self.labels, "proj", new_axes=dims)
         self.labels = new_labels
         return self.labels
+    
+    def split(self, axis=None) -> list[LabeledArray]:
+        """
+        Split n-dimensional image into (n-1)-dimensional images.
+
+        Parameters
+        ----------
+        axis : str or int, optional
+            Along which axis the original image will be split, by default "c"
+
+        Returns
+        -------
+        list of arrays
+            Separate images
+        """
+        # determine axis in int.
+        if axis is None:
+            axis = find_first_appeared(self.axes, "cztp<")
+        axisint = self.axisof(axis)
+        
+        imgs = super().split(axisint)
+        if hasattr(self, "labels"):
+            labels = self.labels.split(axisint)
+            for img, lbl in zip(imgs, labels):
+                lbl.axes = del_axis(self.labels.axes, axisint)
+                lbl.set_scale(self.labels)
+                img.labels = lbl
+            
+        return imgs
+    
+    @need_labels
+    def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
+        """
+        Extract certain regions of the image and substitute others to `cval`.
+
+        Parameters
+        ----------
+        label_ids : int or iterable of int, by default all the label IDs.
+            Which label regions are extracted.
+        filt : callable, optional
+            If given, only regions `X` that satisfy filt(self, X) will extracted.
+        cval : float, by default 0.
+            Constant value to fill regions outside the extracted labeled regions.
+            
+        Returns
+        -------
+        LabeledArray
+            Extracted image
+        """        
+        if filt is None:
+            filt = lambda arr, lbl: True
+        elif not callable(filt):
+            raise TypeError("`filt` must be callable if given.")
+        
+        if np.isscalar(label_ids):
+            label_ids = [label_ids]
+        elif label_ids is None:
+            # All the labels except for 0 (which means not labeled)
+            label_ids = [i for i in np.unique(self.labels) if i != 0]
+            
+        region = np.zeros_like(self.labels.value, dtype=np.uint8)
+        for i in label_ids:
+            subregion = (self.labels == i)
+            if filt(self, subregion):
+                region += subregion.astype(np.uint8)
+            
+        out = self.copy()
+        out[region == 0] = cval
+        return out
+    

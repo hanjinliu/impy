@@ -156,7 +156,8 @@ class ImgArray(LabeledArray):
         return out
     
     @record()
-    def gaussfit(self, scale:float=1/16, p0:list=None, show_result:bool=True, method:str="Powell") -> ImgArray:
+    def gaussfit(self, scale:float=1/16, p0:list=None, show_result:bool=True, 
+                 method:str="Powell") -> ImgArray:
         """
         Fit the image to 2-D Gaussian.
 
@@ -497,7 +498,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None, update:bool=False) -> ImgArray:
+    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None, 
+                 update:bool=False) -> ImgArray:
         """
         General linear convolution by running kernel filtering.
 
@@ -519,7 +521,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Convolved image.
         """        
-        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, mode, cval, outdtype=self.dtype)
+        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, 
+                             mode, cval, outdtype=self.dtype)
     
     @dims_to_spatial_axes
     @same_dtype()
@@ -744,14 +747,16 @@ class ImgArray(LabeledArray):
     @record()
     @dims_to_spatial_axes
     @same_dtype()
-    def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, update:bool=False) -> ImgArray:
+    def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
+                     update:bool=False) -> ImgArray:
         f = binary_area_opening_ if self.dtype == bool else area_opening_
         return self.parallel(f, complement_axes(dims, self.axes), area, connectivity)
         
     @record()
     @dims_to_spatial_axes
     @same_dtype()
-    def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, update:bool=False) -> ImgArray:
+    def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, 
+                     update:bool=False) -> ImgArray:
         f = binary_area_closing_ if self.dtype == bool else area_closing_
         return self.parallel(f, complement_axes(dims, self.axes), area, connectivity)
         
@@ -846,7 +851,7 @@ class ImgArray(LabeledArray):
         radius : int, default is 1
             Radius of kernel. Shape of kernel will be (2*radius+1, 2*radius+1).
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, default is False
             If update self to filtered image.
 
@@ -973,7 +978,7 @@ class ImgArray(LabeledArray):
         thr : scalar or str, optional
             Threshold (value or method) to apply if image is not binary.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, default is False
             If update self to filtered image.
 
@@ -1002,7 +1007,7 @@ class ImgArray(LabeledArray):
         sigma : scalar or array of scalars, optional
             Standard deviation(s) of Gaussian.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, optional
             If update self to filtered image.
             
@@ -1055,7 +1060,7 @@ class ImgArray(LabeledArray):
         sigma : scalar or array of scalars, default is 1.
             Standard deviation(s) of Gaussian filter.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
 
         Returns
         -------
@@ -1078,7 +1083,7 @@ class ImgArray(LabeledArray):
         sigma : scalar or array of scalars, default is 1.
             Standard deviation(s) of Gaussian filter.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
 
         Returns
         -------
@@ -1103,7 +1108,7 @@ class ImgArray(LabeledArray):
         prefilter : str, {"mean", "median", "none"}
             If apply 3x3 averaging before creating background.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, optional
             If update self to filtered image.
             
@@ -1127,9 +1132,29 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims=None, update:bool=False):
-        # Rudin–Osher–Fatemi
-        # TODO
+    def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims=None, 
+                   update:bool=False) -> ImgArray:
+        """
+        Rudin-Osher-Fatemi's total variation denoising.
+
+        Parameters
+        ----------
+        lmd : float, default is 0.05
+            Constant value in total variation.
+        tol : float, default is 1e-4
+            Iteration stops when gain is under this value.
+        max_iter : int, default is 50
+            Maximum number of iterations.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, optional
+            If update self to filtered image.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """        
         return self.parallel(rof_filter_, complement_axes(dims, self.axes), lmd, tol, max_iter)
         
     @dims_to_spatial_axes
@@ -1332,7 +1357,7 @@ class ImgArray(LabeledArray):
         use_labels : bool, default is True
             If use self.labels when it exists.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
             
         Returns
         -------
@@ -1399,7 +1424,7 @@ class ImgArray(LabeledArray):
         use_labels : bool, default is True
             If use self.labels when it exists.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
             
         Returns
         -------
@@ -1577,7 +1602,8 @@ class ImgArray(LabeledArray):
                 else:
                     n_label = n_label_next
                     n_label_next += 1
-                fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, tolerance=tolerance)
+                fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, 
+                                          tolerance=tolerance)
                 labels[sl][fill_area] = n_label
         
         self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
@@ -1604,7 +1630,7 @@ class ImgArray(LabeledArray):
         sigma : float, default is 1.5
             Expected standard deviation of particles.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
 
         Returns
         -------
@@ -1676,9 +1702,9 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, optional
             Standard deviation of puncta.
-        method : str, default is "dog"
-            Which filter is used prior to finding local maxima. Currently supports "dog", "doh" 
-            and "log".
+        method : str {"dog", "doh", "log", "ncc"}, default is "dog"
+            Which filter is used prior to finding local maxima. If "ncc", a Gaussian particle is used as
+            the template image.
         percentile, topn, exclude_border, dims
             Passed to peak_local_max()
 
@@ -1695,15 +1721,22 @@ class ImgArray(LabeledArray):
         >>> ip.gui.add(img)
         >>> ip.gui.add(lnk)
         """        
-        methods_ = {"dog": "dog_filter",
-                    "doh": "doh_filter",
-                    "log": "log_filter"}
-        try:
-            fil_img = getattr(self, methods_[method.lower()])(sigma, dims=dims)
-        except KeyError:
-            raise ValueError(f"Currently `method` only supports {', '.join(methods_.keys())}")
-        
-        coords = fil_img.peak_local_max(min_distance=sigma*2, percentile=percentile, 
+        method = method.lower()
+        if method in ("dog", "doh", "log"):
+            fil_img = getattr(self, method+"_filter")(sigma, dims=dims)
+        elif method == "ncc":
+            sigma = np.array(check_nd(sigma, len(dims)))
+            shape = tuple((sigma*4).astype(np.int))
+            g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, 1.0, 0.0])
+            template = g.generate(shape)
+            fil_img = self.ncc(template)
+        else:
+            raise ValueError("`method` must be 'dog', 'doh', 'log' or 'ncc'.")
+        if np.isscalar(sigma):
+            min_d = sigma*2
+        else:
+            min_d = max(sigma)*2
+        coords = fil_img.peak_local_max(min_distance=min_d, percentile=percentile, 
                                         topn=topn, dims=dims, exclude_border=exclude_border)
         return coords
     
@@ -1728,7 +1761,7 @@ class ImgArray(LabeledArray):
         percentile, dims
             Passed to peak_local_max()
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         
         Returns
         -------
@@ -1798,7 +1831,7 @@ class ImgArray(LabeledArray):
         return_all : bool, default is False
             If True, fitting results are all returned as Frame Dict.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
 
         Returns
         -------
@@ -1837,7 +1870,9 @@ class ImgArray(LabeledArray):
                 gaussian = GaussianParticle(initial_sg=sigma)
                 res = gaussian.fit(input_img, method="BFGS")
                 
-                if gaussian.mu_inrange(0, radius*2) and gaussian.sg_inrange(sigma/3, sigma*3) and gaussian.a > 0:
+                if (gaussian.mu_inrange(0, radius*2) and 
+                    gaussian.sg_inrange(sigma/3, sigma*3) and
+                    gaussian.a > 0):
                     gaussian.shift(center - radius)
                     # calculate fitting error with Jacobian
                     if return_all:
@@ -2218,11 +2253,29 @@ class ImgArray(LabeledArray):
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
     
     @record()
-    def template_ncc(self, template:np.ndarray, bg:float=None):
+    def ncc(self, template:np.ndarray, bg:float=None) -> ImgArray:
+        """
+        Template matching using normalized cross correlation (NCC) method. This function is basically
+        identical to that in `skimage.feature`, but is optimized for batch processing and improved 
+        readability.
+
+        Parameters
+        ----------
+        template : np.ndarray
+            Template image. Must be 2 or 3 dimensional. 
+        bg : float, optional
+            Background intensity. If not given, it will calculated as the minimum value of 
+            the original image.
+
+        Returns
+        -------
+        ImgArray
+            Response image with values between -1 and 1.
+        """        
         template = _check_template(template)
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        return self.as_float().parallel(tm_ncc_, complement_axes(dims, self.axes), template, bg)
+        return self.as_float().parallel(ncc_, complement_axes(dims, self.axes), template, bg)
     
     @record(append_history=False)
     def track_template(self, template:np.ndarray, search_range=20, bg=None, along="t"):
@@ -2232,10 +2285,10 @@ class ImgArray(LabeledArray):
         search_range = np.array(check_nd(search_range, len(dims)))
         pos = []
         for sl, img in self.iter("t", israw=True):
-            resp = img.template_ncc(template, bg=bg)
+            resp = img.ncc(template, bg=bg)
             peak = np.array(np.unravel_index(np.argmax(resp), resp.shape))
             pos.append(peak)
-            # template[:] = img.specify_one()
+            template = img[specify_one(peak, search_range, img.shape)]
         pos = MarkerFrame(np.array(pos), columns=dims)
         return pos
     
@@ -2360,7 +2413,7 @@ class ImgArray(LabeledArray):
         mask : bool,　default is True
             If True, only neighbors of pixels that satisfy self==True is returned.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
 
         Returns
         -------
@@ -3332,7 +3385,7 @@ class ImgArray(LabeledArray):
         lmd : float
             Constant value used in the deconvolution. See Formulation below.
         dims : int or str, optional
-            Dimension of axes.
+            Spatial dimensions.
         update : bool, optional
             If update self to filtered image.
 
