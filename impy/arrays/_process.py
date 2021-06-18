@@ -339,8 +339,8 @@ def ncc_(args):
     template_volume = np.prod(template.shape)
     template_ssd = np.sum((template - template_mean)**2)
     
-    sq = (win_sum2 - win_sum1**2/template_volume) * template_ssd
-    response = (corr - win_sum1 * template_mean) / _safe_sqrt(sq, fill=np.inf)
+    var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
+    response = (corr - win_sum1 * template_mean) / _safe_sqrt(var, fill=np.inf)
     slices = []
     for i in range(ndim):
         d0 = (template.shape[i] - 1) // 2
@@ -388,30 +388,32 @@ def richardson_lucy_tv_(args):
     est_new = np.empty(obs.shape, dtype=np.float32)
     conv = factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
     
-    with np.errstate(all="ignore"):
-        # NOTE: During iteration, sometimes the line `gg[:] = ...` returns RuntimeWarning due to
-        # unknown reasons. I checked with np.isfinite but could not find anything wrong. I set
-        # error state to `all="ingore"`` for now as a quick solution.
-        
-        for _ in range(max_iter):
-            conv[:] = ifft(fft(est_old) * psf_ft).real
-            factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
-            est_new[:] = est_old * factor
-            grad = np.gradient(est_old)
-            norm[:] = np.sqrt(sum(g**2 for g in grad))
-            gg[:] = sum(np.gradient(_safe_div(grad[i], norm, eps=1e-8), axis=i) 
-                        for i in range(obs.ndim))
-            est_new /= (1 - lmd * gg)
-            gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
-            if gain < tol:
-                break
-            est_old[:] = est_new
+    for _ in range(max_iter):
+        conv[:] = ifft(fft(est_old) * psf_ft).real
+        factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
+        est_new[:] = est_old * factor
+        grad = np.gradient(est_old)
+        norm[:] = np.sqrt(sum(g**2 for g in grad))
+        gg[:] = sum(np.gradient(_safe_div(grad[i], norm, eps=1e-8), axis=i) 
+                    for i in range(obs.ndim))
+        est_new /= (1 - lmd * gg)
+        gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
+        if gain < tol:
+            break
+        est_old[:] = est_new
         
     return sl, np.fft.fftshift(est_new)
 
 
 def _safe_sqrt(a, fill=0):
-    return np.where(a>0, np.sqrt(a), fill)
+    out = np.full(a.shape, fill, dtype=np.float32)
+    out = np.zeros_like(a)
+    mask = a > 0
+    out[mask] = np.sqrt(a[mask])
+    return out
 
 def _safe_div(a, b, eps=1e-8):
-    return np.where(b<eps, 0, a/b)
+    out = np.zeros(a.shape, dtype=np.float32)
+    mask = b > eps
+    out[mask] = a[mask]/b[mask]
+    return out

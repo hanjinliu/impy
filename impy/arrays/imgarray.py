@@ -1724,12 +1724,14 @@ class ImgArray(LabeledArray):
         method = method.lower()
         if method in ("dog", "doh", "log"):
             fil_img = getattr(self, method+"_filter")(sigma, dims=dims)
+            fil_img[fil_img<0] = 0
         elif method == "ncc":
             sigma = np.array(check_nd(sigma, len(dims)))
             shape = tuple((sigma*4).astype(np.int))
             g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, 1.0, 0.0])
             template = g.generate(shape)
             fil_img = self.ncc(template)
+            fil_img[fil_img<0.3] = 0.3
         else:
             raise ValueError("`method` must be 'dog', 'doh', 'log' or 'ncc'.")
         if np.isscalar(sigma):
@@ -1775,9 +1777,8 @@ class ImgArray(LabeledArray):
             
         ndim = len(dims)
         filt = check_filter_func(filt)
-        radius = np.asarray(check_nd(radius, ndim))
+        radius = np.array(check_nd(radius, ndim))
         shape = self.sizesof(dims)
-        centroids = []  # fitting results of means
         with Progress("centroid_sm"):
             out = []
             columns = list(dims)
@@ -1790,15 +1791,15 @@ class ImgArray(LabeledArray):
                     if input_img.size == 0 or not filt(input_img):
                         continue
                     
-                    mom = skmes.moments(input_img, order=1)
                     shift = center - radius
-                    centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
-                                         for i in range(ndim)]) / mom[(0,)*ndim] + shift
+                    centroid = _calc_centroid(input_img, ndim) + shift
                     
                     centroids.append(centroid.tolist())
                 df = pd.DataFrame(centroids, columns=columns)
                 df[list(c_axes)] = sl[:-ndim]
                 out.append(df)
+            if len(out) == 0:
+                raise ValueError("No molecule found.")
             out = pd.concat(out, axis=0)
             
             out = MarkerFrame(out.reindex(columns=list(coords._axes)),
@@ -2278,18 +2279,64 @@ class ImgArray(LabeledArray):
         return self.as_float().parallel(ncc_, complement_axes(dims, self.axes), template, bg)
     
     @record(append_history=False)
-    def track_template(self, template:np.ndarray, search_range=20, bg=None, along="t"):
+    def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
+        """
+        Tracking using template matching. For every time frame, matched region is interpreted as a
+        new template and is used for the next template. To avoid slight shifts accumulating to the
+        template image, new template image will be fitteg to the old one by phase cross correlation.
+
+        Parameters
+        ----------
+        template : np.ndarray
+            Template image. Must be 2 or 3 dimensional. 
+        bg : float, optional
+            Background intensity. If not given, it will calculated as the minimum value of 
+            the original image.
+        along : str, default is "t"
+            Which axis will be the time axis.
+
+        Returns
+        -------
+        MarkerFrame
+            Centers of matched templates.
+        """        
         template = _check_template(template)
+        template_new = template
+        t_shape = np.array(template.shape)
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        search_range = np.array(check_nd(search_range, len(dims)))
+        # check along
+        if along is None:
+            along = find_first_appeared("tpzc", include=self.axes, exclude=dims)
+        elif len(along) != 1:
+            raise ValueError("`along` must be single character.")
+        
+        if complement_axes(dims, self.axes) != along:
+            raise ValueError(f"Image axes do not match along ({along}) and template dimensions ({dims})")
+        
+        ndim = len(dims)
+        rem_edge_sl = tuple(slice(s//2, -s//2) for s in t_shape)
         pos = []
-        for sl, img in self.iter("t", israw=True):
-            resp = img.ncc(template, bg=bg)
-            peak = np.array(np.unravel_index(np.argmax(resp), resp.shape))
+        shift = np.zeros(ndim, dtype=np.float32)
+        for sl, img in self.as_float().iter(along):
+            template_old = _translate_image(template_new, shift, cval=bg)
+            _, resp = ncc_((sl, img, template_old, bg))
+            resp_crop = resp[rem_edge_sl]
+            peak = np.unravel_index(np.argmax(resp_crop), resp_crop.shape) + t_shape//2
             pos.append(peak)
-            template = img[specify_one(peak, search_range, img.shape)]
-        pos = MarkerFrame(np.array(pos), columns=dims)
+            sl = []
+            for i in range(ndim):
+                d0 = peak[i] - t_shape[i]//2
+                d1 = d0 + t_shape[i]
+                sl.append(slice(d0, d1, None))
+            template_new = img[tuple(sl)]
+            shift = skreg.phase_cross_correlation(template_old, template_new, 
+                                                  return_error=False, upsample_factor=10)
+            
+        pos = np.array(pos)
+        pos = np.hstack([np.arange(self.sizeof(along), dtype=np.uint16).reshape(-1,1), pos])
+        pos = MarkerFrame(pos, columns=along+dims)
+        
         return pos
     
     @dims_to_spatial_axes
@@ -3187,9 +3234,7 @@ class ImgArray(LabeledArray):
         t_index = self.axisof(along)
         shift = shift.reindex(columns=["x", "y"])
         for sl, img in self.iter(complement_axes(dims, self.axes)):
-            trans = -shift.loc[sl[t_index]]
-            mx = sktrans.AffineTransform(translation=trans)
-            out[sl] = sktrans.warp(img.astype(np.float32), mx, order=order)
+            out[sl] = _translate_image(img, shift.loc[sl[t_index]], order=order)
         
         out = out.view(self.__class__)
         return out
@@ -3561,3 +3606,13 @@ def _check_template(template):
         raise ValueError("`template must be 2 or 3 dimensional.`")
     template = template.astype(np.float32, copy=True)
     return template
+
+def _translate_image(img, shift, order=1, cval=0):
+    mx = sktrans.AffineTransform(translation=-np.asarray(shift))
+    return sktrans.warp(img, mx, order=order, cval=cval)
+
+def _calc_centroid(img, ndim):
+    mom = skmes.moments(img, order=1)
+    centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
+                        for i in range(ndim)]) / mom[(0,)*ndim]
+    return centroid
