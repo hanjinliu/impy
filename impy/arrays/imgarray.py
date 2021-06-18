@@ -2218,30 +2218,26 @@ class ImgArray(LabeledArray):
         return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
     
     @record()
-    def tm_ncc(self, template:np.ndarray, bg:float=None):
-        # check template
-        if not isinstance(template, np.ndarray):
-            raise TypeError(f"`template` must be np.ndarray, but got {type(template)}")
-        elif template.ndim not in (2, 3):
-            raise ValueError("`template must be 2 or 3 dimensional.`")
-        template = template.astype(np.float32)
-        
-        # determine bg
-        if bg is None:
-            bg = self.min()
-        elif isinstance(bg, str) and bg.endswith("%"):
-            bg = np.percentile(self.value, float(bg[:-1]))
-        elif not np.isscalar(bg):
-            raise TypeError("Wrong type of `bg`.")
-        
-        # determine dims
+    def template_ncc(self, template:np.ndarray, bg:float=None):
+        template = _check_template(template)
+        bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        
         return self.as_float().parallel(tm_ncc_, complement_axes(dims, self.axes), template, bg)
     
-    def orb(self, template:np.ndarray):
-        
-        ...
+    @record(append_history=False)
+    def track_template(self, template:np.ndarray, search_range=20, bg=None, along="t"):
+        template = _check_template(template)
+        bg = _check_bg(self, bg)
+        dims = "yx" if template.ndim == 2 else "zyx"
+        search_range = np.array(check_nd(search_range, len(dims)))
+        pos = []
+        for sl, img in self.iter("t", israw=True):
+            resp = img.template_ncc(template, bg=bg)
+            peak = np.array(np.unravel_index(np.argmax(resp), resp.shape))
+            pos.append(peak)
+            # template[:] = img.specify_one()
+        pos = MarkerFrame(np.array(pos), columns=dims)
+        return pos
     
     @dims_to_spatial_axes
     @only_binary
@@ -3277,11 +3273,7 @@ class ImgArray(LabeledArray):
         ++++|___|+++++++++++
 
         """
-        
-        if bg is None:
-            bg = self.min()
-        elif isinstance(bg, str) and bg.endswith("%"):
-            bg = np.percentile(self.value, float(bg[:-1]))
+        bg = _check_bg(self, bg)
         
         if np.isscalar(kernel):
             kernel = np.array([kernel]*3)
@@ -3498,4 +3490,21 @@ def _check_function(func):
         return func
     else:
         raise TypeError("Must be one of numpy methods or callable object.")
-    
+
+def _check_bg(img, bg):
+    # determine bg
+    if bg is None:
+        bg = img.min()
+    elif isinstance(bg, str) and bg.endswith("%"):
+        bg = np.percentile(img.value, float(bg[:-1]))
+    elif not np.isscalar(bg):
+        raise TypeError("Wrong type of `bg`.")
+    return bg
+
+def _check_template(template):
+    if not isinstance(template, np.ndarray):
+        raise TypeError(f"`template` must be np.ndarray, but got {type(template)}")
+    elif template.ndim not in (2, 3):
+        raise ValueError("`template must be 2 or 3 dimensional.`")
+    template = template.astype(np.float32, copy=True)
+    return template
