@@ -116,7 +116,10 @@ def only_binary(func):
 
 def safe_str(obj):
     try:
-        s = str(obj)
+        if isinstance(obj, float):
+            s = f"{obj:.3g}"
+        else:
+            s = str(obj)
         s = re.sub("\n", ";", s)
         if len(s) > 20:
             return str(type(obj))

@@ -48,3 +48,5 @@ class Random:
         return _func
 
 random = Random()
+
+del warnings, numpy

@@ -1,7 +1,7 @@
 from ...func import *
 from ...utilcls import *
 from .metaarray import MetaArray
-
+from skimage.util import montage
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -81,10 +81,18 @@ class HistoryArray(MetaArray):
             
         imgs = list(np.moveaxis(self, axisint, 0))
         for i, img in enumerate(imgs):
-            img.history[-1] = f"axis({axis})={i}"
+            img.history[-1] = f"split({axis}={i})"
             img.axes = del_axis(self.axes, axisint)
             img.set_scale(self)
             
         return imgs
 
-    
+    def tile(self, shape=None, along=None, fill="mean"):
+        imgs = self.split(along)        
+        out = montage(imgs, fill=fill, rescale_intensity=False, grid_shape=shape, 
+                      padding_width=0, multichannel=False)
+        out = out.view(self.__class__)
+        out._set_info(self, next_history="tile", new_axes="yx")
+        return out
+        
+            

@@ -2,7 +2,7 @@ from __future__ import annotations
 import napari
 from ..arrays import *
 from ..frame import *
-from ..core import array
+from ..core import array as ip_array
 from .utils import *
 from .mouse import *
 
@@ -139,7 +139,7 @@ class napariViewers:
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
         elif type(obj) is np.ndarray:
-            self._add_image(array(obj))
+            self._add_image(ip_array(obj))
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
