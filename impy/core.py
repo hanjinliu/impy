@@ -45,7 +45,24 @@ def zeros(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
 def empty(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
 
-def gaussian_kernel(shape:tuple[int], sigma=1, peak=1):
+def gaussian_kernel(shape:tuple[int], sigma=1.0, peak=1.0):
+    """
+    Make an Gaussian kernel or Gaussian image.
+
+    Parameters
+    ----------
+    shape : tuple[int]
+        Shape of image.
+    sigma : float or array-like, default is 1.0
+        Standard deviation of Gaussian.
+    peak : float, default is 1.0
+        Peak intensity.
+
+    Returns
+    -------
+    ImgArray
+        Gaussian image
+    """    
     if np.isscalar(sigma):
         sigma = (sigma,)*len(shape)
     g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
@@ -72,7 +89,11 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     -------
     ImgArray
     """    
-    if not os.path.exists(path):
+    if "$" in path:
+        return imread_stack(path, dtype=dtype)
+    elif os.path.isdir(path):
+        return imread_collection(path, dtype=dtype)
+    elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
     fname, fext = os.path.splitext(os.path.basename(path))

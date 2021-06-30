@@ -1,7 +1,7 @@
 from ...func import *
 from ...utilcls import *
 from .metaarray import MetaArray
-from skimage.util import montage
+import itertools
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -87,12 +87,41 @@ class HistoryArray(MetaArray):
             
         return imgs
 
-    def tile(self, shape=None, along=None, fill="mean"):
-        imgs = self.split(along)        
-        out = montage(imgs, fill=fill, rescale_intensity=False, grid_shape=shape, 
-                      padding_width=0, multichannel=False)
+    def tile(self, shape:tuple, along=None, order="yx"):
+        # TODO: check
+        if along is None:
+            for a in self.axes:
+                l = np.prod(shape)
+                if self.sizeof(a) == l:
+                    along = a
+                    break
+            else:
+                raise ValueError(f"Could not find axis that can be reshaped to shape {shape}")
+            
+        uy_max, ux_max = shape
+        imgy, imgx = self.sizesof("yx")
+        if len(shape) == 2:
+            c_axes = complement_axes("yx"+along, self.axes)
+            new_axes = c_axes + "yx"
+            outshape = self.sizesof(c_axes) + (uy_max*imgy, ux_max*imgx)
+        else:
+            raise ValueError("Shape mismatch")
+        
+        out = np.zeros(outshape, dtype=self.dtype)
+        if order == "yx":
+            iter_yx = itertools.product(range(uy_max), range(ux_max))
+        elif order == "xy":
+            iter_yx = map(lambda x: (x[1], x[0]), itertools.product(range(uy_max), range(ux_max)))
+        else:
+            raise ValueError(f"Could not interpret order={repr(order)}.")
+        
+        for (_, img), (uy, ux) in zip(self.iter(along), iter_yx):
+            sly = slice(uy*imgy, (uy+1)*imgy)
+            slx = slice(ux*imgx, (ux+1)*imgx)
+            out[..., sly, slx] = img
+            
         out = out.view(self.__class__)
-        out._set_info(self, next_history="tile", new_axes="yx")
+        out._set_info(self, next_history=f"tile({shape}, along={repr(along)})", new_axes=new_axes)
         return out
         
             
