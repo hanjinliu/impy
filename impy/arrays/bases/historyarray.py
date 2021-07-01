@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ...func import *
 from ...utilcls import *
 from .metaarray import MetaArray
@@ -87,8 +88,34 @@ class HistoryArray(MetaArray):
             
         return imgs
 
-    def tile(self, shape:tuple, along=None, order="yx"):
-        # TODO: check
+    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None):
+        """
+        Tile images in a certain order.
+
+        Parameters
+        ----------
+        shape : tuple[int, int], optional
+            Grid shape. This parameter must be specified unless the length of `along` is 2.
+        along : str, optional
+            Axis (Axes) over which will be iterated.
+        order : str, {"r", "c"}, optional
+            Order of iteration. "r" means row-wise and "c" means column-wise.
+        
+            row-wise
+                ----->
+                ----->
+                ----->
+            
+            column-wise
+                | | |
+                | | |
+                v v v
+
+        Returns
+        -------
+        HistoryArray
+            Tiled array
+        """        
         if along is None:
             for a in self.axes:
                 l = np.prod(shape)
@@ -97,6 +124,22 @@ class HistoryArray(MetaArray):
                     break
             else:
                 raise ValueError(f"Could not find axis that can be reshaped to shape {shape}")
+        elif len(along) == 2:
+            uyaxis, uxaxis = self.axisof(along[0]), self.axisof(along[1])
+            if uyaxis < uxaxis:
+                shape = self.sizesof(along)
+                order = "r"
+            else:
+                order = "c"
+                shape = self.sizesof(along[::-1])
+        elif len(along) == 1:
+            if shape is None:
+                raise ValueError("`shape` must be specified unless the length of `along` is 2.")
+        else:
+            raise ValueError("`along` must be a string with length 1 or 2.")
+        
+        if order is None:
+            order = "r"
             
         uy_max, ux_max = shape
         imgy, imgx = self.sizesof("yx")
@@ -108,20 +151,47 @@ class HistoryArray(MetaArray):
             raise ValueError("Shape mismatch")
         
         out = np.zeros(outshape, dtype=self.dtype)
-        if order == "yx":
-            iter_yx = itertools.product(range(uy_max), range(ux_max))
-        elif order == "xy":
-            iter_yx = map(lambda x: (x[1], x[0]), itertools.product(range(uy_max), range(ux_max)))
+        
+        if order == "r":
+            iter_tile = _iter_tile_yx
+        elif order == "c":
+            iter_tile = _iter_tile_xy
         else:
             raise ValueError(f"Could not interpret order={repr(order)}.")
         
-        for (_, img), (uy, ux) in zip(self.iter(along), iter_yx):
-            sly = slice(uy*imgy, (uy+1)*imgy)
-            slx = slice(ux*imgx, (ux+1)*imgx)
-            out[..., sly, slx] = img
+        for (_, img), sl in zip(self.iter(along), iter_tile(uy_max, ux_max, imgy, imgx)):
+            out[sl] = img
             
         out = out.view(self.__class__)
-        out._set_info(self, next_history=f"tile({shape}, along={repr(along)})", new_axes=new_axes)
+        out._set_info(self, next_history=f"tile({shape}, along={repr(along)}, order={order})", new_axes=new_axes)
         return out
         
-            
+def _iter_tile_yx(ymax, xmax, imgy, imgx):
+    """
+    +--+--+--+
+    | 0| 1| 2|
+    +--+--+--+
+    | 3| 4| 5|
+    +--+--+--+
+    | 6| 7|..|
+    +--+--+--+
+    """    
+    for uy, ux in itertools.product(range(ymax), range(xmax)):
+        sly = slice(uy*imgy, (uy+1)*imgy, None)
+        slx = slice(ux*imgx, (ux+1)*imgx, None)
+        yield ..., sly, slx
+
+def _iter_tile_xy(ymax, xmax, imgy, imgx):
+    """
+    +--+--+--+
+    | 0| 3| 6|
+    +--+--+--+
+    | 1| 4| 7|
+    +--+--+--+
+    | 2| 5|..|
+    +--+--+--+
+    """    
+    for uy, ux in itertools.product(range(xmax), range(ymax)):
+        sly = slice(uy*imgy, (uy+1)*imgy, None)
+        slx = slice(ux*imgx, (ux+1)*imgx, None)
+        yield ..., slx, sly

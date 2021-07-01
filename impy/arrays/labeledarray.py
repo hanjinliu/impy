@@ -1015,6 +1015,40 @@ class LabeledArray(HistoryArray):
             
         return imgs
     
+    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None):
+        """
+        Tile images in a certain order. Label is also tiled in the same manner.
+
+        Parameters
+        ----------
+        shape : tuple[int, int], optional
+            Grid shape. This parameter must be specified unless the length of `along` is 2.
+        along : str, optional
+            Axis (Axes) over which will be iterated.
+        order : str, {"r", "c"}, optional
+            Order of iteration. "r" means row-wise and "c" means column-wise.
+        
+            row-wise
+                ----->
+                ----->
+                ----->
+            
+            column-wise
+                | | |
+                | | |
+                v v v
+
+        Returns
+        -------
+        HistoryArray
+            Tiled array
+        """        
+        tiled_img = super().tile(shape, along, order)
+        if hasattr(self, "labels"):
+            tiled_label = self.labels.tile(shape, along, order)
+            tiled_img.labels = tiled_label
+        return tiled_img
+    
     @need_labels
     def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
         """

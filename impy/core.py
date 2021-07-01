@@ -103,6 +103,7 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     # read tif metadata
     if fext == ".tif":
         meta = get_meta(path)
+
     elif fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
         meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
     else:
