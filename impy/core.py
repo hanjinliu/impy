@@ -97,17 +97,18 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
         raise FileNotFoundError(f"No such file or directory: {path}")
     
     fname, fext = os.path.splitext(os.path.basename(path))
-    img = io.imread(path)
     dirpath = os.path.dirname(path)
     
     # read tif metadata
     if fext == ".tif":
-        meta = get_meta(path)
-
-    elif fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
-        meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
+        meta, series = get_meta(path)
+        img = series.pages[0].asarray()
     else:
-        meta = {"axes":axes, "ijmeta":{}, "history":[]}
+        img = io.imread(path)
+        if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
+            meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
+        else:
+            meta = {"axes":axes, "ijmeta":{}, "history":[]}
     
     axes = meta["axes"]
     metadata = meta["ijmeta"]
@@ -365,7 +366,7 @@ def read_meta(path:str) -> dict[str]:
     """    
     if not path.endswith(".tif"):
         raise ValueError("Cannot read metadata from file extension other than tif.")
-    meta = get_meta(path)
+    meta, _ = get_meta(path)
     return meta
 
 def set_cpu(n_cpu:int) -> None:

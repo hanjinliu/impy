@@ -36,7 +36,7 @@ def get_meta(path:str):
     
     tags = {v.name: v.value for v in pagetag.values()}
     
-    return {"axes": axes, "ijmeta": ijmeta, "history": hist, "tags": tags}
+    return {"axes": axes, "ijmeta": ijmeta, "history": hist, "tags": tags}, series0
 
 
 def check_nd(x, ndim:int):
