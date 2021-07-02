@@ -1058,7 +1058,21 @@ class LabeledArray(HistoryArray):
             tiled_img.labels = tiled_label
         return tiled_img
     
+    @record()
+    def for_each_channel(self, func:str, **kwargs) -> LabeledArray:
+        if not hasattr(self, func):
+            raise AttributeError(f"{self.__class__} does not have method {func}")
+        imgs = self.split("c")
+        outs = []
+        for img, kw in zip(imgs, _iter_dict(kwargs, len(imgs))):
+            img.history.pop()
+            out = getattr(img, func)(**kw)
+            out.history.pop()
+            outs.append(out)
+        return np.stack(outs, axis="c")
+    
     @need_labels
+    @record()
     def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
         """
         Extract certain regions of the image and substitute others to `cval`.
@@ -1097,4 +1111,16 @@ class LabeledArray(HistoryArray):
         out = self.copy()
         out[region == 0] = cval
         return out
-    
+
+def _iter_dict(d, nparam):
+    out = dict()
+    for i in range(nparam):
+        for k, v in d.items():
+            if isinstance(v, list):
+                if len(v) != nparam:
+                    # raise error here for an earlier feedback.
+                    raise ValueError("Number of parameter '{k}' does not match the number channels.")
+                out[k] = v[i]
+            else:
+                out[k] = v
+        yield out

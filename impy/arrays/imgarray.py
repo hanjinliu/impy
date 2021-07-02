@@ -274,11 +274,11 @@ class ImgArray(LabeledArray):
         return out.view(self.__class__)
     
     @record()
-    def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, 
-                          prefilter:bool=True, along:str="c") -> ImgArray:
+    def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, prefilter:bool=True, 
+                          along:str="c") -> ImgArray:
         """
-        Correct chromatic aberration using Affine transformation. Input matrix is
-        determined by maximizing normalized mutual information.
+        Correct chromatic aberration using Affine transformation. Input matrix is determined by maximizing
+        normalized mutual information.
         
         Parameters
         ----------
