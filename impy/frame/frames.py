@@ -19,11 +19,16 @@ class AxesFrame(pd.DataFrame):
             kwargs["columns"] = [a for a in columns]
         elif isinstance(data, AxesFrame):
             kwargs["columns"] = data.columns.tolist()
+            if columns is None:
+                columns = str(data._axes)
         else:
             kwargs["columns"] = columns
+            if hasattr(columns, "__iter__"):
+                columns = "".join(columns)
         
         super().__init__(data, **kwargs)
         self._axes = Axes(columns)
+        
     
     def _get_coords_cols(self):
         return "".join(a for a in self.columns if len(a) == 1)
@@ -293,24 +298,15 @@ class TrackFrame(AxesFrame):
         out = TrackFrame(df, columns=self.col_axes)
         out.set_scale(self)
         return out.as_standard_type()
+    
+    def as_path(self):
+        df = self[[a for a in self._axes if a != "t"]]
+        return PathFrame(df, columns=df._axes)
 
 class PathFrame(AxesFrame):
-    # TODO: Path objects should be converted to this class, like
-    # p  y  x
-    # 0  2  3
-    # :  :  :
-    # 0  9  7
-    # 1  :  :
-    # where subframe with same p corresponds to a path in yx-plane.
     def length(self, dims=None):
         if dims is None:
             dims = [a for a in "zyx" if a in self._axes]
-        for df in self.split("p"):
-            # l = sum(sqrt(dx_i^2 + dy_i^2 + dz_i^2))
-            l = np.sum(np.sqrt(sum(np.diff(df[a])**2 for a in dims)))
-        ...
-        # this function should return like...
-        # p t    f
-        # 0 2 10.2
-        # 1 6  9.1
-        # 2 1 46.2
+        path_len = lambda df: np.sum(np.sqrt(sum(np.diff(df[a])**2 for a in dims)))
+        c_axes = complement_axes(dims, self._axes)
+        return self.groupby(list(c_axes)).apply(path_len)

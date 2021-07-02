@@ -1,1 +1,1 @@
-from .frames import AxesFrame, MarkerFrame, TrackFrame
+from .frames import AxesFrame, MarkerFrame, TrackFrame, PathFrame

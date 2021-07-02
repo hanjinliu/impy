@@ -699,8 +699,7 @@ class LabeledArray(HistoryArray):
         dst = np.asarray(dst, dtype=np.float32)
         d = dst - src
         length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
-        perp_lines = np.stack([np.linspace(src_, dst_, length).reshape(-1,1) 
-                               for src_, dst_ in zip(src, dst)])
+        perp_lines = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
         
         ndim = src.size
         if ndim == self.ndim:
@@ -713,11 +712,37 @@ class LabeledArray(HistoryArray):
         
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
-                                         order=order, mode="reflect")[:, 0]
+                                          order=order, mode="reflect")
             
         out.set_scale(self)
         return out
     
+    
+    @record(append_history=False)
+    def reslice_path(self, path, *, order:int=1) -> PropArray:
+        # path = [[y1, x1],[y2, x2], ..., [yn, xn]]
+        from ._process_numba import _get_coordinate
+        path = np.asarray(path, dtype=np.float32)
+        each_length = np.sqrt(np.sum(np.diff(path, axis=0)**2, axis=1))
+        total_length = np.sum(each_length)
+        
+        ndim = path.shape[1]
+        perp_lines = np.zeros((ndim, int(total_length)+1))
+        _get_coordinate(path, perp_lines)
+        if ndim == self.ndim:
+            dims = self.axes
+        else:
+            dims = complement_axes("c", self.axes)[-ndim:]
+        c_axes = complement_axes(dims, self.axes)
+        out = PropArray(np.empty(self.sizesof(c_axes) + (perp_lines.shape[1],), dtype=np.float32),
+                        name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
+        
+        for sl, img in self.iter(c_axes, exclude=dims):
+            out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
+                                         order=order, mode="reflect")
+            
+        out.set_scale(self)
+        return out
     
     @dims_to_spatial_axes
     @record(append_history=False)

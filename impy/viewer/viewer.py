@@ -138,6 +138,8 @@ class napariViewers:
             self._add_labels(obj, **kwargs)
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
+        elif isinstance(obj, PathFrame):
+            self._add_paths(obj, **kwargs)
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
         else:
@@ -219,6 +221,22 @@ class napariViewers:
         
         return None
     
+    def _add_paths(self, paths:PathFrame, **kwargs):
+        if "c" in paths._axes:
+            path_list = paths.split("c")
+        else:
+            path_list = [paths]
+            
+        scale = make_world_scale(paths[[a for a in paths._axes if a != "p"]])
+        kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
+        kw.update(kwargs)
+
+        for path in path_list:
+            metadata = {"axes": str(path._axes), "scale": path.scale}
+            paths = [single_path.values for single_path in path.split("p")]
+            self.viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
+        
+        return None
 
     def _name(self, name="impy"):
         i = 0

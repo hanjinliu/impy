@@ -1,4 +1,4 @@
-__version__ = "1.13.5"
+__version__ = "1.13.6"
 
 # TODO
 # - FSC, FRC
@@ -8,8 +8,6 @@ __version__ = "1.13.5"
 import warnings
 from .core import *
 from .binder import bind
-from .arrays import ImgArray,  PropArray, Label, PhaseArray
-from .frame import MarkerFrame, TrackFrame
 from .viewer import gui
 import numpy
 
