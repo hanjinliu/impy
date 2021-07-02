@@ -3,8 +3,8 @@ from skimage.feature.corner import _symmetric_image
 from skimage.feature.template import _window_sum_2d, _window_sum_3d
 from scipy.signal import fftconvolve
 import numpy as np
-from scipy.fftpack import fftn as fft
-from scipy.fftpack import ifftn as ifft
+from scipy.fft import rfftn as fft
+from scipy.fft import irfftn as ifft
 
 def affine_(args):
     sl, data, mx, order = args
