@@ -1059,17 +1059,35 @@ class LabeledArray(HistoryArray):
         return tiled_img
     
     @record()
-    def for_each_channel(self, func:str, **kwargs) -> LabeledArray:
+    def for_each_channel(self, func:str, along:str="c", **kwargs) -> LabeledArray:
+        """
+        Apply same function with different parameters for each channel. This function will be useful
+        when the parameters are dependent on channels, like wave length.
+
+        Parameters
+        ----------
+        func : str
+            Function name to apply over channel axis.
+        along : str, default is "c"
+            Along which axis function will be applied to.
+
+        Returns
+        -------
+        LabeledArray
+            output image stack
+        """        
         if not hasattr(self, func):
             raise AttributeError(f"{self.__class__} does not have method {func}")
-        imgs = self.split("c")
+        imgs = self.split(along)
         outs = []
         for img, kw in zip(imgs, _iter_dict(kwargs, len(imgs))):
             img.history.pop()
             out = getattr(img, func)(**kw)
             out.history.pop()
             outs.append(out)
-        return np.stack(outs, axis="c")
+        out = np.stack(outs, axis=along)
+        out.history.pop()
+        return out
     
     @need_labels
     @record()
