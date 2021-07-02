@@ -101,8 +101,8 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     
     # read tif metadata
     if fext == ".tif":
-        meta, series = get_meta(path)
-        img = series.asarray()
+        meta = get_meta(path, True)
+        img = meta.pop("image")
     else:
         img = io.imread(path)
         if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
