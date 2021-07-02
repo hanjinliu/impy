@@ -959,6 +959,37 @@ class ImgArray(LabeledArray):
         return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, 
                              "reflect", 0, outdtype=self.dtype)
     
+    @dims_to_spatial_axes
+    @record()
+    @same_dtype(asfloat=True)
+    def kalman_filter(self, gain:float=0.8, noise_var:float=0.05, *, along:str="t", dims=None, 
+                      update:bool=False) -> ImgArray:
+        """
+        Kalman filter for image smoothing. This function is same as "Kalman Stack Filter" in ImageJ but support
+        batch processing. This filter is useful for preprocessing of particle tracking.
+
+        Parameters
+        ----------
+        gain : float, default is 0.8
+            Filter gain.
+        noise_var : float, default is 0.05
+            Initial estimate of noise variance.
+        along : str, default is "t"
+            Which axis will be the time axis.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default is False
+            If update self to filtered image.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """        
+        c_axes = complement_axes(along + dims, self.axes)
+        # TODO: when ztyx
+        return self.parallel(kalman_filter_, c_axes, gain, noise_var)
+        
     @record(append_history=False)
     def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
         """

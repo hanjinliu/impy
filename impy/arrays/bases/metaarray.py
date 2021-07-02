@@ -287,7 +287,8 @@ class MetaArray(np.ndarray):
             result = type(result)(_as_meta_array(r) for r in result)
             
         else:
-            result = result.view(self.__class__)
+            if isinstance(result, np.ndarray):
+                result = result.view(self.__class__)
             # in the case result is such as np.float64
             if isinstance(result, self.__class__):
                 result._process_output(func, args, kwargs)

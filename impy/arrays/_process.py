@@ -124,6 +124,22 @@ def rolling_ball_(args):
     
     return sl, back
 
+def kalman_filter_(args):
+    sl, data, gain, noise_var = args
+    # data is 3D or 4D
+    out = np.empty_like(data)
+    spatial_shape = data.shape[1:]
+    for t, img in enumerate(data):
+        if t == 0:
+            estimate = img
+            predicted_var = np.full(spatial_shape, noise_var)
+        else:
+            kalman_gain = predicted_var / (predicted_var + noise_var)
+            estimate = gain*estimate +  (1.0 - gain)*img + kalman_gain*(img - estimate)
+            predicted_var *= 1 - kalman_gain
+        out[t] = estimate
+    return sl, out
+
 def rof_filter_(args):
     sl, obs, lmd, tol, max_iter = args
     out = skres._denoise._denoise_tv_chambolle_nd(obs, weight=lmd, eps=tol, n_iter_max=max_iter)
