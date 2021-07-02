@@ -302,4 +302,15 @@ class PathFrame(AxesFrame):
     # 0  9  7
     # 1  :  :
     # where subframe with same p corresponds to a path in yx-plane.
-    pass
+    def length(self, dims=None):
+        if dims is None:
+            dims = [a for a in "zyx" if a in self._axes]
+        for df in self.split("p"):
+            # l = sum(sqrt(dx_i^2 + dy_i^2 + dz_i^2))
+            l = np.sum(np.sqrt(sum(np.diff(df[a])**2 for a in dims)))
+        ...
+        # this function should return like...
+        # p t    f
+        # 0 2 10.2
+        # 1 6  9.1
+        # 2 1 46.2

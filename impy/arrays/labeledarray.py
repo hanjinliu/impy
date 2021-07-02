@@ -1042,6 +1042,15 @@ class LabeledArray(HistoryArray):
         -------
         HistoryArray
             Tiled array
+            
+        Examples
+        --------
+        (1) Read images as stack and tile them in grid shape 5 x 4.
+        >>> img = ip.imread_collection(r"C:\...")
+        >>> tiled_img = img.tile((5, 4))
+        (2) Read OME-TIFF images 
+        >>> img = ip.imread_stack(r"C:\...\Images_MMStack-Pos_$i_$j.ome.tif")
+        >>> tiled_img = img.tile()
         """        
         tiled_img = super().tile(shape, along, order)
         if hasattr(self, "labels"):

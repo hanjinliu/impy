@@ -155,6 +155,37 @@ class ImgArray(LabeledArray):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
+    @dims_to_spatial_axes
+    @same_dtype(True)
+    def binning(self, binsize:int=2, *, dims=None) -> ImgArray:
+        """
+        Binning of images. This function is essentially same as `rescale` but is more strict because the shape of
+        image must be divisible by binsize.
+
+        Parameters
+        ----------
+        binsize : int, default is 2
+            Bin size, such as 2x2.
+        dims : str or int, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Binned image
+        """        
+        for a in dims:
+            s = self.sizeof(a)
+            if s % dims != 0:
+                raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
+        scale_ = [1/binsize if a in dims else 1 for a in self.axes]
+        out = sktrans.rescale(self.value, scale_, order=0, anti_aliasing=False)
+        out = out.view(self.__class__)
+        out._set_info(self, f"binning(binsize={binsize})")
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
+        return out
+    
     @record()
     def gaussfit(self, scale:float=1/16, p0:list=None, show_result:bool=True, 
                  method:str="Powell") -> ImgArray:
@@ -494,6 +525,69 @@ class ImgArray(LabeledArray):
             raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
         
         return self.parallel(f, complement_axes(dims, self.axes))
+    
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @record()
+    def lowpass_filter(self, cutoff:nDFloat=0.2, order:float=2, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Butterworth low-pass filter.
+
+        Parameters
+        ----------
+        cutoff : float or array-like, default is 0.2
+            Cutoff frequency.
+        order : float, default is 2
+            Steepness of cutoff.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default is False
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """         
+        from ._skimage import _get_ND_butterworth_filter
+        cutoff = check_nd(cutoff, len(dims))
+        spatial_shape = self.sizesof(dims)
+        spatial_axes = [self.axisof(a) for a in dims]
+        weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
+        out = ifft(weight*fft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        return out
+    
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @record()
+    def highpass_filter(self, cutoff:nDFloat=0.2, order:float=2, *, dims=None, update:bool=False) -> ImgArray:
+        """
+        Butterworth high-pass filter.
+
+        Parameters
+        ----------
+        cutoff : float or array-like, default is 0.2
+            Cutoff frequency.
+        order : float, default is 2
+            Steepness of cutoff.
+        dims : int or str, optional
+            Spatial dimensions.
+        update : bool, default is False
+            If update self after filtering.
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """         
+        from ._skimage import _get_ND_butterworth_filter
+        cutoff = check_nd(cutoff, len(dims))
+        spatial_shape = self.sizesof(dims)
+        spatial_axes = [self.axisof(a) for a in dims]
+        weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
+        out = ifft(weight*fft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        return out
+    
     
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -2110,7 +2204,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Complex array.
         """
-        freq = fft(self.value.astype(np.float32), shape=self.sizesof(dims), 
+        freq = fft(self.value.astype(np.float32), s=self.sizesof(dims), 
                    axes=[self.axisof(a) for a in dims])
         out = np.fft.fftshift(freq)
         return out
@@ -2133,8 +2227,7 @@ class ImgArray(LabeledArray):
         """
         
         freq = np.fft.fftshift(self.value)
-        out = ifft(freq, shape=self.sizesof(dims), 
-                   axes=[self.axisof(a) for a in dims])
+        out = ifft(freq, s=self.sizesof(dims), axes=[self.axisof(a) for a in dims])
         out = np.real(out)
         return out
     
