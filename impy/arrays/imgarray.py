@@ -987,9 +987,16 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         c_axes = complement_axes(along + dims, self.axes)
-        # TODO: when ztyx
-        return self.parallel(kalman_filter_, c_axes, gain, noise_var)
-        
+        taxis = self.axisof(along)
+        min_a = min(self.axisof(a) for a in dims)
+        if taxis > min_a:
+            self = np.swapaxis(self, taxis, min_a)
+        out = self.parallel(kalman_filter_, c_axes, gain, noise_var)
+        if taxis > min_a:
+            out = np.swapaxis(out, min_a, taxis)
+                
+        return out
+    
     @record(append_history=False)
     def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
         """

@@ -1,7 +1,6 @@
-__version__ = "1.13.4"
+__version__ = "1.13.5"
 
 # TODO
-# - nD Kalman filter
 # - FSC, FRC
 # - 3D Gabor filter
 # - get line from shape layers
