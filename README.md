@@ -101,8 +101,9 @@ ip.random.normal(size=(100, 100))
   - `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection by DoG, DoH, LoG filter.
   - `edge_filter`, `laplacian_filter` &rarr; Edge detection.
   - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
+  - `lowpass_filter`, `highpass_filter` &rarr; FFT based filtering.
   - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
-  - `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
+  - `kalman_filter`, `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
 
 - **Morphological Image Processing**
   - `erosion`, `dilation`, `opening`, `closing` &rarr; Basic ones.
@@ -144,6 +145,7 @@ ip.random.normal(size=(100, 100))
 
 - **Property Measurement**
   - `regionprops` &rarr; Measure region properties such as mean intensity, Euler number, centroid, moment etc.
+  - `pathprops` &rarr; Measure path properties such as mean intensity.
   - `lineprops`, `pointprops` &rarr; Measure line/point properties.
 
 - **Texture Classification**
@@ -154,12 +156,16 @@ ip.random.normal(size=(100, 100))
   - `stokes` &rarr; Analyze polarization using Stokes parameters.
   - `fft`, `ifft` &rarr; Fourier transformation.
   - `threshold` &rarr; Thresholding (many methods included).
-  - `reslice` &rarr; Get line scan.
+  - `reslice` &rarr; Get scan along a line or path.
   - `crop_center`, `crop_kernel`, `remove_edges` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
   - `proj` &rarr; Z-projection along any axis.
   - `split`, `split_pixel_unit` &rarr; Split the image.
   - `pad`, `defocus` &rarr; Padding.
+  - `iter`, `for_each_channel` &rarr; Easy iteration.
+  - `set_scale` &rarr; set scales of any axes.
+  - `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
+  - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
 
 ## Image I/O and Other Functions
 
@@ -167,9 +173,7 @@ ip.random.normal(size=(100, 100))
 - `impy.imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
 - `impy.imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\50nM_pos3"`.
 - `impy.read_meta` &rarr; Read metadata of a tiff file.
-- `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
-- `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
-- `set_scale` &rarr; set scales of any axes.
+
 
 ... and many `numpy` functions are also accessible with such as `ip.array` or `ip.random.normal`.
 
@@ -231,6 +235,13 @@ or
 
 ```python
 ip.bind(imfilter, indtype="float32")
+```
+
+or in with-block for temporary usage
+
+```python
+with ip.bind(imfilter, indtype="float32"):
+    ...
 ```
 
 and now it's ready to execute batch-`imfilter`!
