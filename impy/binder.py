@@ -94,6 +94,7 @@ class bind:
     >>> img.mylabel(95)   # img.labels is added here
     """    
     bound = set()
+    last_added = None
     def __init__(self, func:Callable=None, funcname:str=None, *, indtype=None, outdtype=None, 
                  kind:str="image", ndim:int|None=None, mapping:dict[str, tuple[str, Callable]]=None):
         """
@@ -122,6 +123,13 @@ class bind:
                               outdtype=self.outdtype, kind=self.kind, ndim=self.ndim, mapping=self.mapping)
         return func
     
+    
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._unbind_method(self.__class__.last_added)
+        
     def _bind_method(self, func:Callable, funcname:str=None, *, indtype=None, outdtype=None,
                      kind="image", ndim=None, mapping:dict[str, tuple[str, Callable]]=None):
         # check function's name
@@ -244,4 +252,9 @@ class bind:
             return out
         
         self.__class__.bound.add(fn)
+        self.__class__.last_added = fn
         return setattr(ImgArray, fn, _func)
+    
+    def _unbind_method(self, funcname:str):
+        self.__class__.bound.remove(funcname)
+        return delattr(ImgArray, funcname)
