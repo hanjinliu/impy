@@ -1,7 +1,8 @@
 from __future__ import annotations
+from impy.utilcls import ArrayDict
 import napari
 import magicgui
-import os
+from numpy.core.fromnumeric import shape
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
 
@@ -123,17 +124,15 @@ def add_table_widget(viewer):
             copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
             widget.layout().addWidget(table.native)
             widget.layout().addWidget(copy_button)
-            
-            widget = QtViewerDockWidget(viewer.window.qt_viewer, widget, name=df.name,
+            widget = QtViewerDockWidget(viewer.window.qt_viewer, table, name=df.name,
                                         area="right", add_vertical_stretch=True)
             viewer.window._add_viewer_dock_widget(widget, tabify=viewer.window.n_table>0)
             viewer.window.n_table += 1
         return None
     
     viewer.window.add_dock_widget(button, area="left", name="Get Coordinates")
-    viewer.window.n_table = 0
     return None
-
+    
 
 def add_note_widget(viewer):
     text = magicgui.widgets.TextEdit(tooltip="Note")
@@ -221,8 +220,14 @@ def function_handler(viewer):
             elif isinstance(out, TrackFrame):
                 out_ = (out, 
                         dict(scale=scale, translate=input.translate,
-                                metadata={"axes": str(out._axes), "scale":out.scale}), 
+                             metadata={"axes": str(out._axes), "scale":out.scale}), 
                         "tracks")
+            elif isinstance(out, PathFrame):
+                out_ = (out, 
+                        dict(scale=scale, translate=input.translate,
+                             shape_type="path", edge_color="lime", edge_width=0.3,
+                             metadata={"axes": str(out._axes), "scale":out.scale}),
+                        "shapes")
             else:
                 continue
             outlist.append(out_)
@@ -234,6 +239,21 @@ def function_handler(viewer):
     viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
     return None
 
+
+def _make_table_widget(df, columns=None, name=None):
+    # DataFrame -> table
+    widget = QWidget()
+    widget.setLayout(QGridLayout())
+    if columns is None:
+        columns = list(df.columns)
+    if name is None:
+        name = "value"
+    table = magicgui.widgets.Table(df.values, name=name, columns=columns)
+    copy_button = QPushButton("Copy")
+    copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
+    widget.layout().addWidget(table.native)
+    widget.layout().addWidget(copy_button)
+    return widget
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))
@@ -252,7 +272,7 @@ def str_to_args(s:str) -> tuple[list, dict]:
     return args, kwargs
             
 def interpret_type(s:str):
-    return eval(s, {"np":np})
+    return eval(s, {"np": np})
 
 def _iter_args_and_kwargs(string:str):
     stack = 0

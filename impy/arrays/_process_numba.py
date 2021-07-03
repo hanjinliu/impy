@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from numba import jit
 
 @jit("void(uint8[:], f4[:], i8, i8, uint8[:,:], f4[:,:,:,:])", nopython=True, cache=True)
@@ -99,54 +100,35 @@ def _specify_circ_3d(arr, coords, radius, label_offset=1):
 
 @jit(nopython=True)
 def _get_coordinate(path, coords):
+    # Same as the ImageJ's profile-line function.
+    # See: https://imagej.nih.gov/ij/source/ij/gui/ProfilePlot.java
     inc = 0.01
+    dist_unit = 1.0 - inc/2.0
     npoints, ndim = path.shape
-    nout = 0
+    
+    # memory allocation
     r2 = path[0]
     r1 = np.zeros(r2.size)
     r = np.zeros(r2.size)
     r_last = np.zeros(r2.size)
+    dr = np.zeros(r2.size)
+    
+    nout = 0
     for i in range(1, npoints):
         r1[:] = r2
         r[:] = r1
         r2[:] = path[i]
-        dr = r2 - r1
-        distance = np.sqrt(np.sum(dr**2))
+        dr[:] = r2 - r1
+        distance = math.sqrt(np.sum(dr**2))
         r_inc = dr * inc / distance
         n2 = int(distance/inc)
-        if npoints == 2:
-            n2 += 1
         while n2 >= 0:
-            dr = r - r_last
-            distance = np.sqrt(np.sum(dr**2))
-            if distance >= 1.0 - inc/2.0:
+            dr[:] = r - r_last
+            distance = math.sqrt(np.sum(dr**2))
+            if distance >= dist_unit:
                 coords[:, nout] = r
                 r_last[:] = r
                 nout += 1
             r += r_inc
             n2 -= 1
     
-    # for (int i=1; i<n; i++) {
-	# 		x1=x2; y1=y2;
-	# 		x=x1; y=y1;
-	# 		x2=xpoints[i]; y2=ypoints[i];
-	# 		dx = x2-x1;
-	# 		dy = y2-y1;
-	# 		distance = Math.sqrt(dx*dx+dy*dy);
-	# 		xinc = dx*inc/distance;
-	# 		yinc = dy*inc/distance;
-	# 		//n2 = (int)(dx/xinc);
-	# 		n2 = (int)(distance/inc);
-	# 		if (n==2) n2++;
-	# 		do {
-	# 			dx = x-lastx;
-	# 			dy = y-lasty;
-	# 			distance2 = Math.sqrt(dx*dx+dy*dy);
-	# 			if (distance2>=1.0-inc/2.0) {
-	# 				*******
-	# 				lastx=x; lasty=y;
-	# 			}
-	# 			x += xinc;
-	# 			y += yinc;
-	# 		} while (--n2>0);
-	# 	}

@@ -1,10 +1,13 @@
 from __future__ import annotations
 import napari
+import pandas as pd
 from ..arrays import *
 from ..frame import *
 from ..core import array as ip_array
 from .utils import *
 from .mouse import *
+from ..utilcls import ArrayDict
+from .widgets import _make_table_widget
 
 
 # TODO: 
@@ -93,6 +96,7 @@ class napariViewers:
         viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
         self._front_viewer = key
+        viewer.window.n_table = 0
         return None
     
     def get_data(self, layer):
@@ -140,6 +144,8 @@ class napariViewers:
             self._add_tracks(obj, **kwargs)
         elif isinstance(obj, PathFrame):
             self._add_paths(obj, **kwargs)
+        elif isinstance(obj, (pd.DataFrame, PropArray)):
+            self._add_properties(obj, **kwargs)
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
         else:
@@ -236,6 +242,32 @@ class napariViewers:
             paths = [single_path.values for single_path in path.split("p")]
             self.viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
         
+        return None
+    
+    def _add_properties(self, prop:PropArray|ArrayDict|pd.DataFrame):
+        QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
+        if isinstance(prop, PropArray):
+            df = prop.as_frame()
+            df.rename(columns = {"f": "value"}, inplace=True)
+            table = _make_table_widget(df, name=prop.propname)
+        elif isinstance(prop, ArrayDict):
+            data = None
+            for k, pr in prop.items():
+                df = pr.as_frame()
+                if data is None:
+                    data = df.rename(columns = {"f": k})
+                else:
+                    data[k] = df["f"]
+            table = _make_table_widget(data)
+        elif isinstance(prop, pd.DataFrame):
+            table = _make_table_widget(prop)
+        else:
+            raise TypeError(f"`prop` cannot be {type(prop)}")
+                
+        widget = QtViewerDockWidget(self.viewer.window.qt_viewer, table, name="Table",
+                                    area="right", add_vertical_stretch=True)
+        self.viewer.window._add_viewer_dock_widget(widget, tabify=self.viewer.window.n_table>0)
+        self.viewer.window.n_table += 1
         return None
 
     def _name(self, name="impy"):

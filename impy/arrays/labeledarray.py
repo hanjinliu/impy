@@ -721,12 +721,19 @@ class LabeledArray(HistoryArray):
     @record(append_history=False)
     def reslice_path(self, path, *, order:int=1) -> PropArray:
         # path = [[y1, x1],[y2, x2], ..., [yn, xn]]
-        from ._process_numba import _get_coordinate
         path = np.asarray(path, dtype=np.float32)
+        npoints, ndim = path.shape
+        
+        if npoints < 2:
+            raise ValueError("Insufficient number of points for a path.")
+        elif npoints == 2:
+            return self.reslice(path[0], path[1], order=order)
+        
+        from ._process_numba import _get_coordinate
+        
         each_length = np.sqrt(np.sum(np.diff(path, axis=0)**2, axis=1))
         total_length = np.sum(each_length)
         
-        ndim = path.shape[1]
         perp_lines = np.zeros((ndim, int(total_length)+1))
         _get_coordinate(path, perp_lines)
         if ndim == self.ndim:
