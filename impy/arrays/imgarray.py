@@ -13,6 +13,7 @@ from .phasearray import PhaseArray
 from .specials import PropArray
 from ..utilcls import *
 from ._process import *
+from ..frame import *
 from ..frame.frames import tp
 
 
@@ -2671,7 +2672,7 @@ class ImgArray(LabeledArray):
         order : int, default is 1
             Spline interpolation order.
         squeeze : bool, default is True
-            If True and only one point is measured, the redundant dimension "p" will be deleted.
+            If True and only one point is measured, the redundant dimension ID_AXIS will be deleted.
 
         Returns
         -------
@@ -2691,7 +2692,7 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(prop_axes)
         l = coords.shape[1] # Number of points
         out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes="p"+prop_axes, dirpath=self.dirpath,
+                        axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
                         propname = f"pointprops", dtype=np.float32)
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
@@ -2699,6 +2700,63 @@ class ImgArray(LabeledArray):
                                                 order=order, mode="reflect")
         if l == 1 and squeeze:
             out = out[0]
+        return out
+    
+    @record(append_history=False)
+    def pathprops(self, paths, properties:str|Callable|Iterable[str|Callable]="mean", *, order:int=1) -> ArrayDict:
+        """
+        Measure line property using func(line_scan).
+
+        Parameters
+        ----------
+        src : MarkerFrame or array-like
+            Source coordinates.
+        dst : MarkerFrame of array-like
+            Destination coordinates.
+        func : str or callable, default is "mean".
+            Measurement function.
+        order : int, optional
+            Spline interpolation order.
+        squeeze : bool, default is True.
+            If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
+
+        Returns
+        -------
+        ArrayDict of PropArray
+            Line properties.
+
+        Example
+        -------
+        Time-course measurement of intensities on lines.
+        >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
+        >>> pr.plot()
+        """        
+        funcdict = dict()
+        if isinstance(properties, str) or callable(properties):
+            properties = (properties,)
+        for f in properties:
+            if isinstance(f, str):
+                funcdict[f] = getattr(np, f)
+            elif callable(f):
+                funcdict[f.__name__] = f
+            else:
+                raise TypeError(f"Cannot interpret property {f}")
+                
+        l = paths[ID_AXIS].unique()
+        prop_axes = complement_axes(paths._axes, ID_AXIS + str(self.axes))
+        shape = self.sizesof(prop_axes)
+        
+        out = ArrayDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
+                                      axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
+                                      propname = f"lineprops<{k}>", dtype=np.float32)
+                         for k in funcdict.keys()}
+                        )
+        
+        for i, path in enumerate(paths.split(ID_AXIS)):
+            resliced = self.reslice(path, order=order)
+            for name, func in funcdict.items():
+                out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
+                
         return out
     
     @record(append_history=False)
@@ -2718,7 +2776,7 @@ class ImgArray(LabeledArray):
         order : int, optional
             Spline interpolation order.
         squeeze : bool, default is True.
-            If True and only one line is measured, the redundant dimension "p" will be deleted.
+            If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
 
         Returns
         -------
@@ -2743,7 +2801,7 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(prop_axes)
         
         out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes="p"+prop_axes, dirpath=self.dirpath,
+                        axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
                         propname = f"lineprops<{func.__name__}>", dtype=np.float32)
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
@@ -2754,7 +2812,7 @@ class ImgArray(LabeledArray):
             out = out[0]
         
         return out
-    
+
     @dims_to_spatial_axes
     @record(append_history=False)
     def pearson_coloc(self, mask=None, *, along:str="c", squeeze:bool=True, dims=None) -> PropArray|float:
@@ -3032,16 +3090,16 @@ class ImgArray(LabeledArray):
         if extra_properties is not None:
             properties = properties + tuple(ex.__name__ for ex in extra_properties)
 
-        if "p" in self.axes:
+        if ID_AXIS in self.axes:
             # this dimension will be label
-            raise ValueError("axis 'p' is forbidden in regionprops().")
+            raise ValueError(f"axis '{ID_AXIS}' is used for label ID in DataFrames.")
         
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
         out = ArrayDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
                                       name=self.name, 
-                                      axes="p"+prop_axes,
+                                      axes=ID_AXIS+prop_axes,
                                       dirpath=self.dirpath,
                                       propname=p)
                          for p in properties})

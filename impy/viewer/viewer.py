@@ -220,7 +220,7 @@ class napariViewers:
         else:
             track_list = [track]
             
-        scale = make_world_scale(track[[a for a in track._axes if a != "p"]])
+        scale = make_world_scale(track[[a for a in track._axes if a != ID_AXIS]])
         for tr in track_list:
             metadata = {"axes": str(tr._axes), "scale": tr.scale}
             self.viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
@@ -233,13 +233,13 @@ class napariViewers:
         else:
             path_list = [paths]
             
-        scale = make_world_scale(paths[[a for a in paths._axes if a != "p"]])
+        scale = make_world_scale(paths[[a for a in paths._axes if a != ID_AXIS]])
         kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
         kw.update(kwargs)
 
         for path in path_list:
             metadata = {"axes": str(path._axes), "scale": path.scale}
-            paths = [single_path.values for single_path in path.split("p")]
+            paths = [single_path.values for single_path in path.split(ID_AXIS)]
             self.viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
         
         return None
