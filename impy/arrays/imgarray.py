@@ -2697,66 +2697,9 @@ class ImgArray(LabeledArray):
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
             out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
-                                                order=order, mode="reflect")
+                                                         order=order, mode="reflect")
         if l == 1 and squeeze:
             out = out[0]
-        return out
-    
-    @record(append_history=False)
-    def pathprops(self, paths, properties:str|Callable|Iterable[str|Callable]="mean", *, order:int=1) -> ArrayDict:
-        """
-        Measure line property using func(line_scan).
-
-        Parameters
-        ----------
-        src : MarkerFrame or array-like
-            Source coordinates.
-        dst : MarkerFrame of array-like
-            Destination coordinates.
-        func : str or callable, default is "mean".
-            Measurement function.
-        order : int, optional
-            Spline interpolation order.
-        squeeze : bool, default is True.
-            If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
-
-        Returns
-        -------
-        ArrayDict of PropArray
-            Line properties.
-
-        Example
-        -------
-        Time-course measurement of intensities on lines.
-        >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
-        >>> pr.plot()
-        """        
-        funcdict = dict()
-        if isinstance(properties, str) or callable(properties):
-            properties = (properties,)
-        for f in properties:
-            if isinstance(f, str):
-                funcdict[f] = getattr(np, f)
-            elif callable(f):
-                funcdict[f.__name__] = f
-            else:
-                raise TypeError(f"Cannot interpret property {f}")
-                
-        l = paths[ID_AXIS].unique()
-        prop_axes = complement_axes(paths._axes, ID_AXIS + str(self.axes))
-        shape = self.sizesof(prop_axes)
-        
-        out = ArrayDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                                      axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
-                                      propname = f"lineprops<{k}>", dtype=np.float32)
-                         for k in funcdict.keys()}
-                        )
-        
-        for i, path in enumerate(paths.split(ID_AXIS)):
-            resliced = self.reslice(path, order=order)
-            for name, func in funcdict.items():
-                out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
-                
         return out
     
     @record(append_history=False)
@@ -3013,7 +2956,7 @@ class ImgArray(LabeledArray):
     def slic(self, n_segments=100, *, compactness=10.0, max_iter=10, sigma=1, multichannel=False,
              min_size_factor=0.5, max_size_factor=3, mask=None, dims=None):
         # multichannel not working, needs sort_axes
-        # issue: slic returns a strange label with grayscale images.
+        # BUG: slic returns a strange label with grayscale images.
         if multichannel:
             c_axes = complement_axes("c"+dims, self.axes)
             labels = largest_zeros(self["c=0"].shape)
@@ -3053,7 +2996,68 @@ class ImgArray(LabeledArray):
         labels = self.threshold(thr=thr, dims=None, **kwargs)
         return self.label(labels, dims=dims)
     
+    
+    @record(append_history=False)
+    def pathprops(self, paths:PathFrame, properties:str|Callable|Iterable[str|Callable]="mean", *, 
+                  order:int=1) -> ArrayDict:
+        """
+        Measure line property using func(line_scan) for each func in properties.
+
+        Parameters
+        ----------
+        paths : PathFrame
+            Paths to measure properties.
+        properties : str or callable, or their iterable
+            Properties to be analyzed.
+        order : int, optional
+            Spline interpolation order.
         
+        Returns
+        -------
+        ArrayDict of PropArray
+            Line properties. Keys are property names and values are the corresponding PropArrays.
+
+        Example
+        -------
+        (1) Time-course measurement of intensities on a path.
+        >>> img.pathprops([[2,3], [102, 301], [200,400]])
+        """        
+        # check path
+        if not isinstance(paths, PathFrame):
+            paths = np.asarray(paths)
+            paths = np.hstack([np.zeros((paths.shape[0],1)), paths])
+            paths = PathFrame(paths, columns=ID_AXIS+str(self.axes)[-paths.shape[1]+1:])
+            
+        # make a function dictionary
+        funcdict = dict()
+        if isinstance(properties, str) or callable(properties):
+            properties = (properties,)
+        for f in properties:
+            if isinstance(f, str):
+                funcdict[f] = getattr(np, f)
+            elif callable(f):
+                funcdict[f.__name__] = f
+            else:
+                raise TypeError(f"Cannot interpret property {f}")
+        
+        # prepare output
+        l = len(paths[ID_AXIS].unique())
+        prop_axes = complement_axes(paths._axes, ID_AXIS + str(self.axes))
+        shape = self.sizesof(prop_axes)
+        
+        out = ArrayDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
+                                      axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
+                                      propname = f"lineprops<{k}>", dtype=np.float32)
+                         for k in funcdict.keys()}
+                        )
+        
+        for i, path in enumerate(paths.split(ID_AXIS)):
+            resliced = self.reslice(path, order=order)
+            for name, func in funcdict.items():
+                out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
+                
+        return out
+    
     @need_labels
     @record(append_history=False)
     def regionprops(self, properties:tuple[str,...]|str=("mean_intensity",), *, 

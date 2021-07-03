@@ -1,15 +1,15 @@
-__version__ = "1.13.8"
+__version__ = "1.13.9"
 
 # TODO
 # - FSC, FRC
 # - 3D Gabor filter
-# - get line from shape layers
+# - get lines/paths from shape layers
 
 import warnings
 from .core import *
 from .binder import bind
 from .viewer import gui
-import numpy
+import numpy as np
 
 r"""
 Inheritance
@@ -38,7 +38,7 @@ class Random:
         pass
     
     def __getattribute__(self, name:str):
-        npfunc = getattr(numpy.random, name)
+        npfunc = getattr(np.random, name)
         def _func(*args, **kwargs):
             out = npfunc(*args, **kwargs)
             return array(out, name=npfunc.__name__)
@@ -46,4 +46,4 @@ class Random:
 
 random = Random()
 
-del warnings, numpy
+del warnings
