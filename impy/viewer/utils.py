@@ -110,6 +110,8 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
         kwargs["colormap"] = "hsv"
         kwargs["contrast_limits"] = img.border
+    elif img.dtype.kind == "c" and  not "colormap" in kwargs.keys():
+        kwargs["colormap"] = "plasma"
     
     scale = make_world_scale(img)
     

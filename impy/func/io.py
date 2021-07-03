@@ -1,5 +1,4 @@
 from __future__ import annotations
-import numpy as np
 from tifffile import TiffFile
 import json
 import re
