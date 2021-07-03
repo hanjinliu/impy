@@ -15,6 +15,7 @@ from ..utilcls import *
 from ._process import *
 from ..frame import *
 from ..frame.frames import tp
+from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 
 
 class ImgArray(LabeledArray):
@@ -555,7 +556,7 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        out = ifft(weight*fft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return out
     
     @dims_to_spatial_axes
@@ -586,7 +587,7 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
-        out = ifft(weight*fft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return out
     
     
@@ -2241,33 +2242,35 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Complex array.
+            FFT image.
         """
-        freq = fft(self.value.astype(np.float32), s=self.sizesof(dims), 
-                   axes=[self.axisof(a) for a in dims])
+        freq = fft(self.value.astype(np.float32), axes=[self.axisof(a) for a in dims])
         out = np.fft.fftshift(freq)
         return out
     
     @dims_to_spatial_axes
     @record()
-    def ifft(self, *, dims=None) -> ImgArray:
+    def ifft(self, real:bool=True, *, dims=None) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
         
         Parameters
         ----------
+        real : bool, default is True
+            If True, only the real part is returned.
         dims : int or str, optional
             Spatial dimensions.
             
         Returns
         -------
         ImgArray
-            Real array.
+            IFFT image.
         """
+        freq = np.fft.ifftshift(self.value)
+        out = ifft(freq, axes=[self.axisof(a) for a in dims])
         
-        freq = np.fft.fftshift(self.value)
-        out = ifft(freq, s=self.sizesof(dims), axes=[self.axisof(a) for a in dims])
-        out = np.real(out)
+        if real:
+            out = np.real(out)
         return out
     
     @record()
@@ -3653,7 +3656,7 @@ class ImgArray(LabeledArray):
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
         
-        psf_ft = fft(psf)
+        psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.parallel(wiener_, complement_axes(dims, self.axes),
@@ -3692,7 +3695,7 @@ class ImgArray(LabeledArray):
         psf = check_psf(self, psf, dims)
         
         # calculate FFT of PSF and its conjugate in advance
-        psf_ft = fft(psf)
+        psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.parallel(richardson_lucy_, complement_axes(dims), 
@@ -3756,7 +3759,7 @@ class ImgArray(LabeledArray):
                              "must be positive.")
         
         # calculate FFT of PSF and its conjugate in advance
-        psf_ft = fft(psf)
+        psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.parallel(richardson_lucy_tv_, complement_axes(dims), 
