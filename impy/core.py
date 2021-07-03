@@ -3,6 +3,7 @@ from .arrays import ImgArray
 from .arrays.bases import MetaArray
 import numpy as np
 import os
+import re
 import glob
 import itertools
 import collections
@@ -101,7 +102,10 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     
     # read tif metadata
     if fext == ".tif":
-        meta = get_meta(path, True)
+        meta = open_tif(path, True)
+        img = meta.pop("image")
+    elif fext == ".mrc":
+        meta = open_mrc(path, True)
         img = meta.pop("image")
     else:
         img = io.imread(path)
@@ -364,9 +368,13 @@ def read_meta(path:str) -> dict[str]:
         "history": impy history
         "tags": tiff tags
     """    
-    if not path.endswith(".tif"):
-        raise ValueError("Cannot read metadata from file extension other than tif.")
-    meta, _ = get_meta(path)
+    if path.endswith(".tif"):
+        meta = open_tif(path)
+    elif path.endswith(".mrc"):
+        meta = open_mrc(path)
+    else:
+        raise ValueError("Unsupported file extension.")
+    
     return meta
 
 def set_cpu(n_cpu:int) -> None:

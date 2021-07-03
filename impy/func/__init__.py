@@ -5,3 +5,4 @@ from .plot import *
 from .simple import *
 from .slicer import *
 from .structures import *
+from .io import *

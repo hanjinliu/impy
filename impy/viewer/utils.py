@@ -124,6 +124,8 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     else:
         name = [name + suffix]
     
+    if img.dtype.kind == "c":
+        img = np.abs(img)
     layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                              name=name if len(name)>1 else name[0],
                              **kwargs)
