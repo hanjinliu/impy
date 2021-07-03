@@ -665,9 +665,10 @@ class LabeledArray(HistoryArray):
             return self.specify(center, radius, dims=dims, labeltype=labeltype)     
         
         return self.labels
+       
     
     @record(append_history=False)
-    def reslice(self, src, dst, *, order:int=1) -> PropArray:
+    def reslice(self, a, b=None, *, order:int=1) -> PropArray:
         """
         Measure line profile iteratively for every slice of image. This function is almost same as
         `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is not 
@@ -675,10 +676,11 @@ class LabeledArray(HistoryArray):
 
         Parameters
         ----------
-        src : array-like
-            Source coordinate.
-        dst : array-like
-            Destination coordinate.
+        a : array-like
+            Path or source coordinate. If the former, it must be like:
+                a = [[y0, x0], [y1, x1], ..., [yn, xn]]
+        b : array-like, optional
+            Destination coordinate. If specified, `a` must be the source coordinate.
         order : int, default is 1
             Spline interpolation order.
 
@@ -689,64 +691,47 @@ class LabeledArray(HistoryArray):
         
         Example
         -------
-        Rescile along a line and fit to a model function for every time frame.
+        (1) Rescile along a line and fit to a model function for every time frame.
         >>> scan = img.reslice([18,32], [53,48])
         >>> out = scan.curve_fit(func, init, return_fit=True)
         >>> plt.plot(scan[0])
         >>> plt.plot(out.fit[0])
+        (2) Rescile along a path.
+        >>> scan = img.reslice([[18,32], [53,48], [22,45], [28, 32]])
         """        
-        src = np.asarray(src, dtype=np.float32)
-        dst = np.asarray(dst, dtype=np.float32)
-        d = dst - src
-        length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
-        perp_lines = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
-        
-        ndim = src.size
-        if ndim == self.ndim:
-            dims = self.axes
-        else:
-            dims = complement_axes("c", self.axes)[-ndim:]
-        c_axes = complement_axes(dims, self.axes)
-        out = PropArray(np.empty(self.sizesof(c_axes) + (length,), dtype=np.float32),
-                        name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
-        
-        for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
-                                          order=order, mode="reflect")
-            
-        out.set_scale(self)
-        return out
-    
-    
-    @record(append_history=False)
-    def reslice_path(self, path, *, order:int=1) -> PropArray:
         # path = [[y1, x1],[y2, x2], ..., [yn, xn]]
-        path = np.asarray(path, dtype=np.float32)
-        npoints, ndim = path.shape
+        if b is not None:
+            a = [list(a), list(b)]
+        a = np.asarray(a, dtype=np.float32)
+        npoints, ndim = a.shape
         
         if npoints < 2:
             raise ValueError("Insufficient number of points for a path.")
         elif npoints == 2:
-            return self.reslice(path[0], path[1], order=order)
-        
-        from ._process_numba import _get_coordinate
-        
-        each_length = np.sqrt(np.sum(np.diff(path, axis=0)**2, axis=1))
-        total_length = np.sum(each_length)
-        
-        perp_lines = np.zeros((ndim, int(total_length)+1))
-        _get_coordinate(path, perp_lines)
+            src, dst = a
+            d = dst - src
+            length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
+            coords = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
+        else:    
+            from ._process_numba import _get_coordinate
+            
+            each_length = np.sqrt(np.sum(np.diff(a, axis=0)**2, axis=1))
+            total_length = np.sum(each_length)
+            
+            coords = np.zeros((ndim, int(total_length)+1))
+            _get_coordinate(a, coords)
+            
         if ndim == self.ndim:
             dims = self.axes
         else:
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
-        out = PropArray(np.empty(self.sizesof(c_axes) + (perp_lines.shape[1],), dtype=np.float32),
+        out = PropArray(np.empty(self.sizesof(c_axes) + (coords.shape[1],), dtype=np.float32),
                         name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
         
         for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = ndi.map_coordinates(img, perp_lines, prefilter=order > 1,
-                                         order=order, mode="reflect")
+            out[sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
+                                          order=order, mode="reflect")
             
         out.set_scale(self)
         return out
