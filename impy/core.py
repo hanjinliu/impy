@@ -73,16 +73,19 @@ def gaussian_kernel(shape:tuple[int], sigma=1.0, peak=1.0):
         ker.axes = "zyx"
     return ker
 
-def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
+def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     """
     Load image from path.
 
     Parameters
     ----------
     path : str
-        Path to the image.
+        Path to the image or directory.
     dtype : Any type that np.dtype accepts
-        dtype of the images.
+        Data type of the images.
+    key : str, optional
+        If not None, image is read in a memory-mapped array first, and only img[key] is returned.
+        Only axis-targeted slicing is supported.
     axes : str or None, optional
         If the image does not have axes metadata, this value will be used.
 
@@ -102,10 +105,10 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     
     # read tif metadata
     if fext == ".tif":
-        meta = open_tif(path, True)
+        meta = open_tif(path, True, memmap=(key is not None))
         img = meta.pop("image")
     elif fext == ".mrc":
-        meta = open_mrc(path, True)
+        meta = open_mrc(path, True, memmap=(key is not None))
         img = meta.pop("image")
     else:
         img = io.imread(path)
@@ -113,7 +116,7 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
             meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
         else:
             meta = {"axes":axes, "ijmeta":{}, "history":[]}
-    
+            
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     if meta["history"]:
@@ -122,6 +125,10 @@ def imread(path:str, dtype:str=None, *, axes=None) -> ImgArray:
     else:
         name = fname
         history = []
+        
+    if key is not None:
+        sl = axis_targeted_slicing(img, axes, key)
+        img = np.asarray(img[sl])
     
     self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
                     history=history, metadata=metadata)

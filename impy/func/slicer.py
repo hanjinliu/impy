@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 import re
 
-__all__ = ["str_to_slice", "key_repr"]
+__all__ = ["str_to_slice", "key_repr", "axis_targeted_slicing"]
 
 def _range_to_list(v:str) -> list[int]:
     """
@@ -53,3 +53,18 @@ def key_repr(key):
             keylist.append(str(s))
     
     return ",".join(keylist)
+
+def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str):
+    """
+    e.g. 't=3:, z=1:5', 't=1, z=:7'
+    """
+    keylist = re.sub(" ", "", string).split(";")
+    sl_list = [slice(None)]*arr.ndim
+    try:
+        for k in keylist:
+            # e.g. k = "t=4:7"
+            axis, sl_str = k.split("=")
+            sl_list[axes.find(axis)] = str_to_slice(sl_str)
+    except ValueError:
+        raise ValueError(f"Informal axis-targeted slicing: {string}")
+    return tuple(sl_list)

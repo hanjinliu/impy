@@ -324,15 +324,7 @@ class MetaArray(np.ndarray):
         get subslices using ImageJ-like format.
         e.g. 't=3:, z=1:5', 't=1, z=:7'
         """
-        keylist = string.split(";")
-        sl_list = [slice(None)]*self.ndim
-        
-        for k in keylist:
-            # e.g. k = "t=4:7"
-            axis, sl_str = k.split("=")
-            sl_list[self.axisof(axis)] = str_to_slice(sl_str)
-
-        return tuple(sl_list)
+        return axis_targeted_slicing(self, str(self.axes), string)
     
     def sort_axes(self):
         """
