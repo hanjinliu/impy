@@ -294,6 +294,8 @@ def load_mouse_callbacks(viewer):
         viewer.mouse_drag_callbacks.append(getattr(mouse, f))
     for f in mouse.mouse_wheel_callbacks:
         viewer.mouse_wheel_callbacks.append(getattr(mouse, f))
+    for f in mouse.mouse_move_callbacks:
+        viewer.mouse_move_callbacks.append(getattr(mouse, f))
 
 def load_widgets(viewer):
     from . import widgets

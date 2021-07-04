@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ..arrays import *
 from ..frame import *
-from .mouse import *
 import napari
 
 def copy_layer(layer):

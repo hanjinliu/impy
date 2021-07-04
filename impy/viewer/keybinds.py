@@ -3,7 +3,6 @@ from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 from scipy import ndimage as ndi
-from ..func import add_axes
 
 KEYS = {"hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
@@ -120,7 +119,7 @@ def crop(viewer):
     """
     Crop images with rectangle shapes.
     """        
-    # TODO: consider translation of shape layer itself
+    # TODO: image scale
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
@@ -134,10 +133,8 @@ def crop(viewer):
     
     for rect in rects:
         if np.any(rect[0, -2:] == rect[1, -2:]):
-            print("crop_rectangle")
             crop_func = crop_rectangle
         else:
-            print("map_rotated_coordinates")
             crop_func = map_rotated_coordinates
         for layer in imglist:
             layer = viewer.add_layer(copy_layer(layer))
