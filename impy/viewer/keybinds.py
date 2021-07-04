@@ -136,6 +136,7 @@ def crop(viewer):
             crop_func = crop_rectangle
         else:
             crop_func = map_rotated_coordinates
+        
         for layer in imglist:
             layer = viewer.add_layer(copy_layer(layer))
             dyx = layer.translate[-2:] / layer.scale[-2:]

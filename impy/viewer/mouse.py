@@ -89,7 +89,8 @@ def wheel_resize(viewer, event):
             scale = layer.scale.copy()
             scale[-2:] *= factor
             layer.scale = scale
-            scale_texts.append(f"{int(scale[-1]*100)}%")
+            ratio = scale[-1]/layer.metadata["init_scale"][-1]
+            scale_texts.append(f"{int(ratio*100)}%")
         viewer.text_overlay.visible = True    
         viewer.text_overlay.text = ", ".join(scale_texts)
 
