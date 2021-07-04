@@ -1,5 +1,4 @@
 import numpy as np
-import math
 from numba import jit
 
 @jit("void(uint8[:], f4[:], i8, i8, uint8[:,:], f4[:,:,:,:])", nopython=True, cache=True)
@@ -119,12 +118,12 @@ def _get_coordinate(path, coords):
         r[:] = r1
         r2[:] = path[i]
         dr[:] = r2 - r1
-        distance = math.sqrt(np.sum(dr**2))
+        distance = np.sqrt(np.sum(dr**2))
         r_inc = dr * inc / distance
         n2 = int(distance/inc)
         while n2 >= 0:
             dr[:] = r - r_last
-            distance = math.sqrt(np.sum(dr**2))
+            distance = np.sqrt(np.sum(dr**2))
             if distance >= dist_unit:
                 coords[:, nout] = r
                 r_last[:] = r

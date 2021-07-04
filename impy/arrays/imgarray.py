@@ -3113,7 +3113,7 @@ class ImgArray(LabeledArray):
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
-            props = skmes.regionprops(self.labels, img, cache=False,
+            props = skmes.regionprops(self.labels.value, img, cache=False,
                                       extra_properties=extra_properties)
             label_sl = (slice(None),) + sl
             for prop_name in properties:
