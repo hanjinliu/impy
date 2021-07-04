@@ -195,8 +195,10 @@ def function_handler(viewer):
                 while name in layer_names:
                     name = f"{method}-{i}"
                     i += 1
-            # TODO: translate
+                    
             if isinstance(out, ImgArray):
+                if out.dtype.kind == "c":
+                    out = np.abs(out)
                 contrast_limits = [float(x) for x in out.range]
                 out_ = (out, 
                         dict(scale=scale, name=name, colormap=input.colormap, translate=input.translate,
