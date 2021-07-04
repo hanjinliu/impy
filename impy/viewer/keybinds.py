@@ -1,6 +1,9 @@
+from impy.func.misc import complement_axes
 from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
+from scipy import ndimage as ndi
+from ..func import add_axes
 
 KEYS = {"hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
@@ -117,37 +120,35 @@ def crop(viewer):
     """
     Crop images with rectangle shapes.
     """        
-    # TODO: translation of shape layer itself
+    # TODO: consider translation of shape layer itself
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
     
-    corners = []
+    rects = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
         for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
             if type_ == "rectangle":
-                corners.append((shape[0,-2:], shape[2,-2:])) # float pixel
+                rects.append(shape) # float pixel
                 
     
-    for start, end in corners:
+    for rect in rects:
+        if np.any(rect[0, -2:] == rect[1, -2:]):
+            print("crop_rectangle")
+            crop_func = crop_rectangle
+        else:
+            print("map_rotated_coordinates")
+            crop_func = map_rotated_coordinates
         for layer in imglist:
             layer = viewer.add_layer(copy_layer(layer))
-            sl = []
-            xy = layer.translate[-2:] / layer.scale[-2:]
+            dyx = layer.translate[-2:] / layer.scale[-2:]
             
-            sl0 = sorted([start[0], end[0]])
-            sl.append(slice(*map(lambda x: int(x-xy[0])+1, sl0)))
-            sl0 = sorted([start[1], end[1]])
-            sl.append(slice(*map(lambda x: int(x-xy[1])+1, sl0)))
-            
-            ndim = layer.ndim
-            area_to_crop = (slice(None),)*(ndim-2)+tuple(sl)
-            newdata = layer.data[area_to_crop]
+            newdata, relative_translate = crop_func(layer.data, rect, dyx)
             if newdata.size <= 0:
                 continue
             layer.data = newdata
             translate = layer.translate
-            translate[-2:] += np.array([s.start for s in sl]) * layer.scale[-2:]
+            translate[-2:] += relative_translate * layer.scale[-2:]
             layer.translate = translate
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
@@ -199,3 +200,39 @@ def duplicate_layer(viewer):
     """
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
+def make_ax(src, dst):
+    dr = dst - src
+    d = np.sqrt(sum(dr**2))
+    n = int(np.ceil(d))
+    return np.linspace(src, src+dr/d*(n-1), n)
+
+def map_rotated_coordinates(img, crds, dyx):
+    """
+    img : target image.
+    crds : four corners of a rotated rectangle.
+    """    
+    crds = crds[:, -2:] - dyx
+    ax0 = make_ax(crds[1], crds[2])
+    ax1 = make_ax(crds[0], crds[1])
+    all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - crds[1]
+    all_coords = np.moveaxis(all_coords, -1, 0)
+    cropped_img = np.empty(img.shape[:-2] + all_coords.shape[1:])
+    for sl, img2d in img.iter(complement_axes("yx", img.axes)):
+        cropped_img[sl] = ndi.map_coordinates(img2d, all_coords, prefilter=False, order=1)
+    translate = crds[0]
+    return cropped_img, translate
+
+def crop_rectangle(img, crds, dyx):
+    crds = crds[:, -2:] - dyx
+    start = crds[0, -2:]
+    end = crds[2, -2:]
+    sl = []
+    for i in [0,1]:
+        sl0 = sorted([start[i], end[i]])
+        sl.append(slice(int(sl0[0])+1, int(sl0[1])+1))
+    
+    ndim = img.ndim
+    area_to_crop = (slice(None),)*(ndim-2) + tuple(sl)
+    
+    translate = np.array([s.start for s in sl])
+    return img[area_to_crop], translate
