@@ -209,12 +209,38 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def radial_profile(self, nbin=32, *, dims=None) -> PropArray:
+    def radial_profile(self, nbin:int=32, center:Iterable[float]=None, *, dims=None) -> PropArray:
+        """
+        Calculate radial mean profile of images. Scale along each axis will be considerred, i.e., rather
+        ellipsoid mean profile will be calculated instead if scales are different between axes.
+
+        Parameters
+        ----------
+        nbin : int, optional
+            Number of bins., by default 32
+        center : iterable of float, optional
+            The coordinate of center of radial profile. By default, the center of image is used.
+        dims : str or int, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        PropArray
+            Radial profile in x-axis by default. If input image has tzcyx-axes, then an array with 
+            tcx-axes will be returned.
+        """        
         c_axes = complement_axes(dims, self.axes)
         spatial_shape = self.sizesof(dims)
         inds = np.indices(spatial_shape)
-        r = sum((x - s/2)**2 for x, s in zip(inds, spatial_shape))
-        labels = (nbin*r/r.max()).astype(np.uint16)
+        
+        # check center
+        if center is None:
+            center = [s/2 for s in spatial_shape]
+        elif len(center) != len(dims):
+            raise ValueError(f"Length of `center` must match input dimensionality '{dims}'.")
+        
+        r = sum(((x - c)/self.scale[a])**2 for x, c, a in zip(inds, center, dims))
+        labels = (nbin * r/r.max()).astype(np.uint16)
         
         out = PropArray(np.empty(self.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
