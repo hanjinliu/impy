@@ -209,16 +209,19 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def radial_profile(self, *, dims=None) -> PropArray:
-        center = tuple((self.sizeof(a)+1)/2 for a in dims)
-        scales = tuple(self.scale[a] for a in dims)
+    def radial_profile(self, nbin=32, *, dims=None) -> PropArray:
         c_axes = complement_axes(dims, self.axes)
-        length = max(self.sizesof(dims))//2
-        out = PropArray(np.empty((length,)+self.sizesof(c_axes)), dtype=np.float32, axes="r"+c_axes, 
+        spatial_shape = self.sizesof(dims)
+        inds = np.indices(spatial_shape)
+        r = sum((x - s/2)**2 for x, s in zip(inds, spatial_shape))
+        labels = (nbin*r/r.max()).astype(np.uint16)
+        
+        out = PropArray(np.empty(self.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
+        
         for sl, img in self.iter(c_axes, exclude=dims):
-            prof = radial_profile(img, center, scales)
-            out[(slice(None),) + sl] = prof
+            prof = ndi.mean(img, labels=labels, index=np.arange(1, labels.max() +1))
+            out[sl] = prof
         return out
     
     @record()

@@ -39,7 +39,7 @@ def gabor_kernel_nd(lmd, theta, psi:float, sigma:float, gamma:float, radius:int,
     
 def find_first_appeared(axes, include="", exclude=""):
     for a in axes:
-        if a in include or not a in exclude:
+        if a in include and not a in exclude:
             return a
     raise ValueError(f"Inappropriate axes: {axes}")
 

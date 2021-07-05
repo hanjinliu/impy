@@ -61,7 +61,7 @@ class PropArray(MetaArray):
                             "because dtype == object.")
         if along is None:
             along = find_first_appeared("tzp<yxc", include=self.axes)
-            
+        
         iteraxes = del_axis(self.axes, self.axisof(along))
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)

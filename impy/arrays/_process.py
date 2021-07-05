@@ -47,16 +47,6 @@ def wavelet_denoising_(args):
     return sl, out
 
 
-def radial_profile(data, center, scales):
-    sx, sy = data.shape
-    X, Y = np.ogrid[0:sx, 0:sy]
-
-
-    r = np.hypot(X - sx/2, Y - sy/2)
-
-    rbin = (20* r/r.max()).astype(np.int)
-    radial_mean = ndi.mean(data, labels=rbin, index=np.arange(1, rbin.max() +1))
-    
 def mean_(args):
     sl, data, selem = args
     return sl, ndi.convolve(data, selem/np.sum(selem))

@@ -525,7 +525,7 @@ class LabeledArray(HistoryArray):
         slices = []
         for a, size, sc in zip(dims, sizes, scale):
             x0 = int(size / 2 * (1 - sc))
-            x1 = int(size / 2 * (1 + sc))
+            x1 = int(np.ceil(size / 2 * (1 + sc)))
             slices.append(f"{a}={x0}:{x1}")
 
         out = self[";".join(slices)]
