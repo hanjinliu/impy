@@ -85,7 +85,14 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
         Data type of the images.
     key : str, optional
         If not None, image is read in a memory-mapped array first, and only img[key] is returned.
-        Only axis-targeted slicing is supported.
+        Only axis-targeted slicing is supported. This argument is important when reading a large
+        file.
+        >>> path = r"C:\...\Image.mrc"
+        >>> %time ip.imread(path)["x=:10;y=:10"]
+            Wall time: 136 ms
+        >>> %time ip.imread(path, key="x=:10;y=:10")
+            Wall time: 3.01 ms
+            
     axes : str or None, optional
         If the image does not have axes metadata, this value will be used.
 
@@ -104,10 +111,10 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     dirpath = os.path.dirname(path)
     
     # read tif metadata
-    if fext == ".tif":
+    if fext in (".tif", ".tiff"):
         meta = open_tif(path, True, memmap=(key is not None))
         img = meta.pop("image")
-    elif fext == ".mrc":
+    elif fext in (".mrc", ".rec"):
         meta = open_mrc(path, True, memmap=(key is not None))
         img = meta.pop("image")
     else:
@@ -375,9 +382,11 @@ def read_meta(path:str) -> dict[str]:
         "history": impy history
         "tags": tiff tags
     """    
-    if path.endswith(".tif"):
+    fname, fext = os.path.splitext(os.path.basename(path))
+    
+    if fext in (".tif", ".tiff"):
         meta = open_tif(path)
-    elif path.endswith(".mrc"):
+    elif fext in (".mrc", ".rec"):
         meta = open_mrc(path)
     else:
         raise ValueError("Unsupported file extension.")

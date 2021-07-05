@@ -59,13 +59,11 @@ def drag_translation(viewer, event):
             def func(layer, dpos):
                 dpos[-2] = 0.0
                 layer.translate -= dpos[-layer.translate.size:]
-                return None
             
         elif event.button == 2:
             def func(layer, dpos):
                 dpos[-1] = 0.0
                 layer.translate -= dpos[-layer.translate.size:]
-                return None
         
         else:
             func = None

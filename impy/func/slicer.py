@@ -22,7 +22,6 @@ def int_or_None(v:str) -> int|None:
         return None
     
 def str_to_slice(v:str):
-    # check if this works
     v = re.sub(" ", "", v)
     if "," in v:
         sl = sum((_range_to_list(v) for v in v.split(",")), [])
@@ -54,17 +53,35 @@ def key_repr(key):
     
     return ",".join(keylist)
 
-def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str):
+def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str) -> tuple[slice|int, ...]:
     """
-    e.g. 't=3:, z=1:5', 't=1, z=:7'
-    """
+    Make a conventional slices from an axis-targeted slicing string.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Array to be sliced.
+    axes : str
+        Axes of input ndarray.
+    string : str
+        Axis-targeted slicing string. If an axis that does not exist in `axes` is contained,
+        this function will raise ValueError.
+
+    Returns
+    -------
+    slices
+    """    
     keylist = re.sub(" ", "", string).split(";")
     sl_list = [slice(None)]*arr.ndim
-    try:
-        for k in keylist:
-            # e.g. k = "t=4:7"
-            axis, sl_str = k.split("=")
-            sl_list[axes.find(axis)] = str_to_slice(sl_str)
-    except ValueError:
-        raise ValueError(f"Informal axis-targeted slicing: {string}")
+    
+    for k in keylist:
+        axis, sl_str = k.split("=")
+        i = axes.find(axis)
+        if i < 0:
+            raise ValueError(f"Axis '{axis}' does not exist: {axes}.")
+        try:
+            sl_list[i] = str_to_slice(sl_str)
+        except ValueError:
+            raise ValueError(f"Informal axis-targeted slicing: {string}")
+    
     return tuple(sl_list)

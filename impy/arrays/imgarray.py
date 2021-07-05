@@ -159,15 +159,17 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @same_dtype(True)
-    def binning(self, binsize:int=2, *, dims=None) -> ImgArray:
+    def binning(self, binsize:int=2, method="sum", *, dims=None) -> ImgArray:
         """
-        Binning of images. This function is essentially same as `rescale` but is more strict because the shape of
-        image must be divisible by binsize.
+        Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
+        Also, any numpy functions that accept "axis" argument are supported for reduce functions.
 
         Parameters
         ----------
         binsize : int, default is 2
             Bin size, such as 2x2.
+        method : str or callable, default is numpy.sum
+            Reduce function applied to each bin.
         dims : str or int, optional
             Spatial dimensions.
 
@@ -175,13 +177,31 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Binned image
-        """        
-        for a in dims:
-            s = self.sizeof(a)
-            if s % dims != 0:
-                raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
-        scale_ = [1/binsize if a in dims else 1 for a in self.axes]
-        out = sktrans.rescale(self.value, scale_, order=0, anti_aliasing=False)
+        """ 
+        if isinstance(method, str):
+            binfunc = getattr(np, method)
+        elif callable(method):
+            binfunc = method
+        else:
+            raise TypeError("`method` must be a numpy function or callable object.")
+               
+        shape = []
+        scale_ = []
+        for i, a in enumerate(self.axes):
+            s = self.shape[i]
+            if a in dims:
+                b = binsize
+                if s % b != 0:
+                    raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
+            else:
+                b = 1
+            shape += [s//b, b]
+            scale_.append(1/b)
+            
+        shape = tuple(shape)
+        reshaped_img = self.value.reshape(shape)
+        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+        out = binfunc(reshaped_img, axis=axes_to_reduce)
         out = out.view(self.__class__)
         out._set_info(self, f"binning(binsize={binsize})")
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.

@@ -144,7 +144,7 @@ class napariViewers:
             self._add_tracks(obj, **kwargs)
         elif isinstance(obj, PathFrame):
             self._add_paths(obj, **kwargs)
-        elif isinstance(obj, (pd.DataFrame, PropArray)):
+        elif isinstance(obj, (pd.DataFrame, PropArray, ArrayDict)):
             self._add_properties(obj, **kwargs)
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
