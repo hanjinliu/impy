@@ -3,8 +3,9 @@ from skimage.feature.corner import _symmetric_image
 from skimage.feature.template import _window_sum_2d, _window_sum_3d
 from scipy.signal import fftconvolve
 import numpy as np
-from scipy.fft import rfftn as fft
-from scipy.fft import irfftn as ifft
+from functools import partial
+from scipy.fft import rfftn as rfft
+from scipy.fft import irfftn as irfft
 
 def affine_(args):
     sl, data, mx, order = args
@@ -44,6 +45,17 @@ def wavelet_denoising_(args):
     out = skres.cycle_spin(data, skres.denoise_wavelet, func_kw=func_kw, max_shifts=max_shift, 
                            multichannel=False, shift_steps=shift_steps)
     return sl, out
+
+
+def radial_profile(data, center, scales):
+    sx, sy = data.shape
+    X, Y = np.ogrid[0:sx, 0:sy]
+
+
+    r = np.hypot(X - sx/2, Y - sy/2)
+
+    rbin = (20* r/r.max()).astype(np.int)
+    radial_mean = ndi.mean(data, labels=rbin, index=np.arange(1, rbin.max() +1))
     
 def mean_(args):
     sl, data, selem = args
@@ -377,6 +389,8 @@ def corner_harris_(args):
 
 def wiener_(args):
     sl, obs, psf_ft, psf_ft_conj, lmd = args
+    fft = rfft
+    ifft = partial(irfft, s=obs.shape)
     
     img_ft = fft(obs)
     
@@ -386,7 +400,8 @@ def wiener_(args):
 def richardson_lucy_(args):
     # Identical to the algorithm in Deconvolution.jl of Julia.
     sl, obs, psf_ft, psf_ft_conj, niter, eps = args
-    
+    fft = rfft
+    ifft = partial(irfft, s=obs.shape)
     conv = factor = np.empty(obs.shape, dtype=np.float32) # placeholder
     estimated = np.real(ifft(fft(obs) * psf_ft))   # initialization
     
@@ -399,7 +414,8 @@ def richardson_lucy_(args):
 
 def richardson_lucy_tv_(args):
     sl, obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps = args
-    
+    fft = rfft
+    ifft = partial(irfft, s=obs.shape)
     est_old = ifft(fft(obs) * psf_ft).real
     est_new = np.empty(obs.shape, dtype=np.float32)
     conv = factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
