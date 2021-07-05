@@ -100,22 +100,29 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     -------
     ImgArray
     """    
+    is_memmap = (key is not None)
+    
     if "$" in path:
+        if is_memmap:
+            print(f"key={repr(key)} is ignored.")
         return imread_stack(path, dtype=dtype)
     elif os.path.isdir(path):
+        if is_memmap:
+            print(f"key={repr(key)} is ignored.")
         return imread_collection(path, dtype=dtype)
     elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
+    
     
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
     
     # read tif metadata
     if fext in (".tif", ".tiff"):
-        meta = open_tif(path, True, memmap=(key is not None))
+        meta = open_tif(path, True, memmap=is_memmap)
         img = meta.pop("image")
     elif fext in (".mrc", ".rec"):
-        meta = open_mrc(path, True, memmap=(key is not None))
+        meta = open_mrc(path, True, memmap=is_memmap)
         img = meta.pop("image")
     else:
         img = io.imread(path)
@@ -133,7 +140,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
         name = fname
         history = []
         
-    if key is not None:
+    if is_memmap:
         sl = axis_targeted_slicing(img, axes, key)
         img = np.asarray(img[sl])
     

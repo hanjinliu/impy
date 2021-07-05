@@ -208,6 +208,19 @@ class ImgArray(LabeledArray):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
+    # @dims_to_spatial_axes
+    # def radial_profile(self, *, dims=None) -> PropArray:
+    #     center = tuple((self.sizeof(a)+1)/2 for a in dims)
+    #     scales = tuple(self.scale[a] for a in dims)
+    #     c_axes = complement_axes(dims, self.axes)
+    #     length = max(self.sizesof(dims))//2
+    #     out = PropArray(np.empty((length,)+self.sizesof(c_axes)), dtype=np.float32, axes="r"+c_axes, 
+    #                     dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
+    #     for sl, img in self.iter(c_axes, exclude=dims):
+    #         prof = radial_profile(img, center, scales)
+    #         out[(slice(None),) + sl] = prof
+    #     return out
+    
     @record()
     def gaussfit(self, scale:float=1/16, p0:list=None, show_result:bool=True, 
                  method:str="Powell") -> ImgArray:

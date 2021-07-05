@@ -222,3 +222,9 @@ def iter_radial_profile(data, center, scales):
     ind = np.indices((data.shape))
     r = np.sqrt(sum(((x - c)/s)**2 for x, c, s in zip(ind, center, scales)))
     ...
+
+# def apply_for_each_block(img, func, bins):
+#     reshaped_img = img.reshape(shape)
+#     axes_to_reduce = tuple(i*2+1 for i in range(img.ndim))
+#     out = func(reshaped_img, axis=axes_to_reduce)
+#     return out
