@@ -113,7 +113,6 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
-    
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
     

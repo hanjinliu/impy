@@ -151,12 +151,15 @@ ip.random.normal(size=(100, 100))
 - **Texture Classification**
   - `lbp`, `glcm`, `glcm_props`
 
+- **Profiling**
+  - `reslice` &rarr; Get scan along a line or path.
+  - `radial_profile` &rarr; Radial profiling of n-D images.
+
 - **Others**
   - `focus_map` &rarr; Find focus using variance of Laplacian method. 
   - `stokes` &rarr; Analyze polarization using Stokes parameters.
   - `fft`, `ifft` &rarr; Fourier transformation.
   - `threshold` &rarr; Thresholding (many methods included).
-  - `reslice` &rarr; Get scan along a line or path.
   - `crop_center`, `crop_kernel`, `remove_edges` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
   - `proj` &rarr; Z-projection along any axis.

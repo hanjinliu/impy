@@ -37,7 +37,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype(asfloat=True)
     def __mul__(self, value):
-        if isinstance(value, np.ndarray):
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
         elif np.isscalar(value) and value < 0:
             raise ValueError("Cannot multiply negative value.")
@@ -45,7 +45,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype(asfloat=True)
     def __imul__(self, value):
-        if isinstance(value, np.ndarray):
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
         elif np.isscalar(value) and value < 0:
             raise ValueError("Cannot multiply negative value.")
@@ -53,7 +53,7 @@ class ImgArray(LabeledArray):
     
     def __truediv__(self, value):
         self = self.astype(np.float32)
-        if isinstance(value, np.ndarray):
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
             value[value==0] = np.inf
         elif np.isscalar(value) and value < 0:
@@ -62,7 +62,7 @@ class ImgArray(LabeledArray):
     
     def __itruediv__(self, value):
         self = self.astype(np.float32)
-        if isinstance(value, np.ndarray):
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
             value[value==0] = np.inf
         elif np.isscalar(value) and value < 0:
@@ -209,17 +209,24 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    def radial_profile(self, nbin:int=32, center:Iterable[float]=None, *, dims=None) -> PropArray:
+    def radial_profile(self, nbin:int=32, center:Iterable[float]=None, r_max:float=None, *, 
+                       method:str="mean", dims=None) -> PropArray:
         """
-        Calculate radial mean profile of images. Scale along each axis will be considerred, i.e., rather
-        ellipsoid mean profile will be calculated instead if scales are different between axes.
+        Calculate radial profile of images. Scale along each axis will be considered, i.e., rather 
+        ellipsoidal profile will be calculated instead if scales are different between axes.
 
         Parameters
         ----------
         nbin : int, optional
-            Number of bins., by default 32
+            Number of bins.
         center : iterable of float, optional
             The coordinate of center of radial profile. By default, the center of image is used.
+        r_max : float, optional
+            Maximum radius to make profile. Region 0 <= r < r_max will be split into `nbin` rings
+            (or shells). **Scale must be considered** because scales of each axis may vary.
+        method : str, default is "mean"
+            Reduce function. Basic statistics functions are supported in `scipy.ndimage` but their
+            names are not consistent with those in `numpy`. Use `numpy`'s names here.
         dims : str or int, optional
             Spatial dimensions.
 
@@ -229,7 +236,14 @@ class ImgArray(LabeledArray):
             Radial profile in x-axis by default. If input image has tzcyx-axes, then an array with 
             tcx-axes will be returned.
         """        
-        c_axes = complement_axes(dims, self.axes)
+        func = {"mean": ndi.mean,
+                "sum": ndi.sum_labels,
+                "median": ndi.median,
+                "max": ndi.maximum,
+                "min": ndi.minimum,
+                "std": ndi.standard_deviation,
+                "var": ndi.variance}[method]
+        
         spatial_shape = self.sizesof(dims)
         inds = np.indices(spatial_shape)
         
@@ -239,15 +253,27 @@ class ImgArray(LabeledArray):
         elif len(center) != len(dims):
             raise ValueError(f"Length of `center` must match input dimensionality '{dims}'.")
         
-        r = sum(((x - c)/self.scale[a])**2 for x, c, a in zip(inds, center, dims))
-        labels = (nbin * r/r.max()).astype(np.uint16)
+        r = np.sqrt(sum(((x - c)/self.scale[a])**2 for x, c, a in zip(inds, center, dims)))
+        r_lim = r.max()
+        
+        # check r_max
+        if r_max is None:
+            r_max = r_lim
+        elif r_max > r_lim or r_max <= 0:
+            raise ValueError(f"`r_max` must be in range of 0 < r_max <= {r_lim} with this image.")
+        
+        # make radially separated labels
+        r_rel = r/r_max
+        labels = (nbin * r_rel).astype(np.uint16)
+        labels[r_rel >= 1] = 0
+        
+        c_axes = complement_axes(dims, self.axes)
         
         out = PropArray(np.empty(self.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
-        
+        radial_func = partial(func, labels=labels, index=np.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
-            prof = ndi.mean(img, labels=labels, index=np.arange(1, labels.max() +1))
-            out[sl] = prof
+            out[sl] = radial_func(img)
         return out
     
     @record()
@@ -1891,8 +1917,8 @@ class ImgArray(LabeledArray):
     def find_sm(self, sigma:nDFloat=1.5, *, method:str="dog", cutoff:float=None, percentile:float=95, 
                 topn:int=np.inf, exclude_border=True, dims=None) -> MarkerFrame:
         """
-        Single molecule detection using difference of Gaussian, determinant of hessian or
-        laplacian of Gaussian method.
+        Single molecule detection using difference of Gaussian, determinant of Hessian, Laplacian of 
+        Gaussian or normalized cross correlation method.
 
         Parameters
         ----------
@@ -2820,108 +2846,7 @@ class ImgArray(LabeledArray):
             out = out[0]
         
         return out
-
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def pearson_coloc(self, mask=None, *, along:str="c", squeeze:bool=True, dims=None) -> PropArray|float:
-        """
-        Masked Pearson's correlation coefficient. This is defined as following:
-        
-                        Σ[(Ai - Amean)(Bi - Bmean)]
-            r = -----------------------------------------
-                 sqrt{Σ[(Ai - Amean)^2 Σ(Bi - Bmean)^2]}
-        
-        This value is independent of constant background intensity and the scale of intensity, 
-        while is strongly affected by outliers.
-
-        Parameters
-        ----------
-        mask : np.ndarray, optional
-            If given, pixels with True value will not be account for correlation. If MetaArray,
-            this array will be broadcasted.
-        along : str, optional
-            Which axis will be the channel axis.
-        squeeze : bool, default is True
-            If True and output can be converted to scalar, then a float value will be returned.
-        dims : int or str, optional
-            Spatial dimensions.
-
-        Returns
-        -------
-        PropArray or float
-            Correlation coefficient(s).
-        
-        Examples
-        --------
-        (1) Make a mask by thresholding and calculate correlation.
-        >>> mask = ~img.threshold()
-        >>> coeff = img.pcc(mask=mask) 
-        """        
-        self = self.as_float()
-        img0, img1 = self.split(axis="c")
-        sumaxes = tuple(img0.axisof(a) for a in dims)
-        img0_norm = img0 - np.mean(img0)
-        img1_norm = img1 - np.mean(img1)
-        if mask is not None:
-            img0_norm[mask] = 0
-            img1_norm[mask] = 0
-        cov = np.sum(img0_norm * img1_norm, axis=sumaxes)
-        var0 = np.sum(img0_norm**2, axis=sumaxes)
-        var1 = np.sum(img1_norm**2, axis=sumaxes)
-        out = cov / np.sqrt(var0 * var1)
-        
-        if out.ndim == 0 and squeeze:
-            out = out[()]
-        else:
-            out = PropArray(out, name=self.name, axes=complement_axes(along+dims, self.axes), 
-                            dirpath=self.dirpath, metadata=self.metadata, 
-                            propname="pearson_coloc", dtype=np.float32)
-        return out
     
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def manders_coloc(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
-        """
-        Manders' correlation coefficient. This is defined as following:
-        
-                 Σ(Ai[ref])
-            r = -----------
-                   Σ(Ai)
-        
-        This value is NOT independent of background intensity. You need to correctly subtract
-        background from self. This value is NOT interchangable between channels.
-        
-        Parameters
-        ----------
-        ref : np.ndarray
-            Reference image to calculate coefficent. If MetaArray, this array will be broadcasted.
-        squeeze : bool, default is True
-            If True and output can be converted to scalar, then a float value will be returned.
-        dims : int or str, optional
-            Spatial dimensions.
-
-        Returns
-        -------
-        PropArray or float
-            Correlation coefficient(s).
-        """        
-        if ref.dtype != bool:
-            raise TypeError("`ref` must be a binary image.")
-        
-        sumaxes = tuple(self.axisof(a) for a in dims)
-        total = np.sum(self.value, axis=sumaxes)
-        self = self.copy()
-        self[~ref] = 0
-        
-        out = np.sum(self.value, axis=sumaxes) / total
-        
-        if out.ndim == 0 and squeeze:
-            out = out[()]
-        else:
-            out = PropArray(out, name=self.name, axes=complement_axes(dims, self.axes), 
-                            dirpath=self.dirpath, metadata=self.metadata, 
-                            propname="manders_coloc", dtype=np.float32)
-        return out
     
     @dims_to_spatial_axes
     @need_labels

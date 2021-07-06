@@ -1,4 +1,4 @@
-__version__ = "1.14.5"
+__version__ = "1.14.6"
 
 # TODO
 # - FSC, FRC
@@ -9,6 +9,7 @@ import warnings
 from .core import *
 from .binder import bind
 from .viewer import gui
+from .correlation import *
 import numpy as np
 
 r"""
