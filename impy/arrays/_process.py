@@ -92,7 +92,7 @@ def enhance_contrast_(args):
 
 def difference_of_gaussian_(args):
     sl, data, low_sigma, high_sigma = args
-    return sl, skfil.difference_of_gaussians(data, low_sigma, high_sigma)
+    return sl, ndi.gaussian_filter(data, low_sigma) - ndi.gaussian_filter(data, high_sigma)
 
 def population_(args):
     sl, data, selem = args

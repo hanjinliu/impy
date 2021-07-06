@@ -100,7 +100,7 @@ class ImgArray(LabeledArray):
             Transformed image.
         """
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
+        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order, force_single=True)
         return out
     
     @dims_to_spatial_axes
@@ -130,7 +130,7 @@ class ImgArray(LabeledArray):
         mtx = np.eye(ndim + 1)
         mtx[0:ndim, ndim] = translation
         mx = sktrans.AffineTransform(matrix=mtx)
-        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order)
+        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order, force_single=True)
         return out
 
 
@@ -712,7 +712,8 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.parallel(function, complement_axes(dims, self.axes), disk, outdtype=self.dtype)
+        return self.parallel(function, complement_axes(dims, self.axes), disk, outdtype=self.dtype, 
+                             force_single=radius>5)
     
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -1238,7 +1239,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """
-        return self.parallel(gaussian_, complement_axes(dims, self.axes), sigma)
+        return self.parallel(gaussian_, complement_axes(dims, self.axes), sigma, force_single=True)
 
 
     @dims_to_spatial_axes
@@ -1265,8 +1266,8 @@ class ImgArray(LabeledArray):
         low_sigma = np.array(check_nd(low_sigma, len(dims)))
         high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
         
-        return self.parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
-                             low_sigma, high_sigma)
+        return self.as_float().parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
+                             low_sigma, high_sigma, force_single=True)
     
     @dims_to_spatial_axes
     @record()

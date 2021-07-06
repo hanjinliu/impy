@@ -401,7 +401,8 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def parallel(self, func, axes, *args, outshape:tuple[int]=None, outdtype=np.float32) -> LabeledArray:
+    def parallel(self, func, axes, *args, outshape:tuple[int,...]=None, outdtype=np.float32,
+                 force_single:bool=False) -> LabeledArray:
         """
         Multiprocessing tool.
 
@@ -429,7 +430,7 @@ class LabeledArray(HistoryArray):
         
         # multi-processing has an overhead (~1 sec) so that with a small numbers of
         # images it will be slower with multi-processing.
-        if self.__class__.n_cpu > 1 and self.size > 10**7:
+        if self.__class__.n_cpu > 1 and self.size > 10**7 and not force_single:
             results = self._parallel(func, axes, *args)
             for sl, imgf in results:
                 out[sl] = imgf
