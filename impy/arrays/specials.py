@@ -98,10 +98,14 @@ class PropArray(MetaArray):
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
         
+        if along is None:
+            along = find_first_appeared("pxyzt<c", include=self.axes)
+            
         iteraxes = del_axis(self.axes, self.axisof(along))
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
         for i, (sl, y) in enumerate(self.iter(iteraxes)):
+            # TODO: index error
             plt.hist(y, color=cmap(positions[i]), bins=bins, alpha=0.5)
         
         plt.title(f"{self.propname}")

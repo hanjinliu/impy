@@ -217,7 +217,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        nbin : int, optional
+        nbin : int, default is 32
             Number of bins.
         center : iterable of float, optional
             The coordinate of center of radial profile. By default, the center of image is used.
@@ -233,8 +233,8 @@ class ImgArray(LabeledArray):
         Returns
         -------
         PropArray
-            Radial profile in x-axis by default. If input image has tzcyx-axes, then an array with 
-            tcx-axes will be returned.
+            Radial profile stored in x-axis by default. If input image has tzcyx-axes, then an array 
+            with tcx-axes will be returned.
         """        
         func = {"mean": ndi.mean,
                 "sum": ndi.sum_labels,

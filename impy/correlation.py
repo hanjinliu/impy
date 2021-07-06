@@ -3,7 +3,7 @@ from scipy import ndimage as ndi
 import numpy as np
 from functools import partial
 from .deco import dims_to_spatial_axes
-from .arrays import PropArray
+from .arrays import ImgArray, PropArray
 from .func import *
 from .utilcls import *
 
@@ -11,7 +11,36 @@ from .utilcls import *
 __all__ = ["fsc", "pearson_coloc", "manders_coloc"]
 
 @dims_to_spatial_axes
-def fsc(img0, img1, nbin:int=32, r_max:float=None, *, dims=None):
+def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, dims=None) -> PropArray:
+    """
+    Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
+    between two images. FSC is defined as:
+    
+                      Re{Σ'[F0(r') x F1(r)*]}
+        FSC(r) = --------------------------------- (Σ' is summation of all r < r'< r+dr)
+                  sqrt{Σ'|F0(r')|^2 x Σ'|F1(r')|}
+                  
+    Parameters
+    ----------
+    img0 : ImgArray
+        First image
+    img1 : ImgArray
+        Second image
+    nbin : int, default is 32
+        Number of bins.
+    r_max : float, optional
+        Maximum radius to make profile. Region 0 <= r < r_max will be split into `nbin` rings
+        (or shells). **Scale must be considered** because scales of each axis may vary.
+    dims : str or int, optional
+            Spatial dimensions.
+            
+    Returns
+    -------
+    PropArray
+        FSC stored in x-axis by default. If input images have tzcyx-axes, then an array with 
+        tcx-axes will be returned. Make sure x-axis no longer means length in x because images
+        are Fourier transformed.
+    """    
     # Fourier Shell Correlation
     if img0.shape != img1.shape:
         raise ValueError(f"Shape mismatch. `img0` has shape {img0.shape} but `img1` "
@@ -55,7 +84,8 @@ def fsc(img0, img1, nbin:int=32, r_max:float=None, *, dims=None):
 
 
 @dims_to_spatial_axes
-def pearson_coloc(img0, img1, mask=None, *, squeeze:bool=True, dims=None) -> PropArray|float:
+def pearson_coloc(img0:ImgArray, img1:ImgArray, mask:np.ndarray=None, *, squeeze:bool=True, 
+                  dims=None) -> PropArray|float:
     """
     Masked Pearson's correlation coefficient. This is defined as following:
     
@@ -113,7 +143,7 @@ def pearson_coloc(img0, img1, mask=None, *, squeeze:bool=True, dims=None) -> Pro
 
 
 @dims_to_spatial_axes
-def manders_coloc(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
+def manders_coloc(img:ImgArray, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
     """
     Manders' correlation coefficient. This is defined as following:
     
@@ -126,6 +156,8 @@ def manders_coloc(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> Prop
     
     Parameters
     ----------
+    img : ImgArray
+        Input image.
     ref : np.ndarray
         Reference image to calculate coefficent. If MetaArray, this array will be broadcasted.
     squeeze : bool, default is True
@@ -141,18 +173,18 @@ def manders_coloc(self, ref:np.ndarray, *, squeeze:bool=True, dims=None) -> Prop
     if ref.dtype != bool:
         raise TypeError("`ref` must be a binary image.")
     
-    sumaxes = tuple(self.axisof(a) for a in dims)
-    total = np.sum(self.value, axis=sumaxes)
-    self = self.copy()
-    self[~ref] = 0
+    sumaxes = tuple(img.axisof(a) for a in dims)
+    total = np.sum(img.value, axis=sumaxes)
+    img = img.copy()
+    img[~ref] = 0
     
-    out = np.sum(self.value, axis=sumaxes) / total
+    out = np.sum(img.value, axis=sumaxes) / total
     
     if out.ndim == 0 and squeeze:
         out = out[()]
     else:
-        out = PropArray(out, name=self.name, axes=complement_axes(dims, self.axes), 
-                        dirpath=self.dirpath, metadata=self.metadata, 
+        out = PropArray(out, name=img.name, axes=complement_axes(dims, img.axes), 
+                        dirpath=img.dirpath, metadata=img.metadata, 
                         propname="manders_coloc", dtype=np.float32)
     return out
 
@@ -160,9 +192,3 @@ def iter2(img0, img1, axes, israw=False, exclude=""):
     for (sl, i0), (sl, i1) in zip(img0.iter(axes, israw=israw, exclude=exclude),
                                   img1.iter(axes, israw=israw, exclude=exclude)):
         yield sl, i0, i1
-
-def itern(*imgs, axes=None, israw=False, exclude=""):
-    gen = (img.iter(axes, israw=israw, exclude=exclude)for img in imgs)
-    for each in zip(*gen):
-        sl = each[0][0]
-        yield (sl,) + tuple(img for sl, img in each) 
