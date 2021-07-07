@@ -117,19 +117,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     dirpath = os.path.dirname(path)
     
     # read tif metadata
-    if fext in (".tif", ".tiff"):
-        meta = open_tif(path, True, memmap=is_memmap)
-        img = meta.pop("image")
-    elif fext in (".mrc", ".rec"):
-        meta = open_mrc(path, True, memmap=is_memmap)
-        img = meta.pop("image")
-    else:
-        img = io.imread(path)
-        if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
-            meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
-        else:
-            meta = {"axes":axes, "ijmeta":{}, "history":[]}
-            
+    meta, img = open_img(path, memmap=is_memmap)
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     if meta["history"]:
@@ -160,22 +148,8 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
         return self
     else:
         # read lateral scale if possible
-        spacing = meta["ijmeta"].get("spacing", 1.0)
-        try:
-            tags = meta["tags"]
-            xres = tags["XResolution"]
-            yres = tags["YResolution"]
-            dx = xres[1]/xres[0]
-            dy = yres[1]/yres[0]
-        except KeyError:
-            dx = dy = spacing
-        
-        self.set_scale(x=dx, y=dy)
-        
-        # read z scale if needed
-        if "z" in self.axes:
-            dz = spacing
-            self.set_scale(z=dz)
+        scale = get_scale_from_meta(meta)
+        self.set_scale(**scale)
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", template:dict|MetaArray=None,

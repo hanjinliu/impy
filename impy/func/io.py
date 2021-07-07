@@ -2,6 +2,8 @@ from __future__ import annotations
 from tifffile import TiffFile
 import json
 import re
+import os
+from skimage import io
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
@@ -69,3 +71,40 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
             out["image"] = mrc.data
     
     return out
+
+def open_img(path, memmap:bool=False):
+    _, fext = os.path.splitext(os.path.basename(path))
+    if fext in (".tif", ".tiff"):
+        meta = open_tif(path, True, memmap=memmap)
+        img = meta.pop("image")
+    elif fext in (".mrc", ".rec"):
+        meta = open_mrc(path, True, memmap=memmap)
+        img = meta.pop("image")
+    else:
+        img = io.imread(path)
+        if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
+            meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
+        else:
+            meta = {"axes":None, "ijmeta":{}, "history":[]}
+    
+    return meta, img
+
+def get_scale_from_meta(meta:dict):
+    spacing = meta["ijmeta"].get("spacing", 1.0)
+    scale = dict()
+    try:
+        tags = meta["tags"]
+        xres = tags["XResolution"]
+        yres = tags["YResolution"]
+        dx = xres[1]/xres[0]
+        dy = yres[1]/yres[0]
+    except KeyError:
+        dx = dy = spacing
+    
+    scale["x"] = dx
+    scale["y"] = dy
+    # read z scale if needed
+    if "z" in meta["axes"]:
+        scale["z"] = spacing
+        
+    return scale

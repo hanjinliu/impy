@@ -1,7 +1,6 @@
-__version__ = "1.14.8"
+__version__ = "1.14.9"
 
 # TODO
-# - FSC, FRC
 # - 3D Gabor filter
 # - get lines/paths from shape layers
 

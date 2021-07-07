@@ -1,4 +1,5 @@
 from __future__ import annotations
+from impy.func.io import get_scale_from_meta, open_img
 import napari
 import pandas as pd
 from ..arrays import *
@@ -6,7 +7,7 @@ from ..frame import *
 from ..core import array as ip_array
 from .utils import *
 from .mouse import *
-from ..utilcls import ArrayDict
+from ..utilcls import ArrayDict, Progress
 from .widgets import _make_table_widget
 
 
@@ -114,7 +115,7 @@ class napariViewers:
         """ 
         return layer_to_impy_object(self.viewer, layer)
         
-    def add(self, obj, title=None, **kwargs):
+    def add(self, obj=None, title=None, **kwargs):
         """
         Add images, points, labels, tracks or graph to viewer.
 
@@ -148,10 +149,38 @@ class napariViewers:
             self._add_properties(obj, **kwargs)
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
+        elif obj is None:
+            pass
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
-    
+    def preview(self, path:str, **kwargs):
+        with Progress("memory mapping for preview"):
+            meta, img = open_img(path, memmap=True)
+            axes = meta["axes"]
+            scale_ = get_scale_from_meta(meta)
+            scale = []
+            for a in axes:
+                if a in "zyx":
+                    scale.append(scale_[a])
+                elif a == "c":
+                    pass
+                else:
+                    scale.append(1)
+            self.add()
+            
+            chn_ax = axes.find("c")
+            if chn_ax < 0:
+                chn_ax = None
+                
+            self.viewer.add_image(img, name="preview", channel_axis=chn_ax, scale=scale, **kwargs)
+        
+        self.viewer.scale_bar.unit = meta["ijmeta"].get("unit", "")
+        new_axes = [a for a in axes if a != "c"]
+        # add axis labels to slide bars and image orientation.
+        if len(new_axes) >= len(self.viewer.dims.axis_labels):
+            self.viewer.dims.axis_labels = new_axes
+        return None
         
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others

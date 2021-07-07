@@ -1,8 +1,6 @@
 from __future__ import annotations
-from impy.utilcls import ArrayDict
 import napari
 import magicgui
-from numpy.core.fromnumeric import shape
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
 

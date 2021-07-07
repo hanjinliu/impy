@@ -1,4 +1,5 @@
-from impy.func.misc import complement_axes
+from ..arrays import LabeledArray
+from ..core import array as ip_array
 from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
@@ -146,6 +147,12 @@ def crop(viewer):
             newdata, relative_translate = crop_func(layer.data, rect, dyx)
             if newdata.size <= 0:
                 continue
+            # TODO: not needed?
+            if not isinstance(newdata, LabeledArray):
+                scale = get_viewer_scale(viewer)
+                axes = "".join(viewer.dims.axis_labels)
+                newdata = ip_array(newdata, axes=axes)
+                newdata.set_scale(**scale)
             layer.data = newdata
             translate = layer.translate
             translate[-2:] += relative_translate * layer.scale[-2:]
@@ -201,6 +208,7 @@ def duplicate_layer(viewer):
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
 def crop_rotated_rectangle(img, crds, dyx):
+    # TODO: this does not work for memory maps
     crds = crds[:,-2:] - dyx
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
     translate = crds[0]
@@ -220,4 +228,5 @@ def crop_rectangle(img, crds, dyx):
     area_to_crop = (slice(None),)*(ndim-2) + tuple(sl)
     
     translate = np.array([s.start for s in sl])
-    return img[area_to_crop], translate
+    cropped_img = img[area_to_crop]
+    return cropped_img, translate
