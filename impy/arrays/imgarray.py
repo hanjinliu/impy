@@ -2320,8 +2320,8 @@ class ImgArray(LabeledArray):
     @record()
     def fft(self, *, dims=None) -> ImgArray:
         """
-        Fast Fourier transformation.
-        This function returns complex array. Inconpatible with some ImgArray functions.
+        Fast Fourier transformation. This function returns complex array. Inconpatible with 
+        some ImgArray functions.
         
         Parameters
         ----------
@@ -2334,8 +2334,8 @@ class ImgArray(LabeledArray):
             FFT image.
         """
         freq = fft(self.value.astype(np.float32), axes=[self.axisof(a) for a in dims])
-        out = np.fft.fftshift(freq)
-        return out
+        freq[:] = np.fft.fftshift(freq)
+        return freq
     
     @dims_to_spatial_axes
     @record()
@@ -2361,6 +2361,34 @@ class ImgArray(LabeledArray):
         if real:
             out = np.real(out)
         return out
+    
+    @dims_to_spatial_axes
+    @record()
+    def power_spectra(self, norm:bool=True, *, dims=None) -> ImgArray:
+        """
+        Return n-D power spectra of images, which is defined as:
+            P = Re{F[img]}^2 + Im{F[img]}^2
+
+        Parameters
+        ----------
+        norm : bool, default is True
+            If True, mean intensity is adjusted to 0 before FFT so that power spectra at the center of FFT
+            image will not be too high, and maximum value of power spectra is adjusted to 1.
+        dims : int or str, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        ImgArray
+            Power spectra
+        """        
+        if norm:
+            self = self - self.mean()
+        freq = self.fft(dims=dims)
+        pw = freq.real**2 + freq.imag**2
+        if norm:
+            pw /= pw.max()
+        return pw
     
     @record()
     def threshold(self, thr:float|str="otsu", *, dims=None, **kwargs) -> ImgArray:

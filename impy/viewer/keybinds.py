@@ -2,7 +2,8 @@ from impy.func.misc import complement_axes
 from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
-from scipy import ndimage as ndi
+
+# TODO: add "edit" menu in napari
 
 KEYS = {"hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
@@ -16,6 +17,8 @@ KEYS = {"hide_others": "Control-Shift-A",
         "duplicate_layer": "Control-Shift-D",
         }
 
+# TODO: new images generated in napari does not inherite original metadata such as dirpath
+# also, they may have float64
 
 __all__ = list(KEYS.keys())
 
@@ -119,7 +122,6 @@ def crop(viewer):
     """
     Crop images with rectangle shapes.
     """        
-    # TODO: image scale
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
@@ -135,7 +137,7 @@ def crop(viewer):
         if np.any(rect[0, -2:] == rect[1, -2:]):
             crop_func = crop_rectangle
         else:
-            crop_func = map_rotated_coordinates
+            crop_func = crop_rotated_rectangle
         
         for layer in imglist:
             layer = viewer.add_layer(copy_layer(layer))
@@ -198,27 +200,12 @@ def duplicate_layer(viewer):
     """
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
-def make_ax(src, dst):
-    dr = dst - src
-    d = np.sqrt(sum(dr**2))
-    n = int(np.ceil(d))
-    return np.linspace(src, src+dr/d*(n-1), n)
-
-def map_rotated_coordinates(img, crds, dyx):
-    """
-    img : target image.
-    crds : four corners of a rotated rectangle.
-    """    
-    crds = crds[:, -2:] - dyx
-    ax0 = make_ax(crds[1], crds[2])
-    ax1 = make_ax(crds[0], crds[1])
-    all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - crds[1]
-    all_coords = np.moveaxis(all_coords, -1, 0)
-    cropped_img = np.empty(img.shape[:-2] + all_coords.shape[1:])
-    for sl, img2d in img.iter(complement_axes("yx", img.axes)):
-        cropped_img[sl] = ndi.map_coordinates(img2d, all_coords, prefilter=False, order=1)
+def crop_rotated_rectangle(img, crds, dyx):
+    crds = crds[:,-2:] - dyx
+    cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
     translate = crds[0]
     return cropped_img, translate
+
 
 def crop_rectangle(img, crds, dyx):
     crds = crds[:, -2:] - dyx

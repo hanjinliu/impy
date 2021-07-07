@@ -109,6 +109,10 @@ class LabeledArray(HistoryArray):
         metadata["axes"] = str(img.axes).upper()
         if img.ndim > 3:
             metadata["hyperstack"] = True
+            
+        # convert to float32 if image is float64
+        if img.dtype == np.float64:
+            img = img.astype(np.float32)
         # save image
         imwrite(tifname, img, imagej=True, resolution=res, metadata=metadata)
         # notifications
@@ -589,6 +593,28 @@ class LabeledArray(HistoryArray):
         
         out = self[";".join(slices)]
         return out
+        
+    @record()
+    def rotated_crop(self, origin, dst1, dst2):
+        """
+        Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
+        yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
+        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle.
+        
+        Parameters
+        ---------- 
+        origin : np.ndarray
+
+        """
+        # TODO: do not use for loop if possible
+        ax0 = _make_rotated_axis(origin, dst2)
+        ax1 = _make_rotated_axis(dst1, origin)
+        all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
+        all_coords = np.moveaxis(all_coords, -1, 0)
+        cropped_img = np.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype)
+        for sl, img2d in self.iter(complement_axes("yx", self.axes)):
+            cropped_img[sl] = ndi.map_coordinates(img2d, all_coords, prefilter=False, order=1)
+        return cropped_img
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Label handling and others
@@ -1160,3 +1186,10 @@ def _iter_dict(d, nparam):
             else:
                 out[k] = v
         yield out
+
+
+def _make_rotated_axis(src, dst):
+    dr = dst - src
+    d = np.sqrt(sum(dr**2))
+    n = int(np.ceil(d))
+    return np.linspace(src, src+dr/d*(n-1), n)
