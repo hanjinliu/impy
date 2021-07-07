@@ -1,4 +1,5 @@
 from __future__ import annotations
+from impy.arrays.arraylist import ArrayList
 from .arrays import ImgArray
 from .arrays.bases import MetaArray
 import numpy as np
@@ -13,8 +14,10 @@ from .axes import ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata
 
-__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "imread_stack",
-           "read_meta", "set_cpu", "set_verbose", "sample_image"]
+__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "imread_stack", 
+           "imread_list", "read_meta", "set_cpu", "set_verbose", "sample_image"]
+
+# TODO: delayed imread
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
@@ -342,7 +345,14 @@ def imread_stack(path:str, dtype=None):
         self.dirpath = None
         self.name = None
     return self.sort_axes()
-    
+
+def imread_list(path:str):
+    paths = glob.glob(path, recursive=True)
+    arrlist = ArrayList()
+    for path in paths:
+        img = imread(path)
+        arrlist.append(img)
+    return arrlist
 
 def read_meta(path:str) -> dict[str]:
     """

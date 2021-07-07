@@ -1,10 +1,11 @@
-__version__ = "1.14.9"
+__version__ = "1.14.10"
 
 # TODO
 # - 3D Gabor filter
 # - get lines/paths from shape layers
 
 import warnings
+from .arrays.arraylist import ArrayList
 from .core import *
 from .binder import bind
 from .viewer import gui
