@@ -7,17 +7,17 @@ import os
 import re
 import glob
 import itertools
-import collections
-from skimage import io
 from .func import *
 from .axes import ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata
 
-__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "imread_stack", 
-           "imread_list", "read_meta", "set_cpu", "set_verbose", "sample_image"]
+__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "read_meta", "set_cpu",
+           "set_verbose", "sample_image"]
 
-# TODO: delayed imread
+# TODO: 
+# - delayed imread
+# - e.g. ip.imread("...\$i$j.tif", key="i=2:") will raise error.
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
@@ -78,14 +78,15 @@ def gaussian_kernel(shape:tuple[int], sigma=1.0, peak=1.0):
 
 def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     """
-    Load image from path.
+    Load image(s) from a path. You can read list of images from directories with wildcards or "$"
+    in `path`.
 
     Parameters
     ----------
     path : str
         Path to the image or directory.
     dtype : Any type that np.dtype accepts
-        Data type of the images.
+        Data type of images.
     key : str, optional
         If not None, image is read in a memory-mapped array first, and only img[key] is returned.
         Only axis-targeted slicing is supported. This argument is important when reading a large
@@ -103,16 +104,13 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     -------
     ImgArray
     """    
+    path = str(path)
     is_memmap = (key is not None)
     
     if "$" in path:
-        if is_memmap:
-            print(f"key={repr(key)} is ignored.")
-        return imread_stack(path, dtype=dtype)
-    elif os.path.isdir(path):
-        if is_memmap:
-            print(f"key={repr(key)} is ignored.")
-        return imread_collection(path, dtype=dtype)
+        return _imread_stack(path, dtype=dtype, key=key)
+    elif "*" in path:
+        return _imread_glob(path, dtype=dtype, key=key)
     elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
@@ -155,8 +153,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
         self.set_scale(**scale)
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
-def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", template:dict|MetaArray=None,
-                      ignore_exception:bool=False, dtype=None) -> ImgArray:
+def _imread_glob(path:str, axis:str="p", dtype=None) -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -174,63 +171,28 @@ def imread_collection(dirname:str, axis:str="p", *, filename:str="*.tif", templa
         If true, arrays with wrong shape will be ignored.
     dtype : Any type that np.dtype accepts
         dtype of the images.
-    
-    Example
-    -------
-    (1) Read Tiff images that start with "100nM-":
-    >>> img = ip.imread_collection(r"C:\...", filename="100nM-*.tif")
-    
-    (2) Read Tiff images that have tyx-axes:
-    >>> img = ip.imread_collection(r"C:\...", template={"axes: "tyx"})
-    
-    (3) Read Tiff images that have strictly same features as a reference image `ref`:
-    >>> img = ip.imread_collection(r"C:\...", template=ref)
     """    
-    paths = glob.glob(os.path.join(dirname, "**", filename), recursive=True)
-    
-    # determine template
-    template_keys = {"shape", "axes", "scale"}
-    if template is None:
-        template = {}
-    elif isinstance(template, dict):
-        if not set(template.keys()) <= template_keys:
-            raise ValueError(f"template only takes {template_keys} as keys.")
-    elif isinstance(template, MetaArray):
-        template = {k: getattr(template, k) for k in template_keys}
-    else:
-        raise TypeError(f"template must be dict or MetaArray, but got {type(template)}.")
-    
+    path = str(path)
+    paths = glob.glob(path, recursive=True)
+        
     imgs = []
-    shapes = []
     for path in paths:
         img = imread(path, dtype=dtype)
-        for k, v in template.items():
-            if getattr(img, k) != v:
-                continue
         imgs.append(img)
-        shapes.append(img.shape)
-    
-    # check shape compatibility
-    list_of_shape = list(set(shapes))
-    if len(list_of_shape) > 1:
-        if ignore_exception:
-            ctr = collections.Counter(shapes)
-            common_shape = ctr.most_common()[0][0]
-            imgs = [img for img in imgs if img.shape == common_shape]
-        else:
-            raise ValueError("Input directory has images with different shapes: "
-                            f"{', '.join(map(str, list_of_shape))}")
     
     if len(imgs) == 0:
         raise RuntimeError("Could not read any images.")
     
     out = np.stack(imgs, axis=axis)
-    out.dirpath, out.name = os.path.split(dirname)
-    out.history[-1] = "imread_collection"
+    try:
+        base = os.path.split(path.split("*")[0])[0]
+        out.dirpath, out.name = os.path.split(base)
+    except Exception:
+        pass
     out.temp = paths
     return out
 
-def imread_stack(path:str, dtype=None):
+def _imread_stack(path:str, dtype=None, key:str=None):
     r"""
     Read separate image files using formated string. This function is useful when files/folders
     are named in a certain rule, such as ".../pos_0/img_0.tif", ".../pos_0/img_1.tif".
@@ -271,6 +233,7 @@ def imread_stack(path:str, dtype=None):
         :
     >>> img = ip.imread_stack(r"C:\...\Base\xxx$z\yyy$t.tif")
     """
+    path = str(path)
     if "$" not in path:
         raise ValueError("`path` must contain '$' to specify variables in the string.")
     
@@ -310,7 +273,7 @@ def imread_stack(path:str, dtype=None):
         elif n_found == 0:
             raise FileNotFoundError(f"No path found at {fpath.format(*i)}.")
         
-        img = imread(found_paths[0], dtype=dtype)
+        img = imread(found_paths[0], dtype=dtype, key=key)
         
         # To speed up error handling, check shape and axes here.
         if img0 is None:
@@ -346,12 +309,30 @@ def imread_stack(path:str, dtype=None):
         self.name = None
     return self.sort_axes()
 
-def imread_list(path:str):
-    paths = glob.glob(path, recursive=True)
+def imread_collection(path:str, filt=None) -> ArrayList:
+    """
+    Open images as ImgArray and store them in ArrayList.
+
+    Parameters
+    ----------
+    path : str
+        Path than can be passed to `glob.glob`.
+    filt : callable, optional
+        If specified, only images that satisfies filt(img)==True will be stored in the returned 
+        ArrayList.
+
+    Returns
+    -------
+    ArrayList
+    """    
+    paths = glob.glob(str(path), recursive=True)
+    if filt is None:
+        filt = lambda x: True
     arrlist = ArrayList()
     for path in paths:
         img = imread(path)
-        arrlist.append(img)
+        if filt(img):
+            arrlist.append(img)
     return arrlist
 
 def read_meta(path:str) -> dict[str]:
