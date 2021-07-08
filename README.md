@@ -9,8 +9,9 @@
 1. for multi-dimensional images, you need to check which is time-axis and which is channel axis and so on.
 2. you need to consider the output data types and shapes for every batch image processing.
 3. you need to care about all the images' information such as the names and directories of original images.
+4. hard to edit images interactively.
 
-As a result, isn't it faster to analyze images using GUI like ImageJ? This module solves these major problems of Python based image analysis and makes it much more effective.
+As a result, isn't it faster to analyze images using ImageJ? This module solves these major problems of Python based image analysis and makes it much more effective.
 
 
 ## Installation
@@ -43,9 +44,9 @@ You may usually want to perform same filter function to images with different sh
 imglist = ip.DataList(imgs)
 outputs = imglist.gaussian_filter(sigma=3)
 ```
-
    
 #### 3. Metadata and History
+
 All the information, history and metadata are inherited to outputs, like:
 
 ```python
@@ -60,13 +61,16 @@ original image: XXX
     history   : gaussian_filter(sigma=1)
 ```
 
+Therefore, analysis results can always be saved in the same directory.
+
 #### 4. Image Viewer
 
-You can view images with `matplotlib` of course, but this module also provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
+`impy` provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
 
 You can also **manually crop or label** `ImgArray` with `napari`'s `Shapes` objects, or **run impy functions inside the viewer**. I also implemented useful custom keybindings and widgets. See [Napari Interface](#napari-interface) for details.
 
 #### 5. Extended Numpy Functions
+
 In almost all the numpy functions, the keyword argument `axis` can be given as the symbol of axis like:
 
 ```python
@@ -83,6 +87,12 @@ ip.array([2,4,6], dtype="uint16")
 ip.random.normal(size=(100, 100))
 ```
 
+#### 6. Reading Images Lazily
+
+When you deal with large images, you may want to read just part of them to avoid waiting too long, or sometimes they are too large for the PC memory to read. In ImageJ there is an option called "virtual stack" but still it is not flexible enough.
+
+In `impy`, there are several ways to efficiently deal with large datasets. See [Image I/O](#image-io) for details.
+
 ## Contents
 
 - `ImgArray` is an array mainly used for image analysis here. Many `skimage`'s functions are wrapped in this class.
@@ -92,6 +102,7 @@ ip.random.normal(size=(100, 100))
 - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
 - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
 - `DataList` can apply same method to all the data inside it.
+- `LazyImgArray` keeps memory map to an image and you can access image metadata and slice the images without reading them.
 - `gui` is a controller object that connects console and `napari.Viewer`.
 
 ## Image Analysis Tools
@@ -176,18 +187,47 @@ ip.random.normal(size=(100, 100))
   - `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
   - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
 
-## Image I/O and Other Functions
+## Image I/O
 
-- `impy.imread` &rarr; Load image(s) like:
-  - `>>> ip.imread(r"C:\Users\...\images.tif")`
-  - `>>> ip.imread(r"C:\Users\...\xx\*.tif")`
-  - `>>> ip.imread(r"C:\Users\...\xx\**\*.tif")`
-  - `>>> ip.imread(r"C:\Users\...\condition$i\image-pos$p.tif")`
-- `impy.imread_collection` &rarr; Load images into `DataList`.
-- `impy.read_meta` &rarr; Read metadata of a tif/mrc file.
+`impy` provides useful I/O functions for effective image analysis.
 
-... and many `numpy` functions are also accessible with such as `ip.array` or `ip.random.normal`.
+- `impy.imread`
+  
+  Load image and convert them into `ImgArray`. Many formats supported:
 
+  1. `>>> ip.imread(r"C:\Users\...\images.tif")` ... read single tif file.
+  2. `>>> ip.imread(r"C:\Users\...\xx\*.tif")` ... read all the tif files in a directory.
+  3. `>>> ip.imread(r"C:\Users\...\xx\**\*.tif")` ... read all the tif files recursively.
+  4. `>>> ip.imread(r"C:\Users\...\images.tif", key="t=0")` ... only read the first time frame (much more efficient for large datasets).
+  5. `>>> ip.imread(r"C:\Users\...\condition$i\image-pos$p.tif")` ... read all the tif files in a certain pattern. In this case, paths such as `"...\condition2\image-pos0.tif"` are read and they are arranged into `i`/`p`-axes.
+   
+- `impy.imread_collection`
+  
+  Load images into `DataList`. Wildcards are supported (like 2. and 3. in `impy.imread` examples).
+
+  ```python
+  imgs = ip.imread_collection(r"C:\Users\...\xx\**\*.tif")
+  ip.gui.add(imgs.kalman_filter()) # run Kalman filter for each image stack and view them in napari.
+  ```
+
+- `impy.lazy_imread`
+  
+  Load an image lazily, i.e., image data is acturally read into memory only when it is needed. This function returns `LazyImgArray`, which cannot conduct operations but you can access metadata like those in `ImgArray`, by such as `.axes`, `.shape`, `.dirpath`, `.scale` etc.
+  
+  ```python
+  limg = ip.lazy_imread(r"C:\Users\...\xx\**\*.tif")
+  print(limg.gb) # print GB of the image
+  limg_center = limg["z=120;y=1000:2000;x=1500:2500"] # get a part of the image
+  limg_center.data # get data as ImgArray
+  ```
+
+  With preview in `napari`, you can manually select a small region of the large image and read it into ImgArray.
+
+  ```python
+  ip.gui.add(limg) # preview LazyImgArray
+  ### In the napari window, add a shape layer, draw a rectangle and Ctrl+Shift+X to crop it###
+  img = ip.gui.selection[0] # get the selected image layer as ImgArray
+  ```
 
 ## Napari Interface
 
