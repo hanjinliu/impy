@@ -78,6 +78,7 @@ class LazyImgArray:
             new_axes = None
         other = self.__class__(self.img[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
                                metadata=self.metadata, history=self.history)
+        other.set_scale(self)
         return other
     
     @property
@@ -145,9 +146,12 @@ class LazyImgArray:
             
         elif kwargs:
             self.set_scale(dict(kwargs))
-            
+        
+        elif isinstance(other, self.__class__):
+            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})
+        
         else:
-            raise TypeError(f"'other' must be str or MetaArray, but got {type(other)}")
+            raise TypeError(f"'other' must be str or LazyImgArray, but got {type(other)}")
         
         return None
     
