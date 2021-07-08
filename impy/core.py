@@ -1,7 +1,6 @@
 from __future__ import annotations
-from impy.arrays.arraylist import ArrayList
+from .datalist import DataList
 from .arrays import ImgArray
-from .arrays.bases import MetaArray
 import numpy as np
 import os
 import re
@@ -309,7 +308,7 @@ def _imread_stack(path:str, dtype=None, key:str=None):
         self.name = None
     return self.sort_axes()
 
-def imread_collection(path:str, filt=None) -> ArrayList:
+def imread_collection(path:str, filt=None) -> DataList:
     """
     Open images as ImgArray and store them in ArrayList.
 
@@ -328,11 +327,11 @@ def imread_collection(path:str, filt=None) -> ArrayList:
     paths = glob.glob(str(path), recursive=True)
     if filt is None:
         filt = lambda x: True
-    arrlist = ArrayList()
+    arrlist = DataList()
     for path in paths:
         img = imread(path)
         if filt(img):
-            arrlist.append(img)
+            arrlist._append(img)
     return arrlist
 
 def read_meta(path:str) -> dict[str]:

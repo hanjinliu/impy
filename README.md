@@ -32,9 +32,18 @@ img["y=3,5,7"] = 0
 Accordingly, broadcasting is more flexible. You can also set your original axes symbol if you like, by such as `img.axes = "!yx"`.
 
 #### 2. Automatic Batch Processing
+
 Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
 
 You can even run batch processing **with your own functions** by decorating them (`@ip.bind`). See [Integrating Your Own Functions](#integrating-your-own-functions) part.
+
+You may usually want to perform same filter function to images with different shapes and dimensions. `DataList` is a `list`-like object and it can iterate over all the images (or other objects) with `__getattr__` method.
+
+```python
+imglist = ip.DataList(imgs)
+outputs = imglist.gaussian_filter(sigma=3)
+```
+
    
 #### 3. Metadata and History
 All the information, history and metadata are inherited to outputs, like:
@@ -172,10 +181,11 @@ ip.random.normal(size=(100, 100))
 
 ## Image I/O and Other Functions
 
-- `impy.imread` &rarr; Load an image. `e.g. >>> ip.imread(path)`
-- `impy.imread_collection` &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
+- `impy.imread` &rarr; Load image(s). `e.g. >>> ip.imread(path)`
+- `impy.imread_collection` &rarr; Load images
+- &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
 - `impy.imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\50nM_pos3"`.
-- `impy.read_meta` &rarr; Read metadata of a tiff file.
+- `impy.read_meta` &rarr; Read metadata of a tif/mrc file.
 
 
 ... and many `numpy` functions are also accessible with such as `ip.array` or `ip.random.normal`.
