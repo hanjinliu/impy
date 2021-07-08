@@ -611,21 +611,40 @@ class LabeledArray(HistoryArray):
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
-        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle.
+        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle. Let 
+        origin be the origin of a xy-plane, the rotation direction from dst1 to dst2 must be counter-
+        clockwise, or the cropped image will be reversed.
         
         Parameters
         ---------- 
-        origin : np.ndarray
-
+        origin : (float, float)
+        dst1 : (float, float)
+        dst2 :(float, float)
         """
-        # TODO: do not use for loop if possible, labels not inherited?
+        origin = np.asarray(origin)
+        dst1 = np.asarray(dst1)
+        dst2 = np.asarray(dst2)
+        # TODO: do not use for loop if possible.
         ax0 = _make_rotated_axis(origin, dst2)
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         cropped_img = np.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype)
-        for sl, img2d in self.iter(complement_axes("yx", self.axes)):
-            cropped_img[sl] = ndi.map_coordinates(img2d, all_coords, prefilter=False, order=1)
+        for sl, lbl2d in self.iter(complement_axes("yx", self.axes)):
+            cropped_img[sl] = ndi.map_coordinates(lbl2d, all_coords, prefilter=False, order=1)
+        cropped_img = cropped_img.view(self.__class__)
+        cropped_img.axes = self.axes
+        if hasattr(self, "labels"):
+            try:
+                lbl = self.labels
+                cropped_labels = np.empty(lbl.shape[:-2] + all_coords.shape[1:], dtype=lbl.dtype)
+                for sl, lbl2d in lbl.iter(complement_axes("yx", lbl.axes)):
+                    cropped_labels[sl] = ndi.map_coordinates(lbl2d, all_coords, prefilter=False, order=0)
+            except Exception:
+                print("cropping labels failed")
+            else:
+                cropped_img.append_label(cropped_labels)
+        
         return cropped_img
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

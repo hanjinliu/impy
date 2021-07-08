@@ -76,7 +76,7 @@ def upon_add_layer(event):
     new_layer.translate = new_layer.translate.astype(np.float64)
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
-        new_layer.current_edge_width = new_layer.scale[-1] * 3
+        new_layer.current_edge_width = new_layer.scale[-1] * 2.0
         new_layer.current_face_color = [1, 1, 1, 0]
         new_layer.current_edge_color = "#dd23cb"
         
