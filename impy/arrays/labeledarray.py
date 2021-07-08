@@ -45,6 +45,18 @@ class LabeledArray(HistoryArray):
                f"original image: {self.name}\n"\
                f"   history    : {'->'.join(self.history)}\n"
     
+    def _repr_dict_(self):
+        if hasattr(self, "labels"):
+            labels_shape_info = self.labels.shape_info
+        else:
+            labels_shape_info = "No label"
+        return {"    shape     ": self.shape_info,
+                "  label shape ": labels_shape_info,
+                "    dtype     ": self.dtype,
+                "  directory   ": self.dirpath,
+                "original image": self.name,
+                "   history    ": "->".join(self.history)}
+    
     
     def imsave(self, tifname:str, dtype=None):
         """

@@ -43,6 +43,14 @@ class PropArray(MetaArray):
                f"original image: {self.name}\n"\
                f"property name : {self.propname}\n"
     
+    
+    def _repr_dict_(self):
+        return {"    shape     ": self.shape_info,
+                "    dtype     ": self.dtype,
+                "  directory   ": self.dirpath,
+                "original image": self.name,
+                "property name ": self.propname}
+    
     def plot(self, along=None, cmap="jet", cmap_range=(0, 1)):
         """
         Plot all the results with x-axis defined by `along`.

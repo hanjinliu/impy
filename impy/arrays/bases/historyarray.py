@@ -12,14 +12,12 @@ class HistoryArray(MetaArray):
         self.history = [] if history is None else history
         return self
     
-    def __repr__(self):
-        return f"\n"\
-               f"    shape     : {self.shape_info}\n"\
-               f"    dtype     : {self.dtype}\n"\
-               f"  directory   : {self.dirpath}\n"\
-               f"original image: {self.name}\n"\
-               f"   history    : {'->'.join(self.history)}\n"
-    
+    def _repr_dict_(self):
+        return {"    shape     ": self.shape_info,
+                "    dtype     ": self.dtype,
+                "  directory   ": self.dirpath,
+                "original image": self.name,
+                "   history    ": "->".join(self.history)}
     
     def _getitem_additional_set_info(self, other, **kwargs):
         keystr = kwargs["keystr"]

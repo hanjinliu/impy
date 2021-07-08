@@ -124,14 +124,21 @@ class MetaArray(np.ndarray):
         
         return None
     
+    def _repr_dict_(self):
+        return {"    shape     ": self.shape_info,
+                "    dtype     ": self.dtype,
+                "  directory   ": self.dirpath,
+                "original image": self.name}
     
     def __repr__(self):
-        return f"\n"\
-               f"    shape     : {self.shape_info}\n"\
-               f"    dtype     : {self.dtype}\n"\
-               f"  directory   : {self.dirpath}\n"\
-               f"original image: {self.name}\n"
+        return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
     
+    # def _repr_html_(self):
+    #     strs = []
+    #     for k, v in self._repr_dict_().items():
+    #         strs.append(f"<tr><td>{k}</td><td>{v}</td></tr>")
+    #     return "<span style=\"text-align:center\"><table border=\"1\">" + "".join(strs) + "</table></span>"
+        
     def __str__(self):
         return self.name
     
