@@ -1,5 +1,6 @@
 from ..arrays import LabeledArray
 from ..core import array as ip_array
+from dask import array as da
 from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
@@ -17,9 +18,6 @@ KEYS = {"hide_others": "Control-Shift-A",
         "proj": "Control-P",
         "duplicate_layer": "Control-Shift-D",
         }
-
-# TODO: new images generated in napari does not inherite original metadata such as dirpath
-# also, they may have float64
 
 __all__ = list(KEYS.keys())
 
@@ -132,7 +130,6 @@ def crop(viewer):
         for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
             if type_ == "rectangle":
                 rects.append(shape) # float pixel
-                
     
     for rect in rects:
         if np.any(rect[0, -2:] == rect[1, -2:]):
@@ -141,10 +138,19 @@ def crop(viewer):
             crop_func = crop_rotated_rectangle
         
         for layer in imglist:
+            if isinstance(layer.data, da.core.Array):
+                _dirpath = layer.metadata["dirpath"]
+                _metadata = layer.metadata["metadata"]
+                _name = layer.metadata["name"]
+            else:    
+                _dirpath = layer.data.dirpath
+                _metadata = layer.data.metadata
+                _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
             dyx = layer.translate[-2:] / layer.scale[-2:]
-            
+            viewer.status = f"cropping layer {layer.name}"
             newdata, relative_translate = crop_func(layer.data, rect, dyx)
+            viewer.status = f"cropping layer {layer.name} finished"
             if newdata.size <= 0:
                 continue
             
@@ -153,6 +159,9 @@ def crop(viewer):
                 axes = "".join(viewer.dims.axis_labels)
                 newdata = ip_array(newdata, axes=axes)
                 newdata.set_scale(**scale)
+            newdata.dirpath =_dirpath
+            newdata.metadata = _metadata
+            newdata.name = _name
             layer.data = newdata
             translate = layer.translate
             translate[-2:] += relative_translate * layer.scale[-2:]
@@ -208,7 +217,8 @@ def duplicate_layer(viewer):
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
 def crop_rotated_rectangle(img, crds, dyx):
-    # TODO: this does not work for dask
+    # TODO: this does not work for dask. 
+    # crop at bbox -> as imgarray -> rotated crop
     crds = crds[:,-2:] - dyx
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
     translate = crds[0]

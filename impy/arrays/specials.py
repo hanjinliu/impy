@@ -113,7 +113,6 @@ class PropArray(MetaArray):
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
         for i, (sl, y) in enumerate(self.iter(iteraxes)):
-            # TODO: index error
             plt.hist(y, color=cmap(positions[i]), bins=bins, alpha=0.5)
         
         plt.title(f"{self.propname}")

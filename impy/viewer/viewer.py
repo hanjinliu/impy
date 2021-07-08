@@ -184,11 +184,6 @@ class napariViewers:
                     
         scale = make_world_scale(img)
         
-        if len(img.history) > 0:
-            suffix = "-" + img.history[-1]
-        else:
-            suffix = ""
-        
         if "contrast_limits" not in kwargs.keys():
             leny, lenx = img.shape[-2:]
             sample = img.img[..., slice(None,None,leny//3), slice(None,None,lenx//3)]
@@ -197,12 +192,13 @@ class napariViewers:
         
         name = "No-Name" if img.name is None else img.name
         if chn_ax is not None:
-            name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
+            name = [f"[Preview][C{i}]{name}" for i in range(img.sizeof("c"))]
         else:
-            name = [name + suffix]
+            name = ["[Preview]" + name]
             
         layer = self.viewer.add_image(img.img, channel_axis=chn_ax, scale=scale, 
                                       name=name if len(name)>1 else name[0],
+                                      metadata={"dirpath":img.dirpath, "metadata":img.metadata, "name":img.name},
                                       **kwargs)
         
         self.viewer.scale_bar.unit = img.scale_unit

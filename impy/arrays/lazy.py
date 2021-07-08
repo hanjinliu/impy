@@ -4,7 +4,7 @@ from ..axes import Axes, ImageAxesError
 from .imgarray import ImgArray
 
 class LazyImgArray:
-    max_byte = 2e9
+    MAX_GB = 2.0
     def __init__(self, obj: da.core.Array, name=None, axes=None, dirpath=None, history=None, metadata=None):
         if not isinstance(obj, da.core.Array):
             raise TypeError("obj must be dask array")
@@ -44,6 +44,10 @@ class LazyImgArray:
     def itemsize(self):
         return self.img.itemsize
     
+    @property
+    def gb(self):
+        return self.size * self.itemsize / 1e9
+    
     @axes.setter
     def axes(self, value):
         if value is None:
@@ -57,8 +61,7 @@ class LazyImgArray:
     def __getitem__(self, key):
         if isinstance(key, str):
             key = axis_targeted_slicing(self.img, self.axes, key)
-        # TODO: reduced axes
-        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
+        keystr = key_repr(key) # write down key like "0,*,*"
         
         if hasattr(key, "__array__"):
             # fancy indexing will lose axes information
@@ -160,9 +163,8 @@ class LazyImgArray:
     
     @property
     def data(self) -> ImgArray:
-        total_byte = self.size * self.itemsize
-        if total_byte > self.__class__.max_byte:
-            raise RuntimeError(f"Too large: {total_byte*1e-9:.2f} GB")
+        if self.gb > self.__class__.MAX_GB:
+            raise RuntimeError(f"Too large: {self.gb:.2f} GB")
         img = self.img.compute().compute().view(ImgArray)
         for attr in ["name", "dirpath", "axes", "metadata", "history"]:
             setattr(img, attr, getattr(self, attr, None))

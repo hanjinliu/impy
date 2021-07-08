@@ -15,7 +15,6 @@ __all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_colle
            "read_meta", "set_cpu", "set_verbose", "sample_image"]
 
 # TODO: 
-# - delayed imread
 # - e.g. ip.imread("...\$i$j.tif", key="i=2:") will raise error.
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
@@ -363,7 +362,19 @@ def read_meta(path:str) -> dict[str]:
     
     return meta
 
-def lazy_imread(path):
+def lazy_imread(path) -> LazyImgArray:
+    """
+    Read an image lazily.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file.
+
+    Returns
+    -------
+    LazyImgArray
+    """    
     path = str(path)
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
