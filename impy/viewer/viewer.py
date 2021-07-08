@@ -1,5 +1,5 @@
 from __future__ import annotations
-from impy.func.io import get_scale_from_meta, open_img
+from ..datalist import DataList
 import napari
 import pandas as pd
 from ..arrays import *
@@ -137,6 +137,8 @@ class napariViewers:
             
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
+        elif isinstance(obj, DataList):
+            [self.add(each, title=title, **kwargs) for each in obj]
         elif isinstance(obj, MarkerFrame):
             self._add_points(obj, **kwargs)
         elif isinstance(obj, Label):
@@ -148,7 +150,8 @@ class napariViewers:
         elif isinstance(obj, (pd.DataFrame, PropArray, ArrayDict)):
             self._add_properties(obj, **kwargs)
         elif isinstance(obj, LazyImgArray):
-            self._add_dask(obj, **kwargs)
+            with Progress("Sending Dask arrays to napari"):
+                self._add_dask(obj, **kwargs)
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
         elif obj is None:
@@ -156,34 +159,6 @@ class napariViewers:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
-    # def preview(self, path:str, **kwargs):
-    #     with Progress("memory mapping for preview"):
-    #         meta, img = open_img(path, memmap=True)
-    #         axes = meta["axes"]
-    #         scale_ = get_scale_from_meta(meta)
-    #         scale = []
-    #         for a in axes:
-    #             if a in "zyx":
-    #                 scale.append(scale_[a])
-    #             elif a == "c":
-    #                 pass
-    #             else:
-    #                 scale.append(1)
-    #         self.add()
-            
-    #         chn_ax = axes.find("c")
-    #         if chn_ax < 0:
-    #             chn_ax = None
-                
-    #         self.viewer.add_image(img, name="preview", channel_axis=chn_ax, scale=scale, **kwargs)
-        
-    #     self.viewer.scale_bar.unit = meta["ijmeta"].get("unit", "")
-    #     new_axes = [a for a in axes if a != "c"]
-    #     # add axis labels to slide bars and image orientation.
-    #     if len(new_axes) >= len(self.viewer.dims.axis_labels):
-    #         self.viewer.dims.axis_labels = new_axes
-    #     return None
-        
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -206,10 +181,7 @@ class napariViewers:
     
     def _add_dask(self, img:LazyImgArray, **kwargs):
         chn_ax = img.axisof("c") if "c" in img.axes else None
-            
-        if img.dtype.kind == "c" and  not "colormap" in kwargs.keys():
-            kwargs["colormap"] = "plasma"
-        
+                    
         scale = make_world_scale(img)
         
         if len(img.history) > 0:
@@ -217,17 +189,21 @@ class napariViewers:
         else:
             suffix = ""
         
+        if "contrast_limits" not in kwargs.keys():
+            leny, lenx = img.shape[-2:]
+            sample = img.img[..., slice(None,None,leny//3), slice(None,None,lenx//3)]
+            kwargs["contrast_limits"] = [sample.min().compute().compute(), 
+                                         sample.max().compute().compute()]
+        
         name = "No-Name" if img.name is None else img.name
         if chn_ax is not None:
             name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
         else:
             name = [name + suffix]
-        
-        if img.dtype.kind == "c":
-            img = np.abs(img)
-        layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
-                                name=name if len(name)>1 else name[0],
-                                **kwargs)
+            
+        layer = self.viewer.add_image(img.img, channel_axis=chn_ax, scale=scale, 
+                                      name=name if len(name)>1 else name[0],
+                                      **kwargs)
         
         self.viewer.scale_bar.unit = img.scale_unit
         new_axes = [a for a in img.axes if a != "c"]

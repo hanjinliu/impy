@@ -147,7 +147,7 @@ def crop(viewer):
             newdata, relative_translate = crop_func(layer.data, rect, dyx)
             if newdata.size <= 0:
                 continue
-            # TODO: not needed?
+            
             if not isinstance(newdata, LabeledArray):
                 scale = get_viewer_scale(viewer)
                 axes = "".join(viewer.dims.axis_labels)

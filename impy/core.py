@@ -381,9 +381,14 @@ def lazy_imread(path):
         
     self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, 
                         history=history, metadata=metadata)
-        
-        
-    return self
+    
+    if self.axes.is_none():
+        return self
+    else:
+        # read lateral scale if possible
+        scale = get_scale_from_meta(meta)
+        self.set_scale(**scale)
+        return self
 
 def set_cpu(n_cpu:int) -> None:
     ImgArray.n_cpu = n_cpu

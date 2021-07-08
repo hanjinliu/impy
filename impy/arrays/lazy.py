@@ -57,7 +57,25 @@ class LazyImgArray:
     def __getitem__(self, key):
         if isinstance(key, str):
             key = axis_targeted_slicing(self.img, self.axes, key)
-        return self.img[key]
+        # TODO: reduced axes
+        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
+        
+        if hasattr(key, "__array__"):
+            # fancy indexing will lose axes information
+            new_axes = None
+            
+        elif "new" in keystr:
+            # np.newaxis or None will add dimension
+            new_axes = None
+            
+        elif self.axes:
+            del_list = [i for i, s in enumerate(keystr.split(",")) if s not in ("*", "")]
+            new_axes = del_axis(self.axes, del_list)
+        else:
+            new_axes = None
+        other = self.__class__(self.img[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
+                               metadata=self.metadata, history=self.history)
+        return other
     
     @property
     def shape_info(self):
@@ -155,3 +173,10 @@ class LazyImgArray:
             return axisname
         else:
             return self.axes.find(axisname)
+    
+    def sizeof(self, axis:str):
+        return self.shape[self.axes.find(axis)]
+    
+    def sizesof(self, axes:str):
+        return tuple(self.sizeof(a) for a in axes)
+    
