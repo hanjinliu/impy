@@ -94,3 +94,5 @@ def wheel_resize(viewer, event):
 
 def on_move(viewer, event):
     viewer.text_overlay.visible = False
+
+# TODO: @shapes_layer.mouse_drag_callbacks.append

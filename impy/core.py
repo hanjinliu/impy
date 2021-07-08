@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .datalist import DataList
-from .arrays import ImgArray
+from .arrays import ImgArray, LazyImgArray
 import numpy as np
 import os
 import re
@@ -11,8 +11,8 @@ from .axes import ImageAxesError
 from .utilcls import Progress
 from skimage import data as skdata
 
-__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "read_meta", "set_cpu",
-           "set_verbose", "sample_image"]
+__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "lazy_imread",
+           "read_meta", "set_cpu", "set_verbose", "sample_image"]
 
 # TODO: 
 # - delayed imread
@@ -362,6 +362,28 @@ def read_meta(path:str) -> dict[str]:
         raise ValueError("Unsupported file extension.")
     
     return meta
+
+def lazy_imread(path):
+    path = str(path)
+    fname, fext = os.path.splitext(os.path.basename(path))
+    dirpath = os.path.dirname(path)
+    
+    # read tif metadata
+    meta, img = open_as_dask(path)
+    axes = meta["axes"]
+    metadata = meta["ijmeta"]
+    if meta["history"]:
+        name = meta["history"].pop(0)
+        history = meta["history"]
+    else:
+        name = fname
+        history = []
+        
+    self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, 
+                        history=history, metadata=metadata)
+        
+        
+    return self
 
 def set_cpu(n_cpu:int) -> None:
     ImgArray.n_cpu = n_cpu

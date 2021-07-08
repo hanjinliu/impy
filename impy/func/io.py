@@ -3,7 +3,10 @@ from tifffile import TiffFile
 import json
 import re
 import os
+import itertools
 from skimage import io
+from dask import array as da
+from dask import delayed
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
@@ -71,6 +74,17 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
             out["image"] = mrc.data
     
     return out
+
+def open_as_dask(path:str):
+    # TODO: in some cases zyx should be in a same chunk
+    meta, img = open_img(path, memmap=True)
+    
+    lazy_imread = delayed(lambda sl: da.from_array(img[sl]))
+    iter_shape = itertools.product(*[range(s) for s in img.shape[:-2]])
+    arrs = [lazy_imread(sl) for sl in iter_shape]
+    darrs = [da.from_delayed(a, shape=img.shape[-2:], dtype=img.dtype) for a in arrs]
+    return meta, da.stack(darrs, axis=0).reshape(*(img.shape))
+    
 
 def open_img(path, memmap:bool=False):
     _, fext = os.path.splitext(os.path.basename(path))

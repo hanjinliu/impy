@@ -618,7 +618,7 @@ class LabeledArray(HistoryArray):
         origin : np.ndarray
 
         """
-        # TODO: do not use for loop if possible
+        # TODO: do not use for loop if possible, labels not inherited?
         ax0 = _make_rotated_axis(origin, dst2)
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin

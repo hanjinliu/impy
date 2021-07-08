@@ -147,6 +147,8 @@ class napariViewers:
             self._add_paths(obj, **kwargs)
         elif isinstance(obj, (pd.DataFrame, PropArray, ArrayDict)):
             self._add_properties(obj, **kwargs)
+        elif isinstance(obj, LazyImgArray):
+            self._add_dask(obj, **kwargs)
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
         elif obj is None:
@@ -154,33 +156,33 @@ class napariViewers:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
                 
-    def preview(self, path:str, **kwargs):
-        with Progress("memory mapping for preview"):
-            meta, img = open_img(path, memmap=True)
-            axes = meta["axes"]
-            scale_ = get_scale_from_meta(meta)
-            scale = []
-            for a in axes:
-                if a in "zyx":
-                    scale.append(scale_[a])
-                elif a == "c":
-                    pass
-                else:
-                    scale.append(1)
-            self.add()
+    # def preview(self, path:str, **kwargs):
+    #     with Progress("memory mapping for preview"):
+    #         meta, img = open_img(path, memmap=True)
+    #         axes = meta["axes"]
+    #         scale_ = get_scale_from_meta(meta)
+    #         scale = []
+    #         for a in axes:
+    #             if a in "zyx":
+    #                 scale.append(scale_[a])
+    #             elif a == "c":
+    #                 pass
+    #             else:
+    #                 scale.append(1)
+    #         self.add()
             
-            chn_ax = axes.find("c")
-            if chn_ax < 0:
-                chn_ax = None
+    #         chn_ax = axes.find("c")
+    #         if chn_ax < 0:
+    #             chn_ax = None
                 
-            self.viewer.add_image(img, name="preview", channel_axis=chn_ax, scale=scale, **kwargs)
+    #         self.viewer.add_image(img, name="preview", channel_axis=chn_ax, scale=scale, **kwargs)
         
-        self.viewer.scale_bar.unit = meta["ijmeta"].get("unit", "")
-        new_axes = [a for a in axes if a != "c"]
-        # add axis labels to slide bars and image orientation.
-        if len(new_axes) >= len(self.viewer.dims.axis_labels):
-            self.viewer.dims.axis_labels = new_axes
-        return None
+    #     self.viewer.scale_bar.unit = meta["ijmeta"].get("unit", "")
+    #     new_axes = [a for a in axes if a != "c"]
+    #     # add axis labels to slide bars and image orientation.
+    #     if len(new_axes) >= len(self.viewer.dims.axis_labels):
+    #         self.viewer.dims.axis_labels = new_axes
+    #     return None
         
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
@@ -201,6 +203,38 @@ class napariViewers:
         if hasattr(img, "labels"):
             self._add_labels(img.labels, name=name)
         return None
+    
+    def _add_dask(self, img:LazyImgArray, **kwargs):
+        chn_ax = img.axisof("c") if "c" in img.axes else None
+            
+        if img.dtype.kind == "c" and  not "colormap" in kwargs.keys():
+            kwargs["colormap"] = "plasma"
+        
+        scale = make_world_scale(img)
+        
+        if len(img.history) > 0:
+            suffix = "-" + img.history[-1]
+        else:
+            suffix = ""
+        
+        name = "No-Name" if img.name is None else img.name
+        if chn_ax is not None:
+            name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
+        else:
+            name = [name + suffix]
+        
+        if img.dtype.kind == "c":
+            img = np.abs(img)
+        layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
+                                name=name if len(name)>1 else name[0],
+                                **kwargs)
+        
+        self.viewer.scale_bar.unit = img.scale_unit
+        new_axes = [a for a in img.axes if a != "c"]
+        # add axis labels to slide bars and image orientation.
+        if len(new_axes) >= len(self.viewer.dims.axis_labels):
+            self.viewer.dims.axis_labels = new_axes
+        return layer
     
     def _add_points(self, points, **kwargs):
         if isinstance(points, MarkerFrame):

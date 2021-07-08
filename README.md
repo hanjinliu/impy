@@ -10,7 +10,7 @@
 2. you need to consider the output data types and shapes for every batch image processing.
 3. you need to care about all the images' information such as the names and directories of original images.
 
-With `ImgArray` and its relatives, this module solves major problems above.
+As a result, isn't it faster to analyze images using GUI like ImageJ? This module solves these major problems of Python based image analysis and makes it much more effective.
 
 
 ## Installation
@@ -29,7 +29,7 @@ For full usage of `impy` you also need to install `napari` and `trackpy`.
 img["t=3;z=5:7"]
 img["y=3,5,7"] = 0
 ```
-Accordingly, broadcasting is more flexible. You can also set your original axes symbol if you like, by such as `img.axes = "!yx"`.
+Accordingly, broadcasting is more flexible. You can also set your original axes symbol if you like, such as `img.axes = "!yx"`.
 
 #### 2. Automatic Batch Processing
 
@@ -91,6 +91,7 @@ ip.random.normal(size=(100, 100))
 - `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
 - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
 - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
+- `DataList` can apply same method to all the data inside it.
 - `gui` is a controller object that connects console and `napari.Viewer`.
 
 ## Image Analysis Tools
@@ -129,10 +130,6 @@ ip.random.normal(size=(100, 100))
   - `rolling_ball`, `tophat` &rarr; Background subtraction.
   - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
   - `unmix` &rarr; Unmixing of leakage between channels.
-
-- **Cololalization Analysis**
-  - `pearson_coloc` &rarr; Pearson's correlation coefficient.
-  - `manders_coloc` &rarr; Manders' correlation coefficient.
   
 - **Labeling**
   - `label`, `label_if`, `label_threshold` &rarr; Labeling using binary images.
@@ -167,9 +164,9 @@ ip.random.normal(size=(100, 100))
 - **Others**
   - `focus_map` &rarr; Find focus using variance of Laplacian method. 
   - `stokes` &rarr; Analyze polarization using Stokes parameters.
-  - `fft`, `ifft` &rarr; Fourier transformation.
+  - `fft`, `power_spectra`, `ifft` &rarr; Fourier transformation.
   - `threshold` &rarr; Thresholding (many methods included).
-  - `crop_center`, `crop_kernel`, `remove_edges` &rarr; Crop image.
+  - `crop_center`, `crop_kernel`, `remove_edges`, `rotated_crop` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
   - `proj` &rarr; Z-projection along any axis.
   - `split`, `split_pixel_unit` &rarr; Split the image.
@@ -181,12 +178,13 @@ ip.random.normal(size=(100, 100))
 
 ## Image I/O and Other Functions
 
-- `impy.imread` &rarr; Load image(s). `e.g. >>> ip.imread(path)`
-- `impy.imread_collection` &rarr; Load images
-- &rarr; Load images recursively as a stack. `e.g. >>> ip.imread_collection(path, ignore_exception=True)`
-- `impy.imread_stack` &rarr; Load images as a stack if file paths follows certain rules like `"...\10nM_pos0"`, `"...\10nM_pos1"`, ..., `"...\50nM_pos3"`.
+- `impy.imread` &rarr; Load image(s) like:
+  - `>>> ip.imread(r"C:\Users\...\images.tif")`
+  - `>>> ip.imread(r"C:\Users\...\xx\*.tif")`
+  - `>>> ip.imread(r"C:\Users\...\xx\**\*.tif")`
+  - `>>> ip.imread(r"C:\Users\...\condition$i\image-pos$p.tif")`
+- `impy.imread_collection` &rarr; Load images into `DataList`.
 - `impy.read_meta` &rarr; Read metadata of a tif/mrc file.
-
 
 ... and many `numpy` functions are also accessible with such as `ip.array` or `ip.random.normal`.
 
@@ -214,7 +212,7 @@ ip.random.normal(size=(100, 100))
   - `Ctrl` + `Shift` + `A` &rarr; Hide non-selected layers. Display all the layers by push again.
   - `Ctrl` + `Shift` + `F` &rarr; Move selected layers to front.
   - `Alt` + `L` &rarr; Convert all the shapes in seleted shape-layers into labels of selected image-layers.
-  - `Ctrl` + `Shift` + `X` &rarr; Crop selected image-layers with all the rectangles in selected shape-layers.
+  - `Ctrl` + `Shift` + `X` &rarr; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated cropping is also supported!
   - `Ctrl` + `P` &rarr; Projection of shape-layers or point-layers to 2D layers.
   - `Ctrl` + `G` / `Ctrl` + `Shift` + `G` &rarr; Link/Unlink layers. Like "grouping" in PowerPoint.
 - Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.

@@ -208,7 +208,7 @@ def duplicate_layer(viewer):
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
 def crop_rotated_rectangle(img, crds, dyx):
-    # TODO: this does not work for memory maps
+    # TODO: this does not work for dask
     crds = crds[:,-2:] - dyx
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
     translate = crds[0]
