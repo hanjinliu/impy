@@ -1,13 +1,19 @@
+from __future__ import annotations
 from ..func import *
 from dask import array as da
 from ..axes import Axes, ImageAxesError
 from .imgarray import ImgArray
+from scipy import ndimage as ndi
+import itertools
+from .labeledarray import _make_rotated_axis
+# TODO: crop_center etc, set max_GB, binning?
 
 class LazyImgArray:
     MAX_GB = 2.0
+    additional_props = ["dirpath", "metadata", "name"]
     def __init__(self, obj: da.core.Array, name=None, axes=None, dirpath=None, history=None, metadata=None):
-        if not isinstance(obj, da.core.Array):
-            raise TypeError("obj must be dask array")
+        if not isinstance(obj, (da.core.Array,)):
+            raise TypeError(f"obj must be dask array, got {type(obj)}")
         self.img = obj
         self.dirpath = dirpath
         self.name = name
@@ -18,7 +24,7 @@ class LazyImgArray:
         
         self.axes = axes
         self.metadata = metadata
-        self.history = history
+        self.history = [] if history is None else history
         
     @property
     def ndim(self):
@@ -174,6 +180,36 @@ class LazyImgArray:
             setattr(img, attr, getattr(self, attr, None))
         return img
     
+    def rotated_crop(self, origin, dst1, dst2):
+        """
+        Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
+        yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
+        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle. Let 
+        origin be the origin of a xy-plane, the rotation direction from dst1 to dst2 must be counter-
+        clockwise, or the cropped image will be reversed.
+        
+        Parameters
+        ---------- 
+        origin : (float, float)
+        dst1 : (float, float)
+        dst2 :(float, float)
+        """
+        origin = np.asarray(origin)
+        dst1 = np.asarray(dst1)
+        dst2 = np.asarray(dst2)
+        ax0 = _make_rotated_axis(origin, dst2)
+        ax1 = _make_rotated_axis(dst1, origin)
+        all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
+        all_coords = np.moveaxis(all_coords, -1, 0)
+        cropped_img = np.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype)
+        iters = itertools.product(*[range(i) for i in self.shape[:-2]])
+        for sl in iters:
+            cropped_img[sl] = self.img[sl].map_blocks(ndi.map_coordinates, coordinates=all_coords, 
+                                                      drop_axis=[0,1], prefilter=False, order=1)
+        out = self.__class__(cropped_img)
+        out._set_info(self, f"rotated_crop")
+        return out
+    
     def axisof(self, axisname):
         if type(axisname) is int:
             return axisname
@@ -186,3 +222,121 @@ class LazyImgArray:
     def sizesof(self, axes:str):
         return tuple(self.sizeof(a) for a in axes)
     
+    def proj(self, axis:str=None, method:str="mean") -> LazyImgArray:
+        """
+        Z-projection along any axis.
+
+        Parameters
+        ----------
+        axis : str, optional
+            Along which axis projection will be calculated. If None, most plausible one will be chosen.
+        method : str , default is mean-projection.
+            Projection method. If str is given, it will converted to numpy function.
+
+        Returns
+        -------
+        LazyImgArray
+            Projected image.
+        """        
+        if axis is None:
+            axis = find_first_appeared(self.axes, include=self.axes, exclude="yx")
+        elif not isinstance(axis, str):
+            raise TypeError("`axis` must be str.")
+        axisint = [self.axisof(a) for a in axis]
+        if method == "mean":
+            projection = getattr(self.img, method)(axis=tuple(axisint), dtype=self.dtype)
+        else:
+            projection = getattr(self.img, method)(axis=tuple(axisint))
+        out = self.__class__(projection)
+        out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
+        return out
+    
+    # TODO:
+    # def as_uint8(self) -> LazyImgArray:
+    #     img = self.img
+    #     if img.dtype == np.uint8:
+    #         return img
+        
+    #     if img.dtype == np.uint16:
+    #         out = img / 256
+    #     elif img.dtype.kind == "f":
+    #         out = lazy_clip_float(img, 256)
+    #     else:
+    #         raise TypeError(f"invalid data type: {img.dtype}")
+    #     out = out.astype(np.uint8)
+    #     out = self.__class__(out)
+    #     out._set_info(self)
+    #     return out
+    
+    # def as_uint16(self) -> LazyImgArray:
+    #     img = self.img
+    #     if img.dtype == np.uint16:
+    #         return img
+    #     if img.dtype == np.uint8:
+    #         out = img * 256
+    #     elif img.dtype == bool:
+    #         out = img
+    #     elif img.dtype.kind == "f":
+    #         out = lazy_clip_float(img, 256)
+    #     else:
+    #         raise TypeError(f"invalid data type: {img.dtype}")
+    #     out = out.astype(np.uint16)
+    #     out = self.__class__(out)
+    #     out._set_info(self)
+    #     return out
+    
+    def as_float(self) -> LazyImgArray:
+        out = self.img.astype(np.float32)
+        out = self.__class__(out)
+        out._set_info(self)
+        return out
+    
+    def as_img_type(self, dtype=np.uint16) -> LazyImgArray:
+        dtype = np.dtype(dtype)
+        if self.dtype == dtype:
+            return self
+        elif dtype == "uint16":
+            return self.as_uint16()
+        elif dtype == "uint8":
+            return self.as_uint8()
+        elif dtype == "float32":
+            return self.as_float()
+        else:
+            raise ValueError(f"dtype: {dtype}")
+    
+    def _set_additional_props(self, other):
+        # set additional properties
+        # If `other` does not have it and `self` has, then the property will be inherited.
+        for p in self.__class__.additional_props:
+            setattr(self, p, getattr(other, p, 
+                                     getattr(self, p, 
+                                             None)))
+    
+    def _set_info(self, other, next_history=None, new_axes:str="inherit"):
+        self._set_additional_props(other)
+        # set axes
+        try:
+            if new_axes != "inherit":
+                self.axes = new_axes
+                self.set_scale(other)
+            else:
+                self.axes = other.axes.copy()
+        except ImageAxesError:
+            self.axes = None
+        
+        # set history
+        if next_history is not None:
+            self.history = other.history + [next_history]
+        else:
+            self.history = other.history.copy()
+        
+        return None
+    
+# @dask.delayed
+# def lazy_clip_float(img, upper):
+#     if 0 <= img.min() and img.max() < 1:
+#         out = img * upper
+#     else:
+#         out = img + 0.5
+#     out = da.clip(out, 0, upper-1)
+#     return out

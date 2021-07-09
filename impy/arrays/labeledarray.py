@@ -624,14 +624,13 @@ class LabeledArray(HistoryArray):
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
         dst2 = np.asarray(dst2)
-        # TODO: do not use for loop if possible.
         ax0 = _make_rotated_axis(origin, dst2)
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         cropped_img = np.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype)
-        for sl, lbl2d in self.iter(complement_axes("yx", self.axes)):
-            cropped_img[sl] = ndi.map_coordinates(lbl2d, all_coords, prefilter=False, order=1)
+        for sl, img2d in self.iter(complement_axes("yx", self.axes)):
+            cropped_img[sl] = ndi.map_coordinates(img2d, all_coords, prefilter=False, order=1)
         cropped_img = cropped_img.view(self.__class__)
         cropped_img.axes = self.axes
         if hasattr(self, "labels"):

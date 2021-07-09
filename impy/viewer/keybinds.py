@@ -218,7 +218,6 @@ def duplicate_layer(viewer):
 
 def crop_rotated_rectangle(img, crds, dyx):
     # TODO: this does not work for dask. 
-    # crop at bbox -> as imgarray -> rotated crop
     crds = crds[:,-2:] - dyx
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
     translate = crds[0]

@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import pinv as pseudo_inverse
 from scipy.spatial import Voronoi
+from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
+from functools import partial
 from .._types import *
 from ._skimage import *
 from ..func import *
@@ -15,7 +17,6 @@ from ..utilcls import *
 from ._process import *
 from ..frame import *
 from ..frame.frames import tp
-from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 
 
 class ImgArray(LabeledArray):
@@ -159,7 +160,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @same_dtype(True)
-    def binning(self, binsize:int=2, method="sum", *, dims=None) -> ImgArray:
+    def binning(self, binsize:int=2, method="sum", *, check_edges=True, dims=None) -> ImgArray:
         """
         Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
         Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -170,6 +171,9 @@ class ImgArray(LabeledArray):
             Bin size, such as 2x2.
         method : str or callable, default is numpy.sum
             Reduce function applied to each bin.
+        check_edges : bool, default is True
+            If True, only divisible `binsize` is accepted. If False, image is cropped at the end to
+            match `binsize`.
         dims : str or int, optional
             Spatial dimensions.
 
@@ -187,19 +191,23 @@ class ImgArray(LabeledArray):
                
         shape = []
         scale_ = []
+        img_to_reshape = self.value
         for i, a in enumerate(self.axes):
             s = self.shape[i]
             if a in dims:
                 b = binsize
                 if s % b != 0:
-                    raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
+                    if check_edges:
+                        raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
+                    else:
+                        img_to_reshape = img_to_reshape[(slice(None),)*i + (slice(None, s//b*b),)]
             else:
                 b = 1
             shape += [s//b, b]
             scale_.append(1/b)
             
         shape = tuple(shape)
-        reshaped_img = self.value.reshape(shape)
+        reshaped_img = img_to_reshape.reshape(shape)
         axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
         out = binfunc(reshaped_img, axis=axes_to_reduce)
         out = out.view(self.__class__)
@@ -3292,7 +3300,11 @@ class ImgArray(LabeledArray):
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = [self.axisof(a) for a in axis]
-        out = func(self.value, axis=tuple(axisint)).view(self.__class__)
+        if func is np.mean:
+            out = func(self.value, axis=tuple(axisint), dtype=self.dtype).view(self.__class__)
+        else:
+            out = func(self.value, axis=tuple(axisint)).view(self.__class__)
+        
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
 

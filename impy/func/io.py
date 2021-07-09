@@ -75,6 +75,18 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     
     return out
 
+# def open_as_dask(path:str):
+#     meta, img = open_img(path, memmap=True)
+#     import numpy as np
+#     @delayed
+#     def lazy_imread(block_id, axis=0):
+#         print(block_id)
+#         image = img[block_id]
+#         return np.expand_dims(image, axis=axis)
+        
+#     stack = da.map_blocks(lazy_imread, dtype=img.dtype, chunks=(1,)*(img.ndim-2) + img.shape[-2:])
+#     return meta, stack
+
 def open_as_dask(path:str):
     # TODO: in some cases zyx should be in a same chunk
     meta, img = open_img(path, memmap=True)
