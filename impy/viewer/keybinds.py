@@ -142,13 +142,11 @@ def crop(viewer):
             _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
             dyx = layer.translate[-2:] / layer.scale[-2:]
-            viewer.status = f"cropping layer {layer.name}"
             newdata, relative_translate = crop_func(layer.data, rect, dyx)
-            viewer.status = f"cropping layer {layer.name} finished"
             if newdata.size <= 0:
                 continue
             
-            if not isinstance(newdata, LabeledArray):
+            if not isinstance(newdata, (LabeledArray, LazyImgArray)):
                 scale = get_viewer_scale(viewer)
                 axes = "".join(viewer.dims.axis_labels)
                 newdata = ip_array(newdata, axes=axes)

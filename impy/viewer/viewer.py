@@ -185,10 +185,9 @@ class napariViewers:
         scale = make_world_scale(img)
         
         if "contrast_limits" not in kwargs.keys():
+            # contrast limits should be determined quickly.
             leny, lenx = img.shape[-2:]
-            sample = img.img[..., slice(None,None,leny//3), slice(None,None,lenx//3)]
-            # kwargs["contrast_limits"] = [sample.min().compute().compute(), 
-            #                              sample.max().compute().compute()]
+            sample = img.img[..., ::leny//3, ::lenx//3]
             kwargs["contrast_limits"] = [sample.min().compute(), 
                                          sample.max().compute()]
         
@@ -197,11 +196,9 @@ class napariViewers:
             name = [f"[Preview][C{i}]{name}" for i in range(img.sizeof("c"))]
         else:
             name = ["[Preview]" + name]
-            
         layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                                       name=name if len(name)>1 else name[0],
                                       **kwargs)
-        
         self.viewer.scale_bar.unit = img.scale_unit
         new_axes = [a for a in img.axes if a != "c"]
         # add axis labels to slide bars and image orientation.
@@ -319,6 +316,7 @@ def default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
     viewer.scale_bar.font_size = 8
+    viewer.text_overlay.visible = True
     viewer.axes.visible = True
     viewer.axes.colored = False
     viewer.window.cmap = ColorCycle()

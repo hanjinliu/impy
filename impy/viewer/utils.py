@@ -104,6 +104,13 @@ def _text_bound_init(new_layer):
     #                         init_prop, init_prop, save_choices=True)
     # new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}
 
+def profile_shapes(layer, event):
+    last_event_position = event.position
+    while event.type == 'mouse_move':
+        dpos = np.array(last_event_position) - np.array(event.position)
+        dpx = dpos/layer.scale[-2:]
+        yield
+
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
         

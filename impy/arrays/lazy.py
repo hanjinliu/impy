@@ -89,10 +89,13 @@ class LazyImgArray:
             new_axes = del_axis(self.axes, del_list)
         else:
             new_axes = None
-        other = self.__class__(self.img[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
-                               metadata=self.metadata, history=self.history)
-        other.set_scale(self)
-        return other
+        out = self.__class__(self.img[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
+                             metadata=self.metadata, history=self.history)
+        
+        out._getitem_additional_set_info(self, keystr=keystr,
+                                         new_axes=new_axes, key=key)
+        
+        return out
     
     @property
     def shape_info(self):
@@ -182,7 +185,7 @@ class LazyImgArray:
     def data(self) -> ImgArray:
         if self.gb > self.__class__.MAX_GB:
             raise RuntimeError(f"Too large: {self.gb:.2f} GB")
-        # img = self.img.compute().compute().view(ImgArray)
+        
         img = self.img.compute().view(ImgArray)
         for attr in ["name", "dirpath", "axes", "metadata", "history"]:
             setattr(img, attr, getattr(self, attr, None))
@@ -200,7 +203,7 @@ class LazyImgArray:
         ---------- 
         origin : (float, float)
         dst1 : (float, float)
-        dst2 :(float, float)
+        dst2 : (float, float)
         """
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
@@ -209,12 +212,14 @@ class LazyImgArray:
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
+        
         chunks = self.chunksize[:-2] + all_coords.shape[-2:]
         cropped_img = da.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype, chunks=chunks)
-        iters = itertools.product(*[range(i) for i in self.shape[:-2]])
+        iters = itertools.product(*map(range, self.shape[:-2]))
         for sl in iters:
             cropped_img[sl] = self.img[sl].map_blocks(ndi.map_coordinates, coordinates=all_coords, 
-                                                      prefilter=False, order=1, drop_axis=[0,1], dtype=self.dtype)
+                                                      prefilter=False, order=1, drop_axis=[0,1], 
+                                                      dtype=self.dtype)
         out = self.__class__(cropped_img)
         out._set_info(self, f"rotated_crop")
         return out
@@ -329,6 +334,12 @@ class LazyImgArray:
             setattr(self, p, getattr(other, p, 
                                      getattr(self, p, 
                                              None)))
+    
+    
+    def _getitem_additional_set_info(self, other, **kwargs):
+        keystr = kwargs["keystr"]
+        self._set_info(other, f"getitem[{keystr}]", kwargs["new_axes"])
+        return None
     
     def _set_info(self, other, next_history=None, new_axes:str="inherit"):
         self._set_additional_props(other)
