@@ -187,8 +187,10 @@ class napariViewers:
         if "contrast_limits" not in kwargs.keys():
             leny, lenx = img.shape[-2:]
             sample = img.img[..., slice(None,None,leny//3), slice(None,None,lenx//3)]
-            kwargs["contrast_limits"] = [sample.min().compute().compute(), 
-                                         sample.max().compute().compute()]
+            # kwargs["contrast_limits"] = [sample.min().compute().compute(), 
+            #                              sample.max().compute().compute()]
+            kwargs["contrast_limits"] = [sample.min().compute(), 
+                                         sample.max().compute()]
         
         name = "No-Name" if img.name is None else img.name
         if chn_ax is not None:
@@ -196,9 +198,8 @@ class napariViewers:
         else:
             name = ["[Preview]" + name]
             
-        layer = self.viewer.add_image(img.img, channel_axis=chn_ax, scale=scale, 
+        layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                                       name=name if len(name)>1 else name[0],
-                                      metadata={"dirpath":img.dirpath, "metadata":img.metadata, "name":img.name},
                                       **kwargs)
         
         self.viewer.scale_bar.unit = img.scale_unit

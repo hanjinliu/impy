@@ -1,6 +1,5 @@
 from ..arrays import LabeledArray
 from ..core import array as ip_array
-from dask import array as da
 from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
@@ -138,14 +137,9 @@ def crop(viewer):
             crop_func = crop_rotated_rectangle
         
         for layer in imglist:
-            if isinstance(layer.data, da.core.Array):
-                _dirpath = layer.metadata["dirpath"]
-                _metadata = layer.metadata["metadata"]
-                _name = layer.metadata["name"]
-            else:    
-                _dirpath = layer.data.dirpath
-                _metadata = layer.data.metadata
-                _name = layer.data.name
+            _dirpath = layer.data.dirpath
+            _metadata = layer.data.metadata
+            _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
             dyx = layer.translate[-2:] / layer.scale[-2:]
             viewer.status = f"cropping layer {layer.name}"
@@ -217,7 +211,6 @@ def duplicate_layer(viewer):
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
 def crop_rotated_rectangle(img, crds, dyx):
-    # TODO: this does not work for dask. 
     crds = crds[:,-2:] - dyx
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
     translate = crds[0]

@@ -51,6 +51,10 @@ class LazyImgArray:
         return self.img.itemsize
     
     @property
+    def chunksize(self):
+        return self.img.chunksize
+    
+    @property
     def gb(self):
         return self.size * self.itemsize / 1e9
     
@@ -63,6 +67,9 @@ class LazyImgArray:
             if self.ndim != len(self._axes):
                 raise ImageAxesError("Inconpatible dimensions: "
                                     f"image (ndim={self.ndim}) and axes ({value})")
+    
+    def __array__(self):
+        return np.asarray(self.img)
     
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -175,12 +182,13 @@ class LazyImgArray:
     def data(self) -> ImgArray:
         if self.gb > self.__class__.MAX_GB:
             raise RuntimeError(f"Too large: {self.gb:.2f} GB")
-        img = self.img.compute().compute().view(ImgArray)
+        # img = self.img.compute().compute().view(ImgArray)
+        img = self.img.compute().view(ImgArray)
         for attr in ["name", "dirpath", "axes", "metadata", "history"]:
             setattr(img, attr, getattr(self, attr, None))
         return img
     
-    def rotated_crop(self, origin, dst1, dst2):
+    def rotated_crop(self, origin, dst1, dst2) -> LazyImgArray:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
@@ -201,11 +209,12 @@ class LazyImgArray:
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        cropped_img = np.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype)
+        chunks = self.chunksize[:-2] + all_coords.shape[-2:]
+        cropped_img = da.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype, chunks=chunks)
         iters = itertools.product(*[range(i) for i in self.shape[:-2]])
         for sl in iters:
             cropped_img[sl] = self.img[sl].map_blocks(ndi.map_coordinates, coordinates=all_coords, 
-                                                      drop_axis=[0,1], prefilter=False, order=1)
+                                                      prefilter=False, order=1, drop_axis=[0,1], dtype=self.dtype)
         out = self.__class__(cropped_img)
         out._set_info(self, f"rotated_crop")
         return out
@@ -221,6 +230,15 @@ class LazyImgArray:
     
     def sizesof(self, axes:str):
         return tuple(self.sizeof(a) for a in axes)
+    
+    def transpose(self, axes):
+        if self.axes.is_none():
+            new_axes = None
+        else:
+            new_axes = "".join([self.axes[i] for i in list(axes)])
+        out = self.__class__(self.img.transpose(axes))
+        out._set_info(self, new_axes=new_axes)
+        return out
     
     def proj(self, axis:str=None, method:str="mean") -> LazyImgArray:
         """

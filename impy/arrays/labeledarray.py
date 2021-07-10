@@ -607,7 +607,7 @@ class LabeledArray(HistoryArray):
         return out
         
     @record()
-    def rotated_crop(self, origin, dst1, dst2):
+    def rotated_crop(self, origin, dst1, dst2) -> LabeledArray:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`

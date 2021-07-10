@@ -362,7 +362,7 @@ def read_meta(path:str) -> dict[str]:
     
     return meta
 
-def lazy_imread(path) -> LazyImgArray:
+def lazy_imread(path, chunkdims=None) -> LazyImgArray:
     """
     Read an image lazily.
 
@@ -379,8 +379,11 @@ def lazy_imread(path) -> LazyImgArray:
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
     
+    if chunkdims is None:
+        chunkdims = "yx"
+    
     # read tif metadata
-    meta, img = open_as_dask(path)
+    meta, img = open_as_dask(path, chunkdims)
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     if meta["history"]:
