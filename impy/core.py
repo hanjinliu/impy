@@ -6,6 +6,7 @@ import os
 import re
 import glob
 import itertools
+from dask import array as da
 from .func import *
 from .axes import ImageAxesError
 from .utilcls import Progress
@@ -15,7 +16,8 @@ __all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_colle
            "read_meta", "set_cpu", "set_verbose", "sample_image"]
 
 # TODO: 
-# - e.g. ip.imread("...\$i$j.tif", key="i=2:") will raise error.
+# - ip.imread("...\$i$j.tif", key="i=2:") will raise error.
+# - ip.imread("...", key="c=0") will raise error due to incompatible shape.
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
@@ -74,7 +76,7 @@ def gaussian_kernel(shape:tuple[int], sigma=1.0, peak=1.0):
         ker.axes = "zyx"
     return ker
 
-def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
+def imread(path:str, dtype:str=None, key:str=None, *, axes=None, squeeze:bool=False) -> ImgArray:
     """
     Load image(s) from a path. You can read list of images from directories with wildcards or "$"
     in `path`.
@@ -106,9 +108,9 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     is_memmap = (key is not None)
     
     if "$" in path:
-        return _imread_stack(path, dtype=dtype, key=key)
+        return _imread_stack(path, dtype=dtype, key=key, squeeze=squeeze)
     elif "*" in path:
-        return _imread_glob(path, dtype=dtype, key=key)
+        return _imread_glob(path, dtype=dtype, key=key, squeeze=squeeze)
     elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
@@ -128,6 +130,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
         
     if is_memmap:
         sl = axis_targeted_slicing(img, axes, key)
+        axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl])
     
     self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
@@ -142,6 +145,9 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
     
     if dtype is None:
         dtype = self.dtype
+    
+    if squeeze:
+        self = np.squeeze(self)
         
     if self.axes.is_none():
         return self
@@ -151,37 +157,32 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None) -> ImgArray:
         self.set_scale(**scale)
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
-def _imread_glob(path:str, axis:str="p", dtype=None) -> ImgArray:
+def _imread_glob(path:str, squeeze:bool=False, **kwargs) -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
     Parameters
     ----------
-    dirname : str
-        Path to the directory
+    path : str
+        Path with wildcard.
     axis : str, default is "p"
         To specify which axis will be the new one.
-    filname : str, default is "*.tif"
-        File name that satisfies this string will be read. This variable will be passed to `glob.glob`.
-    template : dict or MetaArray, optional
-        Images that matches the template will added to image stack.
-    ignore_exception : bool, default is False
-        If true, arrays with wrong shape will be ignored.
-    dtype : Any type that np.dtype accepts
-        dtype of the images.
+        
     """    
     path = str(path)
     paths = glob.glob(path, recursive=True)
         
     imgs = []
     for path in paths:
-        img = imread(path, dtype=dtype)
+        img = imread(path, **kwargs)
         imgs.append(img)
     
     if len(imgs) == 0:
         raise RuntimeError("Could not read any images.")
     
-    out = np.stack(imgs, axis=axis)
+    out = np.stack(imgs, axis="p")
+    if squeeze:
+        out = np.squeeze(out)
     try:
         base = os.path.split(path.split("*")[0])[0]
         out.dirpath, out.name = os.path.split(base)
@@ -190,7 +191,7 @@ def _imread_glob(path:str, axis:str="p", dtype=None) -> ImgArray:
     out.temp = paths
     return out
 
-def _imread_stack(path:str, dtype=None, key:str=None):
+def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
     r"""
     Read separate image files using formated string. This function is useful when files/folders
     are named in a certain rule, such as ".../pos_0/img_0.tif", ".../pos_0/img_1.tif".
@@ -305,6 +306,9 @@ def _imread_stack(path:str, dtype=None, key:str=None):
     else:
         self.dirpath = None
         self.name = None
+        
+    if squeeze:
+        self = np.squeeze(self)
     return self.sort_axes()
 
 def imread_collection(path:str, filt=None) -> DataList:
@@ -362,7 +366,7 @@ def read_meta(path:str) -> dict[str]:
     
     return meta
 
-def lazy_imread(path, chunkdims=None) -> LazyImgArray:
+def lazy_imread(path, chunkdims=None, *, squeeze:bool=False) -> LazyImgArray:
     """
     Read an image lazily.
 
@@ -370,12 +374,16 @@ def lazy_imread(path, chunkdims=None) -> LazyImgArray:
     ----------
     path : str
         Path to the file.
+    chunkdims : str, optional
+        To specify which axes will be in a same chunk.
 
     Returns
     -------
     LazyImgArray
     """    
     path = str(path)
+    if "*" in path:
+        return _lazy_imread_glob(path, chunkdims=chunkdims, squeeze=squeeze)
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
     
@@ -393,6 +401,10 @@ def lazy_imread(path, chunkdims=None) -> LazyImgArray:
         name = fname
         history = []
         
+    if squeeze:
+        axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
+        img = da.squeeze(img)
+        
     self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, 
                         history=history, metadata=metadata)
     
@@ -403,6 +415,44 @@ def lazy_imread(path, chunkdims=None) -> LazyImgArray:
         scale = get_scale_from_meta(meta)
         self.set_scale(**scale)
         return self
+
+def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
+    """
+    Read images recursively from a directory, and stack them into one LazyImgArray.
+
+    Parameters
+    ----------
+    path : str
+        Path with wildcard.
+        
+    """    
+    path = str(path)
+    paths = glob.glob(path, recursive=True)
+        
+    imgs = []
+    for path in paths:
+        imgl = lazy_imread(path, **kwargs)
+        imgs.append(imgl)
+    
+    if len(imgs) == 0:
+        raise RuntimeError("Could not read any images.")
+    
+    out = da.stack([i.img for i in imgs], axis=0)
+    out = LazyImgArray(out)
+    out._set_info(imgs[0], new_axes="p"+str(imgs[0].axes))
+    
+    if squeeze:
+        axes = "".join(a for i, a in enumerate(out.axes) if out.shape[i] > 1)
+        img = da.squeeze(out.img)
+        out = LazyImgArray(img)
+        out._set_info(imgs[0], new_axes=axes)
+    try:
+        base = os.path.split(path.split("*")[0])[0]
+        out.dirpath, out.name = os.path.split(base)
+    except Exception:
+        pass
+    
+    return out
 
 def set_cpu(n_cpu:int) -> None:
     ImgArray.n_cpu = n_cpu
