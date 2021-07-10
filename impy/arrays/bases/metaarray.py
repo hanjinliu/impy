@@ -182,7 +182,7 @@ class MetaArray(np.ndarray):
         keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            if hasattr(key, "__array__"):
+            if hasattr(key, "__array__") and key.size > 1:
                 # fancy indexing will lose axes information
                 new_axes = None
                 

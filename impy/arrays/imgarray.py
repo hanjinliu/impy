@@ -3278,7 +3278,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype()
     @record(append_history=False)
-    def proj(self, axis:str=None, method:str|Callable="mean") -> ImgArray:
+    def proj(self, axis:str=None, method:str|Callable="mean", mask=None, **kwargs) -> ImgArray:
         """
         Z-projection along any axis.
 
@@ -3288,23 +3288,44 @@ class ImgArray(LabeledArray):
             Along which axis projection will be calculated. If None, most plausible one will be chosen.
         method : str or callable, default is mean-projection.
             Projection method. If str is given, it will converted to numpy function.
+        mask : array-like, optional
+            If provided, input image will be converted to np.ma.array and `method` will also be interpreted
+            as an masked functio if possible.
+        **kwargs
+            Other keyword arguments that will passed to projection function.
 
         Returns
         -------
         ImgArray
             Projected image.
         """        
-        func = _check_function(method)
+        # determine function
+        if mask is not None:
+            if isinstance(method, str):
+                func = getattr(np.ma, method)
+            else:
+                func = method
+        else:
+            func = _check_function(method)
+        
         if axis is None:
             axis = find_first_appeared(self.axes, exclude="yx")
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
-        axisint = [self.axisof(a) for a in axis]
-        if func is np.mean:
-            out = func(self.value, axis=tuple(axisint), dtype=self.dtype).view(self.__class__)
-        else:
-            out = func(self.value, axis=tuple(axisint)).view(self.__class__)
+        axisint = tuple(self.axisof(a) for a in axis)
         
+        if func.__module__ == "numpy.ma.core":
+            arr = np.ma.array(self.value, mask=mask, dtype=self.dtype)
+            if func is np.ma.mean:
+                out = func(arr, axis=axisint, dtype=np.float32, **kwargs)
+            else:
+                out = func(arr, axis=axisint, **kwargs)
+        elif func is np.mean:
+            out = func(self.value, axis=axisint, dtype=np.float32, **kwargs)
+        else:
+            out = func(self.value, axis=axisint, **kwargs)
+        
+        out = out.view(self.__class__)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
 
