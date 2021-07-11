@@ -6,7 +6,7 @@ from .imgarray import ImgArray
 from scipy import ndimage as ndi
 import itertools
 from .labeledarray import _make_rotated_axis
-# TODO: crop_center etc, set max_GB, binning?
+# TODO: crop_center etc, binning?
 
 class LazyImgArray:
     MAX_GB = 2.0
@@ -191,6 +191,7 @@ class LazyImgArray:
             setattr(img, attr, getattr(self, attr, None))
         return img
     
+    
     def rotated_crop(self, origin, dst1, dst2) -> LazyImgArray:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
@@ -245,6 +246,44 @@ class LazyImgArray:
         out._set_info(self, new_axes=new_axes)
         return out
     
+    def crop_center(self, scale=0.5, *, dims="yx") -> LazyImgArray:
+        """
+        Crop out the center of an image. 
+        
+        Parameters
+        ----------
+        scale : float or array-like, default is 0.5
+            Scale of the cropped image. If an array is given, each axis will be cropped in different scales,
+            using each value respectively.
+        dims : str, default is "yx"
+            Dimensions to be cropped.
+            
+        Example
+        -------
+        (1) Create 512x512 image from 1024x1024 image.
+        >>> img_cropped = img.crop_center(scale=0.5)
+        (2) Create 21x256x256 image from 63x1024x1024 image.
+        >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
+        """
+        # check scale
+        if hasattr(scale, "__iter__") and len(scale) == 3 and dims == "yx":
+            dims = "zyx"
+        scale = np.asarray(check_nd(scale, len(dims)))
+        if np.any((scale <= 0) | (1 < scale)):
+            raise ValueError(f"scale must be (0, 1], but got {scale}")
+        
+        # Make axis-targeted slicing string
+        sizes = self.sizesof(dims)
+        slices = []
+        for a, size, sc in zip(dims, sizes, scale):
+            x0 = int(size / 2 * (1 - sc))
+            x1 = int(np.ceil(size / 2 * (1 + sc)))
+            slices.append(f"{a}={x0}:{x1}")
+
+        out = self[";".join(slices)]
+        
+        return out
+    
     def proj(self, axis:str=None, method:str="mean") -> LazyImgArray:
         """
         Z-projection along any axis.
@@ -274,7 +313,7 @@ class LazyImgArray:
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
     
-    # TODO:
+    # TODO: how to lazily convert image type?
     # def as_uint8(self) -> LazyImgArray:
     #     img = self.img
     #     if img.dtype == np.uint8:

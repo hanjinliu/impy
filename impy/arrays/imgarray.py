@@ -3357,16 +3357,17 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        in_range : two scalar values, optional
-            range of lower/upper limit, by default (0, 100)
-        dtype : numpy dtype, optional
-            output dtype, by default np.uint16
+        in_range : two scalar values, default is (0%, 100%)
+            Range of lower/upper limit.
+        dtype : numpy dtype, default is np.uint16
+            Output dtype.
 
         Returns
         -------
         ImgArray
             Rescaled image with temporal attribute
         """        
+        # TODO: along=... like threshold()
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = check_clip_range(in_range, self.value)
             

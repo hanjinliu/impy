@@ -75,21 +75,6 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     
     return out
 
-# def open_as_dask(path:str):
-#     meta, img = open_img(path, memmap=True)
-#     import numpy as np
-#     def lazy_imread(block_id, axis=0):
-#         print(block_id)
-#         image = img[block_id]
-#         return np.expand_dims(image, axis=axis)
-#     chunks = (1,)*(img.ndim-2) + img.shape[-2:]
-#     chunks = da.core.normalize_chunks(chunks, img.shape)
-#     stack = da.map_blocks(lazy_imread, dtype=img.dtype, 
-#                           chunks=chunks,
-#                           new_axis=list(range(1, img.ndim-2)),
-#                           )
-#     return meta, stack
-
 def open_as_dask(path:str, chunkdims:str):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
@@ -98,17 +83,6 @@ def open_as_dask(path:str, chunkdims:str):
     img = da.from_array(img, chunks=chunks)
     return meta, img
 
-# def _open_as_dask(path:str):
-#     # TODO: in some cases zyx should be in a same chunk
-#     meta, img = open_img(path, memmap=True)
-    
-#     lazy_imread = delayed(lambda sl: da.from_array(img[sl]))
-#     iter_shape = itertools.product(*[range(s) for s in img.shape[:-2]])
-#     arrs = [lazy_imread(sl) for sl in iter_shape]
-#     darrs = [da.from_delayed(a, shape=img.shape[-2:], dtype=img.dtype) for a in arrs]
-#     stack = da.stack(darrs, axis=0).reshape(*(img.shape))
-#     return meta, stack
-    
 
 def open_img(path, memmap:bool=False):
     _, fext = os.path.splitext(os.path.basename(path))

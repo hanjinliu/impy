@@ -89,7 +89,7 @@ def wheel_resize(viewer, event):
             scale[-2:] *= factor
             layer.scale = scale
             ratio = scale[-1]/layer.metadata["init_scale"][-1]
-            scale_texts.append(f"{int(ratio*100)}%")
+            scale_texts.append(f"{round(ratio*100)}%")
         viewer.text_overlay.text = ", ".join(scale_texts)
         viewer.text_overlay.font_size = 10
         viewer.text_overlay.color = "white"
@@ -101,21 +101,35 @@ def profile_shape(viewer, event):
     active_layer = viewer.layers.selection.active
     if not isinstance(active_layer, napari.layers.Shapes):
         return None
-    first_event_position = event.position
-    dy, dx = active_layer.scale[-2:]
-    yield
-    while event.type == "mouse_move":
-        dpos = np.array(event.position) - np.array(first_event_position)
-        y, x = np.abs(dpos[-2:])
-        unit = viewer.scale_bar.unit
-        if active_layer.mode == "add_rectangle":
-            text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})"
-            viewer.text_overlay.font_size = 8
-            viewer.text_overlay.color = active_layer.current_edge_color
-            viewer.text_overlay.text = text
-        elif active_layer.mode == "add_line":
-            text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit})"
-            viewer.text_overlay.font_size = 8
-            viewer.text_overlay.color = active_layer.current_edge_color
-            viewer.text_overlay.text = text
+    if event.button == 1:
+        first_event_position = event.position
+        dy, dx = active_layer.scale[-2:]
         yield
+        while event.type == "mouse_move":
+            dpos = np.array(event.position) - np.array(first_event_position)
+            y, x = np.abs(dpos[-2:])
+            unit = viewer.scale_bar.unit
+            if active_layer.mode == "add_rectangle":
+                text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})"
+                viewer.text_overlay.font_size = 8
+                viewer.text_overlay.color = active_layer.current_edge_color
+                viewer.text_overlay.text = text
+            elif active_layer.mode == "add_line":
+                deg = np.rad2deg(np.arctan2(y, x))
+                if dy == dx:
+                    text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit}) angle = {deg:.1f} deg"
+                else:
+                    degpx = np.rad2deg(np.arctan2(y/dy, x/dx))
+                    text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit}) angle = {degpx:.1f} ({deg:.1f}) deg"
+                viewer.text_overlay.font_size = 8
+                viewer.text_overlay.color = active_layer.current_edge_color
+                viewer.text_overlay.text = text
+            yield
+            
+    elif event.button == 2:
+        last_mode = active_layer.mode
+        active_layer.mode = "select"
+        yield
+        while event.type == "mouse_move":
+            yield
+        active_layer.mode = last_mode

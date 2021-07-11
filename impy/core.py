@@ -13,11 +13,10 @@ from .utilcls import Progress
 from skimage import data as skdata
 
 __all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "lazy_imread",
-           "read_meta", "set_cpu", "set_verbose", "sample_image"]
+           "read_meta", "set_cpu", "set_verbose", "set_max_gb", "sample_image"]
 
 # TODO: 
-# - ip.imread("...\$i$j.tif", key="i=2:") will raise error.
-# - ip.imread("...", key="c=0") will raise error due to incompatible shape.
+# - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
 
 def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
@@ -460,6 +459,10 @@ def set_cpu(n_cpu:int) -> None:
 
 def set_verbose(b:bool) -> None:
     Progress.show_progress = b
+    return None
+
+def set_max_gb(gb:float) -> None:
+    LazyImgArray.MAX_GB = gb
     return None
 
 def sample_image(name:str) -> ImgArray:
