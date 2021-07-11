@@ -6,7 +6,7 @@ from .imgarray import ImgArray
 from scipy import ndimage as ndi
 import itertools
 from .labeledarray import _make_rotated_axis
-# TODO: crop_center etc, binning?
+# TODO: etc, binning?
 
 class LazyImgArray:
     MAX_GB = 2.0
@@ -313,39 +313,40 @@ class LazyImgArray:
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
     
-    # TODO: how to lazily convert image type?
-    # def as_uint8(self) -> LazyImgArray:
-    #     img = self.img
-    #     if img.dtype == np.uint8:
-    #         return img
+    def as_uint8(self) -> LazyImgArray:
+        img = self.img
+        if img.dtype == np.uint8:
+            return img
         
-    #     if img.dtype == np.uint16:
-    #         out = img / 256
-    #     elif img.dtype.kind == "f":
-    #         out = lazy_clip_float(img, 256)
-    #     else:
-    #         raise TypeError(f"invalid data type: {img.dtype}")
-    #     out = out.astype(np.uint8)
-    #     out = self.__class__(out)
-    #     out._set_info(self)
-    #     return out
+        if img.dtype == np.uint16:
+            out = img / 256
+        elif img.dtype.kind == "f":
+            out = img + 0.5
+            out = da.clip(out, 0, 255)
+        else:
+            raise TypeError(f"invalid data type: {img.dtype}")
+        out = out.astype(np.uint8)
+        out = self.__class__(out)
+        out._set_info(self)
+        return out
     
-    # def as_uint16(self) -> LazyImgArray:
-    #     img = self.img
-    #     if img.dtype == np.uint16:
-    #         return img
-    #     if img.dtype == np.uint8:
-    #         out = img * 256
-    #     elif img.dtype == bool:
-    #         out = img
-    #     elif img.dtype.kind == "f":
-    #         out = lazy_clip_float(img, 256)
-    #     else:
-    #         raise TypeError(f"invalid data type: {img.dtype}")
-    #     out = out.astype(np.uint16)
-    #     out = self.__class__(out)
-    #     out._set_info(self)
-    #     return out
+    def as_uint16(self) -> LazyImgArray:
+        img = self.img
+        if img.dtype == np.uint16:
+            return img
+        if img.dtype == np.uint8:
+            out = img * 256
+        elif img.dtype == bool:
+            out = img
+        elif img.dtype.kind == "f":
+            out = img + 0.5
+            out = da.clip(out, 0, 65535)
+        else:
+            raise TypeError(f"invalid data type: {img.dtype}")
+        out = out.astype(np.uint16)
+        out = self.__class__(out)
+        out._set_info(self)
+        return out
     
     def as_float(self) -> LazyImgArray:
         out = self.img.astype(np.float32)
@@ -400,11 +401,3 @@ class LazyImgArray:
         
         return None
     
-# @dask.delayed
-# def lazy_clip_float(img, upper):
-#     if 0 <= img.min() and img.max() < 1:
-#         out = img * upper
-#     else:
-#         out = img + 0.5
-#     out = da.clip(out, 0, upper-1)
-#     return out
