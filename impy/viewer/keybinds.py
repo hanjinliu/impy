@@ -129,9 +129,9 @@ def crop(viewer):
         for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
             if type_ == "rectangle":
                 rects.append(shape) # float pixel
-    
+                
     for rect in rects:
-        if np.any(rect[0, -2:] == rect[1, -2:]):
+        if np.any(np.abs(rect[0, -2:]-rect[1, -2:])<1e-5):
             crop_func = crop_rectangle
         else:
             crop_func = crop_rotated_rectangle

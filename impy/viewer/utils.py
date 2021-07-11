@@ -79,6 +79,7 @@ def upon_add_layer(event):
         new_layer.current_edge_width = new_layer.scale[-1] * 2.0
         new_layer.current_face_color = [1, 1, 1, 0]
         new_layer.current_edge_color = "#dd23cb"
+        new_layer._rotation_handle_length = 20/new_layer.scale[-1]
         
     if isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
@@ -103,13 +104,6 @@ def _text_bound_init(new_layer):
     # new_layer._properties, new_layer._property_choices = new_layer._prepare_properties(
     #                         init_prop, init_prop, save_choices=True)
     # new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}
-
-def profile_shapes(layer, event):
-    last_event_position = event.position
-    while event.type == 'mouse_move':
-        dpos = np.array(last_event_position) - np.array(event.position)
-        dpx = dpos/layer.scale[-2:]
-        yield
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
