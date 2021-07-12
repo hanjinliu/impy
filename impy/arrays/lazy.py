@@ -1,18 +1,19 @@
 from __future__ import annotations
-from impy.deco import dims_to_spatial_axes, make_history, same_dtype
-from ..func import *
 from dask import array as da
-from ..axes import Axes, ImageAxesError
-from .imgarray import ImgArray
 from scipy import ndimage as ndi
 import itertools
+from ..deco import dims_to_spatial_axes, make_history, same_dtype
+from ..func import *
+from ..axes import ImageAxesError
+from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
+from .axesmixin import AxesMixin
 
-class LazyImgArray:
+class LazyImgArray(AxesMixin):
     MAX_GB = 2.0
     additional_props = ["dirpath", "metadata", "name"]
     def __init__(self, obj: da.core.Array, name=None, axes=None, dirpath=None, history=None, metadata=None):
-        if not isinstance(obj, (da.core.Array,)):
+        if not isinstance(obj, da.core.Array):
             raise TypeError(f"obj must be dask array, got {type(obj)}")
         self.img = obj
         self.dirpath = dirpath
@@ -43,10 +44,6 @@ class LazyImgArray:
         return self.img.size
     
     @property
-    def axes(self):
-        return self._axes
-    
-    @property
     def itemsize(self):
         return self.img.itemsize
     
@@ -58,18 +55,8 @@ class LazyImgArray:
     def gb(self):
         return self.size * self.itemsize / 1e9
     
-    @axes.setter
-    def axes(self, value):
-        if value is None:
-            self._axes = Axes()
-        else:
-            self._axes = Axes(value)
-            if self.ndim != len(self._axes):
-                raise ImageAxesError("Inconpatible dimensions: "
-                                    f"image (ndim={self.ndim}) and axes ({value})")
-    
     def __array__(self):
-        return np.asarray(self.img)
+        return self.img.compute()
     
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -97,13 +84,6 @@ class LazyImgArray:
         
         return out
     
-    @property
-    def shape_info(self):
-        if self.axes.is_none():
-            shape_info = self.shape
-        else:
-            shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
-        return shape_info
     
     @property
     def chunk_info(self):
@@ -112,73 +92,6 @@ class LazyImgArray:
         else:
             chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
         return chunk_info
-    
-    @property
-    def scale(self):
-        return self.axes.scale
-    
-    @property
-    def scale_unit(self):
-        try:
-            unit = self.metadata["unit"]
-            if unit.startswith(r"\u"):
-                unit = "u" + unit[6:]
-        except Exception:
-            unit = None
-        return unit
-    
-    @scale_unit.setter
-    def scale_unit(self, unit):
-        if not isinstance(unit, str):
-            raise TypeError("Can only set str to scale unit.")
-        if isinstance(self.metadata, dict):
-            self.metadata["unit"] = unit
-        else:
-            self.metadata = {"unit": unit}
-    
-    def set_scale(self, other=None, **kwargs) -> None:
-        """
-        Set scales of each axis.
-
-        Parameters
-        ----------
-        other : dict or MetaArray, optional
-            New scales. If dict, it should be like {"x": 0.1, "y": 0.1}. If MetaArray, only
-            scales of common axes are copied.
-        kwargs : 
-            This enables function call like set_scale(x=0.1, y=0.1).
-
-        """        
-        if self.axes.is_none():
-            raise ImageAxesError("Image does not have axes.")
-        
-        elif isinstance(other, dict):
-            # lateral-scale can be set with one keyword.
-            if "yx" in other:
-                yxscale = other.pop("yx")
-                other["x"] = other["y"] = yxscale
-            if "xy" in other:
-                yxscale = other.pop("xy")
-                other["x"] = other["y"] = yxscale
-            # check if all the keys are contained in axes.
-            for a, val in other.items():
-                if a not in self.axes:
-                    raise ImageAxesError(f"Image does not have axis {a}.")    
-                elif not np.isscalar(val):
-                    raise TypeError(f"Cannot set non-numeric value as scales.")
-            self.axes.scale.update(other)
-            
-        elif kwargs:
-            self.set_scale(dict(kwargs))
-        
-        elif isinstance(other, self.__class__):
-            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})
-        
-        else:
-            raise TypeError(f"'other' must be str or LazyImgArray, but got {type(other)}")
-        
-        return None
-    
     
     def _repr_dict_(self):
         return {"    shape     ": self.shape_info,
@@ -261,17 +174,6 @@ class LazyImgArray:
         out._set_info(self, "rotated_crop")
         return out
     
-    def axisof(self, axisname):
-        if type(axisname) is int:
-            return axisname
-        else:
-            return self.axes.find(axisname)
-    
-    def sizeof(self, axis:str):
-        return self.img.shape[self.axes.find(axis)]
-    
-    def sizesof(self, axes:str):
-        return tuple(self.sizeof(a) for a in axes)
     
     def chunksizeof(self, axis:str):
         return self.img.chunksize[self.axes.find(axis)]
