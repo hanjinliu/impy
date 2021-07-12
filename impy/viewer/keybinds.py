@@ -120,7 +120,6 @@ def crop(viewer):
     """
     Crop images with rectangle shapes.
     """        
-    # TODO: when shapes layer and image layer has different scale
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
@@ -217,7 +216,7 @@ def duplicate_layer(viewer):
 def crop_rotated_rectangle(img, crds, dyx):
     crds = crds[:,-2:] - dyx
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
-    translate = crds[0]
+    translate = np.min(crds, axis=0)
     return cropped_img, translate
 
 

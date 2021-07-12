@@ -1,5 +1,4 @@
 import numpy as np
-from .utils import iter_layer
 import napari
 
 mouse_drag_callbacks = ["drag_translation", "profile_shape"]
@@ -14,7 +13,9 @@ def trace_mouse_drag(viewer, event, func=None):
     
     if event.type in ("mouse_release", "mouse_move"):
         clicked_layer = None
-        for layer in reversed(list(iter_layer(viewer, "Image"))):
+        for layer in reversed(viewer.layers):
+            if not isinstance(layer, napari.layers.Image):
+                continue
             if layer.visible:
                 clicked_pos = layer.world_to_data(viewer.cursor.position)
                 if all(0 <= pos and pos < s 

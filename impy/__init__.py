@@ -1,4 +1,4 @@
-__version__ = "1.15.7"
+__version__ = "1.15.8"
 
 # TODO
 # - 3D Gabor filter
