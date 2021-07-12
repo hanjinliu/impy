@@ -131,7 +131,7 @@ def crop(viewer):
                 rects.append(shape) # float pixel
                 
     for rect in rects:
-        if np.any(np.abs(rect[0, -2:]-rect[1, -2:])<1e-5):
+        if np.any(np.abs(rect[0, -2:] - rect[1, -2:])<1e-5):
             crop_func = crop_rectangle
         else:
             crop_func = crop_rotated_rectangle

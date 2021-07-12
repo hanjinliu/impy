@@ -1,7 +1,7 @@
 import numpy as np
 from .utils import iter_layer
 import napari
-
+# TODO: shape coordinates are not stable with layers with different scales.
 mouse_drag_callbacks = ["drag_translation", "profile_shape"]
 mouse_wheel_callbacks = ["wheel_resize"]
 mouse_move_callbacks = ["on_move"]
@@ -130,13 +130,13 @@ def profile_shape(viewer, event):
                 
                 # prepare text overlay
                 if np.abs(np.sin(rad)) < 1e-4:
-                    text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})"
+                    text = f"{y:.1f} ({y*dy:.3g} {unit}) x {x:.1f} ({x*dx:.3g} {unit})"
                 else:
                     if dy == dx:
-                        text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})\nangle = {deg:.1f} deg"
+                        text = f"{y:.1f} ({y*dy:.3g} {unit}) x {x:.1f} ({x*dx:.3g} {unit})\nangle = {deg:.1f} deg"
                     else:
-                        degpx = np.rad2deg(np.arctan2(y/dy, x/dx))
-                        text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})\nangle = {degpx:.1f} ({deg:.1f}) deg"
+                        degreal = np.rad2deg(np.arctan2(y*dy, x*dx))
+                        text = f"{y:.1f} ({y*dy:.3g} {unit}) x {x:.1f} ({x*dx:.3g} {unit})\nangle = {deg:.1f} ({degreal:.1f}) deg"
                 
                 # update text overlay
                 viewer.text_overlay.font_size = 5
@@ -150,10 +150,10 @@ def profile_shape(viewer, event):
                 
                 # prepare text overlay
                 if dy == dx:
-                    text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit})\nangle = {deg:.1f} deg"
+                    text = f"L = {np.hypot(y, x):.1f} ({np.hypot(y*dy, x*dx):.3g} {unit})\nangle = {deg:.1f} deg"
                 else:
-                    degpx = np.rad2deg(np.arctan2(y/dy, x/dx))
-                    text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit}) angle = {degpx:.1f} ({deg:.1f}) deg"
+                    deg = np.rad2deg(np.arctan2(y/dy, x/dx))
+                    text = f"L = {np.hypot(y, x):.1f} ({np.hypot(y*dy, x*dx):.3g} {unit}) angle = {deg:.1f} ({degreal:.1f}) deg"
                 
                 # update text overlay
                 viewer.text_overlay.font_size = 5
