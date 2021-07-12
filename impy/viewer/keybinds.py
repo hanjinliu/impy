@@ -120,6 +120,7 @@ def crop(viewer):
     """
     Crop images with rectangle shapes.
     """        
+    # TODO: when shapes layer and image layer has different scale
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
@@ -128,21 +129,22 @@ def crop(viewer):
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
         for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
             if type_ == "rectangle":
-                rects.append(shape) # float pixel
+                rects.append((shape, shape_layer.scale)) # shape = float pixel
                 
-    for rect in rects:
+    for rect, shape_layer_scale in rects:
         if np.any(np.abs(rect[0, -2:] - rect[1, -2:])<1e-5):
             crop_func = crop_rectangle
         else:
             crop_func = crop_rotated_rectangle
         
         for layer in imglist:
+            factor = layer.scale[-2:]/shape_layer_scale[-2:]
             _dirpath = layer.data.dirpath
             _metadata = layer.data.metadata
             _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
             dyx = layer.translate[-2:] / layer.scale[-2:]
-            newdata, relative_translate = crop_func(layer.data, rect, dyx)
+            newdata, relative_translate = crop_func(layer.data, rect/factor, dyx)
             if newdata.size <= 0:
                 continue
             

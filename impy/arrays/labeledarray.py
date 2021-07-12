@@ -292,7 +292,7 @@ class LabeledArray(HistoryArray):
             
         elif self.ndim == 3:
             if "c" not in self.axes:
-                imglist = self.split(axis=find_first_appeared(self.axes, exclude=dims))
+                imglist = self.split(axis=find_first_appeared(self.axes, include=self.axes, exclude=dims))
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
@@ -361,7 +361,7 @@ class LabeledArray(HistoryArray):
             self.hist()
         elif self.ndim == 3:
             if "c" not in self.axes:
-                imglist = self.split(axis=find_first_appeared(self.axes, exclude=dims))
+                imglist = self.split(axis=find_first_appeared(self.axes, include=self.axes, exclude=dims))
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
@@ -1076,7 +1076,7 @@ class LabeledArray(HistoryArray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, "cztp<")
+            axis = find_first_appeared(self.axes, include="cztp<")
         axisint = self.axisof(axis)
         
         imgs = super().split(axisint)

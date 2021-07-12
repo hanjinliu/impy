@@ -2,7 +2,7 @@ from __future__ import annotations
 from dask import array as da
 from scipy import ndimage as ndi
 import itertools
-from ..deco import dims_to_spatial_axes, make_history, same_dtype
+from ..deco import *
 from ..func import *
 from ..axes import ImageAxesError
 from .imgarray import ImgArray
@@ -128,6 +128,7 @@ class LazyImgArray(AxesMixin):
         LazyImgArray
             Updated one
         """        
+        
         out = getattr(self.img, funcname)(*args, **kwargs)
         out = self.__class__(out)
         new_axes = "inherit" if out.shape == self.shape else None
@@ -246,7 +247,7 @@ class LazyImgArray(AxesMixin):
             Projected image.
         """        
         if axis is None:
-            axis = find_first_appeared(self.axes, include=self.axes, exclude="yx")
+            axis = find_first_appeared("ztpi<c", include=self.axes, exclude="yx")
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = [self.axisof(a) for a in axis]

@@ -1,7 +1,7 @@
 import numpy as np
 from .utils import iter_layer
 import napari
-# TODO: shape coordinates are not stable with layers with different scales.
+
 mouse_drag_callbacks = ["drag_translation", "profile_shape"]
 mouse_wheel_callbacks = ["wheel_resize"]
 mouse_move_callbacks = ["on_move"]
@@ -51,7 +51,8 @@ def drag_translation(viewer, event):
         """ 
         if event.button == 1:
             def func(layer, dpos):
-                layer.translate -= dpos[-layer.translate.size:]
+                if not isinstance(layer, napari.layers.Shapes):
+                    layer.translate -= dpos[-layer.translate.size:]
                 
         else:
             func = None
@@ -62,13 +63,15 @@ def drag_translation(viewer, event):
         """ 
         if event.button == 1:
             def func(layer, dpos):
-                dpos[-2] = 0.0
-                layer.translate -= dpos[-layer.translate.size:]
+                if not isinstance(layer, napari.layers.Shapes):
+                    dpos[-2] = 0.0
+                    layer.translate -= dpos[-layer.translate.size:]
             
         elif event.button == 2:
             def func(layer, dpos):
-                dpos[-1] = 0.0
-                layer.translate -= dpos[-layer.translate.size:]
+                if not isinstance(layer, napari.layers.Shapes):
+                    dpos[-1] = 0.0
+                    layer.translate -= dpos[-layer.translate.size:]
         
         else:
             func = None

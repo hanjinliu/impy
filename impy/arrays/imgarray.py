@@ -3315,7 +3315,7 @@ class ImgArray(LabeledArray):
             func = _check_function(method)
         
         if axis is None:
-            axis = find_first_appeared(self.axes, exclude="yx")
+            axis = find_first_appeared("ztpi<c", include=self.axes, exclude="yx")
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = tuple(self.axisof(a) for a in axis)

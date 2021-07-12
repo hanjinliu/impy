@@ -75,7 +75,7 @@ class HistoryArray(MetaArray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, "cztp")
+            axis = find_first_appeared(self.axes, include="cztp")
         axisint = self.axisof(axis)
             
         imgs = list(np.moveaxis(self, axisint, 0))

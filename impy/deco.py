@@ -1,4 +1,5 @@
 from functools import wraps
+from .arrays.bases.metaarray import MetaArray
 import numpy as np
 from .utilcls import Progress
 import re
@@ -17,7 +18,7 @@ def record(append_history=True, record_label=False):
             
             temp = getattr(out, "temp", None)
                             
-            if type(out) is np.ndarray:
+            if type(out) is np.ndarray and isinstance(self, MetaArray):
                 out = out.view(self.__class__)
             
             # record history and update if needed

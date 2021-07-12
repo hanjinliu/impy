@@ -4,7 +4,7 @@ __version__ = "1.15.7"
 # - 3D Gabor filter
 # - get lines/paths from shape layers
 
-import warnings
+import logging
 from .datalist import DataList
 from .core import *
 from .binder import bind
@@ -25,10 +25,8 @@ ImgArray PhaseArray
 
 """
 
-# To silence Warnings in skimage
-warnings.resetwarnings()
-warnings.simplefilter("ignore", UserWarning)
-warnings.simplefilter("ignore", DeprecationWarning)
+logging.getLogger("skimage").setLevel(logging.ERROR)
+logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 class Random:
     """
@@ -47,4 +45,4 @@ class Random:
 
 random = Random()
 
-del warnings
+del logging
