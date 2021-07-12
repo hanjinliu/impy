@@ -336,7 +336,7 @@ def imread_collection(path:str, filt=None) -> DataList:
             arrlist._append(img)
     return arrlist
 
-def lazy_imread(path, chunkdims=None, *, squeeze:bool=False) -> LazyImgArray:
+def lazy_imread(path, chunks="default", *, squeeze:bool=False) -> LazyImgArray:
     """
     Read an image lazily.
 
@@ -344,21 +344,24 @@ def lazy_imread(path, chunkdims=None, *, squeeze:bool=False) -> LazyImgArray:
     ----------
     path : str
         Path to the file.
-    chunkdims : str, optional
-        To specify which axes will be in a same chunk.
-
+    chunks : optional
+        Specify chunk sizes. By default, yx-axes are assigned to the same chunk for every slice of
+        image, whild chunk sizes of the rest of axes are automatically set with "auto" option.
+    squeeze : bool, default is False
+        If True and there is one-sized axis, then call `np.squeeze`.
+        
     Returns
     -------
     LazyImgArray
     """    
     path = str(path)
     if "*" in path:
-        return _lazy_imread_glob(path, chunkdims=chunkdims, squeeze=squeeze)
+        return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
     
     # read tif metadata
-    meta, img = open_as_dask(path, chunkdims)
+    meta, img = open_as_dask(path, chunks)
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     if meta["history"]:

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from impy.deco import dims_to_spatial_axes, same_dtype
+from impy.deco import dims_to_spatial_axes, make_history, same_dtype
 from ..func import *
 from dask import array as da
 from ..axes import Axes, ImageAxesError
@@ -7,7 +7,6 @@ from .imgarray import ImgArray
 from scipy import ndimage as ndi
 import itertools
 from .labeledarray import _make_rotated_axis
-# TODO: etc, binning?
 
 class LazyImgArray:
     MAX_GB = 2.0
@@ -107,6 +106,14 @@ class LazyImgArray:
         return shape_info
     
     @property
+    def chunk_info(self):
+        if self.axes.is_none():
+            chunk_info = self.chunksize
+        else:
+            chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
+        return chunk_info
+    
+    @property
     def scale(self):
         return self.axes.scale
     
@@ -175,9 +182,11 @@ class LazyImgArray:
     
     def _repr_dict_(self):
         return {"    shape     ": self.shape_info,
+                " chunk sizes  ": self.chunk_info,
                 "    dtype     ": self.dtype,
                 "  directory   ": self.dirpath,
-                "original image": self.name}
+                "original image": self.name,
+                "   history    ": "->".join(self.history)}
     
     def __repr__(self):
         return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
@@ -192,6 +201,25 @@ class LazyImgArray:
             setattr(img, attr, getattr(self, attr, None))
         return img
     
+    def apply(self, funcname:str, *args, **kwargs) -> LazyImgArray:
+        """
+        Apply dask array function to the connected dask array.
+
+        Parameters
+        ----------
+        funcname : str
+            Name of function to apply.
+
+        Returns
+        -------
+        LazyImgArray
+            Updated one
+        """        
+        out = getattr(self.img, funcname)(*args, **kwargs)
+        out = self.__class__(out)
+        new_axes = "inherit" if out.shape == self.shape else None
+        out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
+        return out
     
     def rotated_crop(self, origin, dst1, dst2) -> LazyImgArray:
         """
@@ -215,15 +243,22 @@ class LazyImgArray:
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         
+        # rechunk to assign xy-plane to the same chunk.
+        if self.shape[-2:] != self.chunksize[-2:]:
+            new_chunks = ("auto",)*(self.ndim-2) + self.shape[-2:]
+            input_img = self.img.rechunk(chunks=new_chunks)
+        else:
+            input_img = self.img
+        
         chunks = self.chunksize[:-2] + all_coords.shape[-2:]
         cropped_img = da.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype, chunks=chunks)
         iters = itertools.product(*map(range, self.shape[:-2]))
         for sl in iters:
-            cropped_img[sl] = self.img[sl].map_blocks(ndi.map_coordinates, coordinates=all_coords, 
+            cropped_img[sl] = input_img[sl].map_blocks(ndi.map_coordinates, coordinates=all_coords, 
                                                       prefilter=False, order=1, drop_axis=[0,1], 
                                                       dtype=self.dtype)
         out = self.__class__(cropped_img)
-        out._set_info(self, f"rotated_crop")
+        out._set_info(self, "rotated_crop")
         return out
     
     def axisof(self, axisname):
@@ -233,10 +268,16 @@ class LazyImgArray:
             return self.axes.find(axisname)
     
     def sizeof(self, axis:str):
-        return self.shape[self.axes.find(axis)]
+        return self.img.shape[self.axes.find(axis)]
     
     def sizesof(self, axes:str):
         return tuple(self.sizeof(a) for a in axes)
+    
+    def chunksizeof(self, axis:str):
+        return self.img.chunksize[self.axes.find(axis)]
+    
+    def chunksizesof(self, axes:str):
+        return tuple(self.chunksizeof(a) for a in axes)
     
     def transpose(self, axes):
         if self.axes.is_none():
@@ -286,7 +327,7 @@ class LazyImgArray:
         return out
     
     @same_dtype()
-    def proj(self, axis:str=None, method:str="mean") -> LazyImgArray:
+    def proj(self, axis:str=None, method:str="mean", chunks=None) -> LazyImgArray:
         """
         Z-projection along any axis.
 
@@ -307,17 +348,29 @@ class LazyImgArray:
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = [self.axisof(a) for a in axis]
+        
+        # rechunk if array is split into too many chunks along `axis`
+        if chunks is None:
+            chunks = []
+            for i in range(self.ndim):
+                if i in axisint:
+                    chunks.append(self.shape[i] % 2000)
+                else:
+                    chunks.append("auto")
+        if any(c != "auto" for c in chunks):
+            input_img = self.img.rechunk(chunks=chunks)
+        
         if method == "mean":
-            projection = getattr(self.img, method)(axis=tuple(axisint), dtype=self.dtype)
+            projection = getattr(input_img, method)(axis=tuple(axisint), dtype=self.dtype)
         else:
-            projection = getattr(self.img, method)(axis=tuple(axisint))
+            projection = getattr(input_img, method)(axis=tuple(axisint))
         out = self.__class__(projection)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
     
     @dims_to_spatial_axes
     @same_dtype()
-    def binning(self, binsize:int=2, method="sum", *, check_edges=True, dims=None) -> LazyImgArray:
+    def binning(self, binsize:int=2, method="sum", *, check_edges=True, chunks=None, dims=None) -> LazyImgArray:
         """
         Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
         Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -362,9 +415,20 @@ class LazyImgArray:
                 b = 1
             shape += [s//b, b]
             scale_.append(1/b)
-            
-        shape = tuple(shape)
-        reshaped_img = img_to_reshape.reshape(shape)
+        
+        # rechunk to optimize for bin width
+        if chunks is None:
+            chunks = []
+            for a, s, cs in zip(self.axes, self.shape, self.chunksize):
+                if a not in dims:
+                    chunks.append(cs)
+                elif cs % b == 0 and s/cs > 8:
+                    chunks.append(cs)
+                else:
+                    chunks.append((cs//b+1)*b)
+                
+        img_to_reshape = img_to_reshape.rechunk(chunks=tuple(chunks))
+        reshaped_img = img_to_reshape.reshape(tuple(shape))
         axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
         out = binfunc(reshaped_img, axis=axes_to_reduce)
         out = self.__class__(out)
