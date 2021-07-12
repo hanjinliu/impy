@@ -170,7 +170,6 @@ def proj(viewer):
     """
     Projection
     """
-    # TODO: Not all the parameters will be copied to new ones.
     layers = list(viewer.layers.selection)
     for layer in layers:
         data = layer.data
@@ -179,6 +178,7 @@ def proj(viewer):
                        "translate": layer.translate[-2:],
                        "blending": layer.blending,
                        "opacity": layer.opacity,
+                       "ndim": 2,
                        "name": layer.name+"-proj"})
         if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
             raise TypeError("Projection not supported.")
@@ -186,14 +186,18 @@ def proj(viewer):
             data = [d[:,-2:] for d in data]
             for k in ["face_color", "edge_color", "edge_width"]:
                 kwargs[k] = getattr(layer, k)
-            
+            if len(data) == 0:
+                data = None
+            kwargs["ndim"] = 2
             viewer.add_shapes(data, **kwargs)
         elif isinstance(layer, napari.layers.Points):
             data = data[:, -2:]
             for k in ["face_color", "edge_color", "size", "symbol"]:
                 kwargs[k] = getattr(layer, k)
             kwargs["size"] = layer.size[:,-2:]
-            
+            if len(data) == 0:
+                data = None
+            kwargs["ndim"] = 2
             viewer.add_points(data, **kwargs)
         elif isinstance(layer, napari.layers.Tracks):
             data = data[:, [0,-2,-1]]

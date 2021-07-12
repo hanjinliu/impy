@@ -2147,7 +2147,7 @@ class ImgArray(LabeledArray):
     def edge_grad(self, sigma:nDFloat=1.0, method:str="scharr", *, deg:bool=False, dims="yx") -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
-        is the direction with maximum gradient, i.e., intensity increase is largest.
+        is the direction with maximum gradient, i.e., intensity increase is largest. 
 
         Parameters
         ----------
@@ -2164,6 +2164,12 @@ class ImgArray(LabeledArray):
         -------
         PhaseArray
             Phase image with range [-180, 180) if deg==True, otherwise [-pi, pi).
+            
+        Examples
+        --------
+        (1) Profile filament orientation distribution using histogram of edge gradient.
+        >>> grad = img.edge_grad(deg=True)
+        >>> plt.hist(grad.ravel(), bins=100)
         """        
         # Get operator
         method_dict = {"sobel": (sobel_h_, sobel_v_),

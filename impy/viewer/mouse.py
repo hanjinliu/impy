@@ -24,12 +24,16 @@ def trace_mouse_drag(viewer, event, func=None):
                 
         if clicked_layer is None:
             viewer.layers.selection = set()
-        elif len(viewer.layers.selection) > 1 and event.type == "mouse_move":
-            pass
-        elif "Control" in event.modifiers and event.type == "mouse_release":
-            viewer.layers.selection.add(clicked_layer)
-        else:
-            viewer.layers.selection = {clicked_layer}
+        else:    
+            viewer.text_overlay.text = clicked_layer.name
+            viewer.text_overlay.font_size = 8
+            viewer.text_overlay.color = "white"
+            if len(viewer.layers.selection) > 1 and event.type == "mouse_move":
+                pass
+            elif "Control" in event.modifiers and event.type == "mouse_release":
+                viewer.layers.selection.add(clicked_layer)
+            else:
+                viewer.layers.selection = {clicked_layer}
                 
     while event.type == "mouse_move":
         dpos = np.array(last_event_position) - np.array(event.position)
@@ -101,27 +105,58 @@ def profile_shape(viewer, event):
     active_layer = viewer.layers.selection.active
     if not isinstance(active_layer, napari.layers.Shapes):
         return None
+            
     if event.button == 1:
-        first_event_position = event.position
         dy, dx = active_layer.scale[-2:]
         yield
-        while event.type == "mouse_move":
-            dpos = np.array(event.position) - np.array(first_event_position)
-            y, x = np.abs(dpos[-2:])
+        while event.type in ("mouse_move", "mouse_release"):
             unit = viewer.scale_bar.unit
-            if active_layer.mode == "add_rectangle":
-                text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})"
-                viewer.text_overlay.font_size = 8
+            
+            # get the current selected shape
+            selected = active_layer.selected_data
+            if len(selected) != 1:
+                return None
+            i = next(iter(selected)) # a little bit faster than selected.copy().pop()
+            s = active_layer.data[i] # selected shape
+            s_type = active_layer.shape_type[i]
+                
+            if s_type == "rectangle":
+                v1 = s[1, -2:] - s[0, -2:]
+                v2 = s[1, -2:] - s[2, -2:]
+                x = np.hypot(*v1)
+                y = np.hypot(*v2)
+                rad = np.arctan2(*v1)
+                deg = np.rad2deg(rad)
+                
+                # prepare text overlay
+                if np.abs(np.sin(rad)) < 1e-4:
+                    text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})"
+                else:
+                    if dy == dx:
+                        text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})\nangle = {deg:.1f} deg"
+                    else:
+                        degpx = np.rad2deg(np.arctan2(y/dy, x/dx))
+                        text = f"{y/dy:.1f} ({y:.3g} {unit}) x {x/dx:.1f} ({x:.3g} {unit})\nangle = {degpx:.1f} ({deg:.1f}) deg"
+                
+                # update text overlay
+                viewer.text_overlay.font_size = 5
                 viewer.text_overlay.color = active_layer.current_edge_color
                 viewer.text_overlay.text = text
-            elif active_layer.mode == "add_line":
-                deg = np.rad2deg(np.arctan2(y, x))
+                
+            elif s_type == "line":
+                v = s[0, -2:] - s[1, -2:]
+                y, x = np.abs(v)
+                deg = np.rad2deg(np.arctan2(*v))
+                
+                # prepare text overlay
                 if dy == dx:
-                    text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit}) angle = {deg:.1f} deg"
+                    text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit})\nangle = {deg:.1f} deg"
                 else:
                     degpx = np.rad2deg(np.arctan2(y/dy, x/dx))
                     text = f"L = {np.hypot(y/dy, x/dx):.1f} ({np.hypot(y, x):.3g} {unit}) angle = {degpx:.1f} ({deg:.1f}) deg"
-                viewer.text_overlay.font_size = 8
+                
+                # update text overlay
+                viewer.text_overlay.font_size = 5
                 viewer.text_overlay.color = active_layer.current_edge_color
                 viewer.text_overlay.text = text
             yield

@@ -3,10 +3,8 @@ from tifffile import TiffFile
 import json
 import re
 import os
-import itertools
 from skimage import io
 from dask import array as da
-from dask import delayed
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
