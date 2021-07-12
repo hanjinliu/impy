@@ -336,35 +336,6 @@ def imread_collection(path:str, filt=None) -> DataList:
             arrlist._append(img)
     return arrlist
 
-def read_meta(path:str) -> dict[str]:
-    """
-    Read the metadata of a tiff file. 
-
-    Parameters
-    ----------
-    path : str
-        Path to the tiff file.
-
-    Returns
-    -------
-    dict
-        Dictionary of metadata with following keys.
-        "axes": axes information
-        "ijmeta": ImageJ metadata
-        "history": impy history
-        "tags": tiff tags
-    """    
-    fname, fext = os.path.splitext(os.path.basename(path))
-    
-    if fext in (".tif", ".tiff"):
-        meta = open_tif(path)
-    elif fext in (".mrc", ".rec"):
-        meta = open_mrc(path)
-    else:
-        raise ValueError("Unsupported file extension.")
-    
-    return meta
-
 def lazy_imread(path, chunkdims=None, *, squeeze:bool=False) -> LazyImgArray:
     """
     Read an image lazily.
@@ -385,9 +356,6 @@ def lazy_imread(path, chunkdims=None, *, squeeze:bool=False) -> LazyImgArray:
         return _lazy_imread_glob(path, chunkdims=chunkdims, squeeze=squeeze)
     fname, fext = os.path.splitext(os.path.basename(path))
     dirpath = os.path.dirname(path)
-    
-    if chunkdims is None:
-        chunkdims = "yx"
     
     # read tif metadata
     meta, img = open_as_dask(path, chunkdims)
@@ -486,3 +454,31 @@ def sample_image(name:str) -> ImgArray:
         out = out.sort_axes()
     return out
 
+def read_meta(path:str) -> dict[str]:
+    """
+    Read the metadata of a tiff file. 
+
+    Parameters
+    ----------
+    path : str
+        Path to the tiff file.
+
+    Returns
+    -------
+    dict
+        Dictionary of metadata with following keys.
+        "axes": axes information
+        "ijmeta": ImageJ metadata
+        "history": impy history
+        "tags": tiff tags
+    """    
+    fname, fext = os.path.splitext(os.path.basename(path))
+    
+    if fext in (".tif", ".tiff"):
+        meta = open_tif(path)
+    elif fext in (".mrc", ".rec"):
+        meta = open_mrc(path)
+    else:
+        raise ValueError("Unsupported file extension.")
+    
+    return meta

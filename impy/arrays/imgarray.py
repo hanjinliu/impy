@@ -159,7 +159,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype()
     def binning(self, binsize:int=2, method="sum", *, check_edges=True, dims=None) -> ImgArray:
         """
         Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.

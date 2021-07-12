@@ -26,7 +26,7 @@ def trace_mouse_drag(viewer, event, func=None):
             viewer.layers.selection = set()
         else:    
             viewer.text_overlay.text = clicked_layer.name
-            viewer.text_overlay.font_size = 8
+            viewer.text_overlay.font_size = 5
             viewer.text_overlay.color = "white"
             if len(viewer.layers.selection) > 1 and event.type == "mouse_move":
                 pass

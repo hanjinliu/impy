@@ -4,6 +4,7 @@ import json
 import re
 import os
 from skimage import io
+import numpy as np
 from dask import array as da
 
 def load_json(s:str):
@@ -73,9 +74,22 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     
     return out
 
-def open_as_dask(path:str, chunkdims:str):
+def open_as_dask(path:str, chunkdims:str|None):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
+    
+    if chunkdims is None:
+        if "z" not in axes:
+            chunkdims = axes
+        else:
+            set_chunks = lambda i: img.shape[i] if axes[i] in "zyx" else 1
+            chunks = tuple(map(set_chunks, range(img.ndim)))
+            n_byte = np.prod(chunks) * img.itemsize
+            if n_byte > 5e8: # 500 MB
+                chunkdims = "yx"
+            else:
+                chunkdims = "zyx"
+    
     set_chunks = lambda i: img.shape[i] if axes[i] in chunkdims else 1
     chunks = tuple(map(set_chunks, range(img.ndim)))
     img = da.from_array(img, chunks=chunks)

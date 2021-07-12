@@ -1,4 +1,5 @@
 from __future__ import annotations
+from impy.deco import dims_to_spatial_axes, same_dtype
 from ..func import *
 from dask import array as da
 from ..axes import Axes, ImageAxesError
@@ -284,6 +285,7 @@ class LazyImgArray:
         
         return out
     
+    @same_dtype()
     def proj(self, axis:str=None, method:str="mean") -> LazyImgArray:
         """
         Z-projection along any axis.
@@ -311,6 +313,64 @@ class LazyImgArray:
             projection = getattr(self.img, method)(axis=tuple(axisint))
         out = self.__class__(projection)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
+        return out
+    
+    @dims_to_spatial_axes
+    @same_dtype()
+    def binning(self, binsize:int=2, method="sum", *, check_edges=True, dims=None) -> LazyImgArray:
+        """
+        Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
+        Also, any numpy functions that accept "axis" argument are supported for reduce functions.
+
+        Parameters
+        ----------
+        binsize : int, default is 2
+            Bin size, such as 2x2.
+        method : str or callable, default is numpy.sum
+            Reduce function applied to each bin.
+        check_edges : bool, default is True
+            If True, only divisible `binsize` is accepted. If False, image is cropped at the end to
+            match `binsize`.
+        dims : str or int, optional
+            Spatial dimensions.
+
+        Returns
+        -------
+        LazyImgArray
+            Binned image
+        """ 
+        if isinstance(method, str):
+            binfunc = getattr(np, method)
+        elif callable(method):
+            binfunc = method
+        else:
+            raise TypeError("`method` must be a numpy function or callable object.")
+               
+        shape = []
+        scale_ = []
+        img_to_reshape = self.img
+        for i, a in enumerate(self.axes):
+            s = self.shape[i]
+            if a in dims:
+                b = binsize
+                if s % b != 0:
+                    if check_edges:
+                        raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
+                    else:
+                        img_to_reshape = img_to_reshape[(slice(None),)*i + (slice(None, s//b*b),)]
+            else:
+                b = 1
+            shape += [s//b, b]
+            scale_.append(1/b)
+            
+        shape = tuple(shape)
+        reshaped_img = img_to_reshape.reshape(shape)
+        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+        out = binfunc(reshaped_img, axis=axes_to_reduce)
+        out = self.__class__(out)
+        out._set_info(self, f"binning(binsize={binsize})")
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
     def as_uint8(self) -> LazyImgArray:
