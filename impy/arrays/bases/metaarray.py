@@ -14,7 +14,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if isinstance(obj, cls):
             return obj
         
-        self = np.array(obj, dtype=dtype).view(cls)
+        self = np.asarray(obj, dtype=dtype).view(cls)
         self.dirpath = dirpath
         self.name = name
         
@@ -97,7 +97,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 # np.newaxis or None will add dimension
                 new_axes = None
                 
-            elif self.axes:
+            elif not self.axes.is_none() and self.axes:
                 del_list = [i for i, s in enumerate(keystr.split(",")) if s not in ("*", "")]
                 new_axes = del_axis(self.axes, del_list)
             else:

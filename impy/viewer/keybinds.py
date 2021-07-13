@@ -80,11 +80,13 @@ def layers_to_labels(viewer):
     destinations = [l.data for l in iter_selected_layer(viewer, "Image")]
     if len(destinations) == 0:
         destinations = [front_image(viewer).data]
-    # TODO: image translation
+    
     for dst in destinations:
         # check zoom_factors
         d = viewer.dims
         scale = {a: r[2] for a, r in zip(d.axis_labels, d.range)}
+        # TODO: image translation
+        # zoom_factors = layer.scale[-2:]/shape_layer_scale[-2:]
         zoom_factors = [scale[a]/dst.scale[a] for a in "yx"]
         if np.unique(zoom_factors).size == 1:
             zoom_factor = zoom_factors[0]
@@ -118,8 +120,9 @@ def layers_to_labels(viewer):
 @bind_key
 def crop(viewer):
     """
-    Crop images with rectangle shapes.
+    Crop images with (rotated) rectangle shapes.
     """        
+    # XZ or YZ direction
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]

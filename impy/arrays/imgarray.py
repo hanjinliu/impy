@@ -3862,7 +3862,7 @@ def _check_template(template):
         raise TypeError(f"`template` must be np.ndarray, but got {type(template)}")
     elif template.ndim not in (2, 3):
         raise ValueError("`template must be 2 or 3 dimensional.`")
-    template = template.astype(np.float32, copy=True)
+    template = np.asarray(template).astype(np.float32, copy=True)
     return template
 
 def _translate_image(img, shift, order=1, cval=0):

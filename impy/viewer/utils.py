@@ -76,10 +76,11 @@ def upon_add_layer(event):
     new_layer.translate = new_layer.translate.astype(np.float64)
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
+        mean_scale = np.mean(new_layer.scale[-2:])
         new_layer.current_edge_width = new_layer.scale[-1] * 2.0
         new_layer.current_face_color = [1, 1, 1, 0]
         new_layer.current_edge_color = "#dd23cb"
-        new_layer._rotation_handle_length = 20/new_layer.scale[-1]
+        new_layer._rotation_handle_length = 20/mean_scale
         
     if isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
@@ -104,6 +105,7 @@ def _text_bound_init(new_layer):
     # new_layer._properties, new_layer._property_choices = new_layer._prepare_properties(
     #                         init_prop, init_prop, save_choices=True)
     # new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}
+    # use refresh text
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None

@@ -14,7 +14,8 @@ from .widgets import _make_table_widget
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
 #   layer group is implemented in napari.
-# - 3D viewing in old viewer -> new viewer responds. napari's bug?
+# - 3D viewing in old viewer -> new viewer responds. napari's bug.
+# - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
 
         
 class napariViewers:

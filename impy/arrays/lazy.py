@@ -108,10 +108,10 @@ class LazyImgArray(AxesMixin):
     def data(self) -> ImgArray:
         if self.gb > self.__class__.MAX_GB:
             raise RuntimeError(f"Too large: {self.gb:.2f} GB")
-        
-        img = self.img.compute().view(ImgArray)
-        for attr in ["name", "dirpath", "axes", "metadata", "history"]:
-            setattr(img, attr, getattr(self, attr, None))
+        with Progress("Computing Dask"):
+            img = self.img.compute().view(ImgArray)
+            for attr in ["name", "dirpath", "axes", "metadata", "history"]:
+                setattr(img, attr, getattr(self, attr, None))
         return img
     
     def apply(self, funcname:str, *args, **kwargs) -> LazyImgArray:
@@ -122,6 +122,8 @@ class LazyImgArray(AxesMixin):
         ----------
         funcname : str
             Name of function to apply.
+        args, kwargs :
+            Parameters that will be passed to `funcname`.
 
         Returns
         -------

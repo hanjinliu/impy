@@ -237,6 +237,7 @@ def function_handler(viewer):
         else:
             return outlist
     viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
+    # run_func.setVisible(False)
     return None
 
 
