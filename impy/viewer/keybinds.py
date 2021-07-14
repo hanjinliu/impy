@@ -3,6 +3,7 @@ from ..core import array as ip_array
 from .utils import *
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
+import napari
 
 # TODO: add "edit" menu in napari
 
@@ -24,7 +25,7 @@ def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
 @bind_key
-def hide_others(viewer):
+def hide_others(viewer:napari.Viewer):
     """
     Make selected layers visible and others invisible. 
     """
@@ -39,21 +40,21 @@ def hide_others(viewer):
             layer.visible = True
 
 @bind_key
-def link_selected_layers(viewer):
+def link_selected_layers(viewer:napari.Viewer):
     """
     Link selected layers.
     """
     link_layers(viewer.layers.selection)
     
 @bind_key
-def unlink_selected_layers(viewer):
+def unlink_selected_layers(viewer:napari.Viewer):
     """
     Unlink selected layers.
     """
     unlink_layers(viewer.layers.selection)
 
 @bind_key
-def to_front(viewer):
+def to_front(viewer:napari.Viewer):
     """
     Let selected layers move to front.
     """
@@ -62,7 +63,7 @@ def to_front(viewer):
     viewer.layers.move_multiple(not_selected_index, 0)
     
 @bind_key
-def reset_view(viewer):
+def reset_view(viewer:napari.Viewer):
     """
     Reset translate/scale parameters to the initial value.
     """    
@@ -72,7 +73,7 @@ def reset_view(viewer):
         layer.scale = layer.metadata["init_scale"]
 
 @bind_key
-def layers_to_labels(viewer):
+def layers_to_labels(viewer:napari.Viewer):
     """
     Convert manually drawn shapes to labels and store it.
     """        
@@ -118,15 +119,19 @@ def layers_to_labels(viewer):
     return None
 
 @bind_key
-def crop(viewer):
+def crop(viewer:napari.Viewer):
     """
     Crop images with (rotated) rectangle shapes.
     """        
-    # TODO: XZ or YZ direction
+    
+    if viewer.dims.ndisplay == 3:
+        viewer.status = "Cannot crop in 3D mode."
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
     
+    active_plane = list(viewer.dims.order[-2:])
+    dims2d = "".join(viewer.dims.axis_labels[i] for i in active_plane)
     rects = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
         for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
@@ -134,19 +139,20 @@ def crop(viewer):
                 rects.append((shape, shape_layer.scale)) # shape = float pixel
                 
     for rect, shape_layer_scale in rects:
-        if np.any(np.abs(rect[0, -2:] - rect[1, -2:])<1e-5):
+        if np.any(np.abs(rect[0, active_plane] - rect[1, active_plane])<1e-5):
             crop_func = crop_rectangle
         else:
             crop_func = crop_rotated_rectangle
         
         for layer in imglist:
-            factor = layer.scale[-2:]/shape_layer_scale[-2:]
+            factor = layer.scale[active_plane]/shape_layer_scale[active_plane]
             _dirpath = layer.data.dirpath
             _metadata = layer.data.metadata
             _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
-            dyx = layer.translate[-2:] / layer.scale[-2:]
-            newdata, relative_translate = crop_func(layer.data, rect[:,-2:]/factor, dyx)
+            dr = layer.translate[active_plane] / layer.scale[active_plane]
+            newdata, relative_translate = crop_func(layer.data, rect[:,active_plane]/factor, 
+                                                    dr, dims2d)
             if newdata.size <= 0:
                 continue
             
@@ -155,22 +161,31 @@ def crop(viewer):
                 axes = "".join(viewer.dims.axis_labels)
                 newdata = ip_array(newdata, axes=axes)
                 newdata.set_scale(**scale)
+                
             newdata.dirpath =_dirpath
             newdata.metadata = _metadata
             newdata.name = _name
+            # Try to compute for now too avoid response being too slow.
+            if isinstance(newdata, LazyImgArray):
+                try:
+                    newdata = newdata.release()
+                except MemoryError:
+                    pass
+                
             layer.data = newdata
             translate = layer.translate
-            translate[-2:] += relative_translate * layer.scale[-2:]
+            translate[active_plane] += relative_translate * layer.scale[active_plane]
             layer.translate = translate
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
+            
             
     # remove original images
     [viewer.layers.remove(img) for img in imglist]
     return None
 
 @bind_key
-def proj(viewer):
+def proj(viewer:napari.Viewer):
     """
     Projection
     """
@@ -210,30 +225,29 @@ def proj(viewer):
             raise NotImplementedError(type(layer))
         
 @bind_key
-def duplicate_layer(viewer):
+def duplicate_layer(viewer:napari.Viewer):
     """
     Duplicate selected layer(s).
     """
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
-def crop_rotated_rectangle(img, crds, dyx):
-    crds = crds[:,-2:] - dyx
-    cropped_img = img.rotated_crop(crds[1], crds[0], crds[2])
+def crop_rotated_rectangle(img, crds, dr, dims):
+    crds = crds - dr
+    cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
     translate = np.min(crds, axis=0)
     return cropped_img, translate
 
 
-def crop_rectangle(img, crds, dyx):
-    crds = crds[:, -2:] - dyx
-    start = crds[0, -2:]
-    end = crds[2, -2:]
+def crop_rectangle(img, crds, dr, dims):
+    crds = crds - dr
+    start = crds[0]
+    end = crds[2]
     sl = []
-    for i in [0,1]:
+    for i in [0, 1]:
         sl0 = sorted([start[i], end[i]])
-        sl.append(slice(int(sl0[0])+1, int(sl0[1])+1))
+        sl.append(f"{dims[i]}={int(sl0[0])+1}:{int(sl0[1])+1}")
     
-    ndim = img.ndim
-    area_to_crop = (slice(None),)*(ndim-2) + tuple(sl)
+    area_to_crop = ";".join(sl)
     
     translate = np.array([s.start for s in sl])
     cropped_img = img[area_to_crop]

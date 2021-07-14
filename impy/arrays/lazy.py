@@ -16,7 +16,7 @@ class LazyImgArray(AxesMixin):
     def __init__(self, obj: da.core.Array, name:str=None, axes:str=None, dirpath:str=None, 
                  history:list[str]=None, metadata:dict=None):
         if not isinstance(obj, da.core.Array):
-            raise TypeError(f"obj must be dask array, got {type(obj)}")
+            raise TypeError(f"The first input must be dask array, got {type(obj)}")
         self.img = obj
         self.dirpath = dirpath
         self.name = name
@@ -109,12 +109,21 @@ class LazyImgArray(AxesMixin):
     @property
     def data(self) -> ImgArray:
         if self.gb > self.__class__.MAX_GB:
-            raise RuntimeError(f"Too large: {self.gb:.2f} GB")
+            raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Computing Dask"):
             img = self.img.compute().view(ImgArray)
             for attr in ["name", "dirpath", "axes", "metadata", "history"]:
                 setattr(img, attr, getattr(self, attr, None))
         return img
+    
+    def release(self) -> LazyImgArray:
+        if self.gb > self.__class__.MAX_GB:
+            raise MemoryError(f"Too large: {self.gb:.2f} GB")
+        with Progress("Releasing Dask"):
+            img = self.img.compute()
+            out = self.__class__(da.from_array(img, chunks=self.chunksize))
+            out._set_info(self)
+        return out
     
     def apply_dask_func(self, funcname:str, *args, **kwargs) -> LazyImgArray:
         """
@@ -155,7 +164,6 @@ class LazyImgArray(AxesMixin):
                 
         slice_in = tuple(slice_in)
         slice_out = tuple(slice_out)
-        
         if args is None:
             args = tuple()
         if kwargs is None:
@@ -180,11 +188,11 @@ class LazyImgArray(AxesMixin):
             input_ = self.img.rechunk(rechunk_to)
         
         if dask_wrap:
-            def _func(arr, *args, **kwargs):
+            def _func(arr:np.memmap, *args, **kwargs) -> np.ndarray:
                 out = func(da.from_array(arr[slice_in]), *args, **kwargs)
                 return out[slice_out].compute()
         else:
-            def _func(arr, *args, **kwargs):
+            def _func(arr:da.core.Array, *args, **kwargs) -> np.ndarray:
                 out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
         
@@ -217,7 +225,8 @@ class LazyImgArray(AxesMixin):
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         
-        cropped_img = self.apply(ndi.map_coordinates, complement_axes(dims, self.axes), 
+        cropped_img = self.apply(ndi.map_coordinates, 
+                                 c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,
                                  rechunk_to="max",
                                  args=(all_coords,),
@@ -238,13 +247,35 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     def median_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
         disk = ball_like(radius, len(dims))
-        return self.apply(dafil.gaussian_filter,
+        return self.apply(dafil.median_filter,
                           c_axes=complement_axes(dims, self.axes),
                           rechunk_to="max",
                           dask_wrap=True,
                           kwargs=dict(footprint=disk)
                           )
     
+    @dims_to_spatial_axes
+    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None) -> LazyImgArray:
+        return self.apply(dafil.convolve, 
+                          c_axes=complement_axes(dims, self.axes), 
+                          dtype=self.dtype,
+                          rechunk_to="max",
+                          dask_wrap=True,
+                          args=(kernel,),
+                          kwargs=dict(mode=mode, cval=cval)
+                          )
+    
+    @dims_to_spatial_axes
+    def edge_filter(self, method:str="sobel", *, dims=None) -> LazyImgArray:
+        f = {"sobel": dafil.sobel,
+             "prewitt": dafil.prewitt}[method]
+        return self.apply(f, 
+                          c_axes=complement_axes(dims, self.axes), 
+                          dtype=self.dtype,
+                          rechunk_to="max",
+                          dask_wrap=True
+                          )
+        
     def chunksizeof(self, axis:str):
         return self.img.chunksize[self.axes.find(axis)]
     

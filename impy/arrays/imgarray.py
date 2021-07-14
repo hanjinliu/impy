@@ -605,13 +605,13 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def edge_filter(self, method:str="scharr", *, dims=None, update:bool=False) -> ImgArray:
+    def edge_filter(self, method:str="sobel", *, dims=None, update:bool=False) -> ImgArray:
         """
         Sobel filter. This filter is useful for edge detection.
 
         Parameters
         ----------
-        method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "scharr"
+        method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "sobel"
             Edge operator name.
         dims : int or str, optional
             Spatial dimensions.

@@ -107,6 +107,7 @@ def on_move(viewer, event):
 
 def profile_shape(viewer, event):
     active_layer = viewer.layers.selection.active
+    active_plane = list(viewer.dims.order[-2:])
     if not isinstance(active_layer, napari.layers.Shapes):
         return None
             
@@ -121,12 +122,12 @@ def profile_shape(viewer, event):
             if len(selected) != 1:
                 return None
             i = next(iter(selected)) # a little bit faster than selected.copy().pop()
-            s = active_layer.data[i] # selected shape
+            s = active_layer.data[i][:, active_plane] # selected shape
             s_type = active_layer.shape_type[i]
                 
             if s_type == "rectangle":
-                v1 = s[1, -2:] - s[0, -2:]
-                v2 = s[1, -2:] - s[2, -2:]
+                v1 = s[1] - s[0]
+                v2 = s[1] - s[2]
                 x = np.hypot(*v1)
                 y = np.hypot(*v2)
                 rad = np.arctan2(*v1)
@@ -148,7 +149,7 @@ def profile_shape(viewer, event):
                 viewer.text_overlay.text = text
                 
             elif s_type == "line":
-                v = s[0, -2:] - s[1, -2:]
+                v = s[0] - s[1]
                 y, x = np.abs(v)
                 deg = np.rad2deg(np.arctan2(*v))
                 
