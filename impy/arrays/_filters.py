@@ -12,7 +12,7 @@ def kalman_filter(img, gain, noise_var):
             predicted_var = np.full(spatial_shape, noise_var)
         else:
             kalman_gain = predicted_var / (predicted_var + noise_var)
-            estimate = gain*estimate +  (1.0 - gain)*img + kalman_gain*(img - estimate)
+            estimate = gain*estimate + (1.0 - gain)*img + kalman_gain*(img - estimate)
             predicted_var *= 1 - kalman_gain
         out[t] = estimate
     return out
@@ -77,17 +77,9 @@ def skeletonize(img, selem):
 def population(img, selem):
     return skfil.rank.pop(img, selem, mask=img)
     
-
-
 def _safe_sqrt(a, fill=0):
     out = np.full(a.shape, fill, dtype=np.float32)
     out = np.zeros_like(a)
     mask = a > 0
     out[mask] = np.sqrt(a[mask])
-    return out
-
-def _safe_div(a, b, eps=1e-8):
-    out = np.zeros(a.shape, dtype=np.float32)
-    mask = b > eps
-    out[mask] = a[mask]/b[mask]
     return out

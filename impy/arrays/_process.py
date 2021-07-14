@@ -3,9 +3,6 @@ from skimage.feature.corner import _symmetric_image
 from skimage.feature.template import _window_sum_2d, _window_sum_3d
 from scipy.signal import fftconvolve
 import numpy as np
-from functools import partial
-from scipy.fft import rfftn as rfft
-from scipy.fft import irfftn as irfft
 
 def directional_median_(args):
     sl, data, radius = args
@@ -107,10 +104,6 @@ def ncc_(img, template, bg):
     out = response[tuple(slices)]
     return out
 
-
-def corner_harris_(args):
-    sl, data, k, sigma = args
-    return sl, skfeat.corner_harris(data, k=k, sigma=sigma)
 
 def _safe_sqrt(a, fill=0):
     out = np.full(a.shape, fill, dtype=np.float32)

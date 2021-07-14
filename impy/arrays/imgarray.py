@@ -8,7 +8,7 @@ from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
 from .._types import *
 from ._skimage import *
-from . import _filters, _linalg, _deconv
+from . import _filters, _linalg, _deconv, _misc
 from ..func import *
 from ..deco import *
 from .labeledarray import LabeledArray
@@ -2646,7 +2646,7 @@ class ImgArray(LabeledArray):
         template = _check_template(template)
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        return self.as_float().apply_dask(ncc_, 
+        return self.as_float().apply_dask(_misc.ncc_, 
                                           dims=complement_axes(dims, self.axes), 
                                           args=(template, bg))
     

@@ -876,7 +876,12 @@ class LabeledArray(HistoryArray):
         
         c_axes = complement_axes(dims, self.axes)
         labels = largest_zeros(label_image.shape)
-        labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
+        # labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
+        labels[:] = label_image.apply_dask(skmes.label, 
+                                           dims=c_axes, 
+                                           kwargs=dict(background=0, connectivity=connectivity)
+                                           ).view(np.ndarray)
+    
         # correct the label numbers of `labels`
         self.labels = labels.view(Label)
         self.labels._set_info(label_image, "label")

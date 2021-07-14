@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from ._process import *
+from . import _filters
 from ..deco import *
 from ..func import *
 from .specials import PropArray
@@ -146,8 +147,10 @@ class PhaseArray(LabeledArray):
         disk = ball_like(radius, len(dims))
         a = 2*np.pi/self.periodicity
             
-        out = self.parallel(phase_mean_, complement_axes(dims, self.axes), disk, a, outdtype=self.dtype)
-        return out
+        return self.apply_dask(_filters.phase_mean_filter,
+                               dims=complement_axes(dims, self.axes),
+                               args=(disk, a),
+                               dtype=self.dtype)
     
     def imshow(self, dims="yx", **kwargs):
         if "cmap" not in kwargs:
