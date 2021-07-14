@@ -46,7 +46,10 @@ def coef_filter(data, selem):
     return out
     
 def dog_filter(img, low_sigma, high_sigma):
-    return ndi.gaussian_filter(img, low_sigma) - ndi.gaussian_filter(img, high_sigma)
+    filt_l = ndi.gaussian_filter(img, low_sigma)
+    filt_h = ndi.gaussian_filter(img, high_sigma)
+    return filt_l - filt_h
+        
 
 def doh_filter(img, sigma, pxsize):
     hessian_elements = skfeat.hessian_matrix(img, sigma=sigma, order="xy",
