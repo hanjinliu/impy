@@ -148,7 +148,7 @@ class PhaseArray(LabeledArray):
         a = 2*np.pi/self.periodicity
             
         return self.apply_dask(_filters.phase_mean_filter,
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                args=(disk, a),
                                dtype=self.dtype)
     

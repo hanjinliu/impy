@@ -122,7 +122,7 @@ def crop(viewer):
     """
     Crop images with (rotated) rectangle shapes.
     """        
-    # XZ or YZ direction
+    # TODO: XZ or YZ direction
     imglist = list(iter_selected_layer(viewer, "Image"))
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
@@ -146,7 +146,7 @@ def crop(viewer):
             _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
             dyx = layer.translate[-2:] / layer.scale[-2:]
-            newdata, relative_translate = crop_func(layer.data, rect/factor, dyx)
+            newdata, relative_translate = crop_func(layer.data, rect[:,-2:]/factor, dyx)
             if newdata.size <= 0:
                 continue
             

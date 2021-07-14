@@ -1,18 +1,20 @@
 from __future__ import annotations
 from dask import array as da
 from scipy import ndimage as ndi
-import itertools
 from ..deco import *
 from ..func import *
+from .._types import *
 from ..axes import ImageAxesError
 from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
+from ._dask_image import *
 
 class LazyImgArray(AxesMixin):
     MAX_GB = 2.0
     additional_props = ["dirpath", "metadata", "name"]
-    def __init__(self, obj: da.core.Array, name=None, axes=None, dirpath=None, history=None, metadata=None):
+    def __init__(self, obj: da.core.Array, name:str=None, axes:str=None, dirpath:str=None, 
+                 history:list[str]=None, metadata:dict=None):
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"obj must be dask array, got {type(obj)}")
         self.img = obj
@@ -114,7 +116,7 @@ class LazyImgArray(AxesMixin):
                 setattr(img, attr, getattr(self, attr, None))
         return img
     
-    def apply(self, funcname:str, *args, **kwargs) -> LazyImgArray:
+    def apply_dask_func(self, funcname:str, *args, **kwargs) -> LazyImgArray:
         """
         Apply dask array function to the connected dask array.
 
@@ -137,7 +139,63 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
         return out
     
-    def rotated_crop(self, origin, dst1, dst2) -> LazyImgArray:
+    def apply(self, func, c_axes:str=None, drop_axis:Iterable[int]=[], new_axis:Iterable[int]=None, 
+              dtype=np.float32, rechunk_to:tuple[int,...]|str="none", dask_wrap:bool=False,
+              args=None, kwargs=None) -> LazyImgArray:
+        
+        slice_in = []
+        slice_out = []
+        for i, a in enumerate(self.axes):
+            if a in c_axes:
+                slice_in.append(0)
+                slice_out.append(np.newaxis)
+            else:
+                slice_in.append(slice(None))
+                slice_out.append(slice(None))
+                
+        slice_in = tuple(slice_in)
+        slice_out = tuple(slice_out)
+        
+        if args is None:
+            args = tuple()
+        if kwargs is None:
+            kwargs = dict()
+            
+        if rechunk_to == "none":
+            input_ = self.img
+        else:
+            if rechunk_to == "default":
+                mapper = lambda a: 1 if a in c_axes else "auto"
+                rechunk_to = tuple(map(mapper, self.axes))
+            
+            elif rechunk_to == "max":
+                rechunk_to = []
+                for i in range(self.ndim):
+                    if self.axes[i] in c_axes:
+                        rechunk_to.append(1)
+                    else:
+                        rechunk_to.append(self.shape[i])
+                rechunk_to = tuple(rechunk_to)
+                
+            input_ = self.img.rechunk(rechunk_to)
+        
+        if dask_wrap:
+            def _func(arr, *args, **kwargs):
+                out = func(da.from_array(arr[slice_in]), *args, **kwargs)
+                return out[slice_out].compute()
+        else:
+            def _func(arr, *args, **kwargs):
+                out = func(arr[slice_in], *args, **kwargs)
+                return out[slice_out]
+        
+        out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
+                            dtype=dtype, **kwargs)
+        
+        out = self.__class__(out)
+        out._set_info(self, make_history(func.__name__, args, kwargs), new_axes=self.axes)
+        return out
+    
+    def rotated_crop(self, origin, dst1, dst2, dims="yx") -> LazyImgArray:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
@@ -159,24 +217,33 @@ class LazyImgArray(AxesMixin):
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         
-        # rechunk to assign xy-plane to the same chunk.
-        if self.shape[-2:] != self.chunksize[-2:]:
-            new_chunks = ("auto",)*(self.ndim-2) + self.shape[-2:]
-            input_img = self.img.rechunk(chunks=new_chunks)
-        else:
-            input_img = self.img
-        
-        chunks = self.chunksize[:-2] + all_coords.shape[-2:]
-        cropped_img = da.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype, chunks=chunks)
-        iters = itertools.product(*map(range, self.shape[:-2]))
-        for sl in iters:
-            cropped_img[sl] = input_img[sl].map_blocks(ndi.map_coordinates, coordinates=all_coords, 
-                                                      prefilter=False, order=1, drop_axis=[0,1], 
-                                                      dtype=self.dtype)
-        out = self.__class__(cropped_img)
-        out._set_info(self, "rotated_crop")
-        return out
+        cropped_img = self.apply(ndi.map_coordinates, complement_axes(dims, self.axes), 
+                                 dtype=self.dtype,
+                                 rechunk_to="max",
+                                 args=(all_coords,),
+                                 kwargs=dict(prefilter=False, order=1)
+                                 )
+        cropped_img._set_info(self, "rotated_crop")
+        return cropped_img
     
+    @dims_to_spatial_axes
+    def gaussian_filter(self, sigma:nDFloat=1.0, *, dims=None) -> LazyImgArray:
+        return self.apply(dafil.gaussian_filter,
+                          c_axes=complement_axes(dims, self.axes),
+                          rechunk_to="max",
+                          dask_wrap=True,
+                          args=(sigma,)
+                          )
+    
+    @dims_to_spatial_axes
+    def median_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
+        disk = ball_like(radius, len(dims))
+        return self.apply(dafil.gaussian_filter,
+                          c_axes=complement_axes(dims, self.axes),
+                          rechunk_to="max",
+                          dask_wrap=True,
+                          kwargs=dict(footprint=disk)
+                          )
     
     def chunksizeof(self, axis:str):
         return self.img.chunksize[self.axes.find(axis)]

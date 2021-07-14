@@ -104,7 +104,7 @@ class ImgArray(LabeledArray):
         """
         mx = sktrans.AffineTransform(**kwargs)
         return self.apply_dask(sktrans.warp,
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(inverse_map=mx, order=order)
                                )
     
@@ -136,7 +136,7 @@ class ImgArray(LabeledArray):
         mtx[0:ndim, ndim] = translation
         mx = sktrans.AffineTransform(matrix=mtx)
         return self.apply_dask(sktrans.warp,
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(inverse_map=mx, order=order)
                                )
 
@@ -481,7 +481,7 @@ class ImgArray(LabeledArray):
         pxsize = np.array([self.scale[a] for a in dims])
         
         eigval = self.as_float().apply_dask(_linalg.hessian_eigval, 
-                                            dims=complement_axes(dims, self.axes), 
+                                            c_axes=complement_axes(dims, self.axes), 
                                             args=(sigma, pxsize),
                                             new_axis=-1)
         
@@ -493,7 +493,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eig(self, sigma:nDFloat=1, *, dims=None, dask=True) -> tuple[ImgArray, ImgArray]:
+    def hessian_eig(self, sigma:nDFloat=1, *, dims=None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -514,14 +514,14 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        if not dask:
-            eigval, eigvec = self.parallel_eig(hessian_eigh_, 
-                                            complement_axes(dims, self.axes), 
-                                            sigma, pxsize)
-        else:
-            eigval, eigvec = self.apply_dask_eig(_linalg.hessian_eigh, 
-                                                 dims=complement_axes(dims, self.axes), 
-                                                 args=(sigma, pxsize))
+        
+        eigval, eigvec = self.parallel_eig(hessian_eigh_, 
+                                        complement_axes(dims, self.axes), 
+                                        sigma, pxsize)
+        # else:
+        #     eigval, eigvec = self.apply_dask_eig(_linalg.hessian_eigh, 
+        #                                          dims=complement_axes(dims, self.axes), 
+        #                                          args=(sigma, pxsize))
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
         eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
@@ -556,7 +556,7 @@ class ImgArray(LabeledArray):
         pxsize = np.array([self.scale[a] for a in dims])
         
         eigval = self.as_float().apply_dask(_linalg.structure_tensor_eigval, 
-                                            dims=complement_axes(dims, self.axes), 
+                                            c_axes=complement_axes(dims, self.axes), 
                                             args=(sigma, pxsize),
                                             new_axis=-1)
         
@@ -633,7 +633,7 @@ class ImgArray(LabeledArray):
         except KeyError:
             raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
         
-        return self.apply_dask(f, dims=complement_axes(dims, self.axes))
+        return self.apply_dask(f, c_axes=complement_axes(dims, self.axes))
     
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -725,7 +725,7 @@ class ImgArray(LabeledArray):
             Convolved image.
         """        
         return self.apply_dask(ndi.convolve, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                args=(kernel,),
                                kwargs=dict(mode=mode, cval=cval))
@@ -737,7 +737,7 @@ class ImgArray(LabeledArray):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             out = self.apply_dask(function, 
-                                  dims=complement_axes(dims, self.axes), 
+                                  c_axes=complement_axes(dims, self.axes), 
                                   dtype=self.dtype,
                                   args=(disk,)
                                   )
@@ -897,7 +897,7 @@ class ImgArray(LabeledArray):
         """        
         disk = ball_like(radius, len(dims))
         return self.as_float().apply_dask(_filters.std_filter, 
-                                          dims=complement_axes(dims, self.axes), 
+                                          c_axes=complement_axes(dims, self.axes), 
                                           args=(disk,)
                                           )
     
@@ -922,7 +922,7 @@ class ImgArray(LabeledArray):
         """        
         disk = ball_like(radius, len(dims))
         return self.as_float().apply_dask(_filters.coef_filter, 
-                                          dims=complement_axes(dims, self.axes), 
+                                          c_axes=complement_axes(dims, self.axes), 
                                           args=(disk,)
                                           )
     
@@ -948,7 +948,7 @@ class ImgArray(LabeledArray):
         """     
         disk = ball_like(radius, len(dims))
         return self.apply_dask(ndi.median_filter, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                kwargs=dict(footprint=disk)
                                )
@@ -959,7 +959,7 @@ class ImgArray(LabeledArray):
     def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims=None, 
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skmorph.diameter_opening, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
         
@@ -969,7 +969,7 @@ class ImgArray(LabeledArray):
     def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims=None,
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skmorph.diameter_closing, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
     
@@ -980,12 +980,12 @@ class ImgArray(LabeledArray):
                      update:bool=False) -> ImgArray:
         if self.dtype == bool:
             return self.apply_dask(skmorph.remove_small_objects,
-                                   dims=complement_axes(dims, self.axes), 
+                                   c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
             return self.apply_dask(skmorph.area_opening, 
-                                   dims=complement_axes(dims, self.axes), 
+                                   c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
         
@@ -996,12 +996,12 @@ class ImgArray(LabeledArray):
                      update:bool=False) -> ImgArray:
         if self.dtype == bool:
             return self.apply_dask(skmorph.remove_small_holes,
-                                   dims=complement_axes(dims, self.axes), 
+                                   c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
             return self.apply_dask(skmorph.area_closing, 
-                                   dims=complement_axes(dims, self.axes), 
+                                   c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
     
@@ -1074,7 +1074,7 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
         return self.apply_dask(ndi.convolve, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                args=(laplace_op,),
                                kwargs=dict(mode="reflect")
@@ -1112,7 +1112,7 @@ class ImgArray(LabeledArray):
         if t_axis > min_a:
             self = np.swapaxes(self, t_axis, min_a)
         out = self.apply_dask(_filters.kalman_filter, 
-                              dims=complement_axes(along + dims, self.axes), 
+                              c_axes=complement_axes(along + dims, self.axes), 
                               args=(gain, noise_var)
                               )
         if t_axis > min_a:
@@ -1248,7 +1248,7 @@ class ImgArray(LabeledArray):
             mask = self.value
         # TODO: cannot iterate mask correctly. mask needs to be a dask array.
         return self.apply_dask(_filters.fill_hole, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(mask=mask),
                                dtype=self.dtype
                                )
@@ -1276,7 +1276,7 @@ class ImgArray(LabeledArray):
             Filtered image.
         """
         return self.apply_dask(ndi.gaussian_filter, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                args=(sigma,), 
                                dtype=np.float32
                                )
@@ -1308,7 +1308,7 @@ class ImgArray(LabeledArray):
         high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
         
         return self.as_float().apply_dask(_filters.dog_filter, 
-                                          dims=complement_axes(dims, self.axes),
+                                          c_axes=complement_axes(dims, self.axes),
                                           args=(low_sigma, high_sigma)
                                           )
     
@@ -1336,7 +1336,7 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, len(dims))
         pxsize = np.array([self.scale[a] for a in dims])
         return self.as_float().apply_dask(_filters.doh_filter, 
-                                          dims=complement_axes(dims, self.axes), 
+                                          c_axes=complement_axes(dims, self.axes), 
                                           args=(sigma, pxsize)
                                           )
     
@@ -1359,7 +1359,7 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         return -self.as_float().apply_dask(ndi.gaussian_laplace,
-                                           dims=complement_axes(dims, self.axes), 
+                                           c_axes=complement_axes(dims, self.axes), 
                                            args=(sigma,)
                                            )
     
@@ -1392,12 +1392,12 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         if prefilter == "mean":
             filt = self.apply_dask(_filters.mean_filter, 
-                                   dims=c_axes, 
+                                   c_axes=c_axes, 
                                    kwargs=dict(selem=np.ones((3,)*len(dims)))
                                    )
         elif prefilter == "median":
             filt = self.apply_dask(ndi.median_filter, 
-                                   dims=c_axes, 
+                                   c_axes=c_axes, 
                                    kwargs=dict(footprint=np.ones((3,)*len(dims)))
                                    )
         elif prefilter == "none":
@@ -1406,7 +1406,7 @@ class ImgArray(LabeledArray):
             raise ValueError(f"`prefilter` must be {', '.join(method)}.")
         filt.axes = self.axes
         back = filt.apply_dask(skres.rolling_ball, 
-                               dims=c_axes, 
+                               c_axes=c_axes, 
                                kwargs=dict(radius=radius))
         if not return_bg:
             out = filt.value - back
@@ -1441,7 +1441,7 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         return self.apply_dask(skres._denoise._denoise_tv_chambolle_nd, 
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter)
                                )
         
@@ -1485,7 +1485,7 @@ class ImgArray(LabeledArray):
                      wavelet_levels=wavelet_levels,
                      method=method)
         return self.apply_dask(skres.cycle_spin, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                args=(skres.denoise_wavelet,),
                                kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
                                )
@@ -1782,7 +1782,7 @@ class ImgArray(LabeledArray):
             Harris response
         """        
         return self.apply_dask(skfeat.corner_harris, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(k=k, sigma=sigma))
     
     @dims_to_spatial_axes
@@ -2248,8 +2248,8 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         if sigma > 0:
             self = self.gaussian_filter(sigma, dims=dims)
-        grad_h = self.apply_dask(op_h, dims=c_axes)
-        grad_v = self.apply_dask(op_v, dims=c_axes)
+        grad_h = self.apply_dask(op_h, c_axes=c_axes)
+        grad_v = self.apply_dask(op_v, c_axes=c_axes)
         grad = np.arctan2(-grad_h, grad_v)
         
         grad = PhaseArray(grad, border=(-np.pi, np.pi))
@@ -2322,7 +2322,7 @@ class ImgArray(LabeledArray):
         for i, theta in enumerate(thetas):
             ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
             out_ = self.as_float().apply_dask(ndi.convolve, 
-                                              dims=c_axes, 
+                                              c_axes=c_axes, 
                                               args=(ker.real,))
             if i > 0:
                 where_update = out_ > max_
@@ -2379,12 +2379,12 @@ class ImgArray(LabeledArray):
         ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
             out = self.as_float().apply_dask(_filters.gabor_filter, 
-                                             dims=complement_axes(dims, self.axes), 
+                                             c_axes=complement_axes(dims, self.axes), 
                                              args=(ker,), 
                                              dtype=np.complex64)
         else:
             out = self.as_float().apply_dask(ndi.convolve, 
-                                             dims=complement_axes(dims, self.axes),
+                                             c_axes=complement_axes(dims, self.axes),
                                              args=(ker.real,), 
                                              dtype=np.float32)
         return out
@@ -2596,7 +2596,7 @@ class ImgArray(LabeledArray):
             Distance map, the further the brighter
         """        
         return self.apply_dask(ndi.distance_transform_edt, 
-                               dims=complement_axes(dims, self.axes)
+                               c_axes=complement_axes(dims, self.axes)
                                )
     
     @record()
@@ -2623,7 +2623,7 @@ class ImgArray(LabeledArray):
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
         return self.as_float().apply_dask(_misc.ncc,
-                                          dims=complement_axes(dims, self.axes), 
+                                          c_axes=complement_axes(dims, self.axes), 
                                           args=(template, bg))
     
     @record(append_history=False)
@@ -2763,7 +2763,7 @@ class ImgArray(LabeledArray):
             Convex hull image.
         """        
         return self.apply_dask(skmorph.convex_hull_image, 
-                               dims=complement_axes(dims, self.axes), 
+                               c_axes=complement_axes(dims, self.axes), 
                                dtype=bool
                                )
         
@@ -2794,7 +2794,7 @@ class ImgArray(LabeledArray):
             selem = None
         
         return self.apply_dask(_filters.skeletonize, 
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                args=(selem,),
                                dtype=bool)
         
@@ -2833,7 +2833,7 @@ class ImgArray(LabeledArray):
         selem = ndi.morphology.generate_binary_structure(ndim, connectivity)
         selem[(1,)*ndim] = 0
         out = self.as_uint8().apply_dask(_filters.population, 
-                                         dims=complement_axes(dims, self.axes), 
+                                         c_axes=complement_axes(dims, self.axes), 
                                          args=(selem,))
         if mask:
             out[~self.value] = 0
@@ -3262,8 +3262,9 @@ class ImgArray(LabeledArray):
         """        
         
         return self.apply_dask(skfeat.local_binary_pattern,
-                               dims=complement_axes(dims), 
-                               args=(p, radius, method))
+                               c_axes=complement_axes(dims), 
+                               args=(p, radius, method)
+                               )
     
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -3292,11 +3293,12 @@ class ImgArray(LabeledArray):
             GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
             distance and "<" means angle.
         """        
+        # TODO: not working
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
             
         c_axes = complement_axes(dims, self.axes)
         out = self.apply_dask(skfeat.greycomatrix, 
-                              dims=c_axes, 
+                              c_axes=c_axes, 
                               args=(distances, angles),
                               kwargs=dict(levels=bins),
                               dtype=np.uint32)
@@ -3805,7 +3807,7 @@ class ImgArray(LabeledArray):
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.apply_dask(_deconv.wiener, 
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                args=(psf_ft, psf_ft_conj, lmd)
                                )
         
@@ -3846,7 +3848,7 @@ class ImgArray(LabeledArray):
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.apply_dask(_deconv.richardson_lucy, 
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                args=(psf_ft, psf_ft_conj, niter, eps)
                                )
     
@@ -3912,7 +3914,7 @@ class ImgArray(LabeledArray):
         psf_ft_conj = np.conjugate(psf_ft)
         
         return self.apply_dask(_deconv.richardson_lucy_tv, 
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
                                )
 

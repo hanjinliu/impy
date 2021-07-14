@@ -417,54 +417,14 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    # def parallel(self, func, axes, *args, outshape:tuple[int,...]=None, outdtype=np.float32,
-    #              force_single:bool=False) -> LabeledArray:
-    #     """
-    #     Multiprocessing tool.
-
-    #     Parameters
-    #     ----------
-    #     func : callable
-    #         Function applied to each image.
-    #         sl, img = func(arg). arg must be packed into tuple or list.
-    #     axes : str or int
-    #         passed to iter()
-    #     args
-    #         Additional arguments of `func`.
-    #     outshape : tuple, optional
-    #         shape of output. By default shape of input image because this
-    #         function is used almost for filtering.
-        
-    #     Returns
-    #     -------
-    #     LabeledArray
-    #     """
-    #     if outshape is None:
-    #         outshape = self.shape
-            
-    #     out = np.empty(outshape, dtype=outdtype)
-        
-    #     # multi-processing has an overhead (~1 sec) so that with a small numbers of
-    #     # images it will be slower with multi-processing.
-    #     if self.__class__.n_cpu > 1 and self.size > 10**7 and not force_single:
-    #         results = self._parallel(func, axes, *args)
-    #         for sl, imgf in results:
-    #             out[sl] = imgf
-    #     else:
-    #         for sl, img in self.iter(axes):
-    #             sl, imgf = func((sl, img, *args))
-    #             out[sl] = imgf
-        
-    #     out = out.view(self.__class__)
-    #     return out
-    
-    def apply_dask(self, func, dims=None, drop_axis=[], new_axis=None, dtype=np.float32, args=None, kwargs=None) -> LabeledArray:
+    def apply_dask(self, func, c_axes=None, drop_axis=[], new_axis=None, dtype=np.float32, 
+                   args=None, kwargs=None) -> LabeledArray:
         # determine chunk size
         chunks = []
         slice_in = []
         slice_out = []
         for i, a in enumerate(self.axes):
-            if a in dims:
+            if a in c_axes:
                 chunks.append(1)
                 slice_in.append(0)
                 slice_out.append(np.newaxis)
@@ -481,7 +441,7 @@ class LabeledArray(HistoryArray):
         if kwargs is None:
             kwargs = dict()
         
-        if len(dims) == self.ndim:
+        if len(c_axes) == 0:
             out = func(self.value, *args, **kwargs)
         else:
             input_ = da.from_array(self.value, chunks=chunks)
@@ -689,7 +649,7 @@ class LabeledArray(HistoryArray):
         return out
         
     @record()
-    def rotated_crop(self, origin, dst1, dst2) -> LabeledArray:
+    def rotated_crop(self, origin, dst1, dst2, dims="yx") -> LabeledArray:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
@@ -710,16 +670,18 @@ class LabeledArray(HistoryArray):
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        cropped_img = np.empty(self.shape[:-2] + all_coords.shape[1:], dtype=self.dtype)
-        for sl, img2d in self.iter(complement_axes("yx", self.axes)):
-            cropped_img[sl] = ndi.map_coordinates(img2d, all_coords, prefilter=False, order=1)
+        cropped_img = self.apply_dask(ndi.map_coordinates, complement_axes(dims, self.axes), 
+                                      dtype=self.dtype,
+                                      args=(all_coords,),
+                                      kwargs=dict(prefilter=False, order=1)
+                                      )
         cropped_img = cropped_img.view(self.__class__)
         cropped_img.axes = self.axes
         if hasattr(self, "labels"):
             try:
                 lbl = self.labels
                 cropped_labels = np.empty(lbl.shape[:-2] + all_coords.shape[1:], dtype=lbl.dtype)
-                for sl, lbl2d in lbl.iter(complement_axes("yx", lbl.axes)):
+                for sl, lbl2d in lbl.iter(complement_axes(dims, lbl.axes)):
                     cropped_labels[sl] = ndi.map_coordinates(lbl2d, all_coords, prefilter=False, order=0)
             except Exception:
                 print("cropping labels failed")
