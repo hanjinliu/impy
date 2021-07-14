@@ -20,7 +20,7 @@ from ._process import *
 from ..frame import *
 from ..frame.frames import tp
 
-# TODO: use apply_dask. How to implement eigh?
+# TODO: use apply_dask. How to implement eigh? https://github.com/dask/dask/issues/2618
 
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
@@ -106,7 +106,7 @@ class ImgArray(LabeledArray):
         mx = sktrans.AffineTransform(**kwargs)
         return self.apply_dask(sktrans.warp,
                                dims=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_max=mx, order=order)
+                               kwargs=dict(inverse_map=mx, order=order)
                                )
     
     @dims_to_spatial_axes
@@ -138,7 +138,7 @@ class ImgArray(LabeledArray):
         mx = sktrans.AffineTransform(matrix=mtx)
         return self.apply_dask(sktrans.warp,
                                dims=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_max=mx, order=order)
+                               kwargs=dict(inverse_map=mx, order=order)
                                )
 
 
@@ -494,7 +494,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eig(self, sigma:nDFloat=1, *, dims=None) -> tuple[ImgArray, ImgArray]:
+    def hessian_eig(self, sigma:nDFloat=1, *, dims=None, dask=True) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -515,10 +515,14 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        eigval, eigvec = self.parallel_eig(hessian_eigh_, 
-                                           complement_axes(dims, self.axes), 
-                                           sigma, pxsize)
-        
+        if not dask:
+            eigval, eigvec = self.parallel_eig(hessian_eigh_, 
+                                            complement_axes(dims, self.axes), 
+                                            sigma, pxsize)
+        else:
+            eigval, eigvec = self.apply_dask_eig(_linalg.hessian_eigh, 
+                                                 dims=complement_axes(dims, self.axes), 
+                                                 args=(sigma, pxsize))
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
         eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
@@ -551,10 +555,11 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        eigval = self.as_float().parallel(structure_tensor_eigval_, 
-                                          complement_axes(dims, self.axes), 
-                                          sigma, pxsize,
-                                          outshape=self.shape+(ndim,))
+        
+        eigval = self.as_float().apply_dask(_linalg.structure_tensor_eigval, 
+                                            dims=complement_axes(dims, self.axes), 
+                                            args=(sigma, pxsize),
+                                            new_axis=-1)
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
@@ -894,7 +899,8 @@ class ImgArray(LabeledArray):
         disk = ball_like(radius, len(dims))
         return self.as_float().apply_dask(_filters.std_filter, 
                                           dims=complement_axes(dims, self.axes), 
-                                          args=(disk,))
+                                          args=(disk,)
+                                          )
     
     @dims_to_spatial_axes
     @record()
@@ -918,7 +924,8 @@ class ImgArray(LabeledArray):
         disk = ball_like(radius, len(dims))
         return self.as_float().apply_dask(_filters.coef_filter, 
                                           dims=complement_axes(dims, self.axes), 
-                                          args=(disk,))
+                                          args=(disk,)
+                                          )
     
     @dims_to_spatial_axes
     @record()
@@ -954,7 +961,7 @@ class ImgArray(LabeledArray):
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skmorph.diameter_opening, 
                                dims=complement_axes(dims, self.axes), 
-                               kwargs=dict(diameter_threshonld=diameter, connectivity=connectivity)
+                               kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
         
     @record()
@@ -964,7 +971,7 @@ class ImgArray(LabeledArray):
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skmorph.diameter_closing, 
                                dims=complement_axes(dims, self.axes), 
-                               kwargs=dict(diameter_threshonld=diameter, connectivity=connectivity)
+                               kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
     
     @record()
@@ -980,7 +987,7 @@ class ImgArray(LabeledArray):
         else:
             return self.apply_dask(skmorph.area_opening, 
                                    dims=complement_axes(dims, self.axes), 
-                                   kwargs=dict(area_threshonld=area, connectivity=connectivity)
+                                   kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
         
     @record()
@@ -996,44 +1003,8 @@ class ImgArray(LabeledArray):
         else:
             return self.apply_dask(skmorph.area_closing, 
                                    dims=complement_axes(dims, self.axes), 
-                                   kwargs=dict(area_threshonld=area, connectivity=connectivity)
+                                   kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
-        
-    @dims_to_spatial_axes
-    @record()
-    @same_dtype()
-    def directional_median_filter(self, radius:int=2, *, dims=None, update:bool=False) -> ImgArray:
-        """
-        Median filtering in the directional method. Median is calculated in four directions and
-        the median value in which direction standard deviation is smallest is used. This method
-        retains edge sharpness. Also, this method is not slower than classical median filter in many
-        cases because the kernel size is smaller.
-        
-        Parameters
-        ----------
-        radius : int, optional
-            Kernel radius of the filter. Here, radius must be int.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self to filtered image.
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-            
-        Reference
-        ---------
-        Modified from following paper:
-        Chen, Z., & Zhang, L. (2009). Multi-stage directional median filter. International Journal 
-        of Signal Processing, 5(4), 249-252.
-        """        
-        if len(dims) != 2:
-            raise ValueError("Directional median filter is defined only for 2D images.")
-        elif not isinstance(radius, int):
-            raise TypeError(f"`radius` must be int, but got {type(radius)}")
-        return self.parallel(directional_median_, complement_axes(dims, self.axes), radius)
     
     @dims_to_spatial_axes
     @record()
@@ -1107,7 +1078,8 @@ class ImgArray(LabeledArray):
                                dims=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                args=(laplace_op,),
-                               kwargs=dict(mode="reflect"))
+                               kwargs=dict(mode="reflect")
+                               )
     
     @dims_to_spatial_axes
     @record()
@@ -1275,11 +1247,12 @@ class ImgArray(LabeledArray):
             mask = self.threshold(thr=thr).value
         else:
             mask = self.value
-        
+        # TODO: cannot iterate mask correctly. mask needs to be a dask array.
         return self.apply_dask(_filters.fill_hole, 
                                dims=complement_axes(dims, self.axes), 
-                               mask=mask, 
-                               dtype=self.dtype)
+                               kwargs=dict(mask=mask),
+                               dtype=self.dtype
+                               )
     
 
     @dims_to_spatial_axes
@@ -1388,7 +1361,8 @@ class ImgArray(LabeledArray):
         """        
         return -self.as_float().apply_dask(ndi.gaussian_laplace,
                                            dims=complement_axes(dims, self.axes), 
-                                           args=(sigma,))
+                                           args=(sigma,)
+                                           )
     
     
     @dims_to_spatial_axes
@@ -1418,25 +1392,25 @@ class ImgArray(LabeledArray):
         method = ("mean", "median", "none")
         c_axes = complement_axes(dims, self.axes)
         if prefilter == "mean":
-            self = self.apply_dask(_filters.mean_filter, 
+            filt = self.apply_dask(_filters.mean_filter, 
                                    dims=c_axes, 
-                                   kwargs=dict(selem=np.ones(3,3))
+                                   kwargs=dict(selem=np.ones((3,)*len(dims)))
                                    )
         elif prefilter == "median":
-            self = self.apply_dask(ndi.median_filter, 
+            filt = self.apply_dask(ndi.median_filter, 
                                    dims=c_axes, 
-                                   kwargs=dict(footprint=np.ones(3,3))
+                                   kwargs=dict(footprint=np.ones((3,)*len(dims)))
                                    )
         elif prefilter == "none":
-            pass
+            filt = self
         else:
             raise ValueError(f"`prefilter` must be {', '.join(method)}.")
-        
-        back = self.apply_dask(skres.rolling_ball, 
+        filt.axes = self.axes
+        back = filt.apply_dask(skres.rolling_ball, 
                                dims=c_axes, 
                                kwargs=dict(radius=radius))
         if not return_bg:
-            out = self.value - back
+            out = filt.value - back
             return out
         else:
             return back
@@ -1469,7 +1443,8 @@ class ImgArray(LabeledArray):
         """        
         return self.apply_dask(skres._denoise._denoise_tv_chambolle_nd, 
                                dims=complement_axes(dims, self.axes),
-                               kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter))
+                               kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter)
+                               )
         
     @dims_to_spatial_axes
     @record()
@@ -1512,6 +1487,7 @@ class ImgArray(LabeledArray):
                      method=method)
         return self.apply_dask(skres.cycle_spin, 
                                dims=complement_axes(dims, self.axes), 
+                               args=(skres.denoise_wavelet,),
                                kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
                                )
     
@@ -2646,7 +2622,7 @@ class ImgArray(LabeledArray):
         template = _check_template(template)
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        return self.as_float().apply_dask(_misc.ncc_, 
+        return self.as_float().apply_dask(_misc.ncc,
                                           dims=complement_axes(dims, self.axes), 
                                           args=(template, bg))
     
@@ -2692,7 +2668,7 @@ class ImgArray(LabeledArray):
         shift = np.zeros(ndim, dtype=np.float32)
         for sl, img in self.as_float().iter(along):
             template_old = _translate_image(template_new, shift, cval=bg)
-            _, resp = ncc_((sl, img, template_old, bg))
+            _, resp = _misc.ncc(img, template_old, bg)
             resp_crop = resp[rem_edge_sl]
             peak = np.unravel_index(np.argmax(resp_crop), resp_crop.shape) + t_shape//2
             pos.append(peak)

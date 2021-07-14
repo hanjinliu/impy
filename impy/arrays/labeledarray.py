@@ -12,7 +12,6 @@ from ..axes import ImageAxesError
 from ..func import *
 from ..deco import *
 from ..utilcls import *
-from ._process import label_
 from .bases import HistoryArray
 from .label import Label
 from .specials import *
@@ -418,48 +417,84 @@ class LabeledArray(HistoryArray):
     #   Multi-processing
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def parallel(self, func, axes, *args, outshape:tuple[int,...]=None, outdtype=np.float32,
-                 force_single:bool=False) -> LabeledArray:
-        """
-        Multiprocessing tool.
+    # def parallel(self, func, axes, *args, outshape:tuple[int,...]=None, outdtype=np.float32,
+    #              force_single:bool=False) -> LabeledArray:
+    #     """
+    #     Multiprocessing tool.
 
-        Parameters
-        ----------
-        func : callable
-            Function applied to each image.
-            sl, img = func(arg). arg must be packed into tuple or list.
-        axes : str or int
-            passed to iter()
-        args
-            Additional arguments of `func`.
-        outshape : tuple, optional
-            shape of output. By default shape of input image because this
-            function is used almost for filtering.
+    #     Parameters
+    #     ----------
+    #     func : callable
+    #         Function applied to each image.
+    #         sl, img = func(arg). arg must be packed into tuple or list.
+    #     axes : str or int
+    #         passed to iter()
+    #     args
+    #         Additional arguments of `func`.
+    #     outshape : tuple, optional
+    #         shape of output. By default shape of input image because this
+    #         function is used almost for filtering.
         
-        Returns
-        -------
-        LabeledArray
-        """
-        if outshape is None:
-            outshape = self.shape
+    #     Returns
+    #     -------
+    #     LabeledArray
+    #     """
+    #     if outshape is None:
+    #         outshape = self.shape
             
-        out = np.empty(outshape, dtype=outdtype)
+    #     out = np.empty(outshape, dtype=outdtype)
         
-        # multi-processing has an overhead (~1 sec) so that with a small numbers of
-        # images it will be slower with multi-processing.
-        if self.__class__.n_cpu > 1 and self.size > 10**7 and not force_single:
-            results = self._parallel(func, axes, *args)
-            for sl, imgf in results:
-                out[sl] = imgf
+    #     # multi-processing has an overhead (~1 sec) so that with a small numbers of
+    #     # images it will be slower with multi-processing.
+    #     if self.__class__.n_cpu > 1 and self.size > 10**7 and not force_single:
+    #         results = self._parallel(func, axes, *args)
+    #         for sl, imgf in results:
+    #             out[sl] = imgf
+    #     else:
+    #         for sl, img in self.iter(axes):
+    #             sl, imgf = func((sl, img, *args))
+    #             out[sl] = imgf
+        
+    #     out = out.view(self.__class__)
+    #     return out
+    
+    def apply_dask(self, func, dims=None, drop_axis=[], new_axis=None, dtype=np.float32, args=None, kwargs=None) -> LabeledArray:
+        # determine chunk size
+        chunks = []
+        slice_in = []
+        slice_out = []
+        for i, a in enumerate(self.axes):
+            if a in dims:
+                chunks.append(1)
+                slice_in.append(0)
+                slice_out.append(np.newaxis)
+            else:
+                chunks.append(self.shape[i])
+                slice_in.append(slice(None))
+                slice_out.append(slice(None))
+        chunks = tuple(chunks)
+        slice_in = tuple(slice_in)
+        slice_out = tuple(slice_out)
+        
+        if args is None:
+            args = tuple()
+        if kwargs is None:
+            kwargs = dict()
+        
+        if len(dims) == self.ndim:
+            out = func(self.value, *args, **kwargs)
         else:
-            for sl, img in self.iter(axes):
-                sl, imgf = func((sl, img, *args))
-                out[sl] = imgf
-        
+            input_ = da.from_array(self.value, chunks=chunks)
+            def _func(arr, *args, **kwargs):
+                out = func(arr[slice_in], *args, **kwargs)
+                return out[slice_out]
+            out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
+                                dtype=dtype, **kwargs).compute()
+
         out = out.view(self.__class__)
         return out
     
-    def apply_dask(self, func, dims=None, drop_axis=None, new_axis=None, dtype=None, args=None, kwargs=None) -> LabeledArray:
+    def apply_dask_eig(self, func, dims=None, drop_axis=None, new_axis=None, dtype=None, args=None, kwargs=None) -> LabeledArray:
         # determine chunk size
         chunks = []
         slice_in = []
@@ -489,16 +524,20 @@ class LabeledArray(HistoryArray):
         if kwargs is None:
             kwargs = dict()
         
+        # TODO: how to do this?
+        # this works:
+        #         from dask import array as da
+        #         arr = da.from_array(np.random.random((2,2,5,30,30)), chunks=(2,2,1,30,30))
+        #         out=da.apply_gufunc(np.linalg.eigh, "(i,j)->(i),(i,j)", arr)
+
+        # see https://github.com/dask/dask/issues/7589
         if len(dims) == self.ndim:
             out = func(self.value, *args, **kwargs)
         else:
             input_ = da.from_array(self.value, chunks=chunks)
-            def _func(arr, *args, **kwargs):
-                out = func(arr[slice_in], *args, **kwargs)
-                return out[slice_out]
-            out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
+            out = da.map_blocks(func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
                                 dtype=dtype, **kwargs).compute()
-        out = out.view(self.__class__)
+        out = tuple(o.view(self.__class__) for o in out)
         return out
     
     def parallel_eig(self, func, dims, *args) -> tuple[LabeledArray, LabeledArray]:

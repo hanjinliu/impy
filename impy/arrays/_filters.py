@@ -57,7 +57,7 @@ def doh_filter(img, sigma, pxsize):
     hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
     eigval = np.linalg.eigvalsh(hessian)
     eigval[eigval>0] = 0
-    det = np.product(eigval, axis=-1)
+    det = np.abs(np.product(eigval, axis=-1))
     return det
 
 
