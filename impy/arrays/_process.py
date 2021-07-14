@@ -7,14 +7,6 @@ from functools import partial
 from scipy.fft import rfftn as rfft
 from scipy.fft import irfftn as irfft
 
-def affine_(args):
-    sl, data, mx, order = args
-    return sl, sktrans.warp(data, mx, order=order)
-
-def median_(args):
-    sl, data, selem = args
-    return sl, ndi.median_filter(data, footprint=selem, mode="reflect")
-
 def directional_median_(args):
     sl, data, radius = args
     diam = 2*radius + 1
@@ -40,232 +32,6 @@ def directional_median_kernel_2d(size):
 def directional_median_kernel_3d(size):
     raise NotImplementedError
     
-def wavelet_denoising_(args):
-    sl, data, func_kw, max_shift, shift_steps = args
-    out = skres.cycle_spin(data, skres.denoise_wavelet, func_kw=func_kw, max_shifts=max_shift, 
-                           multichannel=False, shift_steps=shift_steps)
-    return sl, out
-
-
-def mean_(args):
-    sl, data, selem = args
-    return sl, ndi.convolve(data, selem/np.sum(selem))
-
-def phase_mean_(args):
-    sl, data, selem, a = args
-    out = np.empty_like(data, dtype=np.complex64)
-    np.exp(1j*a*data, out=out)
-    ndi.convolve(out, selem, output=out)
-    return sl, np.angle(out)/a
-    
-def std_(args):
-    sl, data, selem = args
-    selem = selem / np.sum(selem)
-    x1 = ndi.convolve(data, selem)
-    x2 = ndi.convolve(data**2, selem)
-    std_img = _safe_sqrt(x2 - x1**2, fill=0)
-    return sl, std_img
-
-def coef_(args):
-    sl, data, selem = args
-    selem = selem / np.sum(selem)
-    x1 = ndi.convolve(data, selem)
-    x2 = ndi.convolve(data**2, selem)
-    out = _safe_sqrt(x2 - x1**2, fill=0)/x1
-    return sl, out
-    
-def convolve_(args):
-    sl, data, kernel, mode, cval = args
-    return sl, ndi.convolve(data, kernel, mode=mode, cval=cval)
-
-def gaussian_(args):
-    sl, data, sigma = args
-    return sl, ndi.gaussian_filter(data, sigma)
-
-def entropy_(args):
-    sl, data, selem = args
-    return sl, skfil.rank.entropy(data, selem)
-
-def enhance_contrast_(args):
-    sl, data, selem = args
-    return sl, skfil.rank.enhance_contrast(data, selem)
-
-def difference_of_gaussian_(args):
-    sl, data, low_sigma, high_sigma = args
-    return sl, ndi.gaussian_filter(data, low_sigma) - ndi.gaussian_filter(data, high_sigma)
-
-def population_(args):
-    sl, data, selem = args
-    return sl, skfil.rank.pop(data, selem, mask=data)
-
-def hessian_det_(args):
-    sl, data, sigma, pxsize = args
-    hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
-                                             mode="reflect")
-    # Correct for scale
-    pxsize = np.asarray(pxsize)
-    hessian = _symmetric_image(hessian_elements)
-    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval = np.linalg.eigvalsh(hessian)
-    eigval[eigval>0] = 0
-    det = np.product(eigval, axis=-1)
-    return sl, det
-
-def gaussian_laplace_(args):
-    sl, data, sigma = args
-    return sl, ndi.gaussian_laplace(data, sigma)
-
-def rolling_ball_(args):
-    sl, data, radius, prefilter = args
-    if prefilter == "mean":
-        _, data = mean_((sl, data, np.ones((3, 3))))
-    elif prefilter == "median":
-        _, data = median_((sl, data, np.ones((3, 3))))
-    
-    back = skres.rolling_ball(data, radius=radius)
-    
-    return sl, back
-
-def kalman_filter_(args):
-    sl, data, gain, noise_var = args
-    # data is 3D or 4D
-    out = np.empty_like(data)
-    spatial_shape = data.shape[1:]
-    for t, img in enumerate(data):
-        if t == 0:
-            estimate = img
-            predicted_var = np.full(spatial_shape, noise_var)
-        else:
-            kalman_gain = predicted_var / (predicted_var + noise_var)
-            estimate = gain*estimate +  (1.0 - gain)*img + kalman_gain*(img - estimate)
-            predicted_var *= 1 - kalman_gain
-        out[t] = estimate
-    return sl, out
-
-def rof_filter_(args):
-    sl, obs, lmd, tol, max_iter = args
-    out = skres._denoise._denoise_tv_chambolle_nd(obs, weight=lmd, eps=tol, n_iter_max=max_iter)
-    return sl, out
-
-def sobel_(args):
-    sl, data = args
-    return sl, skfil.sobel(data)
-
-def farid_(args):
-    sl, data = args
-    return sl, skfil.farid(data)
-
-def scharr_(args):
-    sl, data = args
-    return sl, skfil.scharr(data)
-
-def prewitt_(args):
-    sl, data = args
-    return sl, skfil.prewitt(data)
-
-def sobel_h_(args):
-    sl, data = args
-    return sl, skfil.sobel_h(data)
-
-def sobel_v_(args):
-    sl, data = args
-    return sl, skfil.sobel_v(data)
-
-def farid_h_(args):
-    sl, data = args
-    return sl, skfil.farid_h(data)
-
-def farid_v_(args):
-    sl, data = args
-    return sl, skfil.farid_v(data)
-
-def scharr_h_(args):
-    sl, data = args
-    return sl, skfil.scharr_h(data)
-
-def scharr_v_(args):
-    sl, data = args
-    return sl, skfil.scharr_v(data)
-
-def prewitt_h_(args):
-    sl, data = args
-    return sl, skfil.prewitt_h(data)
-
-def prewitt_v_(args):
-    sl, data = args
-    return sl, skfil.prewitt_v(data)
-
-def opening_(args):
-    sl, data, selem = args
-    return sl, skmorph.opening(data, selem)
-
-def binary_opening_(args):
-    sl, data, selem = args
-    return sl, skmorph.binary_opening(data, selem)
-
-def closing_(args):
-    sl, data, selem = args
-    return sl, skmorph.closing(data, selem)
-
-def binary_closing_(args):
-    sl, data, selem = args
-    return sl, skmorph.binary_closing(data, selem)
-
-def erosion_(args):
-    sl, data, selem = args
-    return sl, skmorph.erosion(data, selem)
-
-def binary_erosion_(args):
-    sl, data, selem = args
-    return sl, skmorph.binary_erosion(data, selem)
-
-def dilation_(args):
-    sl, data, selem = args
-    return sl, skmorph.dilation(data, selem)
-
-def binary_dilation_(args):
-    sl, data, selem = args
-    return sl, skmorph.binary_dilation(data, selem)
-
-def diameter_opening_(args):
-    sl, data, diam, connectivity = args
-    return sl, skmorph.diameter_opening(data, diam, connectivity)
-
-def diameter_closing_(args):
-    sl, data, diam, connectivity = args
-    return sl, skmorph.diameter_closing(data, diam, connectivity)
-
-def area_opening_(args):
-    sl, data, area, connectivity = args
-    return sl, skmorph.area_opening(data, area, connectivity)
-
-def binary_area_opening_(args):
-    sl, data, area, connectivity = args
-    return sl, skmorph.remove_small_objects(data, area, connectivity)
-
-def area_closing_(args):
-    sl, data, area, connectivity = args
-    return sl, skmorph.area_closing(data, area, connectivity)
-
-def binary_area_closing_(args):
-    sl, data, area, connectivity = args
-    return sl, skmorph.remove_small_holes(data, area, connectivity)
-
-def tophat_(args):
-    sl, data, selem = args
-    return sl, skmorph.white_tophat(data, selem)
-
-def convex_hull_(args):
-    sl ,data = args
-    return sl, skmorph.convex_hull_image(data)
-
-def skeletonize_(args):
-    sl, data, selem = args
-    skl = skmorph.skeletonize_3d(data)
-    if selem is not None:
-        skl = skmorph.binary_dilation(skl, selem)
-    return sl, skl 
-
 def hessian_eigh_(args):
     sl, data, sigma, pxsize = args
     hessian_elements = skfeat.hessian_matrix(data, sigma=sigma, order="xy",
@@ -310,43 +76,17 @@ def structure_tensor_eigval_(args):
     eigval = np.linalg.eigvalsh(tensor)
     return sl, eigval
 
-def gabor_(args):
-    sl, data, ker = args
-    out = np.empty_like(data, dtype=np.complex64)
-    out.real[:] = ndi.convolve(data, ker.real)
-    out.imag[:] = ndi.convolve(data, ker.imag)
-    return sl, out
-
-def gabor_real_(args):
-    sl, data, ker = args
-    out = ndi.convolve(data, ker.real)
-    return sl, out
-
-def lbp_(args):
-    sl, data, p, radius, method = args
-    out = skfeat.local_binary_pattern(data, p, radius, method)
-    return sl, out
-
-def glcm_(args):
-    sl, data, distances, angles, levels = args
-    out = skfeat.greycomatrix(data, distances, angles, levels=levels)
-    return sl, out
-
 def label_(args):
     sl, data, connectivity = args
     labels = skmes.label(data, background=0, connectivity=connectivity)
     return sl, labels
 
-def distance_transform_edt_(args):
-    sl, data = args
-    return sl, ndi.distance_transform_edt(data)
     
-def ncc_(args):
-    sl, data, template, bg = args
+def ncc_(img, template, bg):
     ndim = template.ndim
     _win_sum = _window_sum_2d if ndim == 2 else _window_sum_3d
     pad_width = [(w, w) for w in template.shape]
-    padimg = np.pad(data, pad_width=pad_width, mode="constant", constant_values=bg)
+    padimg = np.pad(img, pad_width=pad_width, mode="constant", constant_values=bg)
     
     corr = fftconvolve(padimg, template[(slice(None,None,-1),)*ndim], mode="valid")[(slice(1,-1,None),)*ndim]
     
@@ -362,70 +102,15 @@ def ncc_(args):
     slices = []
     for i in range(ndim):
         d0 = (template.shape[i] - 1) // 2
-        d1 = d0 + data.shape[i]
+        d1 = d0 + img.shape[i]
         slices.append(slice(d0, d1))
     out = response[tuple(slices)]
-    return sl, out
+    return out
 
-def fill_hole_(args):
-    sl, data, mask = args
-    seed = np.copy(data)
-    seed[1:-1, 1:-1] = data.max()
-    return sl, skmorph.reconstruction(seed, mask, method="erosion")
 
 def corner_harris_(args):
     sl, data, k, sigma = args
     return sl, skfeat.corner_harris(data, k=k, sigma=sigma)
-
-def wiener_(args):
-    sl, obs, psf_ft, psf_ft_conj, lmd = args
-    fft = rfft
-    ifft = partial(irfft, s=obs.shape)
-    
-    img_ft = fft(obs)
-    
-    estimated = np.real(ifft(img_ft*psf_ft_conj / (psf_ft*psf_ft_conj + lmd)))
-    return sl, np.fft.fftshift(estimated)
-    
-def richardson_lucy_(args):
-    # Identical to the algorithm in Deconvolution.jl of Julia.
-    sl, obs, psf_ft, psf_ft_conj, niter, eps = args
-    fft = rfft
-    ifft = partial(irfft, s=obs.shape)
-    conv = factor = np.empty(obs.shape, dtype=np.float32) # placeholder
-    estimated = np.real(ifft(fft(obs) * psf_ft))   # initialization
-    
-    for _ in range(niter):
-        conv[:] = ifft(fft(estimated) * psf_ft).real
-        factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
-        estimated *= factor
-        
-    return sl, np.fft.fftshift(estimated)
-
-def richardson_lucy_tv_(args):
-    sl, obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps = args
-    fft = rfft
-    ifft = partial(irfft, s=obs.shape)
-    est_old = ifft(fft(obs) * psf_ft).real
-    est_new = np.empty(obs.shape, dtype=np.float32)
-    conv = factor = norm = gg = np.empty(obs.shape, dtype=np.float32) # placeholder
-    
-    for _ in range(max_iter):
-        conv[:] = ifft(fft(est_old) * psf_ft).real
-        factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
-        est_new[:] = est_old * factor
-        grad = np.gradient(est_old)
-        norm[:] = np.sqrt(sum(g**2 for g in grad))
-        gg[:] = sum(np.gradient(_safe_div(grad[i], norm, eps=1e-8), axis=i) 
-                    for i in range(obs.ndim))
-        est_new /= (1 - lmd * gg)
-        gain = np.sum(np.abs(est_new - est_old))/np.sum(np.abs(est_old))
-        if gain < tol:
-            break
-        est_old[:] = est_new
-        
-    return sl, np.fft.fftshift(est_new)
-
 
 def _safe_sqrt(a, fill=0):
     out = np.full(a.shape, fill, dtype=np.float32)

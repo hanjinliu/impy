@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import inspect
+from dask import array as da
 from skimage.color import label2rgb
 from tifffile import imwrite
 from ..axes import ImageAxesError
@@ -455,6 +456,48 @@ class LabeledArray(HistoryArray):
                 sl, imgf = func((sl, img, *args))
                 out[sl] = imgf
         
+        out = out.view(self.__class__)
+        return out
+    
+    def apply_dask(self, func, dims=None, drop_axis=None, new_axis=None, dtype=None, args=None, kwargs=None) -> LabeledArray:
+        # determine chunk size
+        chunks = []
+        slice_in = []
+        slice_out = []
+        for i, a in enumerate(self.axes):
+            if a in dims:
+                chunks.append(1)
+                slice_in.append(0)
+                slice_out.append(np.newaxis)
+            else:
+                chunks.append(self.shape[i])
+                slice_in.append(slice(None))
+                slice_out.append(slice(None))
+        chunks = tuple(chunks)
+        slice_in = tuple(slice_in)
+        slice_out = tuple(slice_out)
+        
+        # default parameters
+        if drop_axis is None:
+            drop_axis = []
+        if new_axis is None:
+            new_axis = []
+        if dtype is None:
+            dtype = np.float32
+        if args is None:
+            args = tuple()
+        if kwargs is None:
+            kwargs = dict()
+        
+        if len(dims) == self.ndim:
+            out = func(self.value, *args, **kwargs)
+        else:
+            input_ = da.from_array(self.value, chunks=chunks)
+            def _func(arr, *args, **kwargs):
+                out = func(arr[slice_in], *args, **kwargs)
+                return out[slice_out]
+            out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
+                                dtype=dtype, **kwargs).compute()
         out = out.view(self.__class__)
         return out
     

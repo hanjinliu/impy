@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import numpy as np
 import pandas as pd
 from scipy.linalg import pinv as pseudo_inverse
@@ -7,6 +8,7 @@ from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
 from .._types import *
 from ._skimage import *
+from . import _filters, _linalg, _deconv
 from ..func import *
 from ..deco import *
 from .labeledarray import LabeledArray
@@ -18,6 +20,7 @@ from ._process import *
 from ..frame import *
 from ..frame.frames import tp
 
+# TODO: use apply_dask. How to implement eigh?
 
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
@@ -101,8 +104,10 @@ class ImgArray(LabeledArray):
             Transformed image.
         """
         mx = sktrans.AffineTransform(**kwargs)
-        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order, force_single=True)
-        return out
+        return self.apply_dask(sktrans.warp,
+                               dims=complement_axes(dims, self.axes),
+                               kwargs=dict(inverse_max=mx, order=order)
+                               )
     
     @dims_to_spatial_axes
     @record()
@@ -131,8 +136,10 @@ class ImgArray(LabeledArray):
         mtx = np.eye(ndim + 1)
         mtx[0:ndim, ndim] = translation
         mx = sktrans.AffineTransform(matrix=mtx)
-        out = self.parallel(affine_, complement_axes(dims, self.axes), mx, order, force_single=True)
-        return out
+        return self.apply_dask(sktrans.warp,
+                               dims=complement_axes(dims, self.axes),
+                               kwargs=dict(inverse_max=mx, order=order)
+                               )
 
 
     @dims_to_spatial_axes
@@ -474,10 +481,10 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigval = self.as_float().parallel(hessian_eigval_, 
-                                          complement_axes(dims, self.axes), 
-                                          sigma, pxsize,
-                                          outshape=self.shape+(ndim,))
+        eigval = self.as_float().apply_dask(_linalg.hessian_eigval, 
+                                            dims=complement_axes(dims, self.axes), 
+                                            args=(sigma, pxsize),
+                                            new_axis=-1)
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
@@ -613,16 +620,16 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         # Get operator
-        method_dict = {"sobel": sobel_,
-                       "farid": farid_,
-                       "scharr": scharr_,
-                       "prewitt": prewitt_}
+        method_dict = {"sobel": skfil.sobel,
+                       "farid": skfil.farid,
+                       "scharr": skfil.scharr,
+                       "prewitt": skfil.prewitt}
         try:
             f = method_dict[method]
         except KeyError:
             raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
         
-        return self.parallel(f, complement_axes(dims, self.axes))
+        return self.apply_dask(f, dims=complement_axes(dims, self.axes))
     
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -713,15 +720,24 @@ class ImgArray(LabeledArray):
         ImgArray
             Convolved image.
         """        
-        return self.parallel(convolve_, complement_axes(dims, self.axes), kernel, 
-                             mode, cval, outdtype=self.dtype)
+        return self.apply_dask(ndi.convolve, 
+                               dims=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               args=(kernel,),
+                               kwargs=dict(mode=mode, cval=cval))
     
     @dims_to_spatial_axes
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
         disk = ball_like(radius, len(dims))
-        return self.parallel(function, complement_axes(dims, self.axes), disk, outdtype=self.dtype, 
-                             force_single=radius>5)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            out = self.apply_dask(function, 
+                                  dims=complement_axes(dims, self.axes), 
+                                  dtype=self.dtype,
+                                  args=(disk,)
+                                  )
+        return out
     
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -743,7 +759,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = binary_erosion_ if self.dtype == bool else erosion_
+        f = skmorph.binary_erosion if self.dtype == bool else skmorph.erosion
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -766,7 +782,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = binary_dilation_ if self.dtype == bool else dilation_
+        f = skmorph.binary_dilation if self.dtype == bool else skmorph.dilation
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -789,7 +805,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = binary_opening_ if self.dtype == bool else opening_
+        f = skmorph.binary_opening if self.dtype == bool else skmorph.opening
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -812,7 +828,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = binary_closing_ if self.dtype == bool else closing_
+        f = skmorph.binary_closing if self.dtype == bool else skmorph.closing
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -834,7 +850,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return self._running_kernel(radius, tophat_, dims=dims, update=update)
+        return self._running_kernel(radius, skmorph.white_tophat, dims=dims, update=update)
     
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -855,7 +871,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        return self._running_kernel(radius, mean_, dims=dims, update=update)
+        return self._running_kernel(radius, _filters.mean_filter, dims=dims, update=update)
     
     @dims_to_spatial_axes
     @record()
@@ -876,7 +892,9 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         disk = ball_like(radius, len(dims))
-        return self.as_float().parallel(std_, complement_axes(dims, self.axes), disk)
+        return self.as_float().apply_dask(_filters.std_filter, 
+                                          dims=complement_axes(dims, self.axes), 
+                                          args=(disk,))
     
     @dims_to_spatial_axes
     @record()
@@ -898,8 +916,11 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         disk = ball_like(radius, len(dims))
-        return self.as_float().parallel(coef_, complement_axes(dims, self.axes), disk)
+        return self.as_float().apply_dask(_filters.coef_filter, 
+                                          dims=complement_axes(dims, self.axes), 
+                                          args=(disk,))
     
+    @dims_to_spatial_axes
     @record()
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -918,40 +939,65 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
-        return self._running_kernel(radius, median_, dims=dims, update=update)
+        """     
+        disk = ball_like(radius, len(dims))
+        return self.apply_dask(ndi.median_filter, 
+                               dims=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               kwargs=dict(footprint=disk)
+                               )
     
     @record()
     @dims_to_spatial_axes
     @same_dtype()
     def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims=None, 
                          update:bool=False) -> ImgArray:
-        return self.parallel(diameter_opening_, complement_axes(dims, self.axes), 
-                             diameter, connectivity)
+        return self.apply_dask(skmorph.diameter_opening, 
+                               dims=complement_axes(dims, self.axes), 
+                               kwargs=dict(diameter_threshonld=diameter, connectivity=connectivity)
+                               )
         
     @record()
     @dims_to_spatial_axes
     @same_dtype()
     def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims=None,
                          update:bool=False) -> ImgArray:
-        return self.parallel(diameter_closing_, complement_axes(dims, self.axes), 
-                             diameter, connectivity)
+        return self.apply_dask(skmorph.diameter_closing, 
+                               dims=complement_axes(dims, self.axes), 
+                               kwargs=dict(diameter_threshonld=diameter, connectivity=connectivity)
+                               )
     
     @record()
     @dims_to_spatial_axes
     @same_dtype()
     def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
                      update:bool=False) -> ImgArray:
-        f = binary_area_opening_ if self.dtype == bool else area_opening_
-        return self.parallel(f, complement_axes(dims, self.axes), area, connectivity)
+        if self.dtype == bool:
+            return self.apply_dask(skmorph.remove_small_objects,
+                                   dims=complement_axes(dims, self.axes), 
+                                   kwargs=dict(min_size=area, connectivity=connectivity)
+                                   )
+        else:
+            return self.apply_dask(skmorph.area_opening, 
+                                   dims=complement_axes(dims, self.axes), 
+                                   kwargs=dict(area_threshonld=area, connectivity=connectivity)
+                                   )
         
     @record()
     @dims_to_spatial_axes
     @same_dtype()
     def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, 
                      update:bool=False) -> ImgArray:
-        f = binary_area_closing_ if self.dtype == bool else area_closing_
-        return self.parallel(f, complement_axes(dims, self.axes), area, connectivity)
+        if self.dtype == bool:
+            return self.apply_dask(skmorph.remove_small_holes,
+                                   dims=complement_axes(dims, self.axes), 
+                                   kwargs=dict(min_size=area, connectivity=connectivity)
+                                   )
+        else:
+            return self.apply_dask(skmorph.area_closing, 
+                                   dims=complement_axes(dims, self.axes), 
+                                   kwargs=dict(area_threshonld=area, connectivity=connectivity)
+                                   )
         
     @dims_to_spatial_axes
     @record()
@@ -1009,7 +1055,9 @@ class ImgArray(LabeledArray):
         """        
         disk = ball_like(radius, len(dims))
         self = self.as_float() / self.max() # skimage's entropy filter only accept [-1, 1] float images.
-        return self.parallel(entropy_, complement_axes(dims, self.axes), disk)
+        return self.apply_dask(skfil.rank.entropy, 
+                               dims=complement_axes(dims, self.axes),
+                               kwargs=dict(selem=disk))
     
     @dims_to_spatial_axes
     @record()
@@ -1031,7 +1079,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Contrast enhanced image.
         """        
-        return self._running_kernel(radius, enhance_contrast_, dims=dims, update=update)
+        return self._running_kernel(radius, skfil.rank.enhance_contrast, dims=dims, update=update)
     
     @dims_to_spatial_axes
     @record()
@@ -1055,8 +1103,11 @@ class ImgArray(LabeledArray):
         """        
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
-        return self.parallel(convolve_, complement_axes(dims, self.axes), laplace_op, 
-                             "reflect", 0, outdtype=self.dtype)
+        return self.apply_dask(ndi.convolve, 
+                               dims=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               args=(laplace_op,),
+                               kwargs=dict(mode="reflect"))
     
     @dims_to_spatial_axes
     @record()
@@ -1085,14 +1136,16 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        c_axes = complement_axes(along + dims, self.axes)
-        taxis = self.axisof(along)
+        t_axis = self.axisof(along)
         min_a = min(self.axisof(a) for a in dims)
-        if taxis > min_a:
-            self = np.swapaxis(self, taxis, min_a)
-        out = self.parallel(kalman_filter_, c_axes, gain, noise_var)
-        if taxis > min_a:
-            out = np.swapaxis(out, min_a, taxis)
+        if t_axis > min_a:
+            self = np.swapaxes(self, t_axis, min_a)
+        out = self.apply_dask(_filters.kalman_filter, 
+                              dims=complement_axes(along + dims, self.axes), 
+                              args=(gain, noise_var)
+                              )
+        if t_axis > min_a:
+            out = np.swapaxes(out, min_a, t_axis)
                 
         return out
     
@@ -1223,9 +1276,12 @@ class ImgArray(LabeledArray):
         else:
             mask = self.value
         
-        return self.parallel(fill_hole_, complement_axes(dims, self.axes), mask, outdtype=self.dtype)
+        return self.apply_dask(_filters.fill_hole, 
+                               dims=complement_axes(dims, self.axes), 
+                               mask=mask, 
+                               dtype=self.dtype)
     
-    
+
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -1247,7 +1303,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """
-        return self.parallel(gaussian_, complement_axes(dims, self.axes), sigma, force_single=True)
+        return self.apply_dask(ndi.gaussian_filter, 
+                               dims=complement_axes(dims, self.axes), 
+                               args=(sigma,), 
+                               dtype=np.float32
+                               )
 
 
     @dims_to_spatial_axes
@@ -1271,11 +1331,14 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
+        
         low_sigma = np.array(check_nd(low_sigma, len(dims)))
         high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
         
-        return self.as_float().parallel(difference_of_gaussian_, complement_axes(dims, self.axes),
-                             low_sigma, high_sigma, force_single=True)
+        return self.as_float().apply_dask(_filters.dog_filter, 
+                                          dims=complement_axes(dims, self.axes),
+                                          args=(low_sigma, high_sigma)
+                                          )
     
     @dims_to_spatial_axes
     @record()
@@ -1300,8 +1363,10 @@ class ImgArray(LabeledArray):
         """    
         sigma = check_nd(sigma, len(dims))
         pxsize = np.array([self.scale[a] for a in dims])
-        return self.as_float().parallel(hessian_det_, complement_axes(dims, self.axes), 
-                                        sigma, pxsize)
+        return self.as_float().apply_dask(_filters.doh_filter, 
+                                          dims=complement_axes(dims, self.axes), 
+                                          args=(sigma, pxsize)
+                                          )
     
     @dims_to_spatial_axes
     @record()
@@ -1321,7 +1386,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return -self.as_float().parallel(gaussian_laplace_, complement_axes(dims, self.axes), sigma)
+        return -self.as_float().apply_dask(ndi.gaussian_laplace,
+                                           dims=complement_axes(dims, self.axes), 
+                                           args=(sigma,))
     
     
     @dims_to_spatial_axes
@@ -1349,11 +1416,25 @@ class ImgArray(LabeledArray):
             Background subtracted image.
         """        
         method = ("mean", "median", "none")
-        if not prefilter in method:
+        c_axes = complement_axes(dims, self.axes)
+        if prefilter == "mean":
+            self = self.apply_dask(_filters.mean_filter, 
+                                   dims=c_axes, 
+                                   kwargs=dict(selem=np.ones(3,3))
+                                   )
+        elif prefilter == "median":
+            self = self.apply_dask(ndi.median_filter, 
+                                   dims=c_axes, 
+                                   kwargs=dict(footprint=np.ones(3,3))
+                                   )
+        elif prefilter == "none":
+            pass
+        else:
             raise ValueError(f"`prefilter` must be {', '.join(method)}.")
         
-        back = self.parallel(rolling_ball_, complement_axes(dims, self.axes), 
-                             radius, prefilter)
+        back = self.apply_dask(skres.rolling_ball, 
+                               dims=c_axes, 
+                               kwargs=dict(radius=radius))
         if not return_bg:
             out = self.value - back
             return out
@@ -1386,7 +1467,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        return self.parallel(rof_filter_, complement_axes(dims, self.axes), lmd, tol, max_iter)
+        return self.apply_dask(skres._denoise._denoise_tv_chambolle_nd, 
+                               dims=complement_axes(dims, self.axes),
+                               kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter))
         
     @dims_to_spatial_axes
     @record()
@@ -1427,8 +1510,10 @@ class ImgArray(LabeledArray):
                      mode=mode, 
                      wavelet_levels=wavelet_levels,
                      method=method)
-        return self.parallel(wavelet_denoising_, complement_axes(dims, self.axes), 
-                             func_kw, max_shifts, shift_steps)
+        return self.apply_dask(skres.cycle_spin, 
+                               dims=complement_axes(dims, self.axes), 
+                               kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
+                               )
     
     @record(append_history=False)
     def split_pixel_unit(self, center:tuple[float, float]=(0, 0), *, order:int=1,
@@ -1721,7 +1806,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Harris response
         """        
-        return self.parallel(corner_harris_, complement_axes(dims, self.axes), k, sigma)
+        return self.apply_dask(skfeat.corner_harris, 
+                               dims=complement_axes(dims, self.axes), 
+                               kwargs=dict(k=k, sigma=sigma))
     
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -2172,10 +2259,10 @@ class ImgArray(LabeledArray):
         >>> plt.hist(grad.ravel(), bins=100)
         """        
         # Get operator
-        method_dict = {"sobel": (sobel_h_, sobel_v_),
-                       "farid": (farid_h_, farid_v_),
-                       "scharr": (scharr_h_, scharr_v_),
-                       "prewitt": (prewitt_h_, prewitt_v_)}
+        method_dict = {"sobel": (skfil.sobel_h, skfil.sobel_v),
+                       "farid": (skfil.farid_h, skfil.farid_v),
+                       "scharr": (skfil.scharr_h, skfil.scharr_v),
+                       "prewitt": (skfil.prewitt_h, skfil.prewitt_v)}
         try:
             op_h, op_v = method_dict[method]
         except KeyError:
@@ -2185,8 +2272,8 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         if sigma > 0:
             self = self.gaussian_filter(sigma, dims=dims)
-        grad_h = self.parallel(op_h, c_axes)
-        grad_v = self.parallel(op_v, c_axes)
+        grad_h = self.apply_dask(op_h, dims=c_axes)
+        grad_v = self.apply_dask(op_v, dims=c_axes)
         grad = np.arctan2(-grad_h, grad_v)
         
         grad = PhaseArray(grad, border=(-np.pi, np.pi))
@@ -2258,7 +2345,9 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         for i, theta in enumerate(thetas):
             ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
-            out_ = self.as_float().parallel(gabor_real_, c_axes, ker)
+            out_ = self.as_float().apply_dask(ndi.convolve, 
+                                              dims=c_axes, 
+                                              args=(ker.real,))
             if i > 0:
                 where_update = out_ > max_
                 max_[where_update] = out_[where_update]
@@ -2313,13 +2402,20 @@ class ImgArray(LabeledArray):
         """        
         ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
-            out = self.as_float().parallel(gabor_, complement_axes(dims, self.axes), ker, outdtype=np.complex64)
+            out = self.as_float().apply_dask(_filters.gabor_filter, 
+                                             dims=complement_axes(dims, self.axes), 
+                                             args=(ker,), 
+                                             dtype=np.complex64)
         else:
-            out = self.as_float().parallel(gabor_real_, complement_axes(dims, self.axes), ker, outdtype=np.float32)
+            out = self.as_float().apply_dask(ndi.convolve, 
+                                             dims=complement_axes(dims, self.axes),
+                                             args=(ker.real,), 
+                                             dtype=np.float32)
         return out
     
     @record()
     def optimal_path(self, src, dst) -> ImgArray:
+        # TODO: conbine with napari
         src = np.round(src).astype(np.uint16)
         dst = np.round(dst).astype(np.uint16)
         ind, cost = skgraph.route_through_array(self.value, np.round(src), dst, geometric=False)
@@ -2523,7 +2619,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Distance map, the further the brighter
         """        
-        return self.parallel(distance_transform_edt_, complement_axes(dims, self.axes))
+        return self.apply_dask(ndi.distance_transform_edt, 
+                               dims=complement_axes(dims, self.axes)
+                               )
     
     @record()
     def ncc(self, template:np.ndarray, bg:float=None) -> ImgArray:
@@ -2548,7 +2646,9 @@ class ImgArray(LabeledArray):
         template = _check_template(template)
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        return self.as_float().parallel(ncc_, complement_axes(dims, self.axes), template, bg)
+        return self.as_float().apply_dask(ncc_, 
+                                          dims=complement_axes(dims, self.axes), 
+                                          args=(template, bg))
     
     @record(append_history=False)
     def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
@@ -2686,7 +2786,10 @@ class ImgArray(LabeledArray):
         ImgArray
             Convex hull image.
         """        
-        return self.parallel(convex_hull_, complement_axes(dims, self.axes), outdtype=bool)
+        return self.apply_dask(skmorph.convex_hull_image, 
+                               dims=complement_axes(dims, self.axes), 
+                               dtype=bool
+                               )
         
     @dims_to_spatial_axes
     @only_binary
@@ -2714,9 +2817,11 @@ class ImgArray(LabeledArray):
         else:
             selem = None
         
-        return self.parallel(skeletonize_, complement_axes(dims, self.axes), selem, outdtype=bool)
+        return self.apply_dask(_filters.skeletonize, 
+                               dims=complement_axes(dims, self.axes),
+                               args=(selem,),
+                               dtype=bool)
         
-    
     @dims_to_spatial_axes
     @only_binary
     @record()
@@ -2751,7 +2856,9 @@ class ImgArray(LabeledArray):
         connectivity = ndim if connectivity is None else connectivity
         selem = ndi.morphology.generate_binary_structure(ndim, connectivity)
         selem[(1,)*ndim] = 0
-        out = self.as_uint8().parallel(population_, complement_axes(dims, self.axes), selem)
+        out = self.as_uint8().apply_dask(_filters.population, 
+                                         dims=complement_axes(dims, self.axes), 
+                                         args=(selem,))
         if mask:
             out[~self.value] = 0
             
@@ -3177,7 +3284,10 @@ class ImgArray(LabeledArray):
         ImgArray
             Local binary pattern image.
         """        
-        return self.parallel(lbp_, complement_axes(dims), p, radius, method)
+        
+        return self.apply_dask(skfeat.local_binary_pattern,
+                               dims=complement_axes(dims), 
+                               args=(p, radius, method))
     
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -3209,8 +3319,11 @@ class ImgArray(LabeledArray):
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
             
         c_axes = complement_axes(dims, self.axes)
-        outshape = self.sizesof(c_axes) + (bins, bins, len(distances), len(angles))
-        out = self.parallel(glcm_, c_axes, distances, angles, bins, outshape=outshape, outdtype=np.uint32)
+        out = self.apply_dask(skfeat.greycomatrix, 
+                              dims=c_axes, 
+                              args=(distances, angles),
+                              kwargs=dict(levels=bins),
+                              dtype=np.uint32)
         out._set_info(self, "glcm", new_axes=c_axes+"ijd<")
         
         return out
@@ -3715,8 +3828,10 @@ class ImgArray(LabeledArray):
         psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
-        return self.parallel(wiener_, complement_axes(dims, self.axes),
-                             psf_ft, psf_ft_conj, lmd)
+        return self.apply_dask(_deconv.wiener, 
+                               dims=complement_axes(dims, self.axes),
+                               args=(psf_ft, psf_ft_conj, lmd)
+                               )
         
     
     @dims_to_spatial_axes
@@ -3754,8 +3869,10 @@ class ImgArray(LabeledArray):
         psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
-        return self.parallel(richardson_lucy_, complement_axes(dims), 
-                             psf_ft, psf_ft_conj, niter, eps)
+        return self.apply_dask(_deconv.richardson_lucy, 
+                               dims=complement_axes(dims, self.axes),
+                               args=(psf_ft, psf_ft_conj, niter, eps)
+                               )
     
     @dims_to_spatial_axes
     @record()
@@ -3818,8 +3935,10 @@ class ImgArray(LabeledArray):
         psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
-        return self.parallel(richardson_lucy_tv_, complement_axes(dims), 
-                             psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
+        return self.apply_dask(_deconv.richardson_lucy_tv, 
+                               dims=complement_axes(dims, self.axes),
+                               args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
+                               )
 
 def _check_coordinates(coords, img, dims=None):
     if not isinstance(coords, MarkerFrame):
