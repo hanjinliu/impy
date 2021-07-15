@@ -108,6 +108,10 @@ class LazyImgArray(AxesMixin):
     
     @property
     def data(self) -> ImgArray:
+        """
+        Compute all the task and convert the result into ImgArray. If image size overwhelms MAX_GB
+        then MemoryError is raised.
+        """        
         if self.gb > self.__class__.MAX_GB:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Computing Dask"):
@@ -117,6 +121,10 @@ class LazyImgArray(AxesMixin):
         return img
     
     def release(self) -> LazyImgArray:
+        """
+        Compute all the task for now and convert to dask again. If image size overwhelms MAX_GB
+        then MemoryError is raised.
+        """
         if self.gb > self.__class__.MAX_GB:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Releasing Dask"):
@@ -150,8 +158,42 @@ class LazyImgArray(AxesMixin):
     
     def apply(self, func, c_axes:str=None, drop_axis:Iterable[int]=[], new_axis:Iterable[int]=None, 
               dtype=np.float32, rechunk_to:tuple[int,...]|str="none", dask_wrap:bool=False,
-              args=None, kwargs=None) -> LazyImgArray:
-        
+              args:tuple=None, kwargs:dict[str]=None) -> LazyImgArray:
+        """
+        Rechunk array in a correct shape and apply function using `map_blocks`. This function is similar
+        to the `apply_dask` function in `MetaArray` while returns dask array bound LazyImgArray.
+
+        Parameters
+        ----------
+        func : callable
+            Function to apply for each chunk.
+        c_axes : str, optional
+            Axes to iterate, by default None
+        drop_axis : Iterable[int], optional
+            Passed to map_blocks., by default []
+        new_axis : Iterable[int], optional
+            Passed to map_blocks, by default None
+        dtype : any that can be converted to np.dtype object, optional
+            Output data type, by default np.float32
+        rechunk_to : tuple[int,...], optional
+            In what size input array should be rechunked before `map_blocks` iteration. If str is given, 
+            array will be rechunked in following rules:
+                - "none": No rechunking
+                - "default": Rechunked with "auto" method for each spatial dimension.
+                - "max": Rechunked to the shape size for each spatial dimension.
+        dask_wrap : bool, optional
+            If True, for each chunk array will be converted to dask and rechunked with "auto" option
+            before function call.
+        args : tuple, optional
+            Arguments that will passed to `func`.
+        kwargs : dict
+            Keyword arguments that will passed to `func`.
+
+        Returns
+        -------
+        LazyImgArray
+            Dask array after function is applied is bound to this newly generated object.
+        """        
         slice_in = []
         slice_out = []
         for i, a in enumerate(self.axes):

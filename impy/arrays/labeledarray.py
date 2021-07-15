@@ -1,11 +1,9 @@
 from __future__ import annotations
 import numpy as np
-import multiprocessing as multi
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import inspect
-from dask import array as da
 from skimage.color import label2rgb
 from tifffile import imwrite
 from ..axes import ImageAxesError
@@ -19,8 +17,6 @@ from ._skimage import *
 from .._types import *
 
 class LabeledArray(HistoryArray):
-    n_cpu = 4
-        
     @property
     def range(self):
         return self.min(), self.max()

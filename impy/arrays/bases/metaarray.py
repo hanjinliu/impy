@@ -313,6 +313,47 @@ class MetaArray(AxesMixin, np.ndarray):
             
     def apply_dask(self, func, c_axes=None, drop_axis=[], new_axis=None, dtype=np.float32, 
                    args=None, kwargs=None) -> MetaArray:
+        """
+        Convert array into dask array and run a batch process in parallel. In many cases batch process 
+        in this way is faster than `multiprocess` module.
+
+        Parameters
+        ----------
+        func : [type]
+            [description]
+        c_axes : [type], optional
+            [description], by default None
+        drop_axis : list, optional
+            [description], by default []
+        new_axis : [type], optional
+            [description], by default None
+        dtype : [type], optional
+            [description], by default np.float32
+        args : [type], optional
+            [description], by default None
+        kwargs : [type], optional
+            [description], by default None
+            
+        func : callable
+            Function to apply.
+        c_axes : str, optional
+            Axes to iterate.
+        drop_axis : Iterable[int], optional
+            Passed to map_blocks.
+        new_axis : Iterable[int], optional
+            Passed to map_blocks.
+        dtype : any that can be converted to np.dtype object, default is np.float32
+            Output data type.
+        args : tuple, optional
+            Arguments that will passed to `func`.
+        kwargs : dict
+            Keyword arguments that will passed to `func`.
+
+        Returns
+        -------
+        MetaArray
+            Processed array.
+        """        
         # determine chunk size
         chunks = []
         slice_in = []
