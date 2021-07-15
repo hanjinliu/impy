@@ -373,7 +373,7 @@ class MetaArray(AxesMixin, np.ndarray):
             
             out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
                                 dtype=dtype, **kwargs).compute()
-        print(out.dtype)
+        
         out = out.view(self.__class__)
         return out
     

@@ -1025,7 +1025,7 @@ class ImgArray(LabeledArray):
         return self.apply_dask(skfil.rank.entropy, 
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(selem=disk)
-                               )
+                               ).as_float()
     
     @dims_to_spatial_axes
     @record()

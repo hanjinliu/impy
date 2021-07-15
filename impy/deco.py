@@ -3,6 +3,7 @@ from .arrays.bases.metaarray import MetaArray
 import numpy as np
 from .utilcls import Progress
 import re
+import inspect
 
     
 def record(append_history=True, record_label=False, only_binary=False, need_labels=False):
@@ -96,16 +97,6 @@ def dims_to_spatial_axes(func):
         return func(self, *args, **kwargs)
     
     return wrapper
-
-def only_binary(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.dtype != bool:
-            raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
-        out = func(self, *args, **kwargs)
-        return out
-    return wrapper
-
 
 def safe_str(obj):
     try:
