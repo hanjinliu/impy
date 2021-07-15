@@ -515,21 +515,14 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigval, eigvec = self.parallel_eig(hessian_eigh_, 
-                                        complement_axes(dims, self.axes), 
-                                        sigma, pxsize)
-        # else:
-        #     eigval, eigvec = self.apply_dask_eig(_linalg.hessian_eigh, 
-        #                                          dims=complement_axes(dims, self.axes), 
-        #                                          args=(sigma, pxsize))
-        eigval.axes = str(self.axes) + "l"
-        eigval = eigval.sort_axes()
+        eigs = self.as_float().apply_dask(_linalg.hessian_eigh, 
+                                          c_axes=complement_axes(dims, self.axes),
+                                          new_axis=[-2, -1],
+                                          args=(sigma, pxsize))
+        
+        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
         eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
-        
-        eigvec.axes = str(self.axes) + "rl"
-        eigvec = eigvec.sort_axes()
         eigvec._set_info(self, f"hessian_eigvec", new_axes=eigvec.axes)
-        
         return eigval, eigvec
     
     @dims_to_spatial_axes
@@ -588,16 +581,14 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        eigval, eigvec = self.parallel_eig(structure_tensor_eigh_, 
-                                           complement_axes(dims, self.axes), 
-                                           sigma, pxsize)
         
-        eigval.axes = str(self.axes) + "l"
-        eigval = eigval.sort_axes()
+        eigs = self.as_float().apply_dask(_linalg.structure_tensor_eigh,
+                                          c_axes=complement_axes(dims, self.axes),
+                                          new_axis=[-2, -1],
+                                          args=(sigma, pxsize))
+        
+        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
         eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
-        
-        eigvec.axes = str(self.axes) + "rl"
-        eigvec = eigvec.sort_axes()
         eigvec._set_info(self, f"structure_tensor_eigvec", new_axes=eigvec.axes)
         
         return eigval, eigvec

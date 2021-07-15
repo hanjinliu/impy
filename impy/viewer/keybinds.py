@@ -5,8 +5,6 @@ import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
-# TODO: add "edit" menu in napari
-
 KEYS = {"hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
         "unlink_selected_layers": "Control-Shift-G",
