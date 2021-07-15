@@ -311,21 +311,6 @@ class MetaArray(AxesMixin, np.ndarray):
 
         Parameters
         ----------
-        func : [type]
-            [description]
-        c_axes : [type], optional
-            [description], by default None
-        drop_axis : list, optional
-            [description], by default []
-        new_axis : [type], optional
-            [description], by default None
-        dtype : [type], optional
-            [description], by default np.float32
-        args : [type], optional
-            [description], by default None
-        kwargs : [type], optional
-            [description], by default None
-            
         func : callable
             Function to apply.
         c_axes : str, optional
@@ -346,23 +331,6 @@ class MetaArray(AxesMixin, np.ndarray):
         MetaArray
             Processed array.
         """        
-        # determine chunk size
-        chunks = []
-        slice_in = []
-        slice_out = []
-        for i, a in enumerate(self.axes):
-            if a in c_axes:
-                chunks.append(1)
-                slice_in.append(0)
-                slice_out.append(np.newaxis)
-            else:
-                chunks.append(self.shape[i])
-                slice_in.append(slice(None))
-                slice_out.append(slice(None))
-        chunks = tuple(chunks)
-        slice_in = tuple(slice_in)
-        slice_out = tuple(slice_out)
-        
         if args is None:
             args = tuple()
         if kwargs is None:
@@ -371,13 +339,41 @@ class MetaArray(AxesMixin, np.ndarray):
         if len(c_axes) == 0:
             out = func(self.value, *args, **kwargs)
         else:
+            new_axis = _list_of_axes(self, new_axis)
+            drop_axis = _list_of_axes(self, drop_axis)
+                
+            # determine chunk size and slices
+            chunks = []
+            slice_in = []
+            slice_out = []
+            for i, a in enumerate(self.axes):
+                if a in c_axes:
+                    chunks.append(1)
+                    slice_in.append(0)
+                    slice_out.append(np.newaxis)
+                else:
+                    chunks.append(self.shape[i])
+                    slice_in.append(slice(None))
+                    slice_out.append(slice(None))
+                
+                if i in drop_axis:
+                    slice_out.pop(-1)
+                if i in new_axis:
+                    slice_in.append(np.newaxis)
+                    
+            chunks = tuple(chunks)
+            slice_in = tuple(slice_in)
+            slice_out = tuple(slice_out)
+            
             input_ = da.from_array(self.value, chunks=chunks)
+            
             def _func(arr, *args, **kwargs):
                 out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
+            
             out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
                                 dtype=dtype, **kwargs).compute()
-
+        print(out.dtype)
         out = out.view(self.__class__)
         return out
     
@@ -424,3 +420,14 @@ class MetaArray(AxesMixin, np.ndarray):
     def __truediv__(self, value):
         value = self._broadcast(value)
         return super().__truediv__(value)
+
+def _list_of_axes(img, axis):
+    if axis is None:
+        axis = []
+    elif isinstance(axis, str):
+        axis = [img.axisof(a) for a in axis]
+    elif np.isscalar(axis):
+        axis = [axis]
+    return axis
+        
+    
