@@ -191,7 +191,10 @@ class ImgArray(LabeledArray):
             binfunc = method
         else:
             raise TypeError("`method` must be a numpy function or callable object.")
-               
+        
+        if binsize == 1:
+            return self
+        
         shape = []
         scale_ = []
         img_to_reshape = self.value
@@ -479,8 +482,9 @@ class ImgArray(LabeledArray):
         
         eigval = self.as_float().apply_dask(_linalg.hessian_eigval, 
                                             c_axes=complement_axes(dims, self.axes), 
-                                            args=(sigma, pxsize),
-                                            new_axis=-1)
+                                            new_axis=-1,
+                                            args=(sigma, pxsize)
+                                            )
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
@@ -515,7 +519,8 @@ class ImgArray(LabeledArray):
         eigs = self.as_float().apply_dask(_linalg.hessian_eigh, 
                                           c_axes=complement_axes(dims, self.axes),
                                           new_axis=[-2, -1],
-                                          args=(sigma, pxsize))
+                                          args=(sigma, pxsize)
+                                          )
         
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
         eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
@@ -547,8 +552,9 @@ class ImgArray(LabeledArray):
         
         eigval = self.as_float().apply_dask(_linalg.structure_tensor_eigval, 
                                             c_axes=complement_axes(dims, self.axes), 
+                                            new_axis=-1,
                                             args=(sigma, pxsize),
-                                            new_axis=-1)
+                                            )
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
@@ -582,7 +588,8 @@ class ImgArray(LabeledArray):
         eigs = self.as_float().apply_dask(_linalg.structure_tensor_eigh,
                                           c_axes=complement_axes(dims, self.axes),
                                           new_axis=[-2, -1],
-                                          args=(sigma, pxsize))
+                                          args=(sigma, pxsize)
+                                          )
         
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
         eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
@@ -716,7 +723,8 @@ class ImgArray(LabeledArray):
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                args=(kernel,),
-                               kwargs=dict(mode=mode, cval=cval))
+                               kwargs=dict(mode=mode, cval=cval)
+                               )
     
     @dims_to_spatial_axes
     @same_dtype()
@@ -1015,7 +1023,8 @@ class ImgArray(LabeledArray):
         self = self.as_float() / self.max() # skimage's entropy filter only accept [-1, 1] float images.
         return self.apply_dask(skfil.rank.entropy, 
                                dims=complement_axes(dims, self.axes),
-                               kwargs=dict(selem=disk))
+                               kwargs=dict(selem=disk)
+                               )
     
     @dims_to_spatial_axes
     @record()

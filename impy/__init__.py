@@ -11,6 +11,7 @@ from .binder import bind
 from .viewer import gui
 from .correlation import *
 import numpy as np
+from ._const import MAX_GB
 
 r"""
 Inheritance

@@ -4,11 +4,16 @@ import json
 import re
 import os
 from skimage import io
-import numpy as np
+from .._const import MAX_GB
 from dask import array as da
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
+
+def check_size(path:str):
+    size = os.path.getsize(path)/1e9
+    if size > MAX_GB:
+        raise MemoryError(f"Too large {size:.2f} GB")
 
 def open_tif(path:str, return_img:bool=False, memmap:bool=False):
     with TiffFile(path) as tif:
@@ -42,6 +47,7 @@ def open_tif(path:str, return_img:bool=False, memmap:bool=False):
             if memmap:
                 out["image"] = tif.asarray(out="memmap")
             else:
+                check_size(path)
                 out["image"] = tif.asarray()
 
     return out
@@ -52,6 +58,7 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
         open_func = mrcfile.mmap
     else:
         open_func = mrcfile.open
+        check_size(path)
         
     with open_func(path) as mrc:
         ijmeta = {"unit": "nm"}

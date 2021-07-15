@@ -1,5 +1,6 @@
 from ..axes import Axes, ImageAxesError
 import numpy as np
+import re
 
 class AxesMixin:
     """
@@ -53,7 +54,35 @@ class AxesMixin:
             self.metadata["unit"] = unit
         else:
             self.metadata = {"unit": unit}
-            
+    
+    def __repr__(self):
+        return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
+    
+    def _repr_html_(self):
+        strs = []
+        for k, v in self._repr_dict_().items():
+            v = re.sub("->", "<br>&rarr; ", str(v))
+            strs.append(f"<tr><td width=\"100\" >{k}</td><td>{v}</td></tr>")
+        main = "<table border=\"1\">" + "".join(strs) + "</table>"
+        html = f"""
+        <head>
+            <style>
+                #wrapper {{
+                    height: 140px;
+                    width: 500px;
+                    overflow-y: scroll;
+                }}
+            </style>
+        </head>
+
+        <body>
+            <div id="wrapper">
+                {main}
+            </div>
+        </body>
+        """
+        return html
+        
     def axisof(self, axisname):
         if type(axisname) is int:
             return axisname

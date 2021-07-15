@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+import re
 from dask import array as da
 from ...axes import ImageAxesError
 from ...func import *
@@ -38,15 +39,6 @@ class MetaArray(AxesMixin, np.ndarray):
                 "  directory   ": self.dirpath,
                 "original image": self.name}
     
-    def __repr__(self):
-        return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
-    
-    # def _repr_html_(self):
-    #     strs = []
-    #     for k, v in self._repr_dict_().items():
-    #         strs.append(f"<tr><td>{k}</td><td>{v}</td></tr>")
-    #     return "<span style=\"text-align:center\"><table border=\"1\">" + "".join(strs) + "</table></span>"
-        
     def __str__(self):
         return self.name
     

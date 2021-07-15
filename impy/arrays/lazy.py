@@ -9,6 +9,7 @@ from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from ._dask_image import *
+from .._const import MAX_GB
 
 class LazyImgArray(AxesMixin):
     MAX_GB = 2.0
@@ -112,7 +113,7 @@ class LazyImgArray(AxesMixin):
         Compute all the task and convert the result into ImgArray. If image size overwhelms MAX_GB
         then MemoryError is raised.
         """        
-        if self.gb > self.__class__.MAX_GB:
+        if self.gb > MAX_GB:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Computing Dask"):
             img = self.img.compute().view(ImgArray)
@@ -125,7 +126,7 @@ class LazyImgArray(AxesMixin):
         Compute all the task for now and convert to dask again. If image size overwhelms MAX_GB
         then MemoryError is raised.
         """
-        if self.gb > self.__class__.MAX_GB:
+        if self.gb > MAX_GB:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Releasing Dask"):
             img = self.img.compute()
@@ -266,7 +267,7 @@ class LazyImgArray(AxesMixin):
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        
+        # TODO: may need to give `meta` in case of map_coordinates
         cropped_img = self.apply(ndi.map_coordinates, 
                                  c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,
@@ -443,7 +444,10 @@ class LazyImgArray(AxesMixin):
             binfunc = method
         else:
             raise TypeError("`method` must be a numpy function or callable object.")
-               
+        
+        if binsize == 1:
+            return self
+        
         shape = []
         scale_ = []
         img_to_reshape = self.img

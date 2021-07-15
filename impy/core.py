@@ -13,7 +13,7 @@ from .utilcls import Progress
 from skimage import data as skdata
 
 __all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "lazy_imread",
-           "read_meta", "set_verbose", "set_max_gb", "sample_image"]
+           "read_meta", "set_verbose", "sample_image"]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
@@ -426,10 +426,6 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
 
 def set_verbose(b:bool) -> None:
     Progress.show_progress = b
-    return None
-
-def set_max_gb(gb:float) -> None:
-    LazyImgArray.MAX_GB = gb
     return None
 
 def sample_image(name:str) -> ImgArray:
