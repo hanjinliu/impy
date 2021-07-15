@@ -8,6 +8,7 @@ from skimage import feature as skfeat
 from skimage import registration as skreg
 from skimage import morphology as skmorph
 from skimage import graph as skgraph
+from skimage import util as skutil
 from scipy import ndimage as ndi
 
 # same as the function in skimage.filters._fft_based (available in scikit-image >= 0.19)

@@ -1020,9 +1020,10 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         disk = ball_like(radius, len(dims))
-        self = self.as_float() / self.max() # skimage's entropy filter only accept [-1, 1] float images.
+        
+        self = self.as_uint8()
         return self.apply_dask(skfil.rank.entropy, 
-                               dims=complement_axes(dims, self.axes),
+                               c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(selem=disk)
                                )
     
@@ -1780,7 +1781,8 @@ class ImgArray(LabeledArray):
         """        
         return self.apply_dask(skfeat.corner_harris, 
                                c_axes=complement_axes(dims, self.axes), 
-                               kwargs=dict(k=k, sigma=sigma))
+                               kwargs=dict(k=k, sigma=sigma)
+                               )
     
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -2320,7 +2322,8 @@ class ImgArray(LabeledArray):
             ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
             out_ = self.as_float().apply_dask(ndi.convolve, 
                                               c_axes=c_axes, 
-                                              args=(ker.real,))
+                                              args=(ker.real,)
+                                              )
             if i > 0:
                 where_update = out_ > max_
                 max_[where_update] = out_[where_update]
@@ -2378,12 +2381,14 @@ class ImgArray(LabeledArray):
             out = self.as_float().apply_dask(_filters.gabor_filter, 
                                              c_axes=complement_axes(dims, self.axes), 
                                              args=(ker,), 
-                                             dtype=np.complex64)
+                                             dtype=np.complex64
+                                             )
         else:
             out = self.as_float().apply_dask(ndi.convolve, 
                                              c_axes=complement_axes(dims, self.axes),
                                              args=(ker.real,), 
-                                             dtype=np.float32)
+                                             dtype=np.float32
+                                             )
         return out
     
     @record()
@@ -2576,8 +2581,7 @@ class ImgArray(LabeledArray):
         return self
     
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def distance_map(self, *, dims=None) -> ImgArray:
         """
         Calculate distance map from binary images.
@@ -2685,8 +2689,7 @@ class ImgArray(LabeledArray):
         return pos
     
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def remove_large_objects(self, radius:float=5, *, dims=None, update:bool=False) -> ImgArray:
         """
         Remove large objects using opening. Those objects that were not removed by opening
@@ -2713,8 +2716,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def remove_fine_objects(self, length:float=10, *, dims=None, update:bool=False) -> ImgArray:
         """
         Remove fine objects using diameter_opening.
@@ -2741,8 +2743,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def convex_hull(self, *, dims=None, update=False) -> ImgArray:
         """
         Compute convex hull image.
@@ -2762,11 +2763,10 @@ class ImgArray(LabeledArray):
         return self.apply_dask(skmorph.convex_hull_image, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=bool
-                               )
+                               ).astype(bool)
         
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def skeletonize(self, radius:float=0, *, dims=None, update=False) -> ImgArray:
         """
         Skeletonize images. Only works for binary images.
@@ -2793,11 +2793,11 @@ class ImgArray(LabeledArray):
         return self.apply_dask(_filters.skeletonize, 
                                c_axes=complement_axes(dims, self.axes),
                                args=(selem,),
-                               dtype=bool)
+                               dtype=bool
+                               ).astype(bool)
         
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def count_neighbors(self, *, connectivity:int=None, mask:bool=True, dims=None) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
@@ -2838,8 +2838,7 @@ class ImgArray(LabeledArray):
         return out.astype(np.uint8)
     
     @dims_to_spatial_axes
-    @only_binary
-    @record()
+    @record(only_binary=True)
     def remove_skeleton_structure(self, structure:str="tip", *, connectivity:int=None,
                                   dims=None, update:bool=False) -> ImgArray:
         """
@@ -2972,8 +2971,7 @@ class ImgArray(LabeledArray):
     
     
     @dims_to_spatial_axes
-    @need_labels
-    @record()
+    @record(need_labels=True)
     def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 
                   min_distance:float=2, dims=None) -> Label:
         """
@@ -3037,8 +3035,7 @@ class ImgArray(LabeledArray):
         return self.labels
     
     @dims_to_spatial_axes
-    @need_labels
-    @record(append_history=False)
+    @record(append_history=False, need_labels=True)
     def random_walker(self, beta:float=130, mode:str="cg_j", tol:float=1e-3, *, dims=None) -> Label:
         """
         Random walker segmentation. Only wrapped skimage segmentation. `self.labels` will be
@@ -3171,8 +3168,7 @@ class ImgArray(LabeledArray):
                 
         return out
     
-    @need_labels
-    @record(append_history=False)
+    @record(append_history=False, need_labels=True)
     def regionprops(self, properties:tuple[str,...]|str=("mean_intensity",), *, 
                     extra_properties=None) -> ArrayDict:
         """
@@ -3290,7 +3286,7 @@ class ImgArray(LabeledArray):
             GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
             distance and "<" means angle.
         """        
-        # TODO: not working
+        # BUG: not working
         self, bins, rescale_max = check_glcm(self, bins, rescale_max)
             
         c_axes = complement_axes(dims, self.axes)
@@ -3298,7 +3294,8 @@ class ImgArray(LabeledArray):
                               c_axes=c_axes, 
                               args=(distances, angles),
                               kwargs=dict(levels=bins),
-                              dtype=np.uint32)
+                              dtype=np.uint32
+                              )
         out._set_info(self, "glcm", new_axes=c_axes+"ijd<")
         
         return out
@@ -3407,7 +3404,7 @@ class ImgArray(LabeledArray):
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = tuple(self.axisof(a) for a in axis)
-        
+        # TODO: call np.apply_along_axis for func that does not take axis as an argument
         if func.__module__ == "numpy.ma.core":
             arr = np.ma.array(self.value, mask=mask, dtype=self.dtype)
             if func is np.ma.mean:
@@ -3605,10 +3602,10 @@ class ImgArray(LabeledArray):
             image slice at t=0 and c=1.
         """        
         c_axes = complement_axes(dims, self.axes)
-        out = np.empty(self.sizesof(c_axes))
-        
-        for sl, img in self.iter(c_axes, exclude="dims"):
-            out[sl] = skres.estimate_sigma(img)
+        out = self.apply_dask(skres.estimate_sigma,
+                              c_axes=c_axes,
+                              drop_axis=dims
+                              )
             
         if out.ndim == 0 and squeeze:
             out = out[()]

@@ -203,8 +203,7 @@ class PhaseArray(LabeledArray):
         out = np.arctan2(out_im, out_re)/a
         return out
     
-    @need_labels
-    @record(append_history=False)
+    @record(append_history=False, need_labels=True)
     def regionprops(self, properties:tuple[str,...]|str=("phase_mean",), *, 
                     extra_properties=None) -> ArrayDict:
         """

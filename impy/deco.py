@@ -5,13 +5,18 @@ from .utilcls import Progress
 import re
 
     
-def record(append_history=True, record_label=False):
+def record(append_history=True, record_label=False, only_binary=False, need_labels=False):
     """
     Record the name of ongoing function.
     """
     def _record(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
+            if only_binary and self.dtype != bool:
+                raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
+            if need_labels and not hasattr(self, "labels"):
+                raise AttributeError(f"Function {func.__name__} needs labels."
+                                    " Add labels to the image first.")
             
             with Progress(func.__name__):
                 out = func(self, *args, **kwargs)
@@ -90,19 +95,6 @@ def dims_to_spatial_axes(func):
         kwargs["dims"] = s_axes # update input
         return func(self, *args, **kwargs)
     
-    return wrapper
-
-def need_labels(func):
-    """
-    Decorator to assure input image has label.
-    """    
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if not hasattr(self, "labels"):
-            raise AttributeError(f"Function {func.__name__} needs labels."
-                                 " Add labels to the image first.")
-        out = func(self, *args, **kwargs)
-        return out
     return wrapper
 
 def only_binary(func):

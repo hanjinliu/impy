@@ -339,8 +339,9 @@ class LabeledArray(HistoryArray):
         plt.show()
         return self
     
-    @need_labels
     def imshow_label(self, alpha=0.3, dims="yx", **kwargs):
+        if not hasattr(self, "labels"):
+            raise AttributeError("No label to show.")
         if self.ndim == 2:
             vmax, vmin = determine_range(self)
             imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -924,9 +925,8 @@ class LabeledArray(HistoryArray):
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
         return self.labels
     
-    @need_labels
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record(append_history=False, need_labels=True)
     def proj_labels(self, *, dims=None, forbid_overlap=False) -> Label:
         """
         Label projection. This function is useful when yx-labels are drawn in different z but
@@ -1057,8 +1057,7 @@ class LabeledArray(HistoryArray):
         out.history.pop()
         return out
     
-    @need_labels
-    @record()
+    @record(need_labels=True)
     def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
         """
         Extract certain regions of the image and substitute others to `cval`.
