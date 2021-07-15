@@ -16,10 +16,7 @@ from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
 from ..utilcls import *
-from ._process import *
 from ..frame import *
-
-# TODO: use apply_dask. How to implement eigh? https://github.com/dask/dask/issues/2618
 
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)

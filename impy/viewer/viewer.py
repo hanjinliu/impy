@@ -55,6 +55,10 @@ class napariViewers:
         return self.viewer.layers
     
     @property
+    def results(self):
+        return self.viewer.window.results
+    
+    @property
     def selection(self) -> list:
         return [layer_to_impy_object(self.viewer, layer) 
                 for layer in self.viewer.layers.selection]

@@ -687,32 +687,31 @@ class LabeledArray(HistoryArray):
             
             coords = np.zeros((ndim, int(total_length)+1))
             _get_coordinate(a, coords)
-            
+        
+        coords = coords[(slice(None),)+(np.newaxis,)*(ndim-1)]
+        
         if ndim == self.ndim:
             dims = self.axes
         else:
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
-        out = PropArray(np.empty(self.sizesof(c_axes) + (coords.shape[1],), dtype=np.float32),
-                        name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
         
-        # for sl, img in self.iter(c_axes, exclude=dims):
-        #     out[sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
-        #                                   order=order, mode="reflect")
-        # print(coords.shape)
-        outxxx = self.apply_dask(ndi.map_coordinates, 
-                                 c_axes=complement_axes(dims, self.axes), 
-                                 dtype=self.dtype,
-                                 drop_axis=-1,
-                                 args=(coords[(slice(None),)+(np.newaxis,)*(ndim-1)],),
-                                 kwargs=dict(prefilter=order > 1, order=order)
-                                 )
+        result = self.as_float().apply_dask(ndi.map_coordinates, 
+                                            c_axes=c_axes, 
+                                            dtype=self.dtype,
+                                            drop_axis=-1,
+                                            args=(coords,),
+                                            kwargs=dict(prefilter=order>1, order=order)
+                                            )
         
-        sl = [slice(None)]*outxxx.ndim
+        sl = [slice(None)]*result.ndim
         for a in dims[:-1]:
             i = self.axisof(a)
             sl[i] = 0
-        out[:] = outxxx[tuple(sl)]
+        
+        out = PropArray(result[tuple(sl)], name=self.name, dtype=np.float32,
+                        axes=c_axes+dims[-1], propname="reslice")
+        
         out.set_scale(self)
         return out
     

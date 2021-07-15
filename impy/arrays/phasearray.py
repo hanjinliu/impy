@@ -1,9 +1,9 @@
 from __future__ import annotations
 import numpy as np
-from ._process import *
 from . import _filters
 from ..deco import *
 from ..func import *
+from ._skimage import *
 from .specials import PropArray
 from .labeledarray import LabeledArray
 from ..utilcls import *
@@ -33,48 +33,48 @@ class PhaseArray(LabeledArray):
         self.border = border
         return self
     
-    def __add__(self, value):
+    def __add__(self, value) -> PhaseArray:
         out = super().__add__(value)
         out.fix_border()
         return out
     
-    def __iadd__(self, value):
+    def __iadd__(self, value) -> PhaseArray:
         out = super().__iadd__(value)
         out.fix_border()
         return out
     
-    def __sub__(self, value):
+    def __sub__(self, value) -> PhaseArray:
         out = super().__sub__(value)
         out.fix_border()
         return out
     
-    def __isub__(self, value):
+    def __isub__(self, value) -> PhaseArray:
         out = super().__isub__(value)
         out.fix_border()
         return out
     
-    def __mul__(self, value):
+    def __mul__(self, value) -> PhaseArray:
         out = super().__mul__(value)
         out.fix_border()
         return out
         
-    def __imul__(self, value):
+    def __imul__(self, value) -> PhaseArray:
         out = super().__imul__(value)
         out.fix_border()
         return out
         
-    def __truediv__(self, value):
+    def __truediv__(self, value) -> PhaseArray:
         out = super().__truediv__(value)
         out.fix_border()
         return out
     
-    def __itruediv__(self, value):
+    def __itruediv__(self, value) -> PhaseArray:
         out = super().__itruediv__(value)
         out.fix_border()
         return out
     
     @property
-    def periodicity(self):
+    def periodicity(self) -> float:
         a, b = self.border
         return b - a
     

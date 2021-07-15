@@ -10,6 +10,7 @@ KEYS = {"hide_others": "Control-Shift-A",
         "unlink_selected_layers": "Control-Shift-G",
         "layers_to_labels": "Alt-L",
         "crop": "Control-Shift-X",
+        "reslice": "/",
         "to_front": "Control-Shift-F",
         "reset_view": "Control-Shift-R",
         "add_new_shape": "S",
@@ -128,29 +129,40 @@ def crop(viewer:napari.Viewer):
     if len(imglist) == 0:
         imglist = [front_image(viewer)]
     
-    active_plane = list(viewer.dims.order[-2:])
+    ndim = np.unique([shape_layer.ndim for shape_layer 
+                      in iter_selected_layer(viewer, "Shapes")])
+    if len(ndim) > 1:
+        viewer.status = "Cannot crop using Shapes layers with different number of dimensions."
+    else:
+        ndim = ndim[0]
+    
+    if ndim == viewer.dims.ndim:
+        active_plane = list(viewer.dims.order[-2:])
+    else:
+        active_plane = [-2, -1]
     dims2d = "".join(viewer.dims.axis_labels[i] for i in active_plane)
     rects = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
         for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
             if type_ == "rectangle":
-                rects.append((shape, shape_layer.scale)) # shape = float pixel
+                rects.append((shape[:, active_plane], 
+                              shape_layer.scale[active_plane])) # shape = float pixel
                 
     for rect, shape_layer_scale in rects:
-        if np.any(np.abs(rect[0, active_plane] - rect[1, active_plane])<1e-5):
-            crop_func = crop_rectangle
+        if np.any(np.abs(rect[0] - rect[1])<1e-5):
+            crop_func = _crop_rectangle
         else:
-            crop_func = crop_rotated_rectangle
+            crop_func = _crop_rotated_rectangle
         
         for layer in imglist:
-            factor = layer.scale[active_plane]/shape_layer_scale[active_plane]
+            factor = layer.scale[active_plane]/shape_layer_scale
             _dirpath = layer.data.dirpath
             _metadata = layer.data.metadata
             _name = layer.data.name
             layer = viewer.add_layer(copy_layer(layer))
             dr = layer.translate[active_plane] / layer.scale[active_plane]
-            newdata, relative_translate = crop_func(layer.data, rect[:,active_plane]/factor, 
-                                                    dr, dims2d)
+            newdata, relative_translate = \
+                crop_func(layer.data, rect/factor - dr, dims2d)
             if newdata.size <= 0:
                 continue
             
@@ -177,9 +189,49 @@ def crop(viewer:napari.Viewer):
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
             
-            
     # remove original images
     [viewer.layers.remove(img) for img in imglist]
+    return None
+
+@bind_key
+def reslice(viewer:napari.Viewer):
+    """
+    2D Reslice with currently selected lines/paths and images.
+    """
+    if viewer.dims.ndisplay == 3:
+        viewer.status = "Cannot reslice in 3D mode."
+    imglist = list(iter_selected_layer(viewer, "Image"))
+    
+    ndim = np.unique([shape_layer.ndim for shape_layer 
+                      in iter_selected_layer(viewer, "Shapes")])
+    if len(ndim) > 1:
+        viewer.status = "Cannot crop using Shapes layers with different number of dimensions."
+    else:
+        ndim = ndim[0]
+    print(ndim, viewer.dims.ndim)
+    if ndim == viewer.dims.ndim == 3:
+        active_plane = [-3, -2, -1]
+    else:
+        active_plane = [-2, -1]
+        
+    if len(imglist) == 0:
+        imglist = [front_image(viewer)]
+    
+    paths = []
+    for shape_layer in iter_selected_layer(viewer, "Shapes"):
+        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
+            if type_ in ("line", "path"):
+                paths.append((shape, shape_layer.scale)) # shape = float pixel
+    out = []
+    for path, shape_layer_scale in paths:        
+        for layer in imglist:
+            factor = layer.scale[active_plane]/shape_layer_scale[active_plane]
+            dr = layer.translate[active_plane] / layer.scale[active_plane]
+            out_ = layer.data.reslice(path[:,active_plane]/factor - dr)
+            out.append(out_)
+    
+    viewer.window.results = out
+    
     return None
 
 @bind_key
@@ -201,16 +253,19 @@ def proj(viewer:napari.Viewer):
             raise TypeError("Projection not supported.")
         elif isinstance(layer, napari.layers.Shapes):
             data = [d[:,-2:] for d in data]
-            for k in ["face_color", "edge_color", "edge_width"]:
-                kwargs[k] = getattr(layer, k)
-            if len(data) == 0:
+            
+            if layer.nshapes > 0:
+                for k in ["face_color", "edge_color", "edge_width"]:
+                    kwargs[k] = getattr(layer, k)
+            else:
                 data = None
             kwargs["ndim"] = 2
+            kwargs["shape_type"] = layer.shape_type
             viewer.add_shapes(data, **kwargs)
         elif isinstance(layer, napari.layers.Points):
             data = data[:, -2:]
             for k in ["face_color", "edge_color", "size", "symbol"]:
-                kwargs[k] = getattr(layer, k)
+                kwargs[k] = getattr(layer, k, None)
             kwargs["size"] = layer.size[:,-2:]
             if len(data) == 0:
                 data = None
@@ -229,24 +284,25 @@ def duplicate_layer(viewer:napari.Viewer):
     """
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
-def crop_rotated_rectangle(img, crds, dr, dims):
-    crds = crds - dr
+def _crop_rotated_rectangle(img, crds, dims):
     cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
     translate = np.min(crds, axis=0)
     return cropped_img, translate
 
 
-def crop_rectangle(img, crds, dr, dims):
-    crds = crds - dr
+def _crop_rectangle(img, crds, dims):
     start = crds[0]
     end = crds[2]
     sl = []
+    translate = np.empty(2)
     for i in [0, 1]:
         sl0 = sorted([start[i], end[i]])
-        sl.append(f"{dims[i]}={int(sl0[0])+1}:{int(sl0[1])+1}")
+        x0 = int(sl0[0])+1
+        x1 = int(sl0[1])+1
+        sl.append(f"{dims[i]}={x0}:{x1}")
+        translate[i] = x0
     
     area_to_crop = ";".join(sl)
     
-    translate = np.array([s.start for s in sl])
     cropped_img = img[area_to_crop]
     return cropped_img, translate

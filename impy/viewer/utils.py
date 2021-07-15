@@ -55,7 +55,6 @@ def front_image(viewer):
 
 def to_labels(layer, labels_shape, zoom_factor=1):
     return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
-    
 
 def make_world_scale(obj):
     scale = []

@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from ..func import *
 from ..utilcls import *
 from ..deco import *
-from ._process import *
 from .bases import HistoryArray
 
 def best_dtype(n:int):

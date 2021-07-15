@@ -107,7 +107,12 @@ def on_move(viewer:napari.Viewer, event):
 
 def profile_shape(viewer:napari.Viewer, event):
     active_layer = viewer.layers.selection.active
-    active_plane = list(viewer.dims.order[-2:])
+    
+    if active_layer.ndim == viewer.dims.ndim:
+        active_plane = list(viewer.dims.order[-2:])
+    else:
+        active_plane = [-2, -1]
+        
     if not isinstance(active_layer, napari.layers.Shapes):
         return None
             
