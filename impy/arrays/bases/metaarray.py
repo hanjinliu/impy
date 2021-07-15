@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from dask import array as da
 from ...axes import ImageAxesError
 from ...func import *
 from ..axesmixin import AxesMixin
@@ -310,6 +311,42 @@ class MetaArray(AxesMixin, np.ndarray):
                 iterlist.append([slice(None)])
         return iterlist
             
+    def apply_dask(self, func, c_axes=None, drop_axis=[], new_axis=None, dtype=np.float32, 
+                   args=None, kwargs=None) -> MetaArray:
+        # determine chunk size
+        chunks = []
+        slice_in = []
+        slice_out = []
+        for i, a in enumerate(self.axes):
+            if a in c_axes:
+                chunks.append(1)
+                slice_in.append(0)
+                slice_out.append(np.newaxis)
+            else:
+                chunks.append(self.shape[i])
+                slice_in.append(slice(None))
+                slice_out.append(slice(None))
+        chunks = tuple(chunks)
+        slice_in = tuple(slice_in)
+        slice_out = tuple(slice_out)
+        
+        if args is None:
+            args = tuple()
+        if kwargs is None:
+            kwargs = dict()
+        
+        if len(c_axes) == 0:
+            out = func(self.value, *args, **kwargs)
+        else:
+            input_ = da.from_array(self.value, chunks=chunks)
+            def _func(arr, *args, **kwargs):
+                out = func(arr[slice_in], *args, **kwargs)
+                return out[slice_out]
+            out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
+                                dtype=dtype, **kwargs).compute()
+
+        out = out.view(self.__class__)
+        return out
     
     def transpose(self, axes):
         """

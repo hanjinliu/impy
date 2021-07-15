@@ -413,46 +413,6 @@ class LabeledArray(HistoryArray):
         plt.show()
         return self
     
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #   Multi-processing
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    
-    def apply_dask(self, func, c_axes=None, drop_axis=[], new_axis=None, dtype=np.float32, 
-                   args=None, kwargs=None) -> LabeledArray:
-        # determine chunk size
-        chunks = []
-        slice_in = []
-        slice_out = []
-        for i, a in enumerate(self.axes):
-            if a in c_axes:
-                chunks.append(1)
-                slice_in.append(0)
-                slice_out.append(np.newaxis)
-            else:
-                chunks.append(self.shape[i])
-                slice_in.append(slice(None))
-                slice_out.append(slice(None))
-        chunks = tuple(chunks)
-        slice_in = tuple(slice_in)
-        slice_out = tuple(slice_out)
-        
-        if args is None:
-            args = tuple()
-        if kwargs is None:
-            kwargs = dict()
-        
-        if len(c_axes) == 0:
-            out = func(self.value, *args, **kwargs)
-        else:
-            input_ = da.from_array(self.value, chunks=chunks)
-            def _func(arr, *args, **kwargs):
-                out = func(arr[slice_in], *args, **kwargs)
-                return out[slice_out]
-            out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
-                                dtype=dtype, **kwargs).compute()
-
-        out = out.view(self.__class__)
-        return out
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Cropping
@@ -736,10 +696,23 @@ class LabeledArray(HistoryArray):
         out = PropArray(np.empty(self.sizesof(c_axes) + (coords.shape[1],), dtype=np.float32),
                         name=self.name, dtype=np.float32, axes=c_axes+dims[-1], propname="reslice")
         
-        for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
-                                          order=order, mode="reflect")
-            
+        # for sl, img in self.iter(c_axes, exclude=dims):
+        #     out[sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
+        #                                   order=order, mode="reflect")
+        # print(coords.shape)
+        outxxx = self.apply_dask(ndi.map_coordinates, 
+                                 c_axes=complement_axes(dims, self.axes), 
+                                 dtype=self.dtype,
+                                 drop_axis=-1,
+                                 args=(coords[(slice(None),)+(np.newaxis,)*(ndim-1)],),
+                                 kwargs=dict(prefilter=order > 1, order=order)
+                                 )
+        
+        sl = [slice(None)]*outxxx.ndim
+        for a in dims[:-1]:
+            i = self.axisof(a)
+            sl[i] = 0
+        out[:] = outxxx[tuple(sl)]
         out.set_scale(self)
         return out
     
@@ -783,9 +756,9 @@ class LabeledArray(HistoryArray):
         
         c_axes = complement_axes(dims, self.axes)
         labels = largest_zeros(label_image.shape)
-        # labels[:] = label_image.parallel(label_, c_axes, connectivity, outdtype=labels.dtype).view(np.ndarray)
+        
         labels[:] = label_image.apply_dask(skmes.label, 
-                                           dims=c_axes, 
+                                           c_axes=c_axes, 
                                            kwargs=dict(background=0, connectivity=connectivity)
                                            ).view(np.ndarray)
     
@@ -886,35 +859,6 @@ class LabeledArray(HistoryArray):
         self.labels = labels.view(Label).optimize()
         self.labels._set_info(label_image, "label_if")
         self.labels.set_scale(self)
-        return self.labels
-            
-    
-    @dims_to_spatial_axes
-    @need_labels
-    @record(append_history=False)
-    def expand_labels(self, distance:int=1, *, dims=None) -> Label:
-        """
-        Expand areas of labels.
-
-        Parameters
-        ----------
-        distance : int, optional
-            The distance to expand, by default 1
-        dims : int or str, optional
-            Dimension of axes.
-
-        Returns
-        -------
-        Label
-            Same array but labels are updated.
-        """        
-        
-        labels = np.empty_like(self.labels).value
-        for sl, img in self.iter(complement_axes(dims, self.axes), israw=True, exclude=dims):
-            labels[sl] = skseg.expand_labels(img.labels.value, distance)
-        
-        self.labels.value[:] = labels
-        
         return self.labels
     
     @record(append_history=False)

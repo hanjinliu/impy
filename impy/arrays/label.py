@@ -72,6 +72,34 @@ class Label(HistoryArray):
         self.value[:] = skseg.relabel_sequential(self.value)[0]
         return self
     
+    
+    @dims_to_spatial_axes
+    @record()
+    def expand_labels(self, distance:int=1, *, dims=None) -> Label:
+        """
+        Expand areas of labels.
+
+        Parameters
+        ----------
+        distance : int, optional
+            The distance to expand, by default 1
+        dims : int or str, optional
+            Dimension of axes.
+
+        Returns
+        -------
+        Label
+            Same array but labels are updated.
+        """        
+        labels = self.apply_dask(skseg.expand_labels,
+                                c_axes=complement_axes(dims, self.axes),
+                                dtype=self.dtype,
+                                kwargs=dict(distance=distance)
+                                )
+        self.value[:] = labels
+        
+        return self
+    
     def add_label(self, label_image):
         label_image = label_image.view(self.__class__).relabel()
         label_image = label_image.increment(self.max())
