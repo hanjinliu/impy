@@ -3275,7 +3275,9 @@ class ImgArray(LabeledArray):
             
         c_axes = complement_axes(dims, self.axes)
         out = self.apply_dask(skfeat.greycomatrix, 
-                              c_axes=c_axes, 
+                              c_axes=c_axes,
+                              new_axis=[-4,-3,-2,-1],
+                              drop_axis=dims,
                               args=(distances, angles),
                               kwargs=dict(levels=bins),
                               dtype=np.uint32
@@ -3981,3 +3983,10 @@ def _specify_one(center, radius, shape:tuple) -> tuple[slice]:
     sl = tuple(slice(max(0, xc-r), min(xc+r+1, sh), None) 
                         for xc, r, sh in zip(center, radius, shape))
     return sl
+
+def check_filter_func(f):
+    if f is None:
+        f = lambda x: True
+    elif not callable(f):
+        raise TypeError("`filt` must be callable.")
+    return f

@@ -124,6 +124,8 @@ def profile_shape(viewer:napari.Viewer, event):
         yield
         while event.type in ("mouse_move", "mouse_release"):
             unit = viewer.scale_bar.unit
+            if unit is None:
+                unit = "px"
             
             # get the current selected shape
             selected = active_layer.selected_data

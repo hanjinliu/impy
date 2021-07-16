@@ -169,6 +169,7 @@ def layer_to_impy_object(viewer, layer):
         ndim = data.ndim
         axes = axes[-ndim:]
         if type(data) is np.ndarray:
+            # TODO: large image -> dask
             if isinstance(layer, napari.layers.Image):
                 data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
             else:

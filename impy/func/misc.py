@@ -49,9 +49,6 @@ def add_axes(axes, shape, key, key_axes="yx"):
             key = np.stack([key]*(shape[i]), axis=i)
     return key
 
-
-
-
 def complement_axes(axes, all_axes="ptzcyx"):
     c_axes = ""
     for a in all_axes:
@@ -59,12 +56,6 @@ def complement_axes(axes, all_axes="ptzcyx"):
             c_axes += a
     return c_axes
 
-def check_filter_func(f):
-    if f is None:
-        f = lambda x: True
-    elif not callable(f):
-        raise TypeError("`filt` must be callable.")
-    return f
 
 
 def largest_zeros(shape) -> np.ndarray:

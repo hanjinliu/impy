@@ -4,14 +4,14 @@ import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
 
-# TODO: Integrate ImgArray functions after napari new version comes out.
-# -> https://github.com/napari/napari/pull/263
+# TODO: 
+# - Integrate ImgArray functions after napari new version comes out. https://github.com/napari/napari/pull/263
+# - Text layer -> https://github.com/napari/napari/issues/3053
 
 __all__ = ["add_imread_menu",
            "add_imsave_menu",
            "add_table_widget", 
            "add_note_widget",
-        #    "edit_properties",
            "function_handler"]
 
 def add_imread_menu(viewer):

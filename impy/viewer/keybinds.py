@@ -5,7 +5,11 @@ import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
-KEYS = {"hide_others": "Control-Shift-A",
+KEYS = {"add_new_shape_2d": "Shift-S",
+        "add_new_shape_3d": "S",
+        "add_new_point_2d": "Shift-P",
+        "add_new_point_3d": "P",
+        "hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
         "unlink_selected_layers": "Control-Shift-G",
         "layers_to_labels": "Alt-L",
@@ -13,7 +17,6 @@ KEYS = {"hide_others": "Control-Shift-A",
         "reslice": "/",
         "to_front": "Control-Shift-F",
         "reset_view": "Control-Shift-R",
-        "add_new_shape": "S",
         "proj": "Control-P",
         "duplicate_layer": "Control-Shift-D",
         }
@@ -23,6 +26,30 @@ __all__ = list(KEYS.keys())
 def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
+@bind_key
+def add_new_shape_2d(viewer:napari.Viewer):
+    scale = [r[2] for r in viewer.dims.range]
+    layer = viewer.add_shapes(scale=scale[-2:], ndim=2)
+    layer.mode = "add_rectangle"
+    
+@bind_key
+def add_new_shape_3d(viewer:napari.Viewer):
+    scale = [r[2] for r in viewer.dims.range]
+    layer =viewer.add_shapes(scale=scale[-2:])
+    layer.mode = "add_rectangle"
+    
+@bind_key
+def add_new_point_2d(viewer:napari.Viewer):
+    scale = [r[2] for r in viewer.dims.range]
+    layer = viewer.add_points(scale=scale[-2:], ndim=2)
+    layer.mode = "add"
+
+@bind_key
+def add_new_point_3d(viewer:napari.Viewer):
+    scale = [r[2] for r in viewer.dims.range]
+    layer = viewer.add_points(scale=scale[-2:])
+    layer.mode = "add"
+    
 @bind_key
 def hide_others(viewer:napari.Viewer):
     """
@@ -122,7 +149,6 @@ def crop(viewer:napari.Viewer):
     """
     Crop images with (rotated) rectangle shapes.
     """        
-    # BUG: wrong result in XZ crop
     if viewer.dims.ndisplay == 3:
         viewer.status = "Cannot crop in 3D mode."
     imglist = list(iter_selected_layer(viewer, "Image"))
@@ -296,7 +322,6 @@ def _crop_rotated_rectangle(img, crds, dims):
         cropped_img = img.rotated_crop(crds[3], crds[0], crds[2], dims=dims)
     
     return cropped_img, translate
-
 
 def _crop_rectangle(img, crds, dims):
     start = crds[0]

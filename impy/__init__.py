@@ -1,8 +1,7 @@
-__version__ = "1.15.13"
+__version__ = "1.16.0"
 
 # TODO
 # - 3D Gabor filter
-# - get lines/paths from shape layers
 
 import logging
 from .datalist import DataList
@@ -16,7 +15,9 @@ from ._const import MAX_GB
 r"""
 Inheritance
 -----------
-              __ MetaArray _
+        np.ndarray _    _ AxesMixin _
+                    \  /             \
+              __ MetaArray _     LazyImgArray
              /              \ 
        HistoryArray     PropArray
        /         \    

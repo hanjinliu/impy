@@ -56,7 +56,10 @@ def stack(imgs:list[MetaArray], axis="c", dtype=None):
     ImgArray
         Image stack
     """
-    if not isinstance(axis, (int, str)):
+    
+    if isinstance(axis, int):
+        axis = "p"
+    elif not isinstance(axis, str):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
     
     # find where to add new axis
