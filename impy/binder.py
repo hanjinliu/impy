@@ -96,21 +96,20 @@ class bind:
     bound = set()
     last_added = None
     def __init__(self, func:Callable=None, funcname:str=None, *, indtype=None, outdtype=None, 
-                 kind:str="image", ndim:int|None=None, mapping:dict[str, tuple[str, Callable]]=None):
+                 kind:str="image", ndim:int|None=None):
         """
         Method binding is done inside this when bind object is used as function like:
         >>> ip.bind(func, "funcname", ...)
         """        
         if callable(func):
             self._bind_method(func, funcname=funcname, indtype=indtype, outdtype=outdtype, 
-                              kind=kind, ndim=ndim, mapping=mapping)
+                              kind=kind, ndim=ndim)
         else:
             self.funcname = func
             self.indtype = indtype
             self.outdtype = outdtype
             self.kind = kind
             self.ndim = ndim
-            self.mapping = mapping
     
     def __call__(self, func:Callable):
         """
@@ -119,8 +118,13 @@ class bind:
         >>> def ...
         """
         if callable(func):
-            self._bind_method(func, funcname=self.funcname, indtype=self.indtype, 
-                              outdtype=self.outdtype, kind=self.kind, ndim=self.ndim, mapping=self.mapping)
+            self._bind_method(func, 
+                              funcname=self.funcname, 
+                              indtype=self.indtype, 
+                              outdtype=self.outdtype, 
+                              kind=self.kind, 
+                              ndim=self.ndim, 
+                              )
         return func
     
     
@@ -131,7 +135,7 @@ class bind:
         self._unbind_method(self.__class__.last_added)
         
     def _bind_method(self, func:Callable, funcname:str=None, *, indtype=None, outdtype=None,
-                     kind="image", ndim=None, mapping:dict[str, tuple[str, Callable]]=None):
+                     kind="image", ndim=None):
         # check function's name
         if funcname is None:
             fn = func.__name__
@@ -152,71 +156,49 @@ class bind:
         else:
             raise ValueError(f"`ndim` must be None, 2 or 3, but got {ndim}.")
         
-        # check mapping
-        if mapping is None:
-            mapping = {}
-        elif not isinstance(mapping, dict):
-            raise TypeError(f"`mapping` must be dict, but got {type(mapping)}")
+        
+        if outdtype == "float64" or outdtype is None:
+            outdtype = np.float32
         
         # Dynamically define functions used inside the plugin method, depending on `kind` option.
-        # _prepare_output_array : returns a subclass of ndarray for output.
-        # _iter : returns an iterator around spatial dimensions.
         # _exit : overwrites output attributes.
         
         if kind == "image":
-            def _prepare_output_array(self, dims):
-                dtype = outdtype if outdtype is not None else self.dtype
-                return np.empty(self.shape, dtype=dtype)
-            
-            def _iter(self, dims):
-                return self.iter(complement_axes(dims, self.axes))
-            
-            def _exit(out, self, func, *args, **kwargs):
-                out = out.view(ImgArray)
+            _drop_axis = lambda dims: None
+            def _exit(out, img, func, *args, **kwargs):
+                out = out.view(ImgArray).as_img_type(outdtype)
                 history = make_history(func.__name__, args, kwargs)
-                out._set_info(self, history)
+                out._set_info(img, history)
                 return out
             
         elif kind == "property":
-            def _prepare_output_array(self, dims):
-                dtype = outdtype if outdtype is not None else object
-                c_axes = complement_axes(dims, self.axes)
-                shape = self.sizesof(c_axes)
-                return PropArray(np.empty(shape, dtype=dtype), name=self.name, dirpath=self.dirpath, 
-                                axes=c_axes, dtype=dtype)
-            
-            def _iter(self, dims):
-                return self.iter(complement_axes(dims, self.axes), exclude=dims)
-            
-            def _exit(out, self, func, *args, **kwargs):
-                out.propname = fn
+            _drop_axis = lambda dims: dims
+            def _exit(out, img, func, *args, dims=None, **kwargs):
+                out = PropArray(out, name=img.name, axes=complement_axes(dims, img.axes), 
+                                propname=fn, dtype=outdtype)
                 return out
                 
         elif kind == "label":
-            def _prepare_output_array(self, dims):
-                return largest_zeros(self.shape)
-            
-            def _iter(self, dims):
-                return self.iter(complement_axes(dims, self.axes))
-            
-            def _exit(out, self, func, *args, **kwargs):
-                self.labels = Label(out, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
-                self.labels.history.append(fn)
-                self.labels.set_scale(self)
-                return self.labels
+            _drop_axis = lambda dims: None
+            def _exit(out, img, func, *args, dims=None, **kwargs):
+                img.labels = Label(out, name=img.name, axes=img.axes, dirpath=img.dirpath).optimize()
+                img.labels.history.append(fn)
+                img.labels.set_scale(img)
+                return img.labels
             
         elif kind == "label_binary":
-            def _prepare_output_array(self, dims):
-                return largest_zeros(self.shape)
-            
-            def _iter(self, dims):
-                return self.iter(complement_axes(dims, self.axes))
-            
-            def _exit(out, self, func, *args, **kwargs):
-                self.labels = LabeledArray(out, axes=self.axes).label().labels
-                self.labels.history.append(fn)
-                self.labels.set_scale(self)
-                return self.labels
+            _drop_axis = lambda dims: None
+            def _exit(out, img, func, *args, dims=None, **kwargs):
+                print(out.shape, img.axes, dims)
+                lb = LabeledArray(out, name=img.name, axes=img.axes, dirpath=img.dirpath)
+                lb.showinfo()
+                lb = lb.label(dims=dims)
+                lb.showinfo()
+                # BUG
+                img.labels = lb
+                img.labels.history.append(fn)
+                img.labels.set_scale(img)
+                return img.labels
                         
         else:
             raise NotImplementedError(kind)
@@ -224,31 +206,19 @@ class bind:
         # Define method and bind it to ImgArray
         @wraps(func)
         @dims_to_spatial_axes
-        def _func(self, *args, dims=default_dims, **kwargs):
+        def _func(img, *args, dims=default_dims, **kwargs):
             if indtype is not None:
-                self = self.as_img_type(indtype)
-            
-            # map keyword arguments if necessary
-            if mapping:
-                kw = dict()
-                for k, v in kwargs.items():
-                    m = mapping.get(k, None)
-                    if m is None:
-                        kw[k] = v
-                    else:
-                        newkey, val = m
-                        try:
-                            kw[newkey] = val(v, len(dims))
-                        except TypeError:
-                            kw[newkey] = val(v)
-                kwargs = kw
-                
-            out = _prepare_output_array(self, dims)
+                img = img.as_img_type(indtype)
                 
             with Progress(fn):
-                for sl, img in _iter(self, dims):
-                    out[sl] = func(img, *args, **kwargs)
-                out = _exit(out, self, func, *args, **kwargs)
+                out = img.apply_dask(func,
+                                      c_axes=complement_axes(dims, img.axes),
+                                      drop_axis=_drop_axis(dims),
+                                      args=args,
+                                      kwargs=kwargs
+                                      )
+                out = _exit(out, img, func, *args, dims=dims, **kwargs)
+                
             return out
         
         self.__class__.bound.add(fn)
