@@ -198,9 +198,17 @@ def function_handler(viewer):
                 if out.dtype.kind == "c":
                     out = np.abs(out)
                 contrast_limits = [float(x) for x in out.range]
+                if data.ndim == out.ndim:
+                    translate = input.translate
+                elif data.ndim > out.ndim:
+                    translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+                    scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+                else:
+                    translate = [0.0] + list(input.translate)
+                    scale = [1.0] + list(scale)
                 out_ = (out, 
-                        dict(scale=scale, name=name, colormap=input.colormap, translate=input.translate,
-                                blending=input.blending, contrast_limits=contrast_limits), 
+                        dict(scale=scale, name=name, colormap=input.colormap, translate=translate,
+                             blending=input.blending, contrast_limits=contrast_limits), 
                         "image")
             elif isinstance(out, PhaseArray):
                 out_ = (out, 

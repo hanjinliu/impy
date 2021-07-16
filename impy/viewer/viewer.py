@@ -9,6 +9,7 @@ from .utils import *
 from .mouse import *
 from ..utilcls import ArrayDict, Progress
 from .widgets import _make_table_widget
+from .._const import FONT_SIZE_FACTOR
 
 
 # TODO: 
@@ -320,7 +321,7 @@ class napariViewers:
 def default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
-    viewer.scale_bar.font_size = 8
+    viewer.scale_bar.font_size = 8 * FONT_SIZE_FACTOR
     viewer.text_overlay.visible = True
     viewer.axes.visible = True
     viewer.axes.colored = False

@@ -6,8 +6,12 @@ from ..frame import *
 import napari
 
 def copy_layer(layer):
-    states = layer.as_layer_data_tuple()
-    copy = layer.__class__(states[0], **states[1])
+    args, kwargs, *_ = layer.as_layer_data_tuple()
+    # linear interpolation is valid only in 3D mode.
+    if kwargs["interpolation"] == "linear":
+        kwargs = kwargs.copy()
+        kwargs["interpolation"] = "nearest"
+    copy = layer.__class__(args, **kwargs)
     return copy
 
 def iter_layer(viewer, layer_type:str):

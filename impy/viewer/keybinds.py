@@ -122,7 +122,7 @@ def crop(viewer:napari.Viewer):
     """
     Crop images with (rotated) rectangle shapes.
     """        
-    
+    # BUG: wrong result in XZ crop
     if viewer.dims.ndisplay == 3:
         viewer.status = "Cannot crop in 3D mode."
     imglist = list(iter_selected_layer(viewer, "Image"))
@@ -208,7 +208,7 @@ def reslice(viewer:napari.Viewer):
         viewer.status = "Cannot crop using Shapes layers with different number of dimensions."
     else:
         ndim = ndim[0]
-    print(ndim, viewer.dims.ndim)
+        
     if ndim == viewer.dims.ndim == 3:
         active_plane = [-3, -2, -1]
     else:
@@ -285,8 +285,16 @@ def duplicate_layer(viewer:napari.Viewer):
     [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
 
 def _crop_rotated_rectangle(img, crds, dims):
-    cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
     translate = np.min(crds, axis=0)
+    
+    # check is sorted
+    ids = [img.axisof(a) for a in dims]
+    if sorted(ids) == ids:
+        cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
+    else:
+        crds = np.fliplr(crds)
+        cropped_img = img.rotated_crop(crds[3], crds[0], crds[2], dims=dims)
+    
     return cropped_img, translate
 
 
