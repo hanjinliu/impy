@@ -144,7 +144,7 @@ class LabeledArray(HistoryArray):
         """
         Make a view of label **if possible**.
         """
-        if hasattr(other, "labels") and axes_included(self, other.labels) and shape_match(self, other.labels):
+        if hasattr(other, "labels") and _axes_included(self, other.labels) and _shape_match(self, other.labels):
             self.labels = other.labels
     
     def _getitem_additional_set_info(self, other, **kwargs):
@@ -278,7 +278,7 @@ class LabeledArray(HistoryArray):
         if self.ndim == 1:
             plt.plot(self.value)
         elif self.ndim == 2:
-            vmax, vmin = determine_range(self)
+            vmax, vmin = _determine_range(self)
             interpol = "bilinear" if self.dtype == bool else "none"
             imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
             imshow_kwargs.update(kwargs)
@@ -293,7 +293,7 @@ class LabeledArray(HistoryArray):
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
-                vmax, vmin = determine_range(self)
+                vmax, vmin = _determine_range(self)
 
                 interpol = "bilinear" if self.dtype == bool else "none"
                 imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
@@ -314,7 +314,7 @@ class LabeledArray(HistoryArray):
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i}"]
-                    vmax, vmin = determine_range(self)
+                    vmax, vmin = _determine_range(self)
                     interpol = "bilinear" if img.dtype == bool else "none"
                     imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
                     imshow_kwargs.update(kwargs)
@@ -330,7 +330,7 @@ class LabeledArray(HistoryArray):
     def imshow_comparewith(self, other, **kwargs):
         fig, ax = plt.subplots(1, 2, figsize=(8, 4))
         for i, img in enumerate([self, other]):
-            vmax, vmin = determine_range(img)
+            vmax, vmin = _determine_range(img)
             interpol = "bilinear" if img.dtype == bool else "none"
             imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
             imshow_kwargs.update(kwargs)
@@ -343,7 +343,7 @@ class LabeledArray(HistoryArray):
         if not hasattr(self, "labels"):
             raise AttributeError("No label to show.")
         if self.ndim == 2:
-            vmax, vmin = determine_range(self)
+            vmax, vmin = _determine_range(self)
             imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
             imshow_kwargs.update(kwargs)
             vmin = imshow_kwargs["vmin"]
@@ -363,7 +363,7 @@ class LabeledArray(HistoryArray):
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
-                vmax, vmin = determine_range(self)
+                vmax, vmin = _determine_range(self)
 
                 imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
                 imshow_kwargs.update(kwargs)
@@ -391,7 +391,7 @@ class LabeledArray(HistoryArray):
                 fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i}"]
-                    vmax, vmin = determine_range(img)
+                    vmax, vmin = _determine_range(img)
                     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
                     imshow_kwargs.update(kwargs)
                     vmin = imshow_kwargs["vmin"]
@@ -744,10 +744,10 @@ class LabeledArray(HistoryArray):
             label_image = self
         elif not hasattr(label_image, "axes") or label_image.axes.is_none():
             raise ValueError("Use Array with axes for label_image.")
-        elif not axes_included(self, label_image):
+        elif not _axes_included(self, label_image):
             raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
                                  f"{label_image.axes} and {self.axes}")
-        elif not shape_match(self, label_image):
+        elif not _shape_match(self, label_image):
             raise ImageAxesError("Shape mismatch.")
         
         c_axes = complement_axes(dims, self.axes)
@@ -820,10 +820,10 @@ class LabeledArray(HistoryArray):
             label_image = self
         elif not hasattr(label_image, "axes") or label_image.axes.is_none():
             raise ValueError("Use Array with axes for label_image.")
-        elif not axes_included(self, label_image):
+        elif not _axes_included(self, label_image):
             raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
                                  f"{label_image.axes} and {self.axes}")
-        elif not shape_match(self, label_image):
+        elif not _shape_match(self, label_image):
             raise ImageAxesError("Shape mismatch.")
         
         # check filter function
@@ -919,7 +919,7 @@ class LabeledArray(HistoryArray):
                     raise ValueError("Could not infer axes of `label_image`.")
             else:
                 axes = label_image.axes
-                if not axes_included(self, label_image):
+                if not _axes_included(self, label_image):
                     raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
                 
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
@@ -1116,3 +1116,42 @@ def _make_rotated_axis(src, dst):
     d = np.sqrt(sum(dr**2))
     n = int(np.ceil(d))
     return np.linspace(src, src+dr/d*(n-1), n)
+
+def _shape_match(img, label):
+    """
+    e.g.)
+    img   ... 12(t), 100(y), 50(x)
+    label ... 100(y), 50(x)
+        -> True
+    img   ... 12(t), 100(y), 50(x)
+    label ... 30(y), 50(x)
+        -> False
+    """    
+    return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
+
+
+def _axes_included(img, label):
+    """
+    e.g.)
+    img.axes = "tyx", label.axes = "yx" -> True
+    img.axes = "tcyx", label.axes = "zyx" -> False
+    
+    """
+    return all([a in img.axes for a in label.axes])
+
+
+def _determine_range(arr):
+    """
+    Called in imshow()
+    """
+    if arr.dtype == bool:
+        vmax = 1
+        vmin = 0
+    else:
+        try:
+            vmax = np.percentile(arr[arr>0], 99.99)
+            vmin = np.percentile(arr[arr>0], 0.01)
+        except IndexError:
+            vmax = arr.max()
+            vmin = arr.min()
+    return vmax, vmin

@@ -55,3 +55,13 @@ def _safe_div(a, b, eps=1e-8):
     mask = b > eps
     out[mask] = a[mask]/b[mask]
     return out
+
+
+def check_psf(img, psf, dims):
+    psf = np.asarray(psf, dtype=np.float32)
+    psf /= np.sum(psf)
+    
+    if img.sizesof(dims) != psf.shape:
+        raise ValueError("observation and PSF have different shape: "
+                        f"{img.sizesof(dims)} and {psf.shape}")
+    return psf

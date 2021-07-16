@@ -6,9 +6,9 @@ from ..func import *
 from ..deco import *
 from ..axes import ORDER
 from ..utilcls import *
+from .._const import ID_AXIS
 
 tp = ImportOnRequest("trackpy")
-ID_AXIS = "p"
 
 class AxesFrame(pd.DataFrame):
     _metadata=["_axes"]

@@ -263,7 +263,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   ![](Figs/Img4.png)
 
 - Note pad in `Window > Note`.
-- Call `impy.imread` in `File > imread ...`. Call `impy.imsave` in `File > imsave ...`
+- Call `impy.imread` in `File > imread ...`. Call `impy.imsave` in `File > imsave ...`.
 
 `napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to grouping image layers).
 

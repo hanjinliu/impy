@@ -142,7 +142,7 @@ class MetaArray(AxesMixin, np.ndarray):
         Every time a numpy universal function (add, subtract, ...) is called,
         this function will be called to set/update essential attributes.
         """
-        args_, _ = replace_inputs(self, args, kwargs)
+        args_, _ = _replace_inputs(self, args, kwargs)
 
         result = getattr(ufunc, method)(*args_, **kwargs)
 
@@ -181,7 +181,7 @@ class MetaArray(AxesMixin, np.ndarray):
             all(issubclass(t, MetaArray) for t in types)):
             return self.__class__.NP_DISPATCH[func](*args, **kwargs)
         
-        args_, _ = replace_inputs(self, args, kwargs)
+        args_, _ = _replace_inputs(self, args, kwargs)
 
         result = func(*args_, **kwargs)
 
@@ -430,4 +430,28 @@ def _list_of_axes(img, axis):
         axis = [axis]
     return axis
         
+def _replace_inputs(img, args, kwargs):
+    _as_np_ndarray = lambda a: a.value if a is img else a
+    # convert arguments
+    args = tuple(_as_np_ndarray(a) for a in args)
+    if "axis" in kwargs:
+        axis = kwargs["axis"]
+        if isinstance(axis, str):
+            _axis = tuple(img.axisof(a) for a in axis)
+            if len(_axis) == 1:
+                _axis = _axis[0]
+            kwargs["axis"] = _axis
+        elif isinstance(axis, tuple):
+            axis = "".join(img.axes.axes[i] for i in kwargs["axis"])
+        elif isinstance(axis, int):
+            axis = img.axes.axes[axis]
+    else:
+        axis = ""
     
+    if "keepdims" in kwargs and kwargs["keepdims"] == True:
+        axis = ""
+    
+    if "out" in kwargs:
+        kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
+    
+    return args, kwargs

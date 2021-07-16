@@ -2069,7 +2069,7 @@ class ImgArray(LabeledArray):
             for sl, crds in coords.iter(c_axes):
                 centroids = []
                 for center in crds.values:
-                    bbox = specify_one(center, radius, shape)
+                    bbox = _specify_one(center, radius, shape)
                     input_img = self.value[sl][bbox]
                     if input_img.size == 0 or not filt(input_img):
                         continue
@@ -2146,7 +2146,7 @@ class ImgArray(LabeledArray):
             for crd in coords.values:
                 center = tuple(crd[-ndim:])
                 label_sl = tuple(crd[:-ndim])
-                sl = specify_one(center, radius, shape) # sl = (..., z,y,x)
+                sl = _specify_one(center, radius, shape) # sl = (..., z,y,x)
                 input_img = self.value[label_sl][sl]
                 if input_img.size == 0 or not filt(input_img):
                     continue
@@ -3419,7 +3419,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Clipped image with temporal attribute
         """        
-        lowerlim, upperlim = check_clip_range(in_range, self.value)
+        lowerlim, upperlim = _check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
         out.temp = [lowerlim, upperlim]
@@ -3444,7 +3444,7 @@ class ImgArray(LabeledArray):
         """        
         # TODO: along=... like threshold()
         out = self.view(np.ndarray).astype(np.float32)
-        lowerlim, upperlim = check_clip_range(in_range, self.value)
+        lowerlim, upperlim = _check_clip_range(in_range, self.value)
             
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
@@ -3781,6 +3781,7 @@ class ImgArray(LabeledArray):
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
         
+        psf = _deconv.check_psf(self, psf, dims)
         psf_ft = rfft(psf)
         psf_ft_conj = np.conjugate(psf_ft)
         
@@ -3819,7 +3820,7 @@ class ImgArray(LabeledArray):
             Deconvolved image.
         """
         
-        psf = check_psf(self, psf, dims)
+        psf = _deconv.check_psf(self, psf, dims)
         
         # calculate FFT of PSF and its conjugate in advance
         psf_ft = rfft(psf)
@@ -3882,7 +3883,7 @@ class ImgArray(LabeledArray):
           & Zerubia, J. (2004). 3D microscopy deconvolution using Richardson-Lucy algorithm 
           with total variation regularization (Doctoral dissertation, INRIA).
         """
-        psf = check_psf(self, psf, dims)
+        psf = _deconv.check_psf(self, psf, dims)
         if lmd <= 0:
             raise ValueError("In Richadson-Lucy with total-variance-regularization, parameter `lmd` "
                              "must be positive.")
@@ -3949,3 +3950,34 @@ def _calc_centroid(img, ndim):
     centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
                         for i in range(ndim)]) / mom[(0,)*ndim]
     return centroid
+
+def _check_clip_range(in_range, img):
+    """
+    Called in clip_outliers() and rescale_intensity().
+    """    
+    lower, upper = in_range
+    if isinstance(lower, str) and lower.endswith("%"):
+        lower = float(lower[:-1])
+        lowerlim = np.percentile(img, lower)
+    elif lower is None:
+        lowerlim = np.min(img)
+    else:
+        lowerlim = float(lower)
+    
+    if isinstance(upper, str) and upper.endswith("%"):
+        upper = float(upper[:-1])
+        upperlim = np.percentile(img, upper)
+    elif upper is None:
+        upperlim = np.max(img)
+    else:
+        upperlim = float(upper)
+    
+    if lowerlim >= upperlim:
+        raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
+    
+    return lowerlim, upperlim
+
+def _specify_one(center, radius, shape:tuple) -> tuple[slice]:
+    sl = tuple(slice(max(0, xc-r), min(xc+r+1, sh), None) 
+                        for xc, r, sh in zip(center, radius, shape))
+    return sl
