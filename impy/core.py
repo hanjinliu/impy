@@ -11,8 +11,8 @@ from .func import *
 from .axes import ImageAxesError
 from skimage import data as skdata
 
-__all__ = ["array", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", "lazy_imread",
-           "read_meta", "sample_image"]
+__all__ = ["array", "asarray", "aslazy", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", 
+           "lazy_imread", "read_meta", "sample_image"]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
@@ -21,8 +21,28 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
     """
-    if isinstance(arr, str):
-        raise TypeError(f"String is invalid input. Do you mean imread(path)?")
+    if isinstance(arr, np.ndarray) and dtype is None:
+        if arr.dtype in (np.uint8, np.uint16, np.float32):
+            dtype = arr.dtype
+        elif arr.dtype.kind == "f":
+            dtype = np.float32
+        else:
+            dtype = arr.dtype
+    
+    arr = np.array(arr, dtype=dtype)
+        
+    # Automatically determine axes
+    if axes is None:
+        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+            
+    self = ImgArray(arr, name=name, axes=axes)
+    
+    return self
+
+def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
+    """
+    make an ImgArray object, just like np.array(x)
+    """
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype in (np.uint8, np.uint16, np.float32):
             dtype = arr.dtype
@@ -40,6 +60,29 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     self = ImgArray(arr, name=name, axes=axes)
     
     return self
+
+def aslazy(arr, dtype=None, chunks="auto", *, name=None, axes=None) -> LazyImgArray:
+    if isinstance(arr, (np.ndarray, np.memmap)):
+        arr = da.from_array(arr, chunks=chunks)
+    elif not isinstance(arr, da.core.Array):
+        arr = np.asarray(arr)
+        
+    if isinstance(arr, np.ndarray) and dtype is None:
+        if arr.dtype in (np.uint8, np.uint16, np.float32):
+            dtype = arr.dtype
+        elif arr.dtype.kind == "f":
+            dtype = np.float32
+        else:
+            dtype = arr.dtype
+        
+    # Automatically determine axes
+    if axes is None:
+        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+            
+    self = LazyImgArray(arr, name=name, axes=axes)
+    
+    return self
+        
 
 def zeros(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
     return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
