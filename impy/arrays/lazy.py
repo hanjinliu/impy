@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dask import array as da
+from dask.diagnostics import ProgressBar
 from scipy import ndimage as ndi
 from ..deco import *
 from ..func import *
@@ -11,7 +12,6 @@ from .axesmixin import AxesMixin
 from ._dask_image import *
 from . import _misc
 from .._const import MAX_GB
-from dask.diagnostics import ProgressBar
 
 class LazyImgArray(AxesMixin):
     MAX_GB = 2.0
@@ -269,7 +269,7 @@ class LazyImgArray(AxesMixin):
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        # TODO: may need to give `meta` in case of map_coordinates
+        # PROBLEM: output shape will not correctly be estimated
         cropped_img = self.apply(ndi.map_coordinates, 
                                  c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,

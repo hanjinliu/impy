@@ -4,7 +4,7 @@
 
 ![](Figs/Img.png)
 
-[scikit-image](https://github.com/scikit-image/scikit-image) is very useful but sometimes troublesome like ...
+Image analysis programatically is sometimes troublesome like ...
 
 1. for multi-dimensional images, you need to check which is time-axis and which is channel axis and so on.
 2. you need to consider the output data types and shapes for every batch image processing.
@@ -13,36 +13,38 @@
 
 As a result, isn't it faster to analyze images using ImageJ? This module solves these major problems of Python based image analysis and makes it much more effective.
 
-
 ## Installation
 
 ```
 pip install git+https://github.com/hanjinliu/impy
 ```
 
-For full usage of `impy` you also need to install `napari` and `trackpy`.
+`impy` is partly dependent on `numba`, `trackpy`, `mrcfile` and `dask-image`. Please install these packages if needed.
 
 ## Highlights
 
 #### 1. Handling Axes Easily
-**Image axes/scales are automatically read** from TIFF file and arrays support **axis-targeted slicing** like:
+
+**Image axes/scales are automatically read** from file metadata and as a result, arrays support **axis-targeted slicing** like:
+
 ```python
 img["t=3;z=5:7"]
 img["y=3,5,7"] = 0
 ```
-Accordingly, broadcasting is more flexible. You can also set your original axes symbol if you like, such as `img.axes = "!yx"`.
+
+Accordingly, broadcasting is more flexible. 
 
 #### 2. Automatic Batch Processing
 
-Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
+Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Prallel image processing is optimized for many function by temporarily converting into `dask` array. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
 
-You can even run batch processing **with your own functions** by decorating them (`@ip.bind`). See [Integrating Your Own Functions](#integrating-your-own-functions) part.
+You can even run batch processing **with your own functions** by decorating them with `@ip.bind`. See [Integrating Your Own Functions](#integrating-your-own-functions) part.
 
 You may usually want to perform same filter function to images with different shapes and dimensions. `DataList` is a `list`-like object and it can iterate over all the images (or other objects) with `__getattr__` method.
 
 ```python
 imglist = ip.DataList(imgs)
-outputs = imglist.gaussian_filter(sigma=3)
+outputs = imglist.gaussian_filter(sigma=3) # filter is applied to all the images
 ```
    
 #### 3. Metadata and History
@@ -61,7 +63,7 @@ original image: XXX
     history   : gaussian_filter(sigma=1)
 ```
 
-Therefore, analysis results can always be saved in the same directory.
+Therefore, results can always be saved in the same directory, without copy-and-pasting paths.
 
 #### 4. Image Viewer
 
@@ -102,7 +104,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
 - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
 - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
 - `DataList` can apply same method to all the data inside it.
-- `LazyImgArray` keeps memory map to an image and you can access image metadata and slice the images without reading them.
+- `LazyImgArray` keeps memory map to an image as an `dask` array and you can access image metadata and slice the images without reading them. Some filter functions are supported in `dask-image`.
 - `gui` is a controller object that connects console and `napari.Viewer`.
 
 ## Image Analysis Tools
@@ -253,6 +255,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   - `Ctrl` + `Shift` + `F` &rarr; Move selected layers to front.
   - `Alt` + `L` &rarr; Convert all the shapes in seleted shape-layers into labels of selected image-layers.
   - `Ctrl` + `Shift` + `X` &rarr; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated cropping is also supported!
+  - `/` &rarr; Reslice selected image-layers with all the lines and paths in selected shape-layers.
   - `Ctrl` + `P` &rarr; Projection of shape-layers or point-layers to 2D layers.
   - `Ctrl` + `G` / `Ctrl` + `Shift` + `G` &rarr; Link/Unlink layers. Like "grouping" in PowerPoint.
 - Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.
@@ -260,7 +263,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   ![](Figs/Img4.png)
 
 - Note pad in `Window > Note`.
-- Call `impy.imread` in `File > imread ...`.
+- Call `impy.imread` in `File > imread ...`. Call `impy.imsave` in `File > imsave ...`
 
 `napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to grouping image layers).
 
