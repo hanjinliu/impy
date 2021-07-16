@@ -102,8 +102,12 @@ class bind:
         >>> ip.bind(func, "funcname", ...)
         """        
         if callable(func):
-            self._bind_method(func, funcname=funcname, indtype=indtype, outdtype=outdtype, 
-                              kind=kind, ndim=ndim)
+            self._bind_method(func, 
+                              funcname=funcname, 
+                              indtype=indtype, 
+                              outdtype=outdtype, 
+                              kind=kind, 
+                              ndim=ndim)
         else:
             self.funcname = func
             self.indtype = indtype
@@ -189,13 +193,10 @@ class bind:
         elif kind == "label_binary":
             _drop_axis = lambda dims: None
             def _exit(out, img, func, *args, dims=None, **kwargs):
-                print(out.shape, img.axes, dims)
-                lb = LabeledArray(out, name=img.name, axes=img.axes, dirpath=img.dirpath)
-                lb.showinfo()
-                lb = lb.label(dims=dims)
-                lb.showinfo()
-                # BUG
-                img.labels = lb
+                arr = LabeledArray(out)
+                arr._set_info(img)
+                lbl = arr.label(dims=dims)
+                img.labels = lbl
                 img.labels.history.append(fn)
                 img.labels.set_scale(img)
                 return img.labels
@@ -212,11 +213,11 @@ class bind:
                 
             with Progress(fn):
                 out = img.apply_dask(func,
-                                      c_axes=complement_axes(dims, img.axes),
-                                      drop_axis=_drop_axis(dims),
-                                      args=args,
-                                      kwargs=kwargs
-                                      )
+                                     c_axes=complement_axes(dims, img.axes),
+                                     drop_axis=_drop_axis(dims),
+                                     args=args,
+                                     kwargs=kwargs
+                                     )
                 out = _exit(out, img, func, *args, dims=dims, **kwargs)
                 
             return out
