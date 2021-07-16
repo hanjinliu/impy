@@ -11,6 +11,7 @@ from .axesmixin import AxesMixin
 from ._dask_image import *
 from . import _misc
 from .._const import MAX_GB
+from dask.diagnostics import ProgressBar
 
 class LazyImgArray(AxesMixin):
     MAX_GB = 2.0
@@ -116,7 +117,7 @@ class LazyImgArray(AxesMixin):
         """        
         if self.gb > MAX_GB:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
-        with Progress("Computing Dask"):
+        with ProgressBar():
             img = self.img.compute().view(ImgArray)
             for attr in ["name", "dirpath", "axes", "metadata", "history"]:
                 setattr(img, attr, getattr(self, attr, None))
@@ -129,7 +130,7 @@ class LazyImgArray(AxesMixin):
         """
         if self.gb > MAX_GB:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
-        with Progress("Releasing Dask"):
+        with ProgressBar():
             img = self.img.compute()
             out = self.__class__(da.from_array(img, chunks=self.chunksize))
             out._set_info(self)
@@ -170,13 +171,13 @@ class LazyImgArray(AxesMixin):
         func : callable
             Function to apply for each chunk.
         c_axes : str, optional
-            Axes to iterate, by default None
+            Axes to iterate.
         drop_axis : Iterable[int], optional
-            Passed to map_blocks., by default []
+            Passed to map_blocks.
         new_axis : Iterable[int], optional
-            Passed to map_blocks, by default None
-        dtype : any that can be converted to np.dtype object, optional
-            Output data type, by default np.float32
+            Passed to map_blocks.
+        dtype : any that can be converted to np.dtype object, default is np.float32
+            Output data type.
         rechunk_to : tuple[int,...], optional
             In what size input array should be rechunked before `map_blocks` iteration. If str is given, 
             array will be rechunked in following rules:

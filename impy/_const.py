@@ -1,1 +1,2 @@
 MAX_GB = 2.0
+SHOW_PROGRESS = True

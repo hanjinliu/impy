@@ -1,4 +1,5 @@
 import time
+from ._const import SHOW_PROGRESS
 from importlib import import_module
 
 __all__ = ["ArrayDict", "FrameDict", "Timer", "ImportOnRequest", "Progress"]
@@ -83,7 +84,6 @@ class ImportOnRequest:
         return getattr(mod, name)
 
 class Progress:
-    show_progress = True
     n_ongoing = 0
     def __init__(self, name):
         self.name = name
@@ -91,12 +91,12 @@ class Progress:
     
     def __enter__(self):
         self.__class__.n_ongoing += 1
-        if self.__class__.show_progress and self.__class__.n_ongoing == 1:
+        if SHOW_PROGRESS and self.__class__.n_ongoing == 1:
             print(f"{self.name} ... ", end="")
             self.timer = Timer()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__class__.n_ongoing -= 1
-        if self.__class__.show_progress and self.__class__.n_ongoing == 0:
+        if SHOW_PROGRESS and self.__class__.n_ongoing == 0:
             self.timer.toc()
             print(f"\r{self.name} finished ({self.timer})")
