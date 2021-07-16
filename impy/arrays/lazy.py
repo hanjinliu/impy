@@ -9,6 +9,7 @@ from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from ._dask_image import *
+from . import _misc
 from .._const import MAX_GB
 
 class LazyImgArray(AxesMixin):
@@ -448,36 +449,20 @@ class LazyImgArray(AxesMixin):
         if binsize == 1:
             return self
         
-        shape = []
-        scale_ = []
-        img_to_reshape = self.img
-        for i, a in enumerate(self.axes):
-            s = self.shape[i]
-            if a in dims:
-                b = binsize
-                if s % b != 0:
-                    if check_edges:
-                        raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
-                    else:
-                        img_to_reshape = img_to_reshape[(slice(None),)*i + (slice(None, s//b*b),)]
-            else:
-                b = 1
-            shape += [s//b, b]
-            scale_.append(1/b)
-        
+        img_to_reshape, shape, scale_ = _misc.adjust_bin(self.img, binsize, check_edges, dims, self.axes)
         # rechunk to optimize for bin width
         if chunks is None:
             chunks = []
             for a, s, cs in zip(self.axes, self.shape, self.chunksize):
                 if a not in dims:
                     chunks.append(cs)
-                elif cs % b == 0 and s/cs > 8:
+                elif cs % binsize == 0 and s/cs > 8:
                     chunks.append(cs)
                 else:
-                    chunks.append((cs//b+1)*b)
+                    chunks.append((cs//binsize+1)*binsize)
                 
         img_to_reshape = img_to_reshape.rechunk(chunks=tuple(chunks))
-        reshaped_img = img_to_reshape.reshape(tuple(shape))
+        reshaped_img = img_to_reshape.reshape(shape)
         axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
         out = binfunc(reshaped_img, axis=axes_to_reduce)
         out = self.__class__(out)

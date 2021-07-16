@@ -195,24 +195,8 @@ class ImgArray(LabeledArray):
         if binsize == 1:
             return self
         
-        shape = []
-        scale_ = []
-        img_to_reshape = self.value
-        for i, a in enumerate(self.axes):
-            s = self.shape[i]
-            if a in dims:
-                b = binsize
-                if s % b != 0:
-                    if check_edges:
-                        raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
-                    else:
-                        img_to_reshape = img_to_reshape[(slice(None),)*i + (slice(None, s//b*b),)]
-            else:
-                b = 1
-            shape += [s//b, b]
-            scale_.append(1/b)
-            
-        shape = tuple(shape)
+        img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
+        
         reshaped_img = img_to_reshape.reshape(shape)
         axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
         out = binfunc(reshaped_img, axis=axes_to_reduce)
@@ -1152,7 +1136,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record()
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     def unmix(self, matrix, bg=None, *, along:str="c", update:bool=False) -> ImgArray:
         """
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
@@ -1217,7 +1201,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     def fill_hole(self, thr:float|str="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
         Filling holes.
