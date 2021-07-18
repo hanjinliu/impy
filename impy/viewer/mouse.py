@@ -1,6 +1,6 @@
 import numpy as np
 import napari
-from .._const import FONT_SIZE_FACTOR
+from .._const import Const
 
 mouse_drag_callbacks = ["drag_translation", "profile_shape"]
 mouse_wheel_callbacks = ["wheel_resize"]
@@ -28,7 +28,7 @@ def trace_mouse_drag(viewer:napari.Viewer, event, func=None):
             viewer.layers.selection = set()
         else:    
             viewer.text_overlay.text = clicked_layer.name
-            viewer.text_overlay.font_size = 5 * FONT_SIZE_FACTOR
+            viewer.text_overlay.font_size = 5 * Const["FONT_SIZE_FACTOR"]
             viewer.text_overlay.color = "white"
             if len(viewer.layers.selection) > 1 and event.type == "mouse_move":
                 pass
@@ -100,7 +100,7 @@ def wheel_resize(viewer:napari.Viewer, event):
             ratio = scale[-1]/layer.metadata["init_scale"][-1]
             scale_texts.append(f"{round(ratio*100)}%")
         viewer.text_overlay.text = ", ".join(scale_texts)
-        viewer.text_overlay.font_size = 10 * FONT_SIZE_FACTOR
+        viewer.text_overlay.font_size = 10 * Const["FONT_SIZE_FACTOR"]
         viewer.text_overlay.color = "white"
 
 def on_move(viewer:napari.Viewer, event):
@@ -154,7 +154,7 @@ def profile_shape(viewer:napari.Viewer, event):
                         text = f"{y:.1f} ({y*dy:.3g} {unit}) x {x:.1f} ({x*dx:.3g} {unit})\nangle = {deg:.1f} ({degreal:.1f}) deg"
                 
                 # update text overlay
-                viewer.text_overlay.font_size = 5 * FONT_SIZE_FACTOR
+                viewer.text_overlay.font_size = 5 * Const["FONT_SIZE_FACTOR"]
                 viewer.text_overlay.color = active_layer.current_edge_color
                 viewer.text_overlay.text = text
                 
@@ -171,7 +171,7 @@ def profile_shape(viewer:napari.Viewer, event):
                     text = f"L = {np.hypot(y, x):.1f} ({np.hypot(y*dy, x*dx):.3g} {unit}) angle = {deg:.1f} ({degreal:.1f}) deg"
                 
                 # update text overlay
-                viewer.text_overlay.font_size = 5 * FONT_SIZE_FACTOR
+                viewer.text_overlay.font_size = 5 * Const["FONT_SIZE_FACTOR"]
                 viewer.text_overlay.color = active_layer.current_edge_color
                 viewer.text_overlay.text = text
             yield

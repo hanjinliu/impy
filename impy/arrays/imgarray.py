@@ -107,6 +107,25 @@ class ImgArray(LabeledArray):
                                kwargs=dict(inverse_map=mx, order=order)
                                )
     
+    @record()
+    @same_dtype(True)
+    def rotate(self, degree, center="center", *, dims="yx", order:int=1) -> ImgArray:
+        if center == "center":
+            center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
+        else:
+            center = np.asarray(center)
+            
+        translation_0 = sktrans.SimilarityTransform(translation=center)
+        rotation = sktrans.SimilarityTransform(rotation=np.deg2rad(degree))
+        translation_1 = sktrans.SimilarityTransform(translation=-center)
+        mx = translation_1 + rotation + translation_0
+        mx.params[2] = (0, 0, 1)
+        return self.apply_dask(sktrans.warp,
+                               c_axes=complement_axes(dims, self.axes),
+                               kwargs=dict(inverse_map=mx, order=order, clip=False)
+                               )
+                        
+
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -2892,7 +2911,7 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(prop_axes)
         l = coords.shape[1] # Number of points
         out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
+                        axes=Const["ID_AXIS"]+prop_axes, dirpath=self.dirpath,
                         propname = f"pointprops", dtype=np.float32)
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
@@ -2944,7 +2963,7 @@ class ImgArray(LabeledArray):
         shape = self.sizesof(prop_axes)
         
         out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
+                        axes=Const["ID_AXIS"]+prop_axes, dirpath=self.dirpath,
                         propname = f"lineprops<{func.__name__}>", dtype=np.float32)
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
@@ -3119,11 +3138,12 @@ class ImgArray(LabeledArray):
         (1) Time-course measurement of intensities on a path.
         >>> img.pathprops([[2,3], [102, 301], [200,400]])
         """        
+        id_axis = Const["ID_AXIS"]
         # check path
         if not isinstance(paths, PathFrame):
             paths = np.asarray(paths)
             paths = np.hstack([np.zeros((paths.shape[0],1)), paths])
-            paths = PathFrame(paths, columns=ID_AXIS+str(self.axes)[-paths.shape[1]+1:])
+            paths = PathFrame(paths, columns=id_axis+str(self.axes)[-paths.shape[1]+1:])
             
         # make a function dictionary
         funcdict = dict()
@@ -3138,17 +3158,17 @@ class ImgArray(LabeledArray):
                 raise TypeError(f"Cannot interpret property {f}")
         
         # prepare output
-        l = len(paths[ID_AXIS].unique())
-        prop_axes = complement_axes(paths._axes, ID_AXIS + str(self.axes))
+        l = len(paths[id_axis].unique())
+        prop_axes = complement_axes(paths._axes, id_axis + str(self.axes))
         shape = self.sizesof(prop_axes)
         
         out = ArrayDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                                      axes=ID_AXIS+prop_axes, dirpath=self.dirpath,
+                                      axes=id_axis+prop_axes, dirpath=self.dirpath,
                                       propname = f"lineprops<{k}>", dtype=np.float32)
                          for k in funcdict.keys()}
                         )
         
-        for i, path in enumerate(paths.split(ID_AXIS)):
+        for i, path in enumerate(paths.split(id_axis)):
             resliced = self.reslice(path, order=order)
             for name, func in funcdict.items():
                 out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
@@ -3184,22 +3204,22 @@ class ImgArray(LabeledArray):
         >>> img.specify(coords, 3, labeltype="circle")
         >>> props = img.regionprops()
         """        
-        
+        id_axis = Const["ID_AXIS"]
         if isinstance(properties, str):
             properties = (properties,)
         if extra_properties is not None:
             properties = properties + tuple(ex.__name__ for ex in extra_properties)
 
-        if ID_AXIS in self.axes:
+        if id_axis in self.axes:
             # this dimension will be label
-            raise ValueError(f"axis '{ID_AXIS}' is used for label ID in DataFrames.")
+            raise ValueError(f"axis '{id_axis}' is used for label ID in DataFrames.")
         
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
         out = ArrayDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
                                       name=self.name, 
-                                      axes=ID_AXIS+prop_axes,
+                                      axes=id_axis+prop_axes,
                                       dirpath=self.dirpath,
                                       propname=p)
                          for p in properties})

@@ -6,14 +6,14 @@ import os
 import numpy as np
 from dask import array as da
 from skimage import io
-from .._const import MAX_GB
+from .._const import Const
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
 
 def check_size(path:str):
     size = os.path.getsize(path)/1e9
-    if size > MAX_GB:
+    if size > Const["MAX_GB"]:
         raise MemoryError(f"Too large {size:.2f} GB")
 
 def open_tif(path:str, return_img:bool=False, memmap:bool=False):

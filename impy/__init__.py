@@ -10,7 +10,7 @@ from .binder import bind
 from .viewer import gui
 from .correlation import *
 import numpy as np
-from ._const import MAX_GB, SHOW_PROGRESS, ID_AXIS, FONT_SIZE_FACTOR
+from ._const import Const
 
 r"""
 Inheritance

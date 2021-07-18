@@ -6,7 +6,7 @@ from ..func import *
 from ..deco import *
 from ..axes import ORDER
 from ..utilcls import *
-from .._const import ID_AXIS
+from .._const import Const
 
 tp = ImportOnRequest("trackpy")
 
@@ -135,7 +135,7 @@ class AxesFrame(pd.DataFrame):
         p -> uint32
         z, y, x -> float32
         """
-        dtype = lambda a: np.uint16 if a in "tc" else (np.uint32 if a == ID_AXIS else np.float32)
+        dtype = lambda a: np.uint16 if a in "tc" else (np.uint32 if a == Const["ID_AXIS"] else np.float32)
         out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
         out._axes = self._axes
         return out
@@ -245,8 +245,8 @@ class MarkerFrame(AxesFrame):
         with Progress("link"):
             linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, **kwargs)
             
-            linked.rename(columns = {"particle":ID_AXIS}, inplace=True)
-            linked = linked.reindex(columns=[a for a in ID_AXIS+str(self.col_axes)])
+            linked.rename(columns = {"particle":Const["ID_AXIS"]}, inplace=True)
+            linked = linked.reindex(columns=[a for a in Const["ID_AXIS"]+str(self.col_axes)])
             
             track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
             track.set_scale(self)
@@ -260,7 +260,7 @@ class MarkerFrame(AxesFrame):
 class TrackFrame(AxesFrame):
     def _renamed_df(self):
         df = pd.DataFrame(self, copy=True, dtype=np.float32)
-        df.rename(columns = {"t":"frame", ID_AXIS:"particle"}, inplace=True)
+        df.rename(columns = {"t":"frame", Const["ID_AXIS"]:"particle"}, inplace=True)
         return df
         
     @tp_no_verbose
@@ -295,8 +295,8 @@ class TrackFrame(AxesFrame):
     def filter_stubs(self, min_dwell=3):
         df = self._renamed_df()
         df = tp.filtering.filter_stubs(df, threshold=min_dwell)
-        df.rename(columns = {"frame":"t", "particle":ID_AXIS}, inplace=True)
-        df = df.astype({"t":np.uint16, ID_AXIS:np.uint32})
+        df.rename(columns = {"frame":"t", "particle":Const["ID_AXIS"]}, inplace=True)
+        df = df.astype({"t":np.uint16, Const["ID_AXIS"]:np.uint32})
         out = TrackFrame(df, columns=self.col_axes)
         out.set_scale(self)
         return out.as_standard_type()

@@ -12,10 +12,9 @@ from .axesmixin import AxesMixin
 from ._dask_image import *
 from ._skimage import *
 from . import _misc
-from .._const import MAX_GB
+from .._const import Const
 
 class LazyImgArray(AxesMixin):
-    MAX_GB = 2.0
     additional_props = ["dirpath", "metadata", "name"]
     def __init__(self, obj: da.core.Array, name:str=None, axes:str=None, dirpath:str=None, 
                  history:list[str]=None, metadata:dict=None):
@@ -116,7 +115,7 @@ class LazyImgArray(AxesMixin):
         Compute all the task and convert the result into ImgArray. If image size overwhelms MAX_GB
         then MemoryError is raised.
         """        
-        if self.gb > MAX_GB:
+        if self.gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with ProgressBar():
             img = self.img.compute().view(ImgArray)
@@ -129,7 +128,7 @@ class LazyImgArray(AxesMixin):
         Compute all the task for now and convert to dask again. If image size overwhelms MAX_GB
         then MemoryError is raised.
         """
-        if self.gb > MAX_GB:
+        if self.gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with ProgressBar():
             img = self.img.compute()
@@ -139,6 +138,7 @@ class LazyImgArray(AxesMixin):
     
     @dims_to_spatial_axes
     def imsave(self, dirpath:str, dtype=None, *, dims=None):
+        # TODO: test
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
         if self.metadata is None:

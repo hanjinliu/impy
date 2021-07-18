@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ..datalist import DataList
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -1036,7 +1037,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @record(need_labels=True)
-    def extract(self, label_ids=None, filt=None, cval:float=0) -> LabeledArray:
+    def extract(self, label_ids=None, filt=None, cval:float=0, crop:bool=False) -> LabeledArray|DataList:
         """
         Extract certain regions of the image and substitute others to `cval`.
 
@@ -1046,13 +1047,15 @@ class LabeledArray(HistoryArray):
             Which label regions are extracted.
         filt : callable, optional
             If given, only regions `X` that satisfy filt(self, X) will extracted.
-        cval : float, by default 0.
+        cval : float, default is 0.
             Constant value to fill regions outside the extracted labeled regions.
+        crop : bool, default is False
+            If True, image will be cropped at the bbox areas and returned as DataList of cropped images.
             
         Returns
         -------
-        LabeledArray
-            Extracted image
+        LabeledArray or DataList of LabeledArray
+            Extracted image(s)
         """        
         if filt is None:
             filt = lambda arr, lbl: True
@@ -1064,15 +1067,20 @@ class LabeledArray(HistoryArray):
         elif label_ids is None:
             # All the labels except for 0 (which means not labeled)
             label_ids = [i for i in np.unique(self.labels) if i != 0]
+        
+        if crop:
+            slices = ndi.find_objects(self.labels)
+            out = DataList(self[sl] for sl in slices)
+        else:
+            region = np.zeros_like(self.labels.value, dtype=np.uint8)
+            for i in label_ids:
+                subregion = (self.labels == i)
+                if filt(self, subregion):
+                    region += subregion.astype(np.uint8)
+                
+            out = self.copy()
+            out[region == 0] = cval
             
-        region = np.zeros_like(self.labels.value, dtype=np.uint8)
-        for i in label_ids:
-            subregion = (self.labels == i)
-            if filt(self, subregion):
-                region += subregion.astype(np.uint8)
-            
-        out = self.copy()
-        out[region == 0] = cval
         return out
 
 def _iter_dict(d, nparam):

@@ -9,7 +9,7 @@ from .utils import *
 from .mouse import *
 from ..utilcls import ArrayDict, Progress
 from .widgets import _make_table_widget
-from .._const import FONT_SIZE_FACTOR
+from .._const import Const
 
 
 # TODO: 
@@ -259,7 +259,7 @@ class napariViewers:
         else:
             track_list = [track]
             
-        scale = make_world_scale(track[[a for a in track._axes if a != ID_AXIS]])
+        scale = make_world_scale(track[[a for a in track._axes if a != Const["ID_AXIS"]]])
         for tr in track_list:
             metadata = {"axes": str(tr._axes), "scale": tr.scale}
             self.viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
@@ -272,13 +272,13 @@ class napariViewers:
         else:
             path_list = [paths]
             
-        scale = make_world_scale(paths[[a for a in paths._axes if a != ID_AXIS]])
+        scale = make_world_scale(paths[[a for a in paths._axes if a != Const["ID_AXIS"]]])
         kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
         kw.update(kwargs)
 
         for path in path_list:
             metadata = {"axes": str(path._axes), "scale": path.scale}
-            paths = [single_path.values for single_path in path.split(ID_AXIS)]
+            paths = [single_path.values for single_path in path.split(Const["ID_AXIS"])]
             self.viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
         
         return None
@@ -321,7 +321,7 @@ class napariViewers:
 def default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
-    viewer.scale_bar.font_size = 8 * FONT_SIZE_FACTOR
+    viewer.scale_bar.font_size = 8 * Const["FONT_SIZE_FACTOR"]
     viewer.text_overlay.visible = True
     viewer.axes.visible = True
     viewer.axes.colored = False
