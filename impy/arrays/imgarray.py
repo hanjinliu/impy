@@ -78,7 +78,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def affine(self, *, dims=None, order:int=1, **kwargs) -> ImgArray:
+    def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
+               dims=None, order:int=1) -> ImgArray:
         """
         Convert image by Affine transformation. 2D Affine transformation is written as:
         [x']   [A00 A01 A02]   [x]
@@ -87,19 +88,20 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
+        matrix, scale, rotation, shear, translation
+            See `skimage.transform.AffineTransform`.
         dims : int or str, optional
             Spatial dimensions.
         order : int, default is 1.
             Interpolation order after transformation.
-        kwargs : matrix, scale, rotation, shear, translation. 
-            See `skimage.transform.AffineTransform`.
             
         Returns
         -------
         ImgArray
             Transformed image.
         """
-        mx = sktrans.AffineTransform(**kwargs)
+        mx = sktrans.AffineTransform(matrix=matrix, scale=scale, rotation=rotation, shear=shear,
+                                     translation=translation)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(inverse_map=mx, order=order)
@@ -137,7 +139,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(inverse_map=mx, order=order)
                                )
 
-
+    # TODO: progess
     @dims_to_spatial_axes
     @same_dtype(True)
     def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
@@ -153,11 +155,12 @@ class ImgArray(LabeledArray):
         order : float, optional
             order of rescaling.
         """        
-        scale_ = [scale if a in dims else 1 for a in self.axes]
-        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
-        out = out.view(self.__class__)
-        out._set_info(self, f"rescale(scale={scale})")
-        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        with Progress("rescale"):
+            scale_ = [scale if a in dims else 1 for a in self.axes]
+            out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
+            out = out.view(self.__class__)
+            out._set_info(self, f"rescale(scale={scale})")
+            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
@@ -194,15 +197,15 @@ class ImgArray(LabeledArray):
         
         if binsize == 1:
             return self
-        
-        img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
-        
-        reshaped_img = img_to_reshape.reshape(shape)
-        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
-        out = binfunc(reshaped_img, axis=axes_to_reduce)
-        out = out.view(self.__class__)
-        out._set_info(self, f"binning(binsize={binsize})")
-        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        with Progress("rescale"):
+            img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
+            
+            reshaped_img = img_to_reshape.reshape(shape)
+            axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+            out = binfunc(reshaped_img, axis=axes_to_reduce)
+            out = out.view(self.__class__)
+            out._set_info(self, f"binning(binsize={binsize})")
+            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     

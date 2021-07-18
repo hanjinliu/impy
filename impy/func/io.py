@@ -3,9 +3,10 @@ from tifffile import TiffFile
 import json
 import re
 import os
+import numpy as np
+from dask import array as da
 from skimage import io
 from .._const import MAX_GB
-from dask import array as da
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
@@ -127,3 +128,31 @@ def get_scale_from_meta(meta:dict):
         scale["z"] = spacing
         
     return scale
+
+def get_imsave_meta_from_img(img, update_lut=True):
+    metadata = img.metadata.copy()
+    if update_lut:
+        lut_min, lut_max = np.percentile(img, [1, 99])
+        metadata.update({"min": lut_min, 
+                         "max": lut_max})
+    # set lateral scale
+    try:
+        res = (1/img.scale["x"], 1/img.scale["y"])
+    except Exception:
+        res = None
+    # set z-scale
+    if "z" in img.axes:
+        metadata["spacing"] = img.scale["z"]
+    # add history to Info
+    try:
+        info = load_json(metadata["Info"])
+    except:
+        info = {}
+    info["impyhist"] = "->".join([img.name] + img.history)
+    metadata["Info"] = str(info)
+    # set axes in tiff metadata
+    metadata["axes"] = str(img.axes).upper()
+    if img.ndim > 3:
+        metadata["hyperstack"] = True
+    
+    return dict(imagej=True, resolution=res, metadata=metadata)

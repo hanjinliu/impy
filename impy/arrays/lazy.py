@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dask import array as da
 from dask.diagnostics import ProgressBar
-from scipy import ndimage as ndi
+from tifffile import imwrite
 from ..deco import *
 from ..func import *
 from .._types import *
@@ -10,6 +10,7 @@ from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from ._dask_image import *
+from ._skimage import *
 from . import _misc
 from .._const import MAX_GB
 
@@ -136,6 +137,52 @@ class LazyImgArray(AxesMixin):
             out._set_info(self)
         return out
     
+    @dims_to_spatial_axes
+    def imsave(self, dirpath:str, dtype=None, *, dims=None):
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        if self.metadata is None:
+            self.metadata = {}
+        if dtype is None:
+            dtype = self.dtype
+        
+        # make a copy of the image for saving
+        self = self.__class__(self.as_img_type(dtype).value)
+        self = self.sort_axes()
+        imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
+            
+        
+        c_axes = complement_axes(dims, self.axes)
+        rechunk_to = []
+        for i in range(self.ndim):
+            if self.axes[i] in c_axes:
+                rechunk_to.append(1)
+            else:
+                rechunk_to.append(self.shape[i])
+        rechunk_to = tuple(rechunk_to)
+        
+        img = self.img.rechunk(rechunk_to)
+        
+        # convert to float32 if image is float64
+        if img.dtype == np.float64:
+            img = img.astype(np.float32)
+        # save image
+        
+        def _imwrite(arr, block_info=None):
+            path = os.path.join(dirpath, "-".join(map(str, block_info[0]["chunk-location"])) + ".tif")
+            imwrite(path, arr)
+            return arr
+        
+        da.map_blocks(_imwrite, img, **imsave_kwargs)
+        print(f"Succesfully saved: {dirpath}")
+        return None
+    
+    def rechunk(self, chunks="auto", threshold=None, block_size_limit=None, balance=False) -> LazyImgArray:
+        out = self.__class__(self.img.rechunk(chunks=chunks, threshold=threshold, 
+                                              block_size_limit=block_size_limit, balance=balance))
+        out._set_info(self)
+        return out
+        
     def apply_dask_func(self, funcname:str, *args, **kwargs) -> LazyImgArray:
         """
         Apply dask array function to the connected dask array.
@@ -320,6 +367,20 @@ class LazyImgArray(AxesMixin):
                           rechunk_to="max",
                           dask_wrap=True
                           )
+    
+    @dims_to_spatial_axes
+    def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
+               order=1, dims=None) -> LazyImgArray:
+        mx = sktrans.AffineTransform(matrix=matrix, scale=scale, rotation=rotation, shear=shear,
+                                     translation=translation)
+        return self.apply(daintr.affine_transform, 
+                          c_axes=complement_axes(dims, self.axes), 
+                          dtype=self.dtype,
+                          rechunk_to="max",
+                          dask_wrap=True,
+                          args=(mx.params,),
+                          kwargs=dict(order=order)
+                          )
         
     def chunksizeof(self, axis:str):
         return self.img.chunksize[self.axes.find(axis)]
@@ -335,6 +396,18 @@ class LazyImgArray(AxesMixin):
         out = self.__class__(self.img.transpose(axes))
         out._set_info(self, new_axes=new_axes)
         return out
+        
+    def sort_axes(self):
+        """
+        Sort image dimensions to ptzcyx-order
+
+        Returns
+        -------
+        MetaArray
+            Sorted image
+        """
+        order = self.axes.argsort()
+        return self.transpose(order)
     
     def crop_center(self, scale=0.5, *, dims="yx") -> LazyImgArray:
         """

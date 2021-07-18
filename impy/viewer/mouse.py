@@ -120,7 +120,7 @@ def profile_shape(viewer:napari.Viewer, event):
         return None
             
     if event.button == 1:
-        dy, dx = active_layer.scale[-2:]
+        dy, dx = active_layer.scale[active_plane]
         yield
         while event.type in ("mouse_move", "mouse_release"):
             unit = viewer.scale_bar.unit

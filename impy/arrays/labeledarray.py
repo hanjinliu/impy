@@ -94,35 +94,13 @@ class LabeledArray(HistoryArray):
         # make a copy of the image for saving
         img = self.__class__(self.as_img_type(dtype).value, axes=new_axes)
         img = img.sort_axes()
-        
-        metadata = self.metadata.copy()
-        metadata.update({"min":np.percentile(self, 1), 
-                         "max":np.percentile(self, 99)})
-        # set lateral scale
-        try:
-            res = (1/self.scale["x"], 1/self.scale["y"])
-        except Exception:
-            res = None
-        # set z-scale
-        if "z" in self.axes:
-            metadata["spacing"] = self.scale["z"]
-        # add history to Info
-        try:
-            info = load_json(metadata["Info"])
-        except:
-            info = {}
-        info["impyhist"] = "->".join([self.name] + self.history)
-        metadata["Info"] = str(info)
-        # set axes in tiff metadata
-        metadata["axes"] = str(img.axes).upper()
-        if img.ndim > 3:
-            metadata["hyperstack"] = True
+        imsave_kwargs = get_imsave_meta_from_img(img, update_lut=True)
             
         # convert to float32 if image is float64
         if img.dtype == np.float64:
             img = img.astype(np.float32)
         # save image
-        imwrite(tifname, img, imagej=True, resolution=res, metadata=metadata)
+        imwrite(tifname, img, **imsave_kwargs)
         # notifications
         if axes_changed:
             if new_axes == str(img.axes):
