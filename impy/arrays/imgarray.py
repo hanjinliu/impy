@@ -2458,16 +2458,15 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def power_spectra(self, norm:bool=True, *, dims=None) -> ImgArray:
+    def power_spectra(self, norm:bool=False, *, dims=None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
             P = Re{F[img]}^2 + Im{F[img]}^2
 
         Parameters
         ----------
-        norm : bool, default is True
-            If True, mean intensity is adjusted to 0 before FFT so that power spectra at the center of FFT
-            image will not be too high, and maximum value of power spectra is adjusted to 1.
+        norm : bool, default is False
+            If True, maximum value of power spectra is adjusted to 1.
         dims : int or str, optional
             Spatial dimensions.
 
@@ -2476,8 +2475,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Power spectra
         """        
-        if norm:
-            self = self - self.mean()
         freq = self.fft(dims=dims)
         pw = freq.real**2 + freq.imag**2
         if norm:
