@@ -1,6 +1,6 @@
 import numpy as np
 from ..utilcls import ArrayDict
-from scipy.stats import entropy
+import scipy
 
 __all__ = ["glcm_props_", "check_glcm"]
 
@@ -24,7 +24,7 @@ def max_(glcm, ref, nei):
 
 def entropy_(glcm, ref, nei):
     prob = glcm / np.sum(glcm, axis=(0,1), keepdims=True)
-    return entropy(prob, axis=(0,1))
+    return scipy.stats.entropy(prob, axis=(0,1))
 
 def correlation_(glcm, ref, nei):
     diffy = ref - np.sum(glcm * ref, axis=(0,1))

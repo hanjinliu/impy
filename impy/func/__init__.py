@@ -1,6 +1,5 @@
-from .affine import *
 from .gauss import *
-from .glcm import *
+from .glcm import * 
 from .io import *
 from .plot import *
 from .misc import *

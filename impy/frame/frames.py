@@ -1,10 +1,9 @@
 from __future__ import annotations
-from ..axes import Axes, ImageAxesError
+from ..axes import Axes, ImageAxesError, ORDER
 import numpy as np
 import pandas as pd
 from ..func import *
 from ..deco import *
-from ..axes import ORDER
 from ..utilcls import *
 from .._const import Const
 

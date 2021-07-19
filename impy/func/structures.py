@@ -1,5 +1,4 @@
 import numpy as np
-from skimage.morphology import disk, ball
 
 def circle(radius, shape, dtype="bool"):
     x = np.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
@@ -8,12 +7,17 @@ def circle(radius, shape, dtype="bool"):
     return np.array((dx ** 2 + dy ** 2) <= radius ** 2, dtype=dtype)
 
 def ball_like(radius, ndim:int):
+    L = np.arange(-radius, radius + 1)
     if ndim == 1:
         return np.ones(int(radius)*2+1, dtype=np.uint8)
     elif ndim == 2:
-        return disk(radius)
+        X, Y = np.meshgrid(L, L)
+        s = X**2 + Y**2
+        return np.array(s <= radius**2, dtype=np.uint8)
     elif ndim == 3:
-        return ball(radius)
+        Z, Y, X = np.meshgrid(L, L, L)
+        s = X**2 + Y**2 + Z**2
+        return np.array(s <= radius**2, dtype=np.uint8)
     else:
         raise ValueError(f"dims must be 1 - 3, but got {ndim}")
 
@@ -27,7 +31,7 @@ def ball_like_odd(radius, ndim):
     This is not suitable for specify().
     """    
     xc = int(radius)
-    l = xc*2+1
+    l = xc*2 + 1
     coords = np.indices((l,)*ndim)
     s = np.sum((a-xc)**2 for a in coords)
     return np.array(s <= radius*radius, dtype=bool)

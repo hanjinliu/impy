@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import re
 from dask import array as da
 from ...axes import ImageAxesError
 from ...func import *
@@ -156,7 +155,6 @@ class MetaArray(AxesMixin, np.ndarray):
             return result
         
         result._process_output(ufunc, args, kwargs)
-        
         return result
     
     def _inherit_meta(self, obj, ufunc, **kwargs):
@@ -431,7 +429,7 @@ def _list_of_axes(img, axis):
     return axis
         
 def _replace_inputs(img, args, kwargs):
-    _as_np_ndarray = lambda a: a.value if a is img else a
+    _as_np_ndarray = lambda a: a.value if isinstance(a, MetaArray) else a
     # convert arguments
     args = tuple(_as_np_ndarray(a) for a in args)
     if "axis" in kwargs:

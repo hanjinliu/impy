@@ -27,31 +27,31 @@ def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
 @bind_key
-def add_new_shape_2d(viewer:napari.Viewer):
+def add_new_shape_2d(viewer):
     scale = [r[2] for r in viewer.dims.range]
     layer = viewer.add_shapes(scale=scale[-2:], ndim=2)
     layer.mode = "add_rectangle"
     
 @bind_key
-def add_new_shape_3d(viewer:napari.Viewer):
+def add_new_shape_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
     layer =viewer.add_shapes(scale=scale[-2:])
     layer.mode = "add_rectangle"
     
 @bind_key
-def add_new_point_2d(viewer:napari.Viewer):
+def add_new_point_2d(viewer):
     scale = [r[2] for r in viewer.dims.range]
     layer = viewer.add_points(scale=scale[-2:], ndim=2)
     layer.mode = "add"
 
 @bind_key
-def add_new_point_3d(viewer:napari.Viewer):
+def add_new_point_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
     layer = viewer.add_points(scale=scale[-2:])
     layer.mode = "add"
     
 @bind_key
-def hide_others(viewer:napari.Viewer):
+def hide_others(viewer):
     """
     Make selected layers visible and others invisible. 
     """
@@ -66,21 +66,21 @@ def hide_others(viewer:napari.Viewer):
             layer.visible = True
 
 @bind_key
-def link_selected_layers(viewer:napari.Viewer):
+def link_selected_layers(viewer):
     """
     Link selected layers.
     """
     link_layers(viewer.layers.selection)
     
 @bind_key
-def unlink_selected_layers(viewer:napari.Viewer):
+def unlink_selected_layers(viewer):
     """
     Unlink selected layers.
     """
     unlink_layers(viewer.layers.selection)
 
 @bind_key
-def to_front(viewer:napari.Viewer):
+def to_front(viewer):
     """
     Let selected layers move to front.
     """
@@ -89,7 +89,7 @@ def to_front(viewer:napari.Viewer):
     viewer.layers.move_multiple(not_selected_index, 0)
     
 @bind_key
-def reset_view(viewer:napari.Viewer):
+def reset_view(viewer):
     """
     Reset translate/scale parameters to the initial value.
     """    
@@ -99,7 +99,7 @@ def reset_view(viewer:napari.Viewer):
         layer.scale = layer.metadata["init_scale"]
 
 @bind_key
-def layers_to_labels(viewer:napari.Viewer):
+def layers_to_labels(viewer):
     """
     Convert manually drawn shapes to labels and store it.
     """        
@@ -145,7 +145,7 @@ def layers_to_labels(viewer:napari.Viewer):
     return None
 
 @bind_key
-def crop(viewer:napari.Viewer):
+def crop(viewer):
     """
     Crop images with (rotated) rectangle shapes.
     """        
@@ -220,7 +220,7 @@ def crop(viewer:napari.Viewer):
     return None
 
 @bind_key
-def reslice(viewer:napari.Viewer):
+def reslice(viewer):
     """
     2D Reslice with currently selected lines/paths and images.
     """
@@ -261,7 +261,7 @@ def reslice(viewer:napari.Viewer):
     return None
 
 @bind_key
-def proj(viewer:napari.Viewer):
+def proj(viewer):
     """
     Projection
     """
@@ -304,7 +304,7 @@ def proj(viewer:napari.Viewer):
             raise NotImplementedError(type(layer))
         
 @bind_key
-def duplicate_layer(viewer:napari.Viewer):
+def duplicate_layer(viewer):
     """
     Duplicate selected layer(s).
     """

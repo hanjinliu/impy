@@ -5,7 +5,6 @@ import re
 import os
 import numpy as np
 from dask import array as da
-from skimage import io
 from .._const import Const
 
 def load_json(s:str):
@@ -101,6 +100,7 @@ def open_img(path, memmap:bool=False):
         meta = open_mrc(path, True, memmap=memmap)
         img = meta.pop("image")
     else:
+        from skimage import io
         img = io.imread(path)
         if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
             meta = {"axes":"yxc", "ijmeta":{}, "history":[]}

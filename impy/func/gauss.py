@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import optimize as opt
+import scipy
 
 def square(params, func, r, z):
     """
@@ -68,12 +68,12 @@ class DiagonalGaussian(Gaussian):
     def ndim(self):
         return self.mu.size
     
-    def fit(self, data:np.ndarray, method="Powell") -> opt.OptimizeResult:
+    def fit(self, data:np.ndarray, method="Powell"):
         if self.mu is None or self.sg is None or self.a is None or self.b is None:
             self._estimate_params(data)
         r = np.indices(data.shape)
-        result = opt.minimize(square, self.params, args=(diagonal_gaussian, r, data),
-                              method=method)
+        result = scipy.optimize.minimize(square, self.params, args=(diagonal_gaussian, r, data),
+                                         method=method)
         self.params = result.x
         
         return result

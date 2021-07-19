@@ -10,7 +10,6 @@ from dask import array as da
 from .func import *
 from .axes import ImageAxesError
 from skimage import data as skdata
-
 __all__ = ["array", "asarray", "aslazy", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", 
            "lazy_imread", "read_meta", "sample_image"]
 

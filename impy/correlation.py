@@ -9,7 +9,6 @@ from .utilcls import *
 from ._const import SetConst
 from warnings import warn
 
-# TODO:
 __all__ = ["fsc", "fourier_shell_correlation", "angular_correlation", "pearson_coloc", "manders_coloc"]
 
 @dims_to_spatial_axes
@@ -92,6 +91,13 @@ fourier_shell_correlation = fsc
 def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center", *, squeeze:bool=True,
                         dims="yx") -> PropArray|float:
     """
+    Image correlation with image rotation. Angular correlation with rotation θ, Corr(θ), is defined as:
+    
+        B'= R(θ)B 
+                    Σ(|F[A]| - mean(|F[A]|))(|F[B']| - mean(|F[B']|))
+        Corr(θ) = ----------------------------------------------------
+                            std(|F[A]|) x std(|F[B']|)
+    
     Parameters
     ----------
     img0 : ImgArray

@@ -1,7 +1,4 @@
-__version__ = "1.16.0"
-
-# TODO
-# - 3D Gabor filter
+__version__ = "1.16.1"
 
 import logging
 from .datalist import DataList

@@ -57,6 +57,18 @@ def complement_axes(axes, all_axes="ptzcyx"):
     return c_axes
 
 
+def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=None):
+    if ifnot is None:
+        ifnot = slice(None)
+    sl = []
+    for a in all_axes:
+        if a in axes:
+            sl.append(ifin)
+        else:
+            sl.append(ifnot)
+    sl = tuple(sl)
+    return sl
+
 
 def largest_zeros(shape) -> np.ndarray:
     try:

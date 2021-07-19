@@ -1,4 +1,3 @@
-
 import numpy as np
 from ._skimage import *
 
@@ -20,7 +19,7 @@ def kalman_filter(img, gain, noise_var):
 def fill_hole(img, mask):
     seed = np.copy(img)
     seed[1:-1, 1:-1] = img.max()
-    return skmorph.reconstruction(seed, mask, method="erosion")
+    return skimage.morphology.reconstruction(seed, mask, method="erosion")
 
 def mean_filter(img, selem):
     return ndi.convolve(img, selem/np.sum(selem))
@@ -72,9 +71,9 @@ def gabor_filter(img, ker):
 
 
 def skeletonize(img, selem):
-    skl = skmorph.skeletonize_3d(img)
+    skl = skimage.morphology.skeletonize_3d(img)
     if selem is not None:
-        skl = skmorph.binary_dilation(skl, selem)
+        skl = skimage.morphology.binary_dilation(skl, selem)
     return skl
 
 def population(img, selem):

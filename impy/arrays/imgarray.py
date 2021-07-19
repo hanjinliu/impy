@@ -2,8 +2,6 @@ from __future__ import annotations
 import warnings
 import numpy as np
 import pandas as pd
-from scipy.linalg import pinv as pseudo_inverse
-from scipy.spatial import Voronoi
 from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
 from .._types import *
@@ -216,7 +214,7 @@ class ImgArray(LabeledArray):
         
         if binsize == 1:
             return self
-        with Progress("rescale"):
+        with Progress("binning"):
             img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
             
             reshaped_img = img_to_reshape.reshape(shape)
@@ -427,7 +425,7 @@ class ImgArray(LabeledArray):
                 
         elif isinstance(matrices, (list, tuple)):
             # ref is a list of Affine transformation matrix
-            matrices = check_matrix(matrices)
+            matrices = _misc.check_matrix(matrices)
             
         # Determine matrices by fitting
         # if Affine matrix is not given
@@ -436,7 +434,7 @@ class ImgArray(LabeledArray):
                 imgs = self.median_filter(radius=1).split(along)
             else:
                 imgs = self.split(along)
-            matrices = [1] + [affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
+            matrices = [1] + [_misc.affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
         
         # check Affine matrix shape
         if len(matrices) != self.sizeof(along):
@@ -765,7 +763,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skmorph.binary_erosion if self.dtype == bool else skmorph.erosion
+        f = skimage.morphology.binary_erosion if self.dtype == bool else skimage.morphology.erosion
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -788,7 +786,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skmorph.binary_dilation if self.dtype == bool else skmorph.dilation
+        f = skimage.morphology.binary_dilation if self.dtype == bool else skimage.morphology.dilation
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -811,7 +809,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skmorph.binary_opening if self.dtype == bool else skmorph.opening
+        f = skimage.morphology.binary_opening if self.dtype == bool else skimage.morphology.opening
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -834,7 +832,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skmorph.binary_closing if self.dtype == bool else skmorph.closing
+        f = skimage.morphology.binary_closing if self.dtype == bool else skimage.morphology.closing
         return self._running_kernel(radius, f, dims=dims, update=update)
     
     @record()
@@ -856,7 +854,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return self._running_kernel(radius, skmorph.white_tophat, dims=dims, update=update)
+        return self._running_kernel(radius, skimage.morphology.white_tophat, dims=dims, update=update)
     
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -960,7 +958,7 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims=None, 
                          update:bool=False) -> ImgArray:
-        return self.apply_dask(skmorph.diameter_opening, 
+        return self.apply_dask(skimage.morphology.diameter_opening, 
                                c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
@@ -970,7 +968,7 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims=None,
                          update:bool=False) -> ImgArray:
-        return self.apply_dask(skmorph.diameter_closing, 
+        return self.apply_dask(skimage.morphology.diameter_closing, 
                                c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
@@ -981,12 +979,12 @@ class ImgArray(LabeledArray):
     def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
                      update:bool=False) -> ImgArray:
         if self.dtype == bool:
-            return self.apply_dask(skmorph.remove_small_objects,
+            return self.apply_dask(skimage.morphology.remove_small_objects,
                                    c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
-            return self.apply_dask(skmorph.area_opening, 
+            return self.apply_dask(skimage.morphology.area_opening, 
                                    c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
@@ -997,12 +995,12 @@ class ImgArray(LabeledArray):
     def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, 
                      update:bool=False) -> ImgArray:
         if self.dtype == bool:
-            return self.apply_dask(skmorph.remove_small_holes,
+            return self.apply_dask(skimage.morphology.remove_small_holes,
                                    c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
-            return self.apply_dask(skmorph.area_closing, 
+            return self.apply_dask(skimage.morphology.area_closing, 
                                    c_axes=complement_axes(dims, self.axes), 
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
@@ -1250,10 +1248,18 @@ class ImgArray(LabeledArray):
             mask = self.threshold(thr=thr).value
         else:
             mask = self.value
-        # TODO: cannot iterate mask correctly. mask needs to be a dask array.
+        # TODO: cannot iterate mask correctly. do not use apply_dask
+        chunks = []
+        for i, a in enumerate(self.axes):
+            if a not in dims:
+                chunks.append(1)
+            else:
+                chunks.append(self.shape[i])
+                    
+        chunks = tuple(chunks)
         return self.apply_dask(_filters.fill_hole, 
                                c_axes=complement_axes(dims, self.axes), 
-                               kwargs=dict(mask=mask),
+                               kwargs=dict(mask=da.from_array(mask, chunks=chunks)),
                                dtype=self.dtype
                                )
     
@@ -1837,6 +1843,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Image labeled with segmentation.
         """        
+        from scipy.spatial import Voronoi
         coords = _check_coordinates(coords, self, dims=self.axes)
         
         ny, nx = self.sizesof(dims)
@@ -1900,8 +1907,8 @@ class ImgArray(LabeledArray):
                 else:
                     n_label = n_label_next
                     n_label_next += 1
-                fill_area = skmorph.flood(self.value[sl], crd, connectivity=connectivity, 
-                                          tolerance=tolerance)
+                fill_area = skimage.morphology.flood(self.value[sl], crd, connectivity=connectivity, 
+                                                     tolerance=tolerance)
                 labels[sl][fill_area] = n_label
         
         self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
@@ -2149,6 +2156,7 @@ class ImgArray(LabeledArray):
         # TODO: Whether error is correctly calculated has not been checked yet. For loop should be 
         # like centroid_sm because currently does not work for zcyx-image
         
+        from scipy.linalg import pinv as pseudo_inverse
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
         else:
@@ -2382,6 +2390,7 @@ class ImgArray(LabeledArray):
         >>>     out[i] = img.gabor_filter(theta=theta)
         >>> out = np.max(out, axis=0)
         """        
+        # TODO: 3D Gabor filter
         ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
             out = self.as_float().apply_dask(_filters.gabor_filter, 
@@ -2763,7 +2772,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Convex hull image.
         """        
-        return self.apply_dask(skmorph.convex_hull_image, 
+        return self.apply_dask(skimage.morphology.convex_hull_image, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=bool
                                ).astype(bool)
