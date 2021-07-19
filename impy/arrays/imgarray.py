@@ -16,6 +16,8 @@ from .specials import PropArray
 from ..utilcls import *
 from ..frame import *
 
+# TODO: check https://github.com/scikit-image/scikit-image/issues/3846
+
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def __add__(self, value):
@@ -66,13 +68,7 @@ class ImgArray(LabeledArray):
         elif np.isscalar(value) and value < 0:
             raise ValueError("Cannot devide negative value.")
         return super().__itruediv__(value)
-    
-    def freeze(self):
-        """
-        To avoid further image analysis, convert to LabeledArray.
-        """        
-        return self.view(LabeledArray)
-    
+        
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -102,12 +98,14 @@ class ImgArray(LabeledArray):
                                      translation=translation)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
+                               copy=True,
                                kwargs=dict(inverse_map=mx, order=order)
                                )
     
     @record()
     @same_dtype(True)
-    def rotate(self, degree, center="center", *, dims="yx", order:int=1) -> ImgArray:
+    def rotate(self, degree:float, center="center", *, dims="yx", order:int=1) -> ImgArray:
+        # TODO: scale sensitive rotation
         if center == "center":
             center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
         else:
@@ -120,6 +118,7 @@ class ImgArray(LabeledArray):
         mx.params[2] = (0, 0, 1)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
+                               copy=True,
                                kwargs=dict(inverse_map=mx, order=order, clip=False)
                                )
                         
@@ -153,10 +152,10 @@ class ImgArray(LabeledArray):
         mx = sktrans.AffineTransform(matrix=mtx)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
+                               copy=True,
                                kwargs=dict(inverse_map=mx, order=order)
                                )
 
-    # TODO: progess
     @dims_to_spatial_axes
     @same_dtype(True)
     def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
@@ -854,8 +853,15 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return self._running_kernel(radius, skimage.morphology.white_tophat, dims=dims, update=update)
+        
+        disk = ball_like(radius, len(dims))
+        return self.apply_dask(ndi.white_tophat, 
+                               c_axes=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               kwargs=dict(footprint=disk)
+                               )
     
+    @dims_to_spatial_axes
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -960,6 +966,7 @@ class ImgArray(LabeledArray):
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_opening, 
                                c_axes=complement_axes(dims, self.axes), 
+                               copy=True,
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
         
@@ -970,6 +977,7 @@ class ImgArray(LabeledArray):
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_closing, 
                                c_axes=complement_axes(dims, self.axes), 
+                               copy=True,
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
     
@@ -981,11 +989,13 @@ class ImgArray(LabeledArray):
         if self.dtype == bool:
             return self.apply_dask(skimage.morphology.remove_small_objects,
                                    c_axes=complement_axes(dims, self.axes), 
+                                   copy=True,
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
             return self.apply_dask(skimage.morphology.area_opening, 
                                    c_axes=complement_axes(dims, self.axes), 
+                                   copy=True,
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
         
@@ -997,11 +1007,13 @@ class ImgArray(LabeledArray):
         if self.dtype == bool:
             return self.apply_dask(skimage.morphology.remove_small_holes,
                                    c_axes=complement_axes(dims, self.axes), 
+                                   copy=True,
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
             return self.apply_dask(skimage.morphology.area_closing, 
                                    c_axes=complement_axes(dims, self.axes), 
+                                   copy=True,
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
     

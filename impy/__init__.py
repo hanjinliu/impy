@@ -1,4 +1,4 @@
-__version__ = "1.16.1"
+__version__ = "1.16.2"
 
 import logging
 from .datalist import DataList
@@ -7,7 +7,7 @@ from .binder import bind
 from .viewer import gui
 from .correlation import *
 import numpy as np
-from ._const import Const
+from ._const import Const, SetConst
 
 r"""
 Inheritance

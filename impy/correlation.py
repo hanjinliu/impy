@@ -89,8 +89,8 @@ def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:
 fourier_shell_correlation = fsc
 
 @dims_to_spatial_axes
-def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center", *, squeeze:bool=True,
-                        dims="yx") -> PropArray|float:
+def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center", *,
+                        squeeze:bool=True, dims="yx") -> PropArray|float:
     """
     Image correlation with image rotation. Angular correlation with rotation θ, Corr(θ), is defined as:
     
@@ -129,13 +129,18 @@ def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center"
     _assert_same_dims(img0, img1)
     sl = switch_slice(dims, img0.axes)
     
-    with Progress("fsc"):
-        f1 = np.sqrt(img0.power_spectra(dims=dims))
-        f2 = np.sqrt(img1.rotate(deg, center=center).power_spectra(dims=dims))
+    # TODO: mask
+    # spatial_shape = img0.sizesof(dims)
+    # inds = np.indices(spatial_shape)
+    
+    # center = [s/2 for s in spatial_shape]
+    # mask = sum((x - c)**2 for x, c in zip(inds, center)) < r_max**2
+    with Progress("angular_correlation"):
+        f0 = np.sqrt(img0.power_spectra(dims=dims))
+        f1 = np.sqrt(img1.rotate(deg, center=center, dims=dims).power_spectra(dims=dims))
+        f0 -= np.mean(f0, axis=dims)[sl]
         f1 -= np.mean(f1, axis=dims)[sl]
-        f2 -= np.mean(f2, axis=dims)[sl]
-        cov = (f1 - np.mean(f1, axis=dims))*(f2 - np.mean(f2, axis=dims))
-        corr = np.sum(cov) / (np.std(f1)*np.std(f2))
+        corr = np.sum(f0 * f1, axis=dims) / (np.std(f0)*np.std(f1))
 
     if corr.ndim == 0 and squeeze:
         corr = corr[()]
