@@ -363,13 +363,26 @@ class MetaArray(AxesMixin, np.ndarray):
             slice_in = tuple(slice_in)
             slice_out = tuple(slice_out)
             
-            input_ = da.from_array(self.value, chunks=chunks)
-            
-            def _func(arr, *args, **kwargs):
-                out = func(arr[slice_in], *args, **kwargs)
+            all_args = (self.value,) + args
+            img_idx = []
+            args = []
+            for i, arg in enumerate(all_args):
+                if isinstance(arg, np.ndarray) and arg.shape == self.shape:
+                    args.append(da.from_array(arg, chunks=chunks))
+                    img_idx.append(i)
+                else:
+                    args.append(arg)
+                    
+            def _func(*args, **kwargs):
+                args = list(args)
+                for i in img_idx:
+                    if args[i].ndim < len(slice_in):
+                        continue
+                    args[i] = args[i][slice_in]
+                out = func(*args, **kwargs)
                 return out[slice_out]
             
-            out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
+            out = da.map_blocks(_func, *args, drop_axis=drop_axis, new_axis=new_axis, 
                                 dtype=dtype, **kwargs)
             out = out.compute()
         

@@ -138,7 +138,6 @@ class LazyImgArray(AxesMixin):
     
     @dims_to_spatial_axes
     def imsave(self, dirpath:str, dtype=None, *, dims=None):
-        # TODO: test
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
         if self.metadata is None:
@@ -146,38 +145,51 @@ class LazyImgArray(AxesMixin):
         if dtype is None:
             dtype = self.dtype
         
-        # make a copy of the image for saving
-        self = self.__class__(self.as_img_type(dtype).value)
-        self = self.sort_axes()
+        self = self.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
-            
         
-        c_axes = complement_axes(dims, self.axes)
-        rechunk_to = []
-        for i in range(self.ndim):
-            if self.axes[i] in c_axes:
-                rechunk_to.append(1)
-            else:
-                rechunk_to.append(self.shape[i])
-        rechunk_to = tuple(rechunk_to)
+        # c_axes = complement_axes(dims, self.axes)
+        # rechunk_to = []
+        # for i in range(self.ndim):
+        #     if self.axes[i] in c_axes:
+        #         rechunk_to.append(1)
+        #     else:
+        #         rechunk_to.append(self.shape[i])
+        # rechunk_to = tuple(rechunk_to)
+        rechunk_to = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
         
         img = self.img.rechunk(rechunk_to)
         
         # convert to float32 if image is float64
         if img.dtype == np.float64:
             img = img.astype(np.float32)
-        # save image
         
-        def _imwrite(arr, block_info=None):
+        # save image
+        def _imwrite(arr, block_info=None, **kwargs):
+            if block_info is None:
+                return None
             path = os.path.join(dirpath, "-".join(map(str, block_info[0]["chunk-location"])) + ".tif")
-            imwrite(path, arr)
+            imwrite(path, arr, **kwargs)
             return arr
         
-        da.map_blocks(_imwrite, img, **imsave_kwargs)
+        da.map_blocks(_imwrite, img, dtype=img.dtype, **imsave_kwargs).compute()
         print(f"Succesfully saved: {dirpath}")
         return None
     
     def rechunk(self, chunks="auto", threshold=None, block_size_limit=None, balance=False) -> LazyImgArray:
+        """
+        Rechunk the bound dask array.
+
+        Parameters
+        ----------
+        chunks, threshold, block_size_limit, balance
+            Passed directly to dask.array's rechunk
+
+        Returns
+        -------
+        LazyImgArray
+            Rechunked dask array is bound. History will not be updated.
+        """        
         out = self.__class__(self.img.rechunk(chunks=chunks, threshold=threshold, 
                                               block_size_limit=block_size_limit, balance=balance))
         out._set_info(self)
@@ -316,7 +328,8 @@ class LazyImgArray(AxesMixin):
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        # PROBLEM: output shape will not correctly be estimated
+        # TODO: output shape will not correctly be estimated. This problem may be solved after
+        # dask-image's map_coordinate is out.
         cropped_img = self.apply(ndi.map_coordinates, 
                                  c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,
@@ -407,7 +420,7 @@ class LazyImgArray(AxesMixin):
             Sorted image
         """
         order = self.axes.argsort()
-        return self.transpose(order)
+        return self.transpose(tuple(order))
     
     def crop_center(self, scale=0.5, *, dims="yx") -> LazyImgArray:
         """
@@ -472,12 +485,13 @@ class LazyImgArray(AxesMixin):
         
         # rechunk if array is split into too many chunks along `axis`
         if chunks is None:
-            chunks = []
-            for i in range(self.ndim):
-                if i in axisint:
-                    chunks.append(self.shape[i] % 2000)
-                else:
-                    chunks.append("auto")
+            # chunks = []
+            # for i in range(self.ndim):
+            #     if i in axisint:
+            #         chunks.append(self.shape[i] % 2000)
+            #     else:
+            #         chunks.append("auto")
+            chunks = switch_slice(axis, self.axes, ifin=np.maximum(self.shape, 2048), ifnot=["auto"]*self.ndim)
         if any(c != "auto" for c in chunks):
             input_img = self.img.rechunk(chunks=chunks)
         

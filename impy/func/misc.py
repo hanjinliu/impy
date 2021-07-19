@@ -59,13 +59,19 @@ def complement_axes(axes, all_axes="ptzcyx"):
 
 def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=None):
     if ifnot is None:
-        ifnot = slice(None)
+        ifnot = [slice(None)]*len(all_axes)
+    elif not hasattr(ifnot, "__iter__"):
+        ifnot = [ifnot]*len(all_axes)
+        
+    if not hasattr(ifin, "__iter__"):
+        ifin = [ifin]*len(all_axes)
+        
     sl = []
-    for a in all_axes:
+    for a, slin, slout in zip(all_axes, ifin, ifnot):
         if a in axes:
-            sl.append(ifin)
+            sl.append(slin)
         else:
-            sl.append(ifnot)
+            sl.append(slout)
     sl = tuple(sl)
     return sl
 

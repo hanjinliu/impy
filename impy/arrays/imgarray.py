@@ -831,6 +831,7 @@ class ImgArray(LabeledArray):
         f = skimage.morphology.binary_closing if self.dtype == bool else skimage.morphology.closing
         return self._running_kernel(radius, f, dims=dims, update=update)
     
+    @dims_to_spatial_axes
     @record()
     def tophat(self, radius:float=50, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -1251,18 +1252,10 @@ class ImgArray(LabeledArray):
             mask = self.threshold(thr=thr).value
         else:
             mask = self.value
-        # TODO: cannot iterate mask correctly. do not use apply_dask
-        chunks = []
-        for i, a in enumerate(self.axes):
-            if a not in dims:
-                chunks.append(1)
-            else:
-                chunks.append(self.shape[i])
                     
-        chunks = tuple(chunks)
         return self.apply_dask(_filters.fill_hole, 
                                c_axes=complement_axes(dims, self.axes), 
-                               kwargs=dict(mask=da.from_array(mask, chunks=chunks)),
+                               args=(mask,),
                                dtype=self.dtype
                                )
     
@@ -3476,7 +3469,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Rescaled image with temporal attribute
         """        
-        # TODO: along=... like threshold()
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
             
