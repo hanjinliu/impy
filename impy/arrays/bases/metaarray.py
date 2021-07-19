@@ -339,7 +339,7 @@ class MetaArray(AxesMixin, np.ndarray):
             kwargs = dict()
         
         if len(c_axes) == 0:
-            out = func(self.value, *args, **kwargs)
+            out = func(np.array(self.value, copy=copy), *args, **kwargs)
         else:
             new_axis = _list_of_axes(self, new_axis)
             drop_axis = _list_of_axes(self, drop_axis)
