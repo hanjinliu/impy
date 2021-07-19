@@ -302,7 +302,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return iterlist
             
     def apply_dask(self, func, c_axes=None, drop_axis=[], new_axis=None, dtype=np.float32, 
-                   copy=False, args=None, kwargs=None) -> MetaArray:
+                   args=None, kwargs=None) -> MetaArray:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
@@ -319,10 +319,6 @@ class MetaArray(AxesMixin, np.ndarray):
             Passed to map_blocks.
         dtype : any that can be converted to np.dtype object, default is np.float32
             Output data type.
-        copy : bool, default is False
-            If make a copy before given to function in `map_blocks`. This parameter must be set to True
-            sometimes, because by default read-only array is passed to the function, which is not compatible
-            with some Cython codes.
         args : tuple, optional
             Arguments that will passed to `func`.
         kwargs : dict
@@ -339,7 +335,7 @@ class MetaArray(AxesMixin, np.ndarray):
             kwargs = dict()
         
         if len(c_axes) == 0:
-            out = func(np.array(self.value, copy=copy), *args, **kwargs)
+            out = func(self.value, *args, **kwargs)
         else:
             new_axis = _list_of_axes(self, new_axis)
             drop_axis = _list_of_axes(self, drop_axis)
@@ -370,7 +366,7 @@ class MetaArray(AxesMixin, np.ndarray):
             input_ = da.from_array(self.value, chunks=chunks)
             
             def _func(arr, *args, **kwargs):
-                out = func(np.array(arr[slice_in], copy=copy), *args, **kwargs)
+                out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
             
             out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 

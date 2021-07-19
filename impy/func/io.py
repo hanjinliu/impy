@@ -77,7 +77,7 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
         
         out = {"axes": axes, "ijmeta": ijmeta, "history": [], "tags": tags}
         if return_img:
-            out["image"] = mrc.data
+            out["image"] = np.array(mrc.data)
     
     return out
 

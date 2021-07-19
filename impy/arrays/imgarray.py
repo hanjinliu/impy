@@ -98,7 +98,6 @@ class ImgArray(LabeledArray):
                                      translation=translation)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               copy=True,
                                kwargs=dict(inverse_map=mx, order=order)
                                )
     
@@ -118,7 +117,6 @@ class ImgArray(LabeledArray):
         mx.params[2] = (0, 0, 1)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               copy=True,
                                kwargs=dict(inverse_map=mx, order=order, clip=False)
                                )
                         
@@ -152,7 +150,6 @@ class ImgArray(LabeledArray):
         mx = sktrans.AffineTransform(matrix=mtx)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               copy=True,
                                kwargs=dict(inverse_map=mx, order=order)
                                )
 
@@ -966,7 +963,6 @@ class ImgArray(LabeledArray):
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_opening, 
                                c_axes=complement_axes(dims, self.axes), 
-                               copy=True,
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
         
@@ -977,7 +973,6 @@ class ImgArray(LabeledArray):
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_closing, 
                                c_axes=complement_axes(dims, self.axes), 
-                               copy=True,
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
     
@@ -989,13 +984,11 @@ class ImgArray(LabeledArray):
         if self.dtype == bool:
             return self.apply_dask(skimage.morphology.remove_small_objects,
                                    c_axes=complement_axes(dims, self.axes), 
-                                   copy=True,
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
             return self.apply_dask(skimage.morphology.area_opening, 
                                    c_axes=complement_axes(dims, self.axes), 
-                                   copy=True,
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
         
@@ -1007,13 +1000,11 @@ class ImgArray(LabeledArray):
         if self.dtype == bool:
             return self.apply_dask(skimage.morphology.remove_small_holes,
                                    c_axes=complement_axes(dims, self.axes), 
-                                   copy=True,
                                    kwargs=dict(min_size=area, connectivity=connectivity)
                                    )
         else:
             return self.apply_dask(skimage.morphology.area_closing, 
                                    c_axes=complement_axes(dims, self.axes), 
-                                   copy=True,
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
     

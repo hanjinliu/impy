@@ -1133,6 +1133,9 @@ def _determine_range(arr):
     if arr.dtype == bool:
         vmax = 1
         vmin = 0
+    elif arr.dtype.kind == "f":
+        vmax = np.percentile(arr, 99.99)
+        vmin = np.percentile(arr, 0.01)
     else:
         try:
             vmax = np.percentile(arr[arr>0], 99.99)
