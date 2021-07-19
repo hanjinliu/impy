@@ -2637,7 +2637,8 @@ class ImgArray(LabeledArray):
         dims = "yx" if template.ndim == 2 else "zyx"
         return self.as_float().apply_dask(_misc.ncc,
                                           c_axes=complement_axes(dims, self.axes), 
-                                          args=(template, bg))
+                                          args=(template, bg)
+                                          )
     
     @record(append_history=False)
     def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
@@ -3419,7 +3420,6 @@ class ImgArray(LabeledArray):
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = tuple(self.axisof(a) for a in axis)
-        # TODO: call np.apply_along_axis for func that does not take axis as an argument
         if func.__module__ == "numpy.ma.core":
             arr = np.ma.array(self.value, mask=mask, dtype=self.dtype)
             if func is np.ma.mean:

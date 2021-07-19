@@ -6,7 +6,6 @@ from .deco import dims_to_spatial_axes
 from .arrays import ImgArray, PropArray
 from .func import *
 from .utilcls import *
-from ._const import SetConst
 from warnings import warn
 
 __all__ = ["fsc", "fourier_shell_correlation", "angular_correlation", "pearson_coloc", "manders_coloc"]
@@ -61,28 +60,30 @@ def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:
     elif r_max > r_lim or r_max <= 0:
         raise ValueError(f"`r_max` must be in range of 0 < r_max <= {r_lim} with this image.")
     
-    # make radially separated labels
-    r_rel = r/r_max
-    labels = (nbin * r_rel).astype(np.uint16)
-    labels[r_rel >= 1] = 0
-    
-    c_axes = complement_axes(dims, img0.axes)
-    
-    out = PropArray(np.empty(img0.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
-                    dirpath=img0.dirpath, metadata=img0.metadata, propname="fsc")
-    radial_sum = partial(ndi.sum_labels, labels=labels, index=np.arange(1, labels.max()+1))
-    f0 = img0.fft(dims=dims)
-    f1 = img1.fft(dims=dims)
-    
-    for sl, f0_, f1_ in iter2(f0, f1, c_axes, exclude=dims):
-        cov = f0_.real*f1_.real + f0_.imag*f1_.imag
-        pw0 = f0_.real**2 + f0_.imag**2
-        pw1 = f1_.real**2 + f1_.imag**2
-    
-        out[sl] = radial_sum(cov)/np.sqrt(radial_sum(pw0)*radial_sum(pw1))
-    
+    with Progress("fsc"):
+        # make radially separated labels
+        r_rel = r/r_max
+        labels = (nbin * r_rel).astype(np.uint16)
+        labels[r_rel >= 1] = 0
+        
+        c_axes = complement_axes(dims, img0.axes)
+        
+        out = PropArray(np.empty(img0.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
+                        dirpath=img0.dirpath, metadata=img0.metadata, propname="fsc")
+        radial_sum = partial(ndi.sum_labels, labels=labels, index=np.arange(1, labels.max()+1))
+        f0 = img0.fft(dims=dims)
+        f1 = img1.fft(dims=dims)
+        
+        for sl, f0_, f1_ in iter2(f0, f1, c_axes, exclude=dims):
+            cov = f0_.real*f1_.real + f0_.imag*f1_.imag
+            pw0 = f0_.real**2 + f0_.imag**2
+            pw1 = f1_.real**2 + f1_.imag**2
+        
+            out[sl] = radial_sum(cov)/np.sqrt(radial_sum(pw0)*radial_sum(pw1))
+        
     if out.ndim == 0 and squeeze:
         out = out[()]
+    
     return out
 
 fourier_shell_correlation = fsc
@@ -126,15 +127,9 @@ def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center"
     https://doi.org/10.1109/ISBI.2009.5193043
     """    
     _assert_same_dims(img0, img1)
-    sl = []
-    for a in img0.axes:
-        if a in dims:
-            sl.append(np.newaxis)
-        else:
-            sl.append(slice(None))
-    sl = tuple(sl)
+    sl = switch_slice(dims, img0.axes)
     
-    with SetConst("SHOW_PROGRESS", False):
+    with Progress("fsc"):
         f1 = np.sqrt(img0.power_spectra(dims=dims))
         f2 = np.sqrt(img1.rotate(deg, center=center).power_spectra(dims=dims))
         f1 -= np.mean(f1, axis=dims)[sl]

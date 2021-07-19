@@ -1,3 +1,5 @@
+# skimage.morphology takes very long time to import. Here it is not imported explicitly, and is always
+# accessed by `skimage.morphology.some_function`.
 import skimage
 from skimage import transform as sktrans
 from skimage import filters as skfil
