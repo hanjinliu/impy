@@ -77,7 +77,9 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
         
         out = {"axes": axes, "ijmeta": ijmeta, "history": [], "tags": tags}
         if return_img:
-            out["image"] = np.array(mrc.data)
+            # mrcfile returns read-only array. This causes some errors during image analysis, such as `img -= 1`.
+            # It has to be copied here.
+            out["image"] = mrc.data.copy()
     
     return out
 

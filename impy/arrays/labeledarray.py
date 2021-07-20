@@ -14,7 +14,7 @@ from ..utilcls import *
 from .bases import HistoryArray
 from .label import Label
 from .specials import *
-from ._skimage import *
+from .utils._skimage import *
 from .._types import *
 
 class LabeledArray(HistoryArray):
@@ -566,7 +566,7 @@ class LabeledArray(HistoryArray):
         >>> ip.gui.add(img)
         """
         if isinstance(center, MarkerFrame):
-            from ._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
+            from .utils._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
             ndim = len(dims)
             radius = np.asarray(check_nd(radius, ndim), dtype=np.float32)
             
@@ -656,7 +656,7 @@ class LabeledArray(HistoryArray):
             length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
             coords = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
         else:    
-            from ._process_numba import _get_coordinate
+            from .utils._process_numba import _get_coordinate
             
             each_length = np.sqrt(np.sum(np.diff(a, axis=0)**2, axis=1))
             total_length = np.sum(each_length)

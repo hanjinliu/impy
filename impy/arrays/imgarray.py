@@ -5,8 +5,8 @@ import pandas as pd
 from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
 from .._types import *
-from ._skimage import *
-from . import _filters, _linalg, _deconv, _misc
+from .utils._skimage import *
+from .utils import _filters, _linalg, _deconv, _misc, _glcm
 from ..func import *
 from ..deco import *
 from .labeledarray import LabeledArray
@@ -653,7 +653,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """         
-        from ._skimage import _get_ND_butterworth_filter
+        from .utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
@@ -684,7 +684,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """         
-        from ._skimage import _get_ND_butterworth_filter
+        from .utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
@@ -3297,7 +3297,7 @@ class ImgArray(LabeledArray):
             distance and "<" means angle.
         """        
         # BUG: not working
-        self, bins, rescale_max = check_glcm(self, bins, rescale_max)
+        self, bins, rescale_max = _glcm.check_glcm(self, bins, rescale_max)
             
         c_axes = complement_axes(dims, self.axes)
         out = self.apply_dask(skfeat.greycomatrix, 
@@ -3350,7 +3350,7 @@ class ImgArray(LabeledArray):
         >>> out.idm["d=0;<=0"].imshow()
         >>> out.asm["d=0;<=0"].imshow()
         """        
-        self, bins, rescale_max = check_glcm(self, bins, rescale_max)
+        self, bins, rescale_max = _glcm.check_glcm(self, bins, rescale_max)
         if properties is None:
             properties = ("contrast", "dissimilarity", "idm", 
                           "asm", "max", "entropy", "correlation")
@@ -3370,7 +3370,7 @@ class ImgArray(LabeledArray):
         self = self.pad(radius, mode="reflect", dims=dims)
         self.history.pop()
         for sl, img in self.iter(c_axes):
-            propout = glcm_props_(img, distances, angles, bins, radius, properties)
+            propout = _glcm.glcm_props_(img, distances, angles, bins, radius, properties)
             for prop in properties:
                 out[prop].value[sl] = propout[prop]
             

@@ -9,8 +9,8 @@ from ..axes import ImageAxesError
 from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
-from ._dask_image import *
-from ._skimage import *
+from .utils._dask_image import *
+from .utils._skimage import *
 from . import _misc
 from .._const import Const
 

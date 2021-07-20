@@ -3,7 +3,7 @@ import numpy as np
 from . import _filters
 from ..deco import *
 from ..func import *
-from ._skimage import *
+from .utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
 from ..utilcls import *

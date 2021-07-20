@@ -1,6 +1,6 @@
 from __future__ import annotations
 from skimage.color import label2rgb
-from skimage import segmentation as skseg
+from .utils._skimage import skseg
 import matplotlib.pyplot as plt
 from ..func import *
 from ..utilcls import *
