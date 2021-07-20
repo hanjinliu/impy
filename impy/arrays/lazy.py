@@ -11,7 +11,7 @@ from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from . import _misc
+from .utils import _misc
 from .._const import Const
 
 class LazyImgArray(AxesMixin):

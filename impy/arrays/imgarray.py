@@ -2417,13 +2417,18 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def fft(self, *, dims=None) -> ImgArray:
+    def fft(self, *, shape="same", dims=None) -> ImgArray:
         """
-        Fast Fourier transformation. This function returns complex array. Inconpatible with 
+        Fast Fourier transformation. This function returns complex array, which is inconpatible with 
         some ImgArray functions.
         
         Parameters
         ----------
+        shape : int, iterable of int, "square" or "same"
+            Output shape. Input image is padded or cropped according to this value:
+            - integers: padded or cropped to the specified shape.
+            - "square": padded to smallest 2^N-long square.
+            - "same" (default): no padding or cropping.
         dims : int or str, optional
             Spatial dimensions.
             
@@ -2432,7 +2437,15 @@ class ImgArray(LabeledArray):
         ImgArray
             FFT image.
         """
-        freq = fft(self.value.astype(np.float32), axes=[self.axisof(a) for a in dims])
+        axes = [self.axisof(a) for a in dims]
+        if shape == "square":
+            s = 2**int(np.ceil(np.max(self.sizesof(dims))))
+            shape = (s,) * len(dims)
+        elif shape == "same":
+            shape = None
+        else:
+            shape = check_nd(shape, len(dims))
+        freq = fft(self.value.astype(np.float32), s=shape, axes=axes)
         freq[:] = np.fft.fftshift(freq)
         return freq
     
@@ -2463,13 +2476,18 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def power_spectra(self, norm:bool=False, *, dims=None) -> ImgArray:
+    def power_spectra(self, shape="same", norm:bool=False, *, dims=None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
             P = Re{F[img]}^2 + Im{F[img]}^2
 
         Parameters
         ----------
+        shape : int, iterable of int, "square" or "same"
+            Output shape. Input image is padded or cropped according to this value:
+            - integers: padded or cropped to the specified shape.
+            - "square": padded to smallest 2^N-long square.
+            - "same" (default): no padding or cropping.
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
         dims : int or str, optional
@@ -2480,7 +2498,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Power spectra
         """        
-        freq = self.fft(dims=dims)
+        freq = self.fft(dims=dims, shape=shape)
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()

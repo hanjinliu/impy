@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from . import _filters
+from .utils import _filters
 from ..deco import *
 from ..func import *
 from .utils._skimage import skmes

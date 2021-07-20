@@ -46,7 +46,7 @@ def stack(imgs:list[MetaArray], axis="c", dtype=None):
     ----------
     imgs : iterable object of images.
         Images to stack. These images must have exactly the same shapes.
-    axis : str, default is "c"
+    axis : str or int, default is "c"
         Which axis will be the new one.
     dtype : str, optional
         Output dtype.
