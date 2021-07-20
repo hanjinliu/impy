@@ -104,6 +104,25 @@ class ImgArray(LabeledArray):
     @record()
     @same_dtype(True)
     def rotate(self, degree:float, center="center", *, dims="yx", order:int=1) -> ImgArray:
+        """
+        2D rotation of an image around a point. Outside will be padded with zero.
+
+        Parameters
+        ----------
+        degree : float
+            Counter-clockwise degree of rotation.
+        center : str or array-like, optional
+            Rotation center coordinate. By default the center of image will be the rotation center.
+        dims : int or str, optional
+            Spatial dimensions.
+        order : int, default is 1.
+            Interpolation order after transformation.
+
+        Returns
+        -------
+        ImgArray
+            Rotated image.
+        """        
         # TODO: scale sensitive rotation
         if center == "center":
             center = np.array(self.sizesof(dims[::-1]))/2. - 0.5

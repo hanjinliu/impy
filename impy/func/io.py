@@ -59,8 +59,10 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     else:
         open_func = mrcfile.open
         check_size(path)
-        
-    with open_func(path) as mrc:
+    
+    # By default mrcfile functions returns non-writeable array, which is incompatible
+    # with some functions in ImgArray. We need to specify mode="r+".
+    with open_func(path, mode="r+") as mrc:
         ijmeta = {"unit": "nm"}
         ndim = len(mrc.voxel_size.item())
         if ndim == 3:
@@ -77,9 +79,7 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
         
         out = {"axes": axes, "ijmeta": ijmeta, "history": [], "tags": tags}
         if return_img:
-            # mrcfile returns read-only array. This causes some errors during image analysis, such as `img -= 1`.
-            # It has to be copied here.
-            out["image"] = mrc.data.copy()
+            out["image"] = mrc.data
     
     return out
 
