@@ -11,7 +11,7 @@ from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from .utils import _misc
+from .utils import _misc, _transform
 from .._const import Const
 
 class LazyImgArray(AxesMixin):
@@ -148,14 +148,6 @@ class LazyImgArray(AxesMixin):
         self = self.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
         
-        # c_axes = complement_axes(dims, self.axes)
-        # rechunk_to = []
-        # for i in range(self.ndim):
-        #     if self.axes[i] in c_axes:
-        #         rechunk_to.append(1)
-        #     else:
-        #         rechunk_to.append(self.shape[i])
-        # rechunk_to = tuple(rechunk_to)
         rechunk_to = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
         
         img = self.img.rechunk(rechunk_to)
@@ -384,15 +376,16 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
                order=1, dims=None) -> LazyImgArray:
-        mx = sktrans.AffineTransform(matrix=matrix, scale=scale, rotation=rotation, shear=shear,
-                                     translation=translation)
+        if matrix is None:
+            matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
+                                                      shear=shear, translation=translation,
+                                                      ndim=len(dims))
         return self.apply(daintr.affine_transform, 
                           c_axes=complement_axes(dims, self.axes), 
                           dtype=self.dtype,
                           rechunk_to="max",
                           dask_wrap=True,
-                          args=(mx.params,),
-                          kwargs=dict(order=order)
+                          kwargs=dict(matrix=matrix, order=order)
                           )
         
     def chunksizeof(self, axis:str):
@@ -485,12 +478,6 @@ class LazyImgArray(AxesMixin):
         
         # rechunk if array is split into too many chunks along `axis`
         if chunks is None:
-            # chunks = []
-            # for i in range(self.ndim):
-            #     if i in axisint:
-            #         chunks.append(self.shape[i] % 2000)
-            #     else:
-            #         chunks.append("auto")
             chunks = switch_slice(axis, self.axes, ifin=np.maximum(self.shape, 2048), ifnot=["auto"]*self.ndim)
         if any(c != "auto" for c in chunks):
             input_img = self.img.rechunk(chunks=chunks)

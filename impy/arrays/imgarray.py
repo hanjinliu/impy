@@ -95,10 +95,11 @@ class ImgArray(LabeledArray):
         """
         if matrix is None:
             matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
-                                                      shear=shear, translation=translation)
-        return self.apply_dask(sktrans.warp,
+                                                      shear=shear, translation=translation,
+                                                      ndim=len(dims))
+        return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_map=matrix, order=order)
+                               kwargs=dict(matrix=matrix, order=order)
                                )
     
     @_docs.write_docs
@@ -136,36 +137,6 @@ class ImgArray(LabeledArray):
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(inverse_map=mx, order=order, clip=False)
-                               )
-                        
-
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    @record()
-    @same_dtype(True)
-    def translate(self, translation=None, *, dims=None, order:int=1) -> ImgArray:
-        """
-        Translation of an image. for skimage < 0.19, only 2D translation is implemented.
-
-        Parameters
-        ----------
-        translation : array-like, optional
-            Inverse map of translation. This is xyz-order.
-        {dims}
-        {order}
-
-        Returns
-        -------
-        ImgArray
-            Translated image.
-        """        
-        ndim = len(dims)
-        if translation is None:
-            translation = np.zeros(ndim)
-        mx = _transform.compose_affine_matrix(translation=translation)
-        return self.apply_dask(sktrans.warp,
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_map=mx, order=order)
                                )
 
     @_docs.write_docs
@@ -1534,7 +1505,7 @@ class ImgArray(LabeledArray):
         imgs = []
         for y, x in [(0,0), (0,1), (1,1), (1,0)]:
             dr = [(xc-x)/2, (yc-y)/2]
-            imgs.append(self[f"y={y}::2;x={x}::2"].translate(translation=dr, order=order).value)
+            imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order).value)
         imgs = np.stack(imgs, axis=0)
         imgs = imgs[angle_order]
         imgs = imgs.view(self.__class__)
@@ -3488,7 +3459,6 @@ class ImgArray(LabeledArray):
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
             
-
         # slow drift needs large upsampling numbers
         corr_kwargs = {"upsample_factor": 10}
         corr_kwargs.update(kwargs)
@@ -3504,7 +3474,7 @@ class ImgArray(LabeledArray):
             else:
                 last_img = img
         
-        result = MarkerFrame(np.array(result), columns="yx")
+        result = MarkerFrame(np.array(result), columns=complement_axes(along, self.axes))
         
         show_drift and plot_drift(result)
         result.index.name = along
@@ -3521,12 +3491,12 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        shift : DataFrame with columns "x" and "y" (MarkerFrame recommended) or (N, 2) array, optional
-            Translation vectors
+        shift : DataFrame or (N, D) array, optional
+            Translation vectors. If DataFrame, it must have columns named with all the symbols
+            contained in `dims` (MarkerFrame recommended).
         ref : ImgArray, optional
-            The reference 3D image to determine drift, if `shift` was not given.
-        order : int, default is 1
-            The order of interpolation.
+            The reference n-D image to determine drift, if `shift` was not given.
+        {order}
         along : str, optional
             Along which axis drift will be corrected.
         {dims}
@@ -3544,7 +3514,7 @@ class ImgArray(LabeledArray):
         """        
         
         if along is None:
-            along = find_first_appeared("tpzc", include=self.axes, exclude=dims)
+            along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         
@@ -3560,14 +3530,14 @@ class ImgArray(LabeledArray):
 
             shift = ref.track_drift(along=along)
         elif isinstance(shift, MarkerFrame):
-            if len(shift) != self.sizeof("t"):
+            if len(shift) != self.sizeof(along):
                 raise ValueError("Wrong shape of 'shift'.")
         else:
-            shift = MarkerFrame(shift, columns="yx", dtype=np.float32)
+            shift = MarkerFrame(shift, columns=dims, dtype=np.float32)
 
         out = np.empty(self.shape)
         t_index = self.axisof(along)
-        shift = shift.reindex(columns=["x", "y"])
+        shift = shift.reindex(columns=list(dims[::-1]))
         for sl, img in self.iter(complement_axes(dims, self.axes)):
             out[sl] = _translate_image(img, shift.loc[sl[t_index]], order=order)
         
@@ -3947,8 +3917,9 @@ def _check_template(template):
     return template
 
 def _translate_image(img, shift, order=1, cval=0):
-    mx = _transform.compose_affine_matrix(translation=-np.asarray(shift))
-    return sktrans.warp(img, mx, order=order, cval=cval)
+    ndim = len(shift)
+    mx = _transform.compose_affine_matrix(translation=-np.asarray(shift), ndim=ndim)
+    return _transform.warp(img, mx, order=order, cval=cval)
 
 def _calc_centroid(img, ndim):
     mom = skmes.moments(img, order=1)

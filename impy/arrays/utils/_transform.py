@@ -1,10 +1,8 @@
 import numpy as np
-from ._skimage import sktrans
+from ._skimage import sktrans, ndi
 import scipy
 
-def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None):    
-    params = list(param for param in (scale, rotation, shear, translation) if param is not None)
-    ndim = len(params[0])
+def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim=2):    
     if ndim == 2:
         af = sktrans.AffineTransform(scale=scale, translation=translation, rotation=rotation, shear=shear)
         mx = af.params
@@ -23,6 +21,15 @@ def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=Non
         mx = af.affine_matrix
     
     return mx
+
+def warp(img, matrix, offset=0, cval=0, mode="constant", order=1):
+    ndim = matrix.shape[0] - 1
+    if ndim == 2:
+        out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
+    else:
+        out = ndi.affine_transform(img, matrix, offset=offset, cval=cval, mode=mode, 
+                                   order=order, prefilter=order>1)
+    return out
 
 def affinefit(img, imgref, bins=256, order=1):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
