@@ -22,23 +22,23 @@ from ..frame import *
 
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
-    def __add__(self, value):
+    def __add__(self, value) -> ImgArray:
         return super().__add__(value)
     
     @same_dtype(asfloat=True)
-    def __iadd__(self, value):
+    def __iadd__(self, value) -> ImgArray:
         return super().__iadd__(value)
     
     @same_dtype(asfloat=True)
-    def __sub__(self, value):
+    def __sub__(self, value) -> ImgArray:
         return super().__sub__(value)
     
     @same_dtype(asfloat=True)
-    def __isub__(self, value):
+    def __isub__(self, value) -> ImgArray:
         return super().__isub__(value)
     
     @same_dtype(asfloat=True)
-    def __mul__(self, value):
+    def __mul__(self, value) -> ImgArray:
         if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
         elif np.isscalar(value) and value < 0:
@@ -46,14 +46,14 @@ class ImgArray(LabeledArray):
         return super().__mul__(value)
     
     @same_dtype(asfloat=True)
-    def __imul__(self, value):
+    def __imul__(self, value) -> ImgArray:
         if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
         elif np.isscalar(value) and value < 0:
             raise ValueError("Cannot multiply negative value.")
         return super().__imul__(value)
     
-    def __truediv__(self, value):
+    def __truediv__(self, value) -> ImgArray:
         self = self.astype(np.float32)
         if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
@@ -62,7 +62,7 @@ class ImgArray(LabeledArray):
             raise ValueError("Cannot devide negative value.")
         return super().__truediv__(value)
     
-    def __itruediv__(self, value):
+    def __itruediv__(self, value) -> ImgArray:
         self = self.astype(np.float32)
         if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)

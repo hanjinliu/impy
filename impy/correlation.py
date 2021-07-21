@@ -8,7 +8,8 @@ from .func import *
 from .utilcls import *
 from warnings import warn
 
-__all__ = ["fsc", "fourier_shell_correlation", "angular_correlation", "pearson_coloc", "manders_coloc"]
+__all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
+           "pearson_coloc", "manders_coloc"]
 
 @dims_to_spatial_axes
 def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:bool=True,
@@ -88,68 +89,60 @@ def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:
 
 fourier_shell_correlation = fsc
 
-@dims_to_spatial_axes
-def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center", *,
-                        squeeze:bool=True, dims="yx") -> PropArray|float:
-    """
-    Image correlation with image rotation. Angular correlation with rotation θ, Corr(θ), is defined as:
-    
-        B'= R(θ)B 
-                    Σ(|F[A]| - mean(|F[A]|))(|F[B']| - mean(|F[B']|))
-        Corr(θ) = ----------------------------------------------------
-                            std(|F[A]|) x std(|F[B']|)
-    
-    Parameters
-    ----------
-    img0 : ImgArray
-        First image.
-    img1 : ImgArray
-        Second image. This image will be rotated around the center with degree `deg`.
-    deg : float
-        Degree (not radian!) to rotate.
-    center : array-like of float, default is the center of image.
-        Rotation center.
-    squeeze : bool, default is True
-        If True and output can be converted to scalar, then a float value will be returned.
-    dims : int or str, default is "yx"
-        Spatial dimensions.
 
-    Returns
-    -------
-    PropArray or float
-        Correlation.
-        
-    Reference
-    ---------
-    Blestel, S., Kervrann, C., & Chrétien, D. (2009). A Fourier-Based method for detecting curved microtubule 
-    centers: Application to straightening of cryo-Electron microscope images. Proceedings - 2009 IEEE
-    International Symposium on Biomedical Imaging: From Nano to Macro, ISBI 2009, 3(1), 298–301.
-    https://doi.org/10.1109/ISBI.2009.5193043
-    """    
-    _assert_same_dims(img0, img1)
-    sl = switch_slice(dims, img0.axes)
-    
-    # TODO: mask
-    # spatial_shape = img0.sizesof(dims)
-    # inds = np.indices(spatial_shape)
-    
-    # center = [s/2 for s in spatial_shape]
-    # mask = sum((x - c)**2 for x, c in zip(inds, center)) < r_max**2
-    with Progress("angular_correlation"):
+def _ncc(img0, img1, dims):
+    # Basic Normalized Cross Correlation with batch processing
+    return np.sum(img0 * img1, axis=dims)/(np.std(img0, axis=dims)*np.std(img1, axis=dims))
+
+@dims_to_spatial_axes
+def ncc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, dims=None):
+    with Progress("ncc"):
+        _assert_same_dims(img0, img1)
+        corr = np.sum(img0 * img1, axis=dims)/(np.std(img0, axis=dims)*np.std(img1, axis=dims))
+    return _make_corr_output(corr, img0, "ncc", squeeze, dims)
+
+@dims_to_spatial_axes
+def zncc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, dims=None):
+    with Progress("zncc"):
+        _assert_same_dims(img0, img1)
+        sl = switch_slice(dims, img0.axes)
+        img0zn = img0 - np.mean(img0, axis=dims)[sl]
+        img1zn = img1 - np.mean(img1, axis=dims)[sl]
+        corr = _ncc(img0zn, img1zn, dims)
+    return _make_corr_output(corr, img0, "zncc", squeeze, dims)
+
+
+@dims_to_spatial_axes
+def fourier_ncc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, dims=None):
+    with Progress("fourier_ncc"):
+        _assert_same_dims(img0, img1)
         f0 = np.sqrt(img0.power_spectra(dims=dims))
-        f1 = np.sqrt(img1.rotate(deg, center=center, dims=dims).power_spectra(dims=dims))
+        f1 = np.sqrt(img1.power_spectra(dims=dims))
+        corr = _ncc(f0, f1, dims)
+    return _make_corr_output(corr, img0, "fourier_ncc", squeeze, dims)
+
+@dims_to_spatial_axes
+def fourier_zncc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, dims=None):
+    with Progress("fourier_zncc"):
+        _assert_same_dims(img0, img1)
+        sl = switch_slice(dims, img0.axes)
+        f0 = np.sqrt(img0.power_spectra(dims=dims))
+        f1 = np.sqrt(img1.power_spectra(dims=dims))
         f0 -= np.mean(f0, axis=dims)[sl]
         f1 -= np.mean(f1, axis=dims)[sl]
-        corr = np.sum(f0 * f1, axis=dims) / (np.std(f0, axis=dims)*np.std(f1, axis=dims))
+        corr = _ncc(f0, f1, dims)
+    return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
 
-    if corr.ndim == 0 and squeeze:
-        corr = corr[()]
-    else:
-        corr = PropArray(corr, name=img0.name, axes=complement_axes(dims, img0.axes), 
-                         dirpath=img0.dirpath, metadata=img0.metadata, 
-                         propname="angular_correlation", dtype=np.float32)
-    
-    return corr
+@dims_to_spatial_axes
+def pcc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, dims=None):
+    with Progress("ncc"):
+        _assert_same_dims(img0, img1)
+        f0 = img0.fft(dims=dims)
+        f1 = img1.fft(dims=dims)
+        cov = f0 * f1.conj()
+        corr_ft = cov/np.abs(cov)
+        corr = corr_ft.ifft(real=True, dims=dims)
+    return _make_corr_output(corr, img0, "ncc", squeeze, dims)
 
 @dims_to_spatial_axes
 def pearson_coloc(img0:ImgArray, img1:ImgArray, mask:np.ndarray=None, *, squeeze:bool=True, 
@@ -199,13 +192,7 @@ def pearson_coloc(img0:ImgArray, img1:ImgArray, mask:np.ndarray=None, *, squeeze
     var1 = np.sum(img1_norm**2, axis=sumaxes)
     out = cov / np.sqrt(var0 * var1)
     
-    if out.ndim == 0 and squeeze:
-        out = out[()]
-    else:
-        out = PropArray(out, name=img0.name, axes=complement_axes(dims, img0.axes), 
-                        dirpath=img0.dirpath, metadata=img0.metadata, 
-                        propname="pearson_coloc", dtype=np.float32)
-    return out
+    return _make_corr_output(out, img0, "pearson_coloc", squeeze, dims)
 
 
 @dims_to_spatial_axes
@@ -244,15 +231,9 @@ def manders_coloc(img:ImgArray, ref:np.ndarray, *, squeeze:bool=True, dims=None)
     img = img.copy()
     img[~ref] = 0
     
-    out = np.sum(img.value, axis=sumaxes) / total
+    coeff = np.sum(img.value, axis=sumaxes) / total
+    return _make_corr_output(coeff, img, "manders_coloc", squeeze, dims)
     
-    if out.ndim == 0 and squeeze:
-        out = out[()]
-    else:
-        out = PropArray(out, name=img.name, axes=complement_axes(dims, img.axes), 
-                        dirpath=img.dirpath, metadata=img.metadata, 
-                        propname="manders_coloc", dtype=np.float32)
-    return out
 
 def iter2(img0, img1, axes, israw=False, exclude=""):
     for (sl, i0), (sl, i1) in zip(img0.iter(axes, israw=israw, exclude=exclude),
@@ -265,6 +246,14 @@ def _assert_same_dims(img0, img1):
                          f"has shape {img1.shape}")
     if img0.axes != img1.axes:
         warn(f"Axes mismatch. `img0` has axes {img0.axes} but `img1` has axes {img1.axe}. "
-              "Result may be wrong due to this mismatch.")
+              "Result may be wrong due to this mismatch.", UserWarning)
     return None
-    
+
+def _make_corr_output(corr:np.ndarray, refimg:ImgArray, propname:str, squeeze:bool, dims:str):
+    if corr.ndim == 0 and squeeze:
+        corr = corr[()]
+    else:
+        corr = PropArray(corr, name=refimg.name, axes=complement_axes(dims, refimg.axes), 
+                        dirpath=refimg.dirpath, metadata=refimg.metadata, 
+                        propname=propname, dtype=np.float32)
+    return corr
