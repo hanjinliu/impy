@@ -1,7 +1,7 @@
 __version__ = "1.16.5"
 
 import logging
-from .datalist import DataList
+from .collections import *
 from .core import *
 from .binder import bind
 from .viewer import gui

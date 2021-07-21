@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..datalist import DataList
+from ..collections import DataList
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -1037,7 +1037,8 @@ class LabeledArray(HistoryArray):
         return out
     
     @record(need_labels=True)
-    def extract(self, label_ids=None, filt=None, cval:float=0, crop:bool=False) -> LabeledArray|DataList:
+    def extract(self, label_ids=None, filt=None, cval:float=0, 
+                crop:bool=False) -> LabeledArray|DataList[LabeledArray]:
         """
         Extract certain regions of the image and substitute others to `cval`.
 

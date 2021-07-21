@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .datalist import DataList
+from .collections import DataList
 from .arrays import ImgArray, LazyImgArray
 import numpy as np
 import os
@@ -367,14 +367,17 @@ def imread_collection(path:str, filt=None) -> DataList:
     -------
     ArrayList
     """    
-    paths = glob.glob(str(path), recursive=True)
+    path = str(path)
+    if os.path.isdir(path):
+        path = os.path.join(path, "*.tif")
+    paths = glob.glob(path, recursive=True)
     if filt is None:
         filt = lambda x: True
     arrlist = DataList()
     for path in paths:
         img = imread(path)
         if filt(img):
-            arrlist._append(img)
+            arrlist.append(img)
     return arrlist
 
 def lazy_imread(path, chunks="default", *, squeeze:bool=False) -> LazyImgArray:

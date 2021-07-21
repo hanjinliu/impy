@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..datalist import DataList
+from ..collections import DataList
 import napari
 import pandas as pd
 from ..arrays import *
