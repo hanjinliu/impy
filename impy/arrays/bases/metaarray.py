@@ -1,10 +1,11 @@
 from __future__ import annotations
 import numpy as np
 from dask import array as da
+import itertools
 from ...axes import ImageAxesError
 from ...func import *
+from ...collections import DataList
 from ..axesmixin import AxesMixin
-import itertools
 
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
@@ -189,7 +190,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if isinstance(result, (tuple, list)):
             _as_meta_array = lambda a: a.view(self.__class__)._process_output(func, args, kwargs) \
                 if type(a) is np.ndarray else a
-            result = type(result)(_as_meta_array(r) for r in result)
+            result = DataList(_as_meta_array(r) for r in result)
             
         else:
             if isinstance(result, np.ndarray):
@@ -221,6 +222,7 @@ class MetaArray(AxesMixin, np.ndarray):
         """        
         def decorator(func):
             cls.NP_DISPATCH[numpy_function] = func
+            func.__name__ = numpy_function.__name__
             return func
         return decorator
     

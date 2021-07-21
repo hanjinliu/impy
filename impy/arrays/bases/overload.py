@@ -4,6 +4,7 @@ from .metaarray import MetaArray
 from .historyarray import HistoryArray
 from ...axes import Axes
 from ...func import del_axis
+from ...collections import DataList
 
 def safe_set_info(out, img, history, new_axes):
     if isinstance(img, HistoryArray):
@@ -21,14 +22,14 @@ def safe_set_info(out, img, history, new_axes):
 
 
 @MetaArray.implements(np.squeeze)
-def squeeze(img:MetaArray):
+def _(img:MetaArray):
     out = np.squeeze(img.value).view(img.__class__)
     new_axes = "".join(a for a in img.axes if img.sizeof(a) > 1)
     safe_set_info(out, img, "squeeze", new_axes)
     return out
 
 @MetaArray.implements(np.take)
-def take(a:MetaArray, indices, axis:int=None, out=None, mode="raise"):
+def _(a:MetaArray, indices, axis=None, out=None, mode="raise"):
     new_axes = del_axis(a.axes, axis)
     if isinstance(axis, str):
         axis = a.axes.find(axis)
@@ -38,7 +39,7 @@ def take(a:MetaArray, indices, axis:int=None, out=None, mode="raise"):
     return out
 
 @MetaArray.implements(np.stack)
-def stack(imgs:list[MetaArray], axis="c", dtype=None):
+def _(imgs:list[MetaArray], axis="c", dtype=None):
     """
     Create stack image from list of images.
 
@@ -83,7 +84,7 @@ def stack(imgs:list[MetaArray], axis="c", dtype=None):
     return out
 
 @MetaArray.implements(np.concatenate)
-def concatenate(imgs, axis="c", dtype=None, casting="same_kind"):
+def _(imgs, axis="c", dtype=None, casting="same_kind"):
     if not isinstance(axis, (int, str)):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
     axis = imgs[0].axisof(axis)
@@ -93,7 +94,7 @@ def concatenate(imgs, axis="c", dtype=None, casting="same_kind"):
     return out
 
 @MetaArray.implements(np.block)
-def block(imgs):
+def _(imgs):
     def _recursive_view(obj):
         if isinstance(obj, MetaArray):
             return obj.value
@@ -116,7 +117,7 @@ def block(imgs):
 
 
 @MetaArray.implements(np.zeros_like)
-def zeros_like(img, name:str=None):
+def _(img, name:str=None):
     out = np.zeros_like(img.value).view(img.__class__)
     out._set_info(img, new_axes=img.axes)
     if isinstance(name, str):
@@ -124,7 +125,7 @@ def zeros_like(img, name:str=None):
     return out
 
 @MetaArray.implements(np.empty_like)
-def empty_like(img, name:str=None):
+def _(img, name:str=None):
     out = np.empty_like(img.value).view(img.__class__)
     out._set_info(img, new_axes=img.axes)
     if isinstance(name, str):
@@ -132,7 +133,7 @@ def empty_like(img, name:str=None):
     return out
 
 @MetaArray.implements(np.expand_dims)
-def expand_dims(img, axis):
+def _(img, axis):
     if isinstance(axis, str):
         new_axes = Axes(axis + str(img.axes))
         new_axes.sort()
@@ -146,6 +147,19 @@ def expand_dims(img, axis):
     return out
 
 @MetaArray.implements(np.transpose)
-def transpose(img, axes):
+def _(img, axes):
     return img.transpose(axes)
 
+@MetaArray.implements(np.split)
+def _(img, indices_or_sections, axis=0):
+    if not isinstance(axis, (int, str)):
+        raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
+    axis = img.axisof(axis)
+    
+    imgs = np.split(img.value, indices_or_sections, axis=axis)
+    out = []
+    for i, each in enumerate(imgs):
+        each = each.view(img.__class__)
+        safe_set_info(each, img, f"np.split[{i}]", new_axes="inherit")
+        out.append(each)
+    return DataList(out)
