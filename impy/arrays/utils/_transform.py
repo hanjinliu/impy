@@ -1,8 +1,13 @@
 import numpy as np
-from ._skimage import sktrans, ndi
 import scipy
+from collections import namedtuple
+from ._skimage import sktrans, ndi
 
-def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim=2):    
+AffineTransformationParameters = namedtuple(typename="AffineTransformationParameters", 
+                                            field_names=["translation", "rotation", "scale", "shear"]
+                                            )
+
+def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):    
     if ndim == 2:
         af = sktrans.AffineTransform(scale=scale, translation=translation, rotation=rotation, shear=shear)
         mx = af.params
@@ -22,7 +27,26 @@ def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=Non
     
     return mx
 
+
+def decompose_affine_matrix(matrix:np.ndarray):
+    ndim = matrix.shape[0] - 1
+    if ndim == 2:
+        af = sktrans.AffineTransform(matrix=matrix)
+        out = AffineTransformationParameters(translation=af.translation, rotation=af.rotation, 
+                                             scale=af.scale, shear=af.shear)
+    else:
+        from napari.utils.transforms import Affine
+        af = Affine(affine_matrix=matrix)
+        out = AffineTransformationParameters(translation=af.translate, rotation=af.rotate, 
+                                             scale=af.scale, shear=af.shear)
+    return out
+        
+
 def warp(img, matrix, offset=0, cval=0, mode="constant", order=1):
+    """
+    Generalized version of `skimage.transform.warp`. For >3 dimensional, ndimage's function
+    will be called instead.
+    """    
     ndim = matrix.shape[0] - 1
     if ndim == 2:
         out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
@@ -30,6 +54,13 @@ def warp(img, matrix, offset=0, cval=0, mode="constant", order=1):
         out = ndi.affine_transform(img, matrix, offset=offset, cval=cval, mode=mode, 
                                    order=order, prefilter=order>1)
     return out
+
+def calc_corr(img0, img1, matrix, corr_func):
+    """
+    Calculate value of corr_func(img0, matrix(img1)).
+    """
+    img1_transformed = warp(img1, matrix)
+    return corr_func(img0, img1_transformed)
 
 def affinefit(img, imgref, bins=256, order=1):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
