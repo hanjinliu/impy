@@ -120,7 +120,7 @@ class PropArray(MetaArray):
         
         return self
     
-    def curve_fit(self, f, p0=None, dims="t", return_fit=True) -> DataDict:
+    def curve_fit(self, f, p0=None, dims="t", return_fit=True) -> DataDict[str, PropArray]:
         """
         Run scipy.optimize.curve_fit for each dimesion.
 

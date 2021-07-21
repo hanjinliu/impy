@@ -6,7 +6,7 @@ from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
 from .._types import *
 from .utils._skimage import *
-from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform
+from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _plot
 from ..func import *
 from ..deco import *
 from ..collections import *
@@ -314,7 +314,7 @@ class ImgArray(LabeledArray):
         fit.temp = dict(params=gaussian.params, result=result)
         
         # show fitting result
-        show_result and plot_gaussfit_result(self, fit)
+        show_result and _plot.plot_gaussfit_result(self, fit)
         return fit
     
     @record()
@@ -1514,7 +1514,7 @@ class ImgArray(LabeledArray):
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
         
-    def stokes(self, *, along:str="<") -> DataDict:
+    def stokes(self, *, along:str="<") -> dict:
         """
         Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
         Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
@@ -1530,7 +1530,7 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        DataDict
+        dict
             Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP respectively.
         
         Example
@@ -1580,7 +1580,7 @@ class ImgArray(LabeledArray):
         aop.fix_border()
         aop.set_scale(self)
         
-        out = DataDict(dolp=dolp, aop=aop)
+        out = dict(dolp=dolp, aop=aop)
         return out
         
     @_docs.write_docs
@@ -1886,7 +1886,7 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        FrameDict
+        MarkerFrame and pd.DataFrame
             Coordinates in MarkerFrame and refinement results in pd.DataFrame.
         """        
         import trackpy as tp
@@ -1941,7 +1941,7 @@ class ImgArray(LabeledArray):
         del self.labels
         if labels_now is not None:
             self.labels = labels_now
-        return FrameDict(coords=mf, results=df)
+        return mf, df
         
     
     @dims_to_spatial_axes
@@ -2070,7 +2070,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     def gauss_sm(self, coords:Coords=None, radius:nDInt=4, sigma:nDFloat=1.5, filt:Callable=None,
-                 percentile:float=95, *, return_all:bool=False, dims=None) -> MarkerFrame|FrameDict:
+                 percentile:float=95, *, return_all:bool=False, dims=None) -> MarkerFrame|DataDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
@@ -2097,7 +2097,7 @@ class ImgArray(LabeledArray):
         -------
         MarkerFrame, if return_all == False
             Gaussian centers.
-        FrameDict with keys {means, sigmas, errors}, if return_all == True
+        DataDict with keys {means, sigmas, errors}, if return_all == True
             Dictionary that contains means, standard deviations and fitting errors.
         """        
         # TODO: Whether error is correctly calculated has not been checked yet. For loop should be 
@@ -2149,12 +2149,12 @@ class ImgArray(LabeledArray):
         kw = dict(columns=coords.col_axes, dtype=np.float32)
         
         if return_all:
-            out = FrameDict(means = MarkerFrame(means, **kw).as_standard_type(),
-                            sigmas = MarkerFrame(sigmas, **kw).as_standard_type(),
-                            errors = MarkerFrame(errs, **kw).as_standard_type(),
-                            intensities = MarkerFrame(ab, 
-                                                      columns=str(coords.col_axes)[:-ndim]+"ab",
-                                                      dtype=np.float32))
+            out = DataDict(means = MarkerFrame(means, **kw).as_standard_type(),
+                           sigmas = MarkerFrame(sigmas, **kw).as_standard_type(),
+                           errors = MarkerFrame(errs, **kw).as_standard_type(),
+                           intensities = MarkerFrame(ab, 
+                                                     columns=str(coords.col_axes)[:-ndim]+"ab",
+                                                     dtype=np.float32))
             
             out.means.set_scale(coords.scale)
             out.sigmas.set_scale(coords.scale)
@@ -3046,7 +3046,6 @@ class ImgArray(LabeledArray):
             exclude = ""
         
         for sl, img in self.iter(c_axes, exclude=exclude):
-            plt.imshow(img)
             labels[sl] = \
             skseg.slic(img, n_segments=n_segments, compactness=compactness, max_iter=max_iter,
                        sigma=sigma, multichannel=multichannel, min_size_factor=min_size_factor,
@@ -3079,7 +3078,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @record(append_history=False)
     def pathprops(self, paths:PathFrame, properties:str|Callable|Iterable[str|Callable]="mean", *, 
-                  order:int=1) -> ArrayDict:
+                  order:int=1) -> DataDict:
         """
         Measure line property using func(line_scan) for each func in properties.
 
@@ -3093,7 +3092,7 @@ class ImgArray(LabeledArray):
         
         Returns
         -------
-        ArrayDict of PropArray
+        DataDict of PropArray
             Line properties. Keys are property names and values are the corresponding PropArrays.
 
         Example
@@ -3125,11 +3124,11 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(paths._axes, id_axis + str(self.axes))
         shape = self.sizesof(prop_axes)
         
-        out = ArrayDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                                      axes=id_axis+prop_axes, dirpath=self.dirpath,
-                                      propname = f"lineprops<{k}>", dtype=np.float32)
-                         for k in funcdict.keys()}
-                        )
+        out = DataDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
+                                     axes=id_axis+prop_axes, dirpath=self.dirpath,
+                                     propname = f"lineprops<{k}>", dtype=np.float32)
+                        for k in funcdict.keys()}
+                       )
         
         for i, path in enumerate(paths.split(id_axis)):
             resliced = self.reslice(path, order=order)
@@ -3140,7 +3139,7 @@ class ImgArray(LabeledArray):
     
     @record(append_history=False, need_labels=True)
     def regionprops(self, properties:tuple[str,...]|str=("mean_intensity",), *, 
-                    extra_properties=None) -> ArrayDict:
+                    extra_properties=None) -> DataDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -3156,7 +3155,7 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        ArrayDict of PropArray
+        DataDict of PropArray
             Dictionary has keys of properties that are specified by `properties`. Each value
             has the array of properties.
             
@@ -3180,12 +3179,12 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = ArrayDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
-                                      name=self.name, 
-                                      axes=id_axis+prop_axes,
-                                      dirpath=self.dirpath,
-                                      propname=p)
-                         for p in properties})
+        out = DataDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
+                                     name=self.name, 
+                                     axes=id_axis+prop_axes,
+                                     dirpath=self.dirpath,
+                                     propname=p)
+                        for p in properties})
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
@@ -3299,7 +3298,7 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        ArrayDict of ImgArray
+        DataDict of ImgArray
             GLCM with additional axes "d<", where "d" means distance and "<" means angle.
             If input image has "tzyx" axes then output will have "tzd<yx" axes.
         
@@ -3326,7 +3325,7 @@ class ImgArray(LabeledArray):
                 out[prop.__name__] = np.empty(outshape, dtype=np.float32).view(self.__class__)
             else:
                 raise TypeError("properties must be str or callable.")
-        out = ArrayDict(out)
+        out = DataDict(out)
         self = self.pad(radius, mode="reflect", dims=dims)
         self.history.pop()
         for sl, img in self.iter(c_axes):
@@ -3477,7 +3476,7 @@ class ImgArray(LabeledArray):
         
         result = MarkerFrame(np.array(result), columns=complement_axes(along, self.axes))
         
-        show_drift and plot_drift(result)
+        show_drift and _plot.plot_drift(result)
         result.index.name = along
         return result
     

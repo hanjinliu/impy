@@ -7,5 +7,6 @@ from . import (_dask_image,
                _process_numba,
                _skimage, 
                _docs,
-               _transform
+               _transform,
+               _plot
                )

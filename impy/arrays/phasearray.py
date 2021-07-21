@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+import matplotlib.pyplot as plt
 from .utils import _filters
 from ..deco import *
 from ..func import *
@@ -205,7 +206,7 @@ class PhaseArray(LabeledArray):
     
     @record(append_history=False, need_labels=True)
     def regionprops(self, properties:tuple[str,...]|str=("phase_mean",), *, 
-                    extra_properties=None) -> DataDict:
+                    extra_properties=None) -> DataDict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
