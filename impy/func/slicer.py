@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import re
+from .._types import Slices
 
 __all__ = ["str_to_slice", "key_repr", "axis_targeted_slicing"]
 
@@ -21,7 +22,7 @@ def int_or_None(v:str) -> int|None:
     else:
         return None
     
-def str_to_slice(v:str):
+def str_to_slice(v:str) -> list[int]|slice|int:
     v = re.sub(" ", "", v)
     if "," in v:
         sl = sum((_range_to_list(v) for v in v.split(",")), [])
@@ -53,7 +54,7 @@ def key_repr(key):
     
     return ",".join(keylist)
 
-def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str) -> tuple[slice|int, ...]:
+def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str) -> Slices:
     """
     Make a conventional slices from an axis-targeted slicing string.
 

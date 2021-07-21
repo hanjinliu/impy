@@ -6,6 +6,8 @@ from ...axes import ImageAxesError
 from ...func import *
 from ...collections import DataList
 from ..axesmixin import AxesMixin
+from ..._types import *
+
 
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
@@ -29,7 +31,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return self
     
     @property
-    def value(self):
+    def value(self) -> np.ndarray:
         return np.asarray(self)
     
     
@@ -233,7 +235,7 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         return axis_targeted_slicing(self, str(self.axes), string)
     
-    def sort_axes(self):
+    def sort_axes(self) -> MetaArray:
         """
         Sort image dimensions to ptzcyx-order
 
@@ -246,7 +248,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return self.transpose(order)
     
     
-    def iter(self, axes, israw=False, exclude=""):
+    def iter(self, axes:str, israw:bool=False, exclude:str="") -> tuple[Slices, np.ndarray|MetaArray]:
         """
         Iteration along axes. Unlike self.iter(axes), this function yields subclass objects
         so that this function is slower but accessible to attributes such as labels.
@@ -303,8 +305,8 @@ class MetaArray(AxesMixin, np.ndarray):
                 iterlist.append([slice(None)])
         return iterlist
             
-    def apply_dask(self, func, c_axes=None, drop_axis=[], new_axis=None, dtype=np.float32, 
-                   args=None, kwargs=None) -> MetaArray:
+    def apply_dask(self, func:Callable, c_axes:str=None, drop_axis=[], new_axis=None, dtype=np.float32, 
+                   args:tuple=None, kwargs:dict=None) -> MetaArray:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
