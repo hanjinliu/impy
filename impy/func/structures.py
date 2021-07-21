@@ -7,7 +7,9 @@ def circle(radius, shape, dtype="bool"):
     return np.array((dx ** 2 + dy ** 2) <= radius ** 2, dtype=dtype)
 
 def ball_like(radius, ndim:int):
-    L = np.arange(-radius, radius + 1)
+    half_int = int(2*radius)/2
+    L = np.arange(-half_int, half_int + 1)
+    
     if ndim == 1:
         return np.ones(int(radius)*2+1, dtype=np.uint8)
     elif ndim == 2:

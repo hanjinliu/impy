@@ -6,7 +6,7 @@ from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
 from .._types import *
 from .utils._skimage import *
-from .utils import _filters, _linalg, _deconv, _misc, _glcm
+from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform
 from ..func import *
 from ..deco import *
 from .labeledarray import LabeledArray
@@ -68,7 +68,8 @@ class ImgArray(LabeledArray):
         elif np.isscalar(value) and value < 0:
             raise ValueError("Cannot devide negative value.")
         return super().__itruediv__(value)
-        
+    
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -84,23 +85,23 @@ class ImgArray(LabeledArray):
         ----------
         matrix, scale, rotation, shear, translation
             See `skimage.transform.AffineTransform`.
-        dims : int or str, optional
-            Spatial dimensions.
-        order : int, default is 1.
-            Interpolation order after transformation.
+        {dims}
+        {order}
             
         Returns
         -------
         ImgArray
             Transformed image.
         """
-        mx = sktrans.AffineTransform(matrix=matrix, scale=scale, rotation=rotation, shear=shear,
-                                     translation=translation)
+        if matrix is None:
+            matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
+                                                      shear=shear, translation=translation)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_map=mx, order=order)
+                               kwargs=dict(inverse_map=matrix, order=order)
                                )
     
+    @_docs.write_docs
     @record()
     @same_dtype(True)
     def rotate(self, degree:float, center="center", *, dims="yx", order:int=1) -> ImgArray:
@@ -113,10 +114,8 @@ class ImgArray(LabeledArray):
             Counter-clockwise degree of rotation.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
-        dims : int or str, optional
-            Spatial dimensions.
-        order : int, default is 1.
-            Interpolation order after transformation.
+        {dims}
+        {order}
 
         Returns
         -------
@@ -140,6 +139,7 @@ class ImgArray(LabeledArray):
                                )
                         
 
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -151,10 +151,8 @@ class ImgArray(LabeledArray):
         ----------
         translation : array-like, optional
             Inverse map of translation. This is xyz-order.
-        dims : int or str, optional
-            Spatial dimensions.
-        order : int, default is 1.
-            Interpolation order after transformation.
+        {dims}
+        {order}
 
         Returns
         -------
@@ -164,14 +162,13 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         if translation is None:
             translation = np.zeros(ndim)
-        mtx = np.eye(ndim + 1)
-        mtx[0:ndim, ndim] = translation
-        mx = sktrans.AffineTransform(matrix=mtx)
+        mx = _transform.compose_affine_matrix(translation=translation)
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(inverse_map=mx, order=order)
                                )
 
+    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(True)
     def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
@@ -182,10 +179,8 @@ class ImgArray(LabeledArray):
         ----------
         scale : float, optional
             scale of the new image.
-        dims : int or str, optional
-            axes to rescale.
-        order : float, optional
-            order of rescaling.
+        {dims}
+        {order}
         """        
         with Progress("rescale"):
             scale_ = [scale if a in dims else 1 for a in self.axes]
@@ -196,6 +191,7 @@ class ImgArray(LabeledArray):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype()
     def binning(self, binsize:int=2, method="sum", *, check_edges=True, dims=None) -> ImgArray:
@@ -212,8 +208,7 @@ class ImgArray(LabeledArray):
         check_edges : bool, default is True
             If True, only divisible `binsize` is accepted. If False, image is cropped at the end to
             match `binsize`.
-        dims : str or int, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -241,6 +236,7 @@ class ImgArray(LabeledArray):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     def radial_profile(self, nbin:int=32, center:Iterable[float]=None, r_max:float=None, *, 
                        method:str="mean", dims=None) -> PropArray:
@@ -260,8 +256,7 @@ class ImgArray(LabeledArray):
         method : str, default is "mean"
             Reduce function. Basic statistics functions are supported in `scipy.ndimage` but their
             names are not consistent with those in `numpy`. Use `numpy`'s names here.
-        dims : str or int, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -396,6 +391,7 @@ class ImgArray(LabeledArray):
         
         return out.view(self.__class__)
     
+    @_docs.write_docs
     @record()
     def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, prefilter:bool=True, 
                           along:str="c") -> ImgArray:
@@ -409,8 +405,7 @@ class ImgArray(LabeledArray):
             Affine matrices.
         bins : int, default is 256
             Number of bins that is generated on calculating mutual information.
-        order : int, optional
-            Interporation order, by default 3
+        {order}
         prefilter : bool, default is True.
             If median filter is applied to all images before fitting. This does not
             change original images.
@@ -469,6 +464,7 @@ class ImgArray(LabeledArray):
         out.temp = matrices
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def hessian_eigval(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
@@ -478,10 +474,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array (dims,), optional
-            Standard deviation of Gaussian filter applied before calculating Hessian.
-        dims : int or str, optional
-            Spatial dimension.
+        {sigma}
+        {dims}
 
         Returns
         -------
@@ -511,6 +505,7 @@ class ImgArray(LabeledArray):
         
         return eigval
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def hessian_eig(self, sigma:nDFloat=1, *, dims=None) -> tuple[ImgArray, ImgArray]:
@@ -519,10 +514,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array (dims,), optional
-            Standard deviation of Gaussian filter applied before calculating Hessian.
-        dims : int or str, optional
-            Spatial dimension.
+        {sigma}
+        {dims}
 
         Returns
         -------
@@ -546,6 +539,7 @@ class ImgArray(LabeledArray):
         eigvec._set_info(self, f"hessian_eigvec", new_axes=eigvec.axes)
         return eigval, eigvec
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def structure_tensor_eigval(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
@@ -554,10 +548,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array (dims,), optional
-            Standard deviation of Gaussian filter applied before calculating Hessian.
-        dims : int or str, optional
-            Spatial dimension.
+        {sigma}
+        {dims}
 
         Returns
         -------
@@ -580,6 +572,7 @@ class ImgArray(LabeledArray):
         eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
         return eigval
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def structure_tensor_eig(self, sigma:nDFloat=1, *, dims=None)-> tuple[ImgArray, ImgArray]:
@@ -588,10 +581,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array (dims,), optional
-            Standard deviation of Gaussian filter applied before calculating Hessian.
-        dims : int or str, optional
-            Spatial dimension.
+        {sigma}
+        {dims}
 
         Returns
         -------
@@ -616,6 +607,7 @@ class ImgArray(LabeledArray):
         
         return eigval, eigvec
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -627,10 +619,8 @@ class ImgArray(LabeledArray):
         ----------
         method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "sobel"
             Edge operator name.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self after filtering.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -649,6 +639,7 @@ class ImgArray(LabeledArray):
         
         return self.apply_dask(f, c_axes=complement_axes(dims, self.axes))
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
@@ -662,10 +653,8 @@ class ImgArray(LabeledArray):
             Cutoff frequency.
         order : float, default is 2
             Steepness of cutoff.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self after filtering.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -680,6 +669,7 @@ class ImgArray(LabeledArray):
         out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
@@ -693,10 +683,8 @@ class ImgArray(LabeledArray):
             Cutoff frequency.
         order : float, default is 2
             Steepness of cutoff.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self after filtering.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -712,6 +700,7 @@ class ImgArray(LabeledArray):
         return out
     
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
@@ -728,10 +717,8 @@ class ImgArray(LabeledArray):
             Padding mode. See `scipy.ndimage.convolve`.
         cval : int, default is 0
             Constant value to fill outside the image if mode == "constant".
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self after convolution.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -758,6 +745,7 @@ class ImgArray(LabeledArray):
                                   )
         return out
     
+    @_docs.write_docs
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -766,12 +754,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1.
-            Radius of kernel.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
+        {radius}
+        {dims}
+        {update}
 
         Returns
         -------
@@ -781,6 +766,7 @@ class ImgArray(LabeledArray):
         f = skimage.morphology.binary_erosion if self.dtype == bool else skimage.morphology.erosion
         return self._running_kernel(radius, f, dims=dims, update=update)
     
+    @_docs.write_docs
     @record()
     def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -789,12 +775,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1.
-            Radius of kernel.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
+        {radius}
+        {dims}
+        {update}
 
         Returns
         -------
@@ -804,6 +787,7 @@ class ImgArray(LabeledArray):
         f = skimage.morphology.binary_dilation if self.dtype == bool else skimage.morphology.dilation
         return self._running_kernel(radius, f, dims=dims, update=update)
     
+    @_docs.write_docs
     @record()
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -812,12 +796,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1.
-            Radius of kernel.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
+        {radius}
+        {dims}
+        {update}
 
         Returns
         -------
@@ -827,6 +808,7 @@ class ImgArray(LabeledArray):
         f = skimage.morphology.binary_opening if self.dtype == bool else skimage.morphology.opening
         return self._running_kernel(radius, f, dims=dims, update=update)
     
+    @_docs.write_docs
     @record()
     def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -835,12 +817,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1.
-            Radius of kernel.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
+        {radius}
+        {dims}
+        {update}
 
         Returns
         -------
@@ -850,6 +829,7 @@ class ImgArray(LabeledArray):
         f = skimage.morphology.binary_closing if self.dtype == bool else skimage.morphology.closing
         return self._running_kernel(radius, f, dims=dims, update=update)
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def tophat(self, radius:float=50, *, dims=None, update:bool=False) -> ImgArray:
@@ -858,12 +838,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 50.
-            Radius of kernel.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
+        {radius}
+        {dims}
+        {update}
 
         Returns
         -------
@@ -878,6 +855,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(footprint=disk)
                                )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -886,12 +864,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1
-            Radius of kernel.
-        dims : str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
+        {radius}
+        {dims}
+        {update}
             
         Returns
         -------
@@ -900,6 +875,7 @@ class ImgArray(LabeledArray):
         """        
         return self._running_kernel(radius, _filters.mean_filter, dims=dims, update=update)
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def std_filter(self, radius:float=1, *, dims=None) -> ImgArray:
@@ -908,10 +884,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1
-            Radius of kernel.
-        dims : str, optional
-            Spatial dimensions.
+        {radius}
+        {dims}
 
         Returns
         -------
@@ -924,6 +898,7 @@ class ImgArray(LabeledArray):
                                           args=(disk,)
                                           )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def coef_filter(self, radius:float=1, *, dims=None) -> ImgArray:
@@ -933,11 +908,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1
-            Radius of kernel.
-        dims : str, optional
-            Spatial dimensions.
-
+        {radius}
+        {dims}
+        
         Returns
         -------
         ImgArray
@@ -949,6 +922,7 @@ class ImgArray(LabeledArray):
                                           args=(disk,)
                                           )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -957,13 +931,10 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 1.
-            Radius of kernel.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self after filtering.
-
+        {radius}
+        {dims}
+        {update}
+        
         Returns
         -------
         ImgArray
@@ -1028,6 +999,7 @@ class ImgArray(LabeledArray):
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def entropy_filter(self, radius:nDFloat=5, *, dims=None) -> ImgArray:
@@ -1036,10 +1008,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : float, default is 5
-            Kernel radius of the filter.
-        dims : int or str, optional
-            Spatial dimensions.
+        {radius}
+        {dims}
 
         Returns
         -------
@@ -1054,6 +1024,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(selem=disk)
                                ).as_float()
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def enhance_contrast(self, radius:nDFloat=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -1062,12 +1033,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : int, optional
-            Kernel radius of the filter.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self to filtered image.
+        {radius}
+        {dims}
+        {update}
 
         Returns
         -------
@@ -1076,6 +1044,7 @@ class ImgArray(LabeledArray):
         """        
         return self._running_kernel(radius, skfil.rank.enhance_contrast, dims=dims, update=update)
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> ImgArray:
@@ -1086,10 +1055,8 @@ class ImgArray(LabeledArray):
         ----------
         radius : int, default is 1
             Radius of kernel. Shape of kernel will be (2*radius+1, 2*radius+1).
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self to filtered image.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -1105,6 +1072,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(mode="reflect")
                                )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -1122,10 +1090,8 @@ class ImgArray(LabeledArray):
             Initial estimate of noise variance.
         along : str, default is "t"
             Which axis will be the time axis.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self to filtered image.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -1178,6 +1144,7 @@ class ImgArray(LabeledArray):
             out[sl] = np.var(img)
         return out
     
+    @_docs.write_docs
     @record()
     @same_dtype(asfloat=True)
     def unmix(self, matrix, bg=None, *, along:str="c", update:bool=False) -> ImgArray:
@@ -1203,9 +1170,8 @@ class ImgArray(LabeledArray):
             minimum value of each channel.
         along : str, default is "c"
             The axis of channel.
-        update : bool, default is False
-            If update self to unmixed image.
-
+        {update}
+        
         Returns
         -------
         ImgArray
@@ -1242,6 +1208,7 @@ class ImgArray(LabeledArray):
         return out.view(self.__class__)
         
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -1257,11 +1224,9 @@ class ImgArray(LabeledArray):
         ----------
         thr : scalar or str, optional
             Threshold (value or method) to apply if image is not binary.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default is False
-            If update self to filtered image.
-
+        {dims}
+        {update}
+        
         Returns
         -------
         ImgArray
@@ -1279,6 +1244,7 @@ class ImgArray(LabeledArray):
                                )
     
 
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -1288,12 +1254,9 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        sigma : scalar or array of scalars, optional
-            Standard deviation(s) of Gaussian.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to filtered image.
+        {sigma}
+        {dims}
+        {update}
             
         Returns
         -------
@@ -1307,6 +1270,7 @@ class ImgArray(LabeledArray):
                                )
 
 
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def dog_filter(self, low_sigma:nDFloat=1, high_sigma:nDFloat=None, *, dims=None) -> ImgArray:
@@ -1320,8 +1284,7 @@ class ImgArray(LabeledArray):
             lower standard deviation(s) of Gaussian.
         high_sigma : scalar or array of scalars, default is x1.6 of low_sigma.
             higher standard deviation(s) of Gaussian.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
             
         Returns
         -------
@@ -1337,6 +1300,7 @@ class ImgArray(LabeledArray):
                                           args=(low_sigma, high_sigma)
                                           )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def doh_filter(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
@@ -1348,10 +1312,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array of scalars, default is 1.
-            Standard deviation(s) of Gaussian filter.
-        dims : int or str, optional
-            Spatial dimensions.
+        {sigma}
+        {dims}
 
         Returns
         -------
@@ -1365,6 +1327,7 @@ class ImgArray(LabeledArray):
                                           args=(sigma, pxsize)
                                           )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def log_filter(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
@@ -1373,10 +1336,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : scalar or array of scalars, default is 1.
-            Standard deviation(s) of Gaussian filter.
-        dims : int or str, optional
-            Spatial dimensions.
+        {sigma}
+        {dims}
 
         Returns
         -------
@@ -1389,6 +1350,7 @@ class ImgArray(LabeledArray):
                                            )
     
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
@@ -1439,6 +1401,7 @@ class ImgArray(LabeledArray):
         else:
             return back
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -1455,11 +1418,9 @@ class ImgArray(LabeledArray):
             Iteration stops when gain is under this value.
         max_iter : int, default is 50
             Maximum number of iterations.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to filtered image.
-
+        {dims}
+        {update}
+        
         Returns
         -------
         ImgArray
@@ -1470,6 +1431,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter)
                                )
         
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -1496,8 +1458,7 @@ class ImgArray(LabeledArray):
             Shifts in range(0, max_shifts+1) will be used.
         shift_steps : int or tuple, default is 1
             Step size of shifts.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -1649,6 +1610,7 @@ class ImgArray(LabeledArray):
         out = ArrayDict(dolp=dolp, aop=aop)
         return out
         
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
@@ -1672,8 +1634,7 @@ class ImgArray(LabeledArray):
             Maximum number of peaks per label.
         use_labels : bool, default is True
             If use self.labels when it exists.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
             
         Returns
         -------
@@ -1717,6 +1678,7 @@ class ImgArray(LabeledArray):
         df_all.set_scale(self)
         return df_all
     
+    @_docs.write_docss
     @dims_to_spatial_axes
     @record(append_history=False)
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
@@ -1739,8 +1701,7 @@ class ImgArray(LabeledArray):
             Maximum number of peaks per label.
         use_labels : bool, default is True
             If use self.labels when it exists.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
             
         Returns
         -------
@@ -1785,6 +1746,7 @@ class ImgArray(LabeledArray):
         df_all.set_scale(self)
         return df_all
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def corner_harris(self, sigma:nDFloat=1, k:float=0.05, *, dims=None) -> ImgArray:
@@ -1793,13 +1755,11 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : float, optional
-            Standard deviation of Gaussian prefilter.
+        {sigma]
         k : float, optional
             Sensitivity factor to separate corners from edges, typically in range [0, 0.2].
             Small values of k result in detection of sharp corners.
-        dims : str or int, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -1811,6 +1771,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(k=k, sigma=sigma)
                                )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def find_corners(self, sigma:nDFloat=1, k:float=0.05, *, dims=None) -> ImgArray:
@@ -1819,13 +1780,11 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : float or array-like, optional
-            Standard deviation of Gaussian prefilter.
+        {sigma}
         k : float, optional
             Sensitivity factor to separate corners from edges, typically in range [0, 0.2].
             Small values of k result in detection of sharp corners.
-        dims : str or int, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -1836,6 +1795,7 @@ class ImgArray(LabeledArray):
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def voronoi(self, coords:Coords, *, inf:nDInt=None, dims="yx") -> ImgArray:
@@ -1850,8 +1810,7 @@ class ImgArray(LabeledArray):
         inf : int, array of int, optional
             Distance to infinity points. If not provided, infinity points are placed at
             100 times further positions relative to the image shape.
-        dims : int or str, default is "yx"
-            Spatial dimensions
+        {dims}
 
         Returns
         -------
@@ -1888,6 +1847,7 @@ class ImgArray(LabeledArray):
 
         return self
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims=None):
@@ -1903,8 +1863,7 @@ class ImgArray(LabeledArray):
             Defines connectivity structure.
         tolerance : float, optional
             Intensity deviation within this value will be filled.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -1930,6 +1889,7 @@ class ImgArray(LabeledArray):
         self.labels.set_scale(self)
         return self
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     def refine_sm(self, coords:Coords=None, radius:float=4, *, percentile:float=95, n_iter:int=10, 
                   sigma:float=1.5, dims=None):
@@ -1949,8 +1909,7 @@ class ImgArray(LabeledArray):
             Number of iteration of refinement.
         sigma : float, default is 1.5
             Expected standard deviation of particles.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2069,7 +2028,8 @@ class ImgArray(LabeledArray):
                                         topn=topn, dims=dims, exclude_border=exclude_border)
         return coords
     
-        
+    
+    @_docs.write_docs
     @dims_to_spatial_axes
     def centroid_sm(self, coords:Coords=None, radius:nDInt=4, sigma:nDFloat=1.5, filt:Callable=None,
                     percentile:float=95, *, dims=None) -> MarkerFrame:
@@ -2089,8 +2049,7 @@ class ImgArray(LabeledArray):
             For every slice `sl`, label is added only when filt(`input`) == True is satisfied.
         percentile, dims
             Passed to peak_local_max()
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
         
         Returns
         -------
@@ -2135,6 +2094,7 @@ class ImgArray(LabeledArray):
 
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     def gauss_sm(self, coords:Coords=None, radius:nDInt=4, sigma:nDFloat=1.5, filt:Callable=None,
                  percentile:float=95, *, return_all:bool=False, dims=None) -> MarkerFrame|FrameDict:
@@ -2158,8 +2118,7 @@ class ImgArray(LabeledArray):
             Passed to peak_local_max()
         return_all : bool, default is False
             If True, fitting results are all returned as Frame Dict.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2234,6 +2193,7 @@ class ImgArray(LabeledArray):
                             
         return out
     
+    @_docs.write_docs
     @record()
     def edge_grad(self, sigma:nDFloat=1.0, method:str="scharr", *, deg:bool=False, dims="yx") -> PhaseArray:
         """
@@ -2242,14 +2202,12 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : float, default is 1.0
-            Standard deviation of Gaussian prefilter. If <= 0 then no prefilter is applied.
+        {sigma}
         method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "scharr"
             Edge operator name.
         deg : bool, default is True
             If True, degree rather than radian is returned.
-        dims : str, default is "yx"
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2285,6 +2243,7 @@ class ImgArray(LabeledArray):
         deg and grad.rad2deg()
         return grad
     
+    @_docs.write_docs
     @record()
     def hessian_angle(self, sigma:nDFloat=1., *, deg:bool=False, dims="yx") -> PhaseArray:
         """
@@ -2292,12 +2251,10 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        sigma : float, default is 1
-            Standard deviation of Gaussian filter applied before running Hessian.
+        {sigma}
         deg : bool, default is False
             If True, degree rather than radian is returned.
-        dims : str, default is "yx"
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2312,6 +2269,7 @@ class ImgArray(LabeledArray):
         deg and arg.rad2deg()
         return arg
     
+    @_docs.write_docs
     @record()
     def gabor_angle(self, n_sample:int=180, lmd:float=5, sigma:float=2.5, gamma:float=1, phi:float=0,
                     *, deg:bool=False, dims="yx") -> PhaseArray:
@@ -2334,8 +2292,7 @@ class ImgArray(LabeledArray):
             Phase offset of harmonic factor of Gabor kernel.
         deg : bool, default is False
             If True, degree rather than radian is returned.
-        dims : str, default is "yx"
-            Spatial axes.
+        {dims}
             
         Returns
         -------
@@ -2367,6 +2324,7 @@ class ImgArray(LabeledArray):
         deg and argmax_.rad2deg()
         return argmax_
     
+    @_docs.write_docs
     @record()
     def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma:float=1, phi:float=0, 
                      *, return_imag:bool=False, dims="yx") -> ImgArray:
@@ -2380,16 +2338,14 @@ class ImgArray(LabeledArray):
             around `lmd/2`.
         theta : float, default is 0
             Orientation of harmonic factor of Gabor kernel in radian (x-directional if `theta==0`).
-        sigma : float, default is 2.5
-            Standard deviation of Gaussian factor of Gabor kernel.
+        {sigma}
         gamma : float, default is 1
             Anisotropy of Gabor kernel, i.e. the standard deviation orthogonal to theta will be sigma/gamma.
         phi : float, default is 0
             Phase offset of harmonic factor of Gabor kernel.
         return_imag : bool, default is False
             If True, a complex image that contains both real and imaginary part of Gabor response is returned.
-        dims : str, default is "yx"
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2434,6 +2390,7 @@ class ImgArray(LabeledArray):
         route.temp = cost
         return route
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def fft(self, *, shape="same", dims=None) -> ImgArray:
@@ -2448,8 +2405,7 @@ class ImgArray(LabeledArray):
             - integers: padded or cropped to the specified shape.
             - "square": padded to smallest 2^N-long square.
             - "same" (default): no padding or cropping.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
             
         Returns
         -------
@@ -2468,6 +2424,7 @@ class ImgArray(LabeledArray):
         freq[:] = np.fft.fftshift(freq)
         return freq
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def ifft(self, real:bool=True, *, dims=None) -> ImgArray:
@@ -2478,8 +2435,7 @@ class ImgArray(LabeledArray):
         ----------
         real : bool, default is True
             If True, only the real part is returned.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
             
         Returns
         -------
@@ -2493,6 +2449,7 @@ class ImgArray(LabeledArray):
             out = np.real(out)
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def power_spectra(self, shape="same", norm:bool=False, *, dims=None) -> ImgArray:
@@ -2509,8 +2466,7 @@ class ImgArray(LabeledArray):
             - "same" (default): no padding or cropping.
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2625,6 +2581,7 @@ class ImgArray(LabeledArray):
         self.labels.set_scale(self)
         return self
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def distance_map(self, *, dims=None) -> ImgArray:
@@ -2633,8 +2590,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        dims : int or str, optional
-            spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2734,6 +2690,7 @@ class ImgArray(LabeledArray):
         
         return pos
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def remove_large_objects(self, radius:float=5, *, dims=None, update:bool=False) -> ImgArray:
@@ -2745,10 +2702,8 @@ class ImgArray(LabeledArray):
         ----------
         radius : float, optional
             Objects with radius larger than this value will be removed.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to output.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -2761,6 +2716,7 @@ class ImgArray(LabeledArray):
             
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def remove_fine_objects(self, length:float=10, *, dims=None, update:bool=False) -> ImgArray:
@@ -2771,10 +2727,8 @@ class ImgArray(LabeledArray):
         ----------
         length : float, default is 10
             Objects longer than this will be removed.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to output.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -2788,6 +2742,7 @@ class ImgArray(LabeledArray):
             
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def convex_hull(self, *, dims=None, update=False) -> ImgArray:
@@ -2796,10 +2751,8 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -2811,6 +2764,7 @@ class ImgArray(LabeledArray):
                                dtype=bool
                                ).astype(bool)
         
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def skeletonize(self, radius:float=0, *, dims=None, update=False) -> ImgArray:
@@ -2821,10 +2775,8 @@ class ImgArray(LabeledArray):
         ----------
         radius : float, optional
             Radius of skeleton. This is achieved simply by dilation of skeletonized results.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -2842,6 +2794,7 @@ class ImgArray(LabeledArray):
                                dtype=bool
                                ).astype(bool)
         
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def count_neighbors(self, *, connectivity:int=None, mask:bool=True, dims=None) -> ImgArray:
@@ -2855,8 +2808,7 @@ class ImgArray(LabeledArray):
             See label().
         mask : bool,　default is True
             If True, only neighbors of pixels that satisfy self==True is returned.
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -2883,6 +2835,7 @@ class ImgArray(LabeledArray):
             
         return out.astype(np.uint8)
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
     def remove_skeleton_structure(self, structure:str="tip", *, connectivity:int=None,
@@ -2896,10 +2849,8 @@ class ImgArray(LabeledArray):
             What type of structure to remove.
         connectivity : int, optional
             See label().
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, default if False
-            If update self.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -2919,6 +2870,7 @@ class ImgArray(LabeledArray):
         out.value[sl] = 0
         return out
     
+    @_docs.write_docs
     @record(append_history=False)
     def pointprops(self, coords:Coords, *, order:int=1, squeeze:bool=True) -> PropArray:
         """
@@ -2928,8 +2880,7 @@ class ImgArray(LabeledArray):
         ----------
         coords : MarkerFrame or array-like
             Coordinates of point to be measured.
-        order : int, default is 1
-            Spline interpolation order.
+        {order}
         squeeze : bool, default is True
             If True and only one point is measured, the redundant dimension ID_AXIS will be deleted.
 
@@ -2961,6 +2912,7 @@ class ImgArray(LabeledArray):
             out = out[0]
         return out
     
+    @_docs.write_docs
     @record(append_history=False)
     def lineprops(self, src:Coords, dst:Coords, func:str|Callable="mean", *, order:int=1, 
                   squeeze:bool=True) -> PropArray:
@@ -2975,8 +2927,7 @@ class ImgArray(LabeledArray):
             Destination coordinates.
         func : str or callable, default is "mean".
             Measurement function.
-        order : int, optional
-            Spline interpolation order.
+        {order}
         squeeze : bool, default is True.
             If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
 
@@ -3033,8 +2984,7 @@ class ImgArray(LabeledArray):
             What image will be the input of watershed algorithm.            
             - "self" ... self is used.
             - "distance" ... distance map of self.labels is used.
-        dims : str, optional
-            Spatial dimension.
+        {dims}
             
         Returns
         -------
@@ -3080,6 +3030,7 @@ class ImgArray(LabeledArray):
         self.labels.set_scale(self)
         return self.labels
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False, need_labels=True)
     def random_walker(self, beta:float=130, mode:str="cg_j", tol:float=1e-3, *, dims=None) -> Label:
@@ -3091,8 +3042,7 @@ class ImgArray(LabeledArray):
         ----------
         beta, mode, tol
             see skimage.segmentation.random_walker
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -3153,6 +3103,7 @@ class ImgArray(LabeledArray):
         return self.label(labels, dims=dims)
     
     
+    @_docs.write_docs
     @record(append_history=False)
     def pathprops(self, paths:PathFrame, properties:str|Callable|Iterable[str|Callable]="mean", *, 
                   order:int=1) -> ArrayDict:
@@ -3165,8 +3116,7 @@ class ImgArray(LabeledArray):
             Paths to measure properties.
         properties : str or callable, or their iterable
             Properties to be analyzed.
-        order : int, optional
-            Spline interpolation order.
+        {order}
         
         Returns
         -------
@@ -3278,6 +3228,7 @@ class ImgArray(LabeledArray):
             parr.set_scale(self)
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     def lbp(self, p:int=12, radius:int=1, *, method:str="default", dims=None) -> ImgArray:
@@ -3292,8 +3243,7 @@ class ImgArray(LabeledArray):
             Radius of neighbours.
         method : str, optional
             Method to determined the pattern.
-        dims : str or int, optional
-            Spatial dimension.
+        {dims}
 
         Returns
         -------
@@ -3306,6 +3256,7 @@ class ImgArray(LabeledArray):
                                args=(p, radius, method)
                                )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def glcm(self, distances, angles, *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
@@ -3324,8 +3275,7 @@ class ImgArray(LabeledArray):
             Number of bins.
         rescale_max : bool, default is False
             If True, the contrast of the input image is maximized by multiplying an integer.
-        dims : str or int, optional
-            Spatial dimension.
+        {dims}
 
         Returns
         -------
@@ -3349,6 +3299,7 @@ class ImgArray(LabeledArray):
         
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
@@ -3371,8 +3322,7 @@ class ImgArray(LabeledArray):
             Number of bins.
         rescale_max : bool, default is False
             If True, the contrast of the input image is maximized by multiplying an integer.
-        dims : str or int, optional
-            Spatial dimensions.
+        {dims}
 
         Returns
         -------
@@ -3537,14 +3487,12 @@ class ImgArray(LabeledArray):
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
             
-        if self.ndim != 3:
-            raise TypeError(f"Input must be three dimensional, but got {self.shape}.")
 
         # slow drift needs large upsampling numbers
         corr_kwargs = {"upsample_factor": 10}
         corr_kwargs.update(kwargs)
         
-        result = [[0.0, 0.0]]
+        result = [[0.0]*(self.ndim-1)]
         last_img = None
         for _, img in self.iter(along):
             if last_img is not None:
@@ -3561,6 +3509,7 @@ class ImgArray(LabeledArray):
         result.index.name = along
         return result
     
+    @_docs.write_docs
     @record()
     @same_dtype(asfloat=True)
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, order:int=1, 
@@ -3579,10 +3528,8 @@ class ImgArray(LabeledArray):
             The order of interpolation.
         along : str, optional
             Along which axis drift will be corrected.
-        dims : str, default is "yx"
-            Spatial dimension.
-        update : bool, optional
-            If update self to filtered image.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -3599,9 +3546,6 @@ class ImgArray(LabeledArray):
             along = find_first_appeared("tpzc", include=self.axes, exclude=dims)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
-        
-        if len(dims) == 3:
-            raise NotImplementedError("3-dimensional correction is not implemented. yet")
         
         if shift is None:
             # determine 'ref'
@@ -3629,6 +3573,7 @@ class ImgArray(LabeledArray):
         out = out.view(self.__class__)
         return out
 
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def estimate_sigma(self, *, squeeze:bool=True, dims=None) -> PropArray|float:
@@ -3639,8 +3584,7 @@ class ImgArray(LabeledArray):
         ----------
         squeeze : bool, default is True
             If True and output can be converted to a scalar, then convert it.
-        dims : str, optional
-            Spatial dimension.
+        {dims}
 
         Returns
         -------
@@ -3805,6 +3749,7 @@ class ImgArray(LabeledArray):
         return out.view(self.__class__)
     
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -3819,10 +3764,8 @@ class ImgArray(LabeledArray):
             Point spread function
         lmd : float
             Constant value used in the deconvolution. See Formulation below.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to filtered image.
+        {dims}
+        {update}
 
         Returns
         -------
@@ -3854,6 +3797,7 @@ class ImgArray(LabeledArray):
                                )
         
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -3872,10 +3816,8 @@ class ImgArray(LabeledArray):
             During deconvolution, division by small values in the convolve image of estimation and 
             PSF may cause divergence. Therefore, division by values under `eps` is substituted
             to zero.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to the result.
+        {dims}
+        {update}
         
         Returns
         -------
@@ -3894,6 +3836,7 @@ class ImgArray(LabeledArray):
                                args=(psf_ft, psf_ft_conj, niter, eps)
                                )
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
@@ -3930,10 +3873,8 @@ class ImgArray(LabeledArray):
             During deconvolution, division by small values in the convolve image of estimation and 
             PSF may cause divergence. Therefore, division by values under `eps` is substituted
             to zero.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to the result.
+        {dims}
+        {update}
         
         Returns
         -------
@@ -4005,7 +3946,7 @@ def _check_template(template):
     return template
 
 def _translate_image(img, shift, order=1, cval=0):
-    mx = sktrans.AffineTransform(translation=-np.asarray(shift))
+    mx = _transform.compose_affine_matrix(translation=-np.asarray(shift))
     return sktrans.warp(img, mx, order=order, cval=cval)
 
 def _calc_centroid(img, ndim):
