@@ -7,7 +7,7 @@ from ..axes import ImageAxesError
 from ..frame import AxesFrame
 from .bases import MetaArray
 from ..func import *
-from ..utilcls import *
+from ..collections import *
 
 SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
@@ -120,7 +120,7 @@ class PropArray(MetaArray):
         
         return self
     
-    def curve_fit(self, f, p0=None, dims="t", return_fit=True) -> ArrayDict:
+    def curve_fit(self, f, p0=None, dims="t", return_fit=True) -> DataDict:
         """
         Run scipy.optimize.curve_fit for each dimesion.
 
@@ -139,7 +139,7 @@ class PropArray(MetaArray):
 
         Returns
         -------
-        ArrayDict
+        DataDict
             params : Fitting parameters
             covs : Covariances
             fit : fitting trajectories (if return_fit==True)
@@ -176,9 +176,9 @@ class PropArray(MetaArray):
             fit._set_info(self, new_axes=del_axis(self.axes, dims)+dims)
         
         if return_fit:
-            return ArrayDict(params=params, errs=errs, fit=fit)
+            return DataDict(params=params, errs=errs, fit=fit)
         else:
-            return ArrayDict(params=params, errs=errs)
+            return DataDict(params=params, errs=errs)
     
     def as_frame(self, colname="f") -> AxesFrame:
         """

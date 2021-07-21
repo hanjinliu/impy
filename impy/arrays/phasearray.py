@@ -6,7 +6,7 @@ from ..func import *
 from .utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
-from ..utilcls import *
+from ..collections import *
 
 def _calc_phase_mean(sl, img, periodicity):
     a = 2 * np.pi / periodicity
@@ -205,7 +205,7 @@ class PhaseArray(LabeledArray):
     
     @record(append_history=False, need_labels=True)
     def regionprops(self, properties:tuple[str,...]|str=("phase_mean",), *, 
-                    extra_properties=None) -> ArrayDict:
+                    extra_properties=None) -> DataDict:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -223,7 +223,7 @@ class PhaseArray(LabeledArray):
 
         Returns
         -------
-            ArrayDict of PropArray
+            DataDict of PropArray
             
         Example
         -------
@@ -258,7 +258,7 @@ class PhaseArray(LabeledArray):
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = ArrayDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
+        out = DataDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
                                       name=self.name, 
                                       axes="p"+prop_axes,
                                       dirpath=self.dirpath,

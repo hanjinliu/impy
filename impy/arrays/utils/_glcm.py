@@ -1,5 +1,5 @@
 import numpy as np
-from ...utilcls import ArrayDict
+from ...collections import DataDict
 import scipy
 
 __all__ = ["glcm_props_", "check_glcm"]
@@ -74,7 +74,7 @@ def glcm_props_(data, distances, angles, levels, radius, properties):
     outshape = (len(distances), len(angles)) + \
         (data.shape[0]-2*radius, data.shape[1]-2*radius)
         
-    propout = ArrayDict()
+    propout = DataDict()
     for prop in properties:
         if isinstance(prop, str):
             propout[prop] = np.empty(outshape, dtype=np.float32)

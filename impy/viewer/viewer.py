@@ -1,5 +1,5 @@
 from __future__ import annotations
-from ..collections import DataList
+from ..collections import *
 import napari
 import pandas as pd
 from ..arrays import *
@@ -7,7 +7,7 @@ from ..frame import *
 from ..core import array as ip_array
 from .utils import *
 from .mouse import *
-from ..utilcls import ArrayDict, Progress
+from ..utilcls import Progress
 from .widgets import _make_table_widget
 from .._const import Const
 
@@ -153,7 +153,7 @@ class napariViewers:
             self._add_tracks(obj, **kwargs)
         elif isinstance(obj, PathFrame):
             self._add_paths(obj, **kwargs)
-        elif isinstance(obj, (pd.DataFrame, PropArray, ArrayDict)):
+        elif isinstance(obj, (pd.DataFrame, PropArray, DataDict)):
             self._add_properties(obj, **kwargs)
         elif isinstance(obj, LazyImgArray):
             with Progress("Sending Dask arrays to napari"):
@@ -283,13 +283,13 @@ class napariViewers:
         
         return None
     
-    def _add_properties(self, prop:PropArray|ArrayDict|pd.DataFrame):
+    def _add_properties(self, prop:PropArray|DataDict|pd.DataFrame):
         QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
         if isinstance(prop, PropArray):
             df = prop.as_frame()
             df.rename(columns = {"f": "value"}, inplace=True)
             table = _make_table_widget(df, name=prop.propname)
-        elif isinstance(prop, ArrayDict):
+        elif isinstance(prop, DataDict):
             data = None
             for k, pr in prop.items():
                 df = pr.as_frame()

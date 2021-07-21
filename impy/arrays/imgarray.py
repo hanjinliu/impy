@@ -9,6 +9,7 @@ from .utils._skimage import *
 from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform
 from ..func import *
 from ..deco import *
+from ..collections import *
 from .labeledarray import LabeledArray
 from .label import Label
 from .phasearray import PhaseArray
@@ -1513,7 +1514,7 @@ class ImgArray(LabeledArray):
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
         
-    def stokes(self, *, along:str="<") -> ArrayDict:
+    def stokes(self, *, along:str="<") -> DataDict:
         """
         Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
         Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
@@ -1529,7 +1530,7 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        ArrayDict
+        DataDict
             Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP respectively.
         
         Example
@@ -1579,7 +1580,7 @@ class ImgArray(LabeledArray):
         aop.fix_border()
         aop.set_scale(self)
         
-        out = ArrayDict(dolp=dolp, aop=aop)
+        out = DataDict(dolp=dolp, aop=aop)
         return out
         
     @_docs.write_docs

@@ -8,22 +8,19 @@ class CollectionBase:
     def _such_as(self):
         raise NotImplementedError
     
-    def _check(self):
-        raise NotImplementedError
-    
     def _repr_(self):
         if len(self) == 1:
             return \
-        f"""{self.__class__.__name__}[{self._type.__name__}] with a content:
+        f"""{self.__class__.__name__}[{self._type.__name__}] with a component:
         {repr(self._such_as)}
         """
         elif len(self) > 1:
             return \
-        f"""{self.__class__.__name__}[{self._type.__name__}] with contents such as:
+        f"""{self.__class__.__name__}[{self._type.__name__}] with components such as:
         {repr(self._such_as)}
         """
         else:
-            return f"{self.__class__.__name__} with no contents"
+            return f"{self.__class__.__name__} with no component"
     # several repr function should be defined because in IPython kernel these functions may be called 
     # for rich print and by definition __getattr__ will be called every time.
         
@@ -54,23 +51,21 @@ class DataList(CollectionBase, UserList):
         except IndexError:
             self._type = None
         else:
-            self._check()
-    
-    def _check(self):
-        return all((type(arr) is self._type) for arr in self)
+            if any((type(arr) is not self._type) for arr in self):
+                raise TypeError("All the components must be the same type.")
     
     @property
     def _such_as(self):
         return self[0]
     
-    def append(self, arr):
+    def append(self, component):
         if self._type is None:
-            super().append(arr)
-            self._type = type(arr)
-        elif type(arr) is self._type:
-            super().append(arr)
+            super().append(component)
+            self._type = type(component)
+        elif type(component) is self._type:
+            super().append(component)
         else:
-            raise TypeError(f"Cannot add {type(arr)} because {self.__class__.__name__} is composed of "
+            raise TypeError(f"Cannot add {type(component)} because {self.__class__.__name__} is composed of "
                             f"{self._type}.")
     
     def __getattr__(self, name: str):
@@ -83,11 +78,13 @@ class DataList(CollectionBase, UserList):
             return out
         return _run
     
+    
 class DataDict(CollectionBase, UserDict):
     def __init__(self, d=None, **kwargs):
         if isinstance(d, dict):
             kwargs = d
-                
+        
+        self._type = None    
         super().__init__(**kwargs)
         
         try:
@@ -95,14 +92,23 @@ class DataDict(CollectionBase, UserDict):
         except StopIteration:
             self._type = None
         else:
-            self._check()
-    
-    def _check(self):
-        return all((type(arr) is self._type) for arr in self.values())
+            if any((type(arr) is not self._type) for arr in self.values()):
+                raise TypeError("All the components must be the same type.")
     
     @property
     def _such_as(self):
         return next(iter(self.data.values()))
+    
+    
+    def __setitem__(self, name:str, component):
+        if self._type is None:
+            super().__setitem__(name, component)
+            self._type = type(component)
+        elif type(component) is self._type:
+            super().__setitem__(name, component)
+        else:
+            raise TypeError(f"Cannot set {type(component)} because {self.__class__.__name__} is composed of "
+                            f"{self._type}.")
 
     def __getattr__(self, name: str):
         if name in self.keys():
@@ -115,5 +121,4 @@ class DataDict(CollectionBase, UserDict):
                 out = self.__class__({k: getattr(v, name)(*args, **kwargs) for k, v in self.items()})
             return out
         return _run
-    
     
