@@ -1,4 +1,5 @@
 from __future__ import annotations
+from impy.axes import ImageAxesError
 import warnings
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, 
 from ..func import *
 from ..deco import *
 from ..collections import *
-from .labeledarray import LabeledArray
+from .labeledarray import LabeledArray, _axes_included
 from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
@@ -78,9 +79,12 @@ class ImgArray(LabeledArray):
                dims=None, order:int=1) -> ImgArray:
         """
         Convert image by Affine transformation. 2D Affine transformation is written as:
-        [x']   [A00 A01 A02]   [x]
-        [y'] = [A10 A11 A12] * [y]
-        [1 ]   [  0   0   1]   [1]
+        
+            [x']   [A00 A01 A02]   [x]
+            [y'] = [A10 A11 A12] * [y]
+            [1 ]   [  0   0   1]   [1]
+        
+        and similarly, n-D Affine transformation can be described as (n+1)-D matrix.
 
         Parameters
         ----------
@@ -162,7 +166,7 @@ class ImgArray(LabeledArray):
         with Progress("rescale"):
             scale_ = [scale if a in dims else 1 for a in self.axes]
             out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
-            out = out.view(self.__class__)
+            out:ImgArray = out.view(self.__class__)
             out._set_info(self, f"rescale(scale={scale})")
             out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
@@ -207,7 +211,7 @@ class ImgArray(LabeledArray):
             reshaped_img = img_to_reshape.reshape(shape)
             axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
             out = binfunc(reshaped_img, axis=axes_to_reduce)
-            out = out.view(self.__class__)
+            out:ImgArray = out.view(self.__class__)
             out._set_info(self, f"binning(binsize={binsize})")
             out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
@@ -396,6 +400,8 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected image.
         """
+        warnings.warn("This function will integrated to other correlation maximization method in the "
+                      "future.", DeprecationWarning)
         def check_c_axis(self):
             if not hasattr(self, "axes"):
                 raise AttributeError("Image dose not have axes.")
@@ -1098,6 +1104,7 @@ class ImgArray(LabeledArray):
         ----------
         radius : int, default is 1
             Radius of Laplacian filter's kernel.
+        {dims}
 
         Returns
         -------
@@ -2574,6 +2581,21 @@ class ImgArray(LabeledArray):
                                c_axes=complement_axes(dims, self.axes)
                                )
     
+    @_docs.write_docs
+    @record()
+    def maximize_correlation(self, ref, method="pcc", *, update:bool=False) -> ImgArray:
+        # ac: angular correlation
+        # pcc: phase cross correlation
+        # ncc: normalized cross correlation
+        # nmi: normalized mutual information
+        # and other similarities in skimage.metric?
+        if not _axes_included(self, ref):
+            raise ImageAxesError("Input image must have all the axes of `ref`.")
+        
+        c_axes = complement_axes(ref.axes, self.axes)
+        ...
+        
+    
     @record()
     def ncc(self, template:np.ndarray, bg:float=None) -> ImgArray:
         """
@@ -2597,7 +2619,7 @@ class ImgArray(LabeledArray):
         template = _check_template(template)
         bg = _check_bg(self, bg)
         dims = "yx" if template.ndim == 2 else "zyx"
-        return self.as_float().apply_dask(_misc.ncc,
+        return self.as_float().apply_dask(_filters.ncc_filter,
                                           c_axes=complement_axes(dims, self.axes), 
                                           args=(template, bg)
                                           )

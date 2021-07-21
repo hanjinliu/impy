@@ -140,7 +140,7 @@ def angular_correlation(img0:ImgArray, img1:ImgArray, deg:float, center="center"
         f1 = np.sqrt(img1.rotate(deg, center=center, dims=dims).power_spectra(dims=dims))
         f0 -= np.mean(f0, axis=dims)[sl]
         f1 -= np.mean(f1, axis=dims)[sl]
-        corr = np.sum(f0 * f1, axis=dims) / (np.std(f0)*np.std(f1))
+        corr = np.sum(f0 * f1, axis=dims) / (np.std(f0, axis=dims)*np.std(f1, axis=dims))
 
     if corr.ndim == 0 and squeeze:
         corr = corr[()]
