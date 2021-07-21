@@ -181,6 +181,11 @@ class ImgArray(LabeledArray):
             scale of the new image.
         {dims}
         {order}
+        
+        Returns
+        -------
+        ImgArray
+            Rescaled image.
         """        
         with Progress("rescale"):
             scale_ = [scale if a in dims else 1 for a in self.axes]
@@ -1361,14 +1366,11 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        radius : int, default is 50.
-            Radius of rolling ball.
+        {radius}
         prefilter : str, {"mean", "median", "none"}
             If apply 3x3 averaging before creating background.
-        dims : int or str, optional
-            Spatial dimensions.
-        update : bool, optional
-            If update self to filtered image.
+        {dims}
+        {update}
             
         Returns
         -------
@@ -1476,6 +1478,7 @@ class ImgArray(LabeledArray):
                                kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
                                )
     
+    @_docs.write_docs
     @record(append_history=False)
     def split_pixel_unit(self, center:tuple[float, float]=(0, 0), *, order:int=1,
                            angle_order:list[int]=None, newaxis="<") -> ImgArray:
@@ -1501,9 +1504,7 @@ class ImgArray(LabeledArray):
             upper left pixel, and center=(0.5, 0.5) means the middle point of a pixel unit.
             [0] [1]    (0, 0) (0, 1)
             [2] [3] -> (1, 0) (1, 1)
-        order : int, default is 4.
-            Spline interpolation order. For detail see `skimage.transform.warp`. To speed up you can
-            pass smaller integer in the expense of accuracy.
+        {order}
         angle_order : list of int, default is [2, 1, 0, 3]
             Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 corresponds to
             polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
@@ -1678,7 +1679,7 @@ class ImgArray(LabeledArray):
         df_all.set_scale(self)
         return df_all
     
-    @_docs.write_docss
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
@@ -1755,7 +1756,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {sigma]
+        {sigma}
         k : float, optional
             Sensitivity factor to separate corners from edges, typically in range [0, 0.2].
             Small values of k result in detection of sharp corners.
@@ -2195,7 +2196,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record()
-    def edge_grad(self, sigma:nDFloat=1.0, method:str="scharr", *, deg:bool=False, dims="yx") -> PhaseArray:
+    def edge_grad(self, sigma:nDFloat=1.0, method:str="sobel", *, deg:bool=False, dims="yx") -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
         is the direction with maximum gradient, i.e., intensity increase is largest. 
@@ -2203,7 +2204,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         {sigma}
-        method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "scharr"
+        method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "sobel"
             Edge operator name.
         deg : bool, default is True
             If True, degree rather than radian is returned.

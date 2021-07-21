@@ -1,3 +1,5 @@
+import re
+
 shared_docs = dict(
     dims = """
         dims : str or int, optional
@@ -30,13 +32,32 @@ shared_docs = dict(
         
     order = """
         order : int, default is 1
-            Spline interpolation order.
+            Spline interpolation order. For more details see https://scikit-image.org/docs/dev/api/skimage.transform.html#skimage.transform.warp.
         """,
 )
 
 def write_docs(func):
     doc = func.__doc__
     if doc is not None:
-        doc = doc.format(**shared_docs)
-        func.__doc__ = doc
+        try:
+            summary, params, rest = split_doc(doc)
+            for key, value in shared_docs.items():
+                params = re.sub("{"+key+"}", value, params)
+            doc = merge_doc(summary, params, rest)
+            func.__doc__ = doc
+        except ValueError as e:
+            print(func.__name__, ":", e)
     return func
+
+def split_doc(doc:str):
+    summary, other = doc.split("Parameters\n")
+    params, rest = other.split("Returns\n")
+    return summary, params, rest
+
+def merge_doc(summary, params, rest):
+    return summary + \
+           "Parameters\n" + \
+           params + \
+           "Returns\n" + \
+           rest
+
