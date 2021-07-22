@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .utils.utilcls import Progress
 from collections import UserList, UserDict
 
@@ -32,7 +33,8 @@ class CollectionBase:
 class DataList(CollectionBase, UserList):
     """
     List-like class that can call same method for every object containded in it. Accordingly, DataList
-    cannot have objects with different types. It is checked in `__init__()` by calling `_check()`.
+    cannot have objects with different types. It is checked every time constructor or `append` method is
+    called.
     
     Examples
     --------
@@ -78,7 +80,24 @@ class DataList(CollectionBase, UserList):
             return out
         return _run
     
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, *args, **kwargs) -> DataList:
+        """
+        Apply same function to each components. It can be any callable objects or any method of the components.
+
+        Parameters
+        ----------
+        func : Callable or str
+            Function to be applied to each components.
+        args
+            Other arguments of `func`.
+        kwargs
+            Other keyword arguments of `func`.
+
+        Returns
+        -------
+        DataList
+            This list is composed of [func(data[0]), func(data[1]), ...]
+        """        
         if isinstance(func, str):
             return self.__class__(getattr(data, func)(*args, **kwargs) 
                                   for data in self)
@@ -88,6 +107,22 @@ class DataList(CollectionBase, UserList):
             
     
 class DataDict(CollectionBase, UserDict):
+    """
+    Dictionary-like class that can call same method for every object containded in the values. Accordingly, 
+    DataDict cannot have objects with different types as values. It is checked every time constructor or 
+    `__setitem__` method is called.
+    
+    Examples
+    --------
+    (1) Run Gaussian filter for every ImgArray.
+    >>> imgs = DataDict(first=img1, second=img2)
+    >>> out = imgs.gaussian_filter()   # getattr is called for every image here.
+    >>> out.first # return the first one.
+    
+    (2) Find single molecules for every ImgArray.
+    >>> imgs = DataDict([img1, img2, ...])
+    >>> out = imgs.find_sm()
+    """ 
     def __init__(self, d=None, **kwargs):
         if isinstance(d, dict):
             kwargs = d
@@ -131,6 +166,23 @@ class DataDict(CollectionBase, UserDict):
         return _run
     
     def apply(self, func, *args, **kwargs):
+        """
+        Apply same function to each components. It can be any callable objects or any method of the components.
+
+        Parameters
+        ----------
+        func : Callable or str
+            Function to be applied to each components.
+        args
+            Other arguments of `func`.
+        kwargs
+            Other keyword arguments of `func`.
+
+        Returns
+        -------
+        DataList
+            This list is composed of {"name0": func(data[0]), "name1": func(data[1]), ...}
+        """        
         if isinstance(func, str):
             return self.__class__({k: getattr(data, func)(*args, **kwargs) 
                                    for k, data in self.items()})
