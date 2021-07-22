@@ -1041,6 +1041,51 @@ class LabeledArray(HistoryArray):
         out.history.pop()
         return out
     
+    @record()
+    def try_conditions(self, func:str, *, var:dict[str,Iterable]=None, **kwargs) -> DataList:
+        """
+        Apply same function with different parameters with same input. This function will be useful
+        when you want to try different conditions to the same image.
+
+        Parameters
+        ----------
+        func : str
+            Function name to apply repetitively.
+        var : dict[str,Iterable], optional
+            Name of variable and the values to try. If you want to try sigma=1,2,3 then you should
+            give `var={"sigma": [1, 2, 3]}`.
+        kwargs
+            Other fixed paramters that will be passed to `func`.
+
+        Returns
+        -------
+        DataList
+            List of outputs.
+            
+        Example
+        -------
+        Try LoG filter with different Gaussian kernel size and visualize all of them in napari.
+        >>> out = img.try_conditions("log_filter", var={"sigma":[1, 2, 3, 4]})
+        >>> ip.gui.add(out)
+        """        
+        if var is None:
+            raise ValueError("`var` must be specified.")
+        elif not isinstance(var, dict) or len(var) != 1:
+            raise ValueError("`var` must be a dict with one key/value.")
+        if not hasattr(self, func):
+            raise AttributeError(f"{self.__class__} does not have method {func}")
+        
+        key, values = tuple(var.items())[0]
+        if key in kwargs.keys():
+            raise ValueError(f"Keyword {key} exists in `kwargs`.")
+        outlist = DataList()
+        for v in values:
+            kwargs[key] = v
+            out = getattr(self, func)(**kwargs)
+            outlist.append(out)
+        return outlist        
+        
+    
     @record(need_labels=True)
     def extract(self, label_ids=None, filt=None, cval:float=0, 
                 crop:bool=False) -> LabeledArray|DataList[LabeledArray]:

@@ -39,6 +39,13 @@ shared_docs = dict(
         squeeze : bool, default is True
             If True, the redundant axis will be deleted. Array with sinl0gle value will be converted to a scalar."""
     ,
+    
+    inputs_of_correlation = """
+        img0 : ImgArray
+            First image.
+        img1 : ImgArray
+            Second image.  """
+    ,
 )
 
 def write_docs(func):

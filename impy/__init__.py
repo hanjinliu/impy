@@ -1,4 +1,4 @@
-__version__ = "1.16.7"
+__version__ = "1.16.8"
 
 import logging
 from .collections import *
