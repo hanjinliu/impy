@@ -78,6 +78,14 @@ class DataList(CollectionBase, UserList):
             return out
         return _run
     
+    def apply(self, func, *args, **kwargs):
+        if isinstance(func, str):
+            return self.__class__(getattr(data, func)(*args, **kwargs) 
+                                  for data in self)
+        else:
+            return self.__class__(func(data, *args, **kwargs) 
+                                  for data in self)
+            
     
 class DataDict(CollectionBase, UserDict):
     def __init__(self, d=None, **kwargs):
@@ -122,3 +130,10 @@ class DataDict(CollectionBase, UserDict):
             return out
         return _run
     
+    def apply(self, func, *args, **kwargs):
+        if isinstance(func, str):
+            return self.__class__({k: getattr(data, func)(*args, **kwargs) 
+                                   for k, data in self.items()})
+        else:
+            return self.__class__({k: func(data, *args, **kwargs) 
+                                   for k, data in self.items()})
