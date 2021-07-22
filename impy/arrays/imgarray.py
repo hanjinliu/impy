@@ -3763,7 +3763,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def wiener(self, psf:np.ndarray, lmd:float, *, dims=None, update:bool=False) -> ImgArray:
+    def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
@@ -3772,7 +3772,7 @@ class ImgArray(LabeledArray):
         ----------
         psf : np.ndarray
             Point spread function
-        lmd : float
+        lmd : float, default is 0.1
             Constant value used in the deconvolution. See Formulation below.
         {dims}
         {update}
@@ -3797,9 +3797,7 @@ class ImgArray(LabeledArray):
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
         
-        psf = _deconv.check_psf(self, psf, dims)
-        psf_ft = rfft(psf)
-        psf_ft_conj = np.conjugate(psf_ft)
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
         
         return self.apply_dask(_deconv.wiener, 
                                c_axes=complement_axes(dims, self.axes),
@@ -3835,12 +3833,8 @@ class ImgArray(LabeledArray):
             Deconvolved image.
         """
         
-        psf = _deconv.check_psf(self, psf, dims)
-        
-        # calculate FFT of PSF and its conjugate in advance
-        psf_ft = rfft(psf)
-        psf_ft_conj = np.conjugate(psf_ft)
-        
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+
         return self.apply_dask(_deconv.richardson_lucy, 
                                c_axes=complement_axes(dims, self.axes),
                                args=(psf_ft, psf_ft_conj, niter, eps)
@@ -3897,15 +3891,11 @@ class ImgArray(LabeledArray):
           & Zerubia, J. (2004). 3D microscopy deconvolution using Richardson-Lucy algorithm 
           with total variation regularization (Doctoral dissertation, INRIA).
         """
-        psf = _deconv.check_psf(self, psf, dims)
         if lmd <= 0:
             raise ValueError("In Richadson-Lucy with total-variance-regularization, parameter `lmd` "
                              "must be positive.")
-        
-        # calculate FFT of PSF and its conjugate in advance
-        psf_ft = rfft(psf)
-        psf_ft_conj = np.conjugate(psf_ft)
-        
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+
         return self.apply_dask(_deconv.richardson_lucy_tv, 
                                c_axes=complement_axes(dims, self.axes),
                                args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
