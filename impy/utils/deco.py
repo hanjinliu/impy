@@ -1,9 +1,7 @@
 from functools import wraps
-from .arrays.bases.metaarray import MetaArray
 import numpy as np
 from .utilcls import Progress
 import re
-import inspect
 
     
 def record(append_history=True, record_label=False, only_binary=False, need_labels=False):
@@ -24,7 +22,7 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
             
             temp = getattr(out, "temp", None)
                             
-            if type(out) is np.ndarray and isinstance(self, MetaArray):
+            if type(out) is np.ndarray and type(self) is not np.ndarray:
                 out = out.view(self.__class__)
             
             # record history and update if needed
@@ -98,7 +96,7 @@ def dims_to_spatial_axes(func):
     
     return wrapper
 
-def safe_str(obj):
+def _safe_str(obj):
     try:
         if isinstance(obj, float):
             s = f"{obj:.3g}"
@@ -113,7 +111,7 @@ def safe_str(obj):
         return str(type(obj))
 
 def make_history(funcname, args, kwargs):
-    _args = list(map(safe_str, args))
-    _kwargs = [f"{safe_str(k)}={safe_str(v)}" for k, v in kwargs.items()]
+    _args = list(map(_safe_str, args))
+    _kwargs = [f"{_safe_str(k)}={_safe_str(v)}" for k, v in kwargs.items()]
     history = f"{funcname}({','.join(_args + _kwargs)})"
     return history

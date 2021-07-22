@@ -1,22 +1,29 @@
 from __future__ import annotations
-from impy.axes import ImageAxesError
 import warnings
 import numpy as np
 import pandas as pd
 from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
 from functools import partial
-from .._types import *
-from .utils._skimage import *
-from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _plot
-from ..func import *
-from ..deco import *
-from ..collections import *
-from .labeledarray import LabeledArray, _axes_included
+
+from .labeledarray import LabeledArray
 from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
-from ..utilcls import *
+
+from .utils._skimage import *
+from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _plot, _structures
+
+from ..utils.axesop import *
+from ..utils.deco import *
+from ..utils.gauss import *
+from ..utils.misc import *
+from ..utils.utilcls import *
+
+from ..axes import ImageAxesError
+from ..collections import *
+from .._types import *
 from ..frame import *
+from .._const import Const
 
 # TODO: check https://github.com/scikit-image/scikit-image/issues/3846
 
@@ -718,7 +725,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
-        disk = ball_like(radius, len(dims))
+        disk = _structures._structures.ball_like(radius, len(dims))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             out = self.apply_dask(function, 
@@ -831,7 +838,7 @@ class ImgArray(LabeledArray):
             Filtered image.
         """        
         
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         return self.apply_dask(ndi.white_tophat, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
@@ -875,7 +882,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         return self.as_float().apply_dask(_filters.std_filter, 
                                           c_axes=complement_axes(dims, self.axes), 
                                           args=(disk,)
@@ -899,7 +906,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         return self.as_float().apply_dask(_filters.coef_filter, 
                                           c_axes=complement_axes(dims, self.axes), 
                                           args=(disk,)
@@ -923,7 +930,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """     
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         return self.apply_dask(ndi.median_filter, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
@@ -999,7 +1006,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         
         self = self.as_uint8()
         return self.apply_dask(skfil.rank.entropy, 
@@ -1643,7 +1650,7 @@ class ImgArray(LabeledArray):
                 labels = None
             
             indices = skfeat.peak_local_max(np.array(img),
-                                            footprint=ball_like(min_distance, ndim),
+                                            footprint=_structures.ball_like(min_distance, ndim),
                                             threshold_abs=thr,
                                             num_peaks=topn,
                                             num_peaks_per_label=topn_per_label,
@@ -1711,7 +1718,7 @@ class ImgArray(LabeledArray):
                 labels = None
             
             indices = skfeat.corner_peaks(np.array(img),
-                                          footprint=ball_like(min_distance, ndim),
+                                          footprint=_structures.ball_like(min_distance, ndim),
                                           threshold_abs=thr,
                                           num_peaks=topn,
                                           num_peaks_per_label=topn_per_label,
@@ -1927,7 +1934,7 @@ class ImgArray(LabeledArray):
                 bg = img.value[img.labels==0]
                 black_level = np.mean(bg)
                 noise = np.std(bg)
-                area = np.sum(ball_like_odd(radius[0], len(dims)))
+                area = np.sum(_structures.ball_like_odd(radius[0], len(dims)))
                 mass = refined_coords["raw_mass"].values - area * black_level
                 ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
                 
@@ -1994,7 +2001,7 @@ class ImgArray(LabeledArray):
                 cutoff = 0.5
             sigma = np.array(check_nd(sigma, len(dims)))
             shape = tuple((sigma*4).astype(np.int))
-            g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, 1.0, 0.0])
+            g = GaussianParticle([(np.array(shape)-1)/2, sigma, 1.0, 0.0])
             template = g.generate(shape)
             fil_img = self.ncc(template)
             fil_img[fil_img<cutoff] = cutoff
@@ -2589,7 +2596,7 @@ class ImgArray(LabeledArray):
         # ncc: normalized cross correlation
         # nmi: normalized mutual information
         # and other similarities in skimage.metric?
-        if not _axes_included(self, ref):
+        if not axes_included(self, ref):
             raise ImageAxesError("Input image must have all the axes of `ref`.")
         
         c_axes = complement_axes(ref.axes, self.axes)
@@ -2779,7 +2786,7 @@ class ImgArray(LabeledArray):
             Skeletonized image.
         """        
         if radius >= 1:
-            selem = ball_like(radius, len(dims))
+            selem = _structures.ball_like(radius, len(dims))
         else:
             selem = None
         

@@ -2,9 +2,9 @@ from __future__ import annotations
 import numpy as np
 from typing import Callable
 from .arrays import *
-from .func import *
-from .utilcls import Progress
-from .deco import *
+from .utils.axesop import *
+from .utils.utilcls import Progress
+from .utils.deco import *
 
 # Extend ImgArray with custom functions.
 

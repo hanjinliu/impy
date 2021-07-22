@@ -1,11 +1,13 @@
 from __future__ import annotations
+import matplotlib.pyplot as plt
 from skimage.color import label2rgb
 from .utils._skimage import skseg
-import matplotlib.pyplot as plt
-from ..func import *
-from ..utilcls import *
-from ..deco import *
 from .bases import HistoryArray
+
+from ..utils.axesop import *
+from ..utils.utilcls import *
+from ..utils.deco import *
+from ..utils.misc import *
 
 def best_dtype(n:int):
     if n < 2**8:

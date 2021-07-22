@@ -1,13 +1,15 @@
-from __future__ import annotations
 import numpy as np
 
-def check_nd(x, ndim:int):
-    if np.isscalar(x):
-        x = (x,) * ndim
-    elif len(x) != ndim:
-        raise ValueError("length of parameter and dimension must match.")
-    return x
+def axes_included(img, label):
+    """
+    e.g.)
+    img.axes = "tyx", label.axes = "yx" -> True
+    img.axes = "tcyx", label.axes = "zyx" -> False
     
+    """
+    return all([a in img.axes for a in label.axes])
+
+
 def find_first_appeared(axes, include="", exclude=""):
     for a in axes:
         if a in include and not a in exclude:
@@ -74,14 +76,3 @@ def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=None):
             sl.append(slout)
     sl = tuple(sl)
     return sl
-
-
-def largest_zeros(shape) -> np.ndarray:
-    try:
-        out = np.zeros(shape, dtype=np.uint64)
-    except MemoryError:
-        try:
-            out = np.zeros(shape, dtype=np.uint32)
-        except MemoryError:
-            out = np.zeros(shape, dtype=np.uint16)
-    return out

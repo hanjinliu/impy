@@ -2,10 +2,10 @@ from __future__ import annotations
 from scipy import ndimage as ndi
 import numpy as np
 from functools import partial
-from .deco import dims_to_spatial_axes
 from .arrays import ImgArray, PropArray
-from .func import *
-from .utilcls import *
+from .utils.axesop import *
+from .utils.utilcls import Progress
+from .utils.deco import dims_to_spatial_axes
 from warnings import warn
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",

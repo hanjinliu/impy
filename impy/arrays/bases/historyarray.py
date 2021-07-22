@@ -1,8 +1,9 @@
 from __future__ import annotations
-from ...func import *
-from ...utilcls import *
-from .metaarray import MetaArray
+import numpy as np
 import itertools
+from .metaarray import MetaArray
+from ...utils.axesop import *
+from ...utils.slicer import *
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 

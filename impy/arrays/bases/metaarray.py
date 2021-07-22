@@ -2,11 +2,12 @@ from __future__ import annotations
 import numpy as np
 from dask import array as da
 import itertools
-from ...axes import ImageAxesError
-from ...func import *
-from ...collections import DataList
 from ..axesmixin import AxesMixin
 from ..._types import *
+from ...axes import ImageAxesError
+from ...utils.axesop import *
+from ...utils.slicer import *
+from ...collections import DataList
 
 
 class MetaArray(AxesMixin, np.ndarray):

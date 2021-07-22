@@ -1,9 +1,10 @@
 from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
-from .utils import _filters
-from ..deco import *
-from ..func import *
+from .utils import _filters, _structures
+from ..utils.deco import *
+from ..utils.utilcls import *
+from ..utils.axesop import *
 from .utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
@@ -145,7 +146,7 @@ class PhaseArray(LabeledArray):
         PhaseArray
             Filtered image.
         """        
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         a = 2*np.pi/self.periodicity
             
         return self.apply_dask(_filters.phase_mean_filter,

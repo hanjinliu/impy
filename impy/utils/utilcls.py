@@ -1,5 +1,5 @@
 import time
-from ._const import Const
+from .._const import Const
 from importlib import import_module
 
 __all__ = ["Timer", "ImportOnRequest", "Progress"]

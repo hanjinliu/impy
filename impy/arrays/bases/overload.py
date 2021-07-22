@@ -3,7 +3,7 @@ import numpy as np
 from .metaarray import MetaArray
 from .historyarray import HistoryArray
 from ...axes import Axes
-from ...func import del_axis
+from ...utils.axesop import del_axis
 from ...collections import DataList
 
 def safe_set_info(out, img, history, new_axes):

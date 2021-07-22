@@ -1,20 +1,24 @@
 from __future__ import annotations
-from ..collections import DataList
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import inspect
-from skimage.color import label2rgb
-from tifffile import imwrite
-from ..axes import ImageAxesError
-from ..func import *
-from ..deco import *
-from ..utilcls import *
-from .bases import HistoryArray
-from .label import Label
+
 from .specials import *
 from .utils._skimage import *
+from .bases import HistoryArray
+from .label import Label
+
+from ..utils.deco import *
+from ..utils.utilcls import *
+from ..utils.axesop import *
+from ..utils.misc import *
+from ..utils.io import *
+
+from ..collections import DataList
+from ..axes import ImageAxesError
+from ..frame import MarkerFrame
 from .._types import *
 
 class LabeledArray(HistoryArray):
@@ -123,7 +127,7 @@ class LabeledArray(HistoryArray):
         """
         Make a view of label **if possible**.
         """
-        if hasattr(other, "labels") and _axes_included(self, other.labels) and _shape_match(self, other.labels):
+        if hasattr(other, "labels") and axes_included(self, other.labels) and _shape_match(self, other.labels):
             self.labels = other.labels
     
     def _getitem_additional_set_info(self, other, **kwargs):
@@ -331,8 +335,8 @@ class LabeledArray(HistoryArray):
                 image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
             else:
                 image = self.value
-            overlay = label2rgb(self.labels.value, image=image, bg_label=0, 
-                                alpha=alpha, image_alpha=1)
+            overlay = skimage.color.label2rgb(self.labels.value, image=image, bg_label=0, 
+                                              alpha=alpha, image_alpha=1)
             plt.imshow(overlay, **imshow_kwargs)
             self.hist()
         elif self.ndim == 3:
@@ -359,8 +363,8 @@ class LabeledArray(HistoryArray):
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
                     else:
                         image = self.value
-                    overlay = label2rgb(img.labels.value, image=image, bg_label=0, 
-                                        alpha=alpha, image_alpha=1)
+                    overlay = skimage.color.label2rgb(img.labels.value, image=image, bg_label=0, 
+                                                      alpha=alpha, image_alpha=1)
                     ax[i].imshow(overlay, **imshow_kwargs)
                     ax[i].axis("off")
                     ax[i].set_title(f"Image-{i+1}")
@@ -379,8 +383,8 @@ class LabeledArray(HistoryArray):
                         image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
                     else:
                         image = self.value
-                    overlay = label2rgb(img.labels, image=image, bg_label=0, 
-                                        alpha=alpha, image_alpha=1)
+                    overlay = skimage.color.label2rgb(img.labels, image=image, bg_label=0, 
+                                                      alpha=alpha, image_alpha=1)
                     ax[i].imshow(overlay, **imshow_kwargs)
                     
         else:
@@ -723,7 +727,7 @@ class LabeledArray(HistoryArray):
             label_image = self
         elif not hasattr(label_image, "axes") or label_image.axes.is_none():
             raise ValueError("Use Array with axes for label_image.")
-        elif not _axes_included(self, label_image):
+        elif not axes_included(self, label_image):
             raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
                                  f"{label_image.axes} and {self.axes}")
         elif not _shape_match(self, label_image):
@@ -799,7 +803,7 @@ class LabeledArray(HistoryArray):
             label_image = self
         elif not hasattr(label_image, "axes") or label_image.axes.is_none():
             raise ValueError("Use Array with axes for label_image.")
-        elif not _axes_included(self, label_image):
+        elif not axes_included(self, label_image):
             raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
                                  f"{label_image.axes} and {self.axes}")
         elif not _shape_match(self, label_image):
@@ -898,7 +902,7 @@ class LabeledArray(HistoryArray):
                     raise ValueError("Could not infer axes of `label_image`.")
             else:
                 axes = label_image.axes
-                if not _axes_included(self, label_image):
+                if not axes_included(self, label_image):
                     raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
                 
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
@@ -935,7 +939,8 @@ class LabeledArray(HistoryArray):
     
     def split(self, axis=None) -> list[LabeledArray]:
         """
-        Split n-dimensional image into (n-1)-dimensional images.
+        Split n-dimensional image into (n-1)-dimensional images. This function is different from
+        `np.split`, which split an array into smaller pieces (n-D to n-D).
 
         Parameters
         ----------
@@ -1115,17 +1120,6 @@ def _shape_match(img, label):
         -> False
     """    
     return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
-
-
-def _axes_included(img, label):
-    """
-    e.g.)
-    img.axes = "tyx", label.axes = "yx" -> True
-    img.axes = "tcyx", label.axes = "zyx" -> False
-    
-    """
-    return all([a in img.axes for a in label.axes])
-
 
 def _determine_range(arr):
     """

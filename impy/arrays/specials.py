@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from inspect import signature
 from scipy import optimize as opt
+from .bases import MetaArray
 from ..axes import ImageAxesError
 from ..frame import AxesFrame
-from .bases import MetaArray
-from ..func import *
+from ..utils.axesop import *
 from ..collections import *
 
 SCALAR_PROP = (

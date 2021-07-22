@@ -1,13 +1,15 @@
 from __future__ import annotations
 from .collections import DataList
 from .arrays import ImgArray, LazyImgArray
+from .utils import gauss
+from .utils.slicer import *
 import numpy as np
 import os
 import re
 import glob
 import itertools
 from dask import array as da
-from .func import *
+from .utils.io import *
 from .axes import ImageAxesError
 from skimage import data as skdata
 __all__ = ["array", "asarray", "aslazy", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", 

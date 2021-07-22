@@ -1,17 +1,22 @@
 from __future__ import annotations
+import os
 from dask import array as da
 from dask.diagnostics import ProgressBar
-from tifffile import imwrite
-from ..deco import *
-from ..func import *
-from .._types import *
-from ..axes import ImageAxesError
 from .imgarray import ImgArray
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from .utils import _misc, _transform
+from .utils import _misc, _transform, _structures
+
+from ..utils.deco import *
+from ..utils.axesop import *
+from ..utils.slicer import *
+from ..utils.misc import *
+from ..utils.io import *
+
+from .._types import *
+from ..axes import ImageAxesError
 from .._const import Const
 
 class LazyImgArray(AxesMixin):
@@ -343,7 +348,7 @@ class LazyImgArray(AxesMixin):
     
     @dims_to_spatial_axes
     def median_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
-        disk = ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         return self.apply(dafil.median_filter,
                           c_axes=complement_axes(dims, self.axes),
                           rechunk_to="max",

@@ -1,4 +1,4 @@
-from .utilcls import Progress
+from .utils.utilcls import Progress
 from collections import UserList, UserDict
 
 __all__ = ["DataList", "DataDict"]

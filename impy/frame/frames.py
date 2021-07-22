@@ -1,11 +1,14 @@
 from __future__ import annotations
-from ..axes import Axes, ImageAxesError, ORDER
 import numpy as np
 import pandas as pd
-from ..func import *
-from ..deco import *
-from ..utilcls import *
+
+from ..utils.axesop import *
+from ..utils.slicer import *
+from ..utils.deco import *
+from ..utils.utilcls import *
+
 from .._const import Const
+from ..axes import Axes, ImageAxesError, ORDER
 
 tp = ImportOnRequest("trackpy")
 
@@ -263,13 +266,12 @@ class TrackFrame(AxesFrame):
         return df
         
     @tp_no_verbose
-    def track_drift(self, smoothing=0, show_drift=True):
+    def track_drift(self, smoothing=0):
         df = self._renamed_df()
         shift = -tp.compute_drift(df, smoothing=smoothing)
         # trackpy.compute_drift does not return the initial drift so that here we need to start with [0, 0]
         ori = pd.DataFrame({"y":[0.], "x":[0.]}, dtype=np.float32)
         shift = pd.concat([ori, shift], axis=0)
-        show_drift and plot_drift(shift)
         return MarkerFrame(shift)
     
     @tp_no_verbose

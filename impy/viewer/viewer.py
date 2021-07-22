@@ -7,7 +7,7 @@ from ..frame import *
 from ..core import array as ip_array
 from .utils import *
 from .mouse import *
-from ..utilcls import Progress
+from ..utils.utilcls import Progress
 from .widgets import _make_table_widget
 from .._const import Const
 
