@@ -2,7 +2,7 @@ from __future__ import annotations
 import warnings
 import numpy as np
 import pandas as pd
-from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
+    
 from functools import partial
 
 from .labeledarray import LabeledArray
@@ -25,7 +25,11 @@ from .._types import *
 from ..frame import *
 from .._const import Const
 
-# TODO: check https://github.com/scikit-image/scikit-image/issues/3846
+if Const["RESOURCE"] == "cupy":
+    from .._cupy import fft, ifft, rfft, irfft
+else:
+    from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
+
 
 class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
@@ -656,6 +660,7 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
+        # check np x cp
         out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return out
     
@@ -715,7 +720,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Convolved image.
         """        
-        return self.apply_dask(ndi.convolve, 
+        return self.apply_dask(_filters.convolve, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                args=(kernel,),
@@ -839,7 +844,7 @@ class ImgArray(LabeledArray):
         """        
         
         disk = _structures.ball_like(radius, len(dims))
-        return self.apply_dask(ndi.white_tophat, 
+        return self.apply_dask(_filters.white_tophat, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                kwargs=dict(footprint=disk)
@@ -931,7 +936,7 @@ class ImgArray(LabeledArray):
             Filtered image.
         """     
         disk = _structures.ball_like(radius, len(dims))
-        return self.apply_dask(ndi.median_filter, 
+        return self.apply_dask(_filters.median_filter, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                kwargs=dict(footprint=disk)
@@ -1055,7 +1060,7 @@ class ImgArray(LabeledArray):
         """        
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
-        return self.apply_dask(ndi.convolve, 
+        return self.apply_dask(_filters.convolve, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
                                args=(laplace_op,),
@@ -1255,7 +1260,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """
-        return self.apply_dask(ndi.gaussian_filter, 
+        return self.apply_dask(_filters.gaussian_filter, 
                                c_axes=complement_axes(dims, self.axes), 
                                args=(sigma,), 
                                dtype=np.float32
@@ -1336,7 +1341,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        return -self.as_float().apply_dask(ndi.gaussian_laplace,
+        return -self.as_float().apply_dask(_filters.gaussian_laplace,
                                            c_axes=complement_axes(dims, self.axes), 
                                            args=(sigma,)
                                            )
@@ -1372,7 +1377,7 @@ class ImgArray(LabeledArray):
                                    kwargs=dict(selem=np.ones((3,)*len(dims)))
                                    )
         elif prefilter == "median":
-            filt = self.apply_dask(ndi.median_filter, 
+            filt = self.apply_dask(_filters.median_filter, 
                                    c_axes=c_axes, 
                                    kwargs=dict(footprint=np.ones((3,)*len(dims)))
                                    )
@@ -2297,7 +2302,7 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         for i, theta in enumerate(thetas):
             ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
-            out_ = self.as_float().apply_dask(ndi.convolve, 
+            out_ = self.as_float().apply_dask(_filters.convolve, 
                                               c_axes=c_axes, 
                                               args=(ker.real,)
                                               )
@@ -2362,7 +2367,7 @@ class ImgArray(LabeledArray):
                                              dtype=np.complex64
                                              )
         else:
-            out = self.as_float().apply_dask(ndi.convolve, 
+            out = self.as_float().apply_dask(_filters.convolve, 
                                              c_axes=complement_axes(dims, self.axes),
                                              args=(ker.real,), 
                                              dtype=np.float32
@@ -3724,14 +3729,14 @@ class ImgArray(LabeledArray):
         
         if kernel.ndim <= 1:
             def filter_func(img):
-                return ndi.gaussian_filter(img, kernel, mode="constant", cval=bg)
+                return _filters.gaussian_filter(img, kernel, mode="constant", cval=bg)
             dz, dy, dx = kernel*3 # 3-sigma
             
         elif kernel.ndim == 3:
             kernel = kernel.astype(np.float32)
             kernel = kernel / np.sum(kernel)
             def filter_func(img):
-                return ndi.convolve(img, kernel, mode="constant", cval=bg)
+                return _filters.convolve(img, kernel, mode="constant", cval=bg)
             dz, dy, dx = np.array(kernel.shape)//2
         else:
             raise ValueError("`kernel` only take 0, 1, 3 dimensional array as an input.")

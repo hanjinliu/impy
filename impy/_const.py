@@ -6,6 +6,7 @@ Const = GlobalConstant(
     SHOW_PROGRESS = True,
     ID_AXIS = "p",
     FONT_SIZE_FACTOR = 1.0,
+    RESOURCE = "numpy"
 )
 
 class SetConst:

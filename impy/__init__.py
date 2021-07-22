@@ -1,13 +1,22 @@
 __version__ = "1.16.9"
 
 import logging
+from ._const import Const, SetConst
+
+try:
+    from . import _cupy
+except ImportError:
+    Const["RESOURCE"] = "numpy"
+else:
+    Const["RESOURCE"] = "cupy"
+    del _cupy
+
 from .collections import *
 from .core import *
 from .binder import bind
 from .viewer import gui
 from .correlation import *
 import numpy as np
-from ._const import Const, SetConst
 
 r"""
 Inheritance

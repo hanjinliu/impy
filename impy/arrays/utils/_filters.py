@@ -1,14 +1,61 @@
 import numpy as np
 from ._skimage import *
+from ..._const import Const
+
+__all__ = ["gaussian_filter", 
+           "median_filter",
+           "convolve",
+           "white_tophat",
+           "gaussian_laplace", 
+           "kalman_filter",
+           "fill_hole",
+           "mean_filter",
+           "phase_mean_filter",
+           "std_filter",
+           "coef_filter",
+           "dog_filter",
+           "doh_filter",
+           "gabor_filter",
+           "skeletonize",
+           "population",
+           "ncc_filter",
+           ]
+
+
+if Const["RESOURCE"] == "cupy":
+    from ..._cupy import ndi
+    from ..._cupy import cupy as xp
+    _as_cp = lambda a: xp.asarray(a) if isinstance(a, np.ndarray) else a
+    def wrap_cupy(func):
+        def _func(*args, **kwargs):
+            args = tuple(_as_cp(x) for x in args)
+            out = func(*args, **kwargs)
+            return out.get()
+        return _func
+    gaussian_filter = wrap_cupy(ndi.gaussian_filter)
+    median_filter = wrap_cupy(ndi.median_filter)
+    convolve = wrap_cupy(ndi.convolve)
+    white_tophat = wrap_cupy(ndi.white_tophat)
+    gaussian_laplace = wrap_cupy(ndi.gaussian_laplace)
+    
+else:
+    from scipy import ndimage as ndi
+    import numpy as xp
+    gaussian_filter = ndi.gaussian_filter
+    median_filter = ndi.median_filter
+    convolve = ndi.convolve
+    white_tophat = ndi.white_tophat
+    gaussian_laplace = ndi.gaussian_laplace
+
 
 def kalman_filter(img, gain, noise_var):
     # data is 3D or 4D
-    out = np.empty_like(img)
+    out = xp.empty_like(img)
     spatial_shape = img.shape[1:]
     for t, img in enumerate(img):
         if t == 0:
             estimate = img
-            predicted_var = np.full(spatial_shape, noise_var)
+            predicted_var = xp.full(spatial_shape, noise_var)
         else:
             kalman_gain = predicted_var / (predicted_var + noise_var)
             estimate = gain*estimate + (1.0 - gain)*img + kalman_gain*(img - estimate)
@@ -22,33 +69,32 @@ def fill_hole(img, mask):
     return skimage.morphology.reconstruction(seed, mask, method="erosion")
 
 def mean_filter(img, selem):
-    return ndi.convolve(img, selem/np.sum(selem))
+    return convolve(img, selem/np.sum(selem))
 
 def phase_mean_filter(img, selem, a):
-    out = np.empty_like(img, dtype=np.complex64)
-    np.exp(1j*a*img, out=out)
+    out = xp.empty_like(img, dtype=xp.complex64)
+    xp.exp(1j*a*img, out=out)
     ndi.convolve(out, selem, output=out)
-    return np.angle(out)/a
+    return xp.angle(out)/a
 
 def std_filter(data, selem):
     selem = selem / np.sum(selem)
-    x1 = ndi.convolve(data, selem)
-    x2 = ndi.convolve(data**2, selem)
+    x1 = convolve(data, selem)
+    x2 = convolve(data**2, selem)
     std_img = _safe_sqrt(x2 - x1**2, fill=0)
     return std_img
 
 def coef_filter(data, selem):
     selem = selem / np.sum(selem)
-    x1 = ndi.convolve(data, selem)
-    x2 = ndi.convolve(data**2, selem)
+    x1 = convolve(data, selem)
+    x2 = convolve(data**2, selem)
     out = _safe_sqrt(x2 - x1**2, fill=0)/x1
     return out
     
 def dog_filter(img, low_sigma, high_sigma):
-    filt_l = ndi.gaussian_filter(img, low_sigma)
-    filt_h = ndi.gaussian_filter(img, high_sigma)
+    filt_l = gaussian_filter(img, low_sigma)
+    filt_h = gaussian_filter(img, high_sigma)
     return filt_l - filt_h
-        
 
 def doh_filter(img, sigma, pxsize):
     hessian_elements = skfeat.hessian_matrix(img, sigma=sigma, order="xy",
@@ -64,9 +110,9 @@ def doh_filter(img, sigma, pxsize):
 
 
 def gabor_filter(img, ker):
-    out = np.empty_like(img, dtype=np.complex64)
-    out.real[:] = ndi.convolve(img, ker.real)
-    out.imag[:] = ndi.convolve(img, ker.imag)
+    out = xp.empty_like(img, dtype=np.complex64)
+    out.real[:] = convolve(img, ker.real)
+    out.imag[:] = convolve(img, ker.imag)
     return out
 
 
@@ -96,6 +142,7 @@ def ncc_filter(img, template, bg):
     template_ssd = np.sum((template - template_mean)**2)
     
     var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
+    # TODO: zero division happens when perfectly matched
     response = (corr - win_sum1 * template_mean) / _safe_sqrt(var, fill=np.inf)
     slices = []
     for i in range(ndim):
