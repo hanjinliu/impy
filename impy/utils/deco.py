@@ -86,7 +86,7 @@ def dims_to_spatial_axes(func):
                 raise ValueError("Image must be 2 or 3 dimensional.")
             
         if isinstance(dims, int):
-            s_axes = "yx" if dims==2 else "zyx"
+            s_axes = "".join([a for a in "zyx" if a in self.axes])[-dims:]
         elif isinstance(dims, str):
             s_axes = dims
         else:

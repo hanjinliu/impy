@@ -115,9 +115,10 @@ class ImgArray(LabeledArray):
                                )
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def rotate(self, degree:float, center="center", *, dims="yx", order:int=1) -> ImgArray:
+    def rotate(self, degree:float, center="center", *, dims=2, order:int=1) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero.
 
@@ -459,9 +460,8 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def hessian_eigval(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
         """
-        Calculate Hessian's eigenvalues for each image. If dims=2, every yx-image 
-        is considered to be a single spatial image, and if dims=3, zyx-image.
-
+        Calculate Hessian's eigenvalues for each image. 
+        
         Parameters
         ----------
         {sigma}
@@ -1101,8 +1101,9 @@ class ImgArray(LabeledArray):
                 
         return out
     
+    @dims_to_spatial_axes
     @record(append_history=False)
-    def focus_map(self, radius:int=1, *, dims="yx") -> PropArray:
+    def focus_map(self, radius:int=1, *, dims=2) -> PropArray:
         """
         Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
         focal plane because sharper image causes higher value of Laplacian on the edges.
@@ -1785,7 +1786,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def voronoi(self, coords:Coords, *, inf:nDInt=None, dims="yx") -> ImgArray:
+    def voronoi(self, coords:Coords, *, inf:nDInt=None, dims=2) -> ImgArray:
         """
         Voronoi segmentation of an image. Image region labeled with $i$ means that all
         the points in the region are closer to the $i$-th point than any other points.
@@ -2181,8 +2182,9 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
-    def edge_grad(self, sigma:nDFloat=1.0, method:str="sobel", *, deg:bool=False, dims="yx") -> PhaseArray:
+    def edge_grad(self, sigma:nDFloat=1.0, method:str="sobel", *, deg:bool=False, dims=2) -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
         is the direction with maximum gradient, i.e., intensity increase is largest. 
@@ -2231,8 +2233,9 @@ class ImgArray(LabeledArray):
         return grad
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
-    def hessian_angle(self, sigma:nDFloat=1., *, deg:bool=False, dims="yx") -> PhaseArray:
+    def hessian_angle(self, sigma:nDFloat=1., *, deg:bool=False, dims=2) -> PhaseArray:
         """
         Calculate filament angles using Hessian's eigenvectors.
 
@@ -2257,9 +2260,10 @@ class ImgArray(LabeledArray):
         return arg
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     def gabor_angle(self, n_sample:int=180, lmd:float=5, sigma:float=2.5, gamma:float=1, phi:float=0,
-                    *, deg:bool=False, dims="yx") -> PhaseArray:
+                    *, deg:bool=False, dims=2) -> PhaseArray:
         """
         Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
         calculated, and the strongest response is returned as output array.
@@ -2312,9 +2316,10 @@ class ImgArray(LabeledArray):
         return argmax_
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma:float=1, phi:float=0, 
-                     *, return_imag:bool=False, dims="yx") -> ImgArray:
+                     *, return_imag:bool=False, dims=2) -> ImgArray:
         """
         Make a Gabor kernel and convolve it.
 
@@ -3510,10 +3515,11 @@ class ImgArray(LabeledArray):
         return result
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, order:int=1, 
-                         along:str=None, dims="yx", update:bool=False) -> ImgArray:
+                         along:str=None, dims=2, update:bool=False) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors `shift`
         is not given, then it will be determined using `track_drift` method of ImgArray.

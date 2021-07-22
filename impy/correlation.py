@@ -1,4 +1,5 @@
 from __future__ import annotations
+import scipy
 from scipy import ndimage as ndi
 import numpy as np
 from functools import partial
@@ -10,7 +11,7 @@ from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
-           "pearson_coloc", "manders_coloc"]
+           "nmi", "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
 @dims_to_spatial_axes
@@ -162,6 +163,49 @@ def zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=Tru
             corr = _masked_ncc(img0zn, img1zn, dims, mask)
     return _make_corr_output(corr, img0, "zncc", squeeze, dims)
 
+# alias
+pearson_coloc = zncc
+
+@_docs.write_docs
+@dims_to_spatial_axes
+def nmi(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, bins=100, squeeze:bool=True, *,
+        dims=None) -> PropArray|float:
+    """
+    Normalized Mutual Information.
+    Y(A,B) = (H(A)+H(B))/H(A,B)
+    See "Elegant SciPy"
+    
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    mask : boolean ImgArray, optional
+        If provided, True regions will be masked and will not be taken into account when calculate correlation.
+    bins : int, default is 100
+        Number of bins to construct histograms.
+    {squeeze}
+    {dims}
+
+    Returns
+    -------
+    PropArray or float
+        Correlation value(s).
+    """
+    entropy = scipy.stats.entropy
+    img0, img1 = _check_inputs(img0, img1)
+    c_axes = complement_axes(dims, img0.axes)
+    out = np.empty(img0.sizesof(c_axes), dtype=np.float32)
+    if mask.ndim < img0.ndim:
+        mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+    for sl, img0_, img1_ in iter2(img0, img1, c_axes):
+        mask_ = mask[sl]
+        hist, edges = np.histogramdd([np.ravel(img0_[mask_]),
+                                      np.ravel(img1_[mask_])], bins=bins)
+        hist /= np.sum(hist)
+        e1 = entropy(np.sum(hist, axis=0)) # Shannon entropy
+        e2 = entropy(np.sum(hist, axis=1))
+        e12 = entropy(np.ravel(hist)) # mutual entropy
+        out[sl] = (e1 + e2)/e12
+    return _make_corr_output(out, img0, "nmi", squeeze, dims)
 
 @_docs.write_docs
 @dims_to_spatial_axes
@@ -251,51 +295,6 @@ def pcc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, *,
         corr_ft = cov/np.abs(cov)
         corr = corr_ft.ifft(real=True, dims=dims)
     return _make_corr_output(corr, img0, "pcc", squeeze, dims)
-
-@_docs.write_docs
-@dims_to_spatial_axes
-def pearson_coloc(img0:ImgArray, img1:ImgArray, mask:np.ndarray=None, squeeze:bool=True, *,
-                  dims=None) -> PropArray|float:
-    """
-    Masked Pearson's correlation coefficient. This is defined as following:
-    
-                  Σ[(Ai - Amean)(Bi - Bmean)]
-        r = -----------------------------------------
-             sqrt{Σ[(Ai - Amean)^2 Σ(Bi - Bmean)^2]}
-    
-    This value is independent of constant background intensity and the scale of intensity, 
-    while is strongly affected by outliers.
-
-    Parameters
-    ----------
-    {inputs_of_correlation}
-    {squeeze}
-    {dims}
-    
-    Returns
-    -------
-    PropArray or float
-        Correlation coefficient(s).
-    
-    Examples
-    --------
-    (1) Make a mask by thresholding and calculate correlation.
-    >>> mask = ~img.threshold()
-    >>> coeff = img.pcc(mask=mask) 
-    """        
-    img0, img1 = _check_inputs(img0, img1)
-    sumaxes = tuple(img0.axisof(a) for a in dims)
-    img0_norm = img0 - np.mean(img0)
-    img1_norm = img1 - np.mean(img1)
-    if mask is not None:
-        img0_norm[mask] = 0
-        img1_norm[mask] = 0
-    cov = np.sum(img0_norm * img1_norm, axis=sumaxes)
-    var0 = np.sum(img0_norm**2, axis=sumaxes)
-    var1 = np.sum(img1_norm**2, axis=sumaxes)
-    out = cov / np.sqrt(var0 * var1)
-    
-    return _make_corr_output(out, img0, "pearson_coloc", squeeze, dims)
 
 
 @_docs.write_docs
