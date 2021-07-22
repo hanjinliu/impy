@@ -937,7 +937,7 @@ class LabeledArray(HistoryArray):
         self.labels = new_labels
         return self.labels
     
-    def split(self, axis=None) -> list[LabeledArray]:
+    def split(self, axis=None) -> DataList[LabeledArray]:
         """
         Split n-dimensional image into (n-1)-dimensional images. This function is different from
         `np.split`, which split an array into smaller pieces (n-D to n-D).
@@ -967,7 +967,7 @@ class LabeledArray(HistoryArray):
             
         return imgs
     
-    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None):
+    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None) -> LabeledArray:
         """
         Tile images in a certain order. Label is also tiled in the same manner.
 

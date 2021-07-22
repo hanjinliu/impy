@@ -4,6 +4,7 @@ import itertools
 from .metaarray import MetaArray
 from ...utils.axesop import *
 from ...utils.slicer import *
+from ...collections import DataList
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
@@ -60,7 +61,7 @@ class HistoryArray(MetaArray):
         
         return None
     
-    def split(self, axis=None) -> list:
+    def split(self, axis=None) -> DataList[HistoryArray]:
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -79,7 +80,7 @@ class HistoryArray(MetaArray):
             axis = find_first_appeared(self.axes, include="cztp")
         axisint = self.axisof(axis)
             
-        imgs = list(np.moveaxis(self, axisint, 0))
+        imgs = DataList(np.moveaxis(self, axisint, 0))
         for i, img in enumerate(imgs):
             img.history[-1] = f"split({axis}={i})"
             img.axes = del_axis(self.axes, axisint)
@@ -87,7 +88,7 @@ class HistoryArray(MetaArray):
             
         return imgs
 
-    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None):
+    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None) -> HistoryArray:
         """
         Tile images in a certain order.
 
@@ -164,6 +165,7 @@ class HistoryArray(MetaArray):
         out = out.view(self.__class__)
         out._set_info(self, next_history=f"tile({shape}, along={repr(along)}, order={order})", new_axes=new_axes)
         return out
+        
         
 def _iter_tile_yx(ymax, xmax, imgy, imgx):
     """
