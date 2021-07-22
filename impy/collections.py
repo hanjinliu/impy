@@ -1,6 +1,7 @@
 from __future__ import annotations
 from .utils.utilcls import Progress
 from collections import UserList, UserDict
+import numpy as np
 
 __all__ = ["DataList", "DataDict"]
 
@@ -73,9 +74,13 @@ class DataList(CollectionBase, UserList):
     def __getattr__(self, name: str):
         f = getattr(self._such_as, name) # raise AttributeError here if it should be raised
         if not callable(f):
-            raise TypeError(f"Only methods can be called from {self.__class__.__name__}.")
+            return self.__class__(getattr(a, name) for a in self)
+        
         def _run(*args, **kwargs):
-            with Progress(name):
+            if not name.startswith("_"):
+                with Progress(name):
+                    out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
+            else:
                 out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
             return out
         return _run
@@ -158,10 +163,16 @@ class DataDict(CollectionBase, UserDict):
             return self[name]
         f = getattr(self._such_as, name) # raise AttributeError here if it should be raised
         if not callable(f):
-            raise TypeError(f"Only methods can be called from {self.__class__.__name__}.")
+            return self.__class__({k: getattr(a, name) for k, a in self.items()})
+        
         def _run(*args, **kwargs):
-            with Progress(name):
-                out = self.__class__({k: getattr(v, name)(*args, **kwargs) for k, v in self.items()})
+            if not name.startswith("_"):
+                with Progress(name):
+                    out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
+                                          for k, a in self.items()})
+            else:
+                out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
+                                      for k, a in self.items()})
             return out
         return _run
     

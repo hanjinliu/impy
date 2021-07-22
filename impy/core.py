@@ -12,8 +12,9 @@ from dask import array as da
 from .utils.io import *
 from .axes import ImageAxesError
 from skimage import data as skdata
-__all__ = ["array", "asarray", "aslazy", "zeros", "empty", "gaussian_kernel", "imread", "imread_collection", 
-           "lazy_imread", "read_meta", "sample_image"]
+
+__all__ = ["array", "asarray", "aslazy", "zeros", "empty", "gaussian_kernel", "circular_mask", "imread", 
+           "imread_collection", "lazy_imread", "read_meta", "sample_image"]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
@@ -117,6 +118,36 @@ def gaussian_kernel(shape:tuple[int], sigma=1.0, peak=1.0):
     if ker.ndim == 3:
         ker.axes = "zyx"
     return ker
+
+
+def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
+    """
+    Make a circular shaped mask.
+
+    Parameters
+    ----------
+    radius : float
+        Radius of non-mask region
+    shape : tuple
+        Shape of mask.
+    center : tuple or "center"
+        Center of circle. By default circle locates at the center.
+
+    Returns
+    -------
+    [type]
+        [description]
+    """    
+    if center == "center":
+        center = np.array(shape)/2. - 0.5
+    elif len(shape) != len(center):
+        raise ValueError("Length of `shape` and `center` must be same.")
+        
+    r = np.meshgrid(*shape)
+    s = sum((r0 - c0)**2 for r0, c0 in zip(r, center))
+    axes = "zyx" if len(shape) == 3 else None # change the default axes in `array`
+    
+    return array(s > radius**2, dtype=bool, axes=axes)
 
 def imread(path:str, dtype:str=None, key:str=None, *, axes=None, squeeze:bool=False) -> ImgArray:
     """

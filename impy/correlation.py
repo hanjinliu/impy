@@ -99,11 +99,26 @@ def _masked_ncc(img0:ImgArray, img1:ImgArray, dims, mask:ImgArray):
     if mask.ndim < img0.ndim:
         mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
     n = np.prod(img0.sizesof(dims))
-    img0ma = np.ma.array(img0, mask=mask)
-    img1ma = np.ma.array(img1, mask=mask)
+    img0ma = np.ma.array(img0.value, mask=mask)
+    img1ma = np.ma.array(img1.value, mask=mask)
     axis = tuple(img0.axisof(a) for a in dims)
     return np.ma.sum(img0ma * img1ma, axis=axis) / (
         np.ma.std(img0ma, axis=axis)*np.ma.std(img1ma, axis=axis)) / n
+
+def _zncc(img0:ImgArray, img1:ImgArray, dims):
+    # Basic Zero-Normalized Cross Correlation with batch processing.
+    # Inputs must be already zero-normalized.
+    return np.sum(img0 * img1, axis=dims) / (
+        np.sqrt(np.sum(img0**2, axis=dims)*np.sum(img1**2, axis=dims)))
+
+def _masked_zncc(img0:ImgArray, img1:ImgArray, dims, mask:ImgArray):
+    if mask.ndim < img0.ndim:
+        mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+    img0ma = np.ma.array(img0.value, mask=mask)
+    img1ma = np.ma.array(img1.value, mask=mask)
+    axis = tuple(img0.axisof(a) for a in dims)
+    return np.sum(img0ma * img1ma, axis=axis) / (
+        np.sqrt(np.sum(img0ma**2, axis=axis)*np.sum(img1ma**2, axis=axis)))
 
 @_docs.write_docs
 @dims_to_spatial_axes
@@ -158,9 +173,9 @@ def zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=Tru
         img0zn = img0 - np.mean(img0, axis=dims, keepdims=True)
         img1zn = img1 - np.mean(img1, axis=dims, keepdims=True)
         if mask is None:
-            corr = _ncc(img0zn, img1zn, dims)
+            corr = _zncc(img0zn, img1zn, dims)
         else:
-            corr = _masked_ncc(img0zn, img1zn, dims, mask)
+            corr = _masked_zncc(img0zn, img1zn, dims, mask)
     return _make_corr_output(corr, img0, "zncc", squeeze, dims)
 
 # alias
@@ -168,11 +183,13 @@ pearson_coloc = zncc
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def nmi(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, bins=100, squeeze:bool=True, *,
+def nmi(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, bins:int=100, squeeze:bool=True, *,
         dims=None) -> PropArray|float:
     """
     Normalized Mutual Information.
-    Y(A,B) = (H(A)+H(B))/H(A,B)
+                   H(A) + H(B)
+        Y(A, B) = -------------
+                     H(A, B)
     See "Elegant SciPy"
     
     Parameters
@@ -229,8 +246,8 @@ def fourier_ncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:b
     """    
     with Progress("fourier_ncc"):
         img0, img1 = _check_inputs(img0, img1)
-        f0 = np.sqrt(img0.power_spectra(dims=dims))
-        f1 = np.sqrt(img1.power_spectra(dims=dims))
+        f0 = np.sqrt(img0.power_spectra(dims=dims, zero_norm=True))
+        f1 = np.sqrt(img1.power_spectra(dims=dims, zero_norm=True))
         if mask is None:
             corr = _ncc(f0, f1, dims)
         else:
@@ -259,14 +276,14 @@ def fourier_zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:
     """    
     with Progress("fourier_zncc"):
         img0, img1 = _check_inputs(img0, img1)
-        f0 = np.sqrt(img0.power_spectra(dims=dims))
-        f1 = np.sqrt(img1.power_spectra(dims=dims))
+        f0 = np.sqrt(img0.power_spectra(dims=dims, zero_norm=True))
+        f1 = np.sqrt(img1.power_spectra(dims=dims, zero_norm=True))
         f0 -= np.mean(f0, axis=dims, keepdims=True)
         f1 -= np.mean(f1, axis=dims, keepdims=True)
         if mask is None:
-            corr = _ncc(f0, f1, dims)
+            corr = _zncc(f0, f1, dims)
         else:
-            corr = _masked_ncc(f0, f1, dims, mask)
+            corr = _masked_zncc(f0, f1, dims, mask)
     return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
 
 @_docs.write_docs
@@ -324,27 +341,27 @@ def manders_coloc(img0:ImgArray, img1:np.ndarray, *, squeeze:bool=True, dims=Non
     if img1.dtype != bool:
         raise TypeError("`ref` must be a binary image.")
     img0, img1 = _check_inputs(img0, img1)
-    sumaxes = tuple(img0.axisof(a) for a in dims)
-    total = np.sum(img0.value, axis=sumaxes)
+    total = np.sum(img0, axis=dims)
     img0 = img0.copy()
     img0[~img1] = 0
     
-    coeff = np.sum(img0.value, axis=sumaxes) / total
+    coeff = np.sum(img0, axis=dims) / total
     return _make_corr_output(coeff, img0, "manders_coloc", squeeze, dims)
     
 
-def iter2(img0, img1, axes, israw=False, exclude=""):
+def iter2(img0:ImgArray, img1:ImgArray, axes:str, israw:bool=False, exclude:str=""):
     for (sl, i0), (sl, i1) in zip(img0.iter(axes, israw=israw, exclude=exclude),
                                   img1.iter(axes, israw=israw, exclude=exclude)):
         yield sl, i0, i1
         
-def _check_inputs(img0, img1):
+def _check_inputs(img0:ImgArray, img1:ImgArray):
     if img0.shape != img1.shape:
         raise ValueError(f"Shape mismatch. `img0` has shape {img0.shape} but `img1` "
                          f"has shape {img1.shape}")
     if img0.axes != img1.axes:
-        warn(f"Axes mismatch. `img0` has axes {img0.axes} but `img1` has axes {img1.axe}. "
+        warn(f"Axes mismatch. `img0` has axes {img0.axes} but `img1` has axes {img1.axes}. "
               "Result may be wrong due to this mismatch.", UserWarning)
+
     img0 = img0.as_float()
     img1 = img1.as_float()
         

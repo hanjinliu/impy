@@ -33,7 +33,10 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
                 if record_label:
                     out.labels._set_info(self.labels, history)
                 else:
-                    out._set_info(self, history)
+                    try:
+                        out._set_info(self, history)
+                    except AttributeError:
+                        pass
                     
             ifupdate and self._update(out)
             
