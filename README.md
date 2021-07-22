@@ -32,7 +32,7 @@ img["t=3;z=5:7"]
 img["y=3,5,7"] = 0
 ```
 
-Accordingly, broadcasting is more flexible. ([tensor_annotations](https://github.com/deepmind/tensor_annotations) seems similar in this sense)
+Accordingly, broadcasting is more flexible. ([xarray](https://github.com/pydata/xarray) and [tensor_annotations](https://github.com/deepmind/tensor_annotations) seem similar in this sense)
 
 #### 2. Automatic Batch Processing
 
@@ -40,13 +40,19 @@ Almost all the image processing functions can **automatically iterate** along al
 
 You can even run batch processing **with your own functions** by decorating them with `@ip.bind`. See [Integrating Your Own Functions](#integrating-your-own-functions) part.
 
-You may usually want to perform same filter function to images with different shapes and dimensions. `DataList` is a `list`-like object and it can iterate over all the images (or other objects) with `__getattr__` method.
+You may usually want to perform same filter function to images with different shapes and dimensions. `DataList` is a `list`-like object and `DataDict` is a `dict`-like object, which can iterate over all the images (or other objects) with `__getattr__` method.
 
 ```python
 imglist = ip.DataList(imgs)
 outputs = imglist.gaussian_filter(sigma=3) # filter is applied to all the images
 ```
-   
+
+With `for_params` method, you can easily repeat same function with different parameters.
+
+```python
+out = img.for_params("gaussian_filter", sigma=range(1,5))
+```
+
 #### 3. Metadata and History
 
 All the information, history and metadata are inherited to outputs, like:
@@ -126,6 +132,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
   - `lowpass_filter`, `highpass_filter` &rarr; FFT based filtering.
   - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
+  - `ncc_filter` Template matching etc.
   - `kalman_filter`, `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
 
 - **Morphological Image Processing**
@@ -153,7 +160,6 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
 - **Feature Detection**
   - `hessian_eigval`, `hessian_eig` &rarr; Hessian.
   - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Structure tensor.
-  - `ncc`, `track_template` &rarr; Template matching and tracking.
 
 - **Gradient Orientation Estimation**
   - `edge_grad`
@@ -166,9 +172,6 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   - `regionprops` &rarr; Measure region properties such as mean intensity, Euler number, centroid, moment etc.
   - `pathprops` &rarr; Measure path properties such as mean intensity.
   - `lineprops`, `pointprops` &rarr; Measure line/point properties.
-
-- **Texture Classification**
-  - `lbp`, `glcm`, `glcm_props`
 
 - **Profiling**
   - `reslice` &rarr; Get scan along a line or path.
@@ -184,10 +187,16 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   - `proj` &rarr; Z-projection along any axis.
   - `split`, `split_pixel_unit` &rarr; Split the image.
   - `pad`, `defocus` &rarr; Padding.
-  - `iter`, `for_each_channel` &rarr; Easy iteration.
+  - `iter`, `for_each_channel`, `for_params` &rarr; Easy iteration.
   - `set_scale` &rarr; set scales of any axes.
   - `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
   - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
+
+## Correlations
+
+- `fsc`, `fourier_shell_correlation` (alias) &rarr; Estimate resolution.
+- `ncc`, `zncc` &rarr; (Zero-)Normalized cross correlation and masked version of it.
+- `fourier_ncc`, `fourier_zncc` &rarr; (Zero-)Normalized cross correlation in Fourier space and masked version of it.
 
 ## Image I/O
 
