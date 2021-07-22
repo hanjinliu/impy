@@ -2444,7 +2444,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def power_spectra(self, shape="same", norm:bool=False, *, dims=None) -> ImgArray:
+    def power_spectra(self, shape="same", norm:bool=False, zero_norm:bool=False, *,
+                      dims=None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
             P = Re{F[img]}^2 + Im{F[img]}^2
@@ -2469,6 +2470,9 @@ class ImgArray(LabeledArray):
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()
+        if zero_norm:
+            sl = switch_slice(dims, pw.axes, ifin=np.array(pw.shape)//2, ifnot=slice(None))
+            pw[sl] = 0
         return pw
     
     @record()

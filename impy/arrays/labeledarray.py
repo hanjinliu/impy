@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+from functools import partial
 import inspect
 
 from .specials import *
@@ -1042,20 +1043,21 @@ class LabeledArray(HistoryArray):
         return out
     
     @record()
-    def try_conditions(self, func:str, *, var:dict[str,Iterable]=None, **kwargs) -> DataList:
+    def for_params(self, func:Callable|str, var:dict[str,Iterable]=None, **kwargs) -> DataList:
         """
         Apply same function with different parameters with same input. This function will be useful
         when you want to try different conditions to the same image.
 
         Parameters
         ----------
-        func : str
-            Function name to apply repetitively.
-        var : dict[str,Iterable], optional
+        func : callable or str
+            Function to apply repetitively. If str, then member method will be called. 
+        var : dict[str, Iterable], optional
             Name of variable and the values to try. If you want to try sigma=1,2,3 then you should
             give `var={"sigma": [1, 2, 3]}`.
         kwargs
-            Other fixed paramters that will be passed to `func`.
+            Fixed paramters that will be passed to `func`. If `var` is not given and only one parameter
+            is provided in `kwargs`, then kwargs will be `var`.
 
         Returns
         -------
@@ -1064,24 +1066,35 @@ class LabeledArray(HistoryArray):
             
         Example
         -------
-        Try LoG filter with different Gaussian kernel size and visualize all of them in napari.
-        >>> out = img.try_conditions("log_filter", var={"sigma":[1, 2, 3, 4]})
+        (1) Try LoG filter with different Gaussian kernel size and visualize all of them in napari.
+        >>> out = img.for_params("log_filter", var={"sigma":[1, 2, 3, 4]})
+        or
+        >>> out = img.for_params("log_filter", sigma=[1, 2, 3, 4])
+        then
         >>> ip.gui.add(out)
         """        
-        if var is None:
-            raise ValueError("`var` must be specified.")
-        elif not isinstance(var, dict) or len(var) != 1:
-            raise ValueError("`var` must be a dict with one key/value.")
-        if not hasattr(self, func):
-            raise AttributeError(f"{self.__class__} does not have method {func}")
+        if isinstance(func, str) and hasattr(self, func):
+            f = getattr(self, func)
+        elif callable(func):
+            f = partial(func, self)
+        elif not callable(func):
+            raise AttributeError(f"{func} is neither {self.__class__}'s' method nor callable object.")
         
-        key, values = tuple(var.items())[0]
+        if isinstance(var, dict):
+            key, values = tuple(var.items())[0]
+        elif var is None and len(kwargs) == 1:
+            key, values = tuple(kwargs.items())[0]
+            kwargs = dict()
+        else:
+            raise ValueError("Wrong inputs.")
+        
         if key in kwargs.keys():
             raise ValueError(f"Keyword {key} exists in `kwargs`.")
         outlist = DataList()
+        
         for v in values:
             kwargs[key] = v
-            out = getattr(self, func)(**kwargs)
+            out = f(**kwargs)
             outlist.append(out)
         return outlist        
         
