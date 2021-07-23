@@ -120,8 +120,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(True)
+    @record()
     def rotate(self, degree:float, center="center", *, dims=2, order:int=1) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero.
@@ -333,8 +333,8 @@ class ImgArray(LabeledArray):
         show_result and _plot.plot_gaussfit_result(self, fit)
         return fit
     
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def gauss_correction(self, ref:ImgArray=None, scale:float=1/16, median_radius:float=15):
         """
         Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
@@ -603,8 +603,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(True)
+    @record()
     def edge_filter(self, method:str="sobel", *, dims=None, update:bool=False) -> ImgArray:
         """
         Sobel filter. This filter is useful for edge detection.
@@ -720,6 +720,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Convolved image.
         """        
+        kernel = np.asarray(kernel, dtype=np.float32)
         return self.apply_dask(_filters.convolve, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
@@ -730,7 +731,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
-        disk = _structures._structures.ball_like(radius, len(dims))
+        disk = _structures.ball_like(radius, len(dims))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             out = self.apply_dask(function, 
@@ -1069,8 +1070,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def kalman_filter(self, gain:float=0.8, noise_var:float=0.05, *, along:str="t", dims=None, 
                       update:bool=False) -> ImgArray:
         """
@@ -1103,7 +1104,7 @@ class ImgArray(LabeledArray):
                               )
         if t_axis > min_a:
             out = np.swapaxes(out, min_a, t_axis)
-                
+
         return out
     
     @dims_to_spatial_axes

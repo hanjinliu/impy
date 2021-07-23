@@ -2,12 +2,15 @@ import numpy as np
 from ._skimage import *
 from ..._const import Const
 
-__all__ = ["gaussian_filter", 
-           "median_filter",
-           "convolve",
-           "white_tophat",
-           "gaussian_laplace", 
-           "kalman_filter",
+
+_from_cupy_ = ["gaussian_filter", 
+               "median_filter",
+               "convolve",
+               "white_tophat",
+               "gaussian_laplace",
+               ]
+               
+__all__ = ["kalman_filter",
            "fill_hole",
            "mean_filter",
            "phase_mean_filter",
@@ -19,24 +22,33 @@ __all__ = ["gaussian_filter",
            "skeletonize",
            "population",
            "ncc_filter",
-           ]
+           ] + _from_cupy_
 
 
 if Const["RESOURCE"] == "cupy":
-    from ..._cupy import ndi
+    from ..._cupy import ndi as cupy_ndi
     from ..._cupy import cupy as xp
+    from scipy import ndimage as scipy_ndi
+    # numpy to cupy mapper
     _as_cp = lambda a: xp.asarray(a) if isinstance(a, np.ndarray) else a
-    def wrap_cupy(func):
-        def _func(*args, **kwargs):
-            args = tuple(_as_cp(x) for x in args)
-            out = func(*args, **kwargs)
-            return out.get()
-        return _func
-    gaussian_filter = wrap_cupy(ndi.gaussian_filter)
-    median_filter = wrap_cupy(ndi.median_filter)
-    convolve = wrap_cupy(ndi.convolve)
-    white_tophat = wrap_cupy(ndi.white_tophat)
-    gaussian_laplace = wrap_cupy(ndi.gaussian_laplace)
+
+    # get ndimage function from cupy if possible
+    def get_func(function_name):
+        if hasattr(cupy_ndi, function_name):
+            _func = getattr(cupy_ndi, function_name)    
+            def func(*args, **kwargs):
+                args = map(_as_cp, args)
+                out = _func(*args, **kwargs)
+                return out.get()
+        else:
+            func = getattr(scipy_ndi, function_name)
+        return func
+
+    gaussian_filter = get_func("gaussian_filter")
+    median_filter = get_func("median_filter")
+    convolve = get_func("convolve")
+    white_tophat = get_func("white_tophat")
+    gaussian_laplace = get_func("gaussian_laplace")
     
 else:
     from scipy import ndimage as ndi
@@ -48,11 +60,12 @@ else:
     gaussian_laplace = ndi.gaussian_laplace
 
 
-def kalman_filter(img, gain, noise_var):
+def kalman_filter(img_stack, gain, noise_var):
     # data is 3D or 4D
-    out = xp.empty_like(img)
-    spatial_shape = img.shape[1:]
-    for t, img in enumerate(img):
+    img_stack = xp.asarray(img_stack)
+    out = xp.empty_like(img_stack)
+    spatial_shape = img_stack.shape[1:]
+    for t, img in enumerate(img_stack):
         if t == 0:
             estimate = img
             predicted_var = xp.full(spatial_shape, noise_var)
@@ -72,9 +85,9 @@ def mean_filter(img, selem):
     return convolve(img, selem/np.sum(selem))
 
 def phase_mean_filter(img, selem, a):
-    out = xp.empty_like(img, dtype=xp.complex64)
+    out = xp.empty(img.shape, dtype=xp.complex64)
     xp.exp(1j*a*img, out=out)
-    ndi.convolve(out, selem, output=out)
+    convolve(out, selem, output=out)
     return xp.angle(out)/a
 
 def std_filter(data, selem):
@@ -110,7 +123,7 @@ def doh_filter(img, sigma, pxsize):
 
 
 def gabor_filter(img, ker):
-    out = xp.empty_like(img, dtype=np.complex64)
+    out = np.empty(img.shape, dtype=np.complex64)
     out.real[:] = convolve(img, ker.real)
     out.imag[:] = convolve(img, ker.imag)
     return out
