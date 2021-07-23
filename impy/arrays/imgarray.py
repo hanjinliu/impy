@@ -662,9 +662,10 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        # check np x cp
-        out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
-        return out
+        input = _filters.asarray(self)
+        weight = _filters.asarray(weight)
+        out = irfft(weight*rfft(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        return _filters.asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -693,8 +694,10 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
+        input = _filters.asarray(self)
+        weight = _filters.asarray(weight)
         out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
-        return out
+        return _filters.asnumpy(out)
     
     
     @_docs.write_docs

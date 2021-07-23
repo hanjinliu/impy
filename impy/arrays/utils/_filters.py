@@ -3,12 +3,15 @@ from ._skimage import *
 from ._linalg import hessian_eigval
 from ..._const import Const
 
+# TODO: asarray and asnumpy should be moved to another file and made accessible from anywhere.
 
 _from_cupy_ = ["gaussian_filter", 
                "median_filter",
                "convolve",
                "white_tophat",
                "gaussian_laplace",
+               "asarray",
+               "asnumpy",
                ]
                
 __all__ = ["kalman_filter",
@@ -50,6 +53,7 @@ if Const["RESOURCE"] == "cupy":
     convolve = get_func("convolve")
     white_tophat = get_func("white_tophat")
     gaussian_laplace = get_func("gaussian_laplace")
+    asnumpy = xp.asnumpy
     
 else:
     from scipy import ndimage as ndi
@@ -59,7 +63,9 @@ else:
     convolve = ndi.convolve
     white_tophat = ndi.white_tophat
     gaussian_laplace = ndi.gaussian_laplace
+    asnumpy = xp.asarray
 
+asarray = xp.asarray
 
 def kalman_filter(img_stack, gain, noise_var):
     # data is 3D or 4D
