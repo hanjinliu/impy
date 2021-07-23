@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from typing import Callable
+from functools import wraps
 from .arrays import *
 from .utils.axesop import *
 from .utils.utilcls import Progress
