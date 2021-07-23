@@ -325,15 +325,22 @@ class LazyImgArray(AxesMixin):
         ax1 = _make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        # TODO: output shape will not correctly be estimated. This problem may be solved after
-        # dask-image's map_coordinate is out.
+        
+        # Because output shape changes, we have to tell dask what chunk size it should be, otherwise output
+        # shape is estimated in a wrong way. 
+        output_chunks = list(self.chunksize)
+        for i, a in enumerate(dims):
+            it = self.axisof(a)
+            output_chunks[it] = all_coords.shape[i+1]
+            
         cropped_img = self.apply(ndi.map_coordinates, 
                                  c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,
                                  rechunk_to="max",
                                  args=(all_coords,),
-                                 kwargs=dict(prefilter=False, order=1)
+                                 kwargs=dict(prefilter=False, order=1, chunks=output_chunks)
                                  )
+                                 
         cropped_img._set_info(self, "rotated_crop")
         return cropped_img
     
@@ -638,4 +645,3 @@ class LazyImgArray(AxesMixin):
             self.history = other.history.copy()
         
         return None
-    

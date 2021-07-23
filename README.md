@@ -19,7 +19,13 @@ As a result, isn't it faster to analyze images using ImageJ? This module solves 
 pip install git+https://github.com/hanjinliu/impy
 ```
 
-`impy` is partly dependent on `numba`, `trackpy`, `mrcfile` and `dask-image`. Please install these packages if needed.
+or
+
+```
+git clone https://github.com/hanjinliu/impy
+```
+
+`impy` is partly dependent on `numba`, `cupy`, `trackpy`, `mrcfile` and `dask-image`. Please install these packages if needed.
 
 ## Highlights
 
@@ -95,45 +101,54 @@ ip.array([2,4,6], dtype="uint16")
 ip.random.normal(size=(100, 100))
 ```
 
-#### 6. Reading Images Lazily
+#### 6. Reading/Processing Images Lazily
 
 When you deal with large images, you may want to read just part of them to avoid waiting too long, or sometimes they are too large for the PC memory to read. In ImageJ there is an option called "virtual stack" but still it is not flexible enough.
 
 In `impy`, there are several ways to efficiently deal with large datasets. See [Image I/O](#image-io) for details.
 
+#### 7. GPU support
+
+Affine transformation, deconvolution and many filter functions are automatically conducted with GPU if accessible. On importing `impy`, it checks if `cupy` and GPU are correctly installed, so that you don't have to change your code. See [Image Analysis Tools](#image-analysis-tools) for details.
+
 ## Contents
 
-- `ImgArray` is an array mainly used for image analysis here. Many `skimage`'s functions are wrapped in this class.
-- `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
-- `Label` is also an array type while it is only used for labeling of another image and is always attached to it. 
-- `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
-- `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
-- `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
-- `DataList` can apply same method to all the data inside it.
-- `LazyImgArray` keeps memory map to an image as an `dask` array and you can access image metadata and slice the images without reading them. Some filter functions are supported in `dask-image`.
-- `gui` is a controller object that connects console and `napari.Viewer`.
+- **Arrays**
+  - `ImgArray` is an array mainly used for image analysis here. Many `skimage`'s functions are wrapped in this class.
+  - `PropArray` is an array that contains properties of another array, such as mean intensities of fixed regions of an array. 
+  - `Label` is also an array type while it is only used for labeling of another image and is always attached to it. 
+  - `PhaseArray` is an array that contains phase values. Unit (radian or degree) and periodicity are always tagged to itself so that you don't need to care about them. 
+  - `LazyImgArray` keeps memory map to an image as an `dask` array and you can access image metadata and slice the images without reading them. Some filter functions are supported in `dask-image`.
+
+- **DataFrames**
+  - `MarkerFrame` is a subclass of `pandas.DataFrame` and it is specialized in storing coordinates and markers, such as xyz-coordinates of local maxima. This class also supports axis targeted slicing `df["x=4;y=5"]`. Tracking methods are also available, which call [trackpy](https://github.com/soft-matter/trackpy) inside.
+  - `TrackFrame` is quite similar to `MarkerFrame` while it is only retuned when points are linked by particle tracking. It has information of track ID.
+
+- **Others**
+  - `DataList` and `DataDict` can apply same method to all the data inside it.
+  - `gui` is a controller object that connects console and `napari.Viewer`.
 
 ## Image Analysis Tools
 
-`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing.
+`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing with `dask`. ":heavy_check_mark:" indicates (partially) GPU support is available.
 
 - **Drift/Aberration Correction**
-  - `track_drift`, `drift_correction` &rarr; Correction of xy-drift.
-  - `affine_correction` &rarr; Correction of such as chromatic aberration using Affine transformation.
+  - `track_drift`, `drift_correction`:heavy_check_mark: &rarr; Correction of xy-drift.
+  - `affine_correction`:heavy_check_mark: &rarr; Correction of such as chromatic aberration using Affine transformation.
 
 - **2D/3D Deconvolution**
-  - `wiener`, `lucy` &rarr; Classical Wiener's and Richardson-Lucy's algorithm.
-  - `lucy_tv` &rarr; Richardson-Lucy's algorithm with total variance (TV) regularization.
+  - `wiener`:heavy_check_mark:, `lucy`:heavy_check_mark: &rarr; Classical Wiener's and Richardson-Lucy's algorithm.
+  - `lucy_tv`:heavy_check_mark: &rarr; Richardson-Lucy's algorithm with total variance (TV) regularization.
 
 - **Filters**
-  - `mean_filter`, `meadian_filter`, `gaussian_filter`, `directional_median_filter` &rarr; Smoothing.
-  - `dog_filter`, `doh_filter`, `log_filter` &rarr; Blob detection by DoG, DoH, LoG filter.
-  - `edge_filter`, `laplacian_filter` &rarr; Edge detection.
-  - `std_filter`, `coef_filter` &rarr; Standard deviation based filtering.
-  - `lowpass_filter`, `highpass_filter` &rarr; FFT based filtering.
-  - `entropy_filter`, `enhance_contrast`, `gabor_filter` &rarr; Object detection etc.
+  - `mean_filter`:heavy_check_mark:, `meadian_filter`:heavy_check_mark:, `gaussian_filter`:heavy_check_mark: &rarr; Smoothing.
+  - `dog_filter`:heavy_check_mark:, `doh_filter`:heavy_check_mark:, `log_filter`:heavy_check_mark: &rarr; Blob detection by DoG, DoH, LoG filter.
+  - `edge_filter`, `laplacian_filter`:heavy_check_mark: &rarr; Edge detection.
+  - `std_filter`:heavy_check_mark:, `coef_filter`:heavy_check_mark: &rarr; Standard deviation based filtering.
+  - `lowpass_filter`:heavy_check_mark:, `highpass_filter`:heavy_check_mark: &rarr; FFT based filtering.
+  - `entropy_filter`, `enhance_contrast`, `gabor_filter`:heavy_check_mark: &rarr; Object detection etc.
   - `ncc_filter` Template matching etc.
-  - `kalman_filter`, `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
+  - `kalman_filter`:heavy_check_mark:, `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
 
 - **Morphological Image Processing**
   - `erosion`, `dilation`, `opening`, `closing` &rarr; Basic ones.
@@ -147,7 +162,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   - `centroid_sm`, `gauss_sm`, `refine_sm` &rarr; Return coordinates in subpixel precision.
 
 - **Background/Intensity Correction**
-  - `rolling_ball`, `tophat` &rarr; Background subtraction.
+  - `rolling_ball`, `tophat`:heavy_check_mark: &rarr; Background subtraction.
   - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
   - `unmix` &rarr; Unmixing of leakage between channels.
   
@@ -158,15 +173,15 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
   - `expand_labels`, `watershed`, `random_walker` &rarr; Adjuct or segment labels.
 
 - **Feature Detection**
-  - `hessian_eigval`, `hessian_eig` &rarr; Hessian.
-  - `structure_tensor_eigval`, `structure_tensor_eig` &rarr; Structure tensor.
+  - `hessian_eigval`:heavy_check_mark:, `hessian_eig`:heavy_check_mark: &rarr; Hessian.
+  - `structure_tensor_eigval`:heavy_check_mark:, `structure_tensor_eig`:heavy_check_mark: &rarr; Structure tensor.
 
 - **Gradient Orientation Estimation**
   - `edge_grad`
 
 - **Filament Orientation Estimation**
-  - `hessian_angle` &rarr; Using Hessian eigenvector's orientations.
-  - `gabor_angle` &rarr; Using Gabor filter's responses.
+  - `hessian_angle`:heavy_check_mark: &rarr; Using Hessian eigenvector's orientations.
+  - `gabor_angle`:heavy_check_mark: &rarr; Using Gabor filter's responses.
 
 - **Property Measurement**
   - `regionprops` &rarr; Measure region properties such as mean intensity, Euler number, centroid, moment etc.
@@ -180,13 +195,13 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
 - **Others**
   - `focus_map` &rarr; Find focus using variance of Laplacian method. 
   - `stokes` &rarr; Analyze polarization using Stokes parameters.
-  - `fft`, `power_spectra`, `ifft` &rarr; Fourier transformation.
+  - `fft`:heavy_check_mark:, `power_spectra`:heavy_check_mark:, `ifft`:heavy_check_mark: &rarr; Fourier transformation.
   - `threshold` &rarr; Thresholding (many methods included).
   - `crop_center`, `crop_kernel`, `remove_edges`, `rotated_crop` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
   - `proj` &rarr; Z-projection along any axis.
   - `split`, `split_pixel_unit` &rarr; Split the image.
-  - `pad`, `defocus` &rarr; Padding.
+  - `pad`, `defocus`:heavy_check_mark: &rarr; Padding.
   - `iter`, `for_each_channel`, `for_params` &rarr; Easy iteration.
   - `set_scale` &rarr; set scales of any axes.
   - `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.

@@ -13,10 +13,12 @@ from skimage import graph as skgraph
 from skimage import util as skutil
 from scipy import ndimage as ndi
 
+
+import functools
+import numpy as np
+
 # same as the function in skimage.filters._fft_based (available in scikit-image >= 0.19)
 def _get_ND_butterworth_filter(shape, cutoff, order, high_pass, real):
-    import functools
-    import numpy as np
     ranges = []
     for d, fc in zip(shape, cutoff):
         axis = np.arange(-(d - 1) // 2, (d - 1) // 2 + 1) / (d*fc)
