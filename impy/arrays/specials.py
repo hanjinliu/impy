@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import matplotlib.pyplot as plt
 from inspect import signature
 from scipy import optimize as opt
 from .bases import MetaArray
@@ -64,6 +63,7 @@ class PropArray(MetaArray):
         cmap_range : tuple, default is (0, 1)
             Range of float for colormap iteration.
         """        
+        import matplotlib.pyplot as plt
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
@@ -102,6 +102,8 @@ class PropArray(MetaArray):
         -------
         self
         """        
+        import matplotlib.pyplot as plt
+
         if self.dtype == object:
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")

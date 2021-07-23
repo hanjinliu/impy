@@ -1,6 +1,5 @@
 from __future__ import annotations
-import matplotlib.pyplot as plt
-from skimage.color import label2rgb
+from .utils._skimage import skimage
 from .utils._skimage import skseg
 from .bases import HistoryArray
 
@@ -114,8 +113,9 @@ class Label(HistoryArray):
         return None
         
     def imshow(self, **kwargs):
+        import matplotlib.pyplot as plt
         plt.figure()
-        plt.imshow(label2rgb(self.value, bg_label=0), **kwargs)
+        plt.imshow(skimage.color.label2rgb(self.value, bg_label=0), **kwargs)
         return self
     
     def __truediv__(self, value):

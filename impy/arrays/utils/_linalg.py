@@ -1,6 +1,22 @@
 import numpy as np
-from ._skimage import *
 from skimage.feature.corner import _symmetric_image
+from ._skimage import skfeat
+from ..._const import Const
+
+if Const["RESOURCE"] == "cupy":
+    from ..._cupy import cupy as cp
+    def eigh(a):
+        a = cp.asarray(a, dtype=a.dtype)
+        val, vec = cp.linalg.eigh(a)
+        return val.get(), vec.get()
+
+    def eigvalsh(a):
+        a = cp.asarray(a, dtype=a.dtype)
+        val = cp.linalg.eigvalsh(a)
+        return val.get()
+else:
+    eigh = np.linalg.eigh
+    eigvalsh = np.linalg.eigvalsh
 
 def structure_tensor_eigval(img, sigma, pxsize):
     tensor_elements = skfeat.structure_tensor(img, sigma, order="xy",
@@ -28,7 +44,7 @@ def _solve_hermitian_eigval(elems, pxsize):
     pxsize = np.asarray(pxsize)
     hessian = _symmetric_image(elems)
     hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval = np.linalg.eigvalsh(hessian)
+    eigval = eigvalsh(hessian)
     return eigval
 
 def _solve_hermitian_eigs(elems, pxsize):
@@ -36,7 +52,7 @@ def _solve_hermitian_eigs(elems, pxsize):
     pxsize = np.asarray(pxsize)
     hessian = _symmetric_image(elems)
     hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval, eigvec = np.linalg.eigh(hessian)
+    eigval, eigvec = eigh(hessian)
     return np.concatenate([eigval[..., np.newaxis], eigvec], axis=-1)
 
 def eigs_post_process(eigs, axes):

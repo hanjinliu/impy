@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import matplotlib.pyplot as plt
 from ..arrays import *
 from ..frame import *
 import napari
@@ -197,6 +196,7 @@ def layer_to_impy_object(viewer, layer):
 
 class ColorCycle:
     def __init__(self, cmap="rainbow") -> None:
+        import matplotlib.pyplot as plt
         self.cmap = plt.get_cmap(cmap, 16)
         self.color_id = 0
     

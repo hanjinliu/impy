@@ -1,5 +1,6 @@
 import numpy as np
 from ._skimage import *
+from ._linalg import hessian_eigval
 from ..._const import Const
 
 
@@ -110,17 +111,10 @@ def dog_filter(img, low_sigma, high_sigma):
     return filt_l - filt_h
 
 def doh_filter(img, sigma, pxsize):
-    hessian_elements = skfeat.hessian_matrix(img, sigma=sigma, order="xy",
-                                             mode="reflect")
-    # Correct for scale
-    pxsize = np.asarray(pxsize)
-    hessian = skfeat.corner._symmetric_image(hessian_elements)
-    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
-    eigval = np.linalg.eigvalsh(hessian)
+    eigval = hessian_eigval(img, sigma, pxsize)
     eigval[eigval>0] = 0
     det = np.abs(np.product(eigval, axis=-1))
     return det
-
 
 def gabor_filter(img, ker):
     out = np.empty(img.shape, dtype=np.complex64)

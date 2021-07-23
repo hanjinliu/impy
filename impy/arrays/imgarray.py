@@ -11,7 +11,7 @@ from .phasearray import PhaseArray
 from .specials import PropArray
 
 from .utils._skimage import *
-from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _plot, _structures
+from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures
 
 from ..utils.axesop import *
 from ..utils.deco import *
@@ -330,7 +330,9 @@ class ImgArray(LabeledArray):
         fit.temp = dict(params=gaussian.params, result=result)
         
         # show fitting result
-        show_result and _plot.plot_gaussfit_result(self, fit)
+        if show_result:
+            from .utils import _plot as _plt
+            _plt.plot_gaussfit_result(self, fit)
         return fit
     
     @same_dtype(asfloat=True)
@@ -3520,7 +3522,10 @@ class ImgArray(LabeledArray):
         
         result = MarkerFrame(np.array(result), columns=complement_axes(along, self.axes))
         
-        show_drift and _plot.plot_drift(result)
+        if show_drift:
+            from .utils import _plot as _plt
+            _plt.plot_drift(result)
+        
         result.index.name = along
         return result
     

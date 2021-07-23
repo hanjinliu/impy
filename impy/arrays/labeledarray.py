@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from functools import partial
@@ -235,39 +234,21 @@ class LabeledArray(HistoryArray):
     #   Simple Visualizations
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    def hist(self, contrast=None, newfig=True):
+    def hist(self, contrast=None):
         """
         Show intensity profile.
         """
-        if newfig:
-            plt.figure(figsize=(4, 1.7))
+        from .utils import _plot as _plt
+        _plt.hist(self.value, contrast)
 
-        nbin = min(int(np.sqrt(self.size / 3)), 256)
-        d = self.astype(np.uint8).ravel() if self.dtype==bool else self.ravel()
-        y, x = skexp.histogram(d, nbins=nbin)
-        plt.plot(x, y, color="gray")
-        plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
-        
-        if contrast is None:
-            contrast = [self.min(), self.max()]
-        x0, x1 = contrast
-        
-        plt.xlim(x0, x1)
-        plt.ylim(0, None)
-        plt.yticks([])
-        
         return None
 
     def imshow(self, dims="yx", **kwargs):
+        from .utils import _plot as _plt
         if self.ndim == 1:
-            plt.plot(self.value)
+            _plt.plot_1d(self.value, **kwargs)
         elif self.ndim == 2:
-            vmax, vmin = _determine_range(self)
-            interpol = "bilinear" if self.dtype == bool else "none"
-            imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
-            imshow_kwargs.update(kwargs)
-            plt.imshow(self.value, **imshow_kwargs)
-            
+            _plt.plot_2d(self.value, **kwargs)
             self.hist()
             
         elif self.ndim == 3:
@@ -276,69 +257,34 @@ class LabeledArray(HistoryArray):
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
-
-                vmax, vmin = _determine_range(self)
-
-                interpol = "bilinear" if self.dtype == bool else "none"
-                imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
-                imshow_kwargs.update(kwargs)
-                
-                n_img = len(imglist)
-                n_col = min(n_img, 4)
-                n_row = int(n_img / n_col + 0.99)
-                fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
-                ax = ax.flat
-                for i, img in enumerate(imglist):
-                    ax[i].imshow(img, **imshow_kwargs)
-                    ax[i].axis("off")
-                    ax[i].set_title(f"Image-{i+1}")
+                _plt.plot_3d(imglist, **kwargs)
 
             else:
                 n_chn = self.sizeof("c")
-                fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
+                fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
-                    img = self[f"c={i}"]
-                    vmax, vmin = _determine_range(self)
-                    interpol = "bilinear" if img.dtype == bool else "none"
-                    imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
-                    imshow_kwargs.update(kwargs)
-                    
-                    ax[i].imshow(self[f"c={i}"], **imshow_kwargs)
+                    _plt.plot_2d(self[f"c={i}"].value, ax=ax[i], **kwargs)
         else:
             raise ValueError("Image must have three or less dimensions.")
         
-        plt.show()
+        _plt.show()
 
         return self
 
     def imshow_comparewith(self, other, **kwargs):
-        fig, ax = plt.subplots(1, 2, figsize=(8, 4))
-        for i, img in enumerate([self, other]):
-            vmax, vmin = _determine_range(img)
-            interpol = "bilinear" if img.dtype == bool else "none"
-            imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
-            imshow_kwargs.update(kwargs)
-            ax[i].imshow(img, **imshow_kwargs)
-        
-        plt.show()
+        from .utils import _plot as _plt
+        fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
+        _plt.plot_2d(self.value, ax=ax[0], **kwargs)
+        _plt.plot_2d(other.value, ax=ax[1], **kwargs)        
+        _plt.show()
         return self
     
     def imshow_label(self, alpha=0.3, dims="yx", **kwargs):
+        from .utils import _plot as _plt
         if not hasattr(self, "labels"):
             raise AttributeError("No label to show.")
         if self.ndim == 2:
-            vmax, vmin = _determine_range(self)
-            imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
-            imshow_kwargs.update(kwargs)
-            vmin = imshow_kwargs["vmin"]
-            vmax = imshow_kwargs["vmax"]
-            if vmin and vmax:
-                image = (np.clip(self.value, vmin, vmax) - vmin)/(vmax - vmin)
-            else:
-                image = self.value
-            overlay = skimage.color.label2rgb(self.labels.value, image=image, bg_label=0, 
-                                              alpha=alpha, image_alpha=1)
-            plt.imshow(overlay, **imshow_kwargs)
+            _plt.plot_2d_label(self.value, self.labels.value, alpha, **kwargs)
             self.hist()
         elif self.ndim == 3:
             if "c" not in self.axes:
@@ -347,51 +293,19 @@ class LabeledArray(HistoryArray):
                     print("Too many images. First 24 images are shown.")
                     imglist = imglist[:24]
 
-                vmax, vmin = _determine_range(self)
-
-                imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
-                imshow_kwargs.update(kwargs)
-                
-                n_img = len(imglist)
-                n_col = min(n_img, 4)
-                n_row = int(n_img / n_col + 0.99)
-                fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
-                ax = ax.flat
-                for i, img in enumerate(imglist):
-                    vmin = imshow_kwargs["vmin"]
-                    vmax = imshow_kwargs["vmax"]
-                    if vmin and vmax:
-                        image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
-                    else:
-                        image = self.value
-                    overlay = skimage.color.label2rgb(img.labels.value, image=image, bg_label=0, 
-                                                      alpha=alpha, image_alpha=1)
-                    ax[i].imshow(overlay, **imshow_kwargs)
-                    ax[i].axis("off")
-                    ax[i].set_title(f"Image-{i+1}")
+                _plt.plot_3d_label(imglist.value, imglist.labels.value, alpha, **kwargs)
 
             else:
                 n_chn = self.sizeof("c")
-                fig, ax = plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
+                fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i}"]
-                    vmax, vmin = _determine_range(img)
-                    imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
-                    imshow_kwargs.update(kwargs)
-                    vmin = imshow_kwargs["vmin"]
-                    vmax = imshow_kwargs["vmax"]
-                    if vmin and vmax:
-                        image = (np.clip(img.value, vmin, vmax) - vmin)/(vmax - vmin)
-                    else:
-                        image = self.value
-                    overlay = skimage.color.label2rgb(img.labels, image=image, bg_label=0, 
-                                                      alpha=alpha, image_alpha=1)
-                    ax[i].imshow(overlay, **imshow_kwargs)
+                    _plt.plot_2d_label(img.value, img.labels.value, alpha, ax[i], **kwargs)
                     
         else:
             raise ValueError("Image must be two or three dimensional.")
         
-        plt.show()
+        _plt.show()
         return self
     
     
@@ -1178,22 +1092,3 @@ def _shape_match(img, label):
         -> False
     """    
     return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
-
-def _determine_range(arr):
-    """
-    Called in imshow()
-    """
-    if arr.dtype == bool:
-        vmax = 1
-        vmin = 0
-    elif arr.dtype.kind == "f":
-        vmax = np.percentile(arr, 99.99)
-        vmin = np.percentile(arr, 0.01)
-    else:
-        try:
-            vmax = np.percentile(arr[arr>0], 99.99)
-            vmin = np.percentile(arr[arr>0], 0.01)
-        except IndexError:
-            vmax = arr.max()
-            vmin = arr.min()
-    return vmax, vmin

@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import matplotlib.pyplot as plt
 from .utils import _filters, _structures
 from ..utils.deco import *
 from ..utils.utilcls import *
@@ -158,22 +157,6 @@ class PhaseArray(LabeledArray):
         if "cmap" not in kwargs:
             kwargs["cmap"] = "hsv"
         return super().imshow(dims=dims, **kwargs)
-    
-    def quiver(self, steps=None, dims="yx", **kwargs):
-        ny, nx = self.sizesof(dims)
-        if steps is None:
-            stepy = ny//16
-            stepx = nx//16
-        else:
-            stepy, stepx = steps
-        
-        yy, xx = np.mgrid[:ny:stepy, :nx:stepx]
-        phase = self.value[::stepy, ::stepx]
-        plt.imshow(np.zeros_like(phase), cmap="gray")
-        plt.quiver(xx, yy, np.cos(phase), np.sin(phase), color="red", units="dots", 
-                   angles="xy", scale_units="xy", lw=1)
-        self.hist()
-        return self
     
     def reslice(self, src, dst, *, order:int=1) -> PropArray:
         """
