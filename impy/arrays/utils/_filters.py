@@ -81,7 +81,7 @@ def kalman_filter(img_stack, gain, noise_var):
             estimate = gain*estimate + (1.0 - gain)*img + kalman_gain*(img - estimate)
             predicted_var *= 1 - kalman_gain
         out[t] = estimate
-    return out
+    return asnumpy(out)
 
 def fill_hole(img, mask):
     seed = np.copy(img)
@@ -95,7 +95,7 @@ def phase_mean_filter(img, selem, a):
     out = xp.empty(img.shape, dtype=xp.complex64)
     xp.exp(1j*a*img, out=out)
     convolve(out, selem, output=out)
-    return xp.angle(out)/a
+    return asnumpy(xp.angle(out)/a)
 
 def std_filter(data, selem):
     selem = selem / np.sum(selem)

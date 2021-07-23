@@ -87,7 +87,7 @@ class ImgArray(LabeledArray):
     @record()
     @same_dtype(True)
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
-               dims=None, order:int=1) -> ImgArray:
+               order:int=1, dims=None, update:bool=False) -> ImgArray:
         """
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
@@ -101,9 +101,10 @@ class ImgArray(LabeledArray):
         ----------
         matrix, scale, rotation, shear, translation
             See `skimage.transform.AffineTransform`.
-        {dims}
         {order}
-            
+        {dims}
+        {update}
+
         Returns
         -------
         ImgArray
@@ -151,6 +152,44 @@ class ImgArray(LabeledArray):
         translation_1 = sktrans.SimilarityTransform(translation=-center)
         mx = translation_1 + rotation + translation_0
         mx.params[2] = (0, 0, 1)
+        return self.apply_dask(sktrans.warp,
+                               c_axes=complement_axes(dims, self.axes),
+                               kwargs=dict(inverse_map=mx, order=order, clip=False)
+                               )
+    
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(True)
+    @record()
+    def stretch(self, scale, center="center", *, dims=2, order:int=1) -> ImgArray:
+        """
+        2D stretching of an image from a point.
+
+        Parameters
+        ----------
+        scale: array-like
+            Stretch factors.
+        center : str or array-like, optional
+            Rotation center coordinate. By default the center of image will be the rotation center.
+        {dims}
+        {order}
+
+        Returns
+        -------
+        ImgArray
+            Rotated image.
+        """        
+        if center == "center":
+            center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
+        else:
+            center = np.asarray(center)
+            
+        translation_0 = sktrans.SimilarityTransform(translation=center)
+        stretch = sktrans.SimilarityTransform(scale=1/np.asarray(scale))
+        translation_1 = sktrans.SimilarityTransform(translation=-center)
+        mx = translation_1 + stretch + translation_0
+        mx.params[2, 2] = 1
         return self.apply_dask(sktrans.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(inverse_map=mx, order=order, clip=False)
@@ -696,7 +735,7 @@ class ImgArray(LabeledArray):
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
         input = _filters.asarray(self)
         weight = _filters.asarray(weight)
-        out = irfft(weight*rfft(self.value, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        out = irfft(weight*rfft(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return _filters.asnumpy(out)
     
     
@@ -1107,6 +1146,7 @@ class ImgArray(LabeledArray):
                               c_axes=complement_axes(along + dims, self.axes), 
                               args=(gain, noise_var)
                               )
+        
         if t_axis > min_a:
             out = np.swapaxes(out, min_a, t_axis)
 
@@ -3504,7 +3544,7 @@ class ImgArray(LabeledArray):
             DataFrame structure with x,y columns
         """        
         if along is None:
-            along = find_first_appeared("tpzc", include=self.axes)
+            along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
             
@@ -3523,7 +3563,7 @@ class ImgArray(LabeledArray):
             else:
                 last_img = img
         
-        result = MarkerFrame(np.array(result), columns=complement_axes(along, self.axes))
+        result = MarkerFrame(np.array(result), columns=complement_axes(along, self.axes)[::-1])
         
         if show_drift:
             from .utils import _plot as _plt

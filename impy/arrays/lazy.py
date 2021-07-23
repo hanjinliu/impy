@@ -289,11 +289,11 @@ class LazyImgArray(AxesMixin):
             input_ = self.img.rechunk(rechunk_to)
         
         if dask_wrap:
-            def _func(arr:np.memmap, *args, **kwargs) -> np.ndarray:
+            def _func(arr, *args, **kwargs):
                 out = func(da.from_array(arr[slice_in]), *args, **kwargs)
                 return out[slice_out].compute()
         else:
-            def _func(arr:da.core.Array, *args, **kwargs) -> np.ndarray:
+            def _func(arr, *args, **kwargs):
                 out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
         
@@ -340,7 +340,7 @@ class LazyImgArray(AxesMixin):
                                  args=(all_coords,),
                                  kwargs=dict(prefilter=False, order=1, chunks=output_chunks)
                                  )
-                                 
+
         cropped_img._set_info(self, "rotated_crop")
         return cropped_img
     
