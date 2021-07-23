@@ -61,7 +61,10 @@ def plot_3d(imglist, **kwargs):
     n_col = min(n_img, 4)
     n_row = int(n_img / n_col + 0.99)
     fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
-    ax = ax.flat
+    if len(imglist) > 1:
+        ax = ax.flat
+    else:
+        ax = [ax]
     for i, img in enumerate(imglist):
         ax[i].imshow(img, **imshow_kwargs)
         ax[i].axis("off")
@@ -94,7 +97,10 @@ def plot_3d_label(imglist, labellist, alpha, **kwargs):
     n_col = min(n_img, 4)
     n_row = int(n_img / n_col + 0.99)
     fig, ax = plt.subplots(n_row, n_col, figsize=(4*n_col, 4*n_row))
-    ax = ax.flat
+    if len(imglist) > 1:
+        ax = ax.flat
+    else:
+        ax = [ax]
     for i, img in enumerate(imglist):
         vmin = imshow_kwargs["vmin"]
         vmax = imshow_kwargs["vmax"]
@@ -122,7 +128,7 @@ def hist(img, contrast):
     x0, x1 = contrast
     
     plt.xlim(x0, x1)
-    plt.ylim(0, None)
+    plt.ylim(0, y[(x0<x)&(x<x1)].max())
     plt.yticks([])
 
 

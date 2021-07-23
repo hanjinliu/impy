@@ -1,11 +1,45 @@
 import numpy as np
 import scipy
 from collections import namedtuple
-from ._skimage import sktrans, ndi
+from ._skimage import sktrans
+from ..._const import Const
+
+__all__ = ["compose_affine_matrix", 
+           "decompose_affine_matrix",
+           "affinefit", 
+           "check_matrix",
+           "warp"
+           ]
 
 AffineTransformationParameters = namedtuple(typename="AffineTransformationParameters", 
                                             field_names=["translation", "rotation", "scale", "shear"]
                                             )
+
+if Const["RESOURCE"] == "cupy":
+    from ..._cupy import ndi
+    from ..._cupy import cupy as cp
+
+    def warp(img, matrix, cval=0, mode="constant", order=1):
+        img = cp.asarray(img, dtype=img.dtype)
+        matrix = cp.asarray(matrix)
+        out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
+        return out.get()
+
+else:
+    from scipy import ndimage as ndi
+
+    def warp(img, matrix, cval=0, mode="constant", order=1):
+        """
+        Generalized version of `skimage.transform.warp`. For >3 dimensional, ndimage's function
+        will be called instead.
+        """    
+        ndim = matrix.shape[0] - 1
+        if ndim == 2:
+            out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
+        else:
+            out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
+        return out
+
 
 def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):    
     if ndim == 2:
@@ -42,18 +76,6 @@ def decompose_affine_matrix(matrix:np.ndarray):
     return out
         
 
-def warp(img, matrix, offset=0, cval=0, mode="constant", order=1):
-    """
-    Generalized version of `skimage.transform.warp`. For >3 dimensional, ndimage's function
-    will be called instead.
-    """    
-    ndim = matrix.shape[0] - 1
-    if ndim == 2:
-        out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
-    else:
-        out = ndi.affine_transform(img, matrix, offset=offset, cval=cval, mode=mode, 
-                                   order=order, prefilter=order>1)
-    return out
 
 def calc_corr(img0, img1, matrix, corr_func):
     """
