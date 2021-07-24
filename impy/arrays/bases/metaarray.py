@@ -1,6 +1,8 @@
 from __future__ import annotations
 import numpy as np
+import dask
 from dask import array as da
+from dask import dataframe as dd
 import itertools
 from ..axesmixin import AxesMixin
 from ..._types import *
@@ -392,6 +394,31 @@ class MetaArray(AxesMixin, np.ndarray):
             out = out.compute()
         
         out = out.view(self.__class__)
+        return out
+    
+            
+    def apply_dask_df(self, func:Callable, c_axes:str=None, args:tuple=None, kwargs:dict=None) -> MetaArray:
+        
+        if args is None:
+            args = tuple()
+        if kwargs is None:
+            kwargs = dict()
+        
+        if len(c_axes) == 0:
+            out = func(self.value, *args, **kwargs)
+        else:                
+            c_axes_list = list(c_axes)
+            @dask.delayed
+            def _func(sl, arr, *args, **kwargs):
+                out = func(arr, *args, **kwargs)
+                out[c_axes_list] = sl
+                return out
+            
+            out = [dd.from_delayed(_func(sl, a)) for sl, a in self.iter(c_axes, 
+                                                                        exclude=complement_axes(c_axes, self.axes))]
+            out = dd.concat(out)
+            out = out.compute()
+        
         return out
     
     def transpose(self, axes):

@@ -11,7 +11,7 @@ from .phasearray import PhaseArray
 from .specials import PropArray
 
 from .utils._skimage import *
-from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures
+from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
 from ..utils.axesop import *
 from ..utils.deco import *
@@ -1720,6 +1720,48 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
+    def peak_local_max_dask(self, *, min_distance:int=1, percentile:float=None, 
+                       topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
+                       use_labels:bool=True, dims=None) -> MarkerFrame:
+        
+        
+        # separate spatial dimensions and others
+        ndim = len(dims)
+        dims_list = list(dims)
+        c_axes = complement_axes(dims, self.axes)
+        c_axes_list = list(c_axes)
+        
+        if isinstance(exclude_border, bool):
+            exclude_border = int(min_distance) if exclude_border else False
+        
+        thr = None if percentile is None else np.percentile(self.value, percentile)
+        df_all = []
+        for sl, img in self.iter(c_axes, israw=True, exclude=dims):
+            # skfeat.peak_local_max overwrite something so we need to give copy of img.
+            if use_labels and hasattr(img, "labels"):
+                labels = np.array(img.labels)
+            else:
+                labels = None
+            
+            indices = skfeat.peak_local_max(np.array(img),
+                                            footprint=_structures.ball_like(min_distance, ndim),
+                                            threshold_abs=thr,
+                                            num_peaks=topn,
+                                            num_peaks_per_label=topn_per_label,
+                                            labels=labels,
+                                            exclude_border=exclude_border)
+            indices = pd.DataFrame(indices, columns=dims_list)
+            indices[c_axes_list] = sl
+            df_all.append(indices)
+            
+        df_all = pd.concat(df_all, axis=0)
+        df_all = MarkerFrame(df_all, columns=self.axes, dtype=np.uint16)
+        df_all.set_scale(self)
+        return df_all
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record(append_history=False)
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
                      use_labels:bool=True, dims=None) -> MarkerFrame:
@@ -2021,7 +2063,7 @@ class ImgArray(LabeledArray):
         ----------
         sigma : float, optional
             Standard deviation of puncta.
-        method : str {"dog", "doh", "log", "ncc"}, default is "dog"
+        method : str {"dog", "doh", "log", "gaussian", "ncc"}, default is "dog"
             Which filter is used prior to finding local maxima. If "ncc", a Gaussian particle is used as
             the template image.
         cutoff : float, optional
@@ -2043,22 +2085,23 @@ class ImgArray(LabeledArray):
         >>> ip.gui.add(lnk)
         """        
         method = method.lower()
-        if method in ("dog", "doh", "log"):
-            if cutoff is None:
-                cutoff = 0.0
+        if method in ("dog", "doh", "log", "gaussian"):
+            cutoff = 0.0 if cutoff is None else cutoff
             fil_img = getattr(self, method+"_filter")(sigma, dims=dims)
-            fil_img[fil_img<cutoff] = cutoff
         elif method == "ncc":
-            if cutoff is None:
-                cutoff = 0.5
+            # make template Gaussian
+            cutoff = 0.5 if cutoff is None else cutoff
             sigma = np.array(check_nd(sigma, len(dims)))
-            shape = tuple((sigma*4).astype(np.int))
+            shape = tuple((sigma*4).astype(np.int32))
             g = GaussianParticle([(np.array(shape)-1)/2, sigma, 1.0, 0.0])
             template = g.generate(shape)
-            fil_img = self.ncc(template)
-            fil_img[fil_img<cutoff] = cutoff
+            # template matching
+            fil_img = self.ncc_filter(template)
         else:
-            raise ValueError("`method` must be 'dog', 'doh', 'log' or 'ncc'.")
+            raise ValueError("`method` must be 'dog', 'doh', 'log', 'gaussian' or 'ncc'.")
+        
+        fil_img[fil_img<cutoff] = cutoff
+        
         if np.isscalar(sigma):
             min_d = sigma*2
         else:
@@ -2436,7 +2479,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def fft(self, *, shape="same", dims=None) -> ImgArray:
+    def fft(self, *, shape="same", shift:bool=True, dims=None) -> ImgArray:
         """
         Fast Fourier transformation. This function returns complex array, which is inconpatible with 
         some ImgArray functions.
@@ -2448,6 +2491,8 @@ class ImgArray(LabeledArray):
             - integers: padded or cropped to the specified shape.
             - "square": padded to smallest 2^N-long square.
             - "same" (default): no padding or cropping.
+        shift : bool, default is True
+            If True, call `np.fft.fftshift` in the end.
         {dims}
             
         Returns
@@ -2464,13 +2509,14 @@ class ImgArray(LabeledArray):
         else:
             shape = check_nd(shape, len(dims))
         freq = fft(self.value.astype(np.float32), s=shape, axes=axes)
-        freq[:] = np.fft.fftshift(freq)
+        if shift:
+            freq[:] = np.fft.fftshift(freq)
         return freq
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def ifft(self, real:bool=True, *, dims=None) -> ImgArray:
+    def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
         
@@ -2478,6 +2524,8 @@ class ImgArray(LabeledArray):
         ----------
         real : bool, default is True
             If True, only the real part is returned.
+        shift : bool, default is True
+            If True, call `np.fft.ifftshift` at the first.
         {dims}
             
         Returns
@@ -2485,7 +2533,10 @@ class ImgArray(LabeledArray):
         ImgArray
             IFFT image.
         """
-        freq = np.fft.ifftshift(self.value)
+        if shift:
+            freq = np.fft.ifftshift(self.value)
+        else:
+            freq = self.value
         out = ifft(freq, axes=[self.axisof(a) for a in dims])
         
         if real:
@@ -2664,7 +2715,7 @@ class ImgArray(LabeledArray):
         
     
     @record()
-    def ncc(self, template:np.ndarray, bg:float=None) -> ImgArray:
+    def ncc_filter(self, template:np.ndarray, bg:float=None) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
         identical to that in `skimage.feature`, but is optimized for batch processing and improved 
@@ -3527,7 +3578,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def track_drift(self, along:str=None, show_drift:bool=False, **kwargs) -> MarkerFrame:
+    def track_drift(self, along:str=None, show_drift:bool=False, upsample_factor:int=10) -> MarkerFrame:
         """
         Calculate xy-directional drift using `skimage.registration.phase_cross_correlation`.
 
@@ -3547,24 +3598,19 @@ class ImgArray(LabeledArray):
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
-            
-        # slow drift needs large upsampling numbers
-        corr_kwargs = {"upsample_factor": 10}
-        corr_kwargs.update(kwargs)
-        
-        result = [[0.0]*(self.ndim-1)]
+                    
+        result = np.zeros((self.sizeof(along), self.ndim-1), dtype=np.float32)
+        c_axes = complement_axes(along, self.axes)
         last_img = None
-        for _, img in self.iter(along):
+        img_fft = self.fft(shift=False, dims=c_axes)
+        for i, (_, img) in enumerate(img_fft.iter(along)):
             if last_img is not None:
-                shift = skreg.phase_cross_correlation(last_img, img, return_error=False, **corr_kwargs)
-                shift_total = shift + result[-1]    # list + ndarray -> ndarray
-                result.append(shift_total)
+                result[i] = _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)
                 last_img = img
             else:
                 last_img = img
         
-        result = MarkerFrame(np.array(result), columns=complement_axes(along, self.axes)[::-1])
-        
+        result = MarkerFrame(np.cumsum(result, axis=0), columns=c_axes[::-1]).sort()
         if show_drift:
             from .utils import _plot as _plt
             _plt.plot_drift(result)
@@ -3576,7 +3622,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(asfloat=True)
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, order:int=1, 
+    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
                          along:str=None, dims=2, update:bool=False) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors `shift`
@@ -3589,6 +3635,8 @@ class ImgArray(LabeledArray):
             contained in `dims` (MarkerFrame recommended).
         ref : ImgArray, optional
             The reference n-D image to determine drift, if `shift` was not given.
+        zero_ave : bool, default is True
+            If True, average shift will be zero.
         {order}
         along : str, optional
             Along which axis drift will be corrected.
@@ -3627,12 +3675,15 @@ class ImgArray(LabeledArray):
                 raise ValueError("Wrong shape of 'shift'.")
         else:
             shift = MarkerFrame(shift, columns=dims, dtype=np.float32)
-
+            
+        shift = shift.values
+        if zero_ave:
+            shift = shift - np.mean(shift, axis=0)
+            
         out = np.empty(self.shape)
         t_index = self.axisof(along)
-        shift = shift.reindex(columns=list(dims[::-1]))
         for sl, img in self.iter(complement_axes(dims, self.axes)):
-            out[sl] = _translate_image(img, shift.loc[sl[t_index]], order=order)
+            out[sl] = _translate_image(img, shift[sl[t_index]], order=order)
         
         out = out.view(self.__class__)
         return out

@@ -7,5 +7,6 @@ from . import (_dask_image,
                _skimage, 
                _docs,
                _transform,
-               _structures
+               _structures,
+               _corr,
                )
