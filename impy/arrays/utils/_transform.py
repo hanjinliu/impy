@@ -35,7 +35,10 @@ else:
         """    
         ndim = matrix.shape[0] - 1
         if ndim == 2:
-            out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
+            try:
+                out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
+            except ValueError:
+                out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
         else:
             out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
         return out

@@ -74,7 +74,8 @@ class ImgArray(LabeledArray):
         return super().__truediv__(value)
     
     def __itruediv__(self, value) -> ImgArray:
-        self = self.astype(np.float32)
+        if self.dtype.kind in "ui":
+            raise ValueError("Cannot divide integer inplace.")
         if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
             value[value==0] = np.inf
@@ -1682,48 +1683,6 @@ class ImgArray(LabeledArray):
             return value has "t", "c", "y" and "x" columns, and sub-frame at t=0, c=0 contains all
             the coordinates of peaks in the slice at t=0, c=0.
         """        
-        
-        # separate spatial dimensions and others
-        ndim = len(dims)
-        dims_list = list(dims)
-        c_axes = complement_axes(dims, self.axes)
-        c_axes_list = list(c_axes)
-        
-        if isinstance(exclude_border, bool):
-            exclude_border = int(min_distance) if exclude_border else False
-        
-        thr = None if percentile is None else np.percentile(self.value, percentile)
-        df_all = []
-        for sl, img in self.iter(c_axes, israw=True, exclude=dims):
-            # skfeat.peak_local_max overwrite something so we need to give copy of img.
-            if use_labels and hasattr(img, "labels"):
-                labels = np.array(img.labels)
-            else:
-                labels = None
-            
-            indices = skfeat.peak_local_max(np.array(img),
-                                            footprint=_structures.ball_like(min_distance, ndim),
-                                            threshold_abs=thr,
-                                            num_peaks=topn,
-                                            num_peaks_per_label=topn_per_label,
-                                            labels=labels,
-                                            exclude_border=exclude_border)
-            indices = pd.DataFrame(indices, columns=dims_list)
-            indices[c_axes_list] = sl
-            df_all.append(indices)
-            
-        df_all = pd.concat(df_all, axis=0)
-        df_all = MarkerFrame(df_all, columns=self.axes, dtype=np.uint16)
-        df_all.set_scale(self)
-        return df_all
-    
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def peak_local_max_dask(self, *, min_distance:int=1, percentile:float=None, 
-                       topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
-                       use_labels:bool=True, dims=None) -> MarkerFrame:
-        
         
         # separate spatial dimensions and others
         ndim = len(dims)

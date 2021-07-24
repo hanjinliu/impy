@@ -14,7 +14,6 @@ else:
 asarray = xp.asarray
 
 def subpixel_pcc(f0, f1, upsample_factor):
-
     shape = f0.shape
     product = f0 * f1.conj()
     cross_correlation = ifft(product)
@@ -34,9 +33,10 @@ def subpixel_pcc(f0, f1, upsample_factor):
         # Matrix multiply DFT around the current shift estimate
         sample_region_offset = dftshift - shifts*upsample_factor
         cross_correlation = _upsampled_dft(product.conj(),
-                                            upsampled_region_size,
-                                            upsample_factor,
-                                            sample_region_offset).conj()
+                                           upsampled_region_size,
+                                           upsample_factor,
+                                           sample_region_offset
+                                           ).conj()
         # Locate maximum and map back to original pixel grid
         maxima = xp.unravel_index(xp.argmax(xp.abs(cross_correlation)),
                                     cross_correlation.shape)
