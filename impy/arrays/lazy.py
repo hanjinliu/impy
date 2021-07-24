@@ -7,7 +7,7 @@ from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from .utils import _misc, _transform, _structures
+from .utils import _misc, _transform, _structures, _filters
 
 from ..utils.deco import *
 from ..utils.axesop import *
@@ -66,6 +66,8 @@ class LazyImgArray(AxesMixin):
         return self.size * self.itemsize / 1e9
     
     def __array__(self):
+        # Should not be `self.data` because in napari Viewer this function is called every time
+        # sliders are moved.
         return self.img.compute()
     
     def __getitem__(self, key):
@@ -94,6 +96,115 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    
+    @same_dtype(asfloat=True)
+    def __add__(self, value) -> LazyImgArray:
+        if isinstance(value, self.__class__):
+            out = self.img + value.img
+        else:
+            out = self.img + value
+        out = self.__class__(out)
+        out._set_info(self, next_history="add")
+        return out
+    
+    @same_dtype(asfloat=True)
+    def __iadd__(self, value) -> LazyImgArray:
+        if isinstance(value, self.__class__):
+            self.img += value.img
+        else:
+            self.img += value
+        self.history.append("add")
+        return self
+    
+    @same_dtype(asfloat=True)
+    def __sub__(self, value) -> LazyImgArray:
+        if isinstance(value, self.__class__):
+            out = self.img - value.img
+        else:
+            out = self.img - value
+        out = self.__class__(out)
+        out._set_info(self, next_history="subtract")
+        return out
+    
+    @same_dtype(asfloat=True)
+    def __isub__(self, value) -> LazyImgArray:
+        if isinstance(value, self.__class__):
+            self.img -= value.img
+        else:
+            self.img -= value
+        self.history.append("subtract")
+        return self
+    
+    @same_dtype(asfloat=True)
+    def __mul__(self, value) -> LazyImgArray:
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
+            value = value.astype(np.float32)
+            other = value
+        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
+            value = value.as_float()
+            other = value.img
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot multiply negative value.")
+        else:
+            other = value
+        out = self.img * other
+        out = self.__class__(out)
+        out._set_info(self, next_history="multiply")
+        return out
+    
+    @same_dtype(asfloat=True)
+    def __imul__(self, value) -> LazyImgArray:
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
+            value = value.astype(np.float32)
+            other = value
+        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
+            value = value.as_float()
+            other = value.img
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot multiply negative value.")
+        else:
+            other = value
+        self.img *= other
+        self.history.append("multiply")
+        return self
+    
+    def __truediv__(self, value) -> LazyImgArray:        
+        self = self.as_float()
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
+            value = value.astype(np.float32)
+            value[value==0] = np.inf
+            other = value
+        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
+            value = value.as_float()
+            value[value==0] = np.inf
+            other = value.img
+        elif np.isscalar(value) and value <= 0:
+            raise ValueError("Cannot multiply negative value.")
+        else:
+            other = value
+        out = self.img / other
+        out = self.__class__(out)
+        out._set_info(self, next_history="divide")
+        return out
+    
+    def __itruediv__(self, value) -> LazyImgArray:
+        if self.dtype.kind in "ui":
+            raise ValueError("Cannot divide integer inplace.")
+        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
+            value = value.astype(np.float32)
+            value[value==0] = np.inf
+            other = value
+        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
+            value = value.as_float()
+            value[value==0] = np.inf
+            other = value.img
+        elif np.isscalar(value) and value < 0:
+            raise ValueError("Cannot multiply negative value.")
+        else:
+            other = value
+        self.img /= other
+        self.history.append("divide")
+        return self
     
     @property
     def chunk_info(self):
@@ -128,7 +239,7 @@ class LazyImgArray(AxesMixin):
                 setattr(img, attr, getattr(self, attr, None))
         return img
     
-    def release(self) -> LazyImgArray:
+    def release(self, update=True) -> LazyImgArray:
         """
         Compute all the task for now and convert to dask again. If image size overwhelms MAX_GB
         then MemoryError is raised.
@@ -136,9 +247,13 @@ class LazyImgArray(AxesMixin):
         if self.gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with ProgressBar():
-            img = self.img.compute()
-            out = self.__class__(da.from_array(img, chunks=self.chunksize))
-            out._set_info(self)
+            img = da.from_array(self.img.compute(), chunks=self.chunksize)
+            if update:
+                self.img = img
+                out = self
+            else:
+                out = self.__class__(img)
+                out._set_info(self)
         return out
     
     @dims_to_spatial_axes
@@ -173,7 +288,7 @@ class LazyImgArray(AxesMixin):
         print(f"Succesfully saved: {dirpath}")
         return None
     
-    def rechunk(self, chunks="auto", threshold=None, block_size_limit=None, balance=False) -> LazyImgArray:
+    def rechunk(self, chunks="auto", threshold=None, block_size_limit=None, balance=False, *, update=False) -> LazyImgArray:
         """
         Rechunk the bound dask array.
 
@@ -187,10 +302,15 @@ class LazyImgArray(AxesMixin):
         LazyImgArray
             Rechunked dask array is bound. History will not be updated.
         """        
-        out = self.__class__(self.img.rechunk(chunks=chunks, threshold=threshold, 
-                                              block_size_limit=block_size_limit, balance=balance))
-        out._set_info(self)
-        return out
+        rechunked = self.img.rechunk(chunks=chunks, threshold=threshold, 
+                                     block_size_limit=block_size_limit, balance=balance)
+        if update:
+            self.img = rechunked
+            return self
+        else:
+            out = self.__class__(rechunked)
+            out._set_info(self)
+            return out
         
     def apply_dask_func(self, funcname:str, *args, **kwargs) -> LazyImgArray:
         """
@@ -274,17 +394,10 @@ class LazyImgArray(AxesMixin):
             input_ = self.img
         else:
             if rechunk_to == "default":
-                mapper = lambda a: 1 if a in c_axes else "auto"
-                rechunk_to = tuple(map(mapper, self.axes))
+                rechunk_to = switch_slice(c_axes, self.axes, ifin=1, ifnot="auto")
             
             elif rechunk_to == "max":
-                rechunk_to = []
-                for i in range(self.ndim):
-                    if self.axes[i] in c_axes:
-                        rechunk_to.append(1)
-                    else:
-                        rechunk_to.append(self.shape[i])
-                rechunk_to = tuple(rechunk_to)
+                rechunk_to = switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
                 
             input_ = self.img.rechunk(rechunk_to)
         
@@ -344,35 +457,60 @@ class LazyImgArray(AxesMixin):
         cropped_img._set_info(self, "rotated_crop")
         return cropped_img
     
+    def _switch_apply(self, func_dask, func_default, dims, args=None, kwargs=None):
+        try:
+            self.try_max_chunk(dims)
+            func = func_default
+            rechunk_to = "none"
+            dask_wrap = False
+        except MemoryError:
+            func = func_dask
+            rechunk_to = "max"
+            dask_wrap = True
+            
+        return self.apply(func,
+                          c_axes=complement_axes(dims, self.axes),
+                          rechunk_to=rechunk_to,
+                          dask_wrap=dask_wrap,
+                          args=args,
+                          kwargs=kwargs
+                          )
+    
     @dims_to_spatial_axes
     def gaussian_filter(self, sigma:nDFloat=1.0, *, dims=None) -> LazyImgArray:
-        return self.apply(dafil.gaussian_filter,
-                          c_axes=complement_axes(dims, self.axes),
-                          rechunk_to="max",
-                          dask_wrap=True,
-                          args=(sigma,)
-                          )
+        return self._switch_apply(dafil.gaussian_filter,
+                                  _filters.gaussian_filter,
+                                  dims=dims,
+                                  args=(sigma,)
+                                  )
     
     @dims_to_spatial_axes
     def median_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
-        return self.apply(dafil.median_filter,
-                          c_axes=complement_axes(dims, self.axes),
-                          rechunk_to="max",
-                          dask_wrap=True,
-                          kwargs=dict(footprint=disk)
-                          )
+        return self._switch_apply(dafil.median_filter,
+                                  _filters.median_filter,
+                                  dims=dims,
+                                  kwargs=dict(footprint=disk)
+                                  )
+    
+    @dims_to_spatial_axes
+    def mean_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
+        disk = _structures.ball_like(radius, len(dims))
+        kernel = disk/np.sum(disk)
+        return self._switch_apply(dafil.convolve,
+                                  _filters.convolve,
+                                  dims=dims,
+                                  args=(kernel,),
+                                  )
     
     @dims_to_spatial_axes
     def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None) -> LazyImgArray:
-        return self.apply(dafil.convolve, 
-                          c_axes=complement_axes(dims, self.axes), 
-                          dtype=self.dtype,
-                          rechunk_to="max",
-                          dask_wrap=True,
-                          args=(kernel,),
-                          kwargs=dict(mode=mode, cval=cval)
-                          )
+        return self._switch_apply(dafil.convolve,
+                                  _filters.convolve,
+                                  dims=dims,
+                                  args=(kernel,),
+                                  kwargs=dict(mode=mode, cval=cval)
+                                  )
     
     @dims_to_spatial_axes
     def edge_filter(self, method:str="sobel", *, dims=None) -> LazyImgArray:
@@ -392,20 +530,59 @@ class LazyImgArray(AxesMixin):
             matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
                                                       shear=shear, translation=translation,
                                                       ndim=len(dims))
-        return self.apply(daintr.affine_transform, 
-                          c_axes=complement_axes(dims, self.axes), 
-                          dtype=self.dtype,
-                          rechunk_to="max",
-                          dask_wrap=True,
-                          kwargs=dict(matrix=matrix, order=order)
-                          )
+        return self._switch_apply(daintr.affine_transform,
+                                  _transform.warp,
+                                  dims=dims,
+                                  kwargs=dict(matrix=matrix, order=order)
+                                  )
+    
+    @dims_to_spatial_axes
+    def fft(self, *, shape="same", shift:bool=True, dims=None) -> LazyImgArray:
+        axes = [self.axisof(a) for a in dims]
+        if shape == "square":
+            s = 2**int(np.ceil(np.max(self.sizesof(dims))))
+            shape = (s,) * len(dims)
+        elif shape == "same":
+            shape = None
+        else:
+            shape = check_nd(shape, len(dims))
+        freq = da.fft.rfftn(self.img.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
+        if shift:
+            freq[:] = da.fft.fftshift(freq)
+        out = self.__class__(freq)
+        out._set_info(self, "fft")
+        return out
+
+    @dims_to_spatial_axes
+    def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
+        if shift:
+            freq = da.fft.ifftshift(self.img)
+        else:
+            freq = self.img
+        out = da.fft.irfftn(freq, axes=[self.axisof(a) for a in dims]).astype(np.complex64)
         
+        if real:
+            out = da.real(out)
+        
+        out = self.__class__(out)
+        out._set_info(self, "ifft")
+        return out
+    
     def chunksizeof(self, axis:str):
         return self.img.chunksize[self.axes.find(axis)]
     
     def chunksizesof(self, axes:str):
         return tuple(self.chunksizeof(a) for a in axes)
     
+    def try_max_chunk(self, dims):
+        new_chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
+        gb_per_chunk = np.prod(new_chunks) * self.itemsize * 1e-9
+        if gb_per_chunk > Const["MAX_GB"]:
+            raise MemoryError(f"Cannot allocate {gb_per_chunk} GB for one chunk.")
+        else:
+            self.rechunk(chunks=new_chunks, update=True)
+        return self
+        
     def transpose(self, axes):
         if self.axes.is_none():
             new_axes = None

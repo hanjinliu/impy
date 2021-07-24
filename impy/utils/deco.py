@@ -71,8 +71,8 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
 
 def same_dtype(asfloat=False):
     """
-    Decorator to assure output image has the same dtype as the input
-    image. 
+    Decorator to assure output image has the same dtype as the input image. 
+    This decorator is compatible with both ImgArray and LazyImgArray.
 
     Parameters
     ----------
@@ -84,7 +84,7 @@ def same_dtype(asfloat=False):
         def wrapper(self, *args, **kwargs):
             dtype = self.dtype
             if asfloat and self.dtype.kind in "ui":
-                self = self.astype(np.float32)
+                self = self.as_float()
             out = func(self, *args, **kwargs)
             out = out.as_img_type(dtype)
             return out
