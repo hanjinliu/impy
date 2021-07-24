@@ -7,7 +7,7 @@ from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from .utils import _misc, _transform, _structures, _filters
+from .utils import _misc, _transform, _structures, _filters, _deconv
 
 from ..utils.deco import *
 from ..utils.axesop import *
@@ -288,7 +288,7 @@ class LazyImgArray(AxesMixin):
         print(f"Succesfully saved: {dirpath}")
         return None
     
-    def rechunk(self, chunks="auto", threshold=None, block_size_limit=None, balance=False, *, update=False) -> LazyImgArray:
+    def rechunk(self, chunks="auto", *, threshold=None, block_size_limit=None, balance=False, update=False) -> LazyImgArray:
         """
         Rechunk the bound dask array.
 
@@ -734,6 +734,19 @@ class LazyImgArray(AxesMixin):
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
+    
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
+             update:bool=False) -> LazyImgArray:
+        
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+
+        return self.apply(_deconv.richardson_lucy, 
+                          c_axes=complement_axes(dims, self.axes),
+                          rechunk_to="max",
+                          args=(psf_ft, psf_ft_conj, niter, eps)
+                          )
     
     def as_uint8(self) -> LazyImgArray:
         img = self.img
