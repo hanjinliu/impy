@@ -3,13 +3,12 @@ __version__ = "1.17.2"
 import logging
 from ._const import Const, SetConst
 
-try:
-    from . import _cupy
-except ImportError:
-    Const["RESOURCE"] = "numpy"
-else:
+from ._cupy import GPU_AVAILABLE
+if GPU_AVAILABLE:
     Const["RESOURCE"] = "cupy"
-    del _cupy
+else:
+    Const["RESOURCE"] = "numpy"
+del GPU_AVAILABLE
 
 from .collections import *
 from .core import *

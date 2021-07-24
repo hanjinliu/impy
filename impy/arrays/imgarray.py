@@ -24,11 +24,7 @@ from ..collections import *
 from .._types import *
 from ..frame import *
 from .._const import Const
-
-if Const["RESOURCE"] == "cupy":
-    from .._cupy import fft, ifft, rfft, irfft
-else:
-    from scipy.fft import fftn as fft, ifftn as ifft, rfftn as rfft, irfftn as irfft
+from .._cupy import xp, xp_fft, asnumpy
 
 
 class ImgArray(LabeledArray):
@@ -131,7 +127,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         degree : float
-            Counter-clockwise degree of rotation.
+            Clockwise degree of rotation. Not radian.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
         {dims}
@@ -153,9 +149,9 @@ class ImgArray(LabeledArray):
         translation_1 = sktrans.SimilarityTransform(translation=-center)
         mx = translation_1 + rotation + translation_0
         mx.params[2] = (0, 0, 1)
-        return self.apply_dask(sktrans.warp,
+        return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_map=mx, order=order, clip=False)
+                               kwargs=dict(matrix=mx.params, order=order)
                                )
     
     
@@ -191,9 +187,9 @@ class ImgArray(LabeledArray):
         translation_1 = sktrans.SimilarityTransform(translation=-center)
         mx = translation_1 + stretch + translation_0
         mx.params[2, 2] = 1
-        return self.apply_dask(sktrans.warp,
+        return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(inverse_map=mx, order=order, clip=False)
+                               kwargs=dict(matrix=mx.params, order=order)
                                )
 
     @_docs.write_docs
@@ -702,10 +698,10 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        input = _filters.asarray(self)
-        weight = _filters.asarray(weight)
-        out = irfft(weight*rfft(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
-        return _filters.asnumpy(out)
+        input = xp.asarray(self)
+        weight = xp.asarray(weight)
+        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        return asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -734,10 +730,10 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
-        input = _filters.asarray(self)
-        weight = _filters.asarray(weight)
-        out = irfft(weight*rfft(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
-        return _filters.asnumpy(out)
+        input = xp.asarray(self)
+        weight = xp.asarray(weight)
+        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        return asnumpy(out)
     
     
     @_docs.write_docs
@@ -2470,10 +2466,10 @@ class ImgArray(LabeledArray):
             shape = None
         else:
             shape = check_nd(shape, len(dims))
-        freq = fft(_filters.asarray(self.value, dtype=np.float32), s=shape, axes=axes)
+        freq = xp_fft.fftn(xp.asarray(self.value, dtype=np.float32), s=shape, axes=axes)
         if shift:
             freq[:] = np.fft.fftshift(freq)
-        return _filters.asnumpy(freq)
+        return asnumpy(freq)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -2499,11 +2495,11 @@ class ImgArray(LabeledArray):
             freq = np.fft.ifftshift(self.value)
         else:
             freq = self.value
-        out = ifft(_filters.asarray(freq, dtype=np.float32), axes=[self.axisof(a) for a in dims])
+        out = xp_fft.ifftn(xp.asarray(freq, dtype=np.float32), axes=[self.axisof(a) for a in dims])
         
         if real:
             out = np.real(out)
-        return _filters.asnumpy(out)
+        return asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3566,14 +3562,14 @@ class ImgArray(LabeledArray):
         last_img = None
         img_fft = self.fft(shift=False, dims=c_axes)
         for i, (_, img) in enumerate(img_fft.iter(along)):
-            img = _filters.asarray(img)
+            img = xp.asarray(img)
             if last_img is not None:
                 result[i] = _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)
                 last_img = img
             else:
                 last_img = img
         
-        result = MarkerFrame(np.cumsum(result, axis=0), columns=c_axes[::-1]).sort()
+        result = MarkerFrame(np.cumsum(result, axis=0), columns=c_axes)
         if show_drift:
             from .utils import _plot as _plt
             _plt.plot_drift(result)

@@ -1,22 +1,10 @@
 import numpy as np
-from ..._const import Const
-
-if Const["RESOURCE"] == "cupy":
-    from ..._cupy import cupy as xp
-    from ..._cupy import ifft
-    asnumpy = xp.asnumpy
-    
-else:
-    import numpy as xp
-    from scipy.fft import ifftn as ifft
-    asnumpy = xp.asarray
-
-asarray = xp.asarray
+from ..._cupy import xp, xp_fft, asnumpy
 
 def subpixel_pcc(f0, f1, upsample_factor):
     shape = f0.shape
     product = f0 * f1.conj()
-    cross_correlation = ifft(product)
+    cross_correlation = xp_fft.ifftn(product)
     maxima = xp.unravel_index(xp.argmax(xp.abs(cross_correlation)),
                               cross_correlation.shape)
     midpoints = xp.array([np.fix(axis_size / 2) for axis_size in shape])

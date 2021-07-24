@@ -1,20 +1,13 @@
 import numpy as np
 from ._skimage import *
 from ._linalg import hessian_eigval
-from ..._const import Const
-
-# TODO: asarray and asnumpy should be moved to another file and made accessible from anywhere.
-
-_from_cupy_ = ["gaussian_filter", 
-               "median_filter",
-               "convolve",
-               "white_tophat",
-               "gaussian_laplace",
-               "asarray",
-               "asnumpy",
-               ]
                
-__all__ = ["kalman_filter",
+__all__ = ["gaussian_filter", 
+           "median_filter",
+           "convolve",
+           "white_tophat",
+           "gaussian_laplace",
+           "kalman_filter",
            "fill_hole",
            "mean_filter",
            "phase_mean_filter",
@@ -26,46 +19,26 @@ __all__ = ["kalman_filter",
            "skeletonize",
            "population",
            "ncc_filter",
-           ] + _from_cupy_
+           ]
 
 
-if Const["RESOURCE"] == "cupy":
-    from ..._cupy import ndi as cupy_ndi
-    from ..._cupy import cupy as xp
-    from scipy import ndimage as scipy_ndi
-    # numpy to cupy mapper
-    _as_cp = lambda a: xp.asarray(a) if isinstance(a, np.ndarray) else a
+from ..._cupy import xp_ndi, xp, asnumpy, wrap_io
+from scipy import ndimage as scipy_ndi
 
-    # get ndimage function from cupy if possible
-    def get_func(function_name):
-        if hasattr(cupy_ndi, function_name):
-            _func = getattr(cupy_ndi, function_name)    
-            def func(*args, **kwargs):
-                args = map(_as_cp, args)
-                out = _func(*args, **kwargs)
-                return out.get()
-        else:
-            func = getattr(scipy_ndi, function_name)
-        return func
+def get_func(function_name):
+    if hasattr(xp_ndi, function_name):
+        _func = getattr(xp_ndi, function_name)    
+        func = wrap_io(_func)
+    else:
+        func = getattr(scipy_ndi, function_name)
+    return func
 
-    gaussian_filter = get_func("gaussian_filter")
-    median_filter = get_func("median_filter")
-    convolve = get_func("convolve")
-    white_tophat = get_func("white_tophat")
-    gaussian_laplace = get_func("gaussian_laplace")
-    asnumpy = xp.asnumpy
-    
-else:
-    from scipy import ndimage as ndi
-    import numpy as xp
-    gaussian_filter = ndi.gaussian_filter
-    median_filter = ndi.median_filter
-    convolve = ndi.convolve
-    white_tophat = ndi.white_tophat
-    gaussian_laplace = ndi.gaussian_laplace
-    asnumpy = xp.asarray
+gaussian_filter = get_func("gaussian_filter")
+median_filter = get_func("median_filter")
+convolve = get_func("convolve")
+white_tophat = get_func("white_tophat")
+gaussian_laplace = get_func("gaussian_laplace")
 
-asarray = xp.asarray
 
 def kalman_filter(img_stack, gain, noise_var):
     # data is 3D or 4D

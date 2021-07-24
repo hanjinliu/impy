@@ -1,22 +1,17 @@
 import numpy as np
 from skimage.feature.corner import _symmetric_image
 from ._skimage import skfeat
-from ..._const import Const
+from ..._cupy import xp, xp_linalg, asnumpy
 
-if Const["RESOURCE"] == "cupy":
-    from ..._cupy import cupy as cp
-    def eigh(a):
-        a = cp.asarray(a, dtype=a.dtype)
-        val, vec = cp.linalg.eigh(a)
-        return val.get(), vec.get()
+def eigh(a):
+    a = xp.asarray(a, dtype=a.dtype)
+    val, vec = xp_linalg.eigh(a)
+    return asnumpy(val), asnumpy(vec)
 
-    def eigvalsh(a):
-        a = cp.asarray(a, dtype=a.dtype)
-        val = cp.linalg.eigvalsh(a)
-        return val.get()
-else:
-    eigh = np.linalg.eigh
-    eigvalsh = np.linalg.eigvalsh
+def eigvalsh(a):
+    a = xp.asarray(a, dtype=a.dtype)
+    val = xp_linalg.eigvalsh(a)
+    return asnumpy(val)
 
 def structure_tensor_eigval(img, sigma, pxsize):
     tensor_elements = skfeat.structure_tensor(img, sigma, order="xy",

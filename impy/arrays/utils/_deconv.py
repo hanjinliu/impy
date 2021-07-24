@@ -1,23 +1,14 @@
 from functools import partial
-from ..._const import Const
-if Const["RESOURCE"] == "cupy":
-    from ..._cupy import cupy as xp
-    from ..._cupy import rfft, irfft
-    fftshift = lambda x: xp.fft.fftshift(x).get()
-    try:
-        gradient = xp.gradient
-    except AttributeError:
-        # CUDA <= ver.8 does not have gradient
-        import numpy
-        def gradient(a, axis=None):
-            out = numpy.gradient(a.get(), axis=axis)
-            return xp.asarray(out)
-else:
-    import numpy as xp
-    from scipy.fft import rfftn as rfft
-    from scipy.fft import irfftn as irfft
-    fftshift = xp.fft.fftshift
+from ..._cupy import xp, xp_fft, asnumpy
+
+try:
     gradient = xp.gradient
+except AttributeError:
+    # CUDA <= ver.8 does not have gradient
+    import numpy
+    def gradient(a, axis=None):
+        out = numpy.gradient(a.get(), axis=axis)
+        return xp.asarray(out)
 
 __all__ = ["wiener", 
            "lucy",
@@ -27,19 +18,19 @@ __all__ = ["wiener",
 
 def wiener(obs, psf_ft, psf_ft_conj, lmd):
     obs = xp.asarray(obs)
-    fft = rfft
-    ifft = partial(irfft, s=obs.shape)
+    fft = xp_fft.rfftn
+    ifft = partial(xp_fft.irfftn, s=obs.shape)
     
     img_ft = fft(obs)
     
     estimated = xp.real(ifft(img_ft*psf_ft_conj / (psf_ft*psf_ft_conj + lmd)))
-    return fftshift(estimated)
+    return asnumpy(xp_fft.fftshift(estimated))
     
 def richardson_lucy(obs, psf_ft, psf_ft_conj, niter, eps):
     # Identical to the algorithm in Deconvolution.jl of Julia.
     obs = xp.asarray(obs)
-    fft = rfft
-    ifft = partial(irfft, s=obs.shape)
+    fft = xp_fft.rfftn
+    ifft = partial(xp_fft.irfftn, s=obs.shape)
     conv = factor = xp.empty(obs.shape, dtype=xp.float32) # placeholder
     estimated = xp.real(ifft(fft(obs) * psf_ft))   # initialization
     
@@ -48,12 +39,12 @@ def richardson_lucy(obs, psf_ft, psf_ft_conj, niter, eps):
         factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
         estimated *= factor
         
-    return fftshift(estimated)
+    return asnumpy(xp_fft.fftshift(estimated))
 
 def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
     obs = xp.asarray(obs)
-    fft = rfft
-    ifft = partial(irfft, s=obs.shape)
+    fft = xp_fft.rfftn
+    ifft = partial(xp_fft.irfftn, s=obs.shape)
     est_old = ifft(fft(obs) * psf_ft).real
     est_new = xp.empty(obs.shape, dtype=xp.float32)
     conv = factor = norm = gg = xp.empty(obs.shape, dtype=xp.float32) # placeholder
@@ -72,7 +63,7 @@ def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
             break
         est_old[:] = est_new
         
-    return fftshift(est_new)
+    return asnumpy(xp_fft.fftshift(est_new))
 
 
 def _safe_div(a, b, eps=1e-8):
@@ -89,6 +80,6 @@ def check_psf(img, psf, dims):
     if img.sizesof(dims) != psf.shape:
         raise ValueError("observation and PSF have different shape: "
                         f"{img.sizesof(dims)} and {psf.shape}")
-    psf_ft = rfft(psf)
+    psf_ft = xp_fft.rfftn(psf)
     psf_ft_conj = xp.conjugate(psf_ft)
     return psf_ft, psf_ft_conj

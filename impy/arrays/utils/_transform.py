@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 from collections import namedtuple
 from ._skimage import sktrans
-from ..._const import Const
+from ..._cupy import xp, xp_ndi, asnumpy
 
 __all__ = ["compose_affine_matrix", 
            "decompose_affine_matrix",
@@ -15,36 +15,14 @@ AffineTransformationParameters = namedtuple(typename="AffineTransformationParame
                                             field_names=["translation", "rotation", "scale", "shear"]
                                             )
 
-if Const["RESOURCE"] == "cupy":
-    from ..._cupy import ndi
-    from ..._cupy import cupy as cp
+def warp(img, matrix, cval=0, mode="constant", order=1):
+    img = xp.asarray(img, dtype=img.dtype)
+    matrix = xp.asarray(matrix)
+    out = xp_ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
+    return asnumpy(out)
 
-    def warp(img, matrix, cval=0, mode="constant", order=1):
-        img = cp.asarray(img, dtype=img.dtype)
-        matrix = cp.asarray(matrix)
-        out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
-        return out.get()
-
-else:
-    from scipy import ndimage as ndi
-
-    def warp(img, matrix, cval=0, mode="constant", order=1):
-        """
-        Generalized version of `skimage.transform.warp`. For >3 dimensional, ndimage's function
-        will be called instead.
-        """    
-        ndim = matrix.shape[0] - 1
-        if ndim == 2:
-            try:
-                out = sktrans.warp(img, matrix, order=order, cval=cval, clip=False)
-            except ValueError:
-                out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
-        else:
-            out = ndi.affine_transform(img, matrix, cval=cval, mode=mode, order=order, prefilter=order>1)
-        return out
-
-
-def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):    
+def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):
+    # These two modules returns consistent matrix in the two dimensional case.
     if ndim == 2:
         af = sktrans.AffineTransform(scale=scale, translation=translation, rotation=rotation, shear=shear)
         mx = af.params

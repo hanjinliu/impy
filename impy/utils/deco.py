@@ -2,22 +2,7 @@ from functools import wraps
 import numpy as np
 import re
 from .utilcls import Progress
-from .._const import Const
-
-if Const["RESOURCE"] == "cupy":
-    from .._cupy import cupy
-    def as_imgarray(self, out):
-        if type(out) is np.ndarray and type(self) is not np.ndarray:
-            out = out.view(self.__class__)
-        elif isinstance(out, cupy.ndarray):
-            out = out.get().view(self.__class__)
-        return out
-    
-else:
-    def as_imgarray(self, out):
-        if type(out) is np.ndarray and type(self) is not np.ndarray:
-            out = out.view(self.__class__)
-        return out
+from .._cupy import xp_ndarray, asnumpy
 
 __all__ = ["record",
            "same_dtype",
@@ -43,8 +28,9 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
                 out = func(self, *args, **kwargs)
             
             temp = getattr(out, "temp", None)
-                            
-            out = as_imgarray(self, out)
+            
+            if type(out) in (np.ndarray, xp_ndarray):
+                out = asnumpy(out).view(self.__class__)
             
             # record history and update if needed
             ifupdate = kwargs.pop("update", False)

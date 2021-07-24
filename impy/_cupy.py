@@ -1,6 +1,32 @@
-import cupy
-from cupyx.scipy.fft import fftn as fft
-from cupyx.scipy.fft import ifftn as ifft
-from cupyx.scipy.fft import rfftn as rfft
-from cupyx.scipy.fft import irfftn as irfft
-from cupyx.scipy import ndimage as ndi
+try:
+    import cupy as xp
+    GPU_AVAILABLE = True
+except ImportError:
+    import numpy as xp
+    GPU_AVAILABLE = False
+
+if GPU_AVAILABLE:
+    asnumpy = xp.asnumpy
+    from cupyx.scipy import fft as xp_fft
+    from cupyx.scipy import ndimage as xp_ndi
+    from cupy import linalg as xp_linalg
+    from cupy import ndarray as xp_ndarray
+    import numpy as np
+    _convert_arrays = lambda a: xp.asarray(a) if isinstance(a, np.ndarray) else a
+else:
+    asnumpy = xp.asarray
+    try:
+        from scipy import fft as xp_fft
+    except ImportError:
+        from scipy import fftpack as xp_fft
+    from scipy import ndimage as xp_ndi
+    from numpy import linalg as xp_linalg
+    from numpy import ndarray as xp_ndarray
+    _convert_arrays = lambda a: a
+
+def wrap_io(function):
+    def func(*args, **kwargs):
+        args = map(_convert_arrays, args)
+        out = function(*args, **kwargs)
+        return xp.asarray(out)
+    return func
