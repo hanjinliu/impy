@@ -2044,8 +2044,11 @@ class ImgArray(LabeledArray):
         >>> ip.gui.add(lnk)
         """        
         method = method.lower()
-        if method in ("dog", "doh", "log", "gaussian"):
+        if method in ("dog", "doh", "log"):
             cutoff = 0.0 if cutoff is None else cutoff
+            fil_img = getattr(self, method+"_filter")(sigma, dims=dims)
+        elif method in ("gaussian",):
+            cutoff = -np.inf if cutoff is None else cutoff
             fil_img = getattr(self, method+"_filter")(sigma, dims=dims)
         elif method == "ncc":
             # make template Gaussian
@@ -2467,10 +2470,10 @@ class ImgArray(LabeledArray):
             shape = None
         else:
             shape = check_nd(shape, len(dims))
-        freq = fft(self.value.astype(np.float32), s=shape, axes=axes)
+        freq = fft(_filters.asarray(self.value, dtype=np.float32), s=shape, axes=axes)
         if shift:
             freq[:] = np.fft.fftshift(freq)
-        return freq
+        return _filters.asnumpy(freq)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -2496,11 +2499,11 @@ class ImgArray(LabeledArray):
             freq = np.fft.ifftshift(self.value)
         else:
             freq = self.value
-        out = ifft(freq, axes=[self.axisof(a) for a in dims])
+        out = ifft(_filters.asarray(freq, dtype=np.float32), axes=[self.axisof(a) for a in dims])
         
         if real:
             out = np.real(out)
-        return out
+        return _filters.asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3563,6 +3566,7 @@ class ImgArray(LabeledArray):
         last_img = None
         img_fft = self.fft(shift=False, dims=c_axes)
         for i, (_, img) in enumerate(img_fft.iter(along)):
+            img = _filters.asarray(img)
             if last_img is not None:
                 result[i] = _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)
                 last_img = img

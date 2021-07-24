@@ -24,7 +24,7 @@ def subpixel_pcc(f0, f1, upsample_factor):
     shifts = xp.stack(maxima).astype(xp.float32)
     shifts[shifts > midpoints] -= xp.array(shape)[shifts > midpoints]
     # Initial shift estimate in upsampled grid
-    shifts = xp.round(shifts * upsample_factor) / upsample_factor
+    shifts = xp.fix(shifts * upsample_factor) / upsample_factor
     if upsample_factor > 1:
         upsampled_region_size = np.ceil(upsample_factor * 1.5)
         # Center of output array at dftshift + 1
