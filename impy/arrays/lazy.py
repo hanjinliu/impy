@@ -2,12 +2,12 @@ from __future__ import annotations
 import os
 import itertools
 from dask import array as da
+from dask import delayed
 from .imgarray import ImgArray
 from ..frame import MarkerFrame
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
-from .utils._skimage import *
 from .utils import _misc, _transform, _structures, _filters, _deconv, _corr
 
 from ..utils.deco import *
@@ -20,8 +20,8 @@ from ..utils.utilcls import Progress
 from .._types import *
 from ..axes import ImageAxesError
 from .._const import Const
+from .._cupy import xp_ndi
 
-# TODO: combine dask.delayed and cupy.asarray if possible
 
 class LazyImgArray(AxesMixin):
     additional_props = ["dirpath", "metadata", "name"]
@@ -450,7 +450,7 @@ class LazyImgArray(AxesMixin):
             it = self.axisof(a)
             output_chunks[it] = all_coords.shape[i+1]
             
-        cropped_img = self.apply(ndi.map_coordinates, 
+        cropped_img = self.apply(xp_ndi.map_coordinates, 
                                  c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,
                                  rechunk_to="max",
@@ -685,7 +685,7 @@ class LazyImgArray(AxesMixin):
     
     @dims_to_spatial_axes
     @same_dtype()
-    def binning(self, binsize:int=2, method="sum", *, check_edges=True, chunks=None, dims=None) -> LazyImgArray:
+    def binning(self, binsize:int=2, method="mean", *, check_edges=True, chunks=None, dims=None) -> LazyImgArray:
         """
         Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
         Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -694,7 +694,7 @@ class LazyImgArray(AxesMixin):
         ----------
         binsize : int, default is 2
             Bin size, such as 2x2.
-        method : str or callable, default is numpy.sum
+        method : str or callable, default is numpy.mean
             Reduce function applied to each bin.
         check_edges : bool, default is True
             If True, only divisible `binsize` is accepted. If False, image is cropped at the end to
@@ -740,25 +740,38 @@ class LazyImgArray(AxesMixin):
         return out
     
     
-    def track_drift(self, along:str=None, upsample_factor:int=10):
-        
+    def track_drift(self, along:str=None, upsample_factor:int=10) -> da.core.Array:
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
                     
-        result = np.zeros((self.sizeof(along), self.ndim-1), dtype=np.float32)
-        c_axes = complement_axes(along, self.axes)
-        last_img = None
-        img_fft = self.fft(shift=False, dims=c_axes)
-        for i, (_, img) in enumerate(img_fft.iter(along)):
-            if last_img is not None:
-                result[i] = _corr.subpixel_pcc_dask(last_img, img, upsample_factor=upsample_factor)
-                last_img = img
-            else:
-                last_img = img
+        dims = complement_axes(along, self.axes)
+        chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
+        img_fft = self.fft(shift=False, dims=dims).img.rechunk(chunks)
+        ndim = len(dims)
+        slice_out = (np.newaxis, slice(None)) + (np.newaxis,)*(ndim-1)
+        each_shape = (1, ndim) + (1,)*(ndim-1)
+        len_t = self.sizeof(along)
         
-        result = np.cumsum(result, axis=0)
+        def pcc(x):
+            if x.shape[0] < 2:
+                return np.array([0]*ndim, dtype=np.float32).reshape(*each_shape)
+            result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)
+            return result[slice_out]
+
+        # I don't know the reason why but output dask array's chunk size along t-axis should be 
+        # specified to be 1, and rechunk it map_overlap. 
+        
+        result = da.map_overlap(pcc, img_fft, 
+                                depth={0: (1, 0)}, 
+                                trim=False,
+                                boundary="none",
+                                dtype=np.float32,
+                                chunks=(1, ndim) + (1,)*(ndim-1)
+                                )
+        
+        result = da.cumsum(result[..., 0], axis=0).rechunk((len_t, ndim))
         
         return result
     
@@ -791,14 +804,22 @@ class LazyImgArray(AxesMixin):
         if zero_ave:
             shift = shift - da.mean(shift, axis=0)
             
-        out = da.empty(self.shape)
         t_index = self.axisof(along)
+        slice_in = switch_slice(dims, self.axes, ifin=slice(None), ifnot=0)
+        slice_out = switch_slice(dims, self.axes, ifin=slice(None), ifnot=np.newaxis)
         ndim = len(dims)
-        mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
-        for sl, img in self.iter(complement_axes(dims, self.axes)):
-            mx[:-1, -1] = -shift[sl[t_index]]
-            out[sl] = _transform.warp(img, mx, order=order)
         
+        def warp(arr, block_info=None):
+            mx = np.eye(ndim+1, dtype=np.float32)
+            loc = block_info[None]['array-location'][0]
+            mx[:-1, -1] = -shift[loc[t_index]]
+            return _transform.warp(arr[slice_in], mx, order=order)[slice_out]
+        
+        
+        chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
+
+        out = da.map_blocks(warp, self.img.rechunk(chunks), dtype=self.dtype)
+
         out = self.__class__(out)
         out._set_info(self, f"drift_correction")
         return out

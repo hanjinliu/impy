@@ -6,6 +6,7 @@ import os
 import numpy as np
 from dask import array as da
 from .._const import Const
+from .._cupy import xp
 
 __all__ = ["imwrite", "open_tif", "open_mrc", "open_img", "open_as_dask", "get_scale_from_meta", 
            "get_imsave_meta_from_img"]
@@ -92,7 +93,7 @@ def open_as_dask(path:str, chunks):
     if chunks == "default":
         set_chunks = lambda i: img.shape[i] if axes[i] in "yx" else "auto"
         chunks = tuple(map(set_chunks, range(img.ndim)))
-    img = da.from_array(img, chunks=chunks)
+    img = da.from_array(xp.asarray(img), chunks=chunks)
     return meta, img
 
 

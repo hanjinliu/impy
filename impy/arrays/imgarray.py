@@ -231,7 +231,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype()
-    def binning(self, binsize:int=2, method="sum", *, check_edges=True, dims=None) -> ImgArray:
+    def binning(self, binsize:int=2, method="mean", *, check_edges=True, dims=None) -> ImgArray:
         """
         Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
         Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -240,7 +240,7 @@ class ImgArray(LabeledArray):
         ----------
         binsize : int, default is 2
             Bin size, such as 2x2.
-        method : str or callable, default is numpy.sum
+        method : str or callable, default is numpy.mean
             Reduce function applied to each bin.
         check_edges : bool, default is True
             If True, only divisible `binsize` is accepted. If False, image is cropped at the end to

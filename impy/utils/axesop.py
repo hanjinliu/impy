@@ -59,8 +59,8 @@ def complement_axes(axes, all_axes="ptzcyx"):
     return c_axes
 
 
-def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=None):
-    if ifnot is None:
+def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
+    if ifnot == ":":
         ifnot = [slice(None)]*len(all_axes)
     elif not hasattr(ifnot, "__iter__"):
         ifnot = [ifnot]*len(all_axes)
