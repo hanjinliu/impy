@@ -253,8 +253,12 @@ class MetaArray(AxesMixin, np.ndarray):
     
     def iter(self, axes:str, israw:bool=False, exclude:str="") -> tuple[Slices, np.ndarray|MetaArray]:
         """
-        Iteration along axes. Unlike self.iter(axes), this function yields subclass objects
-        so that this function is slower but accessible to attributes such as labels.
+        Iteration along axes. If axes="tzc", then equivalent to following pseudo code:
+        
+            for t in all_t:
+                for z in all_z:
+                    for c in all_c:
+                        yield self[t, z, c, ...]
 
         Parameters
         ----------
@@ -272,7 +276,7 @@ class MetaArray(AxesMixin, np.ndarray):
         slice and (np.ndarray or MetaArray)
             slice and a subimage=self[sl]
         """     
-        iterlist = self._get_iterlist(axes)
+        iterlist = switch_slice(axes, self.axes, ifin=[range(s) for s in self.shape], ifnot=(slice(None),))
         selfview = self if israw else self.value
         it = itertools.product(*iterlist)
         c = 0 # counter
@@ -291,23 +295,6 @@ class MetaArray(AxesMixin, np.ndarray):
             yield outsl, selfview
             
     
-    def _get_iterlist(self, axes):
-        """
-        If axes="tzc", then equivalent to following pseudo code:
-        for t in all_t:
-            for z in all_z:
-                for c in all_c:
-                    yield self[t, z, c, ...]
-        """        
-                
-        iterlist = []
-        for a in self.axes:
-            if a in axes:
-                iterlist.append(range(self.sizeof(a)))
-            else:
-                iterlist.append([slice(None)])
-        return iterlist
-            
     def apply_dask(self, func:Callable, c_axes:str=None, drop_axis=[], new_axis=None, dtype=np.float32, 
                    args:tuple=None, kwargs:dict=None) -> MetaArray:
         """
@@ -348,16 +335,14 @@ class MetaArray(AxesMixin, np.ndarray):
             drop_axis = _list_of_axes(self, drop_axis)
                 
             # determine chunk size and slices
-            chunks = []
+            chunks = switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
             slice_in = []
             slice_out = []
             for i, a in enumerate(self.axes):
                 if a in c_axes:
-                    chunks.append(1)
                     slice_in.append(0)
                     slice_out.append(np.newaxis)
                 else:
-                    chunks.append(self.shape[i])
                     slice_in.append(slice(None))
                     slice_out.append(slice(None))
                 
@@ -366,7 +351,6 @@ class MetaArray(AxesMixin, np.ndarray):
                 if i in new_axis:
                     slice_in.append(np.newaxis)
                     
-            chunks = tuple(chunks)
             slice_in = tuple(slice_in)
             slice_out = tuple(slice_out)
             

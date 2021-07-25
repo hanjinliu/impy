@@ -1,23 +1,27 @@
 from __future__ import annotations
 import os
+import itertools
 from dask import array as da
-from dask.diagnostics import ProgressBar
 from .imgarray import ImgArray
+from ..frame import MarkerFrame
 from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from .utils import _misc, _transform, _structures, _filters, _deconv
+from .utils import _misc, _transform, _structures, _filters, _deconv, _corr
 
 from ..utils.deco import *
 from ..utils.axesop import *
 from ..utils.slicer import *
 from ..utils.misc import *
 from ..utils.io import *
+from ..utils.utilcls import Progress
 
 from .._types import *
 from ..axes import ImageAxesError
 from .._const import Const
+
+# TODO: combine dask.delayed and cupy.asarray if possible
 
 class LazyImgArray(AxesMixin):
     additional_props = ["dirpath", "metadata", "name"]
@@ -233,20 +237,20 @@ class LazyImgArray(AxesMixin):
         """        
         if self.gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
-        with ProgressBar():
+        with Progress("Converting to ImgArray"):
             img = self.img.compute().view(ImgArray)
             for attr in ["name", "dirpath", "axes", "metadata", "history"]:
                 setattr(img, attr, getattr(self, attr, None))
         return img
     
-    def release(self, update=True) -> LazyImgArray:
+    def release(self, update:bool=True) -> LazyImgArray:
         """
         Compute all the task for now and convert to dask again. If image size overwhelms MAX_GB
         then MemoryError is raised.
         """
         if self.gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
-        with ProgressBar():
+        with Progress("Releasing jobs"):
             img = da.from_array(self.img.compute(), chunks=self.chunksize)
             if update:
                 self.img = img
@@ -412,7 +416,7 @@ class LazyImgArray(AxesMixin):
         
         out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
                             dtype=dtype, **kwargs)
-        
+
         out = self.__class__(out)
         out._set_info(self, make_history(func.__name__, args, kwargs), new_axes=self.axes)
         return out
@@ -467,7 +471,7 @@ class LazyImgArray(AxesMixin):
             func = func_dask
             rechunk_to = "max"
             dask_wrap = True
-            
+        
         return self.apply(func,
                           c_axes=complement_axes(dims, self.axes),
                           rechunk_to=rechunk_to,
@@ -546,7 +550,7 @@ class LazyImgArray(AxesMixin):
             shape = None
         else:
             shape = check_nd(shape, len(dims))
-        freq = da.fft.rfftn(self.img.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
+        freq = da.fft.fftn(self.img.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
         if shift:
             freq[:] = da.fft.fftshift(freq)
         out = self.__class__(freq)
@@ -559,7 +563,7 @@ class LazyImgArray(AxesMixin):
             freq = da.fft.ifftshift(self.img)
         else:
             freq = self.img
-        out = da.fft.irfftn(freq, axes=[self.axisof(a) for a in dims]).astype(np.complex64)
+        out = da.fft.ifftn(freq, axes=[self.axisof(a) for a in dims]).astype(np.complex64)
         
         if real:
             out = da.real(out)
@@ -735,6 +739,85 @@ class LazyImgArray(AxesMixin):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
+    
+    def track_drift(self, along:str=None, upsample_factor:int=10):
+        
+        if along is None:
+            along = find_first_appeared("tpzc<i", include=self.axes)
+        elif len(along) != 1:
+            raise ValueError("`along` must be single character.")
+                    
+        result = np.zeros((self.sizeof(along), self.ndim-1), dtype=np.float32)
+        c_axes = complement_axes(along, self.axes)
+        last_img = None
+        img_fft = self.fft(shift=False, dims=c_axes)
+        for i, (_, img) in enumerate(img_fft.iter(along)):
+            if last_img is not None:
+                result[i] = _corr.subpixel_pcc_dask(last_img, img, upsample_factor=upsample_factor)
+                last_img = img
+            else:
+                last_img = img
+        
+        result = np.cumsum(result, axis=0)
+        
+        return result
+    
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
+                         along:str=None, dims=2, update:bool=False) -> LazyImgArray:
+        
+        if along is None:
+            along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
+        elif len(along) != 1:
+            raise ValueError("`along` must be single character.")
+        
+        if shift is None:
+            # determine 'ref'
+            if ref is None:
+                ref = self
+            elif not isinstance(ref, self.__class__):
+                raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
+            elif ref.axes != along + dims:
+                raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
+                                 f"axes of `ref`({ref.axes})")
+
+            shift = ref.track_drift(along=along)
+        elif isinstance(shift, MarkerFrame):
+            if len(shift) != self.sizeof(along):
+                raise ValueError("Wrong shape of 'shift'.")
+            shift = shift.values
+            
+        if zero_ave:
+            shift = shift - da.mean(shift, axis=0)
+            
+        out = da.empty(self.shape)
+        t_index = self.axisof(along)
+        ndim = len(dims)
+        mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
+        for sl, img in self.iter(complement_axes(dims, self.axes)):
+            mx[:-1, -1] = -shift[sl[t_index]]
+            out[sl] = _transform.warp(img, mx, order=order)
+        
+        out = self.__class__(out)
+        out._set_info(self, f"drift_correction")
+        return out
+    
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> LazyImgArray:
+        
+        if lmd <= 0:
+            raise ValueError(f"lmd must be positive, but got: {lmd}")
+        
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+        
+        return self.apply(_deconv.wiener, 
+                          c_axes=complement_axes(dims, self.axes),
+                          rechunk_to="max",
+                          args=(psf_ft, psf_ft_conj, lmd)
+                          )
+        
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
@@ -748,6 +831,25 @@ class LazyImgArray(AxesMixin):
                           args=(psf_ft, psf_ft_conj, niter, eps)
                           )
     
+    def iter(self, axes:str, exclude:str="") -> tuple[Slices, da.core.Array]:
+        iterlist = switch_slice(axes, self.axes, ifin=[range(s) for s in self.shape], ifnot=(slice(None),))
+        selfview = self.img
+        it = itertools.product(*iterlist)
+        c = 0 # counter
+        for sl in it:
+            if len(exclude) == 0:
+                outsl = sl
+            else:
+                outsl = tuple(s for i, s in enumerate(sl) 
+                              if self.axes[i] not in exclude)
+            yield outsl, selfview[sl]
+            c += 1
+            
+        # if iterlist = []
+        if c == 0:
+            outsl = (slice(None),) * (self.ndim - len(exclude))
+            yield outsl, selfview
+
     def as_uint8(self) -> LazyImgArray:
         img = self.img
         if img.dtype == np.uint8:

@@ -83,13 +83,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     @same_dtype(True)
-    def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
-               order:int=1, dims=None, update:bool=False) -> ImgArray:
+    def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
+               mode="constant", cval=0, output_shape=None, order:int=1, *, dims=None, 
+               update:bool=False) -> ImgArray:
         """
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
-            [x']   [A00 A01 A02]   [x]
-            [y'] = [A10 A11 A12] * [y]
+            [y']   [A00 A01 A02]   [y]
+            [x'] = [A10 A11 A12] * [x]
             [1 ]   [  0   0   1]   [1]
         
         and similarly, n-D Affine transformation can be described as (n+1)-D matrix.
@@ -97,7 +98,10 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         matrix, scale, rotation, shear, translation
-            See `skimage.transform.AffineTransform`.
+            Affine transformation parameters. See `skimage.transform.AffineTransform` for details.
+        mode, cval, output_shape
+            Padding mode, constant value and the shape of output. See `scipy.ndimage.affine_transform`
+            for details.
         {order}
         {dims}
         {update}
@@ -111,9 +115,13 @@ class ImgArray(LabeledArray):
             matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
                                                       shear=shear, translation=translation,
                                                       ndim=len(dims))
+        if isinstance(cval, str) and hasattr(np, cval):
+            cval = getattr(np, cval)(self.value)
+            
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=matrix, order=order)
+                               kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
+                                           output_shape=output_shape)
                                )
     
     @_docs.write_docs
@@ -2423,7 +2431,7 @@ class ImgArray(LabeledArray):
     
     @record()
     def optimal_path(self, src, dst) -> ImgArray:
-        # TODO: conbine with napari
+        # TODO: conbine with napari?
         src = np.round(src).astype(np.uint16)
         dst = np.round(dst).astype(np.uint16)
         ind, cost = skgraph.route_through_array(self.value, np.round(src), dst, geometric=False)
@@ -2657,20 +2665,6 @@ class ImgArray(LabeledArray):
                                c_axes=complement_axes(dims, self.axes)
                                )
     
-    @_docs.write_docs
-    @record()
-    def maximize_correlation(self, ref, method="pcc", *, update:bool=False) -> ImgArray:
-        # ac: angular correlation
-        # pcc: phase cross correlation
-        # ncc: normalized cross correlation
-        # nmi: normalized mutual information
-        # and other similarities in skimage.metric?
-        if not axes_included(self, ref):
-            raise ImageAxesError("Input image must have all the axes of `ref`.")
-        
-        c_axes = complement_axes(ref.axes, self.axes)
-        ...
-        
     
     @record()
     def ncc_filter(self, template:np.ndarray, bg:float=None) -> ImgArray:
@@ -3556,6 +3550,8 @@ class ImgArray(LabeledArray):
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
+        if not isinstance(upsample_factor, int):
+            raise TypeError(f"upsample-factor must be integer but got {type(upsample_factor)}")
                     
         result = np.zeros((self.sizeof(along), self.ndim-1), dtype=np.float32)
         c_axes = complement_axes(along, self.axes)
@@ -3641,8 +3637,11 @@ class ImgArray(LabeledArray):
             
         out = np.empty(self.shape)
         t_index = self.axisof(along)
+        ndim = len(dims)
+        mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
         for sl, img in self.iter(complement_axes(dims, self.axes)):
-            out[sl] = _translate_image(img, shift[sl[t_index]], order=order)
+            mx[:-1, -1] = -shift[sl[t_index]]
+            out[sl] = _transform.warp(img, mx, order=order)
         
         out = out.view(self.__class__)
         return out
