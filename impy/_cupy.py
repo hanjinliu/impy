@@ -24,7 +24,10 @@ else:
     from numpy import ndarray as xp_ndarray
     _convert_arrays = lambda a: a
 
+from functools import wraps
+
 def wrap_io(function):
+    @wraps(function)
     def func(*args, **kwargs):
         args = map(_convert_arrays, args)
         out = function(*args, **kwargs)
