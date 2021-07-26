@@ -40,12 +40,12 @@ class DataList(CollectionBase, UserList):
     Examples
     --------
     (1) Run Gaussian filter for every ImgArray.
-    >>> imgs = DataList([img1, img2, ...])
-    >>> out = imgs.gaussian_filter()   # getattr is called for every image here.
+        >>> imgs = DataList([img1, img2, ...])
+        >>> out = imgs.gaussian_filter()   # getattr is called for every image here.
     
     (2) Find single molecules for every ImgArray.
-    >>> imgs = DataList([img1, img2, ...])
-    >>> out = imgs.find_sm()
+        >>> imgs = DataList([img1, img2, ...])
+        >>> out = imgs.find_sm()
     """ 
     def __init__(self, iterable=()):
         super().__init__(iterable)
@@ -120,13 +120,13 @@ class DataDict(CollectionBase, UserDict):
     Examples
     --------
     (1) Run Gaussian filter for every ImgArray.
-    >>> imgs = DataDict(first=img1, second=img2)
-    >>> out = imgs.gaussian_filter()   # getattr is called for every image here.
-    >>> out.first # return the first one.
+        >>> imgs = DataDict(first=img1, second=img2)
+        >>> out = imgs.gaussian_filter()   # getattr is called for every image here.
+        >>> out.first # return the first one.
     
     (2) Find single molecules for every ImgArray.
-    >>> imgs = DataDict([img1, img2, ...])
-    >>> out = imgs.find_sm()
+        >>> imgs = DataDict([img1, img2, ...])
+        >>> out = imgs.find_sm()
     """ 
     def __init__(self, d=None, **kwargs):
         if isinstance(d, dict):

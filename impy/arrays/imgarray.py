@@ -85,13 +85,18 @@ class ImgArray(LabeledArray):
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
                mode="constant", cval=0, output_shape=None, order:int=1, *, dims=None, 
                update:bool=False) -> ImgArray:
-        """
+        r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
-            [y']   [A00 A01 A02]   [y]
-            [x'] = [A10 A11 A12] * [x]
-            [1 ]   [  0   0   1]   [1]
+        .. math::
         
+            \begin{bmatrix} y'\\ x' \\1 \end{bmatrix} =
+            \begin{bmatrix} A_{00} & A_{01} & A_{02} \\
+                            A_{10} & A_{11} & A_{12} \\
+                                0 &      0 &      1  \end{bmatrix}
+                            \begin{bmatrix} y \\x\\ 1 \end{bmatrix}
+           
+          
         and similarly, n-D Affine transformation can be described as (n+1)-D matrix.
 
         Parameters
@@ -403,15 +408,17 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected and background subtracted image.
         
-        Example
-        -------
-        (1) When input image has "ptcyx"-axes, and you want to estimate the background intensity
+        Examples
+        --------
+        1. When input image has "ptcyx"-axes, and you want to estimate the background intensity
         for each channel by averaging all the positions and times.
-        >>> img_cor = img.gauss_correction(ref=img.proj("pt"))
         
-        (2) When input image has "ptcyx"-axes, and you want to estimate the background intensity
+            >>> img_cor = img.gauss_correction(ref=img.proj("pt"))
+        
+        2. When input image has "ptcyx"-axes, and you want to estimate the background intensity
         for each channel and time point by averaging all the positions.
-        >>> img_cor = img.gauss_correction(ref=img.proj("p"))
+        
+            >>> img_cor = img.gauss_correction(ref=img.proj("p"))
         """
         if ref is None:
             ref = self
@@ -524,11 +531,11 @@ class ImgArray(LabeledArray):
             Array of eigenvalues. The axis `l` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
         
-        Example
-        -------
+        Examples
+        --------
         Extract filament
-        >>> eig = -img.hessian_eigval()["l=0"]
-        >>> eig[eig<0] = 0
+            >>> eig = -img.hessian_eigval()["l=0"]
+            >>> eig[eig<0] = 0
         """        
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
@@ -1199,13 +1206,13 @@ class ImgArray(LabeledArray):
         PropArray
             Array of variance of Laplacian
         
-        Example
-        -------
+        Examples
+        --------
         Get the focus plane from a 3D image.
-        >>> score = img.focus_map()
-        >>> score.plot()               # plot the variation of laplacian focus
-        >>> z_focus = np.argmax(score) # determine the focus plane
-        >>> img[z_focus]               # get the focus plane
+            >>> score = img.focus_map()
+            >>> score.plot()               # plot the variation of laplacian focus
+            >>> z_focus = np.argmax(score) # determine the focus plane
+            >>> img[z_focus]               # get the focus plane
         """        
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
@@ -1220,17 +1227,29 @@ class ImgArray(LabeledArray):
     @record()
     @same_dtype(asfloat=True)
     def unmix(self, matrix, bg=None, *, along:str="c", update:bool=False) -> ImgArray:
-        """
+        r"""
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
         fluorescent leakage can be written as following equation:
-            { B_obs =     B_real + a * G_real
-            { G_obs = b * B_real +     G_real
+        
+        .. math:
+        
+            \left\{ 
+            \begin{array}{ll} B_{obs} = 
+                B_{real} + a \cdot G_{real} & \\
+                G_{obs} = b \cdot B_{real} + G_{real} & \end{array} \right.
+            
         where "obs" means observed intensities, "real" means the real intensity. In this linear case, 
         leakage matrix:
-            M = [ 1, a]  Vobs = M * Vreal
-                [ b, 1], 
+        
+        .. math:
+        
+            M = \begin{bmatrix} 1 & a \\
+                                b & 1 \end{bmatrix}, 
+                V_{obs} = M \cdot V_{real}
+            
         must be predefined. If M is given, then real intensities can be restored by:
-            Vreal = M^-1 * Vobs
+            
+            :math:`V_{real} = M^{-1} \cdot V_{obs}`
         
         Parameters
         ----------
@@ -1249,13 +1268,13 @@ class ImgArray(LabeledArray):
         ImgArray
             Unmixed image.
         
-        Example
-        -------
+        Examples
+        --------
         Complement the channel-0 to channel-1 leakage.
-        >>> mtx = [[1.0, 0.4],
-        >>>        [0.0, 1.0]]
-        >>> bg = [1500, 1200]
-        >>> unmixed_img = img.unmix(mtx, bg)
+            >>> mtx = [[1.0, 0.4],
+            >>>        [0.0, 1.0]]
+            >>> bg = [1500, 1200]
+            >>> unmixed_img = img.unmix(mtx, bg)
         """        
         n_chn = self.sizeof(along)
         c_ax = self.axisof(along)
@@ -1587,13 +1606,13 @@ class ImgArray(LabeledArray):
             Axis "<" is added in the first dimension.　For example, If input is "tyx"-axes, then output
             will be "<tyx"-axes.
         
-        Example
-        -------
+        Examples
+        --------
         Extract polarization in 0-, 45-, 90- and 135-degree directions from an image that is acquired
         from a polarization camera, and calculate total intensity of light by averaging.
         
-        >>> img_pol = img.split_pixel_unit()
-        >>> img_total = img_pol.proj(axis="<")
+            >>> img_pol = img.split_pixel_unit()
+            >>> img_total = img_pol.proj(axis="<")
         """        
         yc, xc = center
         if angle_order is None:
@@ -1628,13 +1647,13 @@ class ImgArray(LabeledArray):
         dict
             Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP respectively.
         
-        Example
-        -------
+        Examples
+        --------
         Calculate AoP image from the raw image and display them.
-        >>> img_pol = img.split_polarization()
-        >>> dpol = img_pol.stokes()
-        >>> ip.gui.add(img_pol.proj)
-        >>> ip.gui.add(dpol.aop.rad2deg())
+            >>> img_pol = img.split_polarization()
+            >>> dpol = img_pol.stokes()
+            >>> ip.gui.add(img_pol.proj)
+            >>> ip.gui.add(dpol.aop.rad2deg())
         
         References
         ----------
@@ -2063,13 +2082,13 @@ class ImgArray(LabeledArray):
         MarkerFrame
             Peaks in uint16 type.
         
-        Example
-        -------
+        Examples
+        --------
         Track single molecules and view the tracks with napari.
-        >>> coords = img.find_sm()
-        >>> lnk = coords.link(3, min_dwell=10)
-        >>> ip.gui.add(img)
-        >>> ip.gui.add(lnk)
+            >>> coords = img.find_sm()
+            >>> lnk = coords.link(3, min_dwell=10)
+            >>> ip.gui.add(img)
+            >>> ip.gui.add(lnk)
         """        
         method = method.lower()
         if method in ("dog", "doh", "log"):
@@ -2289,9 +2308,9 @@ class ImgArray(LabeledArray):
             
         Examples
         --------
-        (1) Profile filament orientation distribution using histogram of edge gradient.
-        >>> grad = img.edge_grad(deg=True)
-        >>> plt.hist(grad.ravel(), bins=100)
+        1. Profile filament orientation distribution using histogram of edge gradient.
+            >>> grad = img.edge_grad(deg=True)
+            >>> plt.hist(grad.ravel(), bins=100)
         """        
         # Get operator
         method_dict = {"sobel": (skfil.sobel_h, skfil.sobel_v),
@@ -2428,14 +2447,14 @@ class ImgArray(LabeledArray):
         ImgArray (dtype is float32 or complex64)
             Filtered image.
         
-        Example
-        -------
+        Examples
+        --------
         Edge Detection using multi-angle Gabor filtering.
-        >>> thetas = np.deg2rad([0, 45, 90, 135])
-        >>> out = np.zeros((4,)+img.shape, dtype=np.float32)
-        >>> for i, theta in enumerate(thetas):
-        >>>     out[i] = img.gabor_filter(theta=theta)
-        >>> out = np.max(out, axis=0)
+            >>> thetas = np.deg2rad([0, 45, 90, 135])
+            >>> out = np.zeros((4,)+img.shape, dtype=np.float32)
+            >>> for i, theta in enumerate(thetas):
+            >>>     out[i] = img.gabor_filter(theta=theta)
+            >>> out = np.max(out, axis=0)
         """        
         # TODO: 3D Gabor filter
         ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
@@ -2584,11 +2603,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Boolian array.
         
-        Example
-        -------
+        Examples
+        --------
         Substitute outliers to 0.
-        >>> thr = img.threshold("99%")
-        >>> img[thr] = 0
+            >>> thr = img.threshold("99%")
+            >>> img[thr] = 0
         """
         if dims is None:
             dims = complement_axes("c", self.axes)
@@ -2904,12 +2923,12 @@ class ImgArray(LabeledArray):
         ImgArray
             uint8 array of the number of neighbors.
             
-        Example
-        -------
-        >>> skl = img.threshold().skeletonize()
-        >>> edge = skl.count_neighbors()
-        >>> np.argwhere(edge == 1) # get coordinates of filament edges.
-        >>> np.argwhere(edge >= 3) # get coordinates of filament cross sections.
+        Examples
+        --------
+            >>> skl = img.threshold().skeletonize()
+            >>> edge = skl.count_neighbors()
+            >>> np.argwhere(edge == 1) # get coordinates of filament edges.
+            >>> np.argwhere(edge >= 3) # get coordinates of filament cross sections.
         
         """        
         ndim = len(dims)
@@ -2978,11 +2997,11 @@ class ImgArray(LabeledArray):
         PropArray
             Point properties.
         
-        Example
-        -------
+        Examples
+        --------
         Calculate centroids and measure intensities.
-        >>> coords = img.proj("t").centroid_sm()
-        >>> prop = img.pointprops(coords)
+            >>> coords = img.proj("t").centroid_sm()
+            >>> prop = img.pointprops(coords)
         """        
         coords = _check_coordinates(coords, self)
         col_axes = coords.col_axes
@@ -3025,11 +3044,11 @@ class ImgArray(LabeledArray):
         PropArray
             Line properties.
 
-        Example
-        -------
+        Examples
+        --------
         Time-course measurement of intensities on lines.
-        >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
-        >>> pr.plot()
+            >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
+            >>> pr.plot()
         """        
         func = _check_function(func)
         src = _check_coordinates(src, self)
@@ -3211,10 +3230,10 @@ class ImgArray(LabeledArray):
         DataDict of PropArray
             Line properties. Keys are property names and values are the corresponding PropArrays.
 
-        Example
-        -------
-        (1) Time-course measurement of intensities on a path.
-        >>> img.pathprops([[2,3], [102, 301], [200,400]])
+        Examples
+        --------
+        1. Time-course measurement of intensities on a path.
+            >>> img.pathprops([[2,3], [102, 301], [200,400]])
         """        
         id_axis = Const["ID_AXIS"]
         # check path
@@ -3275,12 +3294,12 @@ class ImgArray(LabeledArray):
             Dictionary has keys of properties that are specified by `properties`. Each value
             has the array of properties.
             
-        Example
-        -------
+        Examples
+        --------
         Measure region properties around single molecules.
-        >>> coords = img.centroid_sm()
-        >>> img.specify(coords, 3, labeltype="circle")
-        >>> props = img.regionprops()
+            >>> coords = img.centroid_sm()
+            >>> img.specify(coords, 3, labeltype="circle")
+            >>> props = img.regionprops()
         """        
         id_axis = Const["ID_AXIS"]
         if isinstance(properties, str):
@@ -3418,12 +3437,12 @@ class ImgArray(LabeledArray):
             GLCM with additional axes "d<", where "d" means distance and "<" means angle.
             If input image has "tzyx" axes then output will have "tzd<yx" axes.
         
-        Example
-        -------
+        Examples
+        --------
         Plot GLCM's IDM and ASM images
-        >>> out = img.glcm_props([1], [0], 3, properties=("idm","asm"))
-        >>> out.idm["d=0;<=0"].imshow()
-        >>> out.asm["d=0;<=0"].imshow()
+            >>> out = img.glcm_props([1], [0], 3, properties=("idm","asm"))
+            >>> out.idm["d=0;<=0"].imshow()
+            >>> out.asm["d=0;<=0"].imshow()
         """        
         self, bins, rescale_max = _glcm.check_glcm(self, bins, rescale_max)
         if properties is None:
@@ -3627,10 +3646,10 @@ class ImgArray(LabeledArray):
         ImgArray
             Corrected image.
             
-        Example
-        -------
+        Examples
+        --------
         Drift correction of multichannel image using the first channel as the reference.
-        >>> img.drift_correction(ref=img["c=0"])
+            >>> img.drift_correction(ref=img["c=0"])
         """        
         
         if along is None:
@@ -3724,18 +3743,18 @@ class ImgArray(LabeledArray):
         ImgArray
             Padded image.
         
-        Example
-        -------
+        Examples
+        --------
         Suppose `img` has zyx-axes.
         
-        (1) Padding 5 pixels in zyx-direction:
-        >>> img.pad(5)
-        (2) Padding 5 pixels in yx-direction:
-        >>> img.pad(5, dims="yx")
-        (3) Padding 5 pixels in yx-direction and 2 pixels in z-direction:
-        >>> img.pad([(5,5), (4,4), (4,4)])
-        (4) Padding 10 pixels in z-(-)-direction and 5 pixels in z-(+)-direction.
-        >>> img.pad([(10, 5)], dims="z")
+        1. Padding 5 pixels in zyx-direction:
+            >>> img.pad(5)
+        2. Padding 5 pixels in yx-direction:
+            >>> img.pad(5, dims="yx")
+        3. Padding 5 pixels in yx-direction and 2 pixels in z-direction:
+            >>> img.pad([(5,5), (4,4), (4,4)])
+        4. Padding 10 pixels in z-(-)-direction and 5 pixels in z-(+)-direction.
+            >>> img.pad([(10, 5)], dims="z")
         """        
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
         padimg = np.pad(self.value, pad_width, mode, **kwargs).view(self.__class__)
@@ -3771,12 +3790,14 @@ class ImgArray(LabeledArray):
             
         Examples
         --------
-        depth = 2,
+        depth = 2
         
-        ----|   |----| o |--     o ... center of kernel
-        ----| o |----|   |--
-        ++++|   |++++|___|++  <- the upper edge of original image 
-        ++++|___|+++++++++++
+        .. code-block::
+        
+            ----|   |----| o |--     o ... center of kernel
+            ----| o |----|   |--
+            ++++|   |++++|___|++  <- the upper edge of original image 
+            ++++|___|+++++++++++
 
         """
         bg = _check_bg(self, bg)
@@ -3910,14 +3931,16 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=1e-3, eps=1e-5, 
                 *, dims=None, update:bool=False) -> ImgArray:
-        """
+        r"""
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position x,
         Freg(x), is calculated as:
         
-                                         1
-            Freg(x) = ----------------------------------------       (I(x): image, λ: constant)
-                       1 - λ*div( grad(I(x)) / |grad(I(x))| )
+        .. math:
+        
+            F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})} \\
+        
+        (:math:`I(x)`: image, :math:`\lambda`: constant)
         
         and this factor is multiplied for every estimation made in each iteration.
         
@@ -3932,10 +3955,9 @@ class ImgArray(LabeledArray):
         tol : float, default is 1e-3
             Iteration stops if regularized absolute summation is lower than this value.
             
-                        Σ|I'(x) - I(x)|
-                gain = -----------------
-                            Σ|I(x)|
-            (I'(x): estimation of k+1-th iteration, I(x): estimation of k-th iteration)
+            :math:`\frac{\sum_{x}|I'(x) - I(x)|}{\sum_{x}|I(x)|}`
+            
+            (:math:`I'(x)`: estimation of k+1-th iteration, :math:`I(x)`: estimation of k-th iteration)
         
         eps : float, default is 1e-5
             During deconvolution, division by small values in the convolve image of estimation and 

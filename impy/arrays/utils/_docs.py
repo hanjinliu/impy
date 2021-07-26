@@ -1,5 +1,4 @@
 import re
-import inspect
 
 __all__ = ["write_docs", "copy_docs"]
 
@@ -15,17 +14,25 @@ shared_docs = dict(
             If True, input itself is updated to the output."""
         ,
         
-    radius = """
+    radius = r"""
         radius : float, optional
             Radius of kernel structure. For instance, if input has two spatial dimensions, `radius=1` gives a structure:
-                [[0, 1, 0], 
-                 [1, 1, 1],
-                 [0, 1, 0]]
+            
+            .. math: 
+            
+                \\begin{bmatrix} 0 & 1 & 0 \\\\
+                                1 & 1 & 1 \\\\
+                                0 & 1 & 0 \\end{bmatrix}
+                 
             and `radius=1.8` gives a structure:
-                [[0, 1, 1, 0], 
-                 [1, 1, 1, 1],
-                 [1, 1, 1, 1],
-                 [0, 1, 1, 0]]   """
+            
+            .. math: 
+            
+                \\begin{bmatrix} 0 & 1 & 1 & 0 \\\\
+                                1 & 1 & 1 & 1 \\\\
+                                1 & 1 & 1 & 1 \\\\
+                                0 & 1 & 1 & 0 \\end{bmatrix}
+            """
         ,
         
     sigma = """

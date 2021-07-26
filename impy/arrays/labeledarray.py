@@ -334,9 +334,9 @@ class LabeledArray(HistoryArray):
         Example
         -------
         (1) Create 512x512 image from 1024x1024 image.
-        >>> img_cropped = img.crop_center(scale=0.5)
+            >>> img_cropped = img.crop_center(scale=0.5)
         (2) Create 21x256x256 image from 63x1024x1024 image.
-        >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
+            >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
         """
         # check scale
         if hasattr(scale, "__iter__") and len(scale) == 3 and dims == "yx":
@@ -376,9 +376,9 @@ class LabeledArray(HistoryArray):
         Examples
         --------
         Make a 4x4x4 kernel from a point spread function image (suppose the image shapes are all even numbers).
-        >>> psf = ip.imread(r".../PSF.tif")
-        >>> psfker = psf.crop_kernel()
-        >>> psfer.shape
+            >>> psf = ip.imread(r".../PSF.tif")
+            >>> psfker = psf.crop_kernel()
+            >>> psfer.shape
         (4, 4, 4)
         """        
         sizes = self.shape
@@ -486,10 +486,10 @@ class LabeledArray(HistoryArray):
         Example
         -------
         Find single molecules, draw circular labels around them if mean values were greater than 100.
-        >>> coords = img.find_sm()
-        >>> filter_func = lambda a: np.mean(a) > 100
-        >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
-        >>> ip.gui.add(img)
+            >>> coords = img.find_sm()
+            >>> filter_func = lambda a: np.mean(a) > 100
+            >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
+            >>> ip.gui.add(img)
         """
         if isinstance(center, MarkerFrame):
             from .utils._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
@@ -561,12 +561,12 @@ class LabeledArray(HistoryArray):
         Example
         -------
         (1) Rescile along a line and fit to a model function for every time frame.
-        >>> scan = img.reslice([18,32], [53,48])
-        >>> out = scan.curve_fit(func, init, return_fit=True)
-        >>> plt.plot(scan[0])
-        >>> plt.plot(out.fit[0])
+            >>> scan = img.reslice([18,32], [53,48])
+            >>> out = scan.curve_fit(func, init, return_fit=True)
+            >>> plt.plot(scan[0])
+            >>> plt.plot(out.fit[0])
         (2) Rescile along a path.
-        >>> scan = img.reslice([[18,32], [53,48], [22,45], [28, 32]])
+            >>> scan = img.reslice([[18,32], [53,48], [22,45], [28, 32]])
         """        
         # path = [[y1, x1],[y2, x2], ..., [yn, xn]]
         if b is not None:
@@ -640,9 +640,9 @@ class LabeledArray(HistoryArray):
         Example
         -------
         Label the image with threshold and visualize with napari.
-        >>> thr = img.threshold()
-        >>> img.label(thr)
-        >>> ip.gui.add(img)
+            >>> thr = img.threshold()
+            >>> img.label(thr)
+            >>> ip.gui.add(img)
         """        
         # check the shape of label_image
         if label_image is None:
@@ -705,20 +705,20 @@ class LabeledArray(HistoryArray):
         Example
         -------
         1. Label regions if only intensity is high.
-        >>> def high_intensity(img, lbl, slice):
-        >>>     return np.mean(img[slice]) > 10000
-        >>> img.label_if(lbl, filt)
+            >>> def high_intensity(img, lbl, slice):
+            >>>     return np.mean(img[slice]) > 10000
+            >>> img.label_if(lbl, filt)
         
         2. Label regions if no hole exists.
-        >>> def no_hole(img, lbl, euler_number):
-        >>>     return euler_number > 0
-        >>> img.label_if(lbl, filt)
+            >>> def no_hole(img, lbl, euler_number):
+            >>>     return euler_number > 0
+            >>> img.label_if(lbl, filt)
         
         3. Label regions if centroids are inside themselves.
-        >>> def no_hole(img, lbl, centroid):
-        >>>     yc, xc = map(int, centroid)
-        >>>     return lbl[yc, xc] > 0
-        >>> img.label_if(lbl, filt)
+            >>> def no_hole(img, lbl, centroid):
+            >>>     yc, xc = map(int, centroid)
+            >>>     return lbl[yc, xc] > 0
+            >>> img.label_if(lbl, filt)
         """        
         # check the shape of label_image
         if label_image is None:
@@ -782,12 +782,12 @@ class LabeledArray(HistoryArray):
         Example
         -------
         Make label from different channels.
-        >>> thr0 = img["c=0"].threshold("90%")
-        >>> thr0.label() # binary to label
-        >>> thr1 = img["c=1"].threshold("90%")
-        >>> thr1.label() # binary to label
-        >>> img.append_label(thr0.labels)
-        >>> img.append_label(thr1.labels)
+            >>> thr0 = img["c=0"].threshold("90%")
+            >>> thr0.label() # binary to label
+            >>> thr1 = img["c=1"].threshold("90%")
+            >>> thr1.label() # binary to label
+            >>> img.append_label(thr0.labels)
+            >>> img.append_label(thr1.labels)
         If `thr0` has 100 labels and `thr1` has 150 labels then `img` will have 100+150=250 labels.
         """
         # check and cast label dtype
@@ -920,11 +920,11 @@ class LabeledArray(HistoryArray):
         Examples
         --------
         (1) Read images as stack and tile them in grid shape 5 x 4.
-        >>> img = ip.imread_collection(r"C:\...")
-        >>> tiled_img = img.tile((5, 4))
+            >>> img = ip.imread_collection(r"C:\...")
+            >>> tiled_img = img.tile((5, 4))
         (2) Read OME-TIFF images 
-        >>> img = ip.imread_stack(r"C:\...\Images_MMStack-Pos_$i_$j.ome.tif")
-        >>> tiled_img = img.tile()
+            >>> img = ip.imread_stack(r"C:\...\Images_MMStack-Pos_$i_$j.ome.tif")
+            >>> tiled_img = img.tile()
         """        
         tiled_img = super().tile(shape, along, order)
         if hasattr(self, "labels"):
@@ -988,11 +988,11 @@ class LabeledArray(HistoryArray):
         Example
         -------
         (1) Try LoG filter with different Gaussian kernel size and visualize all of them in napari.
-        >>> out = img.for_params("log_filter", var={"sigma":[1, 2, 3, 4]})
+            >>> out = img.for_params("log_filter", var={"sigma":[1, 2, 3, 4]})
         or
-        >>> out = img.for_params("log_filter", sigma=[1, 2, 3, 4])
+            >>> out = img.for_params("log_filter", sigma=[1, 2, 3, 4])
         then
-        >>> ip.gui.add(out)
+            >>> ip.gui.add(out)
         """        
         if isinstance(func, str) and hasattr(self, func):
             f = getattr(self, func)

@@ -364,9 +364,9 @@ class LazyImgArray(AxesMixin):
         rechunk_to : tuple[int,...], optional
             In what size input array should be rechunked before `map_blocks` iteration. If str is given, 
             array will be rechunked in following rules:
-                - "none": No rechunking
-                - "default": Rechunked with "auto" method for each spatial dimension.
-                - "max": Rechunked to the shape size for each spatial dimension.
+            - "none": No rechunking
+            - "default": Rechunked with "auto" method for each spatial dimension.
+            - "max": Rechunked to the shape size for each spatial dimension.
         dask_wrap : bool, optional
             If True, for each chunk array will be converted to dask and rechunked with "auto" option
             before function call.

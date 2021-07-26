@@ -50,49 +50,57 @@ class bind:
 
     Examples
     --------
-    (1) Bind "normalize" method that will normalize images separately.
-    >>> def normalize(img):
-    >>>    min_, max_ = img.min(), img.max()
-    >>>    return (img - min_)/(max_ - min_)
-    >>> ip.bind(normalize, indtype=np.float32, outdtype=np.float32)
-    >>> img = ip.imread(...)
-    >>> img.normalize()
+    1. Bind "normalize" method that will normalize images separately.
     
-    (2) Bind `skimage.filters.rank.maximum` for filtering, but make it take "radius" rather than
+        >>> def normalize(img):
+        >>>    min_, max_ = img.min(), img.max()
+        >>>    return (img - min_)/(max_ - min_)
+        >>> ip.bind(normalize, indtype=np.float32, outdtype=np.float32)
+        >>> img = ip.imread(...)
+        >>> img.normalize()
+    
+    2. Bind `skimage.filters.rank.maximum` for filtering, but make it take "radius" rather than
     "selem" as a keyword argument.
-    >>> from impy.func import ball_like
-    >>> from skimage.filters.rank import maximum
-    >>> ip.bind(maximum, "max_filter", mapping={"radius":("selem", ball_like)})
-    >>> img = ip.imread(...)
-    >>> img.max_filter(radius=3)
     
-    (3) Bind a method `calc_mean` that calculate mean value around spatial dimensions. For one yx-
+        >>> from impy.func import ball_like
+        >>> from skimage.filters.rank import maximum
+        >>> ip.bind(maximum, "max_filter", mapping={"radius":("selem", ball_like)})
+        >>> img = ip.imread(...)
+        >>> img.max_filter(radius=3)
+    
+    3. Bind a method `calc_mean` that calculate mean value around spatial dimensions. For one yx-
     or zyx-image, a scalar value is returned, so that `calc_mean` should return `PropArray`.
-    >>> ip.bind(np.mean, "calc_mean", outdtype=np.float32, kind="property")
-    >>> img = ip.imread(...)
-    >>> img.calc_mean()
     
-    (4) Wrap the normalize function in (1) in a decorator method.
-    >>> @ip.bind(indtype=np.float32, outdtype=np.float32)
-    >>> def normalize(img):
-    >>>    min_, max_ = img.min(), img.max()
-    >>>    return (img - min_)/(max_ - min_)
-    >>> img = ip.imread(...)
-    >>> img.normalize()
+        >>> ip.bind(np.mean, "calc_mean", outdtype=np.float32, kind="property")
+        >>> img = ip.imread(...)
+        >>> img.calc_mean()
+    
+    4. Wrap the normalize function in (1) in a decorator method.
+    
+        >>> @ip.bind(indtype=np.float32, outdtype=np.float32)
+        >>> def normalize(img):
+        >>>    min_, max_ = img.min(), img.max()
+        >>>    return (img - min_)/(max_ - min_)
+        >>> img = ip.imread(...)
+        >>> img.normalize()
+    
     or if you thick `indtype` and `outdtype` are unnecessary:
-    >>> @ip.bind
-    >>> def normalize(img):
-    >>>     ...
     
-    (5) Bind custom percentile labeling function (although `label_threshold` method can do the 
+        >>> @ip.bind
+        >>> def normalize(img):
+        >>>     ...
+    
+    5. Bind custom percentile labeling function (although `label_threshold` method can do the 
     exactly same thing).
-    >>> @ip.bind(kind="label_binary")
-    >>> def mylabel(img, p=90):
-    >>>     per = np.percentile(img, p)
-    >>>     thr = img > per
-    >>>     return thr
-    >>> img = ip.imread(...)
-    >>> img.mylabel(95)   # img.labels is added here
+    
+        >>> @ip.bind(kind="label_binary")
+        >>> def mylabel(img, p=90):
+        >>>     per = np.percentile(img, p)
+        >>>     thr = img > per
+        >>>     return thr
+        >>> img = ip.imread(...)
+        >>> img.mylabel(95)   # img.labels is added here
+        
     """    
     bound = set()
     last_added = None
@@ -100,7 +108,7 @@ class bind:
                  kind:str="image", ndim:int|None=None):
         """
         Method binding is done inside this when bind object is used as function like:
-        >>> ip.bind(func, "funcname", ...)
+            >>> ip.bind(func, "funcname", ...)
         """        
         if callable(func):
             self._bind_method(func, 
@@ -119,8 +127,8 @@ class bind:
     def __call__(self, func:Callable):
         """
         Method binding is done inside this when bind object is used as decorator like:
-        >>> @ip.bind(...)
-        >>> def ...
+            >>> @ip.bind(...)
+            >>> def ...
         """
         if callable(func):
             self._bind_method(func, 

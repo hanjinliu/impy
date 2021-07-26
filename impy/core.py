@@ -164,10 +164,10 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None, squeeze:bool=Fa
         If not None, image is read in a memory-mapped array first, and only img[key] is returned.
         Only axis-targeted slicing is supported. This argument is important when reading a large
         file.
-        >>> path = r"C:\...\Image.mrc"
-        >>> %time ip.imread(path)["x=:10;y=:10"]
+            >>> path = r"C:\...\Image.mrc"
+            >>> %time ip.imread(path)["x=:10;y=:10"]
             Wall time: 136 ms
-        >>> %time ip.imread(path, key="x=:10;y=:10")
+            >>> %time ip.imread(path, key="x=:10;y=:10")
             Wall time: 3.01 ms
             
     axes : str or None, optional
@@ -289,7 +289,7 @@ def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
         |- pos1.tif
         |- pos2.tif
         :
-    >>> img = ip.imread_stack(r"C:\...\Base\pos$p.tif")
+        >>> img = ip.imread_stack(r"C:\...\Base\pos$p.tif")
     
     (2) For following file structure, read xxx0, xxx1, ... as z-stack, and read yyy0, yyy1, ...
     as t-stack.
@@ -303,7 +303,7 @@ def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
         |   |- yyy1.tif
         |       :
         :
-    >>> img = ip.imread_stack(r"C:\...\Base\xxx$z\yyy$t.tif")
+        >>> img = ip.imread_stack(r"C:\...\Base\xxx$z\yyy$t.tif")
     """
     path = str(path)
     if "$" not in path:

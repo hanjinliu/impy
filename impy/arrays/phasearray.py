@@ -213,9 +213,9 @@ class PhaseArray(LabeledArray):
         Example
         -------
         Measure region properties around single molecules.
-        >>> coords = reference_img.centroid_sm()
-        >>> img.specify(coords, 3, labeltype="circle")
-        >>> props = img.regionprops()
+            >>> coords = reference_img.centroid_sm()
+            >>> img.specify(coords, 3, labeltype="circle")
+            >>> props = img.regionprops()
         """        
         def phase_mean(sl, img):
             return _calc_phase_mean(sl, img, self.periodicity)
