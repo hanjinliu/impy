@@ -1,4 +1,7 @@
 import re
+import inspect
+
+__all__ = ["write_docs", "copy_docs"]
 
 shared_docs = dict(
     dims = """
@@ -51,14 +54,11 @@ shared_docs = dict(
 def write_docs(func):
     doc = func.__doc__
     if doc is not None:
-        try:
-            summary, params, rest = _split_doc(doc)
-            for key, value in shared_docs.items():
-                params = re.sub("{"+key+"}", value, params)
-            doc = _merge_doc(summary, params, rest)
-            func.__doc__ = doc
-        except ValueError as e:
-            print(func.__name__, ":", e)
+        summary, params, rest = _split_doc(doc)
+        for key, value in shared_docs.items():
+            params = re.sub("{"+key+"}", value, params)
+        doc = _merge_doc(summary, params, rest)
+        func.__doc__ = doc
     return func
 
 def _split_doc(doc:str):
@@ -73,3 +73,21 @@ def _merge_doc(summary, params, rest):
            "Returns\n" + \
            rest
 
+def copy_docs(original=None):
+    def _copy_docs(func):
+        if original is not None:
+            fstr = str(original).lstrip("<function ").split(" at")[0]
+            classname, funcname = fstr.split(".")
+            doc = f"Copy of {fstr}. This function returns the same result but the " \
+                "value is evaluated lazily as an dask array.\n"
+            doc += original.__doc__
+            returns = fr"Returns[\s]*-*[\s]*{classname}"
+            try:
+                st = re.findall(returns, doc)[0]
+                st = re.sub(classname, "LazyImgArray", st)
+                doc = re.sub(returns, st, doc)
+            except IndexError:
+                pass
+            func.__doc__ = doc
+        return func
+    return _copy_docs

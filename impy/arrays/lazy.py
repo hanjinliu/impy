@@ -3,11 +3,12 @@ from functools import wraps
 import os
 from dask import array as da
 from dask import delayed
+from .labeledarray import LabeledArray
 from .imgarray import ImgArray
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
 from .utils._skimage import *
-from .utils import _misc, _transform, _structures, _filters, _deconv, _corr
+from .utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
 from ..frame import MarkerFrame
 from ..utils.deco import *
@@ -260,6 +261,7 @@ class LazyImgArray(AxesMixin):
                 out._set_info(self)
         return out
     
+    @_docs.copy_docs(LabeledArray.imsave)
     @dims_to_spatial_axes
     def imsave(self, dirpath:str, dtype=None, *, dims=None):
         if not os.path.exists(dirpath):
@@ -422,20 +424,8 @@ class LazyImgArray(AxesMixin):
 
         return out
     
+    @_docs.copy_docs(LabeledArray.rotated_crop)
     def rotated_crop(self, origin, dst1, dst2, dims="yx") -> LazyImgArray:
-        """
-        Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
-        yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
-        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle. Let 
-        origin be the origin of a xy-plane, the rotation direction from dst1 to dst2 must be counter-
-        clockwise, or the cropped image will be reversed.
-        
-        Parameters
-        ---------- 
-        origin : (float, float)
-        dst1 : (float, float)
-        dst2 : (float, float)
-        """
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
         dst2 = np.asarray(dst2)
@@ -480,6 +470,7 @@ class LazyImgArray(AxesMixin):
                           kwargs=kwargs
                           )
     
+    @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
     def gaussian_filter(self, sigma:nDFloat=1.0, *, dims=None, update:bool=False) -> LazyImgArray:
         return self._switch_apply(dafil.gaussian_filter,
@@ -488,6 +479,7 @@ class LazyImgArray(AxesMixin):
                                   args=(sigma,)
                                   )
     
+    @_docs.copy_docs(ImgArray.median_filter)
     @dims_to_spatial_axes
     def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
@@ -496,7 +488,8 @@ class LazyImgArray(AxesMixin):
                                   dims=dims,
                                   kwargs=dict(footprint=disk)
                                   )
-    
+        
+    @_docs.copy_docs(ImgArray.mean_filter)
     @dims_to_spatial_axes
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
@@ -507,6 +500,7 @@ class LazyImgArray(AxesMixin):
                                   args=(kernel,),
                                   )
     
+    @_docs.copy_docs(ImgArray.convolve)
     @dims_to_spatial_axes
     def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None, update:bool=False) -> LazyImgArray:
         return self._switch_apply(dafil.convolve,
@@ -516,6 +510,7 @@ class LazyImgArray(AxesMixin):
                                   kwargs=dict(mode=mode, cval=cval)
                                   )
     
+    @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
     def edge_filter(self, method:str="sobel", *, dims=None, update:bool=False) -> LazyImgArray:
         f = {"sobel": dafil.sobel,
@@ -527,6 +522,7 @@ class LazyImgArray(AxesMixin):
                           dask_wrap=True
                           )
     
+    @_docs.copy_docs(ImgArray.laplacian_filter)
     @dims_to_spatial_axes
     def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> LazyImgArray:  
         ndim = len(dims)
@@ -537,7 +533,8 @@ class LazyImgArray(AxesMixin):
                                   args=(laplace_op,),
                                   kwargs=dict(mode="reflect")
                                   )
-        
+    
+    @_docs.copy_docs(ImgArray.affine)
     @dims_to_spatial_axes
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
                mode="constant", cval=0, output_shape=None, order=1, dims=None) -> LazyImgArray:
@@ -552,7 +549,7 @@ class LazyImgArray(AxesMixin):
                                               output_shape=output_shape, order=order)
                                   )
     
-    
+    @_docs.copy_docs(ImgArray.kalman_filter)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def kalman_filter(self, gain:float=0.8, noise_var:float=0.05, *, along:str="t", dims=None, 
@@ -567,6 +564,7 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
     @record_lazy()
     def fft(self, *, shape="same", shift:bool=True, dims=None) -> LazyImgArray:
@@ -583,6 +581,7 @@ class LazyImgArray(AxesMixin):
             freq[:] = da.fft.fftshift(freq)
         return freq
 
+    @_docs.copy_docs(ImgArray.ifft)
     @dims_to_spatial_axes
     @record_lazy()
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
@@ -597,6 +596,7 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    @_docs.copy_docs(ImgArray.power_spectra)
     @dims_to_spatial_axes
     @record_lazy()
     def power_spectra(self, shape="same", norm:bool=False, zero_norm:bool=False, *,
@@ -633,19 +633,12 @@ class LazyImgArray(AxesMixin):
         out = self.__class__(self.img.transpose(axes))
         out._set_info(self, new_axes=new_axes)
         return out
-        
+    
     def sort_axes(self):
-        """
-        Sort image dimensions to ptzcyx-order
-
-        Returns
-        -------
-        MetaArray
-            Sorted image
-        """
         order = self.axes.argsort()
         return self.transpose(tuple(order))
     
+    @_docs.copy_docs(LabeledArray.crop_center)
     def crop_center(self, scale=0.5, *, dims="yx") -> LazyImgArray:
         """
         Crop out the center of an image. 
@@ -684,23 +677,9 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    @_docs.copy_docs(ImgArray.proj)
     @same_dtype()
     def proj(self, axis:str=None, method:str="mean", chunks=None) -> LazyImgArray:
-        """
-        Z-projection along any axis.
-
-        Parameters
-        ----------
-        axis : str, optional
-            Along which axis projection will be calculated. If None, most plausible one will be chosen.
-        method : str , default is mean-projection.
-            Projection method. If str is given, it will converted to numpy function.
-
-        Returns
-        -------
-        LazyImgArray
-            Projected image.
-        """        
         if axis is None:
             axis = find_first_appeared("ztpi<c", include=self.axes, exclude="yx")
         elif not isinstance(axis, str):
@@ -721,30 +700,10 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
         return out
     
+    @_docs.copy_docs(ImgArray.binning)
     @dims_to_spatial_axes
     @same_dtype()
     def binning(self, binsize:int=2, method="mean", *, check_edges=True, chunks=None, dims=None) -> LazyImgArray:
-        """
-        Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
-        Also, any numpy functions that accept "axis" argument are supported for reduce functions.
-
-        Parameters
-        ----------
-        binsize : int, default is 2
-            Bin size, such as 2x2.
-        method : str or callable, default is numpy.mean
-            Reduce function applied to each bin.
-        check_edges : bool, default is True
-            If True, only divisible `binsize` is accepted. If False, image is cropped at the end to
-            match `binsize`.
-        dims : str or int, optional
-            Spatial dimensions.
-
-        Returns
-        -------
-        LazyImgArray
-            Binned image
-        """ 
         if isinstance(method, str):
             binfunc = getattr(np, method)
         elif callable(method):
@@ -777,7 +736,7 @@ class LazyImgArray(AxesMixin):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
-    
+    @_docs.copy_docs(ImgArray.track_drift)
     def track_drift(self, along:str=None, upsample_factor:int=10) -> da.core.Array:
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
@@ -813,6 +772,7 @@ class LazyImgArray(AxesMixin):
         
         return result
     
+    @_docs.copy_docs(ImgArray.drift_correction)
     @record_lazy()
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -861,6 +821,7 @@ class LazyImgArray(AxesMixin):
 
         return out
     
+    @_docs.copy_docs(ImgArray.pad)
     @record_lazy()
     @dims_to_spatial_axes
     def pad(self, pad_width, mode:str="constant", *, dims=None, **kwargs) -> LazyImgArray:
@@ -868,6 +829,7 @@ class LazyImgArray(AxesMixin):
         padimg = da.pad(self.img, pad_width, mode, **kwargs)
         return padimg
     
+    @_docs.copy_docs(ImgArray.wiener)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> LazyImgArray:
@@ -882,7 +844,8 @@ class LazyImgArray(AxesMixin):
                           rechunk_to="max",
                           args=(psf_ft, psf_ft_conj, lmd)
                           )
-        
+    
+    @_docs.copy_docs(ImgArray.lucy)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
