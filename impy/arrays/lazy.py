@@ -20,7 +20,7 @@ from ..utils.utilcls import Progress
 from .._types import *
 from ..axes import ImageAxesError
 from .._const import Const
-from .._cupy import xp_ndi
+from .._cupy import xp_ndi, asnumpy
 
 
 class LazyImgArray(AxesMixin):
@@ -72,7 +72,7 @@ class LazyImgArray(AxesMixin):
     def __array__(self):
         # Should not be `self.data` because in napari Viewer this function is called every time
         # sliders are moved.
-        return self.img.compute()
+        return asnumpy(self.img.compute())
     
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -238,7 +238,7 @@ class LazyImgArray(AxesMixin):
         if self.gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Converting to ImgArray"):
-            img = self.img.compute().view(ImgArray)
+            img = asnumpy(self.img.compute()).view(ImgArray)
             for attr in ["name", "dirpath", "axes", "metadata", "history"]:
                 setattr(img, attr, getattr(self, attr, None))
         return img
@@ -382,7 +382,7 @@ class LazyImgArray(AxesMixin):
         """        
         slice_in = []
         slice_out = []
-        for i, a in enumerate(self.axes):
+        for a in self.axes:
             if a in c_axes:
                 slice_in.append(0)
                 slice_out.append(np.newaxis)
@@ -435,7 +435,7 @@ class LazyImgArray(AxesMixin):
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         
-        # Because output shape changes, we have to tell dask what chunk size it should be, otherwise output
+        # Because output shape changes, we have to tell dask what chunk size it would be, otherwise output
         # shape is estimated in a wrong way. 
         output_chunks = list(self.chunksize)
         for i, a in enumerate(dims):
@@ -446,7 +446,7 @@ class LazyImgArray(AxesMixin):
                                  c_axes=complement_axes(dims, self.axes), 
                                  dtype=self.dtype,
                                  rechunk_to="max",
-                                 args=(all_coords,),
+                                 args=(xp.asarray(all_coords),),
                                  kwargs=dict(prefilter=False, order=1, chunks=output_chunks)
                                  )
 
@@ -810,9 +810,9 @@ class LazyImgArray(AxesMixin):
         return result
     
     @_docs.copy_docs(ImgArray.drift_correction)
+    @same_dtype(asfloat=True)
     @record_lazy()
     @dims_to_spatial_axes
-    @same_dtype(asfloat=True)
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
                          along:str=None, dims=2, update:bool=False) -> LazyImgArray:
         

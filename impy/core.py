@@ -149,7 +149,7 @@ def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
     
     return array(s > radius**2, dtype=bool, axes=axes)
 
-def imread(path:str, dtype:str=None, key:str=None, *, axes=None, squeeze:bool=False) -> ImgArray:
+def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> ImgArray:
     """
     Load image(s) from a path. You can read list of images from directories with wildcards or "$"
     in `path`.
@@ -169,9 +169,8 @@ def imread(path:str, dtype:str=None, key:str=None, *, axes=None, squeeze:bool=Fa
             Wall time: 136 ms
             >>> %time ip.imread(path, key="x=:10;y=:10")
             Wall time: 3.01 ms
-            
-    axes : str or None, optional
-        If the image does not have axes metadata, this value will be used.
+    squeeze : bool, default is False
+        If True, redundant dimensions will be squeezed.
 
     Returns
     -------

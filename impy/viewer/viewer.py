@@ -10,6 +10,7 @@ from .mouse import *
 from ..utils.utilcls import Progress
 from .widgets import _make_table_widget
 from .._const import Const
+from .._cupy import asnumpy
 
 
 # TODO: 
@@ -194,17 +195,18 @@ class napariViewers:
             # contrast limits should be determined quickly.
             leny, lenx = img.shape[-2:]
             sample = img.img[..., ::leny//3, ::lenx//3]
-            kwargs["contrast_limits"] = [sample.min().compute(), 
-                                         sample.max().compute()]
-        
+            kwargs["contrast_limits"] = [float(sample.min().compute()), 
+                                         float(sample.max().compute())]
+
         name = "No-Name" if img.name is None else img.name
+
         if chn_ax is not None:
             name = [f"[Preview][C{i}]{name}" for i in range(img.sizeof("c"))]
         else:
             name = ["[Preview]" + name]
+
         layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
-                                      name=name if len(name)>1 else name[0],
-                                      **kwargs)
+                                      name=name if len(name)>1 else name[0], **kwargs)
         self.viewer.scale_bar.unit = img.scale_unit
         new_axes = [a for a in img.axes if a != "c"]
         # add axis labels to slide bars and image orientation.

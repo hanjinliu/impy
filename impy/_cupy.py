@@ -41,5 +41,5 @@ def wrap_as_cupy(function):
     def func(*args, **kwargs):
         args = map(_as_cupy, args)
         out = function(*args, **kwargs)
-        return xp.asarray(out)
+        return asnumpy(out)
     return func
