@@ -1,13 +1,13 @@
-__version__ = "1.17.6"
+__version__ = "1.17.7"
 
 import logging
 from ._const import Const, SetConst
 
 from ._cupy import GPU_AVAILABLE
 if GPU_AVAILABLE:
-    Const["RESOURCE"] = "cupy"
+    Const._setitem_("RESOURCE", "cupy")
 else:
-    Const["RESOURCE"] = "numpy"
+    Const._setitem_("RESOURCE", "numpy")
 del GPU_AVAILABLE
 
 from .collections import *
