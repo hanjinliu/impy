@@ -2,8 +2,8 @@ from __future__ import annotations
 import warnings
 import numpy as np
 import pandas as pd
-    
 from functools import partial
+from scipy import ndimage as ndi
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -19,12 +19,11 @@ from ..utils.gauss import *
 from ..utils.misc import *
 from ..utils.utilcls import *
 
-from ..axes import ImageAxesError
 from ..collections import *
 from .._types import *
 from ..frame import *
 from .._const import Const
-from .._cupy import xp, xp_fft, asnumpy
+from .._cupy import xp, xp_ndi, xp_fft, asnumpy, wrap_as_cupy
 
 
 class ImgArray(LabeledArray):
@@ -111,13 +110,15 @@ class ImgArray(LabeledArray):
         ImgArray
             Transformed image.
         """
+        if update and output_shape is not None:
+            raise ValueError("Cannot update image when output_shape is provided.")
         if matrix is None:
             matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
                                                       shear=shear, translation=translation,
                                                       ndim=len(dims))
         if isinstance(cval, str) and hasattr(np, cval):
             cval = getattr(np, cval)(self.value)
-            
+        
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
@@ -231,7 +232,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype()
-    def binning(self, binsize:int=2, method="mean", *, check_edges=True, dims=None) -> ImgArray:
+    def binning(self, binsize:int=2, method="mean", *, check_edges:bool=True, dims=None) -> ImgArray:
         """
         Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
         Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -301,13 +302,13 @@ class ImgArray(LabeledArray):
             Radial profile stored in x-axis by default. If input image has tzcyx-axes, then an array 
             with tcx-axes will be returned.
         """        
-        func = {"mean": ndi.mean,
-                "sum": ndi.sum_labels,
-                "median": ndi.median,
-                "max": ndi.maximum,
-                "min": ndi.minimum,
-                "std": ndi.standard_deviation,
-                "var": ndi.variance}[method]
+        func = {"mean": xp_ndi.mean,
+                "sum": xp_ndi.sum_labels,
+                "median": xp_ndi.median,
+                "max": xp_ndi.maximum,
+                "min": xp_ndi.minimum,
+                "std": xp_ndi.standard_deviation,
+                "var": xp_ndi.variance}[method]
         
         spatial_shape = self.sizesof(dims)
         inds = np.indices(spatial_shape)
@@ -336,7 +337,7 @@ class ImgArray(LabeledArray):
         
         out = PropArray(np.empty(self.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
-        radial_func = partial(func, labels=labels, index=np.arange(1, labels.max()+1))
+        radial_func = partial(wrap_as_cupy(func), labels=labels, index=np.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = radial_func(img)
         return out
@@ -707,7 +708,6 @@ class ImgArray(LabeledArray):
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
         input = xp.asarray(self)
-        weight = xp.asarray(weight)
         out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return asnumpy(out)
     
@@ -739,7 +739,6 @@ class ImgArray(LabeledArray):
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
         input = xp.asarray(self)
-        weight = xp.asarray(weight)
         out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
         return asnumpy(out)
     
@@ -3713,31 +3712,8 @@ class ImgArray(LabeledArray):
         (4) Padding 10 pixels in z-(-)-direction and 5 pixels in z-(+)-direction.
         >>> img.pad([(10, 5)], dims="z")
         """        
-        pad_width_ = []
-        
-        # for consistency with scipy-format
-        if "cval" in kwargs.keys():
-            kwargs["constant_values"] = kwargs["cval"]
-            kwargs.pop("cval")
-            
-        if hasattr(pad_width, "__iter__") and len(pad_width) == len(dims):
-            pad_iter = iter(pad_width)
-            for a in self.axes:
-                if a in dims:
-                    pad_width_.append(next(pad_iter))
-                else:
-                    pad_width_.append((0, 0))
-            
-        elif isinstance(pad_width, int):
-            for a in self.axes:
-                if a in dims:
-                    pad_width_.append((pad_width, pad_width))
-                else:
-                    pad_width_.append((0, 0))
-        else:
-            raise TypeError(f"pad_width must be iterable or int, but got {type(pad_width)}")
-        
-        padimg = np.pad(self.value, pad_width_, mode, **kwargs).view(self.__class__)
+        pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
+        padimg = np.pad(self.value, pad_width, mode, **kwargs).view(self.__class__)
         return padimg
     
     @record()
