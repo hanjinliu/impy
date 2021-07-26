@@ -93,6 +93,8 @@ def open_as_dask(path:str, chunks):
     if chunks == "default":
         set_chunks = lambda i: img.shape[i] if axes[i] in "yx" else "auto"
         chunks = tuple(map(set_chunks, range(img.ndim)))
+    if img.dtype == ">u2":
+        img = img.astype(np.uint16)
     img = da.from_array(xp.asarray(img), chunks=chunks)
     return meta, img
 

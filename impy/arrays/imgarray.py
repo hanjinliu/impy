@@ -775,21 +775,9 @@ class ImgArray(LabeledArray):
                                args=(kernel,),
                                kwargs=dict(mode=mode, cval=cval)
                                )
-    
-    @dims_to_spatial_axes
-    @same_dtype()
-    def _running_kernel(self, radius:float, function=None, *, dims=None, update:bool=False) -> ImgArray:
-        disk = _structures.ball_like(radius, len(dims))
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            out = self.apply_dask(function, 
-                                  c_axes=complement_axes(dims, self.axes), 
-                                  dtype=self.dtype,
-                                  args=(disk,)
-                                  )
-        return out
-    
+        
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -807,10 +795,16 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skimage.morphology.binary_erosion if self.dtype == bool else skimage.morphology.erosion
-        return self._running_kernel(radius, f, dims=dims, update=update)
+        f = _filters.binary_erosion if self.dtype == bool else _filters.erosion
+        disk = _structures.ball_like(radius, len(dims))
+        return self.apply_dask(f, 
+                               c_axes=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               kwargs=dict(footprint=disk)
+                               )
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -828,10 +822,16 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skimage.morphology.binary_dilation if self.dtype == bool else skimage.morphology.dilation
-        return self._running_kernel(radius, f, dims=dims, update=update)
+        f = _filters.binary_dilation if self.dtype == bool else _filters.dilation
+        disk = _structures.ball_like(radius, len(dims))
+        return self.apply_dask(f, 
+                               c_axes=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               kwargs=dict(footprint=disk)
+                               )
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -849,10 +849,16 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skimage.morphology.binary_opening if self.dtype == bool else skimage.morphology.opening
-        return self._running_kernel(radius, f, dims=dims, update=update)
+        f = _filters.binary_opening if self.dtype == bool else _filters.opening
+        disk = _structures.ball_like(radius, len(dims))
+        return self.apply_dask(f, 
+                               c_axes=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               kwargs=dict(footprint=disk)
+                               )
     
     @_docs.write_docs
+    @dims_to_spatial_axes
     @record()
     def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -870,8 +876,13 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = skimage.morphology.binary_closing if self.dtype == bool else skimage.morphology.closing
-        return self._running_kernel(radius, f, dims=dims, update=update)
+        f = _filters.binary_closing if self.dtype == bool else _filters.closing
+        disk = _structures.ball_like(radius, len(dims))
+        return self.apply_dask(f, 
+                               c_axes=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               kwargs=dict(footprint=disk)
+                               )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -901,6 +912,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
     @record()
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
@@ -917,7 +929,12 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        return self._running_kernel(radius, _filters.mean_filter, dims=dims, update=update)
+        disk = _structures.ball_like(radius, len(dims))
+        return self.apply_dask(_filters.mean_filter, 
+                               c_axes=complement_axes(dims, self.axes), 
+                               dtype=self.dtype,
+                               args=(disk,)
+                               )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1086,7 +1103,15 @@ class ImgArray(LabeledArray):
         ImgArray
             Contrast enhanced image.
         """        
-        return self._running_kernel(radius, skfil.rank.enhance_contrast, dims=dims, update=update)
+        disk = _structures.ball_like(radius, len(dims))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            out = self.apply_dask(skfil.rank.enhance_contrast, 
+                                  c_axes=complement_axes(dims, self.axes), 
+                                  dtype=self.dtype,
+                                  args=(disk,)
+                                  )
+        return out
     
     @_docs.write_docs
     @dims_to_spatial_axes

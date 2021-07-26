@@ -245,7 +245,8 @@ class LabeledArray(HistoryArray):
 
         return None
 
-    def imshow(self, dims="yx", **kwargs):
+    @dims_to_spatial_axes
+    def imshow(self, dims=2, **kwargs):
         from .utils import _plot as _plt
         if self.ndim == 1:
             _plt.plot_1d(self.value, **kwargs)
@@ -281,7 +282,8 @@ class LabeledArray(HistoryArray):
         _plt.show()
         return self
     
-    def imshow_label(self, alpha=0.3, dims="yx", **kwargs):
+    @dims_to_spatial_axes
+    def imshow_label(self, alpha=0.3, dims=2, **kwargs):
         from .utils import _plot as _plt
         if not hasattr(self, "labels"):
             raise AttributeError("No label to show.")
@@ -316,7 +318,8 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         
     @record()
-    def crop_center(self, scale:nDFloat=0.5, *, dims="yx") -> LabeledArray:
+    @dims_to_spatial_axes
+    def crop_center(self, scale:nDFloat=0.5, *, dims=2) -> LabeledArray:
         """
         Crop out the center of an image. 
         
@@ -383,7 +386,8 @@ class LabeledArray(HistoryArray):
         return self[tuple(slice(s//2-r, (s+1)//2+r) for s, r in zip(sizes, radii))]
     
     @record()
-    def remove_edges(self, pixel:nDInt=1, *, dims="yx") -> LabeledArray:
+    @dims_to_spatial_axes
+    def remove_edges(self, pixel:nDInt=1, *, dims=2) -> LabeledArray:
         """
         Remove pixels from the edges.
 
@@ -398,7 +402,7 @@ class LabeledArray(HistoryArray):
         LabeledArray
             Cropped image.
         """        
-        if hasattr(pixel, "__iter__") and len(pixel) == 3 and dims == "yx":
+        if hasattr(pixel, "__iter__") and len(pixel) == 3 and len(dims) == 2:
             dims = "zyx"
         pixel = np.asarray(check_nd(pixel, len(dims)), dtype=np.int64)
         if np.any(pixel < 0):
@@ -412,7 +416,8 @@ class LabeledArray(HistoryArray):
         return out
         
     @record()
-    def rotated_crop(self, origin, dst1, dst2, dims="yx") -> LabeledArray:
+    @dims_to_spatial_axes
+    def rotated_crop(self, origin, dst1, dst2, dims=2) -> LabeledArray:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`

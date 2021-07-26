@@ -130,28 +130,28 @@ Affine transformation, deconvolution and many filter functions are automatically
 
 ## Image Analysis Tools
 
-`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing with `dask`. ":heavy_check_mark:" indicates (partially) GPU support is available.
+`ImgArray` has a lot of member functions for image analysis. Some of them supports multiprocessing with `dask`. ":zap:" indicates (partially) GPU support is available. ":maple_leaf:" means also available in `LazyImgArray`.
 
 - **Drift/Aberration Correction**
-  - `track_drift`, `drift_correction`:heavy_check_mark: &rarr; Correction of xy-drift.
-  - `affine_correction`:heavy_check_mark: &rarr; Correction of such as chromatic aberration using Affine transformation.
+  - `track_drift`:zap::maple_leaf:, `drift_correction`:zap::maple_leaf: &rarr; Correction of xy-drift.
+  - `affine_correction`:zap: &rarr; Correction of such as chromatic aberration using Affine transformation.
 
 - **2D/3D Deconvolution**
-  - `wiener`:heavy_check_mark:, `lucy`:heavy_check_mark: &rarr; Classical Wiener's and Richardson-Lucy's algorithm.
-  - `lucy_tv`:heavy_check_mark: &rarr; Richardson-Lucy's algorithm with total variance (TV) regularization.
+  - `wiener`:zap::maple_leaf:, `lucy`:zap::maple_leaf: &rarr; Classical Wiener's and Richardson-Lucy's algorithm.
+  - `lucy_tv`:zap: &rarr; Richardson-Lucy's algorithm with total variance (TV) regularization.
 
 - **Filters**
-  - `mean_filter`:heavy_check_mark:, `meadian_filter`:heavy_check_mark:, `gaussian_filter`:heavy_check_mark: &rarr; Smoothing.
-  - `dog_filter`:heavy_check_mark:, `doh_filter`:heavy_check_mark:, `log_filter`:heavy_check_mark: &rarr; Blob detection by DoG, DoH, LoG filter.
-  - `edge_filter`, `laplacian_filter`:heavy_check_mark: &rarr; Edge detection.
-  - `std_filter`:heavy_check_mark:, `coef_filter`:heavy_check_mark: &rarr; Standard deviation based filtering.
-  - `lowpass_filter`:heavy_check_mark:, `highpass_filter`:heavy_check_mark: &rarr; FFT based filtering.
-  - `entropy_filter`, `enhance_contrast`, `gabor_filter`:heavy_check_mark: &rarr; Object detection etc.
+  - `mean_filter`:zap::maple_leaf:, `meadian_filter`:zap::maple_leaf:, `gaussian_filter`:zap::maple_leaf: &rarr; Smoothing.
+  - `dog_filter`:zap::maple_leaf:, `doh_filter`:zap:, `log_filter`:zap: &rarr; Blob detection by DoG, DoH, LoG filter.
+  - `edge_filter`:maple_leaf:, `laplacian_filter`:zap::maple_leaf: &rarr; Edge detection.
+  - `std_filter`:zap:, `coef_filter`:zap: &rarr; Standard deviation based filtering.
+  - `lowpass_filter`:zap:, `highpass_filter`:zap: &rarr; FFT based filtering.
+  - `entropy_filter`, `enhance_contrast`, `gabor_filter`:zap: &rarr; Object detection etc.
   - `ncc_filter` Template matching etc.
-  - `kalman_filter`:heavy_check_mark:, `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
+  - `kalman_filter`:zap::maple_leaf:, `wavelet_denoising`, `rof_filter` &rarr; Advanced denoising methods.
 
 - **Morphological Image Processing**
-  - `erosion`, `dilation`, `opening`, `closing` &rarr; Basic ones.
+  - `erosion`:zap::maple_leaf:, `dilation`:zap::maple_leaf:, `opening`:zap::maple_leaf:, `closing`:zap::maple_leaf: &rarr; Basic morphology filters.
   - `area_opening`, `area_closing`, `diameter_opening`, `diameter_closing` &rarr; Advanced ones.
   - `skeletonize`, `fill_hole` &rarr; Binary processing.
   - `count_neighbors` &rarr; For structure detection in binary images.
@@ -162,7 +162,7 @@ Affine transformation, deconvolution and many filter functions are automatically
   - `centroid_sm`, `gauss_sm`, `refine_sm` &rarr; Return coordinates in subpixel precision.
 
 - **Background/Intensity Correction**
-  - `rolling_ball`, `tophat`:heavy_check_mark: &rarr; Background subtraction.
+  - `rolling_ball`, `tophat`:zap: &rarr; Background subtraction.
   - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
   - `unmix` &rarr; Unmixing of leakage between channels.
   
@@ -173,15 +173,15 @@ Affine transformation, deconvolution and many filter functions are automatically
   - `expand_labels`, `watershed`, `random_walker` &rarr; Adjuct or segment labels.
 
 - **Feature Detection**
-  - `hessian_eigval`:heavy_check_mark:, `hessian_eig`:heavy_check_mark: &rarr; Hessian.
-  - `structure_tensor_eigval`:heavy_check_mark:, `structure_tensor_eig`:heavy_check_mark: &rarr; Structure tensor.
+  - `hessian_eigval`:zap:, `hessian_eig`:zap: &rarr; Hessian.
+  - `structure_tensor_eigval`:zap:, `structure_tensor_eig`:zap: &rarr; Structure tensor.
 
 - **Gradient Orientation Estimation**
   - `edge_grad`
 
 - **Filament Orientation Estimation**
-  - `hessian_angle`:heavy_check_mark: &rarr; Using Hessian eigenvector's orientations.
-  - `gabor_angle`:heavy_check_mark: &rarr; Using Gabor filter's responses.
+  - `hessian_angle`:zap: &rarr; Using Hessian eigenvector's orientations.
+  - `gabor_angle`:zap: &rarr; Using Gabor filter's responses.
 
 - **Property Measurement**
   - `regionprops` &rarr; Measure region properties such as mean intensity, Euler number, centroid, moment etc.
@@ -195,17 +195,17 @@ Affine transformation, deconvolution and many filter functions are automatically
 - **Others**
   - `focus_map` &rarr; Find focus using variance of Laplacian method. 
   - `stokes` &rarr; Analyze polarization using Stokes parameters.
-  - `fft`:heavy_check_mark:, `power_spectra`:heavy_check_mark:, `ifft`:heavy_check_mark: &rarr; Fourier transformation.
+  - `fft`:zap::maple_leaf:, `power_spectra`:zap::maple_leaf:, `ifft`:zap::maple_leaf: &rarr; Fourier transformation.
   - `threshold` &rarr; Thresholding (many methods included).
   - `crop_center`, `crop_kernel`, `remove_edges`, `rotated_crop` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
-  - `proj` &rarr; Z-projection along any axis.
+  - `proj`:maple_leaf: &rarr; Z-projection along any axis.
   - `split`, `split_pixel_unit` &rarr; Split the image.
-  - `pad`, `defocus`:heavy_check_mark: &rarr; Padding.
+  - `pad`:maple_leaf:, `defocus`:zap: &rarr; Padding.
   - `iter`, `for_each_channel`, `for_params` &rarr; Easy iteration.
   - `set_scale` &rarr; set scales of any axes.
   - `imshow` &rarr; visualize 2-D or 3-D image with `matplotlib`.
-  - `imsave` &rarr; save image (by default save in the directory that the original image was loaded).
+  - `imsave`:maple_leaf: &rarr; save image (by default save in the directory that the original image was loaded).
 
 ## Correlations
 

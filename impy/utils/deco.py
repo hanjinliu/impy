@@ -62,7 +62,7 @@ def record_lazy(append_history=True, only_binary=False):
             
             out = func(self, *args, **kwargs)
             
-            if isinstance(da.core.Array):
+            if isinstance(out, da.core.Array):
                 out = self.__class__(out)
             
             # record history and update if needed

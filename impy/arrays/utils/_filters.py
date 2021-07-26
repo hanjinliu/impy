@@ -2,7 +2,15 @@ import numpy as np
 from ._skimage import *
 from ._linalg import hessian_eigval
                
-__all__ = ["gaussian_filter", 
+__all__ = ["binary_erosion",
+           "erosion"
+           "binary_dilation",
+           "dilation",
+           "binary_opening",
+           "opening",
+           "binary_closing",
+           "closing",
+           "gaussian_filter", 
            "median_filter",
            "convolve",
            "white_tophat",
@@ -33,6 +41,14 @@ def get_func(function_name):
         func = getattr(scipy_ndi, function_name)
     return func
 
+binary_erosion = get_func("binary_erosion")
+erosion = get_func("grey_erosion")
+binary_dilation = get_func("binary_dilation")
+dilation = get_func("grey_dilation")
+binary_opening = get_func("binary_opening")
+opening = get_func("grey_opening")
+binary_closing = get_func("binary_closing")
+closing = get_func("grey_closing")
 gaussian_filter = get_func("gaussian_filter")
 median_filter = get_func("median_filter")
 convolve = get_func("convolve")
