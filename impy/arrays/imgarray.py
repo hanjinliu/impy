@@ -238,9 +238,9 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     def binning(self, binsize:int=2, method="mean", *, check_edges:bool=True, dims=None) -> ImgArray:
-        """
-        Binning of images. This function is similar to `rescale` but is strictly binned by N x N blocks.
-        Also, any numpy functions that accept "axis" argument are supported for reduce functions.
+        r"""
+        Binning of images. This function is similar to `rescale` but is strictly binned by :math:`N \times N` 
+        blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.
 
         Parameters
         ----------
@@ -351,7 +351,7 @@ class ImgArray(LabeledArray):
     def gaussfit(self, scale:float=1/16, p0:list=None, show_result:bool=True, 
                  method:str="Powell") -> ImgArray:
         """
-        Fit the image to 2-D Gaussian.
+        Fit the image to 2-D Gaussian background.
 
         Parameters
         ----------
@@ -970,8 +970,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def coef_filter(self, radius:float=1, *, dims=None) -> ImgArray:
-        """
-        Coefficient of variance filter. For kernel area X, std(X)/mean(X) are calculated.
+        r"""
+        Coefficient of variance filter. For kernel area X, :math:`\frac{\sqrt{V[X]}}{E[X]}` is calculated.
         This filter is useful for feature extraction from images with uneven background intensity.
 
         Parameters
@@ -1125,7 +1125,7 @@ class ImgArray(LabeledArray):
     @record()
     def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> ImgArray:
         """
-        Edge detection using Laplacian filter. Kernel is made by skimage's function.
+        Edge detection using Laplacian filter. Kernel is made by `skimage`'s function.
 
         Parameters
         ----------
@@ -1231,21 +1231,14 @@ class ImgArray(LabeledArray):
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
         fluorescent leakage can be written as following equation:
         
-        .. math:
-        
-            \left\{ 
-            \begin{array}{ll} B_{obs} = 
-                B_{real} + a \cdot G_{real} & \\
-                G_{obs} = b \cdot B_{real} + G_{real} & \end{array} \right.
+            :math:`\left\{\begin{array}{ll} B_{obs} = B_{real} + a \cdot G_{real} & \\G_{obs} = b \cdot B_{real} + G_{real} & \end{array} \right.`
             
         where "obs" means observed intensities, "real" means the real intensity. In this linear case, 
         leakage matrix:
         
-        .. math:
-        
-            M = \begin{bmatrix} 1 & a \\
-                                b & 1 \end{bmatrix}, 
-                V_{obs} = M \cdot V_{real}
+            :math:`M = \begin{bmatrix} 1 & a \\b & 1 \end{bmatrix} \\`
+                                    
+            :math:`V_{obs} = M \cdot V_{real}`
             
         must be predefined. If M is given, then real intensities can be restored by:
             
@@ -1305,11 +1298,8 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def fill_hole(self, thr:float|str="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
-        Filling holes.
-        
-        Reference
-        ---------
-        https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html
+        Filling holes.　See skimage's documents 
+        `here <https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html>`_.
 
         Parameters
         ----------
@@ -1568,15 +1558,19 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def split_pixel_unit(self, center:tuple[float, float]=(0, 0), *, order:int=1,
                            angle_order:list[int]=None, newaxis="<") -> ImgArray:
-        """
-        Split a (2*N, 2*M)-image into four (N, M)-images for each other pixels. Generally, image 
-        acquisition with a polarization camera will output (2*N, 2*M)-image with N x M pixel units:
+        r"""
+        Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, image 
+        acquisition with a polarization camera will output :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
         
-        [0] [1] [0] [1] [0] [1] ...
-        [3] [2] [3] [2] [3] [2]
-        [0] [1] [0] [1] [0] [1]
-        [3] [2] [3] [2] [3] [2] ...
-         :                   :
+        +-+-+-+-+-+-+
+        |0|1|0|1|0|1|
+        +-+-+-+-+-+-+
+        |3|2|3|2|3|2|
+        +-+-+-+-+-+-+
+        |0|1|0|1|0|1|
+        +-+-+-+-+-+-+
+        |3|2|3|2|3|2|
+        +-+-+-+-+-+-+
         
         This function generates images only consist of positions of [0], [1], [2] or [3]. Strictly,
         each image is acquired from different position (the pixel (i,j) in [0]-image and the pixel
@@ -1585,19 +1579,35 @@ class ImgArray(LabeledArray):
          
         Parameters
         ----------
-        center : tuple (a, b), where 0 <= a <= 1 and 0 <= b <= 1, default is (0, 0)
+        center : tuple (a, b), where :math:`0 \le a \le 1` and :math:`0 \le b \le 1`, default is (0, 0)
             Coordinate that will be considered as the center. For example, center=(0, 0) means the most
             upper left pixel, and center=(0.5, 0.5) means the middle point of a pixel unit.
-            [0] [1]    (0, 0) (0, 1)
-            [2] [3] -> (1, 0) (1, 1)
+            
+            +-+-+
+            |0|1|
+            +-+-+
+            |3|2|
+            +-+-+
+            
+            becomes
+            
+            +-----+-----+
+            |(0,0)|(0,1)|
+            +-----+-----+
+            |(1,0)|(1,1)|
+            +-----+-----+
+                
         {order}
         angle_order : list of int, default is [2, 1, 0, 3]
             Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 corresponds to
             polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
             np.ndarray like `arr[angle_order]` to sort it. For example, if a pixel unit receives 
             polarized light like below:
-            [0] [1]    [ 90] [ 45]    [|] [/]
-            [2] [3] -> [135] [  0] or [\] [-]
+            
+            
+                [0] [1]    [ 90] [ 45]    [|] [/]
+                [2] [3] -> [135] [  0] or [\] [-]
+                
             then `angle_order` should be [2, 1, 0, 3].
             
         Returns
@@ -2382,7 +2392,7 @@ class ImgArray(LabeledArray):
             Standard deviation of Gaussian factor of Gabor kernel.
         gamma : float, default is 1
             Anisotropy of Gabor kernel, i.e. the standard deviation orthogonal to theta will be sigma/gamma.
-        phi : float, by default 0
+        phi : float, default is 0
             Phase offset of harmonic factor of Gabor kernel.
         deg : bool, default is False
             If True, degree rather than radian is returned.
@@ -2559,6 +2569,9 @@ class ImgArray(LabeledArray):
                       dims=None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
+        
+        .. math:
+        
             P = Re{F[img]}^2 + Im{F[img]}^2
 
         Parameters
@@ -3274,7 +3287,7 @@ class ImgArray(LabeledArray):
     
     @record(append_history=False, need_labels=True)
     def regionprops(self, properties:tuple[str,...]|str=("mean_intensity",), *, 
-                    extra_properties=None) -> DataDict:
+                    extra_properties=None) -> DataDict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -3575,7 +3588,7 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def track_drift(self, along:str=None, show_drift:bool=False, upsample_factor:int=10) -> MarkerFrame:
         """
-        Calculate xy-directional drift using `skimage.registration.phase_cross_correlation`.
+        Calculate yx-directional drift using the method of `skimage.registration.phase_cross_correlation`.
 
         Parameters
         ----------
@@ -3735,8 +3748,6 @@ class ImgArray(LabeledArray):
             See documentation of np.pad().
         dims : int or str, optional
             Which dimension to pad.
-        **kwargs :
-            Passed to np.pad().
 
         Returns
         -------
@@ -3849,9 +3860,17 @@ class ImgArray(LabeledArray):
     @record()
     @same_dtype(asfloat=True)
     def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> ImgArray:
-        """
+        r"""
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
+        
+            .. math:
+            
+                F[Y_{r}] = \frac{F[Y_o] \cdot \bar{H}}{|H|^2 + \lambda}
+            
+        Yo: observed image
+        Yr: restored image
+        H : fft of psf
 
         Parameters
         ----------
@@ -3867,17 +3886,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Deconvolved image.
         
-        Formulation
-        -----------
-        
-                 F[Yo] x H*
-        F[Yr] = -----------
-                 |H|^2 + λ
-        
-         Yo: observed image
-         Yr: restored image
-         H : fft of psf
-        `*`: conjugation of complex number
         """        
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
@@ -3934,11 +3942,9 @@ class ImgArray(LabeledArray):
         r"""
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position x,
-        Freg(x), is calculated as:
+        :math:`F_{reg}(x)`, is calculated as:
         
-        .. math:
-        
-            F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})} \\
+        :math:`F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})}`
         
         (:math:`I(x)`: image, :math:`\lambda`: constant)
         
@@ -3957,7 +3963,8 @@ class ImgArray(LabeledArray):
             
             :math:`\frac{\sum_{x}|I'(x) - I(x)|}{\sum_{x}|I(x)|}`
             
-            (:math:`I'(x)`: estimation of k+1-th iteration, :math:`I(x)`: estimation of k-th iteration)
+            (:math:`I'(x)`: estimation of :math:`k+1`-th iteration, :math:`I(x)`: estimation of 
+            :math:`k`-th iteration)
         
         eps : float, default is 1e-5
             During deconvolution, division by small values in the convolve image of estimation and 

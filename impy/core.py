@@ -164,17 +164,21 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
         If not None, image is read in a memory-mapped array first, and only img[key] is returned.
         Only axis-targeted slicing is supported. This argument is important when reading a large
         file.
+        
+        .. code-block::python
             >>> path = r"C:\...\Image.mrc"
             >>> %time ip.imread(path)["x=:10;y=:10"]
             Wall time: 136 ms
             >>> %time ip.imread(path, key="x=:10;y=:10")
             Wall time: 3.01 ms
+            
     squeeze : bool, default is False
         If True, redundant dimensions will be squeezed.
 
     Returns
     -------
     ImgArray
+        Image data read from the file.
     """    
     path = str(path)
     is_memmap = (key is not None)

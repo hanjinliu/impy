@@ -29,6 +29,7 @@ class bind:
         If given, output data array will be defined in this type if needed.
     kind : str, {"image", "property", "label", "label_binary"}, default is "image"
         What kind of function will be bound.
+        
         - "image" ... Given an image, calculate a new image that has the exactily same shape.
           Bound method will return `ImgArray` that has the same shape and axes as the input image.
         - "property" ... Given an image, calculate a scalar value or any other object such as
@@ -39,6 +40,7 @@ class bind:
         - "label_binary" ... Given an image, calculate a binary image. Label image is generated from
         the binary image with `label` method in `LabeledArray`. The connectivity is None. The binary
         image must have the exactly same shape as input image.
+        
     ndim : {None, 2, 3}, default is None
         Dimension of image that the original function supports. If None, then it is assumed to
         support both 2 and 3 dimensional images and automatically determined by the universal
@@ -59,23 +61,14 @@ class bind:
         >>> img = ip.imread(...)
         >>> img.normalize()
     
-    2. Bind `skimage.filters.rank.maximum` for filtering, but make it take "radius" rather than
-    "selem" as a keyword argument.
-    
-        >>> from impy.func import ball_like
-        >>> from skimage.filters.rank import maximum
-        >>> ip.bind(maximum, "max_filter", mapping={"radius":("selem", ball_like)})
-        >>> img = ip.imread(...)
-        >>> img.max_filter(radius=3)
-    
-    3. Bind a method `calc_mean` that calculate mean value around spatial dimensions. For one yx-
+    2. Bind a method `calc_mean` that calculate mean value around spatial dimensions. For one yx-
     or zyx-image, a scalar value is returned, so that `calc_mean` should return `PropArray`.
     
         >>> ip.bind(np.mean, "calc_mean", outdtype=np.float32, kind="property")
         >>> img = ip.imread(...)
         >>> img.calc_mean()
     
-    4. Wrap the normalize function in (1) in a decorator method.
+    3. Wrap the normalize function in (1) in a decorator method.
     
         >>> @ip.bind(indtype=np.float32, outdtype=np.float32)
         >>> def normalize(img):
@@ -84,13 +77,13 @@ class bind:
         >>> img = ip.imread(...)
         >>> img.normalize()
     
-    or if you thick `indtype` and `outdtype` are unnecessary:
+    or if you think `indtype` and `outdtype` are unnecessary:
     
         >>> @ip.bind
         >>> def normalize(img):
         >>>     ...
     
-    5. Bind custom percentile labeling function (although `label_threshold` method can do the 
+    4. Bind custom percentile labeling function (although `label_threshold` method can do the 
     exactly same thing).
     
         >>> @ip.bind(kind="label_binary")
