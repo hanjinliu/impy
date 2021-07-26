@@ -8,7 +8,7 @@ from scipy import ndimage as ndi
 
 from .specials import *
 from .utils._skimage import *
-from .utils import _misc
+from .utils import _misc, _docs
 from .bases import HistoryArray
 from .label import Label
 
@@ -316,7 +316,8 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Cropping
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-        
+    
+    @_docs.write_docs
     @record()
     @dims_to_spatial_axes
     def crop_center(self, scale:nDFloat=0.5, *, dims=2) -> LabeledArray:
@@ -328,14 +329,18 @@ class LabeledArray(HistoryArray):
         scale : float or array-like, default is 0.5
             Scale of the cropped image. If an array is given, each axis will be cropped in different scales,
             using each value respectively.
-        dims : str, default is "yx"
-            Dimensions to be cropped.
-            
-        Example
+        {dims}
+        
+        Returns
         -------
-        (1) Create 512x512 image from 1024x1024 image.
+        LabeledArray
+            CroppedImage
+            
+        Examples
+        --------
+        1. Create 512x512 image from 1024x1024 image.
             >>> img_cropped = img.crop_center(scale=0.5)
-        (2) Create 21x256x256 image from 63x1024x1024 image.
+        2. Create 21x256x256 image from 63x1024x1024 image.
             >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
         """
         # check scale
@@ -385,6 +390,7 @@ class LabeledArray(HistoryArray):
         radii = check_nd(radius, len(sizes))
         return self[tuple(slice(s//2-r, (s+1)//2+r) for s, r in zip(sizes, radii))]
     
+    @_docs.write_docs
     @record()
     @dims_to_spatial_axes
     def remove_edges(self, pixel:nDInt=1, *, dims=2) -> LabeledArray:
@@ -396,6 +402,7 @@ class LabeledArray(HistoryArray):
         pixel : int or array-like, default is 1
             Number of pixels to remove. If an array is given, each axis will be cropped with different pixels,
             using each value respectively.
+        {dims}
 
         Returns
         -------
@@ -414,7 +421,8 @@ class LabeledArray(HistoryArray):
         
         out = self[";".join(slices)]
         return out
-        
+    
+    @_docs.write_docs
     @record()
     @dims_to_spatial_axes
     def rotated_crop(self, origin, dst1, dst2, dims=2) -> LabeledArray:
@@ -430,6 +438,12 @@ class LabeledArray(HistoryArray):
         origin : (float, float)
         dst1 : (float, float)
         dst2 :(float, float)
+        {dims}
+        
+        Returns
+        -------
+        LabeledArray
+            Cropped array.
         """
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
@@ -462,6 +476,7 @@ class LabeledArray(HistoryArray):
     #   Label handling and others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     def specify(self, center:Coords, radius:Coords, *, dims=None, labeltype:str="square") -> Label:
         """
@@ -473,18 +488,17 @@ class LabeledArray(HistoryArray):
             Coordinates of centers. For MarkerFrame, it must have the same axes order.
         radius : float or array-like
             Radius of labels.
-        dims : int or str, optional
-            Dimension of axes.
+        {dims}
         labeltype : str, default is "square"
             The shape of labels.
 
         Returns
         -------
-        ImgArray
-            Labeled image.
+        Label
+            Labeled regions.
         
-        Example
-        -------
+        Examples
+        --------
         Find single molecules, draw circular labels around them if mean values were greater than 100.
             >>> coords = img.find_sm()
             >>> filter_func = lambda a: np.mean(a) > 100
@@ -535,37 +549,39 @@ class LabeledArray(HistoryArray):
         
         return self.labels
        
-    
+    @_docs.write_docs
     @record(append_history=False)
     def reslice(self, a, b=None, *, order:int=1) -> PropArray:
         """
-        Measure line profile iteratively for every slice of image. This function is almost same as
-        `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is not 
-        implemented here because it is useless.
+        Measure line profile (kymograph) iteratively for every slice of image. This function is almost 
+        same as `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is 
+        not implemented here because it is useless.
 
         Parameters
         ----------
         a : array-like
             Path or source coordinate. If the former, it must be like:
-                a = [[y0, x0], [y1, x1], ..., [yn, xn]]
+            `a = [[y0, x0], [y1, x1], ..., [yn, xn]]`
         b : array-like, optional
             Destination coordinate. If specified, `a` must be the source coordinate.
-        order : int, default is 1
-            Spline interpolation order.
+        {order}
 
         Returns
         -------
         PropArray
             Line scans.
         
-        Example
-        -------
-        (1) Rescile along a line and fit to a model function for every time frame.
-            >>> scan = img.reslice([18,32], [53,48])
+        Examples
+        --------
+        1. Rescile along a line and fit to a model function for every time frame.
+        
+            >>> scan = img.reslice([18, 32], [53, 48])
             >>> out = scan.curve_fit(func, init, return_fit=True)
             >>> plt.plot(scan[0])
             >>> plt.plot(out.fit[0])
-        (2) Rescile along a path.
+            
+        2. Rescile along a path.
+        
             >>> scan = img.reslice([[18,32], [53,48], [22,45], [28, 32]])
         """        
         # path = [[y1, x1],[y2, x2], ..., [yn, xn]]
@@ -617,6 +633,7 @@ class LabeledArray(HistoryArray):
         out.set_scale(self)
         return out
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def label(self, label_image=None, *, dims=None, connectivity=None) -> Label:
@@ -627,19 +644,18 @@ class LabeledArray(HistoryArray):
         ----------
         label_image : array, optional
             Image to make label, by default self is used.
-        dims : int or str, optional
-            Dimension of axes.
-        connectivity : int, optional
-            Passed to `skimage.measure.label()`.
+        {dims}
+        {connectivity}
 
         Returns
         -------
         Label
             Labeled image.
         
-        Example
-        -------
+        Examples
+        --------
         Label the image with threshold and visualize with napari.
+        
             >>> thr = img.threshold()
             >>> img.label(thr)
             >>> ip.gui.add(img)
@@ -675,27 +691,25 @@ class LabeledArray(HistoryArray):
     def label_if(self, label_image=None, filt=None, *, dims=None, connectivity=None) -> Label:
         """
         Label image using `label_image` as reference image only if certain condition
-        dictated in `filt` is satisfied. skimage.measure.regionprops_table is called
-        inside everytime image is labeled.
+        dictated in `filt` is satisfied. `skimage.measure.regionprops_table` is called
+        inside every time image is labeled.
+        
+        .. code-block:: python
+            def filt(img, lbl, area, major_axis_length):
+                return area>10 and major_axis_length>5
 
         Parameters
         ----------
         label_image : array, optional
             Image to make label, by default self is used.
         filt : callable, positional argument but not optional
-            Filter function. This function must take argument in following style:
-                def filt(img, lbl, area, major_axis_length):
-                    return area>10 and major_axis_length>5
-            where the first argument is intensity image sliced from `self`, the second
-            is label image sliced from labeled `label_image`, and the rest arguments is 
-            properties that will be calculated using `regionprops` function. The property 
+            Filter function. The first argument is intensity image sliced from `self`, the 
+            second is label image sliced from labeled `label_image`, and the rest arguments 
+            is properties that will be calculated using `regionprops` function. The property 
             arguments **must be named exactly same** as the properties in `regionprops`.
             Number of arguments can be two.
-            
-        dims : int or str, optional
-            Dimension of axes.
-        connectivity : int, optional
-            Passed to `skimage.measure.label()`.
+        {dims}
+        {connectivity}
 
         Returns
         -------
@@ -782,13 +796,15 @@ class LabeledArray(HistoryArray):
         Example
         -------
         Make label from different channels.
+        
             >>> thr0 = img["c=0"].threshold("90%")
             >>> thr0.label() # binary to label
             >>> thr1 = img["c=1"].threshold("90%")
             >>> thr1.label() # binary to label
             >>> img.append_label(thr0.labels)
             >>> img.append_label(thr1.labels)
-        If `thr0` has 100 labels and `thr1` has 150 labels then `img` will have 100+150=250 labels.
+            
+        If `thr0` has 100 labels and `thr1` has 150 labels then `img` will have :math:`100+150=250` labels.
         """
         # check and cast label dtype
         if not isinstance(label_image, np.ndarray):
@@ -830,6 +846,7 @@ class LabeledArray(HistoryArray):
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
         return self.labels
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False, need_labels=True)
     def proj_labels(self, *, dims=None, forbid_overlap=False) -> Label:
@@ -839,8 +856,7 @@ class LabeledArray(HistoryArray):
 
         Parameters
         ----------
-        dims : int or str, optional
-            Spatial dimensions.
+        {dims}
         forbid_overlap : bool, default is False
             If True and there were any label overlap, this function will raise ValueError.
 
@@ -919,12 +935,16 @@ class LabeledArray(HistoryArray):
             
         Examples
         --------
-        (1) Read images as stack and tile them in grid shape 5 x 4.
+        1. Read images as stack and tile them in grid shape :math:`5 \times 4`.
+        
             >>> img = ip.imread_collection(r"C:\...")
             >>> tiled_img = img.tile((5, 4))
-        (2) Read OME-TIFF images 
+            
+        2. Read OME-TIFF images 
+        
             >>> img = ip.imread_stack(r"C:\...\Images_MMStack-Pos_$i_$j.ome.tif")
             >>> tiled_img = img.tile()
+            
         """        
         tiled_img = super().tile(shape, along, order)
         if hasattr(self, "labels"):
@@ -987,11 +1007,12 @@ class LabeledArray(HistoryArray):
             
         Example
         -------
-        (1) Try LoG filter with different Gaussian kernel size and visualize all of them in napari.
+        1. Try LoG filter with different Gaussian kernel size and visualize all of them in napari.
+            
             >>> out = img.for_params("log_filter", var={"sigma":[1, 2, 3, 4]})
-        or
+            # or
             >>> out = img.for_params("log_filter", sigma=[1, 2, 3, 4])
-        then
+            # then
             >>> ip.gui.add(out)
         """        
         if isinstance(func, str) and hasattr(self, func):

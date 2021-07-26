@@ -52,6 +52,13 @@ shared_docs = dict(
             """
     ,
     
+    connectivity = \
+        """
+        connectivity : int, optional
+            Connectivity of pixels. See `skimage.measure.label`. 
+            """
+    ,
+    
     inputs_of_correlation = \
         """
         img0 : ImgArray

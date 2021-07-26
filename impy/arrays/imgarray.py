@@ -1956,8 +1956,7 @@ class ImgArray(LabeledArray):
         ----------
         seeds : MarkerFrame or (N, D) array-like
             Seed points to start flood filling.
-        connectivity : int, default is 1
-            Defines connectivity structure.
+        {connectivity}
         tolerance : float, optional
             Intensity deviation within this value will be filled.
         {dims}
@@ -2925,8 +2924,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        connectivity : int, optional
-            See label().
+        {connectivity}
         mask : bool,　default is True
             If True, only neighbors of pixels that satisfy self==True is returned.
         {dims}
@@ -2968,8 +2966,7 @@ class ImgArray(LabeledArray):
         ----------
         structure : str, default is "tip"
             What type of structure to remove.
-        connectivity : int, optional
-            See label().
+        {connectivity}
         {dims}
         {update}
 
@@ -3099,8 +3096,7 @@ class ImgArray(LabeledArray):
         ----------
         coords : MarkerFrame, optional
             Returned by such as `peak_local_max()`. Array of coordinates of peaks.
-        connectivity : int, optional
-            Passed to skimage.segmentation.watershed.
+        {connectivity}
         input_ : str, optional
             What image will be the input of watershed algorithm.            
             - "self" ... self is used.
@@ -3864,18 +3860,16 @@ class ImgArray(LabeledArray):
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
         
-            .. math:
+        :math:`F[Y_{res}] = \frac{F[Y_{obs}] \cdot \bar{H}}{|H|^2 + \lambda}`
             
-                F[Y_{r}] = \frac{F[Y_o] \cdot \bar{H}}{|H|^2 + \lambda}
-            
-        Yo: observed image
-        Yr: restored image
-        H : fft of psf
+        :math:`Y_{obs}`: observed image;
+        :math:`Y_{res}`: restored image;
+        :math:`H` : FFT of point spread function (PSF);
 
         Parameters
         ----------
         psf : np.ndarray
-            Point spread function
+            Point spread function.
         lmd : float, default is 0.1
             Constant value used in the deconvolution. See Formulation below.
         {dims}
@@ -3941,7 +3935,7 @@ class ImgArray(LabeledArray):
                 *, dims=None, update:bool=False) -> ImgArray:
         r"""
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
-        regularization (so called RL-TV algorithm). The TV regularization factor at pixel position x,
+        regularization (so called RL-TV algorithm). The TV regularization factor at pixel position :math:`x`,
         :math:`F_{reg}(x)`, is calculated as:
         
         :math:`F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})}`
