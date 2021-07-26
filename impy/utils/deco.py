@@ -1,10 +1,12 @@
 from functools import wraps
 import numpy as np
 import re
+from dask import array as da
 from .utilcls import Progress
 from .._cupy import xp_ndarray, asnumpy
 
 __all__ = ["record",
+           "record_lazy",
            "same_dtype",
            "dims_to_spatial_axes",
            "make_history",
@@ -12,12 +14,9 @@ __all__ = ["record",
             
     
 def record(append_history=True, record_label=False, only_binary=False, need_labels=False):
-    """
-    Record the name of ongoing function.
-    """
-    def _record(func):
+    def f(func):
         @wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def _record(self, *args, **kwargs):
             if only_binary and self.dtype != bool:
                 raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
             if need_labels and not hasattr(self, "labels"):
@@ -51,9 +50,37 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
             if temp is not None:
                 out.temp = temp
             return out
-        return wrapper
-    return _record
+        return _record
+    return f
 
+def record_lazy(append_history=True, only_binary=False):
+    def f(func):
+        @wraps(func)
+        def _record(self, *args, **kwargs):
+            if only_binary and self.dtype != bool:
+                raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
+            
+            out = func(self, *args, **kwargs)
+            
+            if isinstance(da.core.Array):
+                out = self.__class__(out)
+            
+            # record history and update if needed
+            ifupdate = kwargs.pop("update", False)
+            
+            if append_history:
+                history = make_history(func.__name__, args, kwargs)
+                try:
+                    out._set_info(self, history)
+                except AttributeError:
+                    pass
+                    
+            if ifupdate:
+                self.img = out.img
+            
+            return out
+        return _record
+    return f
 
 def same_dtype(asfloat=False):
     """
@@ -80,7 +107,8 @@ def same_dtype(asfloat=False):
 
 def dims_to_spatial_axes(func):
     """
-    Decorator to convert input `dims` to correct spatial axes.
+    Decorator to convert input `dims` to correct spatial axes. Compatible with ImgArray and
+    LazyImgArray
     e.g.)
     dims=None (default) -> "yx" or "zyx" depend on the input image
     dims=2 -> "yx"
@@ -88,7 +116,7 @@ def dims_to_spatial_axes(func):
     dims="ty" -> "ty"
     """    
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def _dims_to_spatial_axes(self, *args, **kwargs):
         dims = kwargs.get("dims", None)
         if dims is None or dims=="":
             dims = len([a for a in "zyx" if a in self._axes])
@@ -104,7 +132,7 @@ def dims_to_spatial_axes(func):
         kwargs["dims"] = s_axes # update input
         return func(self, *args, **kwargs)
     
-    return wrapper
+    return _dims_to_spatial_axes
 
 def _safe_str(obj):
     try:

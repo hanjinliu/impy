@@ -1,12 +1,11 @@
 from __future__ import annotations
 import numpy as np
-import dask
 from dask import array as da
-from dask import dataframe as dd
 import itertools
 from ..axesmixin import AxesMixin
 from ..._types import *
 from ...axes import ImageAxesError
+from ..._cupy import xp_ndarray
 from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList
@@ -276,7 +275,7 @@ class MetaArray(AxesMixin, np.ndarray):
         slice and (np.ndarray or MetaArray)
             slice and a subimage=self[sl]
         """     
-        iterlist = switch_slice(axes, self.axes, ifin=[range(s) for s in self.shape], ifnot=(slice(None),))
+        iterlist = switch_slice(axes, self.axes, ifin=[range(s) for s in self.shape], ifnot=[(slice(None),)]*self.ndim)
         selfview = self if israw else self.value
         it = itertools.product(*iterlist)
         c = 0 # counter
@@ -358,7 +357,7 @@ class MetaArray(AxesMixin, np.ndarray):
             img_idx = []
             args = []
             for i, arg in enumerate(all_args):
-                if isinstance(arg, np.ndarray) and arg.shape == self.shape:
+                if isinstance(arg, (np.ndarray, xp_ndarray)) and arg.shape == self.shape:
                     args.append(da.from_array(arg, chunks=chunks))
                     img_idx.append(i)
                 else:

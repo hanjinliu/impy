@@ -12,7 +12,8 @@ if GPU_AVAILABLE:
     from cupy import linalg as xp_linalg
     from cupy import ndarray as xp_ndarray
     import numpy as np
-    _convert_arrays = lambda a: xp.asarray(a) if isinstance(a, np.ndarray) else a
+    _as_cupy = lambda a: xp.asarray(a) if isinstance(a, np.ndarray) else a
+    _as_numpy = lambda a: asnumpy(a) if isinstance(a, xp.ndarray) else a
 else:
     asnumpy = xp.asarray
     try:
@@ -22,14 +23,23 @@ else:
     from scipy import ndimage as xp_ndi
     from numpy import linalg as xp_linalg
     from numpy import ndarray as xp_ndarray
-    _convert_arrays = lambda a: a
+    _as_cupy = lambda a: a
+    _as_numpy = lambda a: a
 
 from functools import wraps
 
-def wrap_io(function):
+def wrap_as_numpy(function):
     @wraps(function)
     def func(*args, **kwargs):
-        args = map(_convert_arrays, args)
+        args = map(_as_numpy, args)
+        out = function(*args, **kwargs)
+        return xp.asarray(out)
+    return func
+
+def wrap_as_cupy(function):
+    @wraps(function)
+    def func(*args, **kwargs):
+        args = map(_as_cupy, args)
         out = function(*args, **kwargs)
         return xp.asarray(out)
     return func

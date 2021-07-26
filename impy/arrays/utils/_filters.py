@@ -22,13 +22,13 @@ __all__ = ["gaussian_filter",
            ]
 
 
-from ..._cupy import xp_ndi, xp, asnumpy, wrap_io
+from ..._cupy import xp_ndi, xp, asnumpy, wrap_as_cupy
 from scipy import ndimage as scipy_ndi
 
 def get_func(function_name):
     if hasattr(xp_ndi, function_name):
         _func = getattr(xp_ndi, function_name)    
-        func = wrap_io(_func)
+        func = wrap_as_cupy(_func)
     else:
         func = getattr(scipy_ndi, function_name)
     return func

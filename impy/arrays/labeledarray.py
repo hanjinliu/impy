@@ -4,9 +4,11 @@ import pandas as pd
 import os
 from functools import partial
 import inspect
+from scipy import ndimage as ndi
 
 from .specials import *
 from .utils._skimage import *
+from .utils import _misc
 from .bases import HistoryArray
 from .label import Label
 
@@ -427,8 +429,8 @@ class LabeledArray(HistoryArray):
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
         dst2 = np.asarray(dst2)
-        ax0 = _make_rotated_axis(origin, dst2)
-        ax1 = _make_rotated_axis(dst1, origin)
+        ax0 = _misc.make_rotated_axis(origin, dst2)
+        ax1 = _misc.make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         cropped_img = self.apply_dask(ndi.map_coordinates, complement_axes(dims, self.axes), 
@@ -1073,13 +1075,6 @@ def _iter_dict(d, nparam):
             else:
                 out[k] = v
         yield out
-
-
-def _make_rotated_axis(src, dst):
-    dr = dst - src
-    d = np.sqrt(sum(dr**2))
-    n = int(np.ceil(d))
-    return np.linspace(src, src+dr/d*(n-1), n)
 
 def _shape_match(img, label):
     """
