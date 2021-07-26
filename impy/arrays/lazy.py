@@ -1,15 +1,15 @@
 from __future__ import annotations
+from functools import wraps
 import os
-import itertools
 from dask import array as da
 from dask import delayed
 from .imgarray import ImgArray
-from ..frame import MarkerFrame
-from .labeledarray import _make_rotated_axis
 from .axesmixin import AxesMixin
 from .utils._dask_image import *
+from .utils._skimage import *
 from .utils import _misc, _transform, _structures, _filters, _deconv, _corr
 
+from ..frame import MarkerFrame
 from ..utils.deco import *
 from ..utils.axesop import *
 from ..utils.slicer import *
@@ -339,6 +339,7 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
         return out
     
+    @record_lazy()
     def apply(self, func, c_axes:str=None, drop_axis:Iterable[int]=[], new_axis:Iterable[int]=None, 
               dtype=np.float32, rechunk_to:tuple[int,...]|str="none", dask_wrap:bool=False,
               args:tuple=None, kwargs:dict[str]=None) -> LazyImgArray:
@@ -406,10 +407,12 @@ class LazyImgArray(AxesMixin):
             input_ = self.img.rechunk(rechunk_to)
         
         if dask_wrap:
+            @wraps(func)
             def _func(arr, *args, **kwargs):
                 out = func(da.from_array(arr[slice_in]), *args, **kwargs)
                 return out[slice_out].compute()
         else:
+            @wraps(func)
             def _func(arr, *args, **kwargs):
                 out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
@@ -417,8 +420,6 @@ class LazyImgArray(AxesMixin):
         out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
                             dtype=dtype, **kwargs)
 
-        out = self.__class__(out)
-        out._set_info(self, make_history(func.__name__, args, kwargs), new_axes=self.axes)
         return out
     
     def rotated_crop(self, origin, dst1, dst2, dims="yx") -> LazyImgArray:
@@ -438,8 +439,8 @@ class LazyImgArray(AxesMixin):
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
         dst2 = np.asarray(dst2)
-        ax0 = _make_rotated_axis(origin, dst2)
-        ax1 = _make_rotated_axis(dst1, origin)
+        ax0 = _misc.make_rotated_axis(origin, dst2)
+        ax1 = _misc.make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
         
@@ -458,7 +459,6 @@ class LazyImgArray(AxesMixin):
                                  kwargs=dict(prefilter=False, order=1, chunks=output_chunks)
                                  )
 
-        cropped_img._set_info(self, "rotated_crop")
         return cropped_img
     
     def _switch_apply(self, func_dask, func_default, dims, args=None, kwargs=None):
@@ -471,7 +471,7 @@ class LazyImgArray(AxesMixin):
             func = func_dask
             rechunk_to = "max"
             dask_wrap = True
-        
+            
         return self.apply(func,
                           c_axes=complement_axes(dims, self.axes),
                           rechunk_to=rechunk_to,
@@ -481,7 +481,7 @@ class LazyImgArray(AxesMixin):
                           )
     
     @dims_to_spatial_axes
-    def gaussian_filter(self, sigma:nDFloat=1.0, *, dims=None) -> LazyImgArray:
+    def gaussian_filter(self, sigma:nDFloat=1.0, *, dims=None, update:bool=False) -> LazyImgArray:
         return self._switch_apply(dafil.gaussian_filter,
                                   _filters.gaussian_filter,
                                   dims=dims,
@@ -489,7 +489,7 @@ class LazyImgArray(AxesMixin):
                                   )
     
     @dims_to_spatial_axes
-    def median_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
+    def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         return self._switch_apply(dafil.median_filter,
                                   _filters.median_filter,
@@ -498,7 +498,7 @@ class LazyImgArray(AxesMixin):
                                   )
     
     @dims_to_spatial_axes
-    def mean_filter(self, radius:float=1, *, dims=None) -> LazyImgArray:
+    def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         kernel = disk/np.sum(disk)
         return self._switch_apply(dafil.convolve,
@@ -508,7 +508,7 @@ class LazyImgArray(AxesMixin):
                                   )
     
     @dims_to_spatial_axes
-    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None) -> LazyImgArray:
+    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None, update:bool=False) -> LazyImgArray:
         return self._switch_apply(dafil.convolve,
                                   _filters.convolve,
                                   dims=dims,
@@ -517,7 +517,7 @@ class LazyImgArray(AxesMixin):
                                   )
     
     @dims_to_spatial_axes
-    def edge_filter(self, method:str="sobel", *, dims=None) -> LazyImgArray:
+    def edge_filter(self, method:str="sobel", *, dims=None, update:bool=False) -> LazyImgArray:
         f = {"sobel": dafil.sobel,
              "prewitt": dafil.prewitt}[method]
         return self.apply(f, 
@@ -528,8 +528,19 @@ class LazyImgArray(AxesMixin):
                           )
     
     @dims_to_spatial_axes
+    def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> LazyImgArray:  
+        ndim = len(dims)
+        _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
+        return self._switch_apply(dafil.convolve,
+                                  _filters.convolve,
+                                  dims=dims,
+                                  args=(laplace_op,),
+                                  kwargs=dict(mode="reflect")
+                                  )
+        
+    @dims_to_spatial_axes
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
-               order=1, dims=None) -> LazyImgArray:
+               mode="constant", cval=0, output_shape=None, order=1, dims=None) -> LazyImgArray:
         if matrix is None:
             matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
                                                       shear=shear, translation=translation,
@@ -537,10 +548,27 @@ class LazyImgArray(AxesMixin):
         return self._switch_apply(daintr.affine_transform,
                                   _transform.warp,
                                   dims=dims,
-                                  kwargs=dict(matrix=matrix, order=order)
+                                  kwargs=dict(matrix=matrix, mode=mode, cval=cval, 
+                                              output_shape=output_shape, order=order)
                                   )
     
+    
     @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    def kalman_filter(self, gain:float=0.8, noise_var:float=0.05, *, along:str="t", dims=None, 
+                      update:bool=False) -> LazyImgArray:
+        if self.axisof(along) != 0:
+            raise ValueError("Currently kalman_filter does not support t-axis != 0.")
+
+        out = self.apply(_filters.kalman_filter, 
+                         c_axes=complement_axes(along + dims, self.axes), 
+                         args=(gain, noise_var)
+                         )
+        
+        return out
+    
+    @dims_to_spatial_axes
+    @record_lazy()
     def fft(self, *, shape="same", shift:bool=True, dims=None) -> LazyImgArray:
         axes = [self.axisof(a) for a in dims]
         if shape == "square":
@@ -553,11 +581,10 @@ class LazyImgArray(AxesMixin):
         freq = da.fft.fftn(self.img.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
         if shift:
             freq[:] = da.fft.fftshift(freq)
-        out = self.__class__(freq)
-        out._set_info(self, "fft")
-        return out
+        return freq
 
     @dims_to_spatial_axes
+    @record_lazy()
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
         if shift:
             freq = da.fft.ifftshift(self.img)
@@ -568,9 +595,20 @@ class LazyImgArray(AxesMixin):
         if real:
             out = da.real(out)
         
-        out = self.__class__(out)
-        out._set_info(self, "ifft")
         return out
+    
+    @dims_to_spatial_axes
+    @record_lazy()
+    def power_spectra(self, shape="same", norm:bool=False, zero_norm:bool=False, *,
+                      dims=None) -> LazyImgArray:
+        freq = self.fft(dims=dims, shape=shape)
+        pw = freq.img.real**2 + freq.img.imag**2
+        if norm:
+            pw /= pw.max()
+        if zero_norm:
+            sl = switch_slice(dims, pw.axes, ifin=np.array(pw.shape)//2, ifnot=slice(None))
+            pw[sl] = 0
+        return pw
     
     def chunksizeof(self, axis:str):
         return self.img.chunksize[self.axes.find(axis)]
@@ -775,6 +813,7 @@ class LazyImgArray(AxesMixin):
         
         return result
     
+    @record_lazy()
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
@@ -820,9 +859,14 @@ class LazyImgArray(AxesMixin):
 
         out = da.map_blocks(warp, self.img.rechunk(chunks), dtype=self.dtype)
 
-        out = self.__class__(out)
-        out._set_info(self, f"drift_correction")
         return out
+    
+    @record_lazy()
+    @dims_to_spatial_axes
+    def pad(self, pad_width, mode:str="constant", *, dims=None, **kwargs) -> LazyImgArray:
+        pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
+        padimg = da.pad(self.img, pad_width, mode, **kwargs)
+        return padimg
     
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -852,24 +896,6 @@ class LazyImgArray(AxesMixin):
                           args=(psf_ft, psf_ft_conj, niter, eps)
                           )
     
-    def iter(self, axes:str, exclude:str="") -> tuple[Slices, da.core.Array]:
-        iterlist = switch_slice(axes, self.axes, ifin=[range(s) for s in self.shape], ifnot=(slice(None),))
-        selfview = self.img
-        it = itertools.product(*iterlist)
-        c = 0 # counter
-        for sl in it:
-            if len(exclude) == 0:
-                outsl = sl
-            else:
-                outsl = tuple(s for i, s in enumerate(sl) 
-                              if self.axes[i] not in exclude)
-            yield outsl, selfview[sl]
-            c += 1
-            
-        # if iterlist = []
-        if c == 0:
-            outsl = (slice(None),) * (self.ndim - len(exclude))
-            yield outsl, selfview
 
     def as_uint8(self) -> LazyImgArray:
         img = self.img
