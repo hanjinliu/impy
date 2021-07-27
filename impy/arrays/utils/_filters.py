@@ -144,8 +144,11 @@ def ncc_filter(img, template, bg):
     template_ssd = np.sum((template - template_mean)**2)
     
     var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
-    # TODO: zero division happens when perfectly matched
-    response = (corr - win_sum1 * template_mean) / _safe_sqrt(var, fill=np.inf)
+    
+    # zero division happens when perfectly matched
+    response = np.ones_like(corr)
+    mask = (var > 0)
+    response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
     slices = []
     for i in range(ndim):
         d0 = (template.shape[i] - 1) // 2

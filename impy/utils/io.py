@@ -10,7 +10,7 @@ from .._cupy import xp
 
 __all__ = ["imwrite", "open_tif", "open_mrc", "open_img", "open_as_dask", "get_scale_from_meta", 
            "get_imsave_meta_from_img"]
-# BUG: memmap-> key is slower
+
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
 

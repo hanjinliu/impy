@@ -1,27 +1,60 @@
 from __future__ import annotations
-from .collections import DataList
-from .arrays import ImgArray, LazyImgArray
-from .utils import gauss
-from .utils.slicer import *
 import numpy as np
 import os
 import re
 import glob
 import itertools
+from functools import wraps
 from dask import array as da
-from .utils.io import *
-from .axes import ImageAxesError
 from skimage import data as skdata
 
-__all__ = ["array", "asarray", "aslazy", "zeros", "empty", "gaussian_kernel", "circular_mask", "imread", 
-           "imread_collection", "lazy_imread", "read_meta", "sample_image"]
+from .utils.io import *
+from .utils import gauss
+from .utils.slicer import *
+from .utils.utilcls import Progress
+
+from .axes import ImageAxesError
+from .collections import DataList
+from .arrays import ImgArray, LazyImgArray
+
+__all__ = ["array", "asarray", "aslazy", "zeros", "empty", "ones", "gaussian_kernel", "circular_mask", 
+           "imread", "imread_collection", "lazy_imread", "read_meta", "sample_image", "ImgArray"]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
 
-def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
+
+shared_docs = \
+    """
+    dtype : data type, optional
+        Image data type.
+    name : str, optional
+        Name of image.
+    axes : str, optional
+        Image axes.
+    """    
+    
+def write_docs(func):
+    func.__doc__ = re.sub(r"{}", shared_docs, func.__doc__)
+    return func
+
+@write_docs
+def array(arr, dtype=None, *, name=None, axes=None, copy=True) -> ImgArray:
     """
     make an ImgArray object, just like np.array(x)
+    
+    Parameters
+    ----------
+    arr : array-like
+        Base array.
+    {}
+    copy : bool, default is True
+        If True, a copy of the original array is made.
+        
+    Returns
+    -------
+    ImgArray
+    
     """
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype in (np.uint8, np.uint16, np.float32):
@@ -31,7 +64,7 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
         else:
             dtype = arr.dtype
     
-    arr = np.array(arr, dtype=dtype)
+    arr = np.array(arr, dtype=dtype, copy=copy)
         
     # Automatically determine axes
     if axes is None:
@@ -43,31 +76,44 @@ def array(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
 
 def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
-    make an ImgArray object, just like np.array(x)
-    """
-    if isinstance(arr, np.ndarray) and dtype is None:
-        if arr.dtype in (np.uint8, np.uint16, np.float32):
-            dtype = arr.dtype
-        elif arr.dtype.kind == "f":
-            dtype = np.float32
-        else:
-            dtype = arr.dtype
+    make an ImgArray object, like np.asarray(x)
     
-    arr = np.asarray(arr, dtype=dtype)
+    Parameters
+    ----------
+    arr : array-like
+        Base array.
+    {}
+    copy : bool, default is True
+        If True, a copy of the original array is made.
         
-    # Automatically determine axes
-    if axes is None:
-        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
-            
-    self = ImgArray(arr, name=name, axes=axes)
+    Returns
+    -------
+    ImgArray
     
-    return self
+    """
+    return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
 
-def aslazy(arr, dtype=None, chunks="auto", *, name=None, axes=None) -> LazyImgArray:
+def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgArray:
+    """
+    Make an LazyImgArray object from other types of array.
+    
+    Parameters
+    ----------
+    arr : array-like
+        Base array.
+    {}
+    chunks : int, tuple
+        How to chunk the array. For details see `dask.array.from_array`.
+        
+    Returns
+    -------
+    ImgArray
+    
+    """
     if isinstance(arr, (np.ndarray, np.memmap)):
         arr = da.from_array(arr, chunks=chunks)
     elif not isinstance(arr, da.core.Array):
-        arr = np.asarray(arr)
+        arr = da.asarray(arr)
         
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype in (np.uint8, np.uint16, np.float32):
@@ -84,15 +130,38 @@ def aslazy(arr, dtype=None, chunks="auto", *, name=None, axes=None) -> LazyImgAr
     self = LazyImgArray(arr, name=name, axes=axes)
     
     return self
-        
 
-def zeros(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
-    return array(np.zeros(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
+def _template(shape, dtype=np.uint16, *, name=None, axes=None):
+    r"""
+    Make an ImgArray object, like np.{}.
 
-def empty(shape, dtype=np.uint16, *, name=None, axes=None) -> ImgArray:
-    return array(np.empty(shape, dtype=dtype), dtype=dtype, name=name, axes=axes)
+    Parameters
+    ----------
+    shape : int or tuple of int
+        Shape of image.
+    {}
+    """    
 
-def gaussian_kernel(shape:tuple[int], sigma=1.0, peak=1.0):
+def np_dispatcher(npfunc):
+    def wrapper(func):
+        @wraps(_template)
+        def func(shape, dtype=np.uint16, *, name=None, axes=None):
+            return asarray(npfunc(shape, dtype=dtype), name=name, axes=axes)
+        func.__name__ = npfunc.__name__
+        func.__doc__ = re.sub(r"{}", npfunc.__name__, func.__doc__)
+        return func
+    return wrapper
+
+@np_dispatcher(np.zeros)
+def zeros(): ...
+    
+@np_dispatcher(np.empty)
+def empty(): ...
+
+@np_dispatcher(np.ones)
+def ones(): ...
+
+def gaussian_kernel(shape:tuple[int, ...], sigma=1.0, peak:float=1.0) -> ImgArray:
     """
     Make an Gaussian kernel or Gaussian image.
 
@@ -135,8 +204,8 @@ def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
 
     Returns
     -------
-    [type]
-        [description]
+    ImgArray
+        Boolean image with zyx or yx axes
     """    
     if center == "center":
         center = np.array(shape)/2. - 0.5
@@ -148,6 +217,32 @@ def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
     axes = "zyx" if len(shape) == 3 else None # change the default axes in `array`
     
     return array(s > radius**2, dtype=bool, axes=axes)
+
+
+def sample_image(name:str) -> ImgArray:
+    """
+    Get sample images from `skimage` and convert it into ImgArray.
+
+    Parameters
+    ----------
+    name : str
+        Name of sample image, such as "camera".
+
+    Returns
+    -------
+    ImgArray
+        Sample image.
+    """    
+    img = getattr(skdata, name)()
+    out = array(img, name=name)
+    if out.shape[-1] == 3:
+        out.axes = "yxc"
+        out = out.sort_axes()
+    return out
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+#   Imread functions
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> ImgArray:
     """
@@ -230,7 +325,13 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
     else:
         # read lateral scale if possible
         scale = get_scale_from_meta(meta)
-        self.set_scale(**scale)
+        
+        # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
+        # one by one.
+        for k, v in scale.items():
+            if k in self.axes:
+                self.set_scale({k: v})
+        
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def _imread_glob(path:str, squeeze:bool=False, **kwargs) -> ImgArray:
@@ -322,7 +423,7 @@ def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
     # To convert input path string into file-finding regex pattern.
     # e.g.) ~\XX$t_YY$z\*.tif -> ~\\XX(\d)_YY(\d)\\.*\.tif
     path_ = repr(path)[1:-1]
-    pattern = re.sub(r"\.", r"\.",path_)          # dots to non-escape
+    pattern = re.sub(r"\.", r"\.", path_)        # dots to non-escape
     pattern = re.sub(r"\*", ".*", pattern)       # asters to non-escape
     pattern = re.sub(FORMAT, r"(\\d+)", pattern) # make number finders
     pattern = re.compile(pattern)
@@ -502,27 +603,6 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     except Exception:
         pass
     
-    return out
-
-def sample_image(name:str) -> ImgArray:
-    """
-    Get sample images from `skimage` and convert it into ImgArray.
-
-    Parameters
-    ----------
-    name : str
-        Name of sample image, such as "camera".
-
-    Returns
-    -------
-    ImgArray
-        Sample image.
-    """    
-    img = getattr(skdata, name)()
-    out = array(img, name=name)
-    if out.shape[-1] == 3:
-        out.axes = "yxc"
-        out = out.sort_axes()
     return out
 
 def read_meta(path:str) -> dict[str]:
