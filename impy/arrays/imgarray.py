@@ -23,7 +23,7 @@ from ..collections import *
 from .._types import *
 from ..frame import *
 from .._const import Const
-from .._cupy import xp, xp_ndi, xp_fft, asnumpy, wrap_as_cupy
+from .._cupy import xp, xp_ndi, xp_fft, asnumpy, cupy_dispatcher
 
 
 class ImgArray(LabeledArray):
@@ -341,7 +341,7 @@ class ImgArray(LabeledArray):
         
         out = PropArray(np.empty(self.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
-        radial_func = partial(wrap_as_cupy(func), labels=labels, index=np.arange(1, labels.max()+1))
+        radial_func = partial(cupy_dispatcher(func), labels=labels, index=np.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = radial_func(img)
         return out

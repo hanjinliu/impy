@@ -1,3 +1,4 @@
+import dask
 from dask.cache import Cache
 import psutil
 
@@ -19,7 +20,7 @@ class GlobalConstant(dict):
 
     def __setitem__(self, k, v):
         if k == "MAX_GB":
-            if not isinstance(v, float):
+            if not isinstance(v, (int, float)):
                 raise TypeError("MAX_GB must be float.")
             elif v > MAX_GB_LIMIT:
                 raise ValueError(f"Cannot exceed {MAX_GB_LIMIT} GB.")
@@ -34,16 +35,18 @@ class GlobalConstant(dict):
             elif len(v) != 1:
                 raise ValueError("ID_AXIS must be single character.")
         elif k == "FONT_SIZE_FACTOR":
-            if not isinstance(v, float):
+            if not isinstance(v, (int, float)):
                 raise TypeError("MAX_GB must be float.")
         elif k == "RESOURCE":
             raise RuntimeError("Cannot set RESOURCE.")
         elif k == "DASK_CACHE_GB":
-            if not isinstance(v, float):
+            if not isinstance(v, (int, float)):
                 raise TypeError("DASK_CACHE_GB must be float.")
             elif v > DASK_CACHE_GB_LIMIT:
                 raise ValueError(f"Cannot exceed {DASK_CACHE_GB_LIMIT} GB.")
             self._cache.cache.available_bytes = v
+        elif k == "SCHEDULER":
+            dask.config.set(scheduler=v)
         else:
             raise RuntimeError("Cannot set new keys.")
         
@@ -67,6 +70,7 @@ class GlobalConstant(dict):
         FONT_SIZE_FACTOR: {self.FONT_SIZE_FACTOR}
              RESOURCE   : {self.RESOURCE}
           DASK_CACHE_GB : {self.DASK_CACHE_GB:.2f} GB
+            SCHEDULER   : {self.SCHEDULER}
         """
     
     def _repr_html_(self):
@@ -101,7 +105,8 @@ Const = GlobalConstant(
     ID_AXIS = "p",
     FONT_SIZE_FACTOR = 1.0,
     RESOURCE = "numpy",
-    DASK_CACHE_GB = DASK_CACHE_GB_LIMIT/2
+    DASK_CACHE_GB = DASK_CACHE_GB_LIMIT/2,
+    SCHEDULER = "threads",
 )
 
 class SetConst:

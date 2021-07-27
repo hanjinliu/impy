@@ -30,13 +30,13 @@ __all__ = ["binary_erosion",
            ]
 
 
-from ..._cupy import xp_ndi, xp, asnumpy, wrap_as_cupy
+from ..._cupy import xp_ndi, xp, asnumpy, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
 
 def get_func(function_name):
     if hasattr(xp_ndi, function_name):
         _func = getattr(xp_ndi, function_name)    
-        func = wrap_as_cupy(_func)
+        func = cupy_dispatcher(_func)
     else:
         func = getattr(scipy_ndi, function_name)
     return func
