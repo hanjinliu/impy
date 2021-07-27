@@ -70,7 +70,7 @@ def kalman_filter(img_stack, gain, noise_var):
             estimate = gain*estimate + (1.0 - gain)*img + kalman_gain*(img - estimate)
             predicted_var *= 1 - kalman_gain
         out[t] = estimate
-    return asnumpy(out)
+    return out
 
 def fill_hole(img, mask):
     seed = np.copy(img)
@@ -84,20 +84,20 @@ def phase_mean_filter(img, selem, a):
     out = xp.empty(img.shape, dtype=xp.complex64)
     xp.exp(1j*a*img, out=out)
     convolve(out, selem, output=out)
-    return asnumpy(xp.angle(out)/a)
+    return xp.angle(out)/a
 
 def std_filter(data, selem):
     selem = selem / np.sum(selem)
     x1 = convolve(data, selem)
     x2 = convolve(data**2, selem)
-    std_img = _safe_sqrt(x2 - x1**2, fill=0)
+    std_img = _safe_sqrt(asnumpy(x2 - x1**2), fill=0)
     return std_img
 
 def coef_filter(data, selem):
     selem = selem / np.sum(selem)
     x1 = convolve(data, selem)
     x2 = convolve(data**2, selem)
-    out = _safe_sqrt(x2 - x1**2, fill=0)/x1
+    out = _safe_sqrt(asnumpy(x2 - x1**2), fill=0)/x1
     return out
     
 def dog_filter(img, low_sigma, high_sigma):
@@ -108,11 +108,11 @@ def dog_filter(img, low_sigma, high_sigma):
 def doh_filter(img, sigma, pxsize):
     eigval = hessian_eigval(img, sigma, pxsize)
     eigval[eigval>0] = 0
-    det = np.abs(np.product(eigval, axis=-1))
+    det = xp.abs(xp.prod(eigval, axis=-1))
     return det
 
 def gabor_filter(img, ker):
-    out = np.empty(img.shape, dtype=np.complex64)
+    out = xp.empty(img.shape, dtype=np.complex64)
     out.real[:] = convolve(img, ker.real)
     out.imag[:] = convolve(img, ker.imag)
     return out

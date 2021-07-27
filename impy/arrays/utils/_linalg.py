@@ -1,17 +1,17 @@
 import numpy as np
 from skimage.feature.corner import _symmetric_image
 from ._skimage import skfeat
-from ..._cupy import xp, xp_linalg, asnumpy
+from ..._cupy import xp, xp_linalg
 
 def eigh(a):
     a = xp.asarray(a, dtype=a.dtype)
     val, vec = xp_linalg.eigh(a)
-    return asnumpy(val), asnumpy(vec)
+    return val, vec
 
 def eigvalsh(a):
     a = xp.asarray(a, dtype=a.dtype)
     val = xp_linalg.eigvalsh(a)
-    return asnumpy(val)
+    return val
 
 def structure_tensor_eigval(img, sigma, pxsize):
     tensor_elements = skfeat.structure_tensor(img, sigma, order="xy",

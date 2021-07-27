@@ -24,7 +24,7 @@ def wiener(obs, psf_ft, psf_ft_conj, lmd):
     img_ft = fft(obs)
     
     estimated = xp.real(ifft(img_ft*psf_ft_conj / (psf_ft*psf_ft_conj + lmd)))
-    return asnumpy(xp_fft.fftshift(estimated))
+    return xp_fft.fftshift(estimated)
     
 def richardson_lucy(obs, psf_ft, psf_ft_conj, niter, eps):
     # Identical to the algorithm in Deconvolution.jl of Julia.
@@ -39,7 +39,7 @@ def richardson_lucy(obs, psf_ft, psf_ft_conj, niter, eps):
         factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
         estimated *= factor
         
-    return asnumpy(xp_fft.fftshift(estimated))
+    return xp_fft.fftshift(estimated)
 
 def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
     obs = xp.asarray(obs)
@@ -63,7 +63,7 @@ def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
             break
         est_old[:] = est_new
         
-    return asnumpy(xp_fft.fftshift(est_new))
+    return xp_fft.fftshift(est_new)
 
 
 def _safe_div(a, b, eps=1e-8):

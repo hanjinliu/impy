@@ -36,7 +36,7 @@ def subpixel_pcc(f0:xp_ndarray, f1:xp_ndarray, upsample_factor:int):
         maxima = xp.asarray(maxima, dtype=xp.float32) - dftshift
 
         shifts = shifts + maxima / upsample_factor
-    return asnumpy(shifts)
+    return shifts
 
 def _upsampled_dft(data, upsampled_region_size, upsample_factor, axis_offsets):
     # if people pass in an integer, expand it to a list of equal-sized sections

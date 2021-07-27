@@ -72,32 +72,6 @@ class GlobalConstant(dict):
           DASK_CACHE_GB : {self.DASK_CACHE_GB:.2f} GB
             SCHEDULER   : {self.SCHEDULER}
         """
-    
-    def _repr_html_(self):
-        strs = []
-        for k, v in self.items():
-            if k.endswith("_GB"):
-                v = str(v) + " GB"
-            strs.append(f"<tr><td width=\"100\" >{k}</td><td>{v}</td></tr>")
-        main = "<table border=\"1\">" + "".join(strs) + "</table>"
-        html = f"""
-        <head>
-            <style>
-                #wrapper {{
-                    height: 140px;
-                    width: 300px;
-                    overflow-y: scroll;
-                }}
-            </style>
-        </head>
-
-        <body>
-            <div id="wrapper">
-                {main}
-            </div>
-        </body>
-        """
-        return html
 
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,

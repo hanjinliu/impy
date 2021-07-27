@@ -32,5 +32,5 @@ def cupy_dispatcher(function):
     def func(*args, **kwargs):
         args = map(_as_cupy, args)
         out = function(*args, **kwargs)
-        return asnumpy(out)
+        return out
     return func

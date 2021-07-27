@@ -92,17 +92,17 @@ def same_dtype(asfloat=False):
     asfloat : bool, optional
         If input image should be converted to float first, by default False
     """    
-    def _same_dtype(func):
+    def f(func):
         @wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def _same_dtype(self, *args, **kwargs):
             dtype = self.dtype
             if asfloat and self.dtype.kind in "ui":
                 self = self.as_float()
             out = func(self, *args, **kwargs)
             out = out.as_img_type(dtype)
             return out
-        return wrapper
-    return _same_dtype
+        return _same_dtype
+    return f
 
 
 def dims_to_spatial_axes(func):

@@ -5,7 +5,7 @@ import itertools
 from ..axesmixin import AxesMixin
 from ..._types import *
 from ...axes import ImageAxesError
-from ..._cupy import xp_ndarray
+from ..._cupy import xp, xp_ndarray, asnumpy
 from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList
@@ -328,7 +328,7 @@ class MetaArray(AxesMixin, np.ndarray):
             kwargs = dict()
         
         if len(c_axes) == 0:
-            out = func(self.value, *args, **kwargs)
+            out = asnumpy(func(self.value, *args, **kwargs))
         else:
             new_axis = _list_of_axes(self, new_axis)
             drop_axis = _list_of_axes(self, drop_axis)
@@ -370,13 +370,16 @@ class MetaArray(AxesMixin, np.ndarray):
                         continue
                     args[i] = args[i][slice_in]
                 out = func(*args, **kwargs)
+                out = asnumpy(out)
                 return out[slice_out]
             
             out = da.map_blocks(_func, *args, drop_axis=drop_axis, new_axis=new_axis, 
-                                dtype=dtype, **kwargs)
+                                meta=xp.array([], dtype=dtype), **kwargs)
+                                
             out = out.compute()
-        
+
         out = out.view(self.__class__)
+        
         return out
     
     def transpose(self, axes):

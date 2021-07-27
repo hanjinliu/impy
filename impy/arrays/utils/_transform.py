@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 from collections import namedtuple
 from ._skimage import sktrans
-from ..._cupy import xp, xp_ndi, asnumpy
+from ..._cupy import xp, xp_ndi
 
 __all__ = ["compose_affine_matrix", 
            "decompose_affine_matrix",
@@ -20,7 +20,7 @@ def warp(img, matrix, cval=0, mode="constant", output_shape=None, order=1):
     matrix = xp.asarray(matrix)
     out = xp_ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
                                   order=order, prefilter=order>1)
-    return asnumpy(out)
+    return out
 
 def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):
     # These two modules returns consistent matrix in the two dimensional case.

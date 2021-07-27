@@ -80,8 +80,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(True)
+    @record()
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
                mode="constant", cval=0, output_shape=None, order:int=1, *, dims=None, 
                update:bool=False) -> ImgArray:
@@ -343,7 +343,7 @@ class ImgArray(LabeledArray):
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
         radial_func = partial(cupy_dispatcher(func), labels=labels, index=np.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = radial_func(img)
+            out[sl] = asnumpy(radial_func(img))
         return out
     
     @record()
@@ -1014,9 +1014,9 @@ class ImgArray(LabeledArray):
                                kwargs=dict(footprint=disk)
                                )
     
-    @record()
     @dims_to_spatial_axes
     @same_dtype()
+    @record()
     def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims=None, 
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_opening, 
@@ -1024,9 +1024,9 @@ class ImgArray(LabeledArray):
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
         
-    @record()
     @dims_to_spatial_axes
     @same_dtype()
+    @record()
     def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims=None,
                          update:bool=False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_closing, 
@@ -1034,9 +1034,9 @@ class ImgArray(LabeledArray):
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
                                )
     
-    @record()
     @dims_to_spatial_axes
     @same_dtype()
+    @record()
     def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
                      update:bool=False) -> ImgArray:
         if self.dtype == bool:
@@ -1050,9 +1050,9 @@ class ImgArray(LabeledArray):
                                    kwargs=dict(area_threshold=area, connectivity=connectivity)
                                    )
         
-    @record()
     @dims_to_spatial_axes
     @same_dtype()
+    @record()
     def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, 
                      update:bool=False) -> ImgArray:
         if self.dtype == bool:
@@ -1223,8 +1223,8 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def unmix(self, matrix, bg=None, *, along:str="c", update:bool=False) -> ImgArray:
         r"""
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
@@ -1293,8 +1293,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def fill_hole(self, thr:float|str="otsu", *, dims=None, update:bool=False) -> ImgArray:
         """
         Filling holes.　See skimage's documents 
@@ -1326,8 +1326,8 @@ class ImgArray(LabeledArray):
 
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(True)
+    @record()
     def gaussian_filter(self, sigma:nDFloat=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
@@ -1432,8 +1432,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(True)
+    @record()
     def rolling_ball(self, radius:float=50, prefilter:str="mean", *, return_bg:bool=False,
                      dims=None, update:bool=False) -> ImgArray:
         """
@@ -1480,8 +1480,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims=None, 
                    update:bool=False) -> ImgArray:
         """
@@ -1510,8 +1510,8 @@ class ImgArray(LabeledArray):
         
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def wavelet_denoising(self, noise_sigma:float=None, *, wavelet:str="db1", mode:str="soft", 
                           wavelet_levels:int=None, method:str="BayesShrink", max_shifts:int|tuple=0,
                           shift_steps:int|tuple=1, dims=None) -> ImgArray:
@@ -3611,7 +3611,7 @@ class ImgArray(LabeledArray):
         for i, (_, img) in enumerate(img_fft.iter(along)):
             img = xp.asarray(img)
             if last_img is not None:
-                result[i] = _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)
+                result[i] = asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor))
                 last_img = img
             else:
                 last_img = img
@@ -3626,8 +3626,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
                          along:str=None, dims=2, update:bool=False) -> ImgArray:
         """
@@ -3686,7 +3686,7 @@ class ImgArray(LabeledArray):
         if zero_ave:
             shift = shift - np.mean(shift, axis=0)
             
-        out = np.empty(self.shape)
+        out = xp.empty(self.shape)
         t_index = self.axisof(along)
         ndim = len(dims)
         mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
@@ -3694,7 +3694,7 @@ class ImgArray(LabeledArray):
             mx[:-1, -1] = -shift[sl[t_index]]
             out[sl] = _transform.warp(img, mx, order=order)
         
-        out = out.view(self.__class__)
+        out = asnumpy(out).view(self.__class__)
         return out
 
     @_docs.write_docs
@@ -3766,8 +3766,8 @@ class ImgArray(LabeledArray):
         padimg = np.pad(self.value, pad_width, mode, **kwargs).view(self.__class__)
         return padimg
     
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def defocus(self, kernel, *, depth:int=3, width:int=6, bg:float=None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
@@ -3815,14 +3815,14 @@ class ImgArray(LabeledArray):
         
         if kernel.ndim <= 1:
             def filter_func(img):
-                return _filters.gaussian_filter(img, kernel, mode="constant", cval=bg)
+                return asnumpy(_filters.gaussian_filter(img, kernel, mode="constant", cval=bg))
             dz, dy, dx = kernel*3 # 3-sigma
             
         elif kernel.ndim == 3:
             kernel = kernel.astype(np.float32)
             kernel = kernel / np.sum(kernel)
             def filter_func(img):
-                return _filters.convolve(img, kernel, mode="constant", cval=bg)
+                return asnumpy(_filters.convolve(img, kernel, mode="constant", cval=bg))
             dz, dy, dx = np.array(kernel.shape)//2
         else:
             raise ValueError("`kernel` only take 0, 1, 3 dimensional array as an input.")
@@ -3852,8 +3852,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> ImgArray:
         r"""
         Classical wiener deconvolution. This algorithm has the serious ringing problem
@@ -3893,8 +3893,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
              update:bool=False) -> ImgArray:
         """
@@ -3921,15 +3921,17 @@ class ImgArray(LabeledArray):
         
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-        return self.apply_dask(_deconv.richardson_lucy, 
+        out = self.apply_dask(_deconv.richardson_lucy, 
                                c_axes=complement_axes(dims, self.axes),
                                args=(psf_ft, psf_ft_conj, niter, eps)
                                )
+        
+        return out
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
     @same_dtype(asfloat=True)
+    @record()
     def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=1e-3, eps=1e-5, 
                 *, dims=None, update:bool=False) -> ImgArray:
         r"""
