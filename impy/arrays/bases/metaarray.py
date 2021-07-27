@@ -370,11 +370,15 @@ class MetaArray(AxesMixin, np.ndarray):
                         continue
                     args[i] = args[i][slice_in]
                 out = func(*args, **kwargs)
-                out = asnumpy(out)
-                return out[slice_out]
+                return asnumpy(out[slice_out])
             
-            out = da.map_blocks(_func, *args, drop_axis=drop_axis, new_axis=new_axis, 
-                                meta=xp.array([], dtype=dtype), **kwargs)
+            out = da.map_blocks(_func, 
+                                *args, 
+                                drop_axis=drop_axis,
+                                new_axis=new_axis, 
+                                meta=xp.array([], dtype=dtype), 
+                                **kwargs
+                                )
                                 
             out = out.compute()
 

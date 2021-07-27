@@ -1,5 +1,6 @@
 from functools import wraps
 import numpy as np
+import inspect
 import re
 from dask import array as da
 from .utilcls import Progress
@@ -117,7 +118,8 @@ def dims_to_spatial_axes(func):
     """    
     @wraps(func)
     def _dims_to_spatial_axes(self, *args, **kwargs):
-        dims = kwargs.get("dims", None)
+        dims = kwargs.get("dims", 
+                          inspect.signature(func).parameters["dims"].default)
         if dims is None or dims=="":
             dims = len([a for a in "zyx" if a in self._axes])
             if dims not in (2, 3):
