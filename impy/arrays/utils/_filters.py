@@ -147,7 +147,7 @@ def ncc_filter(img, template, bg):
     
     # zero division happens when perfectly matched
     response = np.ones_like(corr)
-    mask = (var > 0)
+    mask = var > 0
     response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
     slices = []
     for i in range(ndim):

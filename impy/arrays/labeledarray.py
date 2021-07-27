@@ -73,6 +73,10 @@ class LabeledArray(HistoryArray):
             File name.
         dtype : Any that can be interpreted as numpy.dtype, optional
             In what data type img will be saved.
+        
+        Returns
+        -------
+        None
         """        
         # set default values
         if not tifname.endswith(".tif"):
@@ -694,9 +698,9 @@ class LabeledArray(HistoryArray):
         dictated in `filt` is satisfied. `skimage.measure.regionprops_table` is called
         inside every time image is labeled.
         
-        .. code-block:: python
-            def filt(img, lbl, area, major_axis_length):
-                return area>10 and major_axis_length>5
+            .. code-block: python
+                def filt(img, lbl, area, major_axis_length):
+                    return area>10 and major_axis_length>5
 
         Parameters
         ----------
@@ -919,14 +923,14 @@ class LabeledArray(HistoryArray):
             Order of iteration. "r" means row-wise and "c" means column-wise.
         
             row-wise
-                ----->
-                ----->
-                ----->
+            ----->
+            ----->
+            ----->
             
             column-wise
-                | | |
-                | | |
-                v v v
+            | | |
+            | | |
+            v v v
 
         Returns
         -------

@@ -18,7 +18,7 @@ from .collections import DataList
 from .arrays import ImgArray, LazyImgArray
 
 __all__ = ["array", "asarray", "aslazy", "zeros", "empty", "ones", "gaussian_kernel", "circular_mask", 
-           "imread", "imread_collection", "lazy_imread", "read_meta", "sample_image", "ImgArray"]
+           "imread", "imread_collection", "lazy_imread", "read_meta", "sample_image"]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
@@ -74,6 +74,7 @@ def array(arr, dtype=None, *, name=None, axes=None, copy=True) -> ImgArray:
     
     return self
 
+@write_docs
 def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
     make an ImgArray object, like np.asarray(x)
@@ -93,6 +94,7 @@ def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
     return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
 
+@write_docs
 def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgArray:
     """
     Make an LazyImgArray object from other types of array.
@@ -131,6 +133,7 @@ def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgAr
     
     return self
 
+@write_docs
 def _template(shape, dtype=np.uint16, *, name=None, axes=None):
     r"""
     Make an ImgArray object, like np.{}.
@@ -490,7 +493,7 @@ def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
 
 def imread_collection(path:str, filt=None) -> DataList:
     """
-    Open images as ImgArray and store them in ArrayList.
+    Open images as ImgArray and store them in DataList.
 
     Parameters
     ----------
@@ -502,7 +505,7 @@ def imread_collection(path:str, filt=None) -> DataList:
 
     Returns
     -------
-    ArrayList
+    DataList
     """    
     path = str(path)
     if os.path.isdir(path):

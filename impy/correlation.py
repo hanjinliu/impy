@@ -17,13 +17,11 @@ __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fo
 @dims_to_spatial_axes
 def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:bool=True,
         dims=None) -> PropArray:
-    """
+    r"""
     Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
     between two images. FSC is defined as:
     
-                      Re{Σ'[F0(r') x F1(r)*]}
-        FSC(r) = --------------------------------- (Σ' is summation of all r < r'< r+dr)
-                  sqrt{Σ'|F0(r')|^2 x Σ'|F1(r')|}
+    :math:`FSC(r) = \frac{Re(\sum_{r<r'<r+dr}[F_0(r') \cdot \bar{F_1}(r)])}{\sqrt{\sum_{r<r'<r+dr}|F_0(r')|^2 \cdot \sum_{r<r'<r+dr}|F_1(r')|^2}}`
                   
     Parameters
     ----------
@@ -185,11 +183,11 @@ pearson_coloc = zncc
 @dims_to_spatial_axes
 def nmi(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, bins:int=100, squeeze:bool=True, *,
         dims=None) -> PropArray|float:
-    """
+    r"""
     Normalized Mutual Information.
-                   H(A) + H(B)
-        Y(A, B) = -------------
-                     H(A, B)
+    
+    :math:`Y(A, B) = \frac{H(A) + H(B)}{H(A, B)}`
+                   
     See "Elegant SciPy"
     
     Parameters
@@ -317,12 +315,10 @@ def pcc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, *,
 @_docs.write_docs
 @dims_to_spatial_axes
 def manders_coloc(img0:ImgArray, img1:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
-    """
+    r"""
     Manders' correlation coefficient. This is defined as following:
     
-             Σ(Ai[ref])
-        r = -----------
-               Σ(Ai)
+    :math:`r = \frac{\sum_{i \in I_{ref}} I_i}{\sum_{i} I_i}`
     
     This value is NOT independent of background intensity. You need to correctly subtract
     background from self. This value is NOT interchangable between channels.
