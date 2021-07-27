@@ -136,7 +136,7 @@ def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgAr
 @write_docs
 def _template(shape, dtype=np.uint16, *, name=None, axes=None):
     r"""
-    Make an ImgArray object, like np.{}.
+    Make an ImgArray object, like np.{npfuncname}.
 
     Parameters
     ----------
@@ -151,7 +151,7 @@ def np_dispatcher(npfunc):
         def func(shape, dtype=np.uint16, *, name=None, axes=None):
             return asarray(npfunc(shape, dtype=dtype), name=name, axes=axes)
         func.__name__ = npfunc.__name__
-        func.__doc__ = re.sub(r"{}", npfunc.__name__, func.__doc__)
+        func.__doc__ = re.sub(r"{npfuncname}", npfunc.__name__, func.__doc__)
         return func
     return wrapper
 
@@ -262,14 +262,6 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
         If not None, image is read in a memory-mapped array first, and only img[key] is returned.
         Only axis-targeted slicing is supported. This argument is important when reading a large
         file.
-        
-        .. code-block::python
-            >>> path = r"C:\...\Image.mrc"
-            >>> %time ip.imread(path)["x=:10;y=:10"]
-            Wall time: 136 ms
-            >>> %time ip.imread(path, key="x=:10;y=:10")
-            Wall time: 3.01 ms
-            
     squeeze : bool, default is False
         If True, redundant dimensions will be squeezed.
 
@@ -277,6 +269,17 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
     -------
     ImgArray
         Image data read from the file.
+    
+    Examples
+    --------
+    Read a part of an image
+    
+        >>> path = r"C:\...\Image.mrc"
+        >>> %time ip.imread(path)["x=:10;y=:10"]
+        Wall time: 136 ms
+        >>> %time ip.imread(path, key="x=:10;y=:10")
+        Wall time: 3.01 ms
+        
     """    
     path = str(path)
     is_memmap = (key is not None)
@@ -522,7 +525,8 @@ def imread_collection(path:str, filt=None) -> DataList:
 
 def lazy_imread(path, chunks="default", *, squeeze:bool=False) -> LazyImgArray:
     """
-    Read an image lazily.
+    Read an image lazily. Image file is first opened as an memory map, and subsequently converted
+    to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.
 
     Parameters
     ----------

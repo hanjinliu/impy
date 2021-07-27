@@ -201,12 +201,6 @@ def crop(viewer):
             newdata.dirpath =_dirpath
             newdata.metadata = _metadata
             newdata.name = _name
-            # Try to compute for now too avoid response being too slow.
-            if isinstance(newdata, LazyImgArray):
-                try:
-                    newdata = newdata.release()
-                except MemoryError:
-                    pass
                 
             layer.data = newdata
             translate = layer.translate

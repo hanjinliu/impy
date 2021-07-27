@@ -1,4 +1,5 @@
 from __future__ import annotations
+from impy.utils.axesop import switch_slice
 from tifffile import TiffFile, imwrite
 import json
 import re
@@ -91,11 +92,12 @@ def open_as_dask(path:str, chunks):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
     if chunks == "default":
-        set_chunks = lambda i: img.shape[i] if axes[i] in "yx" else "auto"
-        chunks = tuple(map(set_chunks, range(img.ndim)))
+        chunks = switch_slice("yx", axes, ifin=img.shape, ifnot=("auto",)*img.ndim)
     if img.dtype == ">u2":
         img = img.astype(np.uint16)
-    img = da.from_array(xp.asarray(img), chunks=chunks)
+    
+    darr = da.from_array(img, chunks=chunks)
+    img = da.map_blocks(xp.asarray, darr)
     return meta, img
 
 
