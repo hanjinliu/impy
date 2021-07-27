@@ -1,7 +1,10 @@
 from dask.cache import Cache
+import psutil
 
-MAX_GB_LIMIT = 30
-DASK_CACHE_GB_LIMIT = 10
+memory = psutil.virtual_memory()
+
+MAX_GB_LIMIT = memory.total / 2 * 1e-9
+DASK_CACHE_GB_LIMIT = memory.total / 4 * 1e-9
 
 class GlobalConstant(dict):
     def __init__(self, *args, **kwargs):
@@ -19,7 +22,7 @@ class GlobalConstant(dict):
             if not isinstance(v, float):
                 raise TypeError("MAX_GB must be float.")
             elif v > MAX_GB_LIMIT:
-                raise ValueError("Cannot exceed {MAX_GB_LIMIT} GB.")
+                raise ValueError(f"Cannot exceed {MAX_GB_LIMIT} GB.")
         elif k == "SHOW_PROGRESS":
             if v in (0, 1):
                 v = bool(v)
@@ -39,7 +42,7 @@ class GlobalConstant(dict):
             if not isinstance(v, float):
                 raise TypeError("DASK_CACHE_GB must be float.")
             elif v > DASK_CACHE_GB_LIMIT:
-                raise ValueError("Cannot exceed {DASK_CACHE_GB_LIMIT} GB.")
+                raise ValueError(f"Cannot exceed {DASK_CACHE_GB_LIMIT} GB.")
             self._cache.cache.available_bytes = v
         else:
             raise RuntimeError("Cannot set new keys.")
@@ -93,12 +96,12 @@ class GlobalConstant(dict):
         return html
 
 Const = GlobalConstant(
-    MAX_GB = 2.0,
+    MAX_GB = MAX_GB_LIMIT/2,
     SHOW_PROGRESS = True,
     ID_AXIS = "p",
     FONT_SIZE_FACTOR = 1.0,
     RESOURCE = "numpy",
-    DASK_CACHE_GB = 1.0
+    DASK_CACHE_GB = DASK_CACHE_GB_LIMIT/2
 )
 
 class SetConst:
