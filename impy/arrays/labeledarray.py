@@ -326,7 +326,7 @@ class LabeledArray(HistoryArray):
     @record()
     @dims_to_spatial_axes
     def crop_center(self, scale:nDFloat=0.5, *, dims=2) -> LabeledArray:
-        """
+        r"""
         Crop out the center of an image. 
         
         Parameters
@@ -343,10 +343,14 @@ class LabeledArray(HistoryArray):
             
         Examples
         --------
-        1. Create 512x512 image from 1024x1024 image.
+        1. Create a :math:`512\times512` image from a :math:`1024\times1024` image.
+        
             >>> img_cropped = img.crop_center(scale=0.5)
-        2. Create 21x256x256 image from 63x1024x1024 image.
+            
+        2. Create a :math:`21\times256\times256` image from a :math:`63\times1024\times1024` image.
+        
             >>> img_cropped = img.crop_center(scale=[1/3, 1/2, 1/2])
+            
         """
         # check scale
         if hasattr(scale, "__iter__") and len(scale) == 3 and dims == "yx":
@@ -369,7 +373,7 @@ class LabeledArray(HistoryArray):
     
     @record()
     def crop_kernel(self, radius:nDInt=2) -> LabeledArray:
-        """
+        r"""
         Make a kernel from an image by cropping out the center region. This function is useful especially
         in `ImgArray.defocus()`.
 
@@ -385,11 +389,13 @@ class LabeledArray(HistoryArray):
         
         Examples
         --------
-        Make a 4x4x4 kernel from a point spread function image (suppose the image shapes are all even numbers).
+        Make a :math:`4\times4\times4` kernel from a point spread function image (suppose the image shapes 
+        are all even numbers).
+            
             >>> psf = ip.imread(r".../PSF.tif")
             >>> psfker = psf.crop_kernel()
             >>> psfer.shape
-        (4, 4, 4)
+            (4, 4, 4)
         """        
         sizes = self.shape
         radii = check_nd(radius, len(sizes))
@@ -691,6 +697,7 @@ class LabeledArray(HistoryArray):
         self.labels.set_scale(self)
         return self.labels
     
+    @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
     def label_if(self, label_image=None, filt=None, *, dims=None, connectivity=None) -> Label:
@@ -699,7 +706,8 @@ class LabeledArray(HistoryArray):
         dictated in `filt` is satisfied. `skimage.measure.regionprops_table` is called
         inside every time image is labeled.
         
-            .. code-block: python
+            .. code-block:: python
+            
                 def filt(img, lbl, area, major_axis_length):
                     return area>10 and major_axis_length>5
 
@@ -922,16 +930,19 @@ class LabeledArray(HistoryArray):
             Axis (Axes) over which will be iterated.
         order : str, {"r", "c"}, optional
             Order of iteration. "r" means row-wise and "c" means column-wise.
-        
-            row-wise
-            ----->
-            ----->
-            ----->
+
             
-            column-wise
-            | | |
-            | | |
-            v v v
+            .. code-block::
+            
+                row-wise
+                    ----->
+                    ----->
+                    ----->
+                
+                column-wise
+                    | | |
+                    | | |
+                    v v v
 
         Returns
         -------

@@ -102,9 +102,9 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         matrix, scale, rotation, shear, translation
-            Affine transformation parameters. See `skimage.transform.AffineTransform` for details.
+            Affine transformation parameters. See ``skimage.transform.AffineTransform`` for details.
         mode, cval, output_shape
-            Padding mode, constant value and the shape of output. See `scipy.ndimage.affine_transform`
+            Padding mode, constant value and the shape of output. See ``scipy.ndimage.affine_transform``
             for details.
         {order}
         {dims}
@@ -238,7 +238,7 @@ class ImgArray(LabeledArray):
     @same_dtype()
     def binning(self, binsize:int=2, method="mean", *, check_edges:bool=True, dims=None) -> ImgArray:
         r"""
-        Binning of images. This function is similar to `rescale` but is strictly binned by :math:`N \times N` 
+        Binning of images. This function is similar to ``rescale`` but is strictly binned by :math:`N \times N` 
         blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.
 
         Parameters
@@ -248,7 +248,7 @@ class ImgArray(LabeledArray):
         method : str or callable, default is numpy.mean
             Reduce function applied to each bin.
         check_edges : bool, default is True
-            If True, only divisible `binsize` is accepted. If False, image is cropped at the end to
+            If True, only divisible ``binsize`` is accepted. If False, image is cropped at the end to
             match `binsize`.
         {dims}
 
@@ -293,10 +293,10 @@ class ImgArray(LabeledArray):
         center : iterable of float, optional
             The coordinate of center of radial profile. By default, the center of image is used.
         r_max : float, optional
-            Maximum radius to make profile. Region 0 <= r < r_max will be split into `nbin` rings
+            Maximum radius to make profile. Region 0 <= r < r_max will be split into ``nbin`` rings
             (or shells). **Scale must be considered** because scales of each axis may vary.
         method : str, default is "mean"
-            Reduce function. Basic statistics functions are supported in `scipy.ndimage` but their
+            Reduce function. Basic statistics functions are supported in ``scipy.ndimage`` but their
             names are not consistent with those in `numpy`. Use `numpy`'s names here.
         {dims}
 
@@ -527,7 +527,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Array of eigenvalues. The axis `l` denotes the index of eigenvalues.
+            Array of eigenvalues. The axis ``"l"`` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
         
         Examples
@@ -567,8 +567,8 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray and ImgArray
-            Arrays of eigenvalues and eigenvectors. The axis `l` denotes the index of 
-            eigenvalues. l=0 means the smallest eigenvalue. `r` denotes the index of
+            Arrays of eigenvalues and eigenvectors. The axis ``"l"`` denotes the index of 
+            eigenvalues. l=0 means the smallest eigenvalue. ``"r"`` denotes the index of
             spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
@@ -601,7 +601,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Array of eigenvalues. The axis `l` denotes the index of eigenvalues.
+            Array of eigenvalues. The axis ``"l"`` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
         """          
         ndim = len(dims)
@@ -634,8 +634,8 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray and ImgArray
-            Arrays of eigenvalues and eigenvectors. The axis `l` denotes the index of 
-            eigenvalues. l=0 means the smallest eigenvalue. `r` denotes the index of
+            Arrays of eigenvalues and eigenvectors. The axis ``"l"`` denotes the index of 
+            eigenvalues. l=0 means the smallest eigenvalue. ``"r"`` denotes the index of
             spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
@@ -788,7 +788,7 @@ class ImgArray(LabeledArray):
     def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Morphological erosion. If input is binary image, the running function will automatically switched to
-        `binary_erosion` to speed up calculation.
+        ``binary_erosion`` to speed up calculation.
 
         Parameters
         ----------
@@ -801,12 +801,17 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = _filters.binary_erosion if self.dtype == bool else _filters.erosion
         disk = _structures.ball_like(radius, len(dims))
+        if self.dtype == bool:
+            f = _filters.binary_erosion
+            kwargs = dict(structure=disk)
+        else:
+            f = _filters.erosion
+            kwargs = dict(footprint=disk)
         return self.apply_dask(f, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
-                               kwargs=dict(footprint=disk)
+                               kwargs=kwargs
                                )
     
     @_docs.write_docs
@@ -815,7 +820,7 @@ class ImgArray(LabeledArray):
     def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Morphological dilation. If input is binary image, the running function will automatically switched to
-        `binary_dilation` to speed up calculation.
+        ``binary_dilation`` to speed up calculation.
 
         Parameters
         ----------
@@ -828,12 +833,17 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = _filters.binary_dilation if self.dtype == bool else _filters.dilation
         disk = _structures.ball_like(radius, len(dims))
+        if self.dtype == bool:
+            f = _filters.binary_dilation
+            kwargs = dict(structure=disk)
+        else:
+            f = _filters.dilation
+            kwargs = dict(footprint=disk)
         return self.apply_dask(f, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
-                               kwargs=dict(footprint=disk)
+                               kwargs=kwargs
                                )
     
     @_docs.write_docs
@@ -842,7 +852,7 @@ class ImgArray(LabeledArray):
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Morphological opening. If input is binary image, the running function will automatically switched to
-        `binary_opening` to speed up calculation.
+        ``binary_opening`` to speed up calculation.
 
         Parameters
         ----------
@@ -855,12 +865,17 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = _filters.binary_opening if self.dtype == bool else _filters.opening
         disk = _structures.ball_like(radius, len(dims))
+        if self.dtype == bool:
+            f = _filters.binary_opening
+            kwargs = dict(structure=disk)
+        else:
+            f = _filters.opening
+            kwargs = dict(footprint=disk)
         return self.apply_dask(f, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
-                               kwargs=dict(footprint=disk)
+                               kwargs=kwargs
                                )
     
     @_docs.write_docs
@@ -869,7 +884,7 @@ class ImgArray(LabeledArray):
     def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
         """
         Morphological closing. If input is binary image, the running function will automatically switched to
-        `binary_closing` to speed up calculation.
+        ``binary_closing`` to speed up calculation.
 
         Parameters
         ----------
@@ -882,12 +897,17 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
-        f = _filters.binary_closing if self.dtype == bool else _filters.closing
         disk = _structures.ball_like(radius, len(dims))
+        if self.dtype == bool:
+            f = _filters.binary_closing
+            kwargs = dict(structure=disk)
+        else:
+            f = _filters.closing
+            kwargs = dict(footprint=disk)
         return self.apply_dask(f, 
                                c_axes=complement_axes(dims, self.axes), 
                                dtype=self.dtype,
-                               kwargs=dict(footprint=disk)
+                               kwargs=kwargs
                                )
     
     @_docs.write_docs
@@ -1516,7 +1536,7 @@ class ImgArray(LabeledArray):
                           wavelet_levels:int=None, method:str="BayesShrink", max_shifts:int|tuple=0,
                           shift_steps:int|tuple=1, dims=None) -> ImgArray:
         """
-        Wavelet denoising. Because it is not shift invariant, `cycle_spin` is called inside the 
+        Wavelet denoising. Because it is not shift invariant, ``cycle_spin`` is called inside the 
         function.
 
         Parameters
@@ -1582,32 +1602,31 @@ class ImgArray(LabeledArray):
             Coordinate that will be considered as the center. For example, center=(0, 0) means the most
             upper left pixel, and center=(0.5, 0.5) means the middle point of a pixel unit.
             
-            +-+-+
-            |0|1|
-            +-+-+
-            |3|2|
-            +-+-+
-            
-            becomes
-            
-            +-----+-----+
-            |(0,0)|(0,1)|
-            +-----+-----+
-            |(1,0)|(1,1)|
-            +-----+-----+
+                .. code-block::
                 
+                    0, 1
+                    3, 2
+                    
+                becomes
+                
+                .. code-block::
+                    
+                    (0, 0), (0, 1)
+                    (1, 0), (1, 1)
+                    
         {order}
         angle_order : list of int, default is [2, 1, 0, 3]
             Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 corresponds to
             polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
-            np.ndarray like `arr[angle_order]` to sort it. For example, if a pixel unit receives 
+            np.ndarray like ``arr[angle_order]`` to sort it. For example, if a pixel unit receives 
             polarized light like below:
             
+                .. code-block::
             
-                [0] [1]    [ 90] [ 45]    [|] [/]
-                [2] [3] -> [135] [  0] or [\] [-]
+                    [0] [1]    [ 90] [ 45]    [|] [/]
+                    [2] [3] -> [135] [  0] or [\] [-]
                 
-            then `angle_order` should be [2, 1, 0, 3].
+            then ``angle_order`` should be [2, 1, 0, 3].
             
         Returns
         -------
@@ -1642,7 +1661,7 @@ class ImgArray(LabeledArray):
         Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
         Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
         (np.nan, np.inf) will be replaced with 0. Be sure that to calculate DoPL correctly background
-        subtraction must be applied beforehand because stokes parameter `s0` is affected by absolute
+        subtraction must be applied beforehand because stokes parameter ``s0`` is affected by absolute
         intensities.
 
         Parameters
@@ -1720,7 +1739,7 @@ class ImgArray(LabeledArray):
         ----------
         min_distance : int, default is 1
             Minimum distance allowed for each two peaks. This parameter is slightly
-            different from that in `skimage.feature.peak_local_max` because here float
+            different from that in ``skimage.feature.peak_local_max`` because here float
             input is allowed and every time footprint is calculated.
         percentile : float, optional
             Percentile to compute absolute threshold.
@@ -1787,7 +1806,7 @@ class ImgArray(LabeledArray):
         ----------
         min_distance : int, default is 1
             Minimum distance allowed for each two peaks. This parameter is slightly
-            different from that in `skimage.feature.peak_local_max` because here float
+            different from that in ``skimage.feature.peak_local_max`` because here float
             input is allowed and every time footprint is calculated.
         percentile : float, optional
             Percentile to compute absolute threshold.
@@ -1885,7 +1904,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         MarkerFrame
-            Coordinates of corners. For details see `corner_peaks` method.
+            Coordinates of corners. For details see ``corner_peaks`` method.
         """        
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
@@ -1948,7 +1967,7 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims=None):
         """
-        Flood filling with a list of seed points. By repeating skimage's `flood` function,
+        Flood filling with a list of seed points. By repeating skimage's ``flood`` function,
         this method can perform segmentation of an image.
 
         Parameters
@@ -2093,10 +2112,12 @@ class ImgArray(LabeledArray):
         Examples
         --------
         Track single molecules and view the tracks with napari.
+        
             >>> coords = img.find_sm()
             >>> lnk = coords.link(3, min_dwell=10)
             >>> ip.gui.add(img)
             >>> ip.gui.add(lnk)
+            
         """        
         method = method.lower()
         if method in ("dog", "doh", "log"):
@@ -2148,7 +2169,6 @@ class ImgArray(LabeledArray):
             For every slice `sl`, label is added only when filt(`input`) == True is satisfied.
         percentile, dims
             Passed to peak_local_max()
-        {dims}
         
         Returns
         -------
@@ -2360,7 +2380,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Phase image with range [-90, 90] if deg==True, otherwise [-pi/2, pi/2].
+            Phase image with range [-90, 90] if ``deg==True``, otherwise [-pi/2, pi/2].
         """        
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
         arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
@@ -2509,7 +2529,7 @@ class ImgArray(LabeledArray):
             - "square": padded to smallest 2^N-long square.
             - "same" (default): no padding or cropping.
         shift : bool, default is True
-            If True, call `np.fft.fftshift` in the end.
+            If True, call ``np.fft.fftshift`` in the end.
         {dims}
             
         Returns
@@ -2542,7 +2562,7 @@ class ImgArray(LabeledArray):
         real : bool, default is True
             If True, only the real part is returned.
         shift : bool, default is True
-            If True, call `np.fft.ifftshift` at the first.
+            If True, call ``np.fft.ifftshift`` at the first.
         {dims}
             
         Returns
@@ -2568,9 +2588,9 @@ class ImgArray(LabeledArray):
         """
         Return n-D power spectra of images, which is defined as:
         
-        .. math:
+        .. math::
         
-            P = Re{F[img]}^2 + Im{F[img]}^2
+            P = Re(F[I_{img}])^2 + Im(F[I_{img}])^2
 
         Parameters
         ----------
@@ -2668,7 +2688,7 @@ class ImgArray(LabeledArray):
     def label_multiotsu(self, classes:int=3, nbins:int=256, *, dims:str=None) -> ImgArray:
         """
         Label images using multi-Otsu method. Region lower than the lowest threshold will be labeled
-        zero. This function will take very long time with large `classes` value.
+        zero. This function will take very long time with large ``classes`` value.
 
         Parameters
         ----------
@@ -3151,7 +3171,7 @@ class ImgArray(LabeledArray):
     @record(append_history=False, need_labels=True)
     def random_walker(self, beta:float=130, mode:str="cg_j", tol:float=1e-3, *, dims=None) -> Label:
         """
-        Random walker segmentation. Only wrapped skimage segmentation. `self.labels` will be
+        Random walker segmentation. Only wrapped skimage segmentation. ``self.labels`` will be
         segmented.
 
         Parameters
@@ -3201,9 +3221,9 @@ class ImgArray(LabeledArray):
     
     def label_threshold(self, thr:float|str="otsu", *, dims=None, **kwargs) -> Label:
         """
-        Make labels with threshold(). Be sure that keyword argument `dims` can be
+        Make labels with threshold(). Be sure that keyword argument ``dims`` can be
         different (in most cases for >4D images) between threshold() and label().
-        In this function, both function will have the same `dims` for simplicity.
+        In this function, both function will have the same ``dims`` for simplicity.
 
         Parameters
         ----------
@@ -3286,15 +3306,15 @@ class ImgArray(LabeledArray):
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
-        analyzed with properties=("X", "Y"), then you can get X's time-course profile
-        of channel 1 at label 3 by prop["X"]["p=5;c=1"] or prop.X["p=5;c=1"].
+        analyzed with ``properties=("X", "Y")``, then you can get X's time-course profile
+        of channel 1 at label 3 by ``prop["X"]["p=5;c=1"]`` or ``prop.X["p=5;c=1"]``.
 
         Parameters
         ----------
         properties : iterable, optional
-            properties to analyze, see skimage.measure.regionprops.
+            properties to analyze, see ``skimage.measure.regionprops``.
         extra_properties : iterable of callable, optional
-            extra properties to analyze, see skimage.measure.regionprops.
+            extra properties to analyze, see ``skimage.measure.regionprops``.
 
         Returns
         -------
@@ -3305,6 +3325,7 @@ class ImgArray(LabeledArray):
         Examples
         --------
         Measure region properties around single molecules.
+        
             >>> coords = img.centroid_sm()
             >>> img.specify(coords, 3, labeltype="circle")
             >>> props = img.regionprops()
@@ -3494,7 +3515,7 @@ class ImgArray(LabeledArray):
         method : str or callable, default is mean-projection.
             Projection method. If str is given, it will converted to numpy function.
         mask : array-like, optional
-            If provided, input image will be converted to np.ma.array and `method` will also be interpreted
+            If provided, input image will be converted to np.ma.array and ``method`` will also be interpreted
             as an masked functio if possible.
         **kwargs
             Other keyword arguments that will passed to projection function.
@@ -3631,16 +3652,16 @@ class ImgArray(LabeledArray):
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
                          along:str=None, dims=2, update:bool=False) -> ImgArray:
         """
-        Drift correction using iterative Affine translation. If translation vectors `shift`
-        is not given, then it will be determined using `track_drift` method of ImgArray.
+        Drift correction using iterative Affine translation. If translation vectors ``shift``
+        is not given, then it will be determined using ``track_drift`` method of ImgArray.
 
         Parameters
         ----------
         shift : DataFrame or (N, D) array, optional
             Translation vectors. If DataFrame, it must have columns named with all the symbols
-            contained in `dims` (MarkerFrame recommended).
+            contained in ``dims``.
         ref : ImgArray, optional
-            The reference n-D image to determine drift, if `shift` was not given.
+            The reference n-D image to determine drift, if ``shift`` was not given.
         zero_ave : bool, default is True
             If True, average shift will be zero.
         {order}
@@ -3676,13 +3697,12 @@ class ImgArray(LabeledArray):
                                  f"axes of `ref`({ref.axes})")
 
             shift = ref.track_drift(along=along)
-        elif isinstance(shift, MarkerFrame):
-            if len(shift) != self.sizeof(along):
-                raise ValueError("Wrong shape of 'shift'.")
-        else:
-            shift = MarkerFrame(shift, columns=dims, dtype=np.float32)
             
-        shift = shift.values
+        else:
+            shift = np.asarray(shift, dtype=np.float32)
+            if (self.sizeof(along), self.ndim) != shift.shape:
+                raise ValueError("Wrong shape of `shift`.")
+
         if zero_ave:
             shift = shift - np.mean(shift, axis=0)
             
@@ -3751,7 +3771,7 @@ class ImgArray(LabeledArray):
         
         Examples
         --------
-        Suppose `img` has zyx-axes.
+        Suppose ``img`` has zyx-axes.
         
         1. Padding 5 pixels in zyx-direction:
             >>> img.pad(5)
@@ -3939,7 +3959,9 @@ class ImgArray(LabeledArray):
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position :math:`x`,
         :math:`F_{reg}(x)`, is calculated as:
         
-        :math:`F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})}`
+        .. math::
+            
+            F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})}
         
         (:math:`I(x)`: image, :math:`\lambda`: constant)
         
@@ -3963,7 +3985,7 @@ class ImgArray(LabeledArray):
         
         eps : float, default is 1e-5
             During deconvolution, division by small values in the convolve image of estimation and 
-            PSF may cause divergence. Therefore, division by values under `eps` is substituted
+            PSF may cause divergence. Therefore, division by values under ``eps`` is substituted
             to zero.
         {dims}
         {update}

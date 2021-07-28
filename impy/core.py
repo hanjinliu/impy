@@ -41,7 +41,7 @@ def write_docs(func):
 @write_docs
 def array(arr, dtype=None, *, name=None, axes=None, copy=True) -> ImgArray:
     """
-    make an ImgArray object, just like np.array(x)
+    make an ImgArray object, like ``np.array(x)``
     
     Parameters
     ----------
@@ -77,7 +77,7 @@ def array(arr, dtype=None, *, name=None, axes=None, copy=True) -> ImgArray:
 @write_docs
 def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     """
-    make an ImgArray object, like np.asarray(x)
+    make an ImgArray object, like ``np.asarray(x)``
     
     Parameters
     ----------
@@ -105,7 +105,7 @@ def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgAr
         Base array.
     {}
     chunks : int, tuple
-        How to chunk the array. For details see `dask.array.from_array`.
+        How to chunk the array. For details see ``dask.array.from_array``.
         
     Returns
     -------
@@ -136,7 +136,7 @@ def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgAr
 @write_docs
 def _template(shape, dtype=np.uint16, *, name=None, axes=None):
     r"""
-    Make an ImgArray object, like np.{npfuncname}.
+    Make an ImgArray object, like ``np.{npfuncname}``.
 
     Parameters
     ----------
@@ -170,7 +170,7 @@ def gaussian_kernel(shape:tuple[int, ...], sigma=1.0, peak:float=1.0) -> ImgArra
 
     Parameters
     ----------
-    shape : tuple[int]
+    shape : tuple of int
         Shape of image.
     sigma : float or array-like, default is 1.0
         Standard deviation of Gaussian.
@@ -224,7 +224,7 @@ def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
 
 def sample_image(name:str) -> ImgArray:
     """
-    Get sample images from `skimage` and convert it into ImgArray.
+    Get sample images from ``skimage`` and convert it into ImgArray.
 
     Parameters
     ----------
@@ -249,8 +249,8 @@ def sample_image(name:str) -> ImgArray:
 
 def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> ImgArray:
     """
-    Load image(s) from a path. You can read list of images from directories with wildcards or "$"
-    in `path`.
+    Load image(s) from a path. You can read list of images from directories with wildcards or ``"$"``
+    in ``path``.
 
     Parameters
     ----------
@@ -259,7 +259,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
     dtype : Any type that np.dtype accepts
         Data type of images.
     key : str, optional
-        If not None, image is read in a memory-mapped array first, and only img[key] is returned.
+        If not None, image is read in a memory-mapped array first, and only ``img[key]`` is returned.
         Only axis-targeted slicing is supported. This argument is important when reading a large
         file.
     squeeze : bool, default is False
@@ -501,7 +501,7 @@ def imread_collection(path:str, filt=None) -> DataList:
     Parameters
     ----------
     path : str
-        Path than can be passed to `glob.glob`.
+        Path than can be passed to ``glob.glob``.
     filt : callable, optional
         If specified, only images that satisfies filt(img)==True will be stored in the returned 
         ArrayList.

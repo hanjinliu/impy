@@ -21,7 +21,11 @@ def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:
     Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
     between two images. FSC is defined as:
     
-    :math:`FSC(r) = \frac{Re(\sum_{r<r'<r+dr}[F_0(r') \cdot \bar{F_1}(r)])}{\sqrt{\sum_{r<r'<r+dr}|F_0(r')|^2 \cdot \sum_{r<r'<r+dr}|F_1(r')|^2}}`
+        .. math::
+        
+            FSC(r) = \frac{Re(\sum_{r<r'<r+dr}[F_0(r') \cdot \bar{F_1}(r)])}
+            {\sqrt{\sum_{r<r'<r+dr}|F_0(r')|^2 \cdot \sum_{r<r'<r+dr}|F_1(r')|^2}}
+    
                   
     Parameters
     ----------

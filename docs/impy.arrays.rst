@@ -1,70 +1,65 @@
 impy.arrays package
 ===================
 
-Subpackages
------------
+Here impy provides several array objects with axes integrated.
 
-.. toctree::
-   :maxdepth: 4
-
-   impy.arrays.bases
-   impy.arrays.utils
-
-Submodules
-----------
-
-impy.arrays.axesmixin module
-----------------------------
-
-.. automodule:: impy.arrays.axesmixin
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-impy.arrays.imgarray module
----------------------------
+ImgArray
+--------
 
 .. automodule:: impy.arrays.imgarray
    :members:
    :undoc-members:
    :show-inheritance:
 
-impy.arrays.label module
-------------------------
+Label
+-----
 
 .. automodule:: impy.arrays.label
    :members:
    :undoc-members:
    :show-inheritance:
 
-impy.arrays.labeledarray module
--------------------------------
+LabeledArray
+------------
 
 .. automodule:: impy.arrays.labeledarray
    :members:
    :undoc-members:
    :show-inheritance:
 
-impy.arrays.lazy module
------------------------
+LazyImgArray
+------------
 
 .. automodule:: impy.arrays.lazy
    :members:
    :undoc-members:
    :show-inheritance:
 
-impy.arrays.phasearray module
------------------------------
+PhaseArray
+----------
 
 .. automodule:: impy.arrays.phasearray
    :members:
    :undoc-members:
    :show-inheritance:
 
-impy.arrays.specials module
----------------------------
+PropArray
+---------
 
 .. automodule:: impy.arrays.specials
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Others
+------
+
+.. automodule:: impy.arrays.axesmixin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: impy.arrays.bases
    :members:
    :undoc-members:
    :show-inheritance:

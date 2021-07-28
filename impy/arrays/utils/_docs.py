@@ -7,7 +7,7 @@ shared_docs = dict(
         """
         dims : str or int, optional
             Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions. 
-            For instance, `dims="yx"` means axes "y" and "x" are spatial dimensions and function is applied to other axes, say, "t" and/or "c". `dims=3` is equivalent to `dims="zyx"`.
+            For instance, ``dims="yx"`` means axes ``"y"`` and ``"x"`` are spatial dimensions and function is applied to other axes, say, ``"t"`` and/or ``"c"``. ``dims=3`` is equivalent to ``dims="zyx"``.
             """
     ,
         
@@ -19,43 +19,56 @@ shared_docs = dict(
         ,
         
     radius = \
-        r"""
+        """
         radius : float, optional
-            Radius of kernel structure. For instance, if input has two spatial dimensions, `radius=1` gives a structure:
-            
-            :math:`\\begin{bmatrix} 0 & 1 & 0 \\\\1 & 1 & 1 \\\\0 & 1 & 0 \\end{bmatrix}`
-                    
-            and `radius=1.8` gives a structure:
+            Radius of kernel structure. For instance, if input has two spatial dimensions, ``radius=1`` gives a structure
+
+                .. code-block:: python
                 
-            :math:`\\begin{bmatrix} 0 & 1 & 1 & 0 \\\\1 & 1 & 1 & 1 \\\\1 & 1 & 1 & 1 \\\\0 & 1 & 1 & 0 \\end{bmatrix}`
+                    [[0, 1, 0], 
+                     [1, 1, 1],
+                     [0, 1, 0]]
+            
+            and ``radius=1.8`` gives a structure 
+            
+                .. code_block:: python
+                
+                    [[0, 1, 1, 0], 
+                     [1, 1, 1, 1],
+                     [1, 1, 1, 1],
+                     [0, 1, 1, 0]]
+            
             """
         ,
         
     sigma = \
         """
         sigma : float or array of float, optional
-            Standard deviation(s) of Gaussian filter. If a scalar value is given, same standard deviation will applied to all the spatial dimensions.
+            Standard deviation(s) of Gaussian filter. 
+            If a scalar value is given, same standard deviation will applied to all the spatial dimensions.
             """
         ,
         
     order = \
         """
         order : int, default is 1
-            Spline interpolation order. For more details see `here <https://scikit-image.org/docs/dev/api/skimage.transform.html#skimage.transform.warp>`_.
+            Spline interpolation order. 
+            For more details see `here <https://scikit-image.org/docs/dev/api/skimage.transform.html#skimage.transform.warp>`_.
             """
         ,
         
     squeeze = \
         """
         squeeze : bool, default is True
-            If True, the redundant axis will be deleted. Array with sinl0gle value will be converted to a scalar.
+            If True, the redundant axis will be deleted. 
+            Array with sinl0gle value will be converted to a scalar.
             """
     ,
     
     connectivity = \
         """
         connectivity : int, optional
-            Connectivity of pixels. See `skimage.measure.label`. 
+            Connectivity of pixels. See ``skimage.measure.label``. 
             """
     ,
     
@@ -74,6 +87,7 @@ def write_docs(func):
     if doc is not None:
         summary, params, rest = _split_doc(doc)
         for key, value in shared_docs.items():
+            value = value.rstrip()
             params = re.sub("{"+key+"}", value, params)
         doc = _merge_doc(summary, params, rest)
         func.__doc__ = doc

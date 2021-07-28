@@ -101,10 +101,6 @@ class Axes:
 
     def is_none(self):
         return isinstance(self.axes, NoneAxes)
-
-    def to_none(self):
-        self.axes = NONE
-        return None
     
     @check_none
     def is_sorted(self) -> bool:

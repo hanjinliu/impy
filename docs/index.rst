@@ -6,6 +6,16 @@
 Welcome to impy's documentation!
 ================================
 
+``impy`` is a fast to code, easy to extend image processing package.
+
+.. code-block:: python
+
+   import impy as ip
+   img = ip.imread("path/to/image.tif")  # read
+   out = img.gaussian_filter()           # process
+   ip.gui.add(out)                       # view!
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -14,7 +24,6 @@ Welcome to impy's documentation!
    impy.arrays
    impy.frames
    impy.viewer
-
 
 
 Indices and tables
