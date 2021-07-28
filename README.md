@@ -13,6 +13,10 @@ Image analysis programatically is sometimes troublesome like ...
 
 As a result, isn't it faster to analyze images using ImageJ? This module solves these major problems of Python based image analysis and makes it much more effective.
 
+## Documentation
+
+Please refer to `impy`'s [documentation](https://hanjinliu.github.io/impy/) for tutorials and API.
+
 ## Installation
 
 ```
@@ -25,6 +29,17 @@ or
 git clone https://github.com/hanjinliu/impy
 ```
 
+## Depencencies
+
+- `scikit-image`>=0.18
+- `numpy`>=1.17
+- `scipy`>=1.6.3
+- `matplotlib`
+- `pandas`>=1
+- `dask`>=2021.6.0
+- `tifffile`>=2021.6.14
+- `napari`>=0.4.9
+  
 `impy` is partly dependent on `numba`, `cupy`, `trackpy`, `mrcfile` and `dask-image`. Please install these packages if needed.
 
 ## Highlights
