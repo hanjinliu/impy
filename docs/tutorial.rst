@@ -183,8 +183,8 @@ Read Very Large Images
 
 If you deal with very large images that exceeds PC memory, you can use ``LazyImgArray``. This object retains
 memory map of the image file that is split into smaller chunks, and passes it to ``dask`` array as "ready to
-read" state. The image data is loaded only when it is needed. Many useful functions in ``ImgArray`` are also
-implemented in ``LazyImgArray`` so that you can easily handle large datasets.
+read" state. The image data is therefore loaded only when it is needed. Many useful functions in ``ImgArray`` 
+are also implemented in ``LazyImgArray`` so that you can easily handle large datasets.
 
 To read large images as ``LazyImgArray``, call ``lazy_imread`` instead.
 

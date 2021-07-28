@@ -815,7 +815,7 @@ class LazyImgArray(AxesMixin):
                                 chunks=(1, ndim) + (1,)*(ndim-1),
                                 meta=xp.array([], dtype=np.float32)
                                 )
-
+        
         # For cupy, we must call map_blocks (or from_delayed and delayed) here.
         result = da.map_blocks(xp.cumsum, result[..., 0].rechunk((len_t, ndim)), 
                                axis=0, meta=xp.array([], dtype=np.float32)
@@ -850,7 +850,7 @@ class LazyImgArray(AxesMixin):
             if len(shift) != self.sizeof(along):
                 raise ValueError("Wrong shape of 'shift'.")
             shift = shift.values
-            
+
         if zero_ave:
             shift = shift - da.mean(shift, axis=0)
             
@@ -858,17 +858,19 @@ class LazyImgArray(AxesMixin):
         slice_in = switch_slice(dims, self.axes, ifin=slice(None), ifnot=0)
         slice_out = switch_slice(dims, self.axes, ifin=slice(None), ifnot=np.newaxis)
         ndim = len(dims)
-        
-        def warp(arr, block_info=None):
+
+        # Here shift must be a local variable for the function. Otherwise, it takes dask very long time 
+        # for graph construction.
+        def warp(arr, shift, block_info=None):
             mx = xp.eye(ndim+1, dtype=np.float32)
             loc = block_info[None]['array-location'][0]
-            mx[:-1, -1] = -shift[loc[t_index]].compute()
+            mx[:-1, -1] = -shift[loc[t_index]]
             return _transform.warp(arr[slice_in], mx, order=order)[slice_out]
         
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
-
-        out = da.map_blocks(warp, self.img.rechunk(chunks), meta=xp.array([], dtype=self.dtype))
-
+        
+        out = da.map_blocks(warp, self.img.rechunk(chunks), shift, meta=xp.array([], dtype=self.dtype))
+        
         return out
     
     @_docs.copy_docs(ImgArray.pad)
@@ -997,3 +999,14 @@ class LazyImgArray(AxesMixin):
             self.history = other.history.copy()
         
         return None
+
+
+
+
+def warp0(arr, block_info=None, t_index=None, slice_in=None, slice_out=None, shift=None,
+          ndim=2, order=1):
+    mx = xp.eye(ndim+1, dtype=np.float32)
+    loc = block_info[None]['array-location'][0]
+    print(shift.shape)
+    mx[:-1, -1] = -shift[loc[t_index]]
+    return _transform.warp(arr[slice_in], mx, order=order)[slice_out]

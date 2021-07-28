@@ -379,9 +379,9 @@ class MetaArray(AxesMixin, np.ndarray):
                                 meta=xp.array([], dtype=dtype), 
                                 **kwargs
                                 )
-                                
+            
             out = out.compute()
-
+            
         out = out.view(self.__class__)
         
         return out
