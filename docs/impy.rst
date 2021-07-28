@@ -1,7 +1,7 @@
 impy package
 ============
 
-Axes
+axes
 ----
 
 .. automodule:: impy.axes

@@ -10,7 +10,7 @@ As a simple example:
    out = img.gaussian_filter()           # process
    out
 
-.. code-blocks::
+.. code-block::
 
         shape     : 10(t), 20(z), 256(y), 256(x)
       label shape : No label
@@ -21,7 +21,7 @@ As a simple example:
 
 .. code-block:: python
 
-    ip.gui.add(out)                       # view!
+    ip.gui.add(out)
 
 and you can view the image in a ``napari`` viewer.
 
@@ -114,11 +114,5 @@ And check its size in GB:
 
     15.72864
 
-
-
-Use GPU
--------
-
-``cupy``
 
 

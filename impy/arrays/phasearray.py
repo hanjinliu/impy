@@ -127,9 +127,10 @@ class PhaseArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> PhaseArray:
-        """
+        r"""
         Mean filter using phase averaging method:
-        arg(sum(e^j(X0 + X1 + ...)))
+        
+        :math:`\arg{\sum_{k}{e^{i X_k}}}`
 
         Parameters
         ----------
@@ -192,12 +193,12 @@ class PhaseArray(LabeledArray):
     def regionprops(self, properties:tuple[str,...]|str=("phase_mean",), *, 
                     extra_properties=None) -> DataDict[str, PropArray]:
         """
-        Run skimage's regionprops() function and return the results as PropArray, so
+        Run ``skimage``'s ``regionprops()`` function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
-        analyzed with properties=("X", "Y"), then you can get X's time-course profile
-        of channel 1 at label 3 by prop["X"]["p=5;c=1"] or prop.X["p=5;c=1"].
+        analyzed with ``properties=("X", "Y")``, then you can get X's time-course profile
+        of channel 1 at label 3 by ``prop["X"]["p=5;c=1"]`` or ``prop.X["p=5;c=1"]``.
         In PhaseArray, instead of mean_intensity you should use "phase_mean". The
-        phase_mean function is included so that it can be passed in `properties` argument.
+        phase_mean function is included so that it can be passed in ``properties`` argument.
 
         Parameters
         ----------

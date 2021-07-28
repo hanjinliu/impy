@@ -8,25 +8,25 @@ Viewer Tutorial
 Mouse Callbacks
 ---------------
 
-- ``Alt`` + mouse drag &rarr; lateral translation
-- ``Alt`` + ``Shift`` + mouse drag &rarr; lateral translation restricted in either x- or y-orientation (left button or right button respectively).
-- ``Alt`` + mouse wheel &rarr; rescaling
-- ``Ctrl`` + ``Shift`` + ``R`` &rarr; reset original states.
+- ``Alt`` + mouse drag -> lateral translation
+- ``Alt`` + ``Shift`` + mouse drag -> lateral translation restricted in either x- or y-orientation (left button or right button respectively).
+- ``Alt`` + mouse wheel -> rescaling
+- ``Ctrl`` + ``Shift`` + ``R`` -> reset original states.
 
 
 Keyboard Shortcuts
 ------------------
 
-- ``Ctrl`` + ``Shift`` + ``A`` &rarr; Hide non-selected layers. Display all the layers by push again.
-- ``Ctrl`` + ``Shift`` + ``F`` &rarr; Move selected layers to front.
-- ``Alt`` + ``L`` &rarr; Convert all the shapes in seleted shape-layers into labels of selected image-layers.
-- ``Ctrl`` + ``Shift`` + ``D`` &rarr; Duplicate selected layers.
-- ``Ctrl`` + ``Shift`` + ``X`` &rarr; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated cropping is also supported!
-- ``/`` &rarr; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in ``ip.gui.results`` for now.
-- ``Ctrl`` + ``P`` &rarr; Projection of shape-layers or point-layers to 2D layers.
-- ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` &rarr; Link/Unlink layers. Like "grouping" in PowerPoint.
-- ``Shift`` + ``S`` / ``S`` &rarr; Add 2D/nD shape-layer.
-- ``Shift`` + ``P`` / ``P`` &rarr; Add 2D/nD point-layer.
+- ``Ctrl`` + ``Shift`` + ``A`` -> Hide non-selected layers. Display all the layers by push again.
+- ``Ctrl`` + ``Shift`` + ``F`` -> Move selected layers to front.
+- ``Alt`` + ``L`` -> Convert all the shapes in seleted shape-layers into labels of selected image-layers.
+- ``Ctrl`` + ``Shift`` + ``D`` -> Duplicate selected layers.
+- ``Ctrl`` + ``Shift`` + ``X`` -> Crop selected image-layers with all the rectangles in selected shape-layers. Rotated cropping is also supported!
+- ``/`` -> Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in ``ip.gui.results`` for now.
+- ``Ctrl`` + ``P`` -> Projection of shape-layers or point-layers to 2D layers.
+- ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` -> Link/Unlink layers. Like "grouping" in PowerPoint.
+- ``Shift`` + ``S`` / ``S`` -> Add 2D/nD shape-layer.
+- ``Shift`` + ``P`` / ``P`` -> Add 2D/nD point-layer.
 
 Others
 ------
