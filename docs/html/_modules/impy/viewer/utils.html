@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>impy.viewer.utils &#8212; impy 1.17.8 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.17.8 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">impy.viewer.utils</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for impy.viewer.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..arrays</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">napari</span>
+
+<div class="viewcode-block" id="copy_layer"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.copy_layer">[docs]</a><span class="k">def</span> <span class="nf">copy_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+    <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">as_layer_data_tuple</span><span class="p">()</span>
+    <span class="c1"># linear interpolation is valid only in 3D mode.</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;interpolation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;interpolation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;nearest&quot;</span>
+    <span class="n">copy</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">copy</span></div>
+
+<div class="viewcode-block" id="iter_layer"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.iter_layer">[docs]</a><span class="k">def</span> <span class="nf">iter_layer</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Iterate over layers and yield only certain type of layers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layer_type : str, {&quot;shape&quot;, &quot;image&quot;, &quot;point&quot;}</span>
+<span class="sd">        Type of layer.</span>
+
+<span class="sd">    Yields</span>
+<span class="sd">    -------</span>
+<span class="sd">    napari.layers</span>
+<span class="sd">        Layers specified by layer_type</span>
+<span class="sd">    &quot;&quot;&quot;</span>        
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">layer_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_type</span><span class="p">]</span>
+    <span class="n">layer_type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer_type</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">layer</span></div>
+
+<div class="viewcode-block" id="iter_selected_layer"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.iter_selected_layer">[docs]</a><span class="k">def</span> <span class="nf">iter_selected_layer</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">:</span><span class="nb">str</span><span class="o">|</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">layer_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_type</span><span class="p">]</span>
+    <span class="n">layer_type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer_type</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">layer</span></div>
+
+<div class="viewcode-block" id="front_image"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.front_image">[docs]</a><span class="k">def</span> <span class="nf">front_image</span><span class="p">(</span><span class="n">viewer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From list of image layers return the most front visible image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>        
+    <span class="n">front</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">iter_layer</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="s2">&quot;Image&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
+            <span class="n">front</span> <span class="o">=</span> <span class="n">img</span> <span class="c1"># This is ImgArray</span>
+    <span class="k">if</span> <span class="n">front</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is no visible image layer.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">front</span></div>
+
+<div class="viewcode-block" id="to_labels"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.to_labels">[docs]</a><span class="k">def</span> <span class="nf">to_labels</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">labels_shape</span><span class="p">,</span> <span class="n">zoom_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">layer</span><span class="o">.</span><span class="n">_data_view</span><span class="o">.</span><span class="n">to_labels</span><span class="p">(</span><span class="n">labels_shape</span><span class="o">=</span><span class="n">labels_shape</span><span class="p">,</span> <span class="n">zoom_factor</span><span class="o">=</span><span class="n">zoom_factor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="make_world_scale"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.make_world_scale">[docs]</a><span class="k">def</span> <span class="nf">make_world_scale</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">_axes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="s2">&quot;zyx&quot;</span><span class="p">:</span>
+            <span class="n">scale</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="n">a</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">scale</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">scale</span></div>
+
+<div class="viewcode-block" id="upon_add_layer"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.upon_add_layer">[docs]</a><span class="k">def</span> <span class="nf">upon_add_layer</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">new_layer</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">sources</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">new_layer</span><span class="o">.</span><span class="n">translate</span> <span class="o">=</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">translate</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
+        <span class="n">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">)</span>
+        <span class="n">mean_scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">new_layer</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_edge_width</span> <span class="o">=</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">2.0</span>
+        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_face_color</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_edge_color</span> <span class="o">=</span> <span class="s2">&quot;#dd23cb&quot;</span>
+        <span class="n">new_layer</span><span class="o">.</span><span class="n">_rotation_handle_length</span> <span class="o">=</span> <span class="mi">20</span><span class="o">/</span><span class="n">mean_scale</span>
+        
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Points</span><span class="p">):</span>
+        <span class="n">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Labels</span><span class="p">):</span>
+        <span class="n">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">)</span>
+            
+    <span class="n">new_layer</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;init_translate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">translate</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">new_layer</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;init_scale&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+<span class="k">def</span> <span class="nf">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">):</span>
+    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Alt-A&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">select_all</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+        <span class="n">layer</span><span class="o">.</span><span class="n">selected_data</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="p">)))</span>
+        
+    <span class="c1"># txt_manager = napari.layers.utils.text.TextManager</span>
+    <span class="c1"># init_prop = {&quot;text&quot;: np.zeros(0, dtype=&quot;&lt;U12&quot;)}</span>
+    <span class="c1"># new_layer._text = txt_manager(&quot;{text}&quot;, 0, properties=init_prop,</span>
+    <span class="c1">#                               color=&quot;yellow&quot;, translation=[-8, 0], size=8)</span>
+    <span class="c1"># new_layer._properties, new_layer._property_choices = new_layer._prepare_properties(</span>
+    <span class="c1">#                         init_prop, init_prop, save_choices=True)</span>
+    <span class="c1"># new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}</span>
+    <span class="c1"># use refresh text</span>
+
+<div class="viewcode-block" id="add_labeledarray"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.add_labeledarray">[docs]</a><span class="k">def</span> <span class="nf">add_labeledarray</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">chn_ax</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">else</span> <span class="kc">None</span>
+        
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">PhaseArray</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s2">&quot;colormap&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;colormap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hsv&quot;</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;contrast_limits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">border</span>
+    <span class="k">elif</span> <span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span> <span class="ow">and</span>  <span class="ow">not</span> <span class="s2">&quot;colormap&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;colormap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;plasma&quot;</span>
+    
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">history</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">img</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;No-Name&quot;</span> <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">img</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">if</span> <span class="n">chn_ax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;[C</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">))]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">channel_axis</span><span class="o">=</span><span class="n">chn_ax</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> 
+                             <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="k">else</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                             <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+    <span class="n">viewer</span><span class="o">.</span><span class="n">scale_bar</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">scale_unit</span>
+    <span class="n">new_axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;c&quot;</span><span class="p">]</span>
+    <span class="c1"># add axis labels to slide bars and image orientation.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_axes</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">):</span>
+        <span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span> <span class="o">=</span> <span class="n">new_axes</span>
+    <span class="k">return</span> <span class="n">layer</span></div>
+
+<div class="viewcode-block" id="get_viewer_scale"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.get_viewer_scale">[docs]</a><span class="k">def</span> <span class="nf">get_viewer_scale</span><span class="p">(</span><span class="n">viewer</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">,</span> <span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">range</span><span class="p">)}</span></div>
+
+<div class="viewcode-block" id="layer_to_impy_object"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.layer_to_impy_object">[docs]</a><span class="k">def</span> <span class="nf">layer_to_impy_object</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert layer to real data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    layer : napari.layers.Layer</span>
+<span class="sd">        Input layer.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.</span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="n">data</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">data</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">)</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">get_viewer_scale</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="p">(</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Labels</span><span class="p">)):</span>
+        <span class="c1"># manually drawn ones are np.ndarray, need conversion</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Image</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">ImgArray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">set_scale</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scale</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Points</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:]</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="n">axes</span><span class="p">))</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> 
+                                        <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scale</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">}))</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Tracks</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:]</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">TrackFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="n">axes</span><span class="p">))</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> 
+                                        <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scale</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">}))</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">layer</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ColorCycle"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.ColorCycle">[docs]</a><span class="k">class</span> <span class="nc">ColorCycle</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;rainbow&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color_id</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return next colormap&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color_id</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">color_id</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="p">))</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.17.8 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">impy.viewer.utils</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021, Hanjin Liu.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.0.2.
+    </div>
+  </body>
+</html>
