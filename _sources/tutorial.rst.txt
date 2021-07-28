@@ -71,6 +71,9 @@ care about which is t-axis. Most arrays in ``impy`` have extended ``numpy.ndarra
 Batch Processing
 ----------------
 
+Image Stacks
+^^^^^^^^^^^^
+
 Owing to the axes information, impy can automatically execute functions for every image slice properly.
 As in the first example, with a `tzyx` image, instead of running
 
@@ -97,6 +100,9 @@ keyword argument:
     out = img.gaussian_filter(sigma=1, dims=2) # this is fine!
 
 
+Images with Different Shapes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 For images with different shapes, they cannot be stacked into a single array. In this case, you can use ``DataList``, an 
 extension of Python ``list``. ``DataList`` recognizes any member functions of its components and call the function for all 
 the components. Here's an example:
@@ -114,8 +120,18 @@ is called three times. Following code is essentially same as what is going on in
     outputs = []
     for img in imglist:
         out = img.gaussian_filter(sigma=3)
-        otuputs.append(out)
+        outputs.append(out)
     outputs = ip.DataList(outputs)
+
+``impy`` also provides ``DataDict``, an extension of Python ``dict``, which works similarly to ``DataList``. Aside from
+the feature of iterative function call, you can give names for each image as dictionary keys, and get the value from 
+attribution, ``imgdict.name`` instead of ``imgdict["name"]``.
+
+.. code-block:: python
+
+    imglist = ip.DataDict(first=img1, second=img2, third=img3)
+    outputs = imglist.gaussian_filter(sigma=3)
+    outputs.first
 
 
 Extended Numpy functions
