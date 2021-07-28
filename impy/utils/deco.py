@@ -18,13 +18,22 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
+            # check requirements of the ongoing function.
             if only_binary and self.dtype != bool:
                 raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
             if need_labels and not hasattr(self, "labels"):
                 raise AttributeError(f"Function {func.__name__} needs labels."
                                     " Add labels to the image first.")
             
-            with Progress(func.__name__):
+            # show the dimensionality of for-loop
+            if "dims" in kwargs.keys():
+                ndim = len(kwargs["dims"])
+                suffix = f" ({ndim}D)"
+            else:
+                suffix = ""
+
+            # start process
+            with Progress(func.__name__ + suffix):
                 out = func(self, *args, **kwargs)
             
             temp = getattr(out, "temp", None)
