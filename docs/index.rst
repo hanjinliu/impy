@@ -8,23 +8,14 @@ Welcome to impy's documentation!
 
 ``impy`` is a fast to code, easy to extend image processing package.
 
-.. code-block:: python
-
-   import impy as ip
-   img = ip.imread("path/to/image.tif")  # read
-   out = img.gaussian_filter()           # process
-   ip.gui.add(out)                       # view!
-
-
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-   impy
-   impy.arrays
-   impy.frames
-   impy.viewer
-
+   tutorial
+   tutorial_viewer
+   api
+   
 
 Indices and tables
 ==================

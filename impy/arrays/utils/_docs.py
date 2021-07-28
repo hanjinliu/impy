@@ -31,7 +31,7 @@ shared_docs = dict(
             
             and ``radius=1.8`` gives a structure 
             
-                .. code_block:: python
+                .. code-block:: python
                 
                     [[0, 1, 1, 0], 
                      [1, 1, 1, 1],
