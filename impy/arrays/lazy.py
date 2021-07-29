@@ -264,6 +264,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(LabeledArray.imsave)
     @dims_to_spatial_axes
     def imsave(self, dirpath:str, dtype=None, *, dims=None):
+        # TODO: use self.dirpath, and save as single tiff file by preparing an empty tiffile first.
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
         if self.metadata is None:

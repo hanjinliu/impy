@@ -12,6 +12,7 @@ __all__ = ["add_imread_menu",
            "add_imsave_menu",
            "add_table_widget", 
            "add_note_widget",
+           "edit_properties",
            "function_handler"]
 
 def add_imread_menu(viewer):
@@ -73,8 +74,7 @@ def add_imsave_menu(viewer):
 
 
 def edit_properties(viewer):
-    @magicgui.magicgui(call_button="Apply")
-    def edit_prop(format_="{text}", propname="text", value=""):
+    def edit_prop(event):
         # get the selected shape layer
         layers = list(viewer.layers.selection)
         if len(layers) != 1:
@@ -83,24 +83,18 @@ def edit_properties(viewer):
         if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
             return None
         
-        # current properties
-        # props = layer.properties
-        # if prop not in layer.properties.keys():
-        props = np.zeros(len(layer.data), dtype="<U12")
-        old = layer.properties.get(propname, [""]*len(props))
-        # new format of texts
-        layer.text._text_format_string = format_
-        # set new values to selected shapes
-        for i in range(len(props)):
-            if layer.selected_data:
-                props[i] = value
-            else:
-                props[i] = old[i]
+        old = layer.properties["text"]
+        for i in layer.selected_data:
+            try:
+                old[i] = event.value.format(n=i)
+            except ValueError:
+                old[i] = event.value
                 
-        layer.properties = {propname: props}
-        layer.text.refresh_text(props)
-    
-    viewer.window.add_dock_widget(edit_prop, area="right", name="Property editor")
+        layer.text.refresh_text({"text": old})
+        
+    line = magicgui.widgets.LineEdit(tooltip="Property editor")
+    line.changed.connect(edit_prop)
+    widget = viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
 def add_table_widget(viewer):
@@ -244,8 +238,8 @@ def function_handler(viewer):
             return None
         else:
             return outlist
-    viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
-    # run_func.setVisible(False)
+    widget = viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
+    widget.setVisible(False)
     return None
 
 

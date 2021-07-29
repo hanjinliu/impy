@@ -1,8 +1,9 @@
 from __future__ import annotations
 import numpy as np
+import napari
 from ..arrays import *
 from ..frame import *
-import napari
+from .._const import Const
 
 def copy_layer(layer):
     args, kwargs, *_ = layer.as_layer_data_tuple()
@@ -79,7 +80,7 @@ def upon_add_layer(event):
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
         mean_scale = np.mean(new_layer.scale[-2:])
-        new_layer.current_edge_width = new_layer.scale[-1] * 2.0
+        new_layer.current_edge_width = 2.0 # unit is pixel here
         new_layer.current_face_color = [1, 1, 1, 0]
         new_layer.current_edge_color = "#dd23cb"
         new_layer._rotation_handle_length = 20/mean_scale
@@ -99,15 +100,28 @@ def _text_bound_init(new_layer):
     @new_layer.bind_key("Alt-A")
     def select_all(layer):
         layer.selected_data = set(np.arange(len(layer.data)))
+    
+    @new_layer.bind_key("Control-Shift-<")
+    def size_down(layer):
+        if new_layer.text.size > 4:
+            new_layer.text.size -= 1.0
+        else:
+            new_layer.text.size *= 0.8
+    
+    @new_layer.bind_key("Control-Shift->")
+    def size_up(layer):
+        if new_layer.text.size < 4:
+            new_layer.text.size += 1.0
+        else:
+            new_layer.text.size /= 0.8    
         
-    # txt_manager = napari.layers.utils.text.TextManager
-    # init_prop = {"text": np.zeros(0, dtype="<U12")}
-    # new_layer._text = txt_manager("{text}", 0, properties=init_prop,
-    #                               color="yellow", translation=[-8, 0], size=8)
-    # new_layer._properties, new_layer._property_choices = new_layer._prepare_properties(
-    #                         init_prop, init_prop, save_choices=True)
-    # new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}
-    # use refresh text
+    new_layer.current_properties = {"text": np.array([""])}
+    new_layer.properties = {"text": []}
+    new_layer.text = "{text}"
+    new_layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
+    new_layer.text.color = "#dd23cb"
+    new_layer.text.anchor = "upper_left"
+    
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None

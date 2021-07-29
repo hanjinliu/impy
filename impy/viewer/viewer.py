@@ -194,16 +194,16 @@ class napariViewers:
         if "contrast_limits" not in kwargs.keys():
             # contrast limits should be determined quickly.
             leny, lenx = img.shape[-2:]
-            sample = img.img[..., ::leny//3, ::lenx//3]
+            sample = img.img[..., ::leny//min(3, leny), ::lenx//min(3, lenx)]
             kwargs["contrast_limits"] = [float(sample.min().compute()), 
                                          float(sample.max().compute())]
 
         name = "No-Name" if img.name is None else img.name
 
         if chn_ax is not None:
-            name = [f"[Preview][C{i}]{name}" for i in range(img.sizeof("c"))]
+            name = [f"[Lazy][C{i}]{name}" for i in range(img.sizeof("c"))]
         else:
-            name = ["[Preview]" + name]
+            name = ["[Lazy]" + name]
 
         layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                                       name=name if len(name)>1 else name[0], **kwargs)
