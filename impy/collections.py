@@ -1,7 +1,6 @@
 from __future__ import annotations
 from .utils.utilcls import Progress
 from collections import UserList, UserDict
-import numpy as np
 
 __all__ = ["DataList", "DataDict"]
 
@@ -77,10 +76,8 @@ class DataList(CollectionBase, UserList):
             return self.__class__(getattr(a, name) for a in self)
         
         def _run(*args, **kwargs):
-            if not name.startswith("_"):
-                with Progress(name):
-                    out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
-            else:
+            out = None if name.startswith("_") else "stdout"
+            with Progress(name):
                 out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
             return out
         return _run
@@ -166,11 +163,9 @@ class DataDict(CollectionBase, UserDict):
             return self.__class__({k: getattr(a, name) for k, a in self.items()})
         
         def _run(*args, **kwargs):
-            if not name.startswith("_"):
-                with Progress(name):
-                    out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
-                                          for k, a in self.items()})
-            else:
+            
+            out = None if name.startswith("_") else "stdout"
+            with Progress(name):
                 out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
                                       for k, a in self.items()})
             return out

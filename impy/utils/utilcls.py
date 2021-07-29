@@ -46,7 +46,12 @@ class Progress:
     def __init__(self, name, out=sys.stdout):
         self.name = name
         self.timer = None
-        self.out = out
+        if out is None:
+            self.out = DummyOut()
+        elif out == "stdout":
+            out = sys.stdout
+        else:
+            self.out = out
         
     def update(self):
         event = self.stop_event
@@ -78,3 +83,10 @@ class Progress:
             self.thread.join()
             self.out.write(f"\r{self.name} finished ({self.timer})\n")
             self.out.flush()
+
+class DummyOut:
+    def write(self, a):
+        pass
+    
+    def flush(self):
+        pass

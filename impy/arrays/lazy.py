@@ -807,7 +807,6 @@ class LazyImgArray(AxesMixin):
 
         # I don't know the reason why but output dask array's chunk size along t-axis should be 
         # specified to be 1, and rechunk it map_overlap. 
-        
         result = da.map_overlap(pcc, img_fft, 
                                 depth={0: (1, 0)}, 
                                 trim=False,
@@ -840,7 +839,7 @@ class LazyImgArray(AxesMixin):
             if ref is None:
                 ref = self
             elif not isinstance(ref, self.__class__):
-                raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
+                raise TypeError(f"'ref' must be LazyImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
                 raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
                                  f"axes of `ref`({ref.axes})")
@@ -999,14 +998,3 @@ class LazyImgArray(AxesMixin):
             self.history = other.history.copy()
         
         return None
-
-
-
-
-def warp0(arr, block_info=None, t_index=None, slice_in=None, slice_out=None, shift=None,
-          ndim=2, order=1):
-    mx = xp.eye(ndim+1, dtype=np.float32)
-    loc = block_info[None]['array-location'][0]
-    print(shift.shape)
-    mx[:-1, -1] = -shift[loc[t_index]]
-    return _transform.warp(arr[slice_in], mx, order=order)[slice_out]
