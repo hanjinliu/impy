@@ -15,10 +15,23 @@ from .utils.utilcls import Progress
 
 from .axes import ImageAxesError
 from .collections import DataList
+from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
+from ._const import Const
 
-__all__ = ["array", "asarray", "aslazy", "zeros", "empty", "ones", "gaussian_kernel", "circular_mask", 
-           "imread", "imread_collection", "lazy_imread", "read_meta", "sample_image"]
+__all__ = ["array", 
+           "asarray", 
+           "aslazy", 
+           "zeros", 
+           "empty", 
+           "ones", 
+           "gaussian_kernel", 
+           "circular_mask", 
+           "imread", 
+           "imread_collection", 
+           "lazy_imread", 
+           "read_meta", 
+           "sample_image"]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
@@ -109,9 +122,11 @@ def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgAr
         
     Returns
     -------
-    ImgArray
+    LazyImgArray
     
     """
+    if isinstance(arr, MetaArray):
+        arr = da.from_array(arr.value, chunks=chunks)
     if isinstance(arr, (np.ndarray, np.memmap)):
         arr = da.from_array(arr, chunks=chunks)
     elif not isinstance(arr, da.core.Array):
@@ -295,7 +310,17 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
     dirpath = os.path.dirname(path)
     
     # read tif metadata
-    meta, img = open_img(path, memmap=is_memmap)
+    out = None
+    if not is_memmap:
+        size = os.path.getsize(path)/1e9
+        if size > Const["MAX_GB"]:
+            raise MemoryError(f"Too large {size:.2f} GB")
+        elif size > Const["MAX_GB"]/2:
+            out = "stdout"
+
+    with Progress("Reading image", out=out):
+        meta, img = open_img(path, memmap=is_memmap)
+
     axes = meta["axes"]
     metadata = meta["ijmeta"]
     if meta["history"]:
@@ -614,21 +639,22 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
 
 def read_meta(path:str) -> dict[str]:
     """
-    Read the metadata of a tiff file. 
+    Read the metadata of an image file. 
 
     Parameters
     ----------
     path : str
-        Path to the tiff file.
+        Path to the image file.
 
     Returns
     -------
     dict
         Dictionary of metadata with following keys.
-        "axes": axes information
-        "ijmeta": ImageJ metadata
-        "history": impy history
-        "tags": tiff tags
+        - "axes": axes information
+        - "ijmeta": ImageJ metadata
+        - "history": impy history
+        - "tags": tiff tags
+        
     """    
     fname, fext = os.path.splitext(os.path.basename(path))
     

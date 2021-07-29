@@ -6,19 +6,18 @@ import re
 import os
 import numpy as np
 from dask import array as da
-from .._const import Const
 from .._cupy import xp
 
-__all__ = ["imwrite", "open_tif", "open_mrc", "open_img", "open_as_dask", "get_scale_from_meta", 
+__all__ = ["imwrite", 
+           "open_tif", 
+           "open_mrc",
+           "open_img",
+           "open_as_dask",
+           "get_scale_from_meta", 
            "get_imsave_meta_from_img"]
 
 def load_json(s:str):
     return json.loads(re.sub("'", '"', s))
-
-def check_size(path:str):
-    size = os.path.getsize(path)/1e9
-    if size > Const["MAX_GB"]:
-        raise MemoryError(f"Too large {size:.2f} GB")
 
 def open_tif(path:str, return_img:bool=False, memmap:bool=False):
     with TiffFile(path) as tif:
@@ -52,10 +51,10 @@ def open_tif(path:str, return_img:bool=False, memmap:bool=False):
             if memmap:
                 out["image"] = tif.asarray(out="memmap")
             else:
-                check_size(path)
                 out["image"] = tif.asarray()
 
     return out
+
 
 def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     import mrcfile
@@ -63,7 +62,6 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
         open_func = mrcfile.mmap
     else:
         open_func = mrcfile.open
-        check_size(path)
     
     # By default mrcfile functions returns non-writeable array, which is incompatible
     # with some functions in ImgArray. We need to specify mode="r+".
@@ -88,6 +86,7 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     
     return out
 
+
 def open_as_dask(path:str, chunks):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
@@ -96,7 +95,7 @@ def open_as_dask(path:str, chunks):
     if img.dtype == ">u2":
         img = img.astype(np.uint16)
     
-    img = da.from_array(img, chunks=chunks).map_blocks(xp.asarray, meta=xp.array([], dtype=img.dtype))
+    img = da.from_array(img, chunks=chunks).map_blocks(xp.array, meta=xp.array([], dtype=img.dtype))
     return meta, img
 
 
@@ -118,6 +117,7 @@ def open_img(path, memmap:bool=False):
     
     return meta, img
 
+
 def get_scale_from_meta(meta:dict):
     spacing = meta["ijmeta"].get("spacing", 1.0)
     scale = dict()
@@ -137,6 +137,7 @@ def get_scale_from_meta(meta:dict):
         scale["z"] = spacing
         
     return scale
+
 
 def get_imsave_meta_from_img(img, update_lut=True):
     metadata = img.metadata.copy()
