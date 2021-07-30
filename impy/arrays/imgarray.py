@@ -3721,7 +3721,7 @@ class ImgArray(LabeledArray):
             mx[:-1, -1] = -shift[sl[t_index]]
             out[sl] = _transform.warp(img, mx, **affine_kwargs)
         
-        out = asnumpy(out).view(self.__class__)
+        # out = asnumpy(out).view(self.__class__)
         return out
 
     @_docs.write_docs
