@@ -345,7 +345,9 @@ def _crop_rectangle(img, crds, dims):
 
 def _get_property(layer, i):
     try:
-        prop = layer.properties["text"][i] + " of "
+        prop = layer.properties["text"][i]
     except (KeyError, IndexError):
         prop = ""
+    if prop != "":
+        prop = prop + " of "
     return prop

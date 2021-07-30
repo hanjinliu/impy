@@ -1,10 +1,13 @@
 from __future__ import annotations
+import os
 from ..collections import *
 import napari
 import pandas as pd
+import numpy as np
+from dask import array as da
 from ..arrays import *
 from ..frame import *
-from ..core import array as ip_array
+from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, lazy_imread as ip_lazy_imread
 from .utils import *
 from .mouse import *
 from ..utils.utilcls import Progress
@@ -157,26 +160,59 @@ class napariViewers:
             title = self._name(title)
             self.start(title)
         self._front_viewer = title
-            
+        
+        # Add image and its labels
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, DataList):
-            [self.add(each, title=title, **kwargs) for each in obj]
+        
+        # Add points
         elif isinstance(obj, MarkerFrame):
             self._add_points(obj, **kwargs)
+        
+        # Add labels
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
+        
+        # Add tracks
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
+        
+        # Add path
         elif isinstance(obj, PathFrame):
             self._add_paths(obj, **kwargs)
+        
+        # Add a table
         elif isinstance(obj, (pd.DataFrame, PropArray, DataDict)):
             self._add_properties(obj, **kwargs)
+        
+        # Add a lazy-loaded image
         elif isinstance(obj, LazyImgArray):
             with Progress("Sending Dask arrays to napari"):
                 self._add_dask(obj, **kwargs)
+        
+        # Add an array as an image
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
+        
+        # Add an dask array as an image
+        elif type(obj) is da.core.Array:
+            self._add_image(ip_aslazy(obj))
+        
+        # Add an image from a path
+        elif isinstance(obj, str):
+            if not os.path.exists(obj):
+                raise FileNotFoundError(f"Path does not exists: {obj}")
+            size = os.path.getsize(obj)/1e9
+            if size < Const["MAX_GB"]:
+                img = ip_imread(obj)
+            else:
+                img = ip_lazy_imread(obj)
+            self.add(img, title=title, **kwargs)                
+            
+        # Add many objects of same type
+        elif isinstance(obj, DataList):
+            [self.add(each, title=title, **kwargs) for each in obj]
+        
         elif obj is None:
             pass
         else:
