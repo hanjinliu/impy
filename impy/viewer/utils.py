@@ -110,11 +110,13 @@ def _text_bound_init(new_layer):
         if new_layer.text.size < 4:
             new_layer.text.size += 1.0
         else:
-            new_layer.text.size /= 0.8    
+            new_layer.text.size /= 0.8
+            
     n_obj = len(new_layer.data)
+    
     if n_obj == 0 or new_layer.properties == {}:
-        new_layer.current_properties = {"text": np.array([""])}
-        new_layer.properties = {"text": [""]*n_obj}
+        new_layer.current_properties = {"text": np.array([""], dtype="<U32")}
+        new_layer.properties = {"text": np.array([""]*n_obj, dtype="<U32")}
         new_layer.text = "{text}"
         new_layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
         new_layer.text.color = "#dd23cb"

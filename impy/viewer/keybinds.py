@@ -173,12 +173,16 @@ def crop(viewer):
     dims2d = "".join(viewer.dims.axis_labels[i] for i in active_plane)
     rects = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
-        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
+        for i in range(shape_layer.nshapes):
+            shape = shape_layer.data[i]
+            type_ = shape_layer.shape_type[i]
             if type_ == "rectangle":
-                rects.append((shape[:, active_plane], 
-                              shape_layer.scale[active_plane])) # shape = float pixel
-                
-    for rect, shape_layer_scale in rects:
+                rects.append((shape[:, active_plane],            # shape = float pixel
+                              shape_layer.scale[active_plane],
+                              _get_property(shape_layer, i))
+                             )
+
+    for rect, shape_layer_scale, prop in rects:
         if np.any(np.abs(rect[0] - rect[1])<1e-5):
             crop_func = _crop_rectangle
         else:
@@ -188,7 +192,7 @@ def crop(viewer):
             factor = layer.scale[active_plane]/shape_layer_scale
             _dirpath = layer.data.dirpath
             _metadata = layer.data.metadata
-            _name = layer.data.name
+            _name = prop + layer.name
             layer = viewer.add_layer(copy_layer(layer))
             dr = layer.translate[active_plane] / layer.scale[active_plane]
             newdata, relative_translate = \
@@ -210,6 +214,7 @@ def crop(viewer):
             translate = layer.translate
             translate[active_plane] += relative_translate * layer.scale[active_plane]
             layer.translate = translate
+            layer.name = _name
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
             
@@ -337,3 +342,10 @@ def _crop_rectangle(img, crds, dims):
     
     cropped_img = img[area_to_crop]
     return cropped_img, translate
+
+def _get_property(layer, i):
+    try:
+        prop = layer.properties["text"][i] + " of "
+    except (KeyError, IndexError):
+        prop = ""
+    return prop

@@ -89,9 +89,9 @@ def edit_properties(viewer):
         old = layer.properties.get("text", [""]*len(layer.data))
         for i in layer.selected_data:
             try:
-                old[i] = event.value.format(n=i)
+                old[i] = event.value.format(n=i).strip()
             except (ValueError, KeyError):
-                old[i] = event.value
+                old[i] = event.value.strip()
                 
         layer.text.refresh_text({"text": old})
         return None
