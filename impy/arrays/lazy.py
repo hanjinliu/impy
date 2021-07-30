@@ -822,8 +822,8 @@ class LazyImgArray(AxesMixin):
     @same_dtype(asfloat=True)
     @record_lazy()
     @dims_to_spatial_axes
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
-                         along:str=None, dims=2, update:bool=False) -> LazyImgArray:
+    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, along:str=None, 
+                         dims=2, update:bool=False, **affine_kwargs) -> LazyImgArray:
         
         if along is None:
             along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
@@ -834,6 +834,12 @@ class LazyImgArray(AxesMixin):
             # determine 'ref'
             if ref is None:
                 ref = self
+                _dims = complement_axes(along, self.axes)
+                if dims != _dims:
+                    warn(f"dims={dims} with along={along} and {self.axes}-image are not "
+                         f"valid input. Changed to dims={_dims}",
+                         UserWarning)
+                    dims = _dims
             elif not isinstance(ref, self.__class__):
                 raise TypeError(f"'ref' must be LazyImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
@@ -860,7 +866,7 @@ class LazyImgArray(AxesMixin):
             mx = xp.eye(ndim+1, dtype=np.float32)
             loc = block_info[None]['array-location'][0]
             mx[:-1, -1] = -shift[loc[t_index]]
-            return _transform.warp(arr[slice_in], mx, order=order)[slice_out]
+            return _transform.warp(arr[slice_in], mx, **affine_kwargs)[slice_out]
         
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
         

@@ -3,6 +3,7 @@ import napari
 import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
+from skimage.measure import marching_cubes
 
 # TODO: 
 # - Integrate ImgArray functions after napari new version comes out. https://github.com/napari/napari/pull/263
@@ -138,6 +139,16 @@ def add_note_widget(viewer):
     text = viewer.window.add_dock_widget(text, area="right", name="Note")
     text.setVisible(False)
     return None
+
+# verts, faces, norms, vals = skmes.marching_cubes(img.value, level=np.percentile(img, 60), step_size=3)
+# viewer.add_surface((verts, faces, vals))
+# viewer.layers[1].data[0][:] = ...
+
+# def surface_generater(viewer):
+#     layer = viewer.add_surface(())
+#     def _func(level, step_size):
+#         verts, faces, _, vals = marching_cubes(img, level=level, step_size=step_size)
+
 
 
 def function_handler(viewer):

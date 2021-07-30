@@ -3649,8 +3649,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
-                         along:str=None, dims=2, update:bool=False) -> ImgArray:
+    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, along:str=None, 
+                         dims=2, update:bool=False, **affine_kwargs) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors ``shift``
         is not given, then it will be determined using ``track_drift`` method of ImgArray.
@@ -3664,11 +3664,12 @@ class ImgArray(LabeledArray):
             The reference n-D image to determine drift, if ``shift`` was not given.
         zero_ave : bool, default is True
             If True, average shift will be zero.
-        {order}
         along : str, optional
             Along which axis drift will be corrected.
         {dims}
         {update}
+        affine_kwargs :
+            Keyword arguments that will be passed to ``warp``.
 
         Returns
         -------
@@ -3690,13 +3691,19 @@ class ImgArray(LabeledArray):
             # determine 'ref'
             if ref is None:
                 ref = self
+                _dims = complement_axes(along, self.axes)
+                if dims != _dims:
+                    warnings.warn(f"dims={dims} with along={along} and {self.axes}-image are not "
+                                  f"valid input. Changed to dims={_dims}",
+                                  UserWarning)
+                    dims = _dims
             elif not isinstance(ref, self.__class__):
                 raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
                 raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
                                  f"axes of `ref`({ref.axes})")
 
-            shift = ref.track_drift(along=along)
+            shift = ref.track_drift(along=along).values
             
         else:
             shift = np.asarray(shift, dtype=np.float32)
@@ -3712,7 +3719,7 @@ class ImgArray(LabeledArray):
         mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
         for sl, img in self.iter(complement_axes(dims, self.axes)):
             mx[:-1, -1] = -shift[sl[t_index]]
-            out[sl] = _transform.warp(img, mx, order=order)
+            out[sl] = _transform.warp(img, mx, **affine_kwargs)
         
         out = asnumpy(out).view(self.__class__)
         return out
