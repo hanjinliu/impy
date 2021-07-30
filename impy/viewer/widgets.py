@@ -74,23 +74,27 @@ def add_imsave_menu(viewer):
 
 
 def edit_properties(viewer):
+    """
+    Edit properties of selected shapes or points.
+    """    
     def edit_prop(event):
         # get the selected shape layer
         layers = list(viewer.layers.selection)
         if len(layers) != 1:
             return None
         layer = layers[0]
-        if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
+        if not isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
             return None
         
-        old = layer.properties["text"]
+        old = layer.properties.get("text", [""]*len(layer.data))
         for i in layer.selected_data:
             try:
                 old[i] = event.value.format(n=i)
-            except ValueError:
+            except (ValueError, KeyError):
                 old[i] = event.value
                 
         layer.text.refresh_text({"text": old})
+        return None
         
     line = magicgui.widgets.LineEdit(tooltip="Property editor")
     line.changed.connect(edit_prop)

@@ -87,10 +87,7 @@ def upon_add_layer(event):
         
     if isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
-    
-    if isinstance(new_layer, napari.layers.Labels):
-        _text_bound_init(new_layer)
-            
+                
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
     new_layer.metadata["init_scale"] = new_layer.scale.copy()
         
@@ -114,13 +111,16 @@ def _text_bound_init(new_layer):
             new_layer.text.size += 1.0
         else:
             new_layer.text.size /= 0.8    
-        
-    new_layer.current_properties = {"text": np.array([""])}
-    new_layer.properties = {"text": []}
-    new_layer.text = "{text}"
-    new_layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
-    new_layer.text.color = "#dd23cb"
-    new_layer.text.anchor = "upper_left"
+    n_obj = len(new_layer.data)
+    if n_obj == 0 or new_layer.properties == {}:
+        new_layer.current_properties = {"text": np.array([""])}
+        new_layer.properties = {"text": [""]*n_obj}
+        new_layer.text = "{text}"
+        new_layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
+        new_layer.text.color = "#dd23cb"
+        new_layer.text.anchor = "upper_left"
+    else:
+        pass
     
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):

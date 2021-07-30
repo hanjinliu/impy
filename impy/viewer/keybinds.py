@@ -5,6 +5,10 @@ import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
+# Shift, Control, Alt, Meta, Up, Down, Left, Right, PageUp, PageDown, Insert, 
+# Delete, Home, End, Escape, Backspace, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
+# F11, F12, Space, Enter, Tab
+
 KEYS = {"add_new_shape_2d": "Shift-S",
         "add_new_shape_3d": "S",
         "add_new_point_2d": "Shift-P",
