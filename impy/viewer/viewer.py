@@ -50,14 +50,23 @@ class napariViewers:
     
     @property
     def viewer(self):
+        """
+        The most front viewer you're using
+        """        
         return self._viewers[self._front_viewer]
         
     @property
     def layers(self):
+        """
+        Napari layer list.
+        """        
         return self.viewer.layers
     
     @property
     def results(self):
+        """
+        Temporary results stored in the viewer.
+        """        
         return self.viewer.window.results
     
     @property
@@ -79,11 +88,18 @@ class napariViewers:
     
     @property
     def front_image(self):
+        """
+        Get the most front and visible image from the layer list.
+
+        Returns
+        -------
+        napari.layers.Image
+        """        
         return front_image(self.viewer)
     
     def start(self, key:str="impy"):
         """
-        Create a napari window with name `key`.
+        Create a napari window with name ``key``.
         """        
         if not isinstance(key, str):
             raise TypeError("`key` must be str.")
@@ -124,7 +140,7 @@ class napariViewers:
         
     def add(self, obj=None, title=None, **kwargs):
         """
-        Add images, points, labels, tracks or graph to viewer.
+        Add images, points, labels, tracks etc to viewer.
 
         Parameters
         ----------

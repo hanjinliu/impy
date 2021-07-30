@@ -102,10 +102,8 @@ def edit_properties(viewer):
     return None
 
 def add_table_widget(viewer):
-    QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
-    
-    button = QPushButton("Get")
-    @button.clicked.connect
+    get_button = QPushButton("Get")
+    @get_button.clicked.connect
     def make_table():
         dfs = list(iter_selected_layer(viewer, ["Points", "Tracks"]))
         if len(dfs) == 0:
@@ -117,16 +115,21 @@ def add_table_widget(viewer):
             columns = list(df.metadata.get("axes", axes[-df.data.shape[1]:]))
             table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
             copy_button = QPushButton("Copy")
-            copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
+            copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())
+            store_button = QPushButton("Store")
+            @store_button.clicked.connect
+            def _():
+                viewer.window.results = table.to_dataframe()
+                return None
+            
             widget.layout().addWidget(table.native)
             widget.layout().addWidget(copy_button)
-            widget = QtViewerDockWidget(viewer.window.qt_viewer, table, name=df.name,
-                                        area="right", add_vertical_stretch=True)
-            viewer.window._add_viewer_dock_widget(widget, tabify=viewer.window.n_table>0)
-            viewer.window.n_table += 1
+            widget.layout().addWidget(store_button)
+            viewer.window.add_dock_widget(widget, area="right", name=df.name)
+            
         return None
     
-    viewer.window.add_dock_widget(button, area="left", name="Get Coordinates")
+    viewer.window.add_dock_widget(get_button, area="left", name="Get Coordinates")
     return None
     
 
