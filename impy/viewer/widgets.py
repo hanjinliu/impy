@@ -18,7 +18,7 @@ __all__ = ["add_imread_menu",
            ]
 
 
-FILTERS = ["gaussian_filter", "median_filter", "mean_filter", "dog_filter", "log_filter", "erosion",
+FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filter", "log_filter", "erosion",
            "dilation", "opening", "closing"]
 
 def add_imread_menu(viewer):
@@ -105,7 +105,7 @@ def edit_properties(viewer):
         
     line = magicgui.widgets.LineEdit(tooltip="Property editor")
     line.changed.connect(edit_prop)
-    widget = viewer.window.add_dock_widget(line, area="left", name="Property editor")
+    viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
 
@@ -150,20 +150,23 @@ def add_note_widget(viewer):
 def add_filter(viewer):
     def add():
         @magicgui.magicgui(auto_call=True,
-                        func={"choices": FILTERS},
-                        param1={"widget_type": "FloatSlider", "min": 1, "max": 6},
-                        dims={"choices": ["2D", "3D"]},
-                        layout="vertical")
-        def _func(layer:napari.layers.Image, func, param1, dims) -> napari.types.LayerDataTuple:
-            if layer is not None:
+                           func={"choices": FILTERS, "label": "function"},
+                           param={"widget_type": "FloatSlider", "min": 1, "max": 6},
+                           dims={"choices": ["2D", "3D"]},
+                           layout="vertical")
+        def _func(layer:napari.layers.Image, func, param, dims) -> napari.types.LayerDataTuple:
+            if layer is not None and func != "None":
                 name = f"Result of {layer.name}"
                 with SetConst("SHOW_PROGRESS", False):
-                    out = getattr(layer.data, func)(param1, dims=int(dims[0]))
+                    out = getattr(layer.data, func)(param, dims=int(dims[0]))
+                
                 try:
-                    translate = viewer.layers[name].translate
+                    kwargs = {k: getattr(viewer.layers[name], k, None)
+                              for k in ["colormap", "blending", "translate", "scale"]}
                 except KeyError:
-                    translate = "inherit"
-                return _image_tuple(layer, out, name=name, translate=translate)
+                    kwargs = dict(translate="inherit")
+                    
+                return _image_tuple(layer, out, name=name, **kwargs)
         
         viewer.window.add_dock_widget(_func, area="left", name="Filters")
         return None
@@ -177,20 +180,36 @@ def add_threshold(viewer):
     def add():
         @magicgui.magicgui(auto_call=True,
                            percentile={"widget_type": "FloatSlider", "min": 0, "max": 100},
+                           label={"widget_type": "CheckBox"},
                            layout="vertical")
-        def _func(layer:napari.layers.Image, percentile=50) -> napari.types.LayerDataTuple:
-            name=f"Threshold of {layer.name}"
+        def _func(layer:napari.layers.Image, percentile=50, label=False) -> napari.types.LayerDataTuple:
+            # define the name for the new layer
+            if label:
+                name = f"[L]{layer.name}"
+            else:
+                name = f"Threshold of {layer.name}"
+                
             if layer is not None:
                 with SetConst("SHOW_PROGRESS", False):
                     thr = np.percentile(layer.data, percentile)
-                    out = layer.data.threshold(thr)
+                    if label:
+                        out = layer.data.label_threshold(thr)
+                        props_to_inherit = ["opacity", "blending", "translate", "scale"]
+                        _as_layer_data_tuple = _label_tuple
+                    else:
+                        out = layer.data.threshold(thr)
+                        props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
+                        _as_layer_data_tuple = _image_tuple
                 try:
                     kwargs = {k: getattr(viewer.layers[name], k, None)
-                              for k in ["colormap", "blending", "translate", "scale"]}
+                              for k in props_to_inherit}
                 except KeyError:
-                    kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
+                    if label:
+                        kwargs = dict(translate=layer.translate, opacity=0.3)
+                    else:
+                        kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
                 
-                return _image_tuple(layer, out, name=name, **kwargs)
+                return _as_layer_data_tuple(layer, out, name=name, **kwargs)
         
         viewer.window.add_dock_widget(_func, area="left", name="Threshold")
         return None
@@ -263,9 +282,7 @@ def function_handler(viewer):
                                 contrast_limits=out.border), 
                         "image")
             elif isinstance(out, Label):
-                out_ = (out, 
-                        dict(opacity=0.3, scale=scale, name=name), 
-                        "labels")
+                _label_tuple(input, out, name=name)
             elif isinstance(out, MarkerFrame):
                 kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
                           edge_color=viewer.window.cmap(),
@@ -370,3 +387,12 @@ def _image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", *
               blending=input.blending, contrast_limits=contrast_limits)
     kw.update(kwargs)
     return (out, kw, "image")
+
+def _label_tuple(input:napari.layers.Labels, out:Label, translate="inherit", **kwargs):
+    data = input.data
+    scale = make_world_scale(data)
+    if isinstance(translate, str) and translate == "inherit":
+            translate = input.translate
+    kw = dict(opacity=0.3, scale=scale, translate=translate)
+    kw.update(kwargs)
+    return (out, kw, "labels")

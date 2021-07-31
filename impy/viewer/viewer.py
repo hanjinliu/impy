@@ -359,7 +359,6 @@ def default_viewer_settings(viewer):
     viewer.scale_bar.ticks = False
     viewer.scale_bar.font_size = 8 * Const["FONT_SIZE_FACTOR"]
     viewer.text_overlay.visible = True
-    viewer.axes.visible = True
     viewer.axes.colored = False
     viewer.window.cmap = ColorCycle()
     return None
