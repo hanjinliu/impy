@@ -295,7 +295,7 @@ class MetaArray(AxesMixin, np.ndarray):
             
     
     def apply_dask(self, func:Callable, c_axes:str=None, drop_axis=[], new_axis=None, dtype=np.float32, 
-                   args:tuple=None, kwargs:dict=None) -> MetaArray:
+                   chunks=None, args:tuple=None, kwargs:dict=None) -> MetaArray:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
@@ -377,6 +377,7 @@ class MetaArray(AxesMixin, np.ndarray):
                                 drop_axis=drop_axis,
                                 new_axis=new_axis, 
                                 meta=xp.array([], dtype=dtype), 
+                                chunks=chunks,
                                 **kwargs
                                 )
             

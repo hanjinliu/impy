@@ -2554,18 +2554,25 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def local_dft(self, key:str, upsample_factor:nDInt=1, *, dims=None) -> ImgArray:
+    def local_dft(self, key:str="", upsample_factor:nDInt=1, *, dims=None) -> ImgArray:
         """
         Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
         of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
         time, much faster compared to normal DFT (:math:`O(N^2)`). However, If you are interested in certain 
         region of Fourier space, you don't have to calculate all the spectra. In this case DFT is faster and
         less memory comsuming.
+        
+            .. warning::
+                The result of ``local_dft`` will NOT shifted with ``np.fft.fftshift`` because in general the
+                center of arrays are unknown. Also, it is easier to understand `x=0` corresponds to the center.
+        
+        Even whole spectrum is returned, ``local_dft`` may be faster than FFT with small and/or non-FFT-friendly
+        shaped image.
 
         Parameters
         ----------
         key : str
-            Key string that specify region to DFT, such as "y=50:160;x=:80".
+            Key string that specify region to DFT, such as "y=-50:10;x=:80".
         upsample_factor : int or array of int, default is 1
             Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
             10 pixels.
@@ -2578,6 +2585,13 @@ class ImgArray(LabeledArray):
         """
         ndim = len(dims)
         upsample_factor = check_nd(upsample_factor, ndim)
+        
+        # determine how to slice the result of FFT
+        for a in dims:
+            if a not in key:
+                key += f";{a}=0:{self.sizeof(a)}"
+        if key.startswith(";"):
+            key = key[1:]
         slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
         
         # a function that makes wave number vertical vector
@@ -2597,8 +2611,39 @@ class ImgArray(LabeledArray):
         return self.apply_dask(_misc.dft, 
                                complement_axes(dims, self.axes),
                                dtype=np.complex64, 
-                               kwargs=dict(chunks=chunks, exps=exps)
+                               chunks=chunks,
+                               kwargs=dict(exps=exps)
                                )
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record()
+    def local_power_spectra(self, key:str="", upsample_factor:nDInt=1, norm:bool=False, *, 
+                            dims=None) -> ImgArray:
+        """
+        Return local n-D power spectra of images. See ``local_dft``.
+
+        Parameters
+        ----------
+        key : str
+            Key string that specify region to DFT, such as "y=-50:10;x=:80".
+        upsample_factor : int or array of int, default is 1
+            Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
+            10 pixels.
+        norm : bool, default is False
+            If True, maximum value of power spectra is adjusted to 1.
+        {dims}
+
+        Returns
+        -------
+        ImgArray
+            Power spectra
+        """        
+        freq = self.local_dft(key, upsample_factor=upsample_factor, dims=dims)
+        pw = freq.real**2 + freq.imag**2
+        if norm:
+            pw /= pw.max()
+        return pw
     
     @_docs.write_docs
     @dims_to_spatial_axes
