@@ -77,6 +77,9 @@ def upon_add_layer(event):
     except IndexError:
         return None
     new_layer.translate = new_layer.translate.astype(np.float64)
+    # if isinstance(new_layer, napari.layers.Image):
+    #     if type(new_layer.data) is np.ndarray:
+            
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
         mean_scale = np.mean(new_layer.scale[-2:])
@@ -136,16 +139,11 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     
     scale = make_world_scale(img)
     
-    if len(img.history) > 0:
-        suffix = "-" + img.history[-1]
-    else:
-        suffix = ""
-    
     name = "No-Name" if img.name is None else img.name
     if chn_ax is not None:
-        name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
+        name = [f"[C{i}]{name}" for i in range(img.sizeof("c"))]
     else:
-        name = [name + suffix]
+        name = [name]
     
     if img.dtype.kind == "c":
         img = np.abs(img)
@@ -181,9 +179,9 @@ def layer_to_impy_object(viewer, layer):
     scale = get_viewer_scale(viewer)
     if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
         # manually drawn ones are np.ndarray, need conversion
-        ndim = data.ndim
-        axes = axes[-ndim:]
         if type(data) is np.ndarray:
+            ndim = data.ndim
+            axes = axes[-ndim:]
             if isinstance(layer, napari.layers.Image):
                 data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
             else:

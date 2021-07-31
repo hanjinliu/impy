@@ -3,7 +3,7 @@ import napari
 import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .utils import *
-from skimage.measure import marching_cubes
+from .._const import SetConst
 
 # TODO: 
 # - Integrate ImgArray functions after napari new version comes out. https://github.com/napari/napari/pull/263
@@ -14,7 +14,12 @@ __all__ = ["add_imread_menu",
            "add_table_widget", 
            "add_note_widget",
            "edit_properties",
-           "function_handler"]
+           "function_handler"
+           ]
+
+
+FILTERS = ["gaussian_filter", "median_filter", "mean_filter", "dog_filter", "log_filter", "erosion",
+           "dilation", "opening", "closing"]
 
 def add_imread_menu(viewer):
     from ..core import imread
@@ -37,6 +42,7 @@ def add_imread_menu(viewer):
     action.triggered.connect(open_img)
     viewer.window.file_menu.addAction(action)
     return None
+
 
 def add_imsave_menu(viewer):
     def save_img():
@@ -102,6 +108,7 @@ def edit_properties(viewer):
     widget = viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
+
 def add_table_widget(viewer):
     get_button = QPushButton("Get")
     @get_button.clicked.connect
@@ -140,15 +147,57 @@ def add_note_widget(viewer):
     text.setVisible(False)
     return None
 
-# verts, faces, norms, vals = skmes.marching_cubes(img.value, level=np.percentile(img, 60), step_size=3)
-# viewer.add_surface((verts, faces, vals))
-# viewer.layers[1].data[0][:] = ...
+def add_filter(viewer):
+    def add():
+        @magicgui.magicgui(auto_call=True,
+                        func={"choices": FILTERS},
+                        param1={"widget_type": "FloatSlider", "min": 1, "max": 6},
+                        dims={"choices": ["2D", "3D"]},
+                        layout="vertical")
+        def _func(layer:napari.layers.Image, func, param1, dims) -> napari.types.LayerDataTuple:
+            if layer is not None:
+                name = f"Result of {layer.name}"
+                with SetConst("SHOW_PROGRESS", False):
+                    out = getattr(layer.data, func)(param1, dims=int(dims[0]))
+                try:
+                    translate = viewer.layers[name].translate
+                except KeyError:
+                    translate = "inherit"
+                return _image_tuple(layer, out, name=name, translate=translate)
+        
+        viewer.window.add_dock_widget(_func, area="left", name="Filters")
+        return None
+    action = QAction("Filters", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
+    return None
 
-# def surface_generater(viewer):
-#     layer = viewer.add_surface(())
-#     def _func(level, step_size):
-#         verts, faces, _, vals = marching_cubes(img, level=level, step_size=step_size)
 
+def add_threshold(viewer):
+    def add():
+        @magicgui.magicgui(auto_call=True,
+                           percentile={"widget_type": "FloatSlider", "min": 0, "max": 100},
+                           layout="vertical")
+        def _func(layer:napari.layers.Image, percentile=50) -> napari.types.LayerDataTuple:
+            name=f"Threshold of {layer.name}"
+            if layer is not None:
+                with SetConst("SHOW_PROGRESS", False):
+                    thr = np.percentile(layer.data, percentile)
+                    out = layer.data.threshold(thr)
+                try:
+                    kwargs = {k: getattr(viewer.layers[name], k, None)
+                              for k in ["colormap", "blending", "translate", "scale"]}
+                except KeyError:
+                    kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
+                
+                return _image_tuple(layer, out, name=name, **kwargs)
+        
+        viewer.window.add_dock_widget(_func, area="left", name="Threshold")
+        return None
+    action = QAction("Threshold", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
+    return None
 
 
 def function_handler(viewer):
@@ -207,21 +256,7 @@ def function_handler(viewer):
                     i += 1
                     
             if isinstance(out, ImgArray):
-                if out.dtype.kind == "c":
-                    out = np.abs(out)
-                contrast_limits = [float(x) for x in out.range]
-                if data.ndim == out.ndim:
-                    translate = input.translate
-                elif data.ndim > out.ndim:
-                    translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-                    scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-                else:
-                    translate = [0.0] + list(input.translate)
-                    scale = [1.0] + list(scale)
-                out_ = (out, 
-                        dict(scale=scale, name=name, colormap=input.colormap, translate=translate,
-                             blending=input.blending, contrast_limits=contrast_limits), 
-                        "image")
+                out_ = _image_tuple(input, out, name=name)
             elif isinstance(out, PhaseArray):
                 out_ = (out, 
                         dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
@@ -273,8 +308,9 @@ def _make_table_widget(df, columns=None, name=None):
     copy_button = QPushButton("Copy")
     copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
     widget.layout().addWidget(table.native)
-    widget.layout().addWidget(copy_button)
+    widget.layout().addWidget(copy_button)            
     return widget
+
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))
@@ -292,8 +328,10 @@ def str_to_args(s:str) -> tuple[list, dict]:
             args.append(a)
     return args, kwargs
             
+            
 def interpret_type(s:str):
     return eval(s, {"np": np})
+
 
 def _iter_args_and_kwargs(string:str):
     stack = 0
@@ -310,11 +348,25 @@ def _iter_args_and_kwargs(string:str):
     if start == 0:
         yield string
         
-# class nDFloatLineEdit(magicgui.widgets.LineEdit):
-#     def bind(self, value, call: bool = True) -> None:
-#         self._call_bound = call
-#         val = eval(value)
-#         if isinstance(val, (float, list)):
-#             self._bound_value = val
-#         else:
-#             raise TypeError(val)
+
+def _image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **kwargs):
+    data = input.data
+    scale = make_world_scale(data)
+    if out.dtype.kind == "c":
+        out = np.abs(out)
+    contrast_limits = [float(x) for x in out.range]
+    if data.ndim == out.ndim:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = input.translate
+    elif data.ndim > out.ndim:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+        scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+    else:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = [0.0] + list(input.translate)
+        scale = [1.0] + list(scale)
+    kw = dict(scale=scale, colormap=input.colormap, translate=translate,
+              blending=input.blending, contrast_limits=contrast_limits)
+    kw.update(kwargs)
+    return (out, kw, "image")

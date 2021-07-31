@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+
 from ..collections import *
 import napari
 import pandas as pd
@@ -11,10 +12,8 @@ from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, 
 from .utils import *
 from .mouse import *
 from ..utils.utilcls import Progress
-from .widgets import _make_table_widget
+from .widgets import _make_table_widget, add_threshold, add_filter
 from .._const import Const
-from .._cupy import asnumpy
-
 
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
@@ -123,23 +122,11 @@ class napariViewers:
         viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
         self._front_viewer = key
-        viewer.window.n_table = 0
+        
+        self.viewer.window.function_menu = self.viewer.window.main_menu.addMenu("&Functions")
+        add_threshold(self.viewer)
+        add_filter(self.viewer)
         return None
-    
-    def get_data(self, layer):
-        """
-        Convert layer to real data.
-
-        Parameters
-        ----------
-        layer : napari.layers.Layer
-            Input layer.
-
-        Returns
-        -------
-        ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
-        """ 
-        return layer_to_impy_object(self.viewer, layer)
         
     def add(self, obj=None, title=None, **kwargs):
         """
@@ -217,16 +204,11 @@ class napariViewers:
             pass
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
-                
+    
+    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    
-    def _iter_layer(self, layer_type:str):
-        return iter_layer(self.viewer, layer_type)
-    
-    def _iter_selected_layer(self, layer_type:str):
-        return iter_selected_layer(self.viewer, layer_type)
         
     def _add_image(self, img:LabeledArray, **kwargs):
         layer = add_labeledarray(self.viewer, img, **kwargs)
