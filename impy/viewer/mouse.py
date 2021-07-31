@@ -28,9 +28,12 @@ def trace_mouse_drag(viewer, event, func=None):
                 
         if clicked_layer is None:
             viewer.layers.selection = set()
-        else:    
-            viewer.text_overlay.text = clicked_layer.name
-            viewer.text_overlay.font_size = 5 * Const["FONT_SIZE_FACTOR"]
+        else:
+            if event.button == 1:
+                viewer.text_overlay.text = clicked_layer.name
+            elif event.button == 2:
+                viewer.text_overlay.text = repr(clicked_layer.data)
+            viewer.text_overlay.font_size = 4 * Const["FONT_SIZE_FACTOR"]
             viewer.text_overlay.color = "white"
             if len(viewer.layers.selection) > 1 and event.type == "mouse_move":
                 pass
@@ -53,11 +56,10 @@ def drag_translation(viewer, event):
         """
         Manually translate image layer in xy-plane while pushing "Alt".
         """ 
-        if event.button == 1:
+        if event.button in (1, 2):
             def func(layer, dpos):
                 if not isinstance(layer, napari.layers.Shapes):
                     layer.translate -= dpos[-layer.translate.size:]
-                
         else:
             func = None
         
