@@ -2618,14 +2618,16 @@ class ImgArray(LabeledArray):
         return pw
     
     @record()
-    def threshold(self, thr:float|str="otsu", *, dims=None, **kwargs) -> ImgArray:
+    def threshold(self, thr:float|str="otsu", *, along=None, **kwargs) -> ImgArray:
         """
         Parameters
         ----------
-        thr: float or array or None, optional
+        thr: float or str or None, optional
             Threshold value, or thresholding algorithm.
-        dims : int or str, default is all the axes except for channel axis.
-            Dimensions that will share the same threshold.
+        along : str, optional
+            Dimensions that will not share the same threshold. For instance, if ``along="c"`` then
+            threshold intensities are determined for every channel. If ``thr`` is float, ``along``
+            will be ignored.
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
 
@@ -2640,8 +2642,11 @@ class ImgArray(LabeledArray):
             >>> thr = img.threshold("99%")
             >>> img[thr] = 0
         """
-        if dims is None:
-            dims = complement_axes("c", self.axes)
+        if self.dtype == bool:
+            return self
+        
+        if along is None:
+            along = "c" if "c" in self.axes else ""
             
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
@@ -2659,7 +2664,7 @@ class ImgArray(LabeledArray):
         if isinstance(thr, str) and thr.endswith("%"):
             p = float(thr[:-1])
             out = np.zeros(self.shape, dtype=bool)
-            for sl, img in self.iter(complement_axes(dims, self.axes)):
+            for sl, img in self.iter(along):
                 thr = np.percentile(img, p)
                 out[sl] = img >= thr
                 
@@ -2672,7 +2677,7 @@ class ImgArray(LabeledArray):
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
             out = np.zeros(self.shape, dtype=bool)
-            for sl, img in self.iter(complement_axes(dims, self.axes)):
+            for sl, img in self.iter(along):
                 thr = func(img, **kwargs)
                 out[sl] = img >= thr
             
@@ -3227,14 +3232,18 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        All are passed to self.threshold()
+        thr: float or str or None, optional
+            Threshold value, or thresholding algorithm.
+        {dims}
+        **kwargs:
+            Keyword arguments that will passed to function indicated in 'method'.
         
         Returns
         -------
         ImgArray
             Same array but labels are updated.
         """        
-        labels = self.threshold(thr=thr, dims=None, **kwargs)
+        labels = self.threshold(thr=thr, **kwargs)
         return self.label(labels, dims=dims)
     
     
