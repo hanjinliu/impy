@@ -14,12 +14,13 @@ __all__ = ["add_imread_menu",
            "add_table_widget", 
            "add_note_widget",
            "edit_properties",
-           "function_handler"
+           "function_handler",
            ]
 
 
 FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filter", "log_filter", "erosion",
-           "dilation", "opening", "closing"]
+           "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
+           "tophat", "rolling_ball"]
 
 def add_imread_menu(viewer):
     from ..core import imread
@@ -150,19 +151,32 @@ def add_note_widget(viewer):
 def add_filter(viewer):
     def add():
         @magicgui.magicgui(auto_call=True,
-                           func={"choices": FILTERS, "label": "function"},
-                           param={"widget_type": "FloatSlider", "min": 1, "max": 6},
-                           dims={"choices": ["2D", "3D"]},
+                           func={"choices": FILTERS, 
+                                 "label": "function"},
+                           param={"widget_type": "FloatSlider", 
+                                  "min": 1, "max": 50, 
+                                  "tooltip": "The first paramter, such as 'sigma' in gaussian_filter or 'radius' in median_filter"},
+                           dims={"choices": ["2D", "3D"], 
+                                 "tooltip": "Spatial dimension"},
+                           fix_contrast_limits={"widget_type": "CheckBox", 
+                                                "label": "fix contrast limits"},
                            layout="vertical")
-        def _func(layer:napari.layers.Image, func, param, dims) -> napari.types.LayerDataTuple:
+        def _func(layer:napari.layers.Image, func, param=1, dims="2D", 
+                  fix_contrast_limits=False) -> napari.types.LayerDataTuple:
             if layer is not None and func != "None":
                 name = f"Result of {layer.name}"
                 with SetConst("SHOW_PROGRESS", False):
-                    out = getattr(layer.data, func)(param, dims=int(dims[0]))
-                
+                    try:
+                        out = getattr(layer.data, func)(param, dims=int(dims[0]))
+                    except Exception as e:
+                        viewer.status = f"{func} finished with {e.__class__.__name__}: {e}"
+                        return None
                 try:
-                    kwargs = {k: getattr(viewer.layers[name], k, None)
-                              for k in ["colormap", "blending", "translate", "scale"]}
+                    if fix_contrast_limits:
+                        props_to_inherit = ["colormap", "blending", "translate", "scale", "contrast_limits"]
+                    else:
+                        props_to_inherit = ["colormap", "blending", "translate", "scale"]
+                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
                 except KeyError:
                     kwargs = dict(translate="inherit")
                     
@@ -201,8 +215,7 @@ def add_threshold(viewer):
                         props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
                         _as_layer_data_tuple = _image_tuple
                 try:
-                    kwargs = {k: getattr(viewer.layers[name], k, None)
-                              for k in props_to_inherit}
+                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
                 except KeyError:
                     if label:
                         kwargs = dict(translate=layer.translate, opacity=0.3)
@@ -211,9 +224,9 @@ def add_threshold(viewer):
                 
                 return _as_layer_data_tuple(layer, out, name=name, **kwargs)
         
-        viewer.window.add_dock_widget(_func, area="left", name="Threshold")
+        viewer.window.add_dock_widget(_func, area="left", name="Threshold/Label")
         return None
-    action = QAction("Threshold", viewer.window._qt_window)
+    action = QAction("Threshold/Label", viewer.window._qt_window)
     action.triggered.connect(add)
     viewer.window.function_menu.addAction(action)
     return None
