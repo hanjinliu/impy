@@ -234,7 +234,7 @@ class LabeledArray(HistoryArray):
         elif dtype == "float64":
             warn("Data type float64 is not valid for images. It was converted to float32 instead",
                  UserWarning)
-            return self.asfloat()
+            return self.as_float()
         else:
             raise ValueError(f"dtype: {dtype}")
     

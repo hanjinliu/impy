@@ -18,6 +18,7 @@ from ..utils.deco import *
 from ..utils.gauss import *
 from ..utils.misc import *
 from ..utils.utilcls import *
+from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import *
 from .._types import *
@@ -2549,6 +2550,55 @@ class ImgArray(LabeledArray):
         if shift:
             freq[:] = np.fft.fftshift(freq)
         return asnumpy(freq)
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record()
+    def local_dft(self, key:str, upsample_factor:nDInt=1, *, dims=None) -> ImgArray:
+        """
+        Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
+        of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
+        time, much faster compared to normal DFT (:math:`O(N^2)`). However, If you are interested in certain 
+        region of Fourier space, you don't have to calculate all the spectra. In this case DFT is faster and
+        less memory comsuming.
+
+        Parameters
+        ----------
+        key : str
+            Key string that specify region to DFT, such as "y=50:160;x=:80".
+        upsample_factor : int or array of int, default is 1
+            Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
+            10 pixels.
+        {dims}
+
+        Returns
+        -------
+        ImgArray
+            DFT output.
+        """
+        ndim = len(dims)
+        upsample_factor = check_nd(upsample_factor, ndim)
+        slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
+        
+        # a function that makes wave number vertical vector
+        wave = lambda sl, s, uf: xp.linspace(sl.start/s, sl.stop/s, (sl.stop-sl.start)*uf, endpoint=False)[:, xp.newaxis]
+        
+        # exp(-ikx)
+        exps = [xp.exp(-2j*np.pi * np.arange(s) * wave(sl, s, uf), dtype=np.complex64)
+                for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
+        
+        # Calculate chunk size for proper output shapes
+        chunks = np.ones(self.ndim, dtype=np.int64)
+        for i, a in enumerate(dims):
+            ind = self.axisof(a)
+            chunks[ind] = exps[i].shape[0]
+        chunks = tuple(chunks)
+        
+        return self.apply_dask(_misc.dft, 
+                               complement_axes(dims, self.axes),
+                               dtype=np.complex64, 
+                               kwargs=dict(chunks=chunks, exps=exps)
+                               )
     
     @_docs.write_docs
     @dims_to_spatial_axes

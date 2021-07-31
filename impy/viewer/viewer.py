@@ -1,18 +1,21 @@
 from __future__ import annotations
 import os
-
-from ..collections import *
 import napari
 import pandas as pd
 import numpy as np
 from dask import array as da
+from skimage.measure import marching_cubes
+import warnings
+
+from .utils import *
+from .mouse import *
+from .widgets import _make_table_widget, add_threshold, add_filter
+
+from ..collections import *
 from ..arrays import *
 from ..frame import *
 from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, lazy_imread as ip_lazy_imread
-from .utils import *
-from .mouse import *
 from ..utils.utilcls import Progress
-from .widgets import _make_table_widget, add_threshold, add_filter
 from .._const import Const
 
 # TODO: 
@@ -205,6 +208,27 @@ class napariViewers:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
+    def add_surface(self, image3d:LabeledArray, level:float=None, step_size:int=1, mask=None, **kwargs):
+        """
+        Add a surface layer from a 3D image.
+
+        Parameters
+        ----------
+        image3d : LabeledArray
+            3D image from which surface will be generated
+        level, step_size, mask : 
+            Passed to ``skimage.measure,marching_cubes``
+        """        
+        verts, faces, _, values = marching_cubes(image3d, level=level, 
+                                                 step_size=step_size, mask=mask)
+        scale = make_world_scale(image3d)
+        name = f"[Surf]{image3d.name}"
+        kw = dict(name=name, colormap="magma", scale=scale)
+        kw.update(kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.viewer.add_surface((verts, faces, values), **kw)
+        return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others

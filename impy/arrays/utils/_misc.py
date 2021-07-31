@@ -1,5 +1,5 @@
 import numpy as np
-from ...utils.axesop import switch_slice
+from ..._cupy import xp
 
 def adjust_bin(img, binsize, check_edges, dims, all_axes):
     shape = []
@@ -57,3 +57,9 @@ def make_pad(pad_width, dims, all_axes, **kwargs):
         raise TypeError(f"pad_width must be iterable or int, but got {type(pad_width)}")
     
     return pad_width_
+
+def dft(img, exps=None):
+    for ker in reversed(exps):
+        # K_{kx} * I_{zyx}
+        img = xp.tensordot(ker, img, axes=(1, -1))
+    return img
