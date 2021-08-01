@@ -153,5 +153,5 @@ class Label(HistoryArray):
                                   kwargs=kwargs
                                   )
         self.value[~out] = 0
-        return self
+        return self.optimize()
     
