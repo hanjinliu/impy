@@ -9,7 +9,7 @@ import warnings
 
 from .utils import *
 from .mouse import *
-from .widgets import _make_table_widget, add_threshold, add_filter
+from .widgets import _make_table_widget
 
 from ..collections import *
 from ..arrays import *
@@ -119,15 +119,13 @@ class napariViewers:
         viewer.window.file_menu.addSeparator()
         default_viewer_settings(viewer)
         load_mouse_callbacks(viewer)
+        viewer.window.function_menu = viewer.window.main_menu.addMenu("&Functions")
         load_widgets(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
         self._front_viewer = key
-        
-        self.viewer.window.function_menu = self.viewer.window.main_menu.addMenu("&Functions")
-        add_threshold(self.viewer)
-        add_filter(self.viewer)
+
         return None
         
     def add(self, obj=None, title=None, **kwargs):

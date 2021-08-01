@@ -158,14 +158,15 @@ class ImgArray(LabeledArray):
         else:
             center = np.asarray(center)
             
-        translation_0 = sktrans.SimilarityTransform(translation=center)
-        rotation = sktrans.SimilarityTransform(rotation=np.deg2rad(degree))
-        translation_1 = sktrans.SimilarityTransform(translation=-center)
-        mx = translation_1 + rotation + translation_0
-        mx.params[2] = (0, 0, 1)
+        translation_0 = _transform.compose_affine_matrix(translation=center)
+        rotation = _transform.compose_affine_matrix(rotation=np.deg2rad(degree))
+        translation_1 = _transform.compose_affine_matrix(translation=-center)
+        
+        mx = translation_0 @ rotation @ translation_1
+        mx[-1, :] = [0] * len(dims) + [1]
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx.params, order=order)
+                               kwargs=dict(matrix=mx, order=order)
                                )
     
     
@@ -173,7 +174,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def stretch(self, scale, center="center", *, dims=2, order:int=1) -> ImgArray:
+    def stretch(self, scale, center="center", *, dims=None, order:int=1) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -195,12 +196,16 @@ class ImgArray(LabeledArray):
             center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
         else:
             center = np.asarray(center)
-            
-        translation_0 = sktrans.SimilarityTransform(translation=center)
-        stretch = sktrans.SimilarityTransform(scale=1/np.asarray(scale))
-        translation_1 = sktrans.SimilarityTransform(translation=-center)
-        mx = translation_1 + stretch + translation_0
-        mx.params[2, 2] = 1
+        
+        scale = check_nd(scale, len(dims))
+        
+        translation_0 = _transform.compose_affine_matrix(translation=center)
+        stretch = _transform.compose_affine_matrix(scale=1/np.asarray(scale))
+        translation_1 = _transform.compose_affine_matrix(translation=-center)
+        
+        mx = translation_0 @ stretch @ translation_1
+        mx[-1, :] = [0] * len(dims) + [1]
+        
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(matrix=mx.params, order=order)
@@ -1240,11 +1245,14 @@ class ImgArray(LabeledArray):
         """        
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
-        out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
+        out = np.var(laplace_img, axis=dims)
+        out = PropArray(out.value, dtype=np.float32, name=self.name, 
                         axes=c_axes, propname="variance_of_laplacian")
+        # out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
+        #                 axes=c_axes, propname="variance_of_laplacian")
         
-        for sl, img in laplace_img.iter(c_axes, exclude=dims):
-            out[sl] = np.var(img)
+        # for sl, img in laplace_img.iter(c_axes, exclude=dims):
+        #     out[sl] = np.var(img)
         return out
     
     @_docs.write_docs

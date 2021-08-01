@@ -5,21 +5,20 @@ from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayo
 from .utils import *
 from .._const import SetConst
 
-# TODO: 
-# - Integrate ImgArray functions after napari new version comes out. https://github.com/napari/napari/pull/263
-# - Text layer -> https://github.com/napari/napari/issues/3053
-
 __all__ = ["add_imread_menu",
            "add_imsave_menu",
            "add_controller_widget", 
            "add_note_widget",
            "edit_properties",
+           "add_threshold", 
+           "add_filter", 
+           "add_regionprops",
            "function_handler",
            ]
 
 
-FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filter", "log_filter", "erosion",
-           "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
+FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filter", "doh_filter", "log_filter", 
+           "erosion", "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
            "tophat", "rolling_ball"]
 
 def add_imread_menu(viewer):
@@ -169,13 +168,13 @@ def add_controller_widget(viewer):
         layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
         layer.text.color = "white"
         layer.text.anchor = "center"
+        return None
     
     # Add Labels layer that is connected to ImgArray
     label_button = QPushButton("Label")
     @label_button.clicked.connect
     def _():
         selected = list(viewer.layers.selection)
-        print(selected)
         if len(selected) != 1:
             return None
         selected = selected[0]
@@ -184,12 +183,12 @@ def add_controller_widget(viewer):
         img = selected.data
         if hasattr(img, "labels"):
             return None
-        img.append_label(np.zeros(img.shape, dtype=np.uint8))
+        with SetConst("SHOW_PROGRESS", False):
+            img.append_label(np.zeros(img.shape, dtype=np.uint8))
         layer = viewer.add_labels(img.labels.value, opacity=0.3, scale=selected.scale, name=f"[L]{img.name}",
                                   translate=selected.translate)
         layer.mode = "paint"
-        
-            
+        return None
         
     controller_widget = QWidget()
     layout = QHBoxLayout()
@@ -214,7 +213,7 @@ def add_filter(viewer):
                            func={"choices": FILTERS, 
                                  "label": "function"},
                            param={"widget_type": "FloatSlider", 
-                                  "min": 1, "max": 50, 
+                                  "min": 1, "max": 30, 
                                   "tooltip": "The first paramter, such as 'sigma' in gaussian_filter or 'radius' in median_filter"},
                            dims={"choices": ["2D", "3D"], 
                                  "tooltip": "Spatial dimension"},
@@ -291,98 +290,131 @@ def add_threshold(viewer):
     viewer.window.function_menu.addAction(action)
     return None
 
+def add_regionprops(viewer):
+    # TODO: close main window after calculation, choose properties
+    @magicgui.magicgui(main_window=True,
+                       call_button="Calculate")
+    def regionprops():
+        selected = list(viewer.layers.selection)
+        if len(selected) < 1:
+            return None
+        properties = ("label", "mean_intensity")
+        for imglayer in selected:
+            if not isinstance(imglayer, napari.layers.Image):
+                continue
+            lbl = imglayer.data.labels
+            with SetConst("SHOW_PROGRESS", False):
+                out = imglayer.data.regionprops(properties=properties)
+            out["label"] = out["label"].astype(lbl.dtype)
+            order = np.argsort(out["label"].value)
+            d = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}
+            # find Labels layer
+            for l in viewer.layers:
+                if l.data is lbl:
+                    l.properties = d
+                    break
+            else:
+                l = viewer.add_labels(lbl.value, opacity=0.3, scale=imglayer.scale, 
+                                      name=f"[L]{imglayer.name}", translate=imglayer.translate)
+    
+    action = QAction("regionprops", viewer.window._qt_window)
+    action.triggered.connect(lambda: regionprops.show(run=True))
+    viewer.window.function_menu.addAction(action)
+    return None
 
 def function_handler(viewer):
-    @magicgui.magicgui(call_button="Run")
-    def run_func(method="gaussian_filter", 
-                 arguments="",
-                 update=False) -> napari.types.LayerDataTuple:
-        """
-        Run image analysis in napari window.
+    def add():
+        @magicgui.magicgui(call_button="Run")
+        def run_func(method="gaussian_filter", 
+                    arguments="",
+                    update=False) -> napari.types.LayerDataTuple:
+            """
+            Run image analysis in napari window.
 
-        Parameters
-        ----------
-        method : str, default is "gaussian_filter"
-            Name of method to be called.
-        arguments : str, default is ""
-            Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
-            the value should be `"2, dims=2"`.
-        update : bool, default is False
-            If update the layer's data. The original data will NOT be updated.
+            Parameters
+            ----------
+            method : str, default is "gaussian_filter"
+                Name of method to be called.
+            arguments : str, default is ""
+                Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
+                the value should be `"2, dims=2"`.
+            update : bool, default is False
+                If update the layer's data. The original data will NOT be updated.
+                
+            Returns
+            -------
+            napari.types.LayerDataTuple
+                This is passed to napari and is directly visualized.
+            """
+            outlist = []
+            for input in viewer.layers.selection:
+                data = layer_to_impy_object(viewer, input)
+                try:
+                    if method.startswith("[") and method.endswith("]"):
+                        arguments = method[1:-1]
+                        func = data.__getitem__
+                    else:
+                        func = getattr(data, method)
+                except AttributeError as e:
+                    viewer.status = f"{method} finished with AttributeError: {e}"
+                    continue
+                
+                viewer.status = f"{method} ..."
+                try:
+                    args, kwargs = str_to_args(arguments)
+                    out = func(*args, **kwargs)
+                except Exception as e:
+                    viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
+                    continue
+                else:
+                    viewer.status = f"{method} finished"
+                scale = make_world_scale(data)
+                
+                # determine name of the new layer
+                if update and type(data) is type(out):
+                    name = input.name
+                else:
+                    name = f"Result of {input.name}"
+                        
+                if isinstance(out, ImgArray):
+                    out_ = _image_tuple(input, out, name=name)
+                elif isinstance(out, PhaseArray):
+                    out_ = (out, 
+                            dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
+                                    contrast_limits=out.border), 
+                            "image")
+                elif isinstance(out, Label):
+                    _label_tuple(input, out, name=name)
+                elif isinstance(out, MarkerFrame):
+                    kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
+                            edge_color=viewer.window.cmap(),
+                            metadata={"axes": str(out._axes), "scale": out.scale},
+                            scale=scale)
+                    out_ = (out, kw, "points")
+                elif isinstance(out, TrackFrame):
+                    out_ = (out, 
+                            dict(scale=scale, translate=input.translate,
+                                metadata={"axes": str(out._axes), "scale":out.scale}), 
+                            "tracks")
+                elif isinstance(out, PathFrame):
+                    out_ = (out, 
+                            dict(scale=scale, translate=input.translate,
+                                shape_type="path", edge_color="lime", edge_width=0.3,
+                                metadata={"axes": str(out._axes), "scale":out.scale}),
+                            "shapes")
+                else:
+                    continue
+                outlist.append(out_)
             
-        Returns
-        -------
-        napari.types.LayerDataTuple
-            This is passed to napari and is directly visualized.
-        """
-        layer_names = [l.name for l in viewer.layers]
-        outlist = []
-        i = 0
-        for input in viewer.layers.selection:
-            data = layer_to_impy_object(viewer, input)
-            try:
-                func = getattr(data, method)
-            except AttributeError as e:
-                viewer.status = f"{method} finished with AttributeError: {e}"
-                continue
-            
-            viewer.status = f"{method} ..."
-            try:
-                args, kwargs = str_to_args(arguments)
-                out = func(*args, **kwargs)
-            except Exception as e:
-                viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
-                continue
+            if len(outlist) == 0:
+                return None
             else:
-                viewer.status = f"{method} finished"
-            scale = make_world_scale(data)
-            
-            # determine name of the new layer
-            if update and type(data) is type(out):
-                name = input.name
-            else:
-                name = f"{method}-{i}"
-                i += 1
-                while name in layer_names:
-                    name = f"{method}-{i}"
-                    i += 1
-                    
-            if isinstance(out, ImgArray):
-                out_ = _image_tuple(input, out, name=name)
-            elif isinstance(out, PhaseArray):
-                out_ = (out, 
-                        dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
-                                contrast_limits=out.border), 
-                        "image")
-            elif isinstance(out, Label):
-                _label_tuple(input, out, name=name)
-            elif isinstance(out, MarkerFrame):
-                kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
-                          edge_color=viewer.window.cmap(),
-                          metadata={"axes": str(out._axes), "scale": out.scale},
-                          scale=scale)
-                out_ = (out, kw, "points")
-            elif isinstance(out, TrackFrame):
-                out_ = (out, 
-                        dict(scale=scale, translate=input.translate,
-                             metadata={"axes": str(out._axes), "scale":out.scale}), 
-                        "tracks")
-            elif isinstance(out, PathFrame):
-                out_ = (out, 
-                        dict(scale=scale, translate=input.translate,
-                             shape_type="path", edge_color="lime", edge_width=0.3,
-                             metadata={"axes": str(out._axes), "scale":out.scale}),
-                        "shapes")
-            else:
-                continue
-            outlist.append(out_)
-        
-        if len(outlist) == 0:
-            return None
-        else:
-            return outlist
-    widget = viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
-    widget.setVisible(False)
+                return outlist
+        viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
+        return None
+    action = QAction("Function Handler", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
     return None
 
 
@@ -409,7 +441,7 @@ def str_to_args(s:str) -> tuple[list, dict]:
     args = []
     kwargs = {}
     for a in args_or_kwargs:
-        if "=" in a:
+        if "=" in a and a[0] not in ("'", '"'):
             k, v = a.split("=")
             v = interpret_type(v)
             kwargs[k] = v
@@ -433,7 +465,6 @@ def _iter_args_and_kwargs(string:str):
             stack -= 1
         elif stack == 0 and s == ",":
             yield string[start:i].strip()
-            print(string[start:i].strip())
             start = i + 1
     if start == 0:
         yield string
