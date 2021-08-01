@@ -158,6 +158,7 @@ def add_controller_widget(viewer):
     def _():
         layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")
         layer.mode = "add_rectangle"
+        layer.blending = "additive"
         layer.current_edge_width = 2.0 # unit is pixel here
         layer.current_face_color = [0, 0, 0, 0]
         layer.current_edge_color = [0, 0, 0, 0]
