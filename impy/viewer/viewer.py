@@ -23,7 +23,6 @@ from .._const import Const
 #   layer group is implemented in napari.
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
-
         
 class napariViewers:
     
@@ -241,7 +240,7 @@ class napariViewers:
         else:
             name = layer.name
         if hasattr(img, "labels"):
-            self._add_labels(img.labels, name=name)
+            self._add_labels(img.labels, name=name, metadata={"destination_image": img})
         return None
     
     def _add_dask(self, img:LazyImgArray, **kwargs):
@@ -310,7 +309,7 @@ class napariViewers:
             names = [labels.name]
             
         for lbl, name in zip(lbls, names):
-            self.viewer.add_labels(lbl, opacity=opacity, scale=scale, name=name, **kwargs)
+            self.viewer.add_labels(lbl.value, opacity=opacity, scale=scale, name=name, **kwargs)
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):

@@ -225,6 +225,10 @@ class ImgArray(LabeledArray):
         ImgArray
             Rescaled image.
         """        
+        outshape = switch_slice(dims, self.axes, ifin=np.array(self.shape)*scale, ifnot=self.shape)
+        gb = np.prod(outshape) * 4/1e9
+        if gb > Const["MAX_GB"]:
+            raise MemoryError(f"Too large: {gb} GB")
         with Progress("rescale"):
             scale_ = [scale if a in dims else 1 for a in self.axes]
             out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
@@ -2572,7 +2576,9 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         key : str
-            Key string that specify region to DFT, such as "y=-50:10;x=:80".
+            Key string that specify region to DFT, such as "y=-50:10;x=:80". With Upsampled spectra, keys
+            corresponds to the coordinate **before** up-sampling. If you want certain region, say "x=10:20",
+            this value will not change with different ``upsample_factor``.
         upsample_factor : int or array of int, default is 1
             Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
             10 pixels.
@@ -2626,7 +2632,9 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         key : str
-            Key string that specify region to DFT, such as "y=-50:10;x=:80".
+            Key string that specify region to DFT, such as "y=-50:10;x=:80". With Upsampled spectra, keys
+            corresponds to the coordinate **before** up-sampling. If you want certain region, say "x=10:20",
+            this value will not change with different ``upsample_factor``.
         upsample_factor : int or array of int, default is 1
             Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
             10 pixels.
@@ -3825,7 +3833,6 @@ class ImgArray(LabeledArray):
             mx[:-1, -1] = -shift[sl[t_index]]
             out[sl] = _transform.warp(img, mx, **affine_kwargs)
         
-        # out = asnumpy(out).view(self.__class__)
         return out
 
     @_docs.write_docs

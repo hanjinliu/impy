@@ -77,8 +77,6 @@ def upon_add_layer(event):
     except IndexError:
         return None
     new_layer.translate = new_layer.translate.astype(np.float64)
-    # if isinstance(new_layer, napari.layers.Image):
-    #     if type(new_layer.data) is np.ndarray:
             
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)

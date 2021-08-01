@@ -1,6 +1,7 @@
 from __future__ import annotations
-from .utils._skimage import skimage
-from .utils._skimage import skseg
+from .utils._skimage import skimage, skseg
+from .utils import _filters, _structures, _docs
+
 from .bases import HistoryArray
 
 from ..utils.axesop import *
@@ -121,4 +122,36 @@ class Label(HistoryArray):
     def __truediv__(self, value):
         raise NotImplementedError("Cannot divide label. If you need to divide, convert it to np.ndarray.")
     
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record()
+    def opening(self, radius:float=1, *, dims=None, update:bool=False) -> Label:
+        """
+        Morphological opening. 
+
+        Parameters
+        ----------
+        {radius}
+        {dims}
+        {update}
+
+        Returns
+        -------
+        Label
+            Opened labels
+        """        
+        disk = _structures.ball_like(radius, len(dims))
+        if self.dtype == bool:
+            f = _filters.binary_opening
+            kwargs = dict(structure=disk)
+        else:
+            f = _filters.opening
+            kwargs = dict(footprint=disk)
+        out = (self>0).apply_dask(f, 
+                                  c_axes=complement_axes(dims, self.axes), 
+                                  dtype=self.dtype,
+                                  kwargs=kwargs
+                                  )
+        self.value[~out] = 0
+        return self
     
