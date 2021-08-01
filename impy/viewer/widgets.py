@@ -252,7 +252,9 @@ def add_filter(viewer):
 def add_threshold(viewer):
     def add():
         @magicgui.magicgui(auto_call=True,
-                           percentile={"widget_type": "FloatSlider", "min": 0, "max": 100},
+                           percentile={"widget_type": "FloatSlider", 
+                                       "min": 0, "max": 100,
+                                       "tooltip": "Threshold percentile"},
                            label={"widget_type": "CheckBox"},
                            layout="vertical")
         def _func(layer:napari.layers.Image, percentile=50, label=False) -> napari.types.LayerDataTuple:
@@ -326,8 +328,8 @@ def function_handler(viewer):
     def add():
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
-                    arguments="",
-                    update=False) -> napari.types.LayerDataTuple:
+                     arguments="",
+                     update=False) -> napari.types.LayerDataTuple:
             """
             Run image analysis in napari window.
 
