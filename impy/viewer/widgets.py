@@ -345,20 +345,31 @@ def open_rectangle_editor(viewer):
     
             # check if one shape/point is selected
             new_data = selected_layer.data
-            selected_data = list(selected_layer.selected_data)
+            selected_data = selected_layer.selected_data
+            count = 0
             for i, data in enumerate(new_data):
                 if selected_layer.shape_type[i] == "rectangle" and i in selected_data:
                     data[1, -2:] = data[0, -2:] + np.array([len_v,   0.0])
                     data[2, -2:] = data[0, -2:] + np.array([len_v, len_h])
                     data[3, -2:] = data[0, -2:] + np.array([  0.0, len_h])
+                    count += 1
             
-            if len(selected_data) == 0:
-                new_data = [np.array([[  0.0,  0.0], 
-                                      [len_v,  0.0], 
-                                      [len_v, len_h],
-                                      [  0.0, len_h]])]
-            selected_layer.data = new_data
+            if count == 0:
+                if selected_layer.nshapes == 0:
+                    # TODO: https://github.com/napari/napari/pull/2961
+                    # May be solved in near future
+                    return None
+                data = np.zeros((4, selected_layer.ndim), dtype=np.float64)
+                data[:, :-2] = viewer.dims.current_step[:-2]
+                data[1, -2:] = np.array([len_v,   0.0])
+                data[2, -2:] = np.array([len_v, len_h])
+                data[3, -2:] = np.array([  0.0, len_h])
+                new_data = selected_layer.data + [data]
+                selected_data = {len(new_data) - 1}
+                
+            selected_layer.data = new_data       
             selected_layer.selected_data = selected_data
+            selected_layer._set_highlight()
         
         viewer.window.add_dock_widget(_func, area="left", name="Rectangle Editor")
         return None
