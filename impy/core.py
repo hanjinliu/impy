@@ -12,6 +12,7 @@ from .utils.io import *
 from .utils import gauss
 from .utils.slicer import *
 from .utils.utilcls import Progress
+from ._types import *
 
 from .axes import ImageAxesError
 from .collections import DataList
@@ -52,7 +53,7 @@ def write_docs(func):
     return func
 
 @write_docs
-def array(arr, dtype=None, *, name=None, axes=None, copy=True) -> ImgArray:
+def array(arr, dtype=None, *, name:str=None, axes:str=None, copy:bool=True) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
     
@@ -88,7 +89,7 @@ def array(arr, dtype=None, *, name=None, axes=None, copy=True) -> ImgArray:
     return self
 
 @write_docs
-def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
+def asarray(arr, dtype=None, *, name:str=None, axes:str=None) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
     
@@ -108,7 +109,7 @@ def asarray(arr, dtype=None, *, name=None, axes=None) -> ImgArray:
     return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
 
 @write_docs
-def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgArray:
+def aslazy(arr, dtype=None, *, name:str=None, axes:str=None, chunks="auto") -> LazyImgArray:
     """
     Make an LazyImgArray object from other types of array.
     
@@ -149,7 +150,7 @@ def aslazy(arr, dtype=None, *, name=None, axes=None, chunks="auto") -> LazyImgAr
     return self
 
 @write_docs
-def _template(shape, dtype=np.uint16, *, name=None, axes=None):
+def _template(shape, dtype=np.uint16, *, name:str=None, axes:str=None):
     r"""
     Make an ImgArray object, like ``np.{npfuncname}``.
 
@@ -207,13 +208,13 @@ def gaussian_kernel(shape:tuple[int, ...], sigma=1.0, peak:float=1.0) -> ImgArra
     return ker
 
 
-def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
+def circular_mask(radius:nDFloat, shape:tuple[int,...], center:str|tuple[float,...]="center") -> ImgArray:
     """
-    Make a circular shaped mask.
+    Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``. 
 
     Parameters
     ----------
-    radius : float
+    radius : float or array-like
         Radius of non-mask region
     shape : tuple
         Shape of mask.
@@ -229,12 +230,17 @@ def circular_mask(radius:float, shape:tuple, center="center") -> ImgArray:
         center = np.array(shape)/2. - 0.5
     elif len(shape) != len(center):
         raise ValueError("Length of `shape` and `center` must be same.")
-        
-    r = np.meshgrid(*shape)
-    s = sum((r0 - c0)**2 for r0, c0 in zip(r, center))
+    
+    if np.isscalar(radius):
+        radius = [radius]*len(shape)
+    elif len(radius) != len(shape):
+        raise ValueError("Length of `shape` and `radius` must be same.")
+
+    x = np.meshgrid(*shape)
+    s = sum(((x0 - c0)/r0)**2 for x0, c0, r0 in zip(x, center, radius))
     axes = "zyx" if len(shape) == 3 else None # change the default axes in `array`
     
-    return array(s > radius**2, dtype=bool, axes=axes)
+    return array(s > 1.0, dtype=bool, axes=axes)
 
 
 def sample_image(name:str) -> ImgArray:
