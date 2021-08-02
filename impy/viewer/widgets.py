@@ -108,7 +108,7 @@ def edit_properties(viewer):
     viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
-
+# TODO: Define a class that inherit QWidget
 def add_controller_widget(viewer):
     # Convert Points/Tracks layer into a table widget
     get_button = QPushButton("(x,y)")

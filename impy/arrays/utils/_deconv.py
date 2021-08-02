@@ -1,5 +1,5 @@
 from functools import partial
-from ..._cupy import xp, xp_fft, asnumpy
+from ..._cupy import xp, xp_fft
 
 try:
     gradient = xp.gradient
