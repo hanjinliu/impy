@@ -828,7 +828,6 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
                          along:str=None, dims=2, update:bool=False) -> LazyImgArray:
-        
         if along is None:
             along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
         elif len(along) != 1:

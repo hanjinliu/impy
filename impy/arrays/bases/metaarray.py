@@ -254,10 +254,12 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         Iteration along axes. If axes="tzc", then equivalent to following pseudo code:
         
-            for t in all_t:
-                for z in all_z:
-                    for c in all_c:
-                        yield self[t, z, c, ...]
+            .. code-block::
+            
+                for t in all_t:
+                    for z in all_z:
+                        for c in all_c:
+                            yield self[t, z, c, ...]
 
         Parameters
         ----------
