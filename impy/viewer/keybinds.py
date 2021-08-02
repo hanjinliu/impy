@@ -9,10 +9,10 @@ import napari
 # Delete, Home, End, Escape, Backspace, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
 # F11, F12, Space, Enter, Tab
 
-KEYS = {"add_new_shape_2d": "Shift-S",
-        "add_new_shape_3d": "S",
-        "add_new_point_2d": "Shift-P",
+KEYS = {"add_new_shape_3d": "S",
         "add_new_point_3d": "P",
+        "focus_next": "]",
+        "focus_previous": "[",
         "hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
         "unlink_selected_layers": "Control-Shift-G",
@@ -30,29 +30,61 @@ __all__ = list(KEYS.keys())
 def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
-@bind_key
-def add_new_shape_2d(viewer):
-    scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_shapes(scale=scale[-2:], ndim=2)
-    layer.mode = "add_rectangle"
     
 @bind_key
 def add_new_shape_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
-    layer =viewer.add_shapes(scale=scale[-2:])
+    layer = viewer.add_shapes(scale=scale[-2:], ndim=viewer.dims.ndim)
     layer.mode = "add_rectangle"
     
-@bind_key
-def add_new_point_2d(viewer):
-    scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_points(scale=scale[-2:], ndim=2)
-    layer.mode = "add"
 
 @bind_key
 def add_new_point_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_points(scale=scale[-2:])
+    layer = viewer.add_points(scale=scale[-2:], ndim=viewer.dims.ndim)
     layer.mode = "add"
+    
+@bind_key
+def focus_next(viewer):
+    _change_focus(viewer, 1)
+    return None
+
+@bind_key
+def focus_previous(viewer):
+    _change_focus(viewer, -1)
+    return None
+
+def _change_focus(viewer, ind):
+    # assert one Shapes or Points layer is selected
+    selected_layer = list(viewer.layers.selection)
+    if len(selected_layer) != 1:
+        return None
+    selected_layer = selected_layer[0]
+    if not isinstance(selected_layer, (napari.layers.Shapes, napari.layers.Points)):
+        return None
+
+    # check if one shape/point is selected
+    selected_data = list(selected_layer.selected_data)
+    if len(selected_data) != 1:
+        return None
+    selected_data = selected_data[0]
+    
+    # determine next/previous index/data to select
+    ndata = len(selected_layer.data)
+    next_to_select = (selected_data + ind) % ndata
+    selected_layer.selected_data = {next_to_select}
+    next_data = selected_layer.data[next_to_select]
+    selected_layer._set_highlight()
+    
+    # update camera    
+    scale = selected_layer.scale
+    viewer_scale = [r[2] for r in viewer.dims.range]
+    center = np.mean(np.atleast_2d(next_data), axis=0) * scale
+    viewer.camera.center = [0] + list(center[-2:])
+    viewer.dims.current_step = list(next_data[:-2]/viewer_scale[:-2]) + [0, 0]
+    
+    return None
+    
     
 @bind_key
 def hide_others(viewer):
