@@ -2609,7 +2609,10 @@ class ImgArray(LabeledArray):
         slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
         
         # a function that makes wave number vertical vector
-        wave = lambda sl, s, uf: xp.linspace(sl.start/s, sl.stop/s, (sl.stop-sl.start)*uf, endpoint=False)[:, xp.newaxis]
+        def wave(sl: slice, s: int, uf: int):
+            start = 0 if sl.start is None else sl.start
+            stop = s if sl.stop is None else sl.stop
+            return xp.linspace(start/s, stop/s, (stop-start)*uf, endpoint=False)[:, xp.newaxis]
         
         # exp(-ikx)
         exps = [xp.exp(-2j*np.pi * np.arange(s) * wave(sl, s, uf), dtype=np.complex64)

@@ -52,35 +52,36 @@ def drag_translation(viewer, event):
     if viewer.dims.ndisplay == 3:
         # forbid translation in 3D mode
         return None
-    if "Alt" in event.modifiers and "Shift" not in event.modifiers:
-        """
-        Manually translate image layer in xy-plane while pushing "Alt".
-        """ 
-        if event.button in (1, 2):
-            def func(layer, dpos):
-                if not isinstance(layer, napari.layers.Shapes):
-                    layer.translate -= dpos[-layer.translate.size:]
-        else:
-            func = None
-        
-    elif "Shift" in event.modifiers:
-        """
-        Manually translate image layer in x/y-direction.
-        """ 
-        if event.button == 1:
-            def func(layer, dpos):
-                if not isinstance(layer, napari.layers.Shapes):
-                    dpos[-2] = 0.0
-                    layer.translate -= dpos[-layer.translate.size:]
+    if "Alt" in event.modifiers:
+        if "Shift" not in event.modifiers:
+            """
+            Manually translate image layer in xy-plane while pushing "Alt".
+            """ 
+            if event.button in (1, 2):
+                def func(layer, dpos):
+                    if not isinstance(layer, napari.layers.Shapes):
+                        layer.translate -= dpos[-layer.translate.size:]
+            else:
+                return None
             
-        elif event.button == 2:
-            def func(layer, dpos):
-                if not isinstance(layer, napari.layers.Shapes):
-                    dpos[-1] = 0.0
-                    layer.translate -= dpos[-layer.translate.size:]
-        
         else:
-            func = None
+            """
+            Manually translate image layer in x/y-direction.
+            """ 
+            if event.button == 1:
+                def func(layer, dpos):
+                    if not isinstance(layer, napari.layers.Shapes):
+                        dpos[-2] = 0.0
+                        layer.translate -= dpos[-layer.translate.size:]
+                
+            elif event.button == 2:
+                def func(layer, dpos):
+                    if not isinstance(layer, napari.layers.Shapes):
+                        dpos[-1] = 0.0
+                        layer.translate -= dpos[-layer.translate.size:]
+            else:
+                return None
+            
     else:
         return None
     

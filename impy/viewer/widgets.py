@@ -13,6 +13,7 @@ __all__ = ["add_imread_menu",
            "add_threshold", 
            "add_filter", 
            "add_regionprops",
+           "open_rectangle_editor",
            "function_handler",
            ]
 
@@ -323,6 +324,49 @@ def add_regionprops(viewer):
     action = QAction("regionprops", viewer.window._qt_window)
     action.triggered.connect(lambda: regionprops.show(run=True))
     viewer.window.function_menu.addAction(action)
+    return None
+
+def open_rectangle_editor(viewer):
+    def add():
+        @magicgui.magicgui(auto_call=True,
+                           len_v={"widget_type": "SpinBox", 
+                                  "label": "V",
+                                  "tooltip": "vertical length in pixel"},
+                           len_h={"widget_type": "SpinBox", 
+                                  "label": "H",
+                                  "tooltip": "horizontal length in pixel"})
+        def _func(len_v=128, len_h=128):
+            selected_layer = list(viewer.layers.selection)
+            if len(selected_layer) != 1:
+                return None
+            selected_layer = selected_layer[0]
+            if not isinstance(selected_layer, napari.layers.Shapes):
+                return None
+    
+            # check if one shape/point is selected
+            new_data = selected_layer.data
+            selected_data = list(selected_layer.selected_data)
+            for i, data in enumerate(new_data):
+                if selected_layer.shape_type[i] == "rectangle" and i in selected_data:
+                    data[1, -2:] = data[0, -2:] + np.array([len_v,   0.0])
+                    data[2, -2:] = data[0, -2:] + np.array([len_v, len_h])
+                    data[3, -2:] = data[0, -2:] + np.array([  0.0, len_h])
+            
+            if len(selected_data) == 0:
+                new_data = [np.array([[  0.0,  0.0], 
+                                      [len_v,  0.0], 
+                                      [len_v, len_h],
+                                      [  0.0, len_h]])]
+            selected_layer.data = new_data
+            selected_layer.selected_data = selected_data
+        
+        viewer.window.add_dock_widget(_func, area="left", name="Rectangle Editor")
+        return None
+
+    action = QAction("Rectangle Editor", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
+
     return None
 
 def function_handler(viewer):

@@ -60,6 +60,7 @@ class DataList(CollectionBase, UserList):
     def _such_as(self):
         return self[0]
     
+    # TODO: +=, extend also need this kind of check
     def append(self, component):
         if self._type is None:
             super().append(component)
