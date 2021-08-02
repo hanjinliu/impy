@@ -1,6 +1,6 @@
 from __future__ import annotations
 from impy.utils.axesop import switch_slice
-from tifffile import TiffFile, imwrite
+from tifffile import TiffFile, imwrite, memmap
 import json
 import re
 import os
@@ -9,6 +9,7 @@ from dask import array as da
 from .._cupy import xp
 
 __all__ = ["imwrite", 
+           "memmap",
            "open_tif", 
            "open_mrc",
            "open_img",

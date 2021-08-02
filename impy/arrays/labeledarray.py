@@ -4,6 +4,7 @@ import pandas as pd
 import os
 from functools import partial
 import inspect
+from warnings import warn
 from scipy import ndimage as ndi
 
 from .specials import *
@@ -107,9 +108,6 @@ class LabeledArray(HistoryArray):
         img = img.sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(img, update_lut=True)
             
-        # convert to float32 if image is float64
-        if img.dtype == np.float64:
-            img = img.astype(np.float32)
         # save image
         imwrite(tifname, img, **imsave_kwargs)
         # notifications
@@ -233,6 +231,10 @@ class LabeledArray(HistoryArray):
             return self.as_float()
         elif dtype == "bool":
             return self.astype("bool")
+        elif dtype == "float64":
+            warn("Data type float64 is not valid for images. It was converted to float32 instead",
+                 UserWarning)
+            return self.as_float()
         else:
             raise ValueError(f"dtype: {dtype}")
     

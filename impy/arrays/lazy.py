@@ -2,6 +2,8 @@ from __future__ import annotations
 from functools import wraps
 import os
 from dask import array as da
+from warnings import warn
+
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
 from .axesmixin import AxesMixin
@@ -262,10 +264,11 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(LabeledArray.imsave)
-    @dims_to_spatial_axes
-    def imsave(self, dirpath:str, dtype=None, *, dims=None):
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath)
+    def imsave(self, tifname:str, dtype=None):
+        if not tifname.endswith(".tif"):
+            tifname += ".tif"
+        if os.sep not in tifname:
+            tifname = os.path.join(self.dirpath, tifname)
         if self.metadata is None:
             self.metadata = {}
         if dtype is None:
@@ -274,24 +277,17 @@ class LazyImgArray(AxesMixin):
         self = self.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
         
-        rechunk_to = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
-        
-        img = self.img.rechunk(rechunk_to)
-        
-        # convert to float32 if image is float64
-        if img.dtype == np.float64:
-            img = img.astype(np.float32)
+        memmap_image = memmap(tifname, shape=self.shape, dtype=self.dtype, **imsave_kwargs)
         
         # save image
-        def _imwrite(arr, block_info=None, **kwargs):
-            if block_info is None:
-                return None
-            path = os.path.join(dirpath, "-".join(map(str, block_info[0]["chunk-location"])) + ".tif")
-            imwrite(path, arr, **kwargs)
+        def _imwrite(arr, block_info=None):
+            sl = tuple(slice(i,j) for i,j in block_info[None]['array-location'])
+            memmap_image[sl] = arr
             return arr
         
-        da.map_blocks(_imwrite, img, dtype=img.dtype, **imsave_kwargs).compute()
-        print(f"Succesfully saved: {dirpath}")
+        da.map_blocks(_imwrite, self.img, meta=memmap_image).compute()
+        memmap_image.flush()
+        print(f"Succesfully saved: {tifname}")
         return None
     
     def rechunk(self, chunks="auto", *, threshold=None, block_size_limit=None, balance=False, 
@@ -826,8 +822,9 @@ class LazyImgArray(AxesMixin):
     @same_dtype(asfloat=True)
     @record_lazy()
     @dims_to_spatial_axes
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
-                         along:str=None, dims=2, update:bool=False) -> LazyImgArray:
+    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, along:str=None, 
+                         dims=2, update:bool=False, **affine_kwargs) -> LazyImgArray:
+        
         if along is None:
             along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
         elif len(along) != 1:
@@ -837,6 +834,12 @@ class LazyImgArray(AxesMixin):
             # determine 'ref'
             if ref is None:
                 ref = self
+                _dims = complement_axes(along, self.axes)
+                if dims != _dims:
+                    warn(f"dims={dims} with along={along} and {self.axes}-image are not "
+                         f"valid input. Changed to dims={_dims}",
+                         UserWarning)
+                    dims = _dims
             elif not isinstance(ref, self.__class__):
                 raise TypeError(f"'ref' must be LazyImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
@@ -863,7 +866,7 @@ class LazyImgArray(AxesMixin):
             mx = xp.eye(ndim+1, dtype=np.float32)
             loc = block_info[None]['array-location'][0]
             mx[:-1, -1] = -shift[loc[t_index]]
-            return _transform.warp(arr[slice_in], mx, order=order)[slice_out]
+            return _transform.warp(arr[slice_in], mx, **affine_kwargs)[slice_out]
         
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
         
@@ -961,6 +964,10 @@ class LazyImgArray(AxesMixin):
             return self.as_uint8()
         elif dtype == "float32":
             return self.as_float()
+        elif dtype == "float64":
+            warn("Data type float64 is not valid for images. It was converted to float32 instead",
+                 UserWarning)
+            return self.asfloat()
         else:
             raise ValueError(f"dtype: {dtype}")
     

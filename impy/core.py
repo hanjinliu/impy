@@ -254,7 +254,7 @@ def sample_image(name:str) -> ImgArray:
     img = getattr(skdata, name)()
     out = array(img, name=name)
     if out.shape[-1] == 3:
-        out.axes = "yxc"
+        out.axes = ["x", "yx", "zyx"][out.ndim-2] + "c"
         out = out.sort_axes()
     return out
 

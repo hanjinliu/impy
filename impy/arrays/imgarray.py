@@ -18,6 +18,7 @@ from ..utils.deco import *
 from ..utils.gauss import *
 from ..utils.misc import *
 from ..utils.utilcls import *
+from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import *
 from .._types import *
@@ -157,14 +158,15 @@ class ImgArray(LabeledArray):
         else:
             center = np.asarray(center)
             
-        translation_0 = sktrans.SimilarityTransform(translation=center)
-        rotation = sktrans.SimilarityTransform(rotation=np.deg2rad(degree))
-        translation_1 = sktrans.SimilarityTransform(translation=-center)
-        mx = translation_1 + rotation + translation_0
-        mx.params[2] = (0, 0, 1)
+        translation_0 = _transform.compose_affine_matrix(translation=center)
+        rotation = _transform.compose_affine_matrix(rotation=np.deg2rad(degree))
+        translation_1 = _transform.compose_affine_matrix(translation=-center)
+        
+        mx = translation_0 @ rotation @ translation_1
+        mx[-1, :] = [0] * len(dims) + [1]
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx.params, order=order)
+                               kwargs=dict(matrix=mx, order=order)
                                )
     
     
@@ -172,7 +174,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def stretch(self, scale, center="center", *, dims=2, order:int=1) -> ImgArray:
+    def stretch(self, scale, center="center", *, dims=None, order:int=1) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -194,12 +196,16 @@ class ImgArray(LabeledArray):
             center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
         else:
             center = np.asarray(center)
-            
-        translation_0 = sktrans.SimilarityTransform(translation=center)
-        stretch = sktrans.SimilarityTransform(scale=1/np.asarray(scale))
-        translation_1 = sktrans.SimilarityTransform(translation=-center)
-        mx = translation_1 + stretch + translation_0
-        mx.params[2, 2] = 1
+        
+        scale = check_nd(scale, len(dims))
+        
+        translation_0 = _transform.compose_affine_matrix(translation=center)
+        stretch = _transform.compose_affine_matrix(scale=1/np.asarray(scale))
+        translation_1 = _transform.compose_affine_matrix(translation=-center)
+        
+        mx = translation_0 @ stretch @ translation_1
+        mx[-1, :] = [0] * len(dims) + [1]
+        
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(matrix=mx.params, order=order)
@@ -224,6 +230,10 @@ class ImgArray(LabeledArray):
         ImgArray
             Rescaled image.
         """        
+        outshape = switch_slice(dims, self.axes, ifin=np.array(self.shape)*scale, ifnot=self.shape)
+        gb = np.prod(outshape) * 4/1e9
+        if gb > Const["MAX_GB"]:
+            raise MemoryError(f"Too large: {gb} GB")
         with Progress("rescale"):
             scale_ = [scale if a in dims else 1 for a in self.axes]
             out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
@@ -1235,11 +1245,14 @@ class ImgArray(LabeledArray):
         """        
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
-        out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
+        out = np.var(laplace_img, axis=dims)
+        out = PropArray(out.value, dtype=np.float32, name=self.name, 
                         axes=c_axes, propname="variance_of_laplacian")
+        # out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
+        #                 axes=c_axes, propname="variance_of_laplacian")
         
-        for sl, img in laplace_img.iter(c_axes, exclude=dims):
-            out[sl] = np.var(img)
+        # for sl, img in laplace_img.iter(c_axes, exclude=dims):
+        #     out[sl] = np.var(img)
         return out
     
     @_docs.write_docs
@@ -2553,6 +2566,104 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
+    def local_dft(self, key:str="", upsample_factor:nDInt=1, *, dims=None) -> ImgArray:
+        """
+        Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
+        of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
+        time, much faster compared to normal DFT (:math:`O(N^2)`). However, If you are interested in certain 
+        region of Fourier space, you don't have to calculate all the spectra. In this case DFT is faster and
+        less memory comsuming.
+        
+            .. warning::
+                The result of ``local_dft`` will NOT shifted with ``np.fft.fftshift`` because in general the
+                center of arrays are unknown. Also, it is easier to understand `x=0` corresponds to the center.
+        
+        Even whole spectrum is returned, ``local_dft`` may be faster than FFT with small and/or non-FFT-friendly
+        shaped image.
+
+        Parameters
+        ----------
+        key : str
+            Key string that specify region to DFT, such as "y=-50:10;x=:80". With Upsampled spectra, keys
+            corresponds to the coordinate **before** up-sampling. If you want certain region, say "x=10:20",
+            this value will not change with different ``upsample_factor``.
+        upsample_factor : int or array of int, default is 1
+            Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
+            10 pixels.
+        {dims}
+
+        Returns
+        -------
+        ImgArray
+            DFT output.
+        """
+        ndim = len(dims)
+        upsample_factor = check_nd(upsample_factor, ndim)
+        
+        # determine how to slice the result of FFT
+        for a in dims:
+            if a not in key:
+                key += f";{a}=0:{self.sizeof(a)}"
+        if key.startswith(";"):
+            key = key[1:]
+        slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
+        
+        # a function that makes wave number vertical vector
+        wave = lambda sl, s, uf: xp.linspace(sl.start/s, sl.stop/s, (sl.stop-sl.start)*uf, endpoint=False)[:, xp.newaxis]
+        
+        # exp(-ikx)
+        exps = [xp.exp(-2j*np.pi * np.arange(s) * wave(sl, s, uf), dtype=np.complex64)
+                for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
+        
+        # Calculate chunk size for proper output shapes
+        chunks = np.ones(self.ndim, dtype=np.int64)
+        for i, a in enumerate(dims):
+            ind = self.axisof(a)
+            chunks[ind] = exps[i].shape[0]
+        chunks = tuple(chunks)
+        
+        return self.apply_dask(_misc.dft, 
+                               complement_axes(dims, self.axes),
+                               dtype=np.complex64, 
+                               chunks=chunks,
+                               kwargs=dict(exps=exps)
+                               )
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record()
+    def local_power_spectra(self, key:str="", upsample_factor:nDInt=1, norm:bool=False, *, 
+                            dims=None) -> ImgArray:
+        """
+        Return local n-D power spectra of images. See ``local_dft``.
+
+        Parameters
+        ----------
+        key : str
+            Key string that specify region to DFT, such as "y=-50:10;x=:80". With Upsampled spectra, keys
+            corresponds to the coordinate **before** up-sampling. If you want certain region, say "x=10:20",
+            this value will not change with different ``upsample_factor``.
+        upsample_factor : int or array of int, default is 1
+            Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
+            10 pixels.
+        norm : bool, default is False
+            If True, maximum value of power spectra is adjusted to 1.
+        {dims}
+
+        Returns
+        -------
+        ImgArray
+            Power spectra
+        """        
+        freq = self.local_dft(key, upsample_factor=upsample_factor, dims=dims)
+        pw = freq.real**2 + freq.imag**2
+        if norm:
+            pw /= pw.max()
+        return pw
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record()
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
@@ -2618,14 +2729,16 @@ class ImgArray(LabeledArray):
         return pw
     
     @record()
-    def threshold(self, thr:float|str="otsu", *, dims=None, **kwargs) -> ImgArray:
+    def threshold(self, thr:float|str="otsu", *, along=None, **kwargs) -> ImgArray:
         """
         Parameters
         ----------
-        thr: float or array or None, optional
+        thr: float or str or None, optional
             Threshold value, or thresholding algorithm.
-        dims : int or str, default is all the axes except for channel axis.
-            Dimensions that will share the same threshold.
+        along : str, optional
+            Dimensions that will not share the same threshold. For instance, if ``along="c"`` then
+            threshold intensities are determined for every channel. If ``thr`` is float, ``along``
+            will be ignored.
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
 
@@ -2640,8 +2753,11 @@ class ImgArray(LabeledArray):
             >>> thr = img.threshold("99%")
             >>> img[thr] = 0
         """
-        if dims is None:
-            dims = complement_axes("c", self.axes)
+        if self.dtype == bool:
+            return self
+        
+        if along is None:
+            along = "c" if "c" in self.axes else ""
             
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
@@ -2659,7 +2775,7 @@ class ImgArray(LabeledArray):
         if isinstance(thr, str) and thr.endswith("%"):
             p = float(thr[:-1])
             out = np.zeros(self.shape, dtype=bool)
-            for sl, img in self.iter(complement_axes(dims, self.axes)):
+            for sl, img in self.iter(along):
                 thr = np.percentile(img, p)
                 out[sl] = img >= thr
                 
@@ -2672,7 +2788,7 @@ class ImgArray(LabeledArray):
                 raise KeyError(f"{method}\nmethod must be: {s}")
             
             out = np.zeros(self.shape, dtype=bool)
-            for sl, img in self.iter(complement_axes(dims, self.axes)):
+            for sl, img in self.iter(along):
                 thr = func(img, **kwargs)
                 out[sl] = img >= thr
             
@@ -3227,14 +3343,18 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        All are passed to self.threshold()
+        thr: float or str or None, optional
+            Threshold value, or thresholding algorithm.
+        {dims}
+        **kwargs:
+            Keyword arguments that will passed to function indicated in 'method'.
         
         Returns
         -------
         ImgArray
             Same array but labels are updated.
         """        
-        labels = self.threshold(thr=thr, dims=None, **kwargs)
+        labels = self.threshold(thr=thr, **kwargs)
         return self.label(labels, dims=dims)
     
     
@@ -3649,8 +3769,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, order:int=1, 
-                         along:str=None, dims=2, update:bool=False) -> ImgArray:
+    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, along:str=None, 
+                         dims=2, update:bool=False, **affine_kwargs) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors ``shift``
         is not given, then it will be determined using ``track_drift`` method of ImgArray.
@@ -3664,11 +3784,12 @@ class ImgArray(LabeledArray):
             The reference n-D image to determine drift, if ``shift`` was not given.
         zero_ave : bool, default is True
             If True, average shift will be zero.
-        {order}
         along : str, optional
             Along which axis drift will be corrected.
         {dims}
         {update}
+        affine_kwargs :
+            Keyword arguments that will be passed to ``warp``.
 
         Returns
         -------
@@ -3690,13 +3811,19 @@ class ImgArray(LabeledArray):
             # determine 'ref'
             if ref is None:
                 ref = self
+                _dims = complement_axes(along, self.axes)
+                if dims != _dims:
+                    warnings.warn(f"dims={dims} with along={along} and {self.axes}-image are not "
+                                  f"valid input. Changed to dims={_dims}",
+                                  UserWarning)
+                    dims = _dims
             elif not isinstance(ref, self.__class__):
                 raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
                 raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
                                  f"axes of `ref`({ref.axes})")
 
-            shift = ref.track_drift(along=along)
+            shift = ref.track_drift(along=along).values
             
         else:
             shift = np.asarray(shift, dtype=np.float32)
@@ -3712,9 +3839,8 @@ class ImgArray(LabeledArray):
         mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
         for sl, img in self.iter(complement_axes(dims, self.axes)):
             mx[:-1, -1] = -shift[sl[t_index]]
-            out[sl] = _transform.warp(img, mx, order=order)
+            out[sl] = _transform.warp(img, mx, **affine_kwargs)
         
-        out = asnumpy(out).view(self.__class__)
         return out
 
     @_docs.write_docs

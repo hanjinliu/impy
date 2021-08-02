@@ -5,10 +5,14 @@ import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
-KEYS = {"add_new_shape_2d": "Shift-S",
-        "add_new_shape_3d": "S",
-        "add_new_point_2d": "Shift-P",
+# Shift, Control, Alt, Meta, Up, Down, Left, Right, PageUp, PageDown, Insert, 
+# Delete, Home, End, Escape, Backspace, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
+# F11, F12, Space, Enter, Tab
+
+KEYS = {"add_new_shape_3d": "S",
         "add_new_point_3d": "P",
+        "focus_next": "]",
+        "focus_previous": "[",
         "hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
         "unlink_selected_layers": "Control-Shift-G",
@@ -26,29 +30,61 @@ __all__ = list(KEYS.keys())
 def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
-@bind_key
-def add_new_shape_2d(viewer):
-    scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_shapes(scale=scale[-2:], ndim=2)
-    layer.mode = "add_rectangle"
     
 @bind_key
 def add_new_shape_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
-    layer =viewer.add_shapes(scale=scale[-2:])
+    layer = viewer.add_shapes(scale=scale[-2:], ndim=viewer.dims.ndim)
     layer.mode = "add_rectangle"
     
-@bind_key
-def add_new_point_2d(viewer):
-    scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_points(scale=scale[-2:], ndim=2)
-    layer.mode = "add"
 
 @bind_key
 def add_new_point_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_points(scale=scale[-2:])
+    layer = viewer.add_points(scale=scale[-2:], ndim=viewer.dims.ndim)
     layer.mode = "add"
+    
+@bind_key
+def focus_next(viewer):
+    _change_focus(viewer, 1)
+    return None
+
+@bind_key
+def focus_previous(viewer):
+    _change_focus(viewer, -1)
+    return None
+
+def _change_focus(viewer, ind):
+    # assert one Shapes or Points layer is selected
+    selected_layer = list(viewer.layers.selection)
+    if len(selected_layer) != 1:
+        return None
+    selected_layer = selected_layer[0]
+    if not isinstance(selected_layer, (napari.layers.Shapes, napari.layers.Points)):
+        return None
+
+    # check if one shape/point is selected
+    selected_data = list(selected_layer.selected_data)
+    if len(selected_data) != 1:
+        return None
+    selected_data = selected_data[0]
+    
+    # determine next/previous index/data to select
+    ndata = len(selected_layer.data)
+    next_to_select = (selected_data + ind) % ndata
+    selected_layer.selected_data = {next_to_select}
+    next_data = selected_layer.data[next_to_select]
+    selected_layer._set_highlight()
+    
+    # update camera    
+    scale = selected_layer.scale
+    viewer_scale = [r[2] for r in viewer.dims.range]
+    center = np.mean(np.atleast_2d(next_data), axis=0) * scale
+    viewer.camera.center = [0] + list(center[-2:])
+    viewer.dims.current_step = list(next_data[:-2]/viewer_scale[:-2]) + [0, 0]
+    
+    return None
+    
     
 @bind_key
 def hide_others(viewer):
@@ -169,12 +205,16 @@ def crop(viewer):
     dims2d = "".join(viewer.dims.axis_labels[i] for i in active_plane)
     rects = []
     for shape_layer in iter_selected_layer(viewer, "Shapes"):
-        for shape, type_ in zip(shape_layer.data, shape_layer.shape_type):
+        for i in range(shape_layer.nshapes):
+            shape = shape_layer.data[i]
+            type_ = shape_layer.shape_type[i]
             if type_ == "rectangle":
-                rects.append((shape[:, active_plane], 
-                              shape_layer.scale[active_plane])) # shape = float pixel
-                
-    for rect, shape_layer_scale in rects:
+                rects.append((shape[:, active_plane],            # shape = float pixel
+                              shape_layer.scale[active_plane],
+                              _get_property(shape_layer, i))
+                             )
+
+    for rect, shape_layer_scale, prop in rects:
         if np.any(np.abs(rect[0] - rect[1])<1e-5):
             crop_func = _crop_rectangle
         else:
@@ -184,7 +224,7 @@ def crop(viewer):
             factor = layer.scale[active_plane]/shape_layer_scale
             _dirpath = layer.data.dirpath
             _metadata = layer.data.metadata
-            _name = layer.data.name
+            _name = prop + layer.name
             layer = viewer.add_layer(copy_layer(layer))
             dr = layer.translate[active_plane] / layer.scale[active_plane]
             newdata, relative_translate = \
@@ -206,6 +246,7 @@ def crop(viewer):
             translate = layer.translate
             translate[active_plane] += relative_translate * layer.scale[active_plane]
             layer.translate = translate
+            layer.name = _name
             layer.metadata.update({"init_translate": layer.translate, 
                                    "init_scale": layer.scale})
             
@@ -333,3 +374,12 @@ def _crop_rectangle(img, crds, dims):
     
     cropped_img = img[area_to_crop]
     return cropped_img, translate
+
+def _get_property(layer, i):
+    try:
+        prop = layer.properties["text"][i]
+    except (KeyError, IndexError):
+        prop = ""
+    if prop != "":
+        prop = prop + " of "
+    return prop

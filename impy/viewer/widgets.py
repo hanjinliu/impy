@@ -1,18 +1,25 @@
 from __future__ import annotations
 import napari
 import magicgui
-from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
+from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout, QHBoxLayout
 from .utils import *
-
-# TODO: 
-# - Integrate ImgArray functions after napari new version comes out. https://github.com/napari/napari/pull/263
-# - Text layer -> https://github.com/napari/napari/issues/3053
+from .._const import SetConst
 
 __all__ = ["add_imread_menu",
            "add_imsave_menu",
-           "add_table_widget", 
+           "add_controller_widget", 
            "add_note_widget",
-           "function_handler"]
+           "edit_properties",
+           "add_threshold", 
+           "add_filter", 
+           "add_regionprops",
+           "function_handler",
+           ]
+
+
+FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filter", "doh_filter", "log_filter", 
+           "erosion", "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
+           "tophat", "rolling_ball"]
 
 def add_imread_menu(viewer):
     from ..core import imread
@@ -35,6 +42,7 @@ def add_imread_menu(viewer):
     action.triggered.connect(open_img)
     viewer.window.file_menu.addAction(action)
     return None
+
 
 def add_imsave_menu(viewer):
     def save_img():
@@ -73,42 +81,48 @@ def add_imsave_menu(viewer):
 
 
 def edit_properties(viewer):
-    @magicgui.magicgui(call_button="Apply")
-    def edit_prop(format_="{text}", propname="text", value=""):
+    """
+    Edit properties of selected shapes or points.
+    """    
+    def edit_prop(event):
         # get the selected shape layer
         layers = list(viewer.layers.selection)
         if len(layers) != 1:
             return None
         layer = layers[0]
-        if not isinstance(layer, (napari.layers.Labels, napari.layers.Points, napari.layers.Shapes)):
+        if not isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
             return None
         
-        # current properties
-        # props = layer.properties
-        # if prop not in layer.properties.keys():
-        props = np.zeros(len(layer.data), dtype="<U12")
-        old = layer.properties.get(propname, [""]*len(props))
-        # new format of texts
-        layer.text._text_format_string = format_
-        # set new values to selected shapes
-        for i in range(len(props)):
-            if layer.selected_data:
-                props[i] = value
-            else:
-                props[i] = old[i]
+        old = layer.properties.get("text", [""]*len(layer.data))
+        for i in layer.selected_data:
+            try:
+                old[i] = event.value.format(n=i).strip()
+            except (ValueError, KeyError):
+                old[i] = event.value.strip()
                 
-        layer.properties = {propname: props}
-        layer.text.refresh_text(props)
-    
-    viewer.window.add_dock_widget(edit_prop, area="right", name="Property editor")
+        layer.text.refresh_text({"text": old})
+        return None
+        
+    line = magicgui.widgets.LineEdit(tooltip="Property editor")
+    line.changed.connect(edit_prop)
+    viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
-def add_table_widget(viewer):
-    QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
-    
-    button = QPushButton("Get")
-    @button.clicked.connect
-    def make_table():
+
+def add_controller_widget(viewer):
+    # Convert Points/Tracks layer into a table widget
+    get_button = QPushButton("(x,y)")
+    @get_button.clicked.connect
+    def _():
+        """
+        widget = table widget + button widget
+        ---------------
+        |             |
+        |   (table)   | <- table widget
+        |             |
+        |[Copy][Store]| <- button widget = copy button + store button
+        ---------------
+        """        
         dfs = list(iter_selected_layer(viewer, ["Points", "Tracks"]))
         if len(dfs) == 0:
             return
@@ -119,17 +133,73 @@ def add_table_widget(viewer):
             columns = list(df.metadata.get("axes", axes[-df.data.shape[1]:]))
             table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
             copy_button = QPushButton("Copy")
-            copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
+            copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())
+            store_button = QPushButton("Store")
+            @store_button.clicked.connect
+            def _():
+                viewer.window.results = table.to_dataframe()
+                return None
+            
+            button_widget = QWidget()
+            layout = QHBoxLayout()
+            layout.addWidget(copy_button)
+            layout.addWidget(store_button)
+            button_widget.setLayout(layout)
+            
             widget.layout().addWidget(table.native)
-            widget.layout().addWidget(copy_button)
-            widget = QtViewerDockWidget(viewer.window.qt_viewer, table, name=df.name,
-                                        area="right", add_vertical_stretch=True)
-            viewer.window._add_viewer_dock_widget(widget, tabify=viewer.window.n_table>0)
-            viewer.window.n_table += 1
+            widget.layout().addWidget(button_widget)
+            viewer.window.add_dock_widget(widget, area="right", name=df.name)
+            
         return None
     
-    viewer.window.add_dock_widget(button, area="left", name="Get Coordinates")
+    # Add text layer
+    add_button = QPushButton("+Text")
+    @add_button.clicked.connect
+    def _():
+        layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")
+        layer.mode = "add_rectangle"
+        layer.blending = "additive"
+        layer.current_edge_width = 2.0 # unit is pixel here
+        layer.current_face_color = [0, 0, 0, 0]
+        layer.current_edge_color = [0, 0, 0, 0]
+        layer._rotation_handle_length = 20/np.mean(layer.scale[-2:])
+        layer.current_properties = {"text": np.array(["text here"], dtype="<U32")}
+        layer.properties = {"text": np.array([], dtype="<U32")}
+        layer.text = "{text}"
+        layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
+        layer.text.color = "white"
+        layer.text.anchor = "center"
+        return None
+    
+    # Add Labels layer that is connected to ImgArray
+    label_button = QPushButton("Label")
+    @label_button.clicked.connect
+    def _():
+        selected = list(viewer.layers.selection)
+        if len(selected) != 1:
+            return None
+        selected = selected[0]
+        if not isinstance(selected, napari.layers.Image):
+            return None
+        img = selected.data
+        if hasattr(img, "labels"):
+            return None
+        with SetConst("SHOW_PROGRESS", False):
+            img.append_label(np.zeros(img.shape, dtype=np.uint8))
+        layer = viewer.add_labels(img.labels.value, opacity=0.3, scale=selected.scale, name=f"[L]{img.name}",
+                                  translate=selected.translate)
+        layer.mode = "paint"
+        return None
+        
+    controller_widget = QWidget()
+    layout = QHBoxLayout()
+    layout.addWidget(get_button)
+    layout.addWidget(add_button)
+    layout.addWidget(label_button)
+    controller_widget.setLayout(layout)
+    viewer.window.add_dock_widget(controller_widget, area="left", name="impy controller")
     return None
+
     
 
 def add_note_widget(viewer):
@@ -138,114 +208,216 @@ def add_note_widget(viewer):
     text.setVisible(False)
     return None
 
+def add_filter(viewer):
+    def add():
+        @magicgui.magicgui(auto_call=True,
+                           func={"choices": FILTERS, 
+                                 "label": "function"},
+                           param={"widget_type": "FloatSlider", 
+                                  "min": 1, "max": 30, 
+                                  "tooltip": "The first paramter, such as 'sigma' in gaussian_filter or 'radius' in median_filter"},
+                           dims={"choices": ["2D", "3D"], 
+                                 "tooltip": "Spatial dimension"},
+                           fix_contrast_limits={"widget_type": "CheckBox", 
+                                                "label": "fix contrast limits"},
+                           layout="vertical")
+        def _func(layer:napari.layers.Image, func, param=1, dims="2D", 
+                  fix_contrast_limits=False) -> napari.types.LayerDataTuple:
+            if layer is not None and func != "None":
+                name = f"Result of {layer.name}"
+                with SetConst("SHOW_PROGRESS", False):
+                    try:
+                        out = getattr(layer.data, func)(param, dims=int(dims[0]))
+                    except Exception as e:
+                        viewer.status = f"{func} finished with {e.__class__.__name__}: {e}"
+                        return None
+                try:
+                    if fix_contrast_limits:
+                        props_to_inherit = ["colormap", "blending", "translate", "scale", "contrast_limits"]
+                    else:
+                        props_to_inherit = ["colormap", "blending", "translate", "scale"]
+                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
+                except KeyError:
+                    kwargs = dict(translate="inherit")
+                    
+                return _image_tuple(layer, out, name=name, **kwargs)
+        
+        viewer.window.add_dock_widget(_func, area="left", name="Filters")
+        return None
+    action = QAction("Filters", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
+    return None
+
+
+def add_threshold(viewer):
+    def add():
+        @magicgui.magicgui(auto_call=True,
+                           percentile={"widget_type": "FloatSlider", 
+                                       "min": 0, "max": 100,
+                                       "tooltip": "Threshold percentile"},
+                           label={"widget_type": "CheckBox"},
+                           layout="vertical")
+        def _func(layer:napari.layers.Image, percentile=50, label=False) -> napari.types.LayerDataTuple:
+            # define the name for the new layer
+            if label:
+                name = f"[L]{layer.name}"
+            else:
+                name = f"Threshold of {layer.name}"
+                
+            if layer is not None:
+                with SetConst("SHOW_PROGRESS", False):
+                    thr = np.percentile(layer.data, percentile)
+                    if label:
+                        out = layer.data.label_threshold(thr)
+                        props_to_inherit = ["opacity", "blending", "translate", "scale"]
+                        _as_layer_data_tuple = _label_tuple
+                    else:
+                        out = layer.data.threshold(thr)
+                        props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
+                        _as_layer_data_tuple = _image_tuple
+                try:
+                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
+                except KeyError:
+                    if label:
+                        kwargs = dict(translate=layer.translate, opacity=0.3)
+                    else:
+                        kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
+                
+                return _as_layer_data_tuple(layer, out, name=name, **kwargs)
+        
+        viewer.window.add_dock_widget(_func, area="left", name="Threshold/Label")
+        return None
+    action = QAction("Threshold/Label", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
+    return None
+
+def add_regionprops(viewer):
+    # TODO: close main window after calculation, choose properties
+    @magicgui.magicgui(main_window=True,
+                       call_button="Calculate")
+    def regionprops():
+        selected = list(viewer.layers.selection)
+        if len(selected) < 1:
+            return None
+        properties = ("label", "mean_intensity")
+        for imglayer in selected:
+            if not isinstance(imglayer, napari.layers.Image):
+                continue
+            lbl = imglayer.data.labels
+            with SetConst("SHOW_PROGRESS", False):
+                out = imglayer.data.regionprops(properties=properties)
+            out["label"] = out["label"].astype(lbl.dtype)
+            order = np.argsort(out["label"].value)
+            d = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}
+            # find Labels layer
+            for l in viewer.layers:
+                if l.data is lbl:
+                    l.properties = d
+                    break
+            else:
+                l = viewer.add_labels(lbl.value, opacity=0.3, scale=imglayer.scale, 
+                                      name=f"[L]{imglayer.name}", translate=imglayer.translate)
+    
+    action = QAction("regionprops", viewer.window._qt_window)
+    action.triggered.connect(lambda: regionprops.show(run=True))
+    viewer.window.function_menu.addAction(action)
+    return None
 
 def function_handler(viewer):
-    @magicgui.magicgui(call_button="Run")
-    def run_func(method="gaussian_filter", 
-                 arguments="",
-                 update=False) -> napari.types.LayerDataTuple:
-        """
-        Run image analysis in napari window.
+    def add():
+        @magicgui.magicgui(call_button="Run")
+        def run_func(method="gaussian_filter", 
+                     arguments="",
+                     update=False) -> napari.types.LayerDataTuple:
+            """
+            Run image analysis in napari window.
 
-        Parameters
-        ----------
-        method : str, default is "gaussian_filter"
-            Name of method to be called.
-        arguments : str, default is ""
-            Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
-            the value should be `"2, dims=2"`.
-        update : bool, default is False
-            If update the layer's data. The original data will NOT be updated.
-            
-        Returns
-        -------
-        napari.types.LayerDataTuple
-            This is passed to napari and is directly visualized.
-        """
-        layer_names = [l.name for l in viewer.layers]
-        outlist = []
-        i = 0
-        for input in viewer.layers.selection:
-            data = layer_to_impy_object(viewer, input)
-            try:
-                func = getattr(data, method)
-            except AttributeError as e:
-                viewer.status = f"{method} finished with AttributeError: {e}"
-                continue
-            
-            viewer.status = f"{method} ..."
-            try:
-                args, kwargs = str_to_args(arguments)
-                out = func(*args, **kwargs)
-            except Exception as e:
-                viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
-                continue
-            else:
-                viewer.status = f"{method} finished"
-            scale = make_world_scale(data)
-            
-            # determine name of the new layer
-            if update and type(data) is type(out):
-                name = input.name
-            else:
-                name = f"{method}-{i}"
-                i += 1
-                while name in layer_names:
-                    name = f"{method}-{i}"
-                    i += 1
-                    
-            if isinstance(out, ImgArray):
-                if out.dtype.kind == "c":
-                    out = np.abs(out)
-                contrast_limits = [float(x) for x in out.range]
-                if data.ndim == out.ndim:
-                    translate = input.translate
-                elif data.ndim > out.ndim:
-                    translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-                    scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+            Parameters
+            ----------
+            method : str, default is "gaussian_filter"
+                Name of method to be called.
+            arguments : str, default is ""
+                Input arguments and keyword arguments. If you want to run `self.median_filter(2, dims=2)` then
+                the value should be `"2, dims=2"`.
+            update : bool, default is False
+                If update the layer's data. The original data will NOT be updated.
+                
+            Returns
+            -------
+            napari.types.LayerDataTuple
+                This is passed to napari and is directly visualized.
+            """
+            outlist = []
+            for input in viewer.layers.selection:
+                data = layer_to_impy_object(viewer, input)
+                try:
+                    if method.startswith("[") and method.endswith("]"):
+                        arguments = method[1:-1]
+                        func = data.__getitem__
+                    else:
+                        func = getattr(data, method)
+                except AttributeError as e:
+                    viewer.status = f"{method} finished with AttributeError: {e}"
+                    continue
+                
+                viewer.status = f"{method} ..."
+                try:
+                    args, kwargs = str_to_args(arguments)
+                    out = func(*args, **kwargs)
+                except Exception as e:
+                    viewer.status = f"{method} finished with {e.__class__.__name__}: {e}"
+                    continue
                 else:
-                    translate = [0.0] + list(input.translate)
-                    scale = [1.0] + list(scale)
-                out_ = (out, 
-                        dict(scale=scale, name=name, colormap=input.colormap, translate=translate,
-                             blending=input.blending, contrast_limits=contrast_limits), 
-                        "image")
-            elif isinstance(out, PhaseArray):
-                out_ = (out, 
-                        dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
-                                contrast_limits=out.border), 
-                        "image")
-            elif isinstance(out, Label):
-                out_ = (out, 
-                        dict(opacity=0.3, scale=scale, name=name), 
-                        "labels")
-            elif isinstance(out, MarkerFrame):
-                kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
-                          edge_color=viewer.window.cmap(),
-                          metadata={"axes": str(out._axes), "scale": out.scale},
-                          scale=scale)
-                out_ = (out, kw, "points")
-            elif isinstance(out, TrackFrame):
-                out_ = (out, 
-                        dict(scale=scale, translate=input.translate,
-                             metadata={"axes": str(out._axes), "scale":out.scale}), 
-                        "tracks")
-            elif isinstance(out, PathFrame):
-                out_ = (out, 
-                        dict(scale=scale, translate=input.translate,
-                             shape_type="path", edge_color="lime", edge_width=0.3,
-                             metadata={"axes": str(out._axes), "scale":out.scale}),
-                        "shapes")
+                    viewer.status = f"{method} finished"
+                scale = make_world_scale(data)
+                
+                # determine name of the new layer
+                if update and type(data) is type(out):
+                    name = input.name
+                else:
+                    name = f"Result of {input.name}"
+                        
+                if isinstance(out, ImgArray):
+                    out_ = _image_tuple(input, out, name=name)
+                elif isinstance(out, PhaseArray):
+                    out_ = (out, 
+                            dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
+                                    contrast_limits=out.border), 
+                            "image")
+                elif isinstance(out, Label):
+                    _label_tuple(input, out, name=name)
+                elif isinstance(out, MarkerFrame):
+                    kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
+                            edge_color=viewer.window.cmap(),
+                            metadata={"axes": str(out._axes), "scale": out.scale},
+                            scale=scale)
+                    out_ = (out, kw, "points")
+                elif isinstance(out, TrackFrame):
+                    out_ = (out, 
+                            dict(scale=scale, translate=input.translate,
+                                metadata={"axes": str(out._axes), "scale":out.scale}), 
+                            "tracks")
+                elif isinstance(out, PathFrame):
+                    out_ = (out, 
+                            dict(scale=scale, translate=input.translate,
+                                shape_type="path", edge_color="lime", edge_width=0.3,
+                                metadata={"axes": str(out._axes), "scale":out.scale}),
+                            "shapes")
+                else:
+                    continue
+                outlist.append(out_)
+            
+            if len(outlist) == 0:
+                return None
             else:
-                continue
-            outlist.append(out_)
-        
-        if len(outlist) == 0:
-            return None
-        else:
-            return outlist
-    viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
-    # run_func.setVisible(False)
+                return outlist
+        viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
+        return None
+    action = QAction("Function Handler", viewer.window._qt_window)
+    action.triggered.connect(add)
+    viewer.window.function_menu.addAction(action)
     return None
 
 
@@ -261,8 +433,9 @@ def _make_table_widget(df, columns=None, name=None):
     copy_button = QPushButton("Copy")
     copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
     widget.layout().addWidget(table.native)
-    widget.layout().addWidget(copy_button)
+    widget.layout().addWidget(copy_button)            
     return widget
+
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))
@@ -271,7 +444,7 @@ def str_to_args(s:str) -> tuple[list, dict]:
     args = []
     kwargs = {}
     for a in args_or_kwargs:
-        if "=" in a:
+        if "=" in a and a[0] not in ("'", '"'):
             k, v = a.split("=")
             v = interpret_type(v)
             kwargs[k] = v
@@ -280,8 +453,10 @@ def str_to_args(s:str) -> tuple[list, dict]:
             args.append(a)
     return args, kwargs
             
+            
 def interpret_type(s:str):
     return eval(s, {"np": np})
+
 
 def _iter_args_and_kwargs(string:str):
     stack = 0
@@ -293,16 +468,38 @@ def _iter_args_and_kwargs(string:str):
             stack -= 1
         elif stack == 0 and s == ",":
             yield string[start:i].strip()
-            print(string[start:i].strip())
             start = i + 1
     if start == 0:
         yield string
         
-# class nDFloatLineEdit(magicgui.widgets.LineEdit):
-#     def bind(self, value, call: bool = True) -> None:
-#         self._call_bound = call
-#         val = eval(value)
-#         if isinstance(val, (float, list)):
-#             self._bound_value = val
-#         else:
-#             raise TypeError(val)
+
+def _image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **kwargs):
+    data = input.data
+    scale = make_world_scale(data)
+    if out.dtype.kind == "c":
+        out = np.abs(out)
+    contrast_limits = [float(x) for x in out.range]
+    if data.ndim == out.ndim:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = input.translate
+    elif data.ndim > out.ndim:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+        scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+    else:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = [0.0] + list(input.translate)
+        scale = [1.0] + list(scale)
+    kw = dict(scale=scale, colormap=input.colormap, translate=translate,
+              blending=input.blending, contrast_limits=contrast_limits)
+    kw.update(kwargs)
+    return (out, kw, "image")
+
+def _label_tuple(input:napari.layers.Labels, out:Label, translate="inherit", **kwargs):
+    data = input.data
+    scale = make_world_scale(data)
+    if isinstance(translate, str) and translate == "inherit":
+            translate = input.translate
+    kw = dict(opacity=0.3, scale=scale, translate=translate)
+    kw.update(kwargs)
+    return (out, kw, "labels")

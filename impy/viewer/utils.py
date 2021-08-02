@@ -1,8 +1,9 @@
 from __future__ import annotations
 import numpy as np
+import napari
 from ..arrays import *
 from ..frame import *
-import napari
+from .._const import Const
 
 def copy_layer(layer):
     args, kwargs, *_ = layer.as_layer_data_tuple()
@@ -76,38 +77,84 @@ def upon_add_layer(event):
     except IndexError:
         return None
     new_layer.translate = new_layer.translate.astype(np.float64)
+            
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
-        mean_scale = np.mean(new_layer.scale[-2:])
-        new_layer.current_edge_width = new_layer.scale[-1] * 2.0
+        # change default
+        new_layer.current_edge_width = 2.0 # unit is pixel here
         new_layer.current_face_color = [1, 1, 1, 0]
         new_layer.current_edge_color = "#dd23cb"
-        new_layer._rotation_handle_length = 20/mean_scale
-        
-    if isinstance(new_layer, napari.layers.Points):
-        _text_bound_init(new_layer)
-    
-    if isinstance(new_layer, napari.layers.Labels):
-        _text_bound_init(new_layer)
+        new_layer._rotation_handle_length = 20/np.mean(new_layer.scale[-2:])
+        @new_layer.bind_key("Left")
+        def left(layer):
+            _translate_shape(layer, -1, -1)
             
+        @new_layer.bind_key("Right")
+        def right(layer):
+            _translate_shape(layer, -1, 1)
+            
+        @new_layer.bind_key("Up")
+        def up(layer):
+            _translate_shape(layer, -2, -1)
+            
+        @new_layer.bind_key("Down")
+        def down(layer):
+            _translate_shape(layer, -2, 1)
+            
+    elif isinstance(new_layer, napari.layers.Points):
+        _text_bound_init(new_layer)
+        new_layer.current_face_color = [1, 1, 1, 0]
+        new_layer.current_edge_color = "#68cbc3ff"
+        new_layer.edge_width = 3
+        new_layer.current_size = 3.2
+                
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
     new_layer.metadata["init_scale"] = new_layer.scale.copy()
         
+    return None
+
+def _translate_shape(layer, ind, direction):
+    data = layer.data
+    selected = layer.selected_data
+    for i in selected:
+        data[i][:, ind] += direction
+    layer.data = data
+    layer.selected_data = selected
+    layer._set_highlight()
     return None
 
 def _text_bound_init(new_layer):
     @new_layer.bind_key("Alt-A")
     def select_all(layer):
         layer.selected_data = set(np.arange(len(layer.data)))
-        
-    # txt_manager = napari.layers.utils.text.TextManager
-    # init_prop = {"text": np.zeros(0, dtype="<U12")}
-    # new_layer._text = txt_manager("{text}", 0, properties=init_prop,
-    #                               color="yellow", translation=[-8, 0], size=8)
-    # new_layer._properties, new_layer._property_choices = new_layer._prepare_properties(
-    #                         init_prop, init_prop, save_choices=True)
-    # new_layer.current_properties = {k: np.asarray([v[0]]) for k, v in new_layer._property_choices.items()}
-    # use refresh text
+        layer._set_highlight()
+    
+    @new_layer.bind_key("Control-Shift-<")
+    def size_down(layer):
+        if new_layer.text.size > 4:
+            new_layer.text.size -= 1.0
+        else:
+            new_layer.text.size *= 0.8
+    
+    @new_layer.bind_key("Control-Shift->")
+    def size_up(layer):
+        if new_layer.text.size < 4:
+            new_layer.text.size += 1.0
+        else:
+            new_layer.text.size /= 0.8
+            
+    n_obj = len(new_layer.data)
+    
+    if n_obj == 0 or new_layer.properties == {}:
+        new_layer.current_properties = {"text": np.array([""], dtype="<U32")}
+        new_layer.properties = {"text": np.array([""]*n_obj, dtype="<U32")}
+        new_layer.text = "{text}"
+        new_layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
+        new_layer.text.color = "#dd23cb"
+        new_layer.text.anchor = "upper_left"
+    else:
+        pass
+    
 
 def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
@@ -120,16 +167,11 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     
     scale = make_world_scale(img)
     
-    if len(img.history) > 0:
-        suffix = "-" + img.history[-1]
-    else:
-        suffix = ""
-    
     name = "No-Name" if img.name is None else img.name
     if chn_ax is not None:
-        name = [f"[C{i}]{name}{suffix}" for i in range(img.sizeof("c"))]
+        name = [f"[C{i}]{name}" for i in range(img.sizeof("c"))]
     else:
-        name = [name + suffix]
+        name = [name]
     
     if img.dtype.kind == "c":
         img = np.abs(img)
@@ -165,9 +207,9 @@ def layer_to_impy_object(viewer, layer):
     scale = get_viewer_scale(viewer)
     if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
         # manually drawn ones are np.ndarray, need conversion
-        ndim = data.ndim
-        axes = axes[-ndim:]
         if type(data) is np.ndarray:
+            ndim = data.ndim
+            axes = axes[-ndim:]
             if isinstance(layer, napari.layers.Image):
                 data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
             else:

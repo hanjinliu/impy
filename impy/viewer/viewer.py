@@ -1,24 +1,29 @@
 from __future__ import annotations
-from ..collections import *
+import os
 import napari
 import pandas as pd
-from ..arrays import *
-from ..frame import *
-from ..core import array as ip_array
+import numpy as np
+from dask import array as da
+from skimage.measure import marching_cubes
+import warnings
+
 from .utils import *
 from .mouse import *
-from ..utils.utilcls import Progress
 from .widgets import _make_table_widget
-from .._const import Const
-from .._cupy import asnumpy
 
+from ..collections import *
+from ..arrays import *
+from ..frame import *
+from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, lazy_imread as ip_lazy_imread
+from ..utils.utilcls import Progress
+from .._const import Const
 
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
 #   layer group is implemented in napari.
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
-
+# - use notification manager for error handling: https://github.com/napari/napari/pull/2205
         
 class napariViewers:
     
@@ -50,18 +55,30 @@ class napariViewers:
     
     @property
     def viewer(self):
+        """
+        The most front viewer you're using
+        """        
         return self._viewers[self._front_viewer]
         
     @property
     def layers(self):
+        """
+        Napari layer list.
+        """        
         return self.viewer.layers
     
     @property
     def results(self):
+        """
+        Temporary results stored in the viewer.
+        """        
         return self.viewer.window.results
     
     @property
     def selection(self) -> list:
+        """
+        Return selected layers' data as impy objects.
+        """        
         return [layer_to_impy_object(self.viewer, layer) 
                 for layer in self.viewer.layers.selection]
     
@@ -79,11 +96,18 @@ class napariViewers:
     
     @property
     def front_image(self):
+        """
+        Get the most front and visible image from the layer list.
+
+        Returns
+        -------
+        napari.layers.Image
+        """        
         return front_image(self.viewer)
     
     def start(self, key:str="impy"):
         """
-        Create a napari window with name `key`.
+        Create a napari window with name ``key``.
         """        
         if not isinstance(key, str):
             raise TypeError("`key` must be str.")
@@ -99,32 +123,18 @@ class napariViewers:
         viewer.window.file_menu.addSeparator()
         default_viewer_settings(viewer)
         load_mouse_callbacks(viewer)
+        viewer.window.function_menu = viewer.window.main_menu.addMenu("&Functions")
         load_widgets(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
         self._front_viewer = key
-        viewer.window.n_table = 0
+
         return None
-    
-    def get_data(self, layer):
-        """
-        Convert layer to real data.
-
-        Parameters
-        ----------
-        layer : napari.layers.Layer
-            Input layer.
-
-        Returns
-        -------
-        ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.
-        """ 
-        return layer_to_impy_object(self.viewer, layer)
         
     def add(self, obj=None, title=None, **kwargs):
         """
-        Add images, points, labels, tracks or graph to viewer.
+        Add images, points, labels, tracks etc to viewer.
 
         Parameters
         ----------
@@ -141,40 +151,89 @@ class napariViewers:
             title = self._name(title)
             self.start(title)
         self._front_viewer = title
-            
+        
+        # Add image and its labels
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
-        elif isinstance(obj, DataList):
-            [self.add(each, title=title, **kwargs) for each in obj]
+        
+        # Add points
         elif isinstance(obj, MarkerFrame):
             self._add_points(obj, **kwargs)
+        
+        # Add labels
         elif isinstance(obj, Label):
             self._add_labels(obj, **kwargs)
+        
+        # Add tracks
         elif isinstance(obj, TrackFrame):
             self._add_tracks(obj, **kwargs)
+        
+        # Add path
         elif isinstance(obj, PathFrame):
             self._add_paths(obj, **kwargs)
+        
+        # Add a table
         elif isinstance(obj, (pd.DataFrame, PropArray, DataDict)):
             self._add_properties(obj, **kwargs)
+        
+        # Add a lazy-loaded image
         elif isinstance(obj, LazyImgArray):
             with Progress("Sending Dask arrays to napari"):
                 self._add_dask(obj, **kwargs)
+        
+        # Add an array as an image
         elif type(obj) is np.ndarray:
             self._add_image(ip_array(obj))
+        
+        # Add an dask array as an image
+        elif type(obj) is da.core.Array:
+            self._add_image(ip_aslazy(obj))
+        
+        # Add an image from a path
+        elif isinstance(obj, str):
+            if not os.path.exists(obj):
+                raise FileNotFoundError(f"Path does not exists: {obj}")
+            size = os.path.getsize(obj)/1e9
+            if size < Const["MAX_GB"]:
+                img = ip_imread(obj)
+            else:
+                img = ip_lazy_imread(obj)
+            self.add(img, title=title, **kwargs)                
+            
+        # Add many objects of same type
+        elif isinstance(obj, DataList):
+            [self.add(each, title=title, **kwargs) for each in obj]
+        
         elif obj is None:
             pass
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
-                
+    
+    def add_surface(self, image3d:LabeledArray, level:float=None, step_size:int=1, mask=None, **kwargs):
+        """
+        Add a surface layer from a 3D image.
+
+        Parameters
+        ----------
+        image3d : LabeledArray
+            3D image from which surface will be generated
+        level, step_size, mask : 
+            Passed to ``skimage.measure,marching_cubes``
+        """        
+        verts, faces, _, values = marching_cubes(image3d, level=level, 
+                                                 step_size=step_size, mask=mask)
+        scale = make_world_scale(image3d)
+        name = f"[Surf]{image3d.name}"
+        kw = dict(name=name, colormap="magma", scale=scale)
+        kw.update(kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.viewer.add_surface((verts, faces, values), **kw)
+        return None
+    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    
-    def _iter_layer(self, layer_type:str):
-        return iter_layer(self.viewer, layer_type)
-    
-    def _iter_selected_layer(self, layer_type:str):
-        return iter_selected_layer(self.viewer, layer_type)
         
     def _add_image(self, img:LabeledArray, **kwargs):
         layer = add_labeledarray(self.viewer, img, **kwargs)
@@ -183,7 +242,7 @@ class napariViewers:
         else:
             name = layer.name
         if hasattr(img, "labels"):
-            self._add_labels(img.labels, name=name)
+            self._add_labels(img.labels, name=name, metadata={"destination_image": img})
         return None
     
     def _add_dask(self, img:LazyImgArray, **kwargs):
@@ -194,16 +253,16 @@ class napariViewers:
         if "contrast_limits" not in kwargs.keys():
             # contrast limits should be determined quickly.
             leny, lenx = img.shape[-2:]
-            sample = img.img[..., ::leny//3, ::lenx//3]
+            sample = img.img[..., ::leny//min(3, leny), ::lenx//min(3, lenx)]
             kwargs["contrast_limits"] = [float(sample.min().compute()), 
                                          float(sample.max().compute())]
 
         name = "No-Name" if img.name is None else img.name
 
         if chn_ax is not None:
-            name = [f"[Preview][C{i}]{name}" for i in range(img.sizeof("c"))]
+            name = [f"[Lazy][C{i}]{name}" for i in range(img.sizeof("c"))]
         else:
-            name = ["[Preview]" + name]
+            name = ["[Lazy]" + name]
 
         layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                                       name=name if len(name)>1 else name[0], **kwargs)
@@ -252,7 +311,7 @@ class napariViewers:
             names = [labels.name]
             
         for lbl, name in zip(lbls, names):
-            self.viewer.add_labels(lbl, opacity=opacity, scale=scale, name=name, **kwargs)
+            self.viewer.add_labels(lbl.value, opacity=opacity, scale=scale, name=name, **kwargs)
         return None
 
     def _add_tracks(self, track:TrackFrame, **kwargs):
@@ -325,7 +384,6 @@ def default_viewer_settings(viewer):
     viewer.scale_bar.ticks = False
     viewer.scale_bar.font_size = 8 * Const["FONT_SIZE_FACTOR"]
     viewer.text_overlay.visible = True
-    viewer.axes.visible = True
     viewer.axes.colored = False
     viewer.window.cmap = ColorCycle()
     return None
