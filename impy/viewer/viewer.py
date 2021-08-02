@@ -76,6 +76,9 @@ class napariViewers:
     
     @property
     def selection(self) -> list:
+        """
+        Return selected layers' data as impy objects.
+        """        
         return [layer_to_impy_object(self.viewer, layer) 
                 for layer in self.viewer.layers.selection]
     
@@ -115,7 +118,9 @@ class napariViewers:
         if not self._viewers:
             from . import keybinds
         
-        viewer = napari.Viewer(title=key)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            viewer = napari.Viewer(title=key)
         
         viewer.window.file_menu.addSeparator()
         default_viewer_settings(viewer)

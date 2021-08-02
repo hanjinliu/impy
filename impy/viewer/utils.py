@@ -80,13 +80,28 @@ def upon_add_layer(event):
             
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
-        mean_scale = np.mean(new_layer.scale[-2:])
+        # change default
         new_layer.current_edge_width = 2.0 # unit is pixel here
         new_layer.current_face_color = [1, 1, 1, 0]
         new_layer.current_edge_color = "#dd23cb"
-        new_layer._rotation_handle_length = 20/mean_scale
-        
-    if isinstance(new_layer, napari.layers.Points):
+        new_layer._rotation_handle_length = 20/np.mean(new_layer.scale[-2:])
+        @new_layer.bind_key("Left")
+        def left(layer):
+            _translate_shape(layer, -1, -1)
+            
+        @new_layer.bind_key("Right")
+        def right(layer):
+            _translate_shape(layer, -1, 1)
+            
+        @new_layer.bind_key("Up")
+        def up(layer):
+            _translate_shape(layer, -2, -1)
+            
+        @new_layer.bind_key("Down")
+        def down(layer):
+            _translate_shape(layer, -2, 1)
+            
+    elif isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
                 
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
@@ -94,10 +109,21 @@ def upon_add_layer(event):
         
     return None
 
+def _translate_shape(layer, ind, direction):
+    data = layer.data
+    selected = layer.selected_data
+    for i in selected:
+        data[i][:, ind] += direction
+    layer.data = data
+    layer.selected_data = selected
+    layer._set_highlight()
+    return None
+
 def _text_bound_init(new_layer):
     @new_layer.bind_key("Alt-A")
     def select_all(layer):
         layer.selected_data = set(np.arange(len(layer.data)))
+        layer._set_highlight()
     
     @new_layer.bind_key("Control-Shift-<")
     def size_down(layer):
