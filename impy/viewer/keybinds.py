@@ -30,18 +30,18 @@ __all__ = list(KEYS.keys())
 def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
-    
+# TODO: check nD scale
 @bind_key
 def add_new_shape_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_shapes(scale=scale[-2:], ndim=viewer.dims.ndim)
+    layer = viewer.add_shapes(scale=scale, ndim=viewer.dims.ndim)
     layer.mode = "add_rectangle"
     
 
 @bind_key
 def add_new_point_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_points(scale=scale[-2:], ndim=viewer.dims.ndim)
+    layer = viewer.add_points(scale=scale, ndim=viewer.dims.ndim)
     layer.mode = "add"
     
 @bind_key
@@ -78,10 +78,9 @@ def _change_focus(viewer, ind):
     
     # update camera    
     scale = selected_layer.scale
-    viewer_scale = [r[2] for r in viewer.dims.range]
     center = np.mean(np.atleast_2d(next_data), axis=0) * scale
     viewer.camera.center = [0] + list(center[-2:])
-    viewer.dims.current_step = list(next_data[:-2]/viewer_scale[:-2]) + [0, 0]
+    viewer.dims.current_step = list(next_data[:-2].astype(np.int64)) + [0, 0]
     
     return None
     
@@ -238,9 +237,9 @@ def crop(viewer):
                 newdata = ip_array(newdata, axes=axes)
                 newdata.set_scale(**scale)
                 
-            newdata.dirpath =_dirpath
-            newdata.metadata = _metadata
-            newdata.name = _name
+            newdata.dirpath = layer.data.dirpath
+            newdata.metadata = layer.data.metadata
+            newdata.name = layer.data.name
                 
             layer.data = newdata
             translate = layer.translate
