@@ -118,9 +118,7 @@ class napariViewers:
         if not self._viewers:
             from . import keybinds
         
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            viewer = napari.Viewer(title=key)
+        viewer = napari.Viewer(title=key)
         
         viewer.window.file_menu.addSeparator()
         default_viewer_settings(viewer)

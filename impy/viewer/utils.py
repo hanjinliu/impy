@@ -103,6 +103,10 @@ def upon_add_layer(event):
             
     elif isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
+        new_layer.current_face_color = [1, 1, 1, 0]
+        new_layer.current_edge_color = "#68cbc3ff"
+        new_layer.edge_width = 3
+        new_layer.current_size = 3.2
                 
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
     new_layer.metadata["init_scale"] = new_layer.scale.copy()
