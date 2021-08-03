@@ -923,7 +923,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def tophat(self, radius:float=50, *, dims=None, update:bool=False) -> ImgArray:
+    def tophat(self, radius:float=30, *, dims=None, update:bool=False) -> ImgArray:
         """
         Tophat morphological image processing. This is useful for background subtraction.
 
@@ -1243,6 +1243,7 @@ class ImgArray(LabeledArray):
             >>> z_focus = np.argmax(score) # determine the focus plane
             >>> img[z_focus]               # get the focus plane
         """        
+        # TODO: test
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
         out = np.var(laplace_img, axis=dims)
@@ -1467,7 +1468,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rolling_ball(self, radius:float=50, prefilter:str="mean", *, return_bg:bool=False,
+    def rolling_ball(self, radius:float=30, prefilter:str="mean", *, return_bg:bool=False,
                      dims=None, update:bool=False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.

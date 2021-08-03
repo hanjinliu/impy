@@ -202,7 +202,6 @@ def add_controller_widget(viewer):
     return None
 
     
-
 def add_note_widget(viewer):
     text = magicgui.widgets.TextEdit(tooltip="Note")
     text = viewer.window.add_dock_widget(text, area="right", name="Note")
@@ -213,7 +212,10 @@ def add_gui_to_function_menu(viewer, gui, name):
     action = QAction(name, viewer.window._qt_window)
     @action.triggered.connect
     def _():
-        viewer.window.add_dock_widget(gui(viewer), area="left", name=name)
+        if name in viewer.window._dock_widgets:
+            viewer.window._dock_widgets[name].show()
+        else:
+            viewer.window.add_dock_widget(gui(viewer), area="left", name=name)
         return None
     
     viewer.window.function_menu.addAction(action)

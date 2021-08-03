@@ -220,8 +220,6 @@ def crop(viewer):
         
         for layer in imglist:
             factor = layer.scale[active_plane]/shape_layer_scale
-            _dirpath = layer.data.dirpath
-            _metadata = layer.data.metadata
             _name = prop + layer.name
             layer = viewer.add_layer(copy_layer(layer))
             dr = layer.translate[active_plane] / layer.scale[active_plane]
