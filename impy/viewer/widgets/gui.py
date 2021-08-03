@@ -10,24 +10,25 @@ from ..._const import SetConst
 
 RANGES = {"None": (None, None), 
           "gaussian_filter": (0.2, 30),
-          "lowpass_filter": (0.005, 0.5),
-          "highpass_filter": (0.005, 0.5),
           "median_filter": (1, 30),
           "mean_filter": (1, 30),
-          "dog_filter": (0.2, 30),
-          "doh_filter": (0.2, 30),
-          "log_filter": (0.2, 30), 
+          "lowpass_filter": (0.005, 0.5),
+          "highpass_filter": (0.005, 0.5),
           "erosion": (1, 30), 
           "dilation": (1, 30), 
           "opening": (1, 30), 
           "closing": (1, 30),
+          "tophat": (5, 30), 
           "entropy_filter": (1, 30), 
+          "enhance_contrast": (1, 30),
           "std_filter": (1, 30), 
           "coef_filter": (1, 30),
-          "tophat": (5, 30), 
-          "rolling_ball": (5, 30)
+          "dog_filter": (0.2, 30),
+          "doh_filter": (0.2, 30),
+          "log_filter": (0.2, 30), 
+          "rolling_ball": (5, 30),
+          "crop_center": (0, 1),          
           }
-
 
 class FunctionCaller(FunctionGui):
     def __init__(self, viewer):
@@ -46,7 +47,7 @@ class FunctionCaller(FunctionGui):
         def _func(layer:napari.layers.Image, funcname:str, param, dims="2D", 
                   fix_clims=False) -> napari.types.LayerDataTuple:
             self.current_layer = layer
-            if funcname == "None":
+            if funcname == "None" or not self.visible:
                 return None
                 
             if layer is not None and funcname != "None":
@@ -95,6 +96,8 @@ class ThresholdAndLabel(FunctionGui):
                    label={"widget_type": "CheckBox"}
                    )
         def _func(layer:napari.layers.Image, percentile=50, label=False) -> napari.types.LayerDataTuple:
+            if not self.visible:
+                return None
             # define the name for the new layer
             if label:
                 name = f"[L]{layer.name}"
@@ -135,7 +138,7 @@ class RectangleEditor(FunctionGui):
                           "tooltip": "horizontal length in pixel"})
         def _func(len_v=128, len_h=128):
             selected_layer = list(viewer.layers.selection)
-            if len(selected_layer) != 1:
+            if len(selected_layer) != 1 or not self.visible:
                 return None
             selected_layer = selected_layer[0]
             if not isinstance(selected_layer, napari.layers.Shapes):
