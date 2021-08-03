@@ -60,7 +60,6 @@ class DataList(CollectionBase, UserList):
     def _such_as(self):
         return self[0]
     
-    # TODO: +=, extend also need this kind of check
     def append(self, component):
         if self._type is None:
             super().append(component)
@@ -68,8 +67,34 @@ class DataList(CollectionBase, UserList):
         elif type(component) is self._type:
             super().append(component)
         else:
-            raise TypeError(f"Cannot add {type(component)} because {self.__class__.__name__} is composed of "
+            raise TypeError(f"Cannot append {type(component)} because {self.__class__.__name__} is composed of "
                             f"{self._type}.")
+    
+    def __add__(self, other:DataList):
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Cannot add {type(other)}.")
+        elif self._type is other._type or self._type is None or other._type is None:
+            return super().__add__(other)
+        else:
+            raise TypeError(f"Cannot add two lists composed of different type of objects: {self._type} and {other._type}.")
+    
+    def __iadd__(self, other:DataList):
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Cannot add {type(other)}.")
+        elif self._type is other._type or self._type is None or other._type is None:
+            return super().__iadd__(other)
+        else:
+            raise TypeError(f"Cannot add two lists composed of different type of objects: {self._type} and {other._type}.")
+    
+    def extend(self, other:DataList):
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Cannot extend DataList with {type(other)}.")
+        elif self._type is other._type or self._type is None or other._type is None:
+            return super().extend(other)
+        else:
+            raise TypeError(f"Cannot add two lists composed of different type of objects: {self._type} and {other._type}.")
+        
+
     
     def __getattr__(self, name: str):
         f = getattr(self._such_as, name) # raise AttributeError here if it should be raised
@@ -196,3 +221,4 @@ class DataDict(CollectionBase, UserDict):
         else:
             return self.__class__({k: func(data, *args, **kwargs) 
                                    for k, data in self.items()})
+
