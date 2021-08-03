@@ -2616,7 +2616,7 @@ class ImgArray(LabeledArray):
             return xp.linspace(start/s, stop/s, (stop-start)*uf, endpoint=False)[:, xp.newaxis]
         
         # exp(-ikx)
-        exps = [xp.exp(-2j*np.pi * np.arange(s) * wave(sl, s, uf), dtype=np.complex64)
+        exps = [xp.exp(-2j*np.pi * xp.arange(s) * wave(sl, s, uf), dtype=np.complex64)
                 for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
         
         # Calculate chunk size for proper output shapes
