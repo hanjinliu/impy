@@ -9,7 +9,7 @@ import warnings
 
 from .utils import *
 from .mouse import *
-from .widgets import _make_table_widget
+from ._widgets import _make_table_widget
 
 from ..collections import *
 from ..arrays import *
@@ -398,7 +398,7 @@ def load_mouse_callbacks(viewer):
         viewer.mouse_move_callbacks.append(getattr(mouse, f))
 
 def load_widgets(viewer):
-    from . import widgets
-    for f in widgets.__all__:
-        getattr(widgets, f)(viewer)
+    from . import _widgets
+    for f in _widgets.__all__:
+        getattr(_widgets, f)(viewer)
 

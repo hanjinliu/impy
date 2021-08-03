@@ -2,6 +2,7 @@ from __future__ import annotations
 import napari
 import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout, QHBoxLayout
+from .widgets import *
 from .utils import *
 from .._const import SetConst
 
@@ -13,7 +14,7 @@ __all__ = ["add_imread_menu",
            "add_threshold", 
            "add_filter", 
            "add_regionprops",
-           "open_rectangle_editor",
+           "add_rectangle_editor",
            "function_handler",
            ]
 
@@ -70,7 +71,6 @@ def add_imsave_menu(viewer):
         )
 
         if filename:
-            # TODO: multichannel?
             img.imsave(filename)
             napari.utils.history.update_save_history(filename)
         return None
@@ -209,90 +209,24 @@ def add_note_widget(viewer):
     text.setVisible(False)
     return None
 
-def add_filter(viewer):
-    def add():
-        @magicgui.magicgui(auto_call=True,
-                           func={"choices": FILTERS, 
-                                 "label": "function"},
-                           param={"widget_type": "FloatSlider", 
-                                  "min": 1, "max": 30, 
-                                  "tooltip": "The first paramter, such as 'sigma' in gaussian_filter or 'radius' in median_filter"},
-                           dims={"choices": ["2D", "3D"], 
-                                 "tooltip": "Spatial dimension"},
-                           fix_contrast_limits={"widget_type": "CheckBox", 
-                                                "label": "fix contrast limits"},
-                           layout="vertical")
-        def _func(layer:napari.layers.Image, func, param=1, dims="2D", 
-                  fix_contrast_limits=False) -> napari.types.LayerDataTuple:
-            if layer is not None and func != "None":
-                name = f"Result of {layer.name}"
-                with SetConst("SHOW_PROGRESS", False):
-                    try:
-                        out = getattr(layer.data, func)(param, dims=int(dims[0]))
-                    except Exception as e:
-                        viewer.status = f"{func} finished with {e.__class__.__name__}: {e}"
-                        return None
-                try:
-                    if fix_contrast_limits:
-                        props_to_inherit = ["colormap", "blending", "translate", "scale", "contrast_limits"]
-                    else:
-                        props_to_inherit = ["colormap", "blending", "translate", "scale"]
-                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
-                except KeyError:
-                    kwargs = dict(translate="inherit")
-                    
-                return _image_tuple(layer, out, name=name, **kwargs)
-        
-        viewer.window.add_dock_widget(_func, area="left", name="Filters")
+def add_gui_to_function_menu(viewer, gui, name):
+    action = QAction(name, viewer.window._qt_window)
+    @action.triggered.connect
+    def _():
+        viewer.window.add_dock_widget(gui(viewer), area="left", name=name)
         return None
-    action = QAction("Filters", viewer.window._qt_window)
-    action.triggered.connect(add)
+    
     viewer.window.function_menu.addAction(action)
     return None
 
+def add_filter(viewer):
+    return add_gui_to_function_menu(viewer, FunctionCaller, "Filters")
 
 def add_threshold(viewer):
-    def add():
-        @magicgui.magicgui(auto_call=True,
-                           percentile={"widget_type": "FloatSlider", 
-                                       "min": 0, "max": 100,
-                                       "tooltip": "Threshold percentile"},
-                           label={"widget_type": "CheckBox"},
-                           layout="vertical")
-        def _func(layer:napari.layers.Image, percentile=50, label=False) -> napari.types.LayerDataTuple:
-            # define the name for the new layer
-            if label:
-                name = f"[L]{layer.name}"
-            else:
-                name = f"Threshold of {layer.name}"
-                
-            if layer is not None:
-                with SetConst("SHOW_PROGRESS", False):
-                    thr = np.percentile(layer.data, percentile)
-                    if label:
-                        out = layer.data.label_threshold(thr)
-                        props_to_inherit = ["opacity", "blending", "translate", "scale"]
-                        _as_layer_data_tuple = _label_tuple
-                    else:
-                        out = layer.data.threshold(thr)
-                        props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
-                        _as_layer_data_tuple = _image_tuple
-                try:
-                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
-                except KeyError:
-                    if label:
-                        kwargs = dict(translate=layer.translate, opacity=0.3)
-                    else:
-                        kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
-                
-                return _as_layer_data_tuple(layer, out, name=name, **kwargs)
-        
-        viewer.window.add_dock_widget(_func, area="left", name="Threshold/Label")
-        return None
-    action = QAction("Threshold/Label", viewer.window._qt_window)
-    action.triggered.connect(add)
-    viewer.window.function_menu.addAction(action)
-    return None
+    return add_gui_to_function_menu(viewer, ThresholdAndLabel, "Threshold/Label")
+
+def add_rectangle_editor(viewer):
+    return add_gui_to_function_menu(viewer, RectangleEditor, "Rectangle Editor")
 
 def add_regionprops(viewer):
     # TODO: close main window after calculation, choose properties
@@ -326,59 +260,59 @@ def add_regionprops(viewer):
     viewer.window.function_menu.addAction(action)
     return None
 
-def open_rectangle_editor(viewer):
-    def add():
-        @magicgui.magicgui(auto_call=True,
-                           len_v={"widget_type": "SpinBox", 
-                                  "label": "V",
-                                  "tooltip": "vertical length in pixel"},
-                           len_h={"widget_type": "SpinBox", 
-                                  "label": "H",
-                                  "tooltip": "horizontal length in pixel"})
-        def _func(len_v=128, len_h=128):
-            selected_layer = list(viewer.layers.selection)
-            if len(selected_layer) != 1:
-                return None
-            selected_layer = selected_layer[0]
-            if not isinstance(selected_layer, napari.layers.Shapes):
-                return None
+# def open_rectangle_editor(viewer):
+#     def add():
+#         @magicgui.magicgui(auto_call=True,
+#                            len_v={"widget_type": "SpinBox", 
+#                                   "label": "V",
+#                                   "tooltip": "vertical length in pixel"},
+#                            len_h={"widget_type": "SpinBox", 
+#                                   "label": "H",
+#                                   "tooltip": "horizontal length in pixel"})
+#         def _func(len_v=128, len_h=128):
+#             selected_layer = list(viewer.layers.selection)
+#             if len(selected_layer) != 1:
+#                 return None
+#             selected_layer = selected_layer[0]
+#             if not isinstance(selected_layer, napari.layers.Shapes):
+#                 return None
     
-            # check if one shape/point is selected
-            new_data = selected_layer.data
-            selected_data = selected_layer.selected_data
-            count = 0
-            for i, data in enumerate(new_data):
-                if selected_layer.shape_type[i] == "rectangle" and i in selected_data:
-                    data[1, -2:] = data[0, -2:] + np.array([len_v,   0.0])
-                    data[2, -2:] = data[0, -2:] + np.array([len_v, len_h])
-                    data[3, -2:] = data[0, -2:] + np.array([  0.0, len_h])
-                    count += 1
+#             # check if one shape/point is selected
+#             new_data = selected_layer.data
+#             selected_data = selected_layer.selected_data
+#             count = 0
+#             for i, data in enumerate(new_data):
+#                 if selected_layer.shape_type[i] == "rectangle" and i in selected_data:
+#                     data[1, -2:] = data[0, -2:] + np.array([len_v,   0.0])
+#                     data[2, -2:] = data[0, -2:] + np.array([len_v, len_h])
+#                     data[3, -2:] = data[0, -2:] + np.array([  0.0, len_h])
+#                     count += 1
             
-            if count == 0:
-                if selected_layer.nshapes == 0:
-                    # TODO: https://github.com/napari/napari/pull/2961
-                    # May be solved in near future
-                    return None
-                data = np.zeros((4, selected_layer.ndim), dtype=np.float64)
-                data[:, :-2] = viewer.dims.current_step[:-2]
-                data[1, -2:] = np.array([len_v,   0.0])
-                data[2, -2:] = np.array([len_v, len_h])
-                data[3, -2:] = np.array([  0.0, len_h])
-                new_data = selected_layer.data + [data]
-                selected_data = {len(new_data) - 1}
+#             if count == 0:
+#                 if selected_layer.nshapes == 0:
+#                     # TODO: https://github.com/napari/napari/pull/2961
+#                     # May be solved in near future
+#                     return None
+#                 data = np.zeros((4, selected_layer.ndim), dtype=np.float64)
+#                 data[:, :-2] = viewer.dims.current_step[:-2]
+#                 data[1, -2:] = np.array([len_v,   0.0])
+#                 data[2, -2:] = np.array([len_v, len_h])
+#                 data[3, -2:] = np.array([  0.0, len_h])
+#                 new_data = selected_layer.data + [data]
+#                 selected_data = {len(new_data) - 1}
                 
-            selected_layer.data = new_data       
-            selected_layer.selected_data = selected_data
-            selected_layer._set_highlight()
+#             selected_layer.data = new_data       
+#             selected_layer.selected_data = selected_data
+#             selected_layer._set_highlight()
         
-        viewer.window.add_dock_widget(_func, area="left", name="Rectangle Editor")
-        return None
+#         viewer.window.add_dock_widget(_func, area="left", name="Rectangle Editor")
+#         return None
 
-    action = QAction("Rectangle Editor", viewer.window._qt_window)
-    action.triggered.connect(add)
-    viewer.window.function_menu.addAction(action)
+#     action = QAction("Rectangle Editor", viewer.window._qt_window)
+#     action.triggered.connect(add)
+#     viewer.window.function_menu.addAction(action)
 
-    return None
+#     return None
 
 def function_handler(viewer):
     def add():

@@ -30,7 +30,6 @@ __all__ = list(KEYS.keys())
 def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
 
-# TODO: check nD scale
 @bind_key
 def add_new_shape_3d(viewer):
     scale = [r[2] for r in viewer.dims.range]
