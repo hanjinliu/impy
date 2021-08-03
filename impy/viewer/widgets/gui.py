@@ -2,9 +2,8 @@ from magicgui.widgets import FunctionGui
 import napari
 import inspect
 import numpy as np
-from ..utils import make_world_scale
+from ..utils import image_tuple, label_tuple
 
-from ...arrays import ImgArray
 from ..._const import SetConst
 
 
@@ -32,13 +31,16 @@ RANGES = {"None": (None, None),
 
 class FunctionCaller(FunctionGui):
     def __init__(self, viewer):
-        self.viewer = viewer
-        self.running_function = None
-        self.current_layer = None
+        self.viewer = viewer            # parent napari viewer object
+        self.running_function = None    # currently running function
+        self.current_layer = None       # currently selected layer
+        self.last_inputs = None         # last inputs including function name
+        self.last_outputs = None        # last output from the function
+
         opt = dict(funcname={"choices": list(RANGES.keys()), "label": "function"},
                    param={"widget_type": "FloatSlider", "min":0.01, "max": 30,
                           "tooltip": "The first parameter."},
-                   dims={"choices": ["2D", "3D", "yx", "zy", "zx", "zyx"], "tooltip": "Spatial dimensions"},
+                   dims={"choices": ["2D", "3D"], "tooltip": "Spatial dimensions"},
                    fix_clims={"widget_type": "CheckBox", "label": "fix contrast limits",
                               "tooltip": "If you'd like to fix the contrast limits\n"
                                          "while parameter sweeping, check here"}
@@ -47,33 +49,44 @@ class FunctionCaller(FunctionGui):
         def _func(layer:napari.layers.Image, funcname:str, param, dims="2D", 
                   fix_clims=False) -> napari.types.LayerDataTuple:
             self.current_layer = layer
-            if funcname == "None" or not self.visible:
+
+            if layer is None or funcname == "None" or not self.visible:
                 return None
-                
-            if layer is not None and funcname != "None":
-                name = f"Result of {layer.name}"
-                with SetConst("SHOW_PROGRESS", False):
-                    try:
-                        out = self.running_function(param, dims=int(dims[0]))
-                    except Exception as e:
-                        self.viewer.status = f"{funcname} finished with {e.__class__.__name__}: {e}"
-                        return None
+
+            name = f"Result of {layer.name}"
+            inputs =  (layer.name, funcname, param, dims)
+
+            # run function if needed
+            if self.last_inputs == inputs:
+                pass
+            else:
                 try:
-                    if fix_clims:
-                        props_to_inherit = ["colormap", "blending", "translate", "scale", "contrast_limits"]
-                    else:
-                        props_to_inherit = ["colormap", "blending", "translate", "scale"]
-                    kwargs = {k: getattr(self.viewer.layers[name], k, None) for k in props_to_inherit}
-                except KeyError:
-                    kwargs = dict(translate="inherit")
-                    
-                return _image_tuple(layer, out, name=name, **kwargs)
-            return None
+                    with SetConst("SHOW_PROGRESS", False):
+                        self.last_outputs = self.running_function(param, dims=int(dims[0]))
+                except Exception as e:
+                    self.viewer.status = f"{funcname} finished with {e.__class__.__name__}: {e}"
+                    return None
+                else:
+                    self.last_inputs = inputs
+            # set the parameters for the output layer
+            try:
+                if fix_clims:
+                    props_to_inherit = ["colormap", "blending", "translate", "scale", "contrast_limits"]
+                else:
+                    props_to_inherit = ["colormap", "blending", "translate", "scale"]
+                kwargs = {k: getattr(self.viewer.layers[name], k, None) for k in props_to_inherit}
+            except KeyError:
+                kwargs = dict(translate="inherit")
+                
+            return image_tuple(layer, self.last_outputs, name=name, **kwargs)
         
         super().__init__(_func, auto_call=True, param_options=opt)
         self.funcname.changed.connect(self.update_widget)
 
     def update_widget(self, event=None):
+        """
+        Update the widget labels and sliders every time function is changed.
+        """
         name = self.funcname.value
         self.running_function = getattr(self.current_layer.data, name, None)
         if name == "None" or self.running_function is None:
@@ -110,11 +123,11 @@ class ThresholdAndLabel(FunctionGui):
                     if label:
                         out = layer.data.label_threshold(thr)
                         props_to_inherit = ["opacity", "blending", "translate", "scale"]
-                        _as_layer_data_tuple = _label_tuple
+                        _as_layer_data_tuple = label_tuple
                     else:
                         out = layer.data.threshold(thr)
                         props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
-                        _as_layer_data_tuple = _image_tuple
+                        _as_layer_data_tuple = image_tuple
                 try:
                     kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
                 except KeyError:
@@ -175,35 +188,3 @@ class RectangleEditor(FunctionGui):
             return None
         
         super().__init__(_func, auto_call=True, param_options=opt)
-
-def _image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **kwargs):
-    data = input.data
-    scale = make_world_scale(data)
-    if out.dtype.kind == "c":
-        out = np.abs(out)
-    contrast_limits = [float(x) for x in out.range]
-    if data.ndim == out.ndim:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = input.translate
-    elif data.ndim > out.ndim:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-        scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-    else:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = [0.0] + list(input.translate)
-        scale = [1.0] + list(scale)
-    kw = dict(scale=scale, colormap=input.colormap, translate=translate,
-              blending=input.blending, contrast_limits=contrast_limits)
-    kw.update(kwargs)
-    return (out, kw, "image")
-
-
-def _label_tuple(input:napari.layers.Labels, out, translate="inherit", **kwargs):
-    data = input.data
-    scale = make_world_scale(data)
-    if isinstance(translate, str) and translate == "inherit":
-            translate = input.translate
-    kw = dict(opacity=0.3, scale=scale, translate=translate)
-    kw.update(kwargs)
-    return (out, kw, "labels")

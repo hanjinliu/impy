@@ -262,60 +262,6 @@ def add_regionprops(viewer):
     viewer.window.function_menu.addAction(action)
     return None
 
-# def open_rectangle_editor(viewer):
-#     def add():
-#         @magicgui.magicgui(auto_call=True,
-#                            len_v={"widget_type": "SpinBox", 
-#                                   "label": "V",
-#                                   "tooltip": "vertical length in pixel"},
-#                            len_h={"widget_type": "SpinBox", 
-#                                   "label": "H",
-#                                   "tooltip": "horizontal length in pixel"})
-#         def _func(len_v=128, len_h=128):
-#             selected_layer = list(viewer.layers.selection)
-#             if len(selected_layer) != 1:
-#                 return None
-#             selected_layer = selected_layer[0]
-#             if not isinstance(selected_layer, napari.layers.Shapes):
-#                 return None
-    
-#             # check if one shape/point is selected
-#             new_data = selected_layer.data
-#             selected_data = selected_layer.selected_data
-#             count = 0
-#             for i, data in enumerate(new_data):
-#                 if selected_layer.shape_type[i] == "rectangle" and i in selected_data:
-#                     data[1, -2:] = data[0, -2:] + np.array([len_v,   0.0])
-#                     data[2, -2:] = data[0, -2:] + np.array([len_v, len_h])
-#                     data[3, -2:] = data[0, -2:] + np.array([  0.0, len_h])
-#                     count += 1
-            
-#             if count == 0:
-#                 if selected_layer.nshapes == 0:
-#                     # TODO: https://github.com/napari/napari/pull/2961
-#                     # May be solved in near future
-#                     return None
-#                 data = np.zeros((4, selected_layer.ndim), dtype=np.float64)
-#                 data[:, :-2] = viewer.dims.current_step[:-2]
-#                 data[1, -2:] = np.array([len_v,   0.0])
-#                 data[2, -2:] = np.array([len_v, len_h])
-#                 data[3, -2:] = np.array([  0.0, len_h])
-#                 new_data = selected_layer.data + [data]
-#                 selected_data = {len(new_data) - 1}
-                
-#             selected_layer.data = new_data       
-#             selected_layer.selected_data = selected_data
-#             selected_layer._set_highlight()
-        
-#         viewer.window.add_dock_widget(_func, area="left", name="Rectangle Editor")
-#         return None
-
-#     action = QAction("Rectangle Editor", viewer.window._qt_window)
-#     action.triggered.connect(add)
-#     viewer.window.function_menu.addAction(action)
-
-#     return None
-
 def function_handler(viewer):
     def add():
         @magicgui.magicgui(call_button="Run")
@@ -371,14 +317,14 @@ def function_handler(viewer):
                     name = f"Result of {input.name}"
                         
                 if isinstance(out, ImgArray):
-                    out_ = _image_tuple(input, out, name=name)
+                    out_ = image_tuple(input, out, name=name)
                 elif isinstance(out, PhaseArray):
                     out_ = (out, 
                             dict(scale=scale, name=name, colormap="hsv", translate=input.translate,
                                     contrast_limits=out.border), 
                             "image")
                 elif isinstance(out, Label):
-                    _label_tuple(input, out, name=name)
+                    label_tuple(input, out, name=name)
                 elif isinstance(out, MarkerFrame):
                     kw = dict(size=3.2, face_color=[0,0,0,0], translate=input.translate,
                             edge_color=viewer.window.cmap(),
@@ -463,34 +409,3 @@ def _iter_args_and_kwargs(string:str):
     if start == 0:
         yield string
         
-
-def _image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **kwargs):
-    data = input.data
-    scale = make_world_scale(data)
-    if out.dtype.kind == "c":
-        out = np.abs(out)
-    contrast_limits = [float(x) for x in out.range]
-    if data.ndim == out.ndim:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = input.translate
-    elif data.ndim > out.ndim:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-        scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-    else:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = [0.0] + list(input.translate)
-        scale = [1.0] + list(scale)
-    kw = dict(scale=scale, colormap=input.colormap, translate=translate,
-              blending=input.blending, contrast_limits=contrast_limits)
-    kw.update(kwargs)
-    return (out, kw, "image")
-
-def _label_tuple(input:napari.layers.Labels, out:Label, translate="inherit", **kwargs):
-    data = input.data
-    scale = make_world_scale(data)
-    if isinstance(translate, str) and translate == "inherit":
-            translate = input.translate
-    kw = dict(opacity=0.3, scale=scale, translate=translate)
-    kw.update(kwargs)
-    return (out, kw, "labels")

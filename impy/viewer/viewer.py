@@ -178,6 +178,8 @@ class napariViewers:
         
         # Add a lazy-loaded image
         elif isinstance(obj, LazyImgArray):
+            if obj.gb > Const["MAX_GB"] and self.viewer.dims.ndisplay == 3:
+                raise MemoryError("Cannot send large files while the viewer is 3D mode.")
             with Progress("Sending Dask arrays to napari"):
                 self._add_dask(obj, **kwargs)
         

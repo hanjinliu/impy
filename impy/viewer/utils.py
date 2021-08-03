@@ -113,6 +113,39 @@ def upon_add_layer(event):
         
     return None
 
+
+def image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **kwargs):
+    data = input.data
+    scale = make_world_scale(data)
+    if out.dtype.kind == "c":
+        out = np.abs(out)
+    contrast_limits = [float(x) for x in out.range]
+    if data.ndim == out.ndim:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = input.translate
+    elif data.ndim > out.ndim:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+        scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
+    else:
+        if isinstance(translate, str) and translate == "inherit":
+            translate = [0.0] + list(input.translate)
+        scale = [1.0] + list(scale)
+    kw = dict(scale=scale, colormap=input.colormap, translate=translate,
+              blending=input.blending, contrast_limits=contrast_limits)
+    kw.update(kwargs)
+    return (out, kw, "image")
+
+
+def label_tuple(input:napari.layers.Labels, out, translate="inherit", **kwargs):
+    data = input.data
+    scale = make_world_scale(data)
+    if isinstance(translate, str) and translate == "inherit":
+            translate = input.translate
+    kw = dict(opacity=0.3, scale=scale, translate=translate)
+    kw.update(kwargs)
+    return (out, kw, "labels")
+
 def _translate_shape(layer, ind, direction):
     data = layer.data
     selected = layer.selected_data
