@@ -26,7 +26,6 @@ RANGES = {"None": (None, None),
           "doh_filter": (0.2, 30),
           "log_filter": (0.2, 30), 
           "rolling_ball": (5, 30),
-          "crop_center": (0, 1),          
           }
 
 class FunctionCaller(FunctionGui):

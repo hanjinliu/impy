@@ -1,7 +1,7 @@
 from __future__ import annotations
 import napari
 import magicgui
-from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout, QHBoxLayout
+from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
 from .widgets import *
 from .utils import *
 from .._const import SetConst
@@ -109,98 +109,10 @@ def edit_properties(viewer):
     viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
-# TODO: Define a class that inherit QWidget
 def add_controller_widget(viewer):
-    # Convert Points/Tracks layer into a table widget
-    get_button = QPushButton("(x,y)")
-    @get_button.clicked.connect
-    def _():
-        """
-        widget = table widget + button widget
-        ---------------
-        |             |
-        |   (table)   | <- table widget
-        |             |
-        |[Copy][Store]| <- button widget = copy button + store button
-        ---------------
-        """        
-        dfs = list(iter_selected_layer(viewer, ["Points", "Tracks"]))
-        if len(dfs) == 0:
-            return
-        for df in dfs:
-            widget = QWidget()
-            widget.setLayout(QGridLayout())
-            axes = list(viewer.dims.axis_labels)
-            columns = list(df.metadata.get("axes", axes[-df.data.shape[1]:]))
-            table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
-            copy_button = QPushButton("Copy")
-            copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())
-            store_button = QPushButton("Store")
-            @store_button.clicked.connect
-            def _():
-                viewer.window.results = table.to_dataframe()
-                return None
-            
-            button_widget = QWidget()
-            layout = QHBoxLayout()
-            layout.addWidget(copy_button)
-            layout.addWidget(store_button)
-            button_widget.setLayout(layout)
-            
-            widget.layout().addWidget(table.native)
-            widget.layout().addWidget(button_widget)
-            viewer.window.add_dock_widget(widget, area="right", name=df.name)
-            
-        return None
-    
-    # Add text layer
-    add_button = QPushButton("+Text")
-    @add_button.clicked.connect
-    def _():
-        layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")
-        layer.mode = "add_rectangle"
-        layer.blending = "additive"
-        layer.current_edge_width = 2.0 # unit is pixel here
-        layer.current_face_color = [0, 0, 0, 0]
-        layer.current_edge_color = [0, 0, 0, 0]
-        layer._rotation_handle_length = 20/np.mean(layer.scale[-2:])
-        layer.current_properties = {"text": np.array(["text here"], dtype="<U32")}
-        layer.properties = {"text": np.array([], dtype="<U32")}
-        layer.text = "{text}"
-        layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
-        layer.text.color = "white"
-        layer.text.anchor = "center"
-        return None
-    
-    # Add Labels layer that is connected to ImgArray
-    label_button = QPushButton("Label")
-    @label_button.clicked.connect
-    def _():
-        selected = list(viewer.layers.selection)
-        if len(selected) != 1:
-            return None
-        selected = selected[0]
-        if not isinstance(selected, napari.layers.Image):
-            return None
-        img = selected.data
-        if hasattr(img, "labels"):
-            return None
-        with SetConst("SHOW_PROGRESS", False):
-            img.append_label(np.zeros(img.shape, dtype=np.uint8))
-        layer = viewer.add_labels(img.labels.value, opacity=0.3, scale=selected.scale, name=f"[L]{img.name}",
-                                  translate=selected.translate)
-        layer.mode = "paint"
-        return None
-        
-    controller_widget = QWidget()
-    layout = QHBoxLayout()
-    layout.addWidget(get_button)
-    layout.addWidget(add_button)
-    layout.addWidget(label_button)
-    controller_widget.setLayout(layout)
+    controller_widget = Controller(viewer)
     viewer.window.add_dock_widget(controller_widget, area="left", name="impy controller")
     return None
-
     
 def add_note_widget(viewer):
     text = magicgui.widgets.TextEdit(tooltip="Note")

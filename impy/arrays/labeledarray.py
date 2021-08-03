@@ -262,7 +262,6 @@ class LabeledArray(HistoryArray):
             
         elif self.ndim == 3:
             if "c" not in self.axes:
-                print(self.axes)
                 imglist = self.split(axis=find_first_appeared(self.axes, include=self.axes, exclude=dims))
                 if len(imglist) > 24:
                     print("Too many images. First 24 images are shown.")
