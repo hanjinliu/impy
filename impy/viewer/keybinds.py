@@ -367,8 +367,8 @@ def _crop_rectangle(img, crds, dims):
     translate = np.empty(2)
     for i in [0, 1]:
         sl0 = sorted([start[i], end[i]])
-        x0 = int(sl0[0])+1
-        x1 = int(sl0[1])+1
+        x0 = max(int(sl0[0]), 0)
+        x1 = min(int(sl0[1]), img.sizeof(dims[i]))
         sl.append(f"{dims[i]}={x0}:{x1}")
         translate[i] = x0
     

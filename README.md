@@ -211,6 +211,7 @@ Affine transformation, deconvolution and many filter functions are automatically
   - `focus_map` &rarr; Find focus using variance of Laplacian method. 
   - `stokes` &rarr; Analyze polarization using Stokes parameters.
   - `fft`:zap::maple_leaf:, `power_spectra`:zap::maple_leaf:, `ifft`:zap::maple_leaf: &rarr; Fourier transformation.
+  - `local_dft`:zap::maple_leaf:, `local_power_spectra`:zap::maple_leaf: &rarr; Local Fourier transformation (upsampling in Fourier space while avoid calculating whole values).
   - `threshold` &rarr; Thresholding (many methods included).
   - `crop_center`, `crop_kernel`, `remove_edges`, `rotated_crop` &rarr; Crop image.
   - `clip`, `rescale_intensity` &rarr; Rescale the intensity profile into certain range.
@@ -294,8 +295,8 @@ Affine transformation, deconvolution and many filter functions are automatically
   - `/` &rarr; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in `ip.gui.results` for now.
   - `Ctrl` + `P` &rarr; Projection of shape-layers or point-layers to 2D layers.
   - `Ctrl` + `G` / `Ctrl` + `Shift` + `G` &rarr; Link/Unlink layers. Like "grouping" in PowerPoint.
-  - `Shift` + `S` / `S` &rarr; Add 2D/nD shape-layer.
-  - `Shift` + `P` / `P` &rarr; Add 2D/nD point-layer.
+  - `S` &rarr; Add hape-layer.
+  - `P` &rarr; Add point-layer.
 - Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.
 - Note pad in `Window > Note`.
 - Call `impy.imread` in `File > imread ...`. Call `impy.imsave` in `File > imsave ...`.
