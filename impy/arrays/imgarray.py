@@ -2514,19 +2514,6 @@ class ImgArray(LabeledArray):
                                              )
         return out
     
-    @record()
-    def optimal_path(self, src, dst) -> ImgArray:
-        # TODO: conbine with napari?
-        src = np.round(src).astype(np.uint16)
-        dst = np.round(dst).astype(np.uint16)
-        ind, cost = skgraph.route_through_array(self.value, np.round(src), dst, geometric=False)
-        ind = np.array(ind)
-        route = np.zeros(self.shape, dtype=bool)
-        route[tuple(ind[:,i] for i in range(ind.shape[1]))] = True
-        route = route.view(self.__class__)
-        route.temp = cost
-        return route
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
@@ -3515,50 +3502,7 @@ class ImgArray(LabeledArray):
                                c_axes=complement_axes(dims), 
                                args=(p, radius, method)
                                )
-    
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def glcm(self, distances, angles, *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
-        """
-        Compute "Gray Level Coocurrence Matrix". This matrix is used for texture classification. For the
-        visualization and projection purpose, ImgArray (instead of PropArray) is returned but be aware
-        that returned image does not have yx-axes.
-
-        Parameters
-        ----------
-        distances : array_like
-            List of pixel pair distance offsets.
-        angles : array_like
-            List of pixel pair angles in radians.
-        bins : int, optional
-            Number of bins.
-        rescale_max : bool, default is False
-            If True, the contrast of the input image is maximized by multiplying an integer.
-        {dims}
-
-        Returns
-        -------
-        ImgArray
-            GLCM with additional axes "ijd<", where "i" and "j" means intensity value, "d" means
-            distance and "<" means angle.
-        """        
-        # BUG: not working
-        self, bins, rescale_max = _glcm.check_glcm(self, bins, rescale_max)
-            
-        c_axes = complement_axes(dims, self.axes)
-        out = self.apply_dask(skfeat.greycomatrix, 
-                              c_axes=c_axes,
-                              new_axis=[-4,-3,-2,-1],
-                              drop_axis=dims,
-                              args=(distances, angles),
-                              kwargs=dict(levels=bins),
-                              dtype=np.uint32
-                              )
-        out._set_info(self, "glcm", new_axes=c_axes+"ijd<")
         
-        return out
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
@@ -3736,6 +3680,8 @@ class ImgArray(LabeledArray):
             Along which axis drift will be calculated.
         show_drift : bool, default is False
             If True, plot the result.
+        upsample_factor : int, default is 10
+            Up-sampling factor when calculating phase cross correlation.
 
         Returns
         -------
