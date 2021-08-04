@@ -339,7 +339,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
     if is_memmap:
         sl = axis_targeted_slicing(img, axes, key)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
-        img = np.asarray(img[sl])
+        img = np.asarray(img[sl], dtype=dtype)
     
     self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
                     history=history, metadata=metadata)

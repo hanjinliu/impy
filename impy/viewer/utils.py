@@ -200,11 +200,14 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
     
     scale = make_world_scale(img)
     
-    name = "No-Name" if img.name is None else img.name
-    if chn_ax is not None:
-        name = [f"[C{i}]{name}" for i in range(img.sizeof("c"))]
+    if "name" in kwargs:
+        name = kwargs.pop("name")
     else:
-        name = [name]
+        name = "No-Name" if img.name is None else img.name
+        if chn_ax is not None:
+            name = [f"[C{i}]{name}" for i in range(img.sizeof("c"))]
+        else:
+            name = [name]
     
     if img.dtype.kind == "c":
         img = np.abs(img)

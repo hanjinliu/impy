@@ -1,4 +1,6 @@
 from __future__ import annotations
+from impy.utils.axesop import switch_slice
+from impy.utils.io import open_img
 import os
 import napari
 import pandas as pd
@@ -14,7 +16,7 @@ from ._widgets import _make_table_widget
 from ..collections import *
 from ..arrays import *
 from ..frame import *
-from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, lazy_imread as ip_lazy_imread
+from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, lazy_imread as ip_lazy_imread, read_meta
 from ..utils.utilcls import Progress
 from .._const import Const
 
@@ -211,6 +213,48 @@ class napariViewers:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
+    def preview(self, path:str, downsample_factor=4, dims=None, title=None, **kwargs):
+        """
+        Preview a large image with a strided image.
+
+        Parameters
+        ----------
+        path : str
+            Path to the image file.
+        downsample_factor : int, default is 4
+            Image value is sampled every ``downsample_factor`` pixels.
+        dims : str or int, optional
+            Axes along which values will be down-sampled.
+        title : str, optional
+            Title of the new viewer.
+        """        
+        if title is None:
+            if self._front_viewer is None:
+                title = "impy"
+            else:
+                title = self._front_viewer
+                
+        if title not in self._viewers.keys():
+            title = self._name(title)
+            self.start(title)
+        self._front_viewer = title
+        
+        if dims is None:
+            meta = read_meta(path)
+            dims = "zyx" if "z" in meta["axes"] else "yx"
+        elif isinstance(dims, int):
+            dims = "zyx" if dims == 3 else "yx"
+
+        key = ";".join(f"{a}={downsample_factor//2}::{downsample_factor}" for a in dims)
+        img = ip_imread(path, key=key)
+        img.set_scale({a: img.scale[a]*downsample_factor for a in dims})
+        trs = switch_slice(dims, img.axes, ifin=downsample_factor//2, ifnot=0.0)
+        trs = np.array(trs) * np.array(list(img.scale.values()))/downsample_factor
+        add_labeledarray(self.viewer, img, name=f"[Prev]{img.name}", translate=trs, **kwargs)
+            
+        return None
+            
+        
     def add_surface(self, image3d:LabeledArray, level:float=None, step_size:int=1, mask=None, **kwargs):
         """
         Add a surface layer from a 3D image.
@@ -220,7 +264,7 @@ class napariViewers:
         image3d : LabeledArray
             3D image from which surface will be generated
         level, step_size, mask : 
-            Passed to ``skimage.measure,marching_cubes``
+            Passed to ``skimage.measure.marching_cubes``
         """        
         verts, faces, _, values = marching_cubes(image3d, level=level, 
                                                  step_size=step_size, mask=mask)
