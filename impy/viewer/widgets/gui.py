@@ -195,6 +195,6 @@ class RectangleEditor(FunctionGui):
         selected_layer = selected_layer[0]
         if not isinstance(selected_layer, napari.layers.Shapes):
             return None
-        elif len(selected_layer.selected) == 0:
+        elif len(selected_layer.selected_data) == 0:
             return None
         return selected_layer

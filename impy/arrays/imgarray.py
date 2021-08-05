@@ -1243,17 +1243,11 @@ class ImgArray(LabeledArray):
             >>> z_focus = np.argmax(score) # determine the focus plane
             >>> img[z_focus]               # get the focus plane
         """        
-        # TODO: test
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
         out = np.var(laplace_img, axis=dims)
         out = PropArray(out.value, dtype=np.float32, name=self.name, 
                         axes=c_axes, propname="variance_of_laplacian")
-        # out = PropArray(np.empty(self.sizesof(c_axes)), dtype=np.float32, name=self.name, 
-        #                 axes=c_axes, propname="variance_of_laplacian")
-        
-        # for sl, img in laplace_img.iter(c_axes, exclude=dims):
-        #     out[sl] = np.var(img)
         return out
     
     @_docs.write_docs
