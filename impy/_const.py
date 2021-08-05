@@ -1,6 +1,6 @@
 import dask
-from dask.cache import Cache
 import psutil
+from dask.cache import Cache
 
 memory = psutil.virtual_memory()
 
@@ -10,7 +10,10 @@ DASK_CACHE_GB_LIMIT = memory.total / 4 * 1e-9
 class GlobalConstant(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        super().__setattr__("_cache", Cache(1.0))
+        try:
+            super().__setattr__("_cache", Cache(1.0))
+        except (ModuleNotFoundError, ImportError):
+            super().__setattr__("_cache", None)
 
     def __getitem__(self, k):
         try:

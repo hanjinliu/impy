@@ -142,19 +142,16 @@ class ThresholdAndLabel(FunctionGui):
 
 class RectangleEditor(FunctionGui):
     def __init__(self, viewer):
+        self.viewer = viewer
         opt = dict(len_v={"widget_type": "SpinBox", 
                           "label": "V",
                           "tooltip": "vertical length in pixel"},
                    len_h={"widget_type": "SpinBox", 
                           "label": "H",
                           "tooltip": "horizontal length in pixel"})
+
         def _func(len_v=128, len_h=128):
-            selected_layer = list(viewer.layers.selection)
-            if len(selected_layer) != 1 or not self.visible:
-                return None
-            selected_layer = selected_layer[0]
-            if not isinstance(selected_layer, napari.layers.Shapes):
-                return None
+            selected_layer = self.get_selected_shapes_layer()
     
             # check if one shape/point is selected
             new_data = selected_layer.data
@@ -190,3 +187,14 @@ class RectangleEditor(FunctionGui):
             return None
         
         super().__init__(_func, auto_call=True, param_options=opt)
+
+    def get_selected_shapes_layer(self):
+        selected_layer = list(self.viewer.layers.selection)
+        if len(selected_layer) != 1:
+            return None
+        selected_layer = selected_layer[0]
+        if not isinstance(selected_layer, napari.layers.Shapes):
+            return None
+        elif len(selected_layer.selected) == 0:
+            return None
+        return selected_layer
