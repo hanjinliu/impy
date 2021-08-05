@@ -162,9 +162,12 @@ class RectangleEditor(FunctionGui):
             count = 0
             for i, data in enumerate(new_data):
                 if selected_layer.shape_type[i] == "rectangle" and i in selected_data:
-                    data[1, -2:] = data[0, -2:] + np.array([len_v,   0.0])
-                    data[2, -2:] = data[0, -2:] + np.array([len_v, len_h])
-                    data[3, -2:] = data[0, -2:] + np.array([  0.0, len_h])
+                    dh = data[1, -2:] - data[0, -2:]
+                    dv = data[3, -2:] - data[0, -2:]
+                    data[1, -2:] = dh / np.hypot(*dh) * len_h + data[0, -2:]
+                    data[3, -2:] = dv / np.hypot(*dv) * len_v + data[0, -2:]
+                    data[2, -2:] = data[1, -2:] - data[0, -2:] + data[3, -2:]
+                    
                     count += 1
             
             if count == 0:
@@ -174,9 +177,9 @@ class RectangleEditor(FunctionGui):
                     return None
                 data = np.zeros((4, selected_layer.ndim), dtype=np.float64)
                 data[:, :-2] = viewer.dims.current_step[:-2]
-                data[1, -2:] = np.array([len_v,   0.0])
+                data[1, -2:] = np.array([  0.0, len_h])
                 data[2, -2:] = np.array([len_v, len_h])
-                data[3, -2:] = np.array([  0.0, len_h])
+                data[3, -2:] = np.array([len_v,   0.0])
                 new_data = selected_layer.data + [data]
                 selected_data = {len(new_data) - 1}
                 
