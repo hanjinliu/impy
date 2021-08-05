@@ -104,12 +104,18 @@ class LabeledArray(HistoryArray):
                 axes_changed = True
         
         # make a copy of the image for saving
-        img = self.__class__(self.as_img_type(dtype).value, axes=new_axes, name=self.name, metadata=self.metadata)
-        img = img.sort_axes()
+        if new_axes != self.axes:
+            img = self.copy()
+            img.axes = new_axes
+            img.set_scale(self)
+        else:
+            img = self
+        img = img.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(img, update_lut=True)
-            
+
         # save image
         imwrite(tifname, img, **imsave_kwargs)
+
         # notifications
         if axes_changed:
             if new_axes == str(img.axes):

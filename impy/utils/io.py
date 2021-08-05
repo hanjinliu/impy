@@ -173,6 +173,9 @@ def get_imsave_meta_from_img(img, update_lut=True):
     # set z-scale
     if "z" in img.axes:
         metadata["spacing"] = img.scale["z"]
+    else:
+        metadata["spacing"] = img.scale["x"]
+        
     # add history to Info
     try:
         info = load_json(metadata["Info"])
