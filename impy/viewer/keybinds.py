@@ -71,22 +71,23 @@ def _change_focus(viewer, ind):
     # determine next/previous index/data to select
     ndata = len(selected_layer.data)
     next_to_select = (selected_data + ind) % ndata
-    selected_layer.selected_data = {next_to_select}
-    next_data = selected_layer.data[next_to_select]
-    selected_layer._set_highlight()
+    next_data = np.atleast_2d(selected_layer.data[next_to_select])
     
     # update camera    
     scale = selected_layer.scale
-    center = np.mean(np.atleast_2d(next_data), axis=0) * scale
+    center = np.mean(next_data, axis=0) * scale
     current_zoom = viewer.camera.zoom
     current_center = viewer.camera.center
     next_center = current_center[:-2] + center[-2:]
-    viewer.dims.current_step = list(next_data[:-2].astype(np.int64)) + [0, 0]
+    viewer.dims.current_step = list(next_data[0, :-2].astype(np.int64)) + [0, 0]
     
     # TODO: Currently the value of "zoom" is inconsistent with unknown reason.
     # I don't know if this problem will be fixed in 0.4.11.
     viewer.camera.center = next_center
     viewer.camera.zoom = current_zoom
+    
+    selected_layer.selected_data = {next_to_select}
+    selected_layer._set_highlight()
     return None
     
     
