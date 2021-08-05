@@ -248,7 +248,7 @@ class napariViewers:
         key = ";".join(f"{a}={downsample_factor//2}::{downsample_factor}" for a in dims)
         img = ip_imread(path, key=key)
         img.set_scale({a: img.scale[a]*downsample_factor for a in dims})
-        trs = switch_slice(dims, img.axes, ifin=downsample_factor//2, ifnot=0.0)
+        trs = switch_slice(dims, img.axes, ifin=downsample_factor/2-0.5, ifnot=0.0)
         trs = np.array(trs) * np.array(list(img.scale.values()))/downsample_factor
         add_labeledarray(self.viewer, img, name=f"[Prev]{img.name}", translate=trs, **kwargs)
             
@@ -299,7 +299,7 @@ class napariViewers:
         if "contrast_limits" not in kwargs.keys():
             # contrast limits should be determined quickly.
             leny, lenx = img.shape[-2:]
-            sample = img.img[..., ::leny//min(3, leny), ::lenx//min(3, lenx)]
+            sample = img.img[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
             kwargs["contrast_limits"] = [float(sample.min().compute()), 
                                          float(sample.max().compute())]
 
