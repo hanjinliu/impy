@@ -1,6 +1,7 @@
 from __future__ import annotations
 from .utils.utilcls import Progress
 from collections import UserList, UserDict
+from functools import partial
 
 __all__ = ["DataList", "DataDict"]
 
@@ -9,26 +10,29 @@ class CollectionBase:
     def _such_as(self):
         raise NotImplementedError
     
-    def _repr_(self):
+    def _repr_(self, _repr_=None):
         if len(self) == 1:
             return \
         f"""{self.__class__.__name__}[{self._type.__name__}] with a component:
-        {repr(self._such_as)}
+        {getattr(self._such_as, _repr_, self.__repr__)()}
         """
         elif len(self) > 1:
             return \
         f"""{self.__class__.__name__}[{self._type.__name__}] with components such as:
-        {repr(self._such_as)}
+        {getattr(self._such_as, _repr_, self.__repr__)()}
         """
         else:
             return f"{self.__class__.__name__} with no component"
-    # several repr function should be defined because in IPython kernel these functions may be called 
-    # for rich print and by definition __getattr__ will be called every time.
-        
-    __repr__ = _repr_
-    _repr_html_ = _repr_
-    _repr_latex_ = _repr_
     
+    def __repr__(self):
+        return self._repr_("__repr__")
+    
+    def _repr_html_(self):
+        return self._repr_("_repr_html_")
+    
+    def _repr_latex_(self):
+        return self._repr_("_repr_latex_")
+        
     
 class DataList(CollectionBase, UserList):
     """
