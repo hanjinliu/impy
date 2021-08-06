@@ -15,6 +15,7 @@ __all__ = ["add_imread_menu",
            "add_filter", 
            "add_regionprops",
            "add_rectangle_editor",
+           "layer_template_matcher",
            "function_handler",
            ]
 
@@ -174,8 +175,37 @@ def add_regionprops(viewer):
     viewer.window.function_menu.addAction(action)
     return None
 
+
+def layer_template_matcher(viewer):
+    action = QAction("Template Matcher", viewer.window._qt_window)
+    @action.triggered.connect
+    def _():
+        @magicgui.magicgui(call_button="Match",
+                           img={"label": "image",
+                                "tooltip": "Reference image. This image will not move."},
+                           template={"label": "temp",
+                                     "tooltip": "Template image. This image will move."},
+                           ndim={"choices": [2, 3]})
+        def template_matcher(img:napari.layers.Image, template:napari.layers.Image, ndim=2):
+            step = viewer.dims.current_step[:-min(ndim, img.ndim)]
+            img_ = img.data[step]
+            template_ = template.data[step]
+            with SetConst("SHOW_PROGRESS", False):
+                res = img_.ncc_filter(template_)
+            maxima = np.unravel_index(np.argmax(res), res.shape)
+            maxima = tuple((m - l//2)*s for m, l, s in zip(maxima, template_.shape, template.scale))
+            template.translate = img.translate + np.array(step + maxima)
+    
+        viewer.window.add_dock_widget(template_matcher, area="left", name="Template Matcher")
+        return None
+    
+    viewer.window.function_menu.addAction(action)
+    return None        
+
 def function_handler(viewer):
-    def add():
+    action = QAction("Function Handler", viewer.window._qt_window)
+    @action.triggered.connect
+    def _():
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
                      arguments="",
@@ -264,8 +294,7 @@ def function_handler(viewer):
                 return outlist
         viewer.window.add_dock_widget(run_func, area="left", name="Function Handler")
         return None
-    action = QAction("Function Handler", viewer.window._qt_window)
-    action.triggered.connect(add)
+    
     viewer.window.function_menu.addAction(action)
     return None
 

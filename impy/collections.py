@@ -1,7 +1,6 @@
 from __future__ import annotations
 from .utils.utilcls import Progress
 from collections import UserList, UserDict
-from functools import partial
 
 __all__ = ["DataList", "DataDict"]
 
