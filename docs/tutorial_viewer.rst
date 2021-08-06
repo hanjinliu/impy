@@ -47,9 +47,13 @@ Get impy Objects from Viewer
 ----------------------------
 
 The ``napari.Viewer`` object is accessible via ``ip.gui.viewer``, so that basically you can call any method from it. However, 
+methods that are frequently used are again defined in ``ip.gui``.
 
-- Return all the manually selected layers' data by ``layers = ip.gui.selection``.
-- Run ``ImgArray``'s method inside viewers.
+When you want to get `i`-th layer, you can use ``ip.gui.layers[i]`` instead of ``ip.gui.viewer.layers[i]``. Because ``impy``
+objects such as ``ImgArray`` are directly passed to layer objects, you can recover ``impy`` object by ``ip.gui.layers[i].data``.
+
+When you want to get the `i`-th selected layers' ``impy`` objects, you only have to call ``ip.gui.selection[i]``. Property
+``ip.gui.selection`` returns list of selected ``impy`` objects as a list.
 
 Mouse Callbacks
 ---------------
@@ -58,7 +62,6 @@ Mouse Callbacks
 - ``Alt`` + ``Shift`` + mouse drag -> lateral translation restricted in either x- or y-orientation (left button or right button respectively).
 - ``Alt`` + mouse wheel -> rescaling
 - ``Ctrl`` + ``Shift`` + ``R`` -> reset original states.
-
 
 Keyboard Shortcuts
 ------------------

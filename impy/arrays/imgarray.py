@@ -154,7 +154,7 @@ class ImgArray(LabeledArray):
             Rotated image.
         """        
         if center == "center":
-            center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
+            center = np.array(self.sizesof(dims))/2. - 0.5
         else:
             center = np.asarray(center)
             
@@ -193,7 +193,7 @@ class ImgArray(LabeledArray):
             Rotated image.
         """        
         if center == "center":
-            center = np.array(self.sizesof(dims[::-1]))/2. - 0.5
+            center = np.array(self.sizesof(dims))/2. - 0.5
         else:
             center = np.asarray(center)
         
