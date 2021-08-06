@@ -175,7 +175,7 @@ class napariViewers:
             self._add_paths(obj, **kwargs)
         
         # Add a table
-        elif isinstance(obj, (pd.DataFrame, PropArray, DataDict)):
+        elif isinstance(obj, (pd.DataFrame, PropArray)):
             self._add_properties(obj, **kwargs)
         
         # Add a lazy-loaded image

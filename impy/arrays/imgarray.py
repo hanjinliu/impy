@@ -2557,8 +2557,8 @@ class ImgArray(LabeledArray):
         less memory comsuming.
         
             .. warning::
-                The result of ``local_dft`` will NOT shifted with ``np.fft.fftshift`` because in general the
-                center of arrays are unknown. Also, it is easier to understand `x=0` corresponds to the center.
+                The result of ``local_dft`` will **NOT** be shifted with ``np.fft.fftshift`` because in general 
+                the center of arrays are unknown. Also, it is easier to understand `x=0` corresponds to the center.
         
         Even whole spectrum is returned, ``local_dft`` may be faster than FFT with small and/or non-FFT-friendly
         shaped image.
