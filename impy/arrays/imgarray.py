@@ -1170,12 +1170,12 @@ class ImgArray(LabeledArray):
         """        
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
-        return self.apply_dask(_filters.convolve, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               args=(laplace_op,),
-                               kwargs=dict(mode="reflect")
-                               )
+        return self.as_float().apply_dask(_filters.convolve, 
+                                          c_axes=complement_axes(dims, self.axes), 
+                                          dtype=self.dtype,
+                                          args=(laplace_op,),
+                                          kwargs=dict(mode="reflect")
+                                          )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -2601,16 +2601,16 @@ class ImgArray(LabeledArray):
                 for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
         
         # Calculate chunk size for proper output shapes
-        chunks = np.ones(self.ndim, dtype=np.int64)
+        out_chunks = np.ones(self.ndim, dtype=np.int64)
         for i, a in enumerate(dims):
             ind = self.axisof(a)
-            chunks[ind] = exps[i].shape[0]
-        chunks = tuple(chunks)
+            out_chunks[ind] = exps[i].shape[0]
+        out_chunks = tuple(out_chunks)
         
         return self.apply_dask(_misc.dft, 
                                complement_axes(dims, self.axes),
                                dtype=np.complex64, 
-                               chunks=chunks,
+                               out_chunks=out_chunks,
                                kwargs=dict(exps=exps)
                                )
     

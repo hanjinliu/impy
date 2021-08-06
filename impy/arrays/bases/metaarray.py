@@ -297,7 +297,7 @@ class MetaArray(AxesMixin, np.ndarray):
             
     
     def apply_dask(self, func:Callable, c_axes:str=None, drop_axis=[], new_axis=None, dtype=np.float32, 
-                   chunks=None, args:tuple=None, kwargs:dict=None) -> MetaArray:
+                   out_chunks:tuple[int,...]=None, args:tuple=None, kwargs:dict=None) -> MetaArray:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
@@ -314,6 +314,8 @@ class MetaArray(AxesMixin, np.ndarray):
             Passed to map_blocks.
         dtype : any that can be converted to np.dtype object, default is np.float32
             Output data type.
+        out_chunks : tuple of int, optional
+            Output chunks. This argument is important when the output shape will change.
         args : tuple, optional
             Arguments that will passed to `func`.
         kwargs : dict
@@ -379,7 +381,7 @@ class MetaArray(AxesMixin, np.ndarray):
                                 drop_axis=drop_axis,
                                 new_axis=new_axis, 
                                 meta=xp.array([], dtype=dtype), 
-                                chunks=chunks,
+                                chunks=out_chunks,
                                 **kwargs
                                 )
             
