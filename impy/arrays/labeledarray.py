@@ -1067,8 +1067,7 @@ class LabeledArray(HistoryArray):
         
     
     @record(need_labels=True)
-    def extract(self, label_ids=None, filt=None, cval:float=0, 
-                crop:bool=False) -> LabeledArray|DataList[LabeledArray]:
+    def extract(self, label_ids=None, filt=None, cval:float=0) -> DataList[LabeledArray]:
         """
         Extract certain regions of the image and substitute others to `cval`.
 
@@ -1080,12 +1079,10 @@ class LabeledArray(HistoryArray):
             If given, only regions `X` that satisfy filt(self, X) will extracted.
         cval : float, default is 0.
             Constant value to fill regions outside the extracted labeled regions.
-        crop : bool, default is False
-            If True, image will be cropped at the bbox areas and returned as DataList of cropped images.
             
         Returns
         -------
-        LabeledArray or DataList of LabeledArray
+        DataList of LabeledArray
             Extracted image(s)
         """        
         if filt is None:
@@ -1099,18 +1096,18 @@ class LabeledArray(HistoryArray):
             # All the labels except for 0 (which means not labeled)
             label_ids = [i for i in np.unique(self.labels) if i != 0]
         
-        if crop:
-            slices = ndi.find_objects(self.labels)
-            out = DataList(self[sl] for sl in slices)
-        else:
-            region = np.zeros_like(self.labels.value, dtype=np.uint8)
-            for i in label_ids:
-                subregion = (self.labels == i)
-                if filt(self, subregion):
-                    region += subregion.astype(np.uint8)
+        slices = ndi.find_objects(self.labels)
+        out = []
+        for i in label_ids:
+            sl = slices[i-1]
+            obj = self[sl]
+            subregion = obj.labels > 0
+            if filt(self, subregion):
+                obj.value[~subregion] = cval
+                del obj.labels
+                out.append(obj)
                 
-            out = self.copy()
-            out[region == 0] = cval
+        out = DataList(out)
             
         return out
 
