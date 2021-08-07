@@ -86,4 +86,4 @@ class Controller(QWidget):
     
         self.layout().addWidget(button)
         return None
-        
+    

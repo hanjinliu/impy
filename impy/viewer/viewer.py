@@ -11,6 +11,7 @@ import warnings
 from .utils import *
 from .mouse import *
 from .widgets import TableWidget
+from ._widgets import create_function
 
 from ..collections import *
 from ..arrays import *
@@ -275,6 +276,12 @@ class napariViewers:
             warnings.simplefilter("ignore")
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
+    
+    def create_function(self, func):
+        if not callable(func):
+            raise TypeError("func must be callable.")
+        
+        create_function(self.viewer, func)
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others

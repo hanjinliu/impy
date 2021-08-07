@@ -278,6 +278,22 @@ def function_handler(viewer):
     viewer.window.function_menu.addAction(action)
     return None
 
+def create_function(viewer, func):
+    @magicgui.magicgui(tooltips="Created Function",
+                       call_button="Run",
+                       append={"widget_type": "CheckBox",
+                               "value": True,
+                               "label": "Append result"},
+                       )
+    def _func(append=True):
+        out = func(viewer)
+        if append and hasattr(viewer.window, "results") and isinstance(viewer.window.results, list):
+            viewer.window.results.append(out)
+        else:
+            viewer.window.results = [out]
+        
+    viewer.window.add_dock_widget(_func, area="left", name="Created Function")
+
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))
     if args_or_kwargs[0] == "":
