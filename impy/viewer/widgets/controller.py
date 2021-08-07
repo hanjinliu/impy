@@ -1,14 +1,11 @@
 
 import napari
 import numpy as np
-from qtpy.QtWidgets import QPushButton, QWidget, QGridLayout, QHBoxLayout
-import magicgui
+from qtpy.QtWidgets import QPushButton, QWidget, QHBoxLayout
 
 from .table import TableWidget
 from ..utils import iter_selected_layer
 from ..._const import Const, SetConst
-
-
 
 class Controller(QWidget):
     def __init__(self, viewer):
@@ -22,6 +19,7 @@ class Controller(QWidget):
     
     def add_get_button(self):
         button = QPushButton("(x,y)")
+        button.setToolTip("Show coordinates in a table")
         @button.clicked.connect
         def _():
             dfs = list(iter_selected_layer(self.viewer, ["Points", "Tracks"]))
@@ -42,6 +40,7 @@ class Controller(QWidget):
     
     def add_text_button(self):
         button = QPushButton("+Text")
+        button.setToolTip("Add a text layer")
         @button.clicked.connect
         def _():
             layer = self.viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")
@@ -64,6 +63,7 @@ class Controller(QWidget):
     
     def add_label_button(self):
         button = QPushButton("Label")
+        button.setToolTip("Manually label ImgArray on the viewer")
         @button.clicked.connect
         def _():
             selected = list(self.viewer.layers.selection)

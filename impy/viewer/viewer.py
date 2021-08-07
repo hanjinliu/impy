@@ -1,6 +1,5 @@
 from __future__ import annotations
-from impy.utils.axesop import switch_slice
-from impy.utils.io import open_img
+from ..utils.axesop import switch_slice
 import os
 import napari
 import pandas as pd
@@ -11,7 +10,6 @@ import warnings
 
 from .utils import *
 from .mouse import *
-from ._widgets import _make_table_widget
 from .widgets import TableWidget
 
 from ..collections import *
