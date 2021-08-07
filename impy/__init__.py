@@ -1,4 +1,4 @@
-__version__ = "1.19.3"
+__version__ = "1.19.4"
 
 import logging
 from ._const import Const, SetConst

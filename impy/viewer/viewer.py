@@ -11,7 +11,6 @@ import warnings
 from .utils import *
 from .mouse import *
 from .widgets import TableWidget
-from ._widgets import create_function
 
 from ..collections import *
 from ..arrays import *
@@ -70,6 +69,27 @@ class napariViewers:
         return self.viewer.layers
     
     @property
+    def image_layers(self):
+        """
+        Return all the image layers as a list.
+        """        
+        return list(iter_layer(self.viewer, "Image"))
+    
+    @property
+    def images(self):
+        """
+        Return all the images as a list.
+        """        
+        return list(a.data for a in iter_layer(self.viewer, "Image"))
+    
+    @property
+    def points(self):
+        """
+        Return all the images as a list.
+        """        
+        return list(a.data for a in iter_layer(self.viewer, "Points"))
+    
+    @property
     def results(self):
         """
         Temporary results stored in the viewer.
@@ -96,16 +116,6 @@ class napariViewers:
         d = self.viewer.dims
         return {a: r[2] for a, r in zip(d.axis_labels, d.range)}
     
-    @property
-    def front_image(self):
-        """
-        Get the most front and visible image from the layer list.
-
-        Returns
-        -------
-        napari.layers.Image
-        """        
-        return front_image(self.viewer)
     
     def start(self, key:str="impy"):
         """
@@ -278,10 +288,29 @@ class napariViewers:
         return None
     
     def create_function(self, func):
+        """
+        Make it easy to call custom function on the viewer. Every time "F1" is pushed, ``func(self)`` will
+        be called. Returned values will appeded to ``self.results``.
+
+        Parameters
+        ----------
+        func : callable
+            Function to be called when "F1" is pushed. This function must accept ``func(self)``.
+        """        
         if not callable(func):
             raise TypeError("func must be callable.")
+
+        @self.viewer.bind_key("F1")
+        def _func(append=True):
+            out = func(self)
+            win = self.viewer.window
+            if append and hasattr(win, "results") and isinstance(win.results, list):
+                win.results.append(out)
+            else:
+                win.results = [out]
+            self.viewer.status = f"'{func.__name__}' returned {out}"
         
-        create_function(self.viewer, func)
+        return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others

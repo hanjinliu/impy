@@ -340,7 +340,13 @@ def manders_coloc(img0:ImgArray, img1:np.ndarray, *, squeeze:bool=True, dims=Non
     """        
     if img1.dtype != bool:
         raise TypeError("`ref` must be a binary image.")
-    img0, img1 = _check_inputs(img0, img1)
+    if img0.shape != img1.shape:
+        raise ValueError(f"Shape mismatch. `img0` has shape {img0.shape} but `img1` "
+                         f"has shape {img1.shape}")
+    if img0.axes != img1.axes:
+        warn(f"Axes mismatch. `img0` has axes {img0.axes} but `img1` has axes {img1.axes}. "
+              "Result may be wrong due to this mismatch.", UserWarning)
+    img0 = img0.as_float()
     total = np.sum(img0, axis=dims)
     img0 = img0.copy()
     img0[~img1] = 0
