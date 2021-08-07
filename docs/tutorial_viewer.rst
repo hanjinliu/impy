@@ -58,6 +58,12 @@ When you want to get the `i`-th selected layers' ``impy`` objects, you only have
 Mouse Callbacks
 ---------------
 
+There are several custom mouse callbacks in addition to the basic ones in ``napari``.
+
+- When you're drawing shapes, you'll find shape information as a text overlay in the upper left corner.
+
+.. image:: ../images/shapes_info.png
+
 - ``Alt`` + mouse drag -> lateral translation
 - ``Alt`` + ``Shift`` + mouse drag -> lateral translation restricted in either x- or y-orientation (left button or right button respectively).
 - ``Alt`` + mouse wheel -> rescaling

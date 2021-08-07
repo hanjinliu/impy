@@ -1,7 +1,7 @@
 from __future__ import annotations
 import napari
 import magicgui
-from qtpy.QtWidgets import QFileDialog, QDialog, QAction, QPushButton, QWidget, QGridLayout
+from qtpy.QtWidgets import QFileDialog, QAction
 from .widgets import *
 from .utils import *
 from .._const import SetConst

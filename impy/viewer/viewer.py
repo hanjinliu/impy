@@ -24,7 +24,7 @@ from .._const import Const
 #   layer group is implemented in napari.
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
-# - use notification manager for error handling: https://github.com/napari/napari/pull/2205
+# - Embed plot: https://github.com/napari/napari/blob/master/examples/mpl_plot.py
         
 class napariViewers:
     

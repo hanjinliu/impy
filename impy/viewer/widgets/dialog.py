@@ -25,24 +25,31 @@ class RegionPropsDialog(QDialog):
         
         properties = ("label",) + tuple(self.line.text().split(","))
         
-        for imglayer in selected:
-            if not isinstance(imglayer, napari.layers.Image):
+        for layer in selected:
+            if not isinstance(layer, napari.layers.Image):
                 continue
-            lbl = imglayer.data.labels
-            with SetConst("SHOW_PROGRESS", False):
-                out = imglayer.data.regionprops(properties=properties)
-            out["label"] = out["label"].astype(lbl.dtype)
-            order = np.argsort(out["label"].value)
-            prop = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}
-            # find Labels layer
-            for l in self.viewer.layers:
-                if l.metadata.get("destination_image", None) is imglayer.data:
+            try:
+                lbl = layer.data.labels
+                with SetConst("SHOW_PROGRESS", False):
+                    out = layer.data.regionprops(properties=properties)
+            
+                
+                out["label"] = out["label"].astype(lbl.dtype)
+                order = np.argsort(out["label"].value)
+                prop = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}
+                # find Labels layer
+                for l in self.viewer.layers:
+                    if l.metadata.get("destination_image", None) is layer.data:
+                        l.properties = prop
+                        break
+                else:
+                    l = self.viewer.add_labels(lbl.value, opacity=0.3, scale=layer.scale, 
+                                        name=f"[L]{layer.name}", translate=layer.translate)
                     l.properties = prop
-                    break
-            else:
-                l = self.viewer.add_labels(lbl.value, opacity=0.3, scale=imglayer.scale, 
-                                    name=f"[L]{imglayer.name}", translate=imglayer.translate)
-                l.properties = prop
+            
+            except Exception:
+                self.close()
+                raise 
         
         self.__class__.history = self.line.text()
         self.close()
@@ -70,15 +77,19 @@ class DuplicateDialog(QDialog):
     
     def run(self):
         line = self.line.text()
-        for layer in list(self.viewer.layers.selection):
-            if line.strip() == "" and not self.check.isChecked():
-                new_layer = copy_layer(layer)
-            elif line.strip():
-                new_layer = self.duplicate_sliced_layer(layer)
-            else:
-                new_layer = self.duplicate_current_step(layer)
-            
-            self.viewer.add_layer(new_layer)
+        try:
+            for layer in list(self.viewer.layers.selection):
+                if line.strip() == "" and not self.check.isChecked():
+                    new_layer = copy_layer(layer)
+                elif line.strip():
+                    new_layer = self.duplicate_sliced_layer(layer)
+                else:
+                    new_layer = self.duplicate_current_step(layer)
+                
+                self.viewer.add_layer(new_layer)
+        except Exception:
+            self.close()
+            raise
         
         self.close()
             
