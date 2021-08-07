@@ -1,7 +1,7 @@
 from __future__ import annotations
 import napari
 import magicgui
-from qtpy.QtWidgets import QFileDialog, QAction, QPushButton, QWidget, QGridLayout
+from qtpy.QtWidgets import QFileDialog, QDialog, QAction, QPushButton, QWidget, QGridLayout
 from .widgets import *
 from .utils import *
 from .._const import SetConst
@@ -144,35 +144,15 @@ def add_rectangle_editor(viewer):
     return add_gui_to_function_menu(viewer, RectangleEditor, "Rectangle Editor")
 
 def add_regionprops(viewer):
-    # TODO: close main window after calculation, choose properties
-    @magicgui.magicgui(main_window=True,
-                       call_button="Calculate")
-    def regionprops():
-        selected = list(viewer.layers.selection)
-        if len(selected) < 1:
-            return None
-        properties = ("label", "mean_intensity")
-        for imglayer in selected:
-            if not isinstance(imglayer, napari.layers.Image):
-                continue
-            lbl = imglayer.data.labels
-            with SetConst("SHOW_PROGRESS", False):
-                out = imglayer.data.regionprops(properties=properties)
-            out["label"] = out["label"].astype(lbl.dtype)
-            order = np.argsort(out["label"].value)
-            d = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}
-            # find Labels layer
-            for l in viewer.layers:
-                if l.data is lbl:
-                    l.properties = d
-                    break
-            else:
-                l = viewer.add_labels(lbl.value, opacity=0.3, scale=imglayer.scale, 
-                                      name=f"[L]{imglayer.name}", translate=imglayer.translate)
     
     action = QAction("regionprops", viewer.window._qt_window)
-    action.triggered.connect(lambda: regionprops.show(run=True))
+    @action.triggered.connect
+    def _():
+        dlg = RegionPropsDialog(viewer)
+        dlg.exec_()
+        
     viewer.window.function_menu.addAction(action)
+    
     return None
 
 

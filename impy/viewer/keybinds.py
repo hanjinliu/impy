@@ -1,6 +1,7 @@
 from ..arrays import LabeledArray
 from ..core import array as ip_array
 from .utils import *
+from .widgets import DuplicateDialog
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
@@ -346,7 +347,8 @@ def duplicate_layer(viewer):
     """
     Duplicate selected layer(s).
     """
-    [viewer.add_layer(copy_layer(layer)) for layer in list(viewer.layers.selection)]
+    dlg = DuplicateDialog(viewer)
+    dlg.exec_()
 
 def _crop_rotated_rectangle(img, crds, dims):
     translate = np.min(crds, axis=0)

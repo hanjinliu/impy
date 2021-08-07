@@ -35,7 +35,7 @@ class FunctionCaller(FunctionGui):
         self.current_layer = None       # currently selected layer
         self.last_inputs = None         # last inputs including function name
         self.last_outputs = None        # last output from the function
-
+        
         opt = dict(funcname={"choices": list(RANGES.keys()), "label": "function"},
                    param={"widget_type": "FloatSlider", "min":0.01, "max": 30,
                           "tooltip": "The first parameter."},
@@ -98,6 +98,7 @@ class FunctionCaller(FunctionGui):
         self.param.max = pmax
         self.param.value = sig.parameters[first_param].default
         return None
+    
         
 class ThresholdAndLabel(FunctionGui):
     def __init__(self, viewer):
