@@ -287,30 +287,46 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def create_function(self, func):
+    def bind(self, func=None, key="F1"):
         """
-        Make it easy to call custom function on the viewer. Every time "F1" is pushed, ``func(self)`` will
-        be called. Returned values will appeded to ``self.results``.
+        Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
+        ``func(self)`` will be called. Returned values will appeded to ``self.results``.
 
         Parameters
         ----------
         func : callable
-            Function to be called when "F1" is pushed. This function must accept ``func(self)``.
-        """        
-        if not callable(func):
-            raise TypeError("func must be callable.")
-
-        @self.viewer.bind_key("F1")
-        def _func(append=True):
-            out = func(self)
-            win = self.viewer.window
-            if append and hasattr(win, "results") and isinstance(win.results, list):
-                win.results.append(out)
-            else:
-                win.results = [out]
-            self.viewer.status = f"'{func.__name__}' returned {out}"
+            Function to be called when ``key`` is pushed. This function must accept ``func(self)``.
+        key : str, default is "F1"
+            Key binding.
         
-        return None
+        Examples
+        --------
+        1. Calculate mean intensity of images.
+        
+            >>> @ip.gui.bind
+            >>> def measure(gui):
+            >>>     return gui.images[0].mean()
+        """        
+        def wrapper(f):
+            if not callable(f):
+                raise TypeError("func must be callable.")
+
+            @self.viewer.bind_key(key, overwrite=True)
+            def _func(append=True):
+                out = f(self)
+                win = self.viewer.window
+                if append and hasattr(win, "results") and isinstance(win.results, list):
+                    win.results.append(out)
+                else:
+                    win.results = [out]
+                self.viewer.status = f"'{f.__name__}' returned {out}"
+            
+            return f
+        
+        if func is None:
+            return wrapper
+        else:
+            return wrapper(func)
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
