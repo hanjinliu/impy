@@ -4,6 +4,7 @@ import numpy as np
 from qtpy.QtWidgets import QPushButton, QWidget, QGridLayout, QHBoxLayout
 import magicgui
 
+from .table import TableWidget
 from ..utils import iter_selected_layer
 from ..._const import Const, SetConst
 
@@ -23,40 +24,15 @@ class Controller(QWidget):
         button = QPushButton("(x,y)")
         @button.clicked.connect
         def _():
-            """
-            widget = table widget + button widget
-            ---------------
-            |             |
-            |   (table)   | <- table widget
-            |             |
-            |[Copy][Store]| <- button widget = copy button + store button
-            ---------------
-            """        
             dfs = list(iter_selected_layer(self.viewer, ["Points", "Tracks"]))
             if len(dfs) == 0:
                 return
+            axes = list(self.viewer.dims.axis_labels)
             for df in dfs:
-                widget = QWidget()
-                widget.setLayout(QGridLayout())
-                axes = list(self.viewer.dims.axis_labels)
                 columns = list(df.metadata.get("axes", axes[-df.data.shape[1]:]))
-                table = magicgui.widgets.Table(df.data, name=df.name, columns=columns)
-                copy_button = QPushButton("Copy")
-                copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())
-                store_button = QPushButton("Store")
-                @store_button.clicked.connect
-                def _():
-                    self.viewer.window.results = table.to_dataframe()
-                    return None
                 
-                button_widget = QWidget()
-                layout = QHBoxLayout()
-                layout.addWidget(copy_button)
-                layout.addWidget(store_button)
-                button_widget.setLayout(layout)
+                widget = TableWidget(self.viewer, df.data, columns=columns, name=df.name)
                 
-                widget.layout().addWidget(table.native)
-                widget.layout().addWidget(button_widget)
                 self.viewer.window.add_dock_widget(widget, area="right", name=df.name)
                 
             return None

@@ -145,7 +145,7 @@ def add_rectangle_editor(viewer):
 
 def add_regionprops(viewer):
     
-    action = QAction("regionprops", viewer.window._qt_window)
+    action = QAction("Measure Region Properties", viewer.window._qt_window)
     @action.triggered.connect
     def _():
         dlg = RegionPropsDialog(viewer)
@@ -277,23 +277,6 @@ def function_handler(viewer):
     
     viewer.window.function_menu.addAction(action)
     return None
-
-
-def _make_table_widget(df, columns=None, name=None):
-    # DataFrame -> table
-    widget = QWidget()
-    widget.setLayout(QGridLayout())
-    if columns is None:
-        columns = list(df.columns)
-    if name is None:
-        name = "value"
-    table = magicgui.widgets.Table(df.values, name=name, columns=columns)
-    copy_button = QPushButton("Copy")
-    copy_button.clicked.connect(lambda: table.to_dataframe().to_clipboard())                    
-    widget.layout().addWidget(table.native)
-    widget.layout().addWidget(copy_button)            
-    return widget
-
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))

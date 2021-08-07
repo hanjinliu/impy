@@ -12,6 +12,7 @@ import warnings
 from .utils import *
 from .mouse import *
 from ._widgets import _make_table_widget
+from .widgets import TableWidget
 
 from ..collections import *
 from ..arrays import *
@@ -391,29 +392,19 @@ class napariViewers:
         return None
     
     def _add_properties(self, prop:PropArray|DataDict|pd.DataFrame):
-        QtViewerDockWidget = napari._qt.widgets.qt_viewer_dock_widget.QtViewerDockWidget
+        
         if isinstance(prop, PropArray):
             df = prop.as_frame()
             df.rename(columns = {"f": "value"}, inplace=True)
-            table = _make_table_widget(df, name=prop.propname)
-        elif isinstance(prop, DataDict):
-            data = None
-            for k, pr in prop.items():
-                df = pr.as_frame()
-                if data is None:
-                    data = df.rename(columns = {"f": k})
-                else:
-                    data[k] = df["f"]
-            table = _make_table_widget(data)
+            table = TableWidget(self.viewer, df, name=prop.propname)
+            
         elif isinstance(prop, pd.DataFrame):
-            table = _make_table_widget(prop)
+            table = TableWidget(self.viewer, prop)
         else:
             raise TypeError(f"`prop` cannot be {type(prop)}")
-                
-        widget = QtViewerDockWidget(self.viewer.window.qt_viewer, table, name="Table",
-                                    area="right", add_vertical_stretch=True)
-        self.viewer.window._add_viewer_dock_widget(widget, tabify=self.viewer.window.n_table>0)
-        self.viewer.window.n_table += 1
+        
+        self.viewer.window.add_dock_widget(table, area="right", name="Table")
+        
         return None
 
     def _name(self, name="impy"):
