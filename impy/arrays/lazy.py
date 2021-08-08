@@ -102,6 +102,10 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    def __neg__(self) -> LazyImgArray:
+        out = self.__class__(-self.img)
+        out._set_info(self, next_history="neg")
+        return out
     
     @same_dtype(asfloat=True)
     def __add__(self, value) -> LazyImgArray:
