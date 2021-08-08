@@ -462,7 +462,7 @@ class napariViewers:
         else:
             raise TypeError(f"`prop` cannot be {type(prop)}")
         
-        self.viewer.window.add_dock_widget(table, area="right", name="Table")
+        self.viewer.window.add_dock_widget(table, area="right", name=table.name)
         
         return None
 
