@@ -6,6 +6,7 @@ from ..utils import image_tuple, label_tuple
 
 from ..._const import SetConst
 
+# TODO: add "apply" button to avoid filtering whole image stack.
 
 RANGES = {"None": (None, None), 
           "gaussian_filter": (0.2, 30),

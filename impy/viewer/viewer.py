@@ -4,6 +4,7 @@ import os
 import napari
 import pandas as pd
 import numpy as np
+from inspect import signature
 from dask import array as da
 from skimage.measure import marching_cubes
 import warnings
@@ -296,17 +297,22 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key="F1"):
+    def bind(self, func=None, key="F1", progress:bool=False):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
-        ``func(self)`` will be called. Returned values will appeded to ``self.results``.
+        ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to
+        ``self.results`` if exists.
 
         Parameters
         ----------
         func : callable
-            Function to be called when ``key`` is pushed. This function must accept ``func(self)``.
+            Function to be called when ``key`` is pushed. This function must accept ``func(self)``, or
+            ``func(self, self.ax)`` if you want to plot something inside the function. A figure widget will
+            be added to the viewer unless ``func`` takes only one argument.
         key : str, default is "F1"
             Key binding.
+        progress : bool, default is False
+            If True, progress will be shown in the console like ``ImgArray``.
         
         Examples
         --------
@@ -315,21 +321,55 @@ class napariViewers:
             >>> @ip.gui.bind
             >>> def measure(gui):
             >>>     return gui.images[0].mean()
+        
+        2. Plot line scan of 2D image.
+        
+            >>> @ip.gui.bind
+            >>> def profile(gui, ax=None)
+            >>>     img = gui.images[0]
+            >>>     line = gui.layers[-1].data[-1] # must be line!
+            >>>     with ip.SetConst("SHOW_PROGRESS", False):
+            >>>         scan = img.reslice(line)
+            >>>     ax.plot(scan)
+            >>>     return None
+            
         """        
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
-
-            @self.viewer.bind_key(key, overwrite=True)
-            def _func(append=True):
-                out = f(self)
-                win = self.viewer.window
-                if append and hasattr(win, "results") and isinstance(win.results, list):
-                    win.results.append(out)
-                else:
-                    win.results = [out]
-                self.viewer.status = f"'{f.__name__}' returned {out}"
             
+            nparams = len(signature(f).parameters)
+            
+            if nparams == 1:
+                @self.viewer.bind_key(key, overwrite=True)
+                def _(viewer):
+                    with Progress(f.__name__, out="stdout" if progress else None):
+                        out = f(self)
+                    win = viewer.window
+                    if hasattr(win, "results") and isinstance(win.results, list):
+                        win.results.append(out)
+                    else:
+                        win.results = [out]
+                    viewer.status = f"'{f.__name__}' returned {out}"
+            
+            elif nparams > 1:
+                if not hasattr(self, "ax"):
+                    self._add_figure()
+                @self.viewer.bind_key(key, overwrite=True)
+                def _(viewer):
+                    self.ax.cla()
+                    with Progress(f.__name__, out="stdout" if progress else None):
+                        out = f(self, self.ax)
+                    self.fig.canvas.draw()
+                    self.fig.tight_layout()
+                    win = viewer.window
+                    if out is not None:
+                        if hasattr(win, "results") and isinstance(win.results, list):
+                            win.results.append(out)
+                        else:
+                            win.results = [out]
+                    viewer.status = f"'{f.__name__}' returned {out}"
+                
             return f
         
         if func is None:
@@ -451,7 +491,6 @@ class napariViewers:
         return None
     
     def _add_properties(self, prop:PropArray|DataDict|pd.DataFrame):
-        
         if isinstance(prop, PropArray):
             df = prop.as_frame()
             df.rename(columns = {"f": "value"}, inplace=True)
@@ -466,6 +505,16 @@ class napariViewers:
         
         return None
 
+    def _add_figure(self):
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_qt5agg import FigureCanvas
+        self.fig = plt.figure()
+        self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
+                                            name="Plot",
+                                            area="right",
+                                            allowed_areas=["right"])
+        self.ax = self.fig.add_subplot(111)
+        
     def _name(self, name="impy"):
         i = 0
         existing = self._viewers.keys()
