@@ -155,4 +155,3 @@ class DuplicateDialog(QDialog):
         self.layout().addWidget(self.run_button)
         return None
         
-    
