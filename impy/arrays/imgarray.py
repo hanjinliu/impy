@@ -1414,9 +1414,12 @@ class ImgArray(LabeledArray):
     def doh_filter(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
         """
         Determinant of Hessian filter. This function does not support `update`
-        argument because output has total different scale of intensity. Because in
-        most cases we want to find only bright dots, eigenvalues larger than 0 is
-        ignored before computing determinant.
+        argument because output has total different scale of intensity. 
+        
+            .. warning::
+                Because in
+                most cases we want to find only bright dots, eigenvalues larger than 0 is
+                ignored before computing determinant.
 
         Parameters
         ----------
@@ -2037,6 +2040,12 @@ class ImgArray(LabeledArray):
         -------
         MarkerFrame and pd.DataFrame
             Coordinates in MarkerFrame and refinement results in pd.DataFrame.
+        
+        
+        See Also
+        --------
+        find_sm
+        centroid_sm
         """        
         import trackpy as tp
         if coords is None:
@@ -2125,7 +2134,11 @@ class ImgArray(LabeledArray):
             >>> lnk = coords.link(3, min_dwell=10)
             >>> ip.gui.add(img)
             >>> ip.gui.add(lnk)
-            
+        
+        See Also
+        --------
+        centroid_sm
+        refine_sm
         """        
         method = method.lower()
         if method in ("dog", "doh", "log"):
@@ -2182,6 +2195,11 @@ class ImgArray(LabeledArray):
         -------
         MarkerFrame
             Coordinates of peaks.
+        
+        See Also
+        --------
+        find_sm
+        refine_sm
         """     
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
@@ -2389,6 +2407,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Phase image with range [-90, 90] if ``deg==True``, otherwise [-pi/2, pi/2].
+        
+        See Also
+        --------
+        gabor_angle
         """        
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
         arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
@@ -2428,6 +2450,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Phase image with range [-90, 90) if deg==True, otherwise [-pi/2, pi/2).
+        
+        See Also
+        --------
+        hessian_angle
         """        
         thetas = np.linspace(0, np.pi, n_sample, False)
         max_ = np.empty(self.shape, dtype=np.float32)
@@ -2531,6 +2557,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             FFT image.
+        
+        See Also
+        --------
+        local_dft
         """
         axes = [self.axisof(a) for a in dims]
         if shape == "square":
@@ -2578,6 +2608,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             DFT output.
+        
+        See Also
+        --------
+        fft
         """
         ndim = len(dims)
         upsample_factor = check_nd(upsample_factor, ndim)
@@ -2639,6 +2673,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Power spectra
+        
+        See Also
+        --------
+        power_spectra
         """        
         freq = self.local_dft(key, upsample_factor=upsample_factor, dims=dims)
         pw = freq.real**2 + freq.imag**2
@@ -2703,6 +2741,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Power spectra
+        
+        See Also
+        --------
+        local_power_spectra
         """        
         freq = self.fft(dims=dims, shape=shape)
         pw = freq.real**2 + freq.imag**2
@@ -2949,6 +2991,11 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Image with large objects removed.
+        
+        
+        See Also
+        --------
+        remove_fine_objects
         """        
         out = self.copy()
         large_obj = self.opening(radius, dims=dims)
@@ -2974,6 +3021,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Image with large objects removed.
+        
+        See Also
+        --------
+        remove_large_objects
         """        
         out = self.copy()
         fine_obj = self.diameter_opening(length, connectivity=len(dims))
@@ -3219,8 +3270,10 @@ class ImgArray(LabeledArray):
         {connectivity}
         input_ : str, optional
             What image will be the input of watershed algorithm.            
+            
             - "self" ... self is used.
             - "distance" ... distance map of self.labels is used.
+            
         {dims}
             
         Returns
@@ -3338,6 +3391,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Same array but labels are updated.
+        
         """        
         labels = self.threshold(thr=thr, **kwargs)
         return self.label(labels, dims=dims)
@@ -3969,6 +4023,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Deconvolved image.
         
+        
+        See Also
+        --------
+        lucy
+        lucy_tv
         """        
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
@@ -4007,6 +4066,11 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Deconvolved image.
+        
+        See Also
+        --------
+        lucy_tv
+        wiener
         """
         
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
@@ -4065,11 +4129,16 @@ class ImgArray(LabeledArray):
         ImgArray
             Deconvolved image.
         
-        Reference
-        ---------
+        References
+        ----------
         - Dey, N., Blanc-Féraud, L., Zimmer, C., Roux, P., Kam, Z., Olivo-Marin, J. C., 
           & Zerubia, J. (2004). 3D microscopy deconvolution using Richardson-Lucy algorithm 
           with total variation regularization (Doctoral dissertation, INRIA).
+        
+        See Also
+        --------
+        lucy
+        wiener
         """
         if lmd <= 0:
             raise ValueError("In Richadson-Lucy with total-variance-regularization, parameter `lmd` "

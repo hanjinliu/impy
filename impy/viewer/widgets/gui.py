@@ -102,6 +102,7 @@ class FunctionCaller(FunctionGui):
     
         
 class ThresholdAndLabel(FunctionGui):
+    cache = dict()
     def __init__(self, viewer:"napari.viewer.Viewer"):
         self.viewer = viewer
         opt = dict(percentile={"widget_type": "FloatSlider", 
@@ -120,7 +121,7 @@ class ThresholdAndLabel(FunctionGui):
                 
             if layer is not None:
                 with SetConst("SHOW_PROGRESS", False):
-                    thr = np.percentile(layer.data, percentile)
+                    thr = np.percentile(layer.data, percentile) # TODO: this is slow.
                     if label:
                         out = layer.data.label_threshold(thr)
                         props_to_inherit = ["opacity", "blending", "translate", "scale"]

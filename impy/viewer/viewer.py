@@ -89,14 +89,16 @@ class napariViewers:
         """
         Return all the images as a list.
         """        
-        return list(a.data for a in iter_layer(self.viewer, "Image"))
+        return list(layer_to_impy_object(self.viewer, a) 
+                    for a in iter_layer(self.viewer, "Image"))
     
     @property
     def points(self):
         """
         Return all the images as a list.
         """        
-        return list(a.data for a in iter_layer(self.viewer, "Points"))
+        return list(layer_to_impy_object(self.viewer, a) 
+                    for a in iter_layer(self.viewer, "Points"))
     
     @property
     def results(self):
