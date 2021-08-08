@@ -24,7 +24,7 @@ FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filte
            "erosion", "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
            "tophat", "rolling_ball"]
 
-def add_imread_menu(viewer):
+def add_imread_menu(viewer:"napari.viewer.Viewer"):
     from ..core import imread
     def open_img():
         dlg = QFileDialog()
@@ -47,7 +47,7 @@ def add_imread_menu(viewer):
     return None
 
 
-def add_imsave_menu(viewer):
+def add_imsave_menu(viewer:"napari.viewer.Viewer"):
     def save_img():
         dlg = QFileDialog()
         layers = list(viewer.layers.selection)
@@ -82,7 +82,7 @@ def add_imsave_menu(viewer):
     return None
 
 
-def edit_properties(viewer):
+def edit_properties(viewer:"napari.viewer.Viewer"):
     """
     Edit properties of selected shapes or points.
     """    
@@ -110,18 +110,18 @@ def edit_properties(viewer):
     viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
-def add_controller_widget(viewer):
+def add_controller_widget(viewer:"napari.viewer.Viewer"):
     controller_widget = Controller(viewer)
     viewer.window.add_dock_widget(controller_widget, area="left", name="impy controller")
     return None
     
-def add_note_widget(viewer):
+def add_note_widget(viewer:"napari.viewer.Viewer"):
     text = magicgui.widgets.TextEdit(tooltip="Note")
     text = viewer.window.add_dock_widget(text, area="right", name="Note")
     text.setVisible(False)
     return None
 
-def add_gui_to_function_menu(viewer, gui, name):
+def add_gui_to_function_menu(viewer:"napari.viewer.Viewer", gui:type, name:str):
     action = QAction(name, viewer.window._qt_window)
     @action.triggered.connect
     def _():
@@ -134,16 +134,16 @@ def add_gui_to_function_menu(viewer, gui, name):
     viewer.window.function_menu.addAction(action)
     return None
 
-def add_filter(viewer):
+def add_filter(viewer:"napari.viewer.Viewer"):
     return add_gui_to_function_menu(viewer, FunctionCaller, "Filters")
 
-def add_threshold(viewer):
+def add_threshold(viewer:"napari.viewer.Viewer"):
     return add_gui_to_function_menu(viewer, ThresholdAndLabel, "Threshold/Label")
 
-def add_rectangle_editor(viewer):
+def add_rectangle_editor(viewer:"napari.viewer.Viewer"):
     return add_gui_to_function_menu(viewer, RectangleEditor, "Rectangle Editor")
 
-def add_regionprops(viewer):
+def add_regionprops(viewer:"napari.viewer.Viewer"):
     
     action = QAction("Measure Region Properties", viewer.window._qt_window)
     @action.triggered.connect
@@ -156,7 +156,7 @@ def add_regionprops(viewer):
     return None
 
 
-def layer_template_matcher(viewer):
+def layer_template_matcher(viewer:"napari.viewer.Viewer"):
     action = QAction("Template Matcher", viewer.window._qt_window)
     @action.triggered.connect
     def _():
@@ -182,7 +182,7 @@ def layer_template_matcher(viewer):
     viewer.window.function_menu.addAction(action)
     return None        
 
-def function_handler(viewer):
+def function_handler(viewer:"napari.viewer.Viewer"):
     action = QAction("Function Handler", viewer.window._qt_window)
     @action.triggered.connect
     def _():

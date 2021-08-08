@@ -14,7 +14,7 @@ def copy_layer(layer):
     copy = layer.__class__(args, **kwargs)
     return copy
 
-def iter_layer(viewer, layer_type:str):
+def iter_layer(viewer:"napari.viewer.Viewer", layer_type:str):
     """
     Iterate over layers and yield only certain type of layers.
 
@@ -36,7 +36,7 @@ def iter_layer(viewer, layer_type:str):
         if isinstance(layer, layer_type):
             yield layer
 
-def iter_selected_layer(viewer, layer_type:str|list[str]):
+def iter_selected_layer(viewer:"napari.viewer.Viewer", layer_type:str|list[str]):
     if isinstance(layer_type, str):
         layer_type = [layer_type]
     layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
@@ -45,7 +45,7 @@ def iter_selected_layer(viewer, layer_type:str|list[str]):
         if isinstance(layer, layer_type):
             yield layer
 
-def front_image(viewer):
+def front_image(viewer:"napari.viewer.Viewer"):
     """
     From list of image layers return the most front visible image.
     """        
@@ -57,7 +57,7 @@ def front_image(viewer):
         raise ValueError("There is no visible image layer.")
     return front
 
-def to_labels(layer, labels_shape, zoom_factor=1):
+def to_labels(layer:napari.layers.Shapes, labels_shape, zoom_factor=1):
     return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
 
 def make_world_scale(obj):
@@ -114,7 +114,7 @@ def upon_add_layer(event):
     return None
 
 
-def image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **kwargs):
+def image_tuple(input:"napari.layers.Image", out:ImgArray, translate="inherit", **kwargs):
     data = input.data
     scale = make_world_scale(data)
     if out.dtype.kind == "c":
@@ -137,7 +137,7 @@ def image_tuple(input:napari.layers.Image, out:ImgArray, translate="inherit", **
     return (out, kw, "image")
 
 
-def label_tuple(input:napari.layers.Labels, out, translate="inherit", **kwargs):
+def label_tuple(input:"napari.layers.Labels", out:Label, translate="inherit", **kwargs):
     data = input.data
     scale = make_world_scale(data)
     if isinstance(translate, str) and translate == "inherit":
@@ -189,7 +189,7 @@ def _text_bound_init(new_layer):
         pass
     
 
-def add_labeledarray(viewer, img:LabeledArray, **kwargs):
+def add_labeledarray(viewer:"napari.viewer.Viewer", img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
         
     if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
@@ -222,10 +222,10 @@ def add_labeledarray(viewer, img:LabeledArray, **kwargs):
         viewer.dims.axis_labels = new_axes
     return layer
 
-def get_viewer_scale(viewer):
+def get_viewer_scale(viewer:"napari.viewer.Viewer"):
     return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
 
-def layer_to_impy_object(viewer, layer):
+def layer_to_impy_object(viewer:"napari.viewer.Viewer", layer):
     """
     Convert layer to real data.
 

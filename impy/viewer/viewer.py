@@ -25,7 +25,15 @@ from .._const import Const
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
 # - Embed plot: https://github.com/napari/napari/blob/master/examples/mpl_plot.py
-        
+
+def change_theme(viewer):
+    from napari.utils.theme import get_theme, register_theme
+    theme = get_theme("dark")
+    theme.update(console="rgb(20, 21, 22)",
+                canvas="#090909")
+    register_theme("night", theme)
+    viewer.theme = "night"
+
 class napariViewers:
     
     def __init__(self):
@@ -131,6 +139,7 @@ class napariViewers:
             from . import keybinds
         
         viewer = napari.Viewer(title=key)
+        change_theme(viewer)
         
         viewer.window.file_menu.addSeparator()
         default_viewer_settings(viewer)

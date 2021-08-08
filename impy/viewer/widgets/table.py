@@ -1,5 +1,6 @@
 from qtpy.QtWidgets import QPushButton, QGridLayout, QHBoxLayout, QWidget
 import magicgui
+import napari
 import pandas as pd
 
 class TableWidget(QWidget):
@@ -12,7 +13,7 @@ class TableWidget(QWidget):
     |[Copy][Store]| <- button widget = copy button + store button
     ---------------
     """        
-    def __init__(self, viewer, df, columns=None, name=None):
+    def __init__(self, viewer:"napari.viewer.Viewer", df, columns=None, name=None):
         self.viewer = viewer
         super().__init__(viewer.window._qt_window)
         self.setLayout(QGridLayout())
