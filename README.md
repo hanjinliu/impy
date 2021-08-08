@@ -1,7 +1,5 @@
 # impy
 
-![](Figs/Img.png)
-
 Image analysis programatically is sometimes troublesome like ...
 
 1. for multi-dimensional images, you need to check which is time-axis and which is channel axis and so on.
@@ -38,7 +36,7 @@ git clone https://github.com/hanjinliu/impy
 - `tifffile`>=2021.6.14
 - `napari`>=0.4.9
   
-`impy` is partly dependent on `numba`, `cupy`, `trackpy`, `mrcfile` and `dask-image`. Please install these packages if needed.
+`impy` is partly dependent on `numba`, `cupy`, `trackpy` and `dask-image`. Please install these packages if needed. 
 
 ## Highlights
 
@@ -55,7 +53,7 @@ Accordingly, broadcasting is more flexible. ([xarray](https://github.com/pydata/
 
 #### 2. Automatic Batch Processing
 
-Almost all the image processing functions can **automatically iterate** along all the axes needed. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Prallel image processing is optimized for many function by temporarily converting into `dask` array. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
+Almost all the image processing functions can **automatically iterate along all the axes needed**. If you want to run batch Gaussian filter on a image hyperstack, just call `img.gaussian_filter()`, and the filtering function considers zyx-axes as a spatially connected dimensions and is repeated for every rest of axis like t, c. Prallel image processing is optimized for many function by temporarily converting into `dask` array. Check [Image Analysis Tools](#image-analysis-tools) for available functions.
 
 You can even run batch processing **with your own functions** by decorating them with `@ip.bind`. See [Integrating Your Own Functions](#integrating-your-own-functions) part.
 
@@ -92,9 +90,7 @@ Therefore, results can always be saved in the same directory, without copy-and-p
 
 #### 4. Image Viewer
 
-`impy` provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called.
-
-You can also **manually crop or label** `ImgArray` with `napari`'s `Shapes` objects, or **run impy functions inside the viewer**. I also implemented useful custom keybindings and widgets. See [Napari Interface](#napari-interface) for details.
+`impy` provides seamless interface between [napari](https://github.com/napari/napari), a great image visualization tool. Image axes and other information are utilized before sending to `napari.Viewer`, so that you don't need to care about keyword arguments and what function should be called. See [Napari Interface](#napari-interface) for more details.
 
 #### 5. Extended Numpy Functions
 
@@ -120,9 +116,13 @@ When you deal with large images, you may want to read just part of them to avoid
 
 In `impy`, there are several ways to efficiently deal with large datasets. See [Image I/O](#image-io) for details.
 
-#### 7. GPU support
+#### 7. GPU Support
 
 Affine transformation, deconvolution and many filter functions are automatically conducted with GPU if accessible. On importing `impy`, it checks if `cupy` and GPU are correctly installed, so that you don't have to change your code. See [Image Analysis Tools](#image-analysis-tools) for details.
+
+#### 8. Fit Your Function into GUI
+
+In image analysis, you usually want to set parameters using manually drawn shapes or points. You don't have to do that by getting properties of the viewer for every function call. Just decorate your function with `@ip.gui.bind` and call function with keybind "F1". You can also plot on the figure canvas inside `napari`. See [Bind Your Function to Napari](#bind-your-function-to-napari) for an example.
 
 ## Contents
 
@@ -175,7 +175,7 @@ Affine transformation, deconvolution and many filter functions are automatically
   - `centroid_sm`, `gauss_sm`, `refine_sm` &rarr; Return coordinates in subpixel precision.
 
 - **Background/Intensity Correction**
-  - `rolling_ball`, `tophat`:zap: &rarr; Background subtraction.
+  - `rolling_ball`, `tophat`:zap::maple_leaf: &rarr; Background subtraction.
   - `gaussfit`, `gauss_correction` &rarr; Use Gaussian for image correction.
   - `unmix` &rarr; Unmixing of leakage between channels.
   
@@ -186,14 +186,14 @@ Affine transformation, deconvolution and many filter functions are automatically
   - `expand_labels`, `watershed`, `random_walker` &rarr; Adjuct or segment labels.
 
 - **Feature Detection**
-  - `hessian_eigval`:zap:, `hessian_eig`:zap: &rarr; Hessian.
-  - `structure_tensor_eigval`:zap:, `structure_tensor_eig`:zap: &rarr; Structure tensor.
+  - `hessian_eigval`:zap::maple_leaf:, `hessian_eig`:zap::maple_leaf: &rarr; Hessian.
+  - `structure_tensor_eigval`:zap::maple_leaf:, `structure_tensor_eig`:zap::maple_leaf: &rarr; Structure tensor.
 
 - **Gradient Orientation Estimation**
   - `edge_grad`
 
 - **Filament Orientation Estimation**
-  - `hessian_angle`:zap: &rarr; Using Hessian eigenvector's orientations.
+  - `hessian_angle`:zap::maple_leaf: &rarr; Using Hessian eigenvector's orientations.
   - `gabor_angle`:zap: &rarr; Using Gabor filter's responses.
 
 - **Property Measurement**
@@ -266,16 +266,9 @@ Affine transformation, deconvolution and many filter functions are automatically
   ```python
   ip.gui.add(limg) # preview LazyImgArray
   ### In the napari window, add a shape layer, draw a rectangle and Ctrl+Shift+X to crop it###
-  img = ip.gui.selection[0] # get the selected image layer as ImgArray
+  img = ip.gui.selection[0].data # get the selected image layer as ImgArray
   ```
 
-## Napari Interface
-
-`impy.gui` has methods for better interface between images and `napari`. Add any objects (images, labels, points, ...) to the viewer by `ip.gui.add(...)`. You can find useful keybindings in the [documentation](https://hanjinliu.github.io/impy/)
-
-![](Figs/FFT.gif)
-
-`napari` is now under development itself so I'll add more and more functions (I'm especially looking forward to layer group and text layer).
 
 ## Integrating Your Own Functions
 
@@ -316,3 +309,48 @@ img.imfilter(param=3)
 ```
 
 This function is also accessible inside `napari` viewers.
+
+## Napari Interface
+
+`impy.gui` has methods for better interface between images and `napari`. Add any objects (images, labels, points, ...) to the viewer by `ip.gui.add(...)`. 
+
+There are many useful functions implemented by default, such as:
+
+- In the "Functions" menu, you can call functions (filters, threshold, regionprops, etc.) easily. 
+- Excel-like table widget enables you to copy or plot inside `napari`. 
+- Custom text layer and property editor make it easier to annotate layers.
+- Move layers with `Alt` key and mouse drag.
+
+![](Figs/filter.gif)
+
+See [documentation](https://hanjinliu.github.io/impy/) for details. `napari` is now under development itself so I'll add more and more functions.
+
+## Bind Your Function to Napari
+
+The bottleneck of GUI is that it is difficult to make smooth interaction between the GUI and the scripts. What we want to do is, whenever we come up with any ideas, try it right away on GUI, without spending too much time on debugging GUI implementation.
+
+Using `@ip.gui.bind` decorator, you can use your function as is to make your custom widget in `napari`. Here's an example of calculating the centroid of single molecule puncta around the cursor position.
+
+```python
+from skimage.measure import moments
+@ip.gui.bind
+def func(gui, ax):
+    img = gui.images[0] # get the first image
+    y, x = gui.viewer.cursor.position # get cursor position
+    img0 = img[int(y-5):int(y+6), int(x-5):int(x+6)] # image region around cursor
+    
+    # calculate centroid
+    M = moments(img0.value)
+    cy, cx = M[1, 0]/M[0, 0], M[0, 1]/M[0, 0]
+    
+    # plot
+    ax.imshow(img0, cmap="gray")
+    ax.scatter([cx], [cy], s=300, color="crimson", marker="+")
+    ax.text(cx, cy, f"({cx:.1f}, {cy:.1f})", size="x-large", color="crimson")
+    ax.set_title("Centroid")
+    return (cy, cx)
+```
+
+![](Figs/bind.gif)
+
+All the properties in `ip.gui` are accessible from the first argument `gui`, and you can plot on the figure widget in `napari` via the second argument `ax`. All the results are appended in `ip.gui.results` so that you can analyze them afterward.
