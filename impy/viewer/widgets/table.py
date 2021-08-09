@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 from pandas.core.algorithms import isin
 from qtpy.QtWidgets import QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox
 
@@ -88,20 +89,28 @@ class TableWidget(QWidget):
                                                                     allowed_areas=["right"])
             self.ax = self.fig.add_subplot(111)
         else:
-            self.ax.cla()
+            self.fig.clf()
+            self.ax = self.fig.add_subplot(111)
             
         sl = self._get_selected()
-        df:pd.DataFrame = self.table.to_dataframe().iloc[sl]
+        try:
+            df:pd.DataFrame = self.table.to_dataframe().iloc[sl]
+        except TypeError:
+            raise ValueError("Table range is not correctly selected")
         
-        with plt.style.context("dark_background"):
+        with plt.style.context("dark_background"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
             if df.shape[1] == 1 and self.plot_settings["x"] == 0:
                 self.plot_settings["x"] = None
-                df.plot(ax=self.ax, grid=True, legend=False, **self.plot_settings)
+                df.plot(ax=self.ax, grid=True, legend=self.plot_settings["subplots"],
+                        **self.plot_settings)
                 self.plot_settings["x"] = 0
             else:
-                df.plot(ax=self.ax, grid=True, legend=False, **self.plot_settings)
+                df.plot(ax=self.ax, grid=True, legend=self.plot_settings["subplots"],
+                        **self.plot_settings)
             
-            self.ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+            if not self.plot_settings["subplots"]:
+                self.ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
             self.fig.canvas.draw()
             self.fig.tight_layout()
             

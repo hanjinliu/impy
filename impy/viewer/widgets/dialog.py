@@ -36,7 +36,7 @@ class RegionPropsDialog(QDialog):
             
                 out["label"] = out["label"].astype(lbl.dtype)
                 order = np.argsort(out["label"].value)
-                prop = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}
+                prop = {k: np.concatenate([[np.nan], out[k].value[order]]) for k in properties}
                 # find Labels layer
                 for l in self.viewer.layers:
                     if l.metadata.get("destination_image", None) is layer.data:
