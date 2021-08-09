@@ -94,7 +94,7 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
     - ``ip.gui.points`` returns a list of points in the layer list as ``MarkerFrame``.
 
 
-*Example* Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.
+*Example:* Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.
 
 .. code-block:: python
 
@@ -105,7 +105,7 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
 instead of some long scripts like ``ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]``. Property ``ip.gui.selection`` 
 returns list of selected ``impy`` objects as a list.
 
-*Example* Make an image Z-stack from all the selected images in the viewer.
+*Example:* Make an image Z-stack from all the selected images in the viewer.
 
 .. code-block:: python
 

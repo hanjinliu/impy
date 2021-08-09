@@ -41,8 +41,6 @@ Contents
 .. blockdiag::
 
    blockdiag {
-      default_fontsize = 24;
-
       numpy.ndarray -> MetaArray -> HistoryArray -> LabeledArray -> ImgArray;
       AxesMixin -> MetaArray;
       MetaArray -> PropArray;
