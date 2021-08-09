@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Viewer Tutorial &mdash; impy 1.19.7 documentation</title>
+  <title>Viewer Tutorial &mdash; impy 1.20.0 documentation</title>
   
 
   
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                1.19.7
+                1.20.0
               </div>
             
           
@@ -242,22 +242,32 @@ which is able to copy data, store data or plot the selected table contents like 
 <p>The <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code> object is accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer</span></code>, so that basically you can call any method from it.
 However, methods that are frequently used are again defined in <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>, in a simpler form.</p>
 <ul class="simple">
-<li><p>When you want to get <cite>i</cite>-th layer, you can use <code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i]</span></code> instead of <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers[i]</span></code>. Because</p></li>
+<li><p>When you want to get <cite>i</cite>-th layer, you can use <code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i]</span></code> instead of <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers[i]</span></code>. Because
+<code class="docutils literal notranslate"><span class="pre">impy</span></code> objects such as <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> are directly passed to layer objects, you can recover <code class="docutils literal notranslate"><span class="pre">impy</span></code> object by
+<code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i].data</span></code>.</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> objects such as <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> are directly passed to layer objects, you can recover <code class="docutils literal notranslate"><span class="pre">impy</span></code> object by
-<code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i].data</span></code>.</p>
 <p><em>Example:</em> Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img_filt</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">()</span>
 <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img_filt</span><span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>When you want to get the <cite>i</cite>-th selected layers’ <code class="docutils literal notranslate"><span class="pre">impy</span></code> objects, you only have to call <code class="docutils literal notranslate"><span class="pre">ip.gui.selection[i]</span></code></p></li>
+<li><p>When you want to get the <cite>i</cite>-th selected layers’ <code class="docutils literal notranslate"><span class="pre">impy</span></code> objects, you only have to call <code class="docutils literal notranslate"><span class="pre">ip.gui.selection[i]</span></code>
+instead of some long scripts like <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]</span></code>. Property <code class="docutils literal notranslate"><span class="pre">ip.gui.selection</span></code>
+returns list of selected <code class="docutils literal notranslate"><span class="pre">impy</span></code> objects as a list.</p></li>
 </ul>
-<p>instead of some long scripts like <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]</span></code>. Property <code class="docutils literal notranslate"><span class="pre">ip.gui.selection</span></code>
-returns list of selected <code class="docutils literal notranslate"><span class="pre">impy</span></code> objects as a list.</p>
 <p><em>Example:</em> Make an image Z-stack from all the selected images in the viewer.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img_stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">selection</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The easiest way to get certain type of layer’s data is to use <code class="docutils literal notranslate"><span class="pre">ip.gui.get</span></code> method. You can choose layer types such as
+“image”, “points” etc., or shapes layer’s type such as “rectangle”, “line” etc.</p></li>
+</ul>
+<p><em>Examples</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span> <span class="c1"># get the front image</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="n">layer_state</span><span class="o">=</span><span class="s2">&quot;selected&quot;</span><span class="p">,</span> <span class="n">returns</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">)</span> <span class="c1"># get all the selected images as a list</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="n">layer_state</span><span class="o">=</span><span class="s2">&quot;visible&quot;</span><span class="p">)</span> <span class="c1"># get all the lines from the front visible shapes layer.</span>
 </pre></div>
 </div>
 </div>
@@ -271,10 +281,8 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 <img alt="_images/shapes_info.gif" src="_images/shapes_info.gif" />
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + mouse drag -&gt; lateral translation</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + mouse drag -&gt; lateral translation restricted in either x- or y-orientation (left button or</p></li>
-</ul>
-<p>right button respectively).</p>
-<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + mouse drag -&gt; lateral translation restricted in either x- or y-orientation (left button or
+right button respectively).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + mouse wheel -&gt; rescaling</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">R</span></code> -&gt; reset original states.</p></li>
 </ul>
@@ -286,14 +294,10 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code> -&gt; Move selected layers to front.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">L</span></code> -&gt; Convert all the shapes in seleted shape-layers into labels of selected image-layers.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">D</span></code> -&gt; Duplicate selected layers.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">X</span></code> -&gt; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated</p></li>
-</ul>
-<p>cropping is also supported!</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> -&gt; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in</p></li>
-</ul>
-<p><code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code> for now.</p>
-<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">X</span></code> -&gt; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated
+cropping is also supported!</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> -&gt; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in
+<code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code> for now.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Projection of shape-layers or point-layers to 2D layers.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> / <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> -&gt; Link/Unlink layers. Like “grouping” in PowerPoint.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">S</span></code> -&gt; Add <cite>n</cite>-D shape-layer.</p></li>
@@ -304,10 +308,8 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 <h2>Functions Menu<a class="headerlink" href="#functions-menu" title="Permalink to this headline">¶</a></h2>
 <p>There is a custom menu called “Functions” added in the menu bar.</p>
 <ul class="simple">
-<li><p>“Threshold/Label”: Make binary image or label an image with thresholded binary image by sweeping threshold</p></li>
-</ul>
-<p>value.</p>
-<ul class="simple">
+<li><p>“Threshold/Label”: Make binary image or label an image with thresholded binary image by sweeping threshold
+value.</p></li>
 <li><p>“Filters”: Run filter functions by sweeping the first parameter.</p></li>
 <li><p>“Measure Region Properties”: Call <code class="docutils literal notranslate"><span class="pre">regionprops</span></code> and add the result as properties in <code class="docutils literal notranslate"><span class="pre">Label</span></code> layer.</p></li>
 <li><p>“Rectangle Editor”: Edit selected rectangles pixelwise.</p></li>

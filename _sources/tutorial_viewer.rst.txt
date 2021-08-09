@@ -63,11 +63,8 @@ layer and push the "(x,y)" button on the lower-left corner. This widget comes fr
 which is able to copy data, store data or plot the selected table contents like Excel. It has following buttons.
 
 - "Copy": Copy all the contents into clipboard. You can paste it directly as csv style.
-
 - "Store": Store all the contents as ``pandas.DataFrame`` temporary in ``ip.gui.results``.
-
 - "Plot": Plot selected data on the figure canvas inside ``napari``. One table one canvas.
-
 - "Setting...": Settings of plot, which is the options of ``plot`` function of ``pandas.DataFrame``.
 
 5. Add shapes layer as an text layer
@@ -82,8 +79,8 @@ The ``napari.Viewer`` object is accessible via ``ip.gui.viewer``, so that basica
 However, methods that are frequently used are again defined in ``ip.gui``, in a simpler form.
 
 - When you want to get `i`-th layer, you can use ``ip.gui.layers[i]`` instead of ``ip.gui.viewer.layers[i]``. Because 
-``impy`` objects such as ``ImgArray`` are directly passed to layer objects, you can recover ``impy`` object by 
-``ip.gui.layers[i].data``.
+  ``impy`` objects such as ``ImgArray`` are directly passed to layer objects, you can recover ``impy`` object by 
+  ``ip.gui.layers[i].data``.
 
 *Example:* Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.
 
@@ -93,14 +90,25 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
     ip.gui.add(img_filt)
 
 - When you want to get the `i`-th selected layers' ``impy`` objects, you only have to call ``ip.gui.selection[i]`` 
-instead of some long scripts like ``ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]``. Property ``ip.gui.selection`` 
-returns list of selected ``impy`` objects as a list.
+  instead of some long scripts like ``ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]``. Property ``ip.gui.selection`` 
+  returns list of selected ``impy`` objects as a list.
 
 *Example:* Make an image Z-stack from all the selected images in the viewer.
 
 .. code-block:: python
 
     img_stack = np.stack(ip.gui.selection, axis="z")
+
+- The easiest way to get certain type of layer's data is to use ``ip.gui.get`` method. You can choose layer types such as
+  "image", "points" etc., or shapes layer's type such as "rectangle", "line" etc.
+
+*Examples*
+
+.. code-block:: python
+
+    ip.gui.get("image") # get the front image
+    ip.gui.get("image", layer_state="selected", returns="all") # get all the selected images as a list
+    ip.gui.get("line", layer_state="visible") # get all the lines from the front visible shapes layer.
 
 
 Mouse Callbacks
@@ -109,43 +117,30 @@ Mouse Callbacks
 There are several custom mouse callbacks in addition to the basic ones in ``napari``.
 
 - When you're drawing shapes, you'll find shape information as a text overlay in the upper left corner.
-
 - You can drag shapes with right click.
 
 .. image:: images/shapes_info.gif
 
 - ``Alt`` + mouse drag -> lateral translation
-
 - ``Alt`` + ``Shift`` + mouse drag -> lateral translation restricted in either x- or y-orientation (left button or
-right button respectively).
-
+  right button respectively).
 - ``Alt`` + mouse wheel -> rescaling
-
 - ``Ctrl`` + ``Shift`` + ``R`` -> reset original states.
 
 Keyboard Shortcuts
 ------------------
 
 - ``Ctrl`` + ``Shift`` + ``A`` -> Hide non-selected layers. Display all the layers by push again.
-
 - ``Ctrl`` + ``Shift`` + ``F`` -> Move selected layers to front.
-
 - ``Alt`` + ``L`` -> Convert all the shapes in seleted shape-layers into labels of selected image-layers.
-
 - ``Ctrl`` + ``Shift`` + ``D`` -> Duplicate selected layers.
-
 - ``Ctrl`` + ``Shift`` + ``X`` -> Crop selected image-layers with all the rectangles in selected shape-layers. Rotated 
-cropping is also supported!
-
+  cropping is also supported!
 - ``/`` -> Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in 
-``ip.gui.results`` for now.
-
+  ``ip.gui.results`` for now.
 - ``Ctrl`` + ``P`` -> Projection of shape-layers or point-layers to 2D layers.
-
 - ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` -> Link/Unlink layers. Like "grouping" in PowerPoint.
-
 - ``S`` -> Add `n`-D shape-layer.
-
 - ``P`` -> Add `n`-D point-layer.
 
 Functions Menu
@@ -154,23 +149,17 @@ Functions Menu
 There is a custom menu called "Functions" added in the menu bar.
 
 - "Threshold/Label": Make binary image or label an image with thresholded binary image by sweeping threshold
-value.
-
+  value.
 - "Filters": Run filter functions by sweeping the first parameter.
-
 - "Measure Region Properties": Call ``regionprops`` and add the result as properties in ``Label`` layer.
-
 - "Rectangle Editor": Edit selected rectangles pixelwise.
-
 - "Template Matcher": Match a template layer to a reference layer.
-
 - "Function Handler": Call ``impy`` functions inside the viewer.
 
 Others
 ------
 
 - Note pad in ``Window > Note``.
-
 - Call ``impy.imread`` in "File > imread ...". Call ``impy.imsave`` in "File > imsave ...".
 
 
