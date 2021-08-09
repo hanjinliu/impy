@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Welcome to impy’s documentation! &mdash; impy 1.19.5 documentation</title>
+  <title>Welcome to impy’s documentation! &mdash; impy 1.19.7 documentation</title>
   
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                1.19.5
+                1.19.7
               </div>
             
           
@@ -185,9 +185,37 @@
 </pre></div>
 </div>
 </div>
+<div class="section" id="major-classes">
+<h2>Major Classes<a class="headerlink" href="#major-classes" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="array">
+<h3>Array<a class="headerlink" href="#array" title="Permalink to this headline">¶</a></h3>
+<div><img height="280" src="_images/blockdiag-124ade8c6d9c3441de8f3e6900d8a4df4915799b.png" width="1024" /></div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AxesMixin</span></code>: An abstract class that axes, scale and shape are defined.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PropArray</span></code>: Array object with properties stored in it. Always made from an <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Label</span></code>: Array object of image labels that is attached to <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>: Array object with many image processing functions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PhaseArray</span></code>: Array object with periodic values and specific processing functions.</p></li>
+</ul>
+</div>
+<div class="section" id="array-like">
+<h3>Array-like<a class="headerlink" href="#array-like" title="Permalink to this headline">¶</a></h3>
+<div><img height="120" src="_images/blockdiag-ab3c6769c2c9cd72245724b7f6dfb25a25d19656.png" width="448" /></div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>: Array-like object with image processing functions like <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, but evaluated lazily.</p></li>
+</ul>
+</div>
+<div class="section" id="data-frame">
+<h3>Data Frame<a class="headerlink" href="#data-frame" title="Permalink to this headline">¶</a></h3>
+<div><img height="280" src="_images/blockdiag-4452c5675ebb7cce7d2284ccd8720c08e8188758.png" width="640" /></div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code>: DataFrame with similar properties as <code class="docutils literal notranslate"><span class="pre">AxesMixin</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MarkerFrame</span></code>: <code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code> for markers, such as coordinates.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TrackFrame</span></code>: <code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code> for tracks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PathFrame</span></code>: <code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code> for paths.</p></li>
+</ul>
+</div>
+</div>
 <div class="section" id="contents">
 <h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
-<div><img height="280" src="_images/blockdiag-f5eb2db696cf00f06771139ded1dccae73ff16d9.png" width="1024" /></div><div class="toctree-wrapper compound">
+<div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>

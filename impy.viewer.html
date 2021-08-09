@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy.viewer package &mdash; impy 1.19.5 documentation</title>
+  <title>impy.viewer package &mdash; impy 1.19.7 documentation</title>
   
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                1.19.5
+                1.19.7
               </div>
             
           
@@ -385,13 +385,17 @@
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.viewer.viewer.</span></span><span class="sig-name descname"><span class="pre">napariViewers</span></span><a class="reference internal" href="_modules/impy/viewer/viewer.html#napariViewers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The controller of <code class="docutils literal notranslate"><span class="pre">napari.Viewer``s</span> <span class="pre">from</span> <span class="pre">``impy</span></code>. Always access by <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.add">
-<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/viewer.html#napariViewers.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.add" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/viewer.html#napariViewers.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add images, points, labels, tracks etc to viewer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>obj</strong> (<em>Any</em>) – Object to add.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>Any</em>) – Object to add.</p></li>
+<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Title (key) of the viewer to add object(s).</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -415,11 +419,12 @@
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.axes">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">axes</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.axes" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Axes information of current viewer. Defined to make compatible with <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.bind">
-<span class="sig-name descname"><span class="pre">bind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'F1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/viewer.html#napariViewers.bind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.bind" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">bind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'F1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/viewer.html#napariViewers.bind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.bind" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorator that makes it easy to call custom function on the viewer. Every time “F1” is pushed,
 <code class="docutils literal notranslate"><span class="pre">func(self)</span></code> or <cite>func(self, self.ax)</cite> will be called. Returned values will appeded to
 <code class="docutils literal notranslate"><span class="pre">self.results</span></code> if exists.</p>
@@ -439,18 +444,18 @@ be added to the viewer unless <code class="docutils literal notranslate"><span c
 <li><p>Calculate mean intensity of images.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">measure</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">gui</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 </pre></div>
 </div>
 </li>
 <li><p>Plot line scan of 2D image.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">profile</span><span class="p">(</span><span class="n">gui</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">line</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># must be line!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">profile</span><span class="p">(</span><span class="n">gui</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">line</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="k">with</span> <span class="n">ip</span><span class="o">.</span><span class="n">SetConst</span><span class="p">(</span><span class="s2">&quot;SHOW_PROGRESS&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
 <span class="gp">&gt;&gt;&gt; </span>        <span class="n">scan</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">reslice</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">gui</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="kc">None</span>
 </pre></div>
 </div>
@@ -459,27 +464,69 @@ be added to the viewer unless <code class="docutils literal notranslate"><span c
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.image_layers">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">image_layers</span></span><a class="headerlink" href="#impy.viewer.viewer.napariViewers.image_layers" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return all the image layers as a list.</p>
+<dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.current_slice">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">current_slice</span></span><em class="property"><span class="pre">:</span> <span class="pre">tuple[slice</span> <span class="pre">|</span> <span class="pre">int,</span> <span class="pre">...]</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.current_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a tuple of slicer that corresponds to current field of view. For instance,
+when the viewer is displaying yx-plane at t=1, then this property returns
+<code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">slice(None),</span> <span class="pre">slice(None))</span></code>.</p>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.images">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">images</span></span><a class="headerlink" href="#impy.viewer.viewer.napariViewers.images" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return all the images as a list.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'image'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_state</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'last'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span> <span class="p"><span class="pre">|</span></span> <span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/viewer/viewer.html#napariViewers.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple way to get impy object from viewer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kind</strong> (<em>str</em><em>, </em><em>optional</em>) – <p>Kind of layers/shapes to return.</p>
+<blockquote>
+<div><ul>
+<li><p>”image”: Image layer.</p></li>
+<li><p>”labels”: Labels layer</p></li>
+<li><p>”points”: Points layer.</p></li>
+<li><p>”shapes”: Shapes layer.</p></li>
+<li><p>”tracks”: Tracks layer.</p></li>
+<li><p>”line”: Line shapes in Shapes layer.</p></li>
+<li><p>”rectangle”: Rectangle shapes in Shapes layer.</p></li>
+<li><p>”path”: Path shapes in Shapes layer.</p></li>
+<li><p>”polygon”: Polygon shapes in Shapes layer.</p></li>
+<li><p>”ellipse”: Ellipse shapes in Shapes layer.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>layer_state</strong> (<em>{&quot;selected&quot;</em><em>, </em><em>&quot;visible&quot;</em><em>, </em><em>&quot;none&quot;}</em><em>, </em><em>default is &quot;none&quot;</em>) – <p>How to filter layer list.</p>
+<blockquote>
+<div><ul>
+<li><p>”selected”: Only selected layers will be searched.</p></li>
+<li><p>”visible”: Only visible layers will be searched.</p></li>
+<li><p>”none”: All the layers will be searched.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>returns</strong> (<em>{&quot;first&quot;</em><em>, </em><em>&quot;last&quot;</em><em>, </em><em>&quot;all&quot;}</em>) – <p>What will be returned in case that there are multiple layers/shapes.</p>
+<blockquote>
+<div><ul>
+<li><p>”first”: Only the first object will be returned.</p></li>
+<li><p>”last”: Only the last object will be returned.</p></li>
+<li><p>”all”: All the objects will be returned as a list.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>impy object(s) that satisfies the options.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray">ImgArray</a>, <a class="reference internal" href="impy.arrays.html#impy.arrays.label.Label" title="impy.arrays.label.Label">Label</a>, <a class="reference internal" href="impy.frame.html#impy.frame.frames.MarkerFrame" title="impy.frame.frames.MarkerFrame">MarkerFrame</a> or <a class="reference internal" href="impy.frame.html#impy.frame.frames.TrackFrame" title="impy.frame.frames.TrackFrame">TrackFrame</a>, np.ndarray, or list of one of them.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.layers">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">layers</span></span><a class="headerlink" href="#impy.viewer.viewer.napariViewers.layers" title="Permalink to this definition">¶</a></dt>
-<dd><p>Napari layer list.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.points">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">points</span></span><a class="headerlink" href="#impy.viewer.viewer.napariViewers.points" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return all the images as a list.</p>
+<dd><p>Napari layer list. Identical to <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -492,7 +539,7 @@ be added to the viewer unless <code class="docutils literal notranslate"><span c
 <li><p><strong>path</strong> (<em>str</em>) – Path to the image file.</p></li>
 <li><p><strong>downsample_factor</strong> (<em>int</em><em>, </em><em>default is 4</em>) – Image value is sampled every <code class="docutils literal notranslate"><span class="pre">downsample_factor</span></code> pixels.</p></li>
 <li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Axes along which values will be down-sampled.</p></li>
-<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Title of the new viewer.</p></li>
+<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Title (key) of the viewer to add object(s).</p></li>
 </ul>
 </dd>
 </dl>
@@ -507,13 +554,13 @@ be added to the viewer unless <code class="docutils literal notranslate"><span c
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.scale">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">scale</span></span><em class="property"><span class="pre">:</span> <span class="pre">dict[str:float]</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.scale" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dimension scales of the current viewer.</p>
+<dd><p>Scale information of current viewer. Defined to make compatible with <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.selection">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">selection</span></span><em class="property"><span class="pre">:</span> <span class="pre">list</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.selection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return selected layers’ data as impy objects.</p>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">selection</span></span><em class="property"><span class="pre">:</span> <span class="pre">list[Any]</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.selection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return selected layers’ data as a list of impy objects.</p>
 </dd></dl>
 
 <dl class="py method">

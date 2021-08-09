@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Viewer Tutorial &mdash; impy 1.19.5 documentation</title>
+  <title>Viewer Tutorial &mdash; impy 1.19.7 documentation</title>
   
 
   
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                1.19.5
+                1.19.7
               </div>
             
           
@@ -246,19 +246,8 @@ However, methods that are frequently used are again defined in <code class="docu
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code> objects such as <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> are directly passed to layer objects, you can recover <code class="docutils literal notranslate"><span class="pre">impy</span></code> object by
 <code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i].data</span></code>.</p>
-<ul>
-<li><p>Especially,</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.images</span></code> returns a list of images in the layer list as <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.image_layers</span></code> returns a list of images in the layer list as <code class="docutils literal notranslate"><span class="pre">Layers</span></code> objects.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.points</span></code> returns a list of points in the layer list as <code class="docutils literal notranslate"><span class="pre">MarkerFrame</span></code>.</p></li>
-</ul>
-</div></blockquote>
-</li>
-</ul>
 <p><em>Example:</em> Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img_filt</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">()</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img_filt</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">()</span>
 <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img_filt</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -315,12 +304,15 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 <h2>Functions Menu<a class="headerlink" href="#functions-menu" title="Permalink to this headline">¶</a></h2>
 <p>There is a custom menu called “Functions” added in the menu bar.</p>
 <ul class="simple">
-<li><p>“Threshold/Label”</p></li>
-<li><p>“Filters”</p></li>
-<li><p>“Measure Region Properties”</p></li>
-<li><p>“Rectangle Editor”</p></li>
-<li><p>“Template Matcher”</p></li>
-<li><p>“Function Handler”</p></li>
+<li><p>“Threshold/Label”: Make binary image or label an image with thresholded binary image by sweeping threshold</p></li>
+</ul>
+<p>value.</p>
+<ul class="simple">
+<li><p>“Filters”: Run filter functions by sweeping the first parameter.</p></li>
+<li><p>“Measure Region Properties”: Call <code class="docutils literal notranslate"><span class="pre">regionprops</span></code> and add the result as properties in <code class="docutils literal notranslate"><span class="pre">Label</span></code> layer.</p></li>
+<li><p>“Rectangle Editor”: Edit selected rectangles pixelwise.</p></li>
+<li><p>“Template Matcher”: Match a template layer to a reference layer.</p></li>
+<li><p>“Function Handler”: Call <code class="docutils literal notranslate"><span class="pre">impy</span></code> functions inside the viewer.</p></li>
 </ul>
 </div>
 <div class="section" id="others">
@@ -332,10 +324,11 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 </div>
 <div class="section" id="fit-custom-functions-into-gui">
 <h2>Fit Custom Functions into GUI<a class="headerlink" href="#fit-custom-functions-into-gui" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> provides easier way to integrate your function to <code class="docutils literal notranslate"><span class="pre">napari</span></code>.</p>
-<ul class="simple">
-<li><p>Example 1: Fit filament tips to sigmoid function</p></li>
-</ul>
+<p>In image analysis, you usually want to set parameters using manually drawn shapes or points. You don’t have
+to do that by getting properties of the viewer for every function call. <code class="docutils literal notranslate"><span class="pre">impy</span></code> provides easier way to integrate
+your function to <code class="docutils literal notranslate"><span class="pre">napari</span></code>. Just decorate your function with <cite>&#64;ip.gui.bind</cite> and call function with keybind “F1”.
+You can also plot on the figure canvas inside <cite>napari</cite>.</p>
+<p><em>Example</em>: Fit filament tips to sigmoid function</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span>
 <span class="linenos"> 2</span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="linenos"> 3</span>
@@ -346,11 +339,11 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 <span class="linenos"> 8</span>    <span class="k">return</span> <span class="n">a</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">x0</span><span class="p">)</span><span class="o">/</span><span class="n">sg</span><span class="p">))</span> <span class="o">+</span> <span class="n">b</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind</span>
-<span class="linenos">11</span><span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="n">gui</span><span class="p">,</span> <span class="n">ax</span><span class="p">):</span>
+<span class="linenos">11</span><span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
 <span class="linenos">12</span>    <span class="c1"># get line scan from viewer</span>
-<span class="linenos">13</span>    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>            <span class="c1"># get the first image</span>
-<span class="linenos">14</span>    <span class="n">line</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># get the last line in the last shapes layer</span>
-<span class="linenos">15</span>    <span class="n">scan</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">reslice</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>       <span class="c1"># line scan</span>
+<span class="linenos">13</span>    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span>      <span class="c1"># get the first image</span>
+<span class="linenos">14</span>    <span class="n">line</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">)</span>      <span class="c1"># get the last line in the last shapes layer</span>
+<span class="linenos">15</span>    <span class="n">scan</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">reslice</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>    <span class="c1"># line scan</span>
 <span class="linenos">16</span>
 <span class="linenos">17</span>    <span class="c1"># fitting</span>
 <span class="linenos">18</span>    <span class="n">xdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
@@ -358,14 +351,52 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 <span class="linenos">20</span>    <span class="n">params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">)</span>
 <span class="linenos">21</span>
 <span class="linenos">22</span>    <span class="c1"># plot the raw profile and fit</span>
-<span class="linenos">23</span>    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scan</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lime&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-<span class="linenos">24</span>    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">)</span>
-<span class="linenos">25</span>    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">model</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">260</span><span class="p">)</span>
+<span class="linenos">23</span>    <span class="n">gui</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scan</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lime&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="linenos">24</span>    <span class="n">gui</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">)</span>
+<span class="linenos">25</span>    <span class="n">gui</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">model</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">260</span><span class="p">)</span>
 <span class="linenos">26</span>
 <span class="linenos">27</span>    <span class="k">return</span> <span class="n">params</span>
 </pre></div>
 </div>
 <img alt="_images/line_scan.gif" src="_images/line_scan.gif" />
+<p><em>Example</em>: Marking single molecule movie with centroid-aided auto centering.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">skimage.measure</span> <span class="kn">import</span> <span class="n">moments</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind</span>
+<span class="linenos"> 4</span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
+<span class="linenos"> 5</span>    <span class="c1"># Get cursor position</span>
+<span class="linenos"> 6</span>    <span class="c1"># Because we want to mark in 2D, we have to split (x,y) from others.</span>
+<span class="linenos"> 7</span>    <span class="o">*</span><span class="n">multi</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">position</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span>    <span class="c1"># Get 2D image by slicing with &quot;gui.current_slice&quot;</span>
+<span class="linenos">10</span>    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)[</span><span class="n">gui</span><span class="o">.</span><span class="n">current_slice</span><span class="p">]</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>    <span class="c1"># um -&gt; pixel</span>
+<span class="linenos">13</span>    <span class="n">y</span> <span class="o">/=</span> <span class="n">gui</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>
+<span class="linenos">14</span>    <span class="n">x</span> <span class="o">/=</span> <span class="n">gui</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span>    <span class="n">y0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span>
+<span class="linenos">17</span>    <span class="n">x0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span>
+<span class="linenos">18</span>    <span class="n">img0</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">y0</span><span class="p">:</span><span class="n">y0</span><span class="o">+</span><span class="mi">9</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span><span class="n">x0</span><span class="o">+</span><span class="mi">9</span><span class="p">]</span> <span class="c1"># image region around cursor</span>
+<span class="linenos">19</span>    <span class="n">img0</span> <span class="o">=</span> <span class="n">img0</span> <span class="o">-</span> <span class="n">img0</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>        <span class="c1"># normalize</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span>    <span class="c1"># calculate centroid</span>
+<span class="linenos">22</span>    <span class="n">M</span> <span class="o">=</span> <span class="n">moments</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="linenos">23</span>    <span class="n">cy</span><span class="p">,</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">y0</span><span class="p">,</span> <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x0</span>
+<span class="linenos">24</span>
+<span class="linenos">25</span>    <span class="k">if</span> <span class="s2">&quot;Auto center&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+<span class="linenos">26</span>        <span class="c1"># Create Points layer if not exists</span>
+<span class="linenos">27</span>        <span class="n">gui</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">add_points</span><span class="p">(</span><span class="n">ndim</span><span class="o">=</span><span class="n">gui</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Auto center&quot;</span><span class="p">,</span>
+<span class="linenos">28</span>                            <span class="n">scale</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+<span class="linenos">29</span>
+<span class="linenos">30</span>    <span class="n">point</span> <span class="o">=</span> <span class="n">multi</span> <span class="o">+</span> <span class="p">[</span><span class="n">cy</span><span class="p">,</span> <span class="n">cx</span><span class="p">]</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span>    <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="s2">&quot;Auto center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+<span class="linenos">33</span>
+<span class="linenos">34</span>    <span class="k">return</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<img alt="_images/auto_center.gif" src="_images/auto_center.gif" />
 </div>
 </div>
 

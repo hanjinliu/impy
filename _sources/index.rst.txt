@@ -34,20 +34,74 @@ or
 
    git clone https://github.com/hanjinliu/impy
 
+Major Classes
+-------------
 
-Contents
---------
+Array
+^^^^^
 
 .. blockdiag::
-
+   
    blockdiag {
       numpy.ndarray -> MetaArray -> HistoryArray -> LabeledArray -> ImgArray;
       AxesMixin -> MetaArray;
       MetaArray -> PropArray;
       HistoryArray -> Label;
       LabeledArray -> PhaseArray;
+      
+      PropArray [color = pink];
+      Label [color = pink];
+      ImgArray [color = pink];
+      PhaseArray [color = pink];
    }
 
+- ``AxesMixin``: An abstract class that axes, scale and shape are defined.
+- ``PropArray``: Array object with properties stored in it. Always made from an ``ImgArray``.
+- ``Label``: Array object of image labels that is attached to ``ImgArray``.
+- ``ImgArray``: Array object with many image processing functions.
+- ``PhaseArray``: Array object with periodic values and specific processing functions.
+
+
+Array-like
+^^^^^^^^^^
+
+.. blockdiag::
+   
+   blockdiag {
+
+      AxesMixin -> LazyImgArray;
+      
+      LazyImgArray [color = pink];
+   }
+
+- ``LazyImgArray``: Array-like object with image processing functions like ``ImgArray``, but evaluated lazily.
+
+
+Data Frame
+^^^^^^^^^^
+
+.. blockdiag::
+   
+   blockdiag {
+
+      pandas.DataFrame -> AxesFrame -> MarkerFrame;
+      AxesFrame -> TrackFrame;
+      AxesFrame -> PathFrame;
+      
+      MarkerFrame [color = pink];
+      TrackFrame [color = pink];
+      PathFrame [color = pink];
+   }
+
+- ``AxesFrame``: DataFrame with similar properties as ``AxesMixin``.
+- ``MarkerFrame``: ``AxesFrame`` for markers, such as coordinates.
+- ``TrackFrame``: ``AxesFrame`` for tracks.
+- ``PathFrame``: ``AxesFrame`` for paths.
+
+
+
+Contents
+--------
 
 .. toctree::
    :maxdepth: 1
