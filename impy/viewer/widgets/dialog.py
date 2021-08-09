@@ -21,7 +21,8 @@ class RegionPropsDialog(QDialog):
     def run(self):
         selected = list(self.viewer.layers.selection)
         if len(selected) < 1:
-            return None
+            self.close()
+            raise ValueError("No layer selected")
         
         properties = ("label",) + tuple(self.line.text().split(","))
         
@@ -33,7 +34,6 @@ class RegionPropsDialog(QDialog):
                 with SetConst("SHOW_PROGRESS", False):
                     out = layer.data.regionprops(properties=properties)
             
-                
                 out["label"] = out["label"].astype(lbl.dtype)
                 order = np.argsort(out["label"].value)
                 prop = {k: np.concatenate([[0], out[k].value[order]]) for k in properties}

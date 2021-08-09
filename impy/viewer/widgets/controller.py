@@ -13,25 +13,44 @@ class Controller(QWidget):
         self.viewer = viewer
         layout = QHBoxLayout()
         self.setLayout(layout)
-        self.add_get_button()
+        self.add_get_coords_button()
+        self.add_get_props_button()
         self.add_text_button()
         self.add_label_button()
     
-    def add_get_button(self):
+    def add_get_coords_button(self):
         button = QPushButton("(x,y)")
         button.setToolTip("Show coordinates in a table")
         @button.clicked.connect
         def _():
-            dfs = list(iter_selected_layer(self.viewer, ["Points", "Tracks"]))
-            if len(dfs) == 0:
-                return
+            layers = list(iter_selected_layer(self.viewer, ["Points", "Tracks"]))
+            if len(layers) == 0:
+                raise ValueError("No Points or Tracks layer selected")
             axes = list(self.viewer.dims.axis_labels)
-            for df in dfs:
-                columns = list(df.metadata.get("axes", axes[-df.data.shape[1]:]))
+            for layer in layers:
+                columns = list(layer.metadata.get("axes", axes[-layer.data.shape[1]:]))
                 
-                widget = TableWidget(self.viewer, df.data, columns=columns, name=df.name)
+                widget = TableWidget(self.viewer, layer.data, columns=columns, name=layer.name)
                 
-                self.viewer.window.add_dock_widget(widget, area="right", name=df.name)
+                self.viewer.window.add_dock_widget(widget, area="right", name=layer.name)
+                
+            return None
+        
+        self.layout().addWidget(button)
+        return None
+    
+    def add_get_props_button(self):
+        button = QPushButton("Props")
+        button.setToolTip("Show properties in a table")
+        @button.clicked.connect
+        def _():
+            layers = list(iter_selected_layer(self.viewer, ["Points", "Tracks", "Shapes", "Labels"]))
+            if len(layers) == 0:
+                raise ValueError("No Points, Tracks or Shapes layer selected")
+            
+            for layer in layers:
+                widget = TableWidget(self.viewer, layer.properties, name=layer.name)
+                self.viewer.window.add_dock_widget(widget, area="right", name=layer.name)
                 
             return None
         
@@ -68,19 +87,19 @@ class Controller(QWidget):
         def _():
             selected = list(self.viewer.layers.selection)
             if len(selected) != 1:
-                return None
+                raise ValueError("No layer selected")
             selected = selected[0]
             if not isinstance(selected, napari.layers.Image):
-                return None
+                raise TypeError("Selected layer is not an image layer")
             img = selected.data
             if hasattr(img, "labels"):
-                self.viewer.status = "Image layer already has labels."
-                return None
+                raise ValueError("Image layer already has labels.")
             with SetConst("SHOW_PROGRESS", False):
                 img.append_label(np.zeros(img.shape, dtype=np.uint8))
                 
-            layer = self.viewer.add_labels(img.labels.value, opacity=0.3, scale=selected.scale, name=f"[L]{img.name}",
-                                    translate=selected.translate)
+            layer = self.viewer.add_labels(img.labels.value, opacity=0.3, scale=selected.scale, 
+                                           name=f"[L]{img.name}", translate=selected.translate,
+                                           metadata={"destination_image": img})
             layer.mode = "paint"
             return None
     

@@ -1,8 +1,10 @@
 from __future__ import annotations
+from pandas.core.algorithms import isin
 from qtpy.QtWidgets import QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox
 
 import magicgui
 import napari
+import numpy as np
 import pandas as pd
 
 class TableWidget(QWidget):
@@ -15,7 +17,7 @@ class TableWidget(QWidget):
     +-------------------------------+
     """        
     n_table = 0
-    def __init__(self, viewer:"napari.viewer.Viewer", df, columns=None, name=None):
+    def __init__(self, viewer:"napari.viewer.Viewer", df:np.ndarray|pd.DataFrame|dict, columns=None, name=None):
         self.viewer = viewer
         self.fig = None
         self.ax = None
@@ -25,6 +27,9 @@ class TableWidget(QWidget):
         
         super().__init__(viewer.window._qt_window)
         self.setLayout(QGridLayout())
+        
+        if isinstance(df, dict):
+            df = pd.DataFrame(df)
         
         if columns is None:
             if isinstance(df, pd.DataFrame):
