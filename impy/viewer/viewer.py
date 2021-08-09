@@ -37,7 +37,9 @@ def change_theme(viewer):
     viewer.theme = "night"
 
 class napariViewers:
-    
+    """
+    The controller of ``napari.Viewer``s from ``impy``. Always access by ``ip.gui``.
+    """    
     def __init__(self):
         self._viewers = {}
         self._front_viewer = None
@@ -74,7 +76,7 @@ class napariViewers:
     @property
     def layers(self):
         """
-        Napari layer list.
+        Napari layer list. Identical to ``ip.gui.viewer.layers``.
         """        
         return self.viewer.layers
     
@@ -100,21 +102,24 @@ class napariViewers:
         return self.viewer.window.results
     
     @property
-    def selection(self) -> list:
+    def selection(self) -> list[Any]:
         """
-        Return selected layers' data as impy objects.
+        Return selected layers' data as a list of impy objects.
         """        
         return [layer_to_impy_object(self.viewer, layer) 
                 for layer in self.viewer.layers.selection]
     
     @property
     def axes(self) -> str:
+        """
+        Axes information of current viewer. Defined to make compatible with ``ImgArray``.
+        """        
         return "".join(self.viewer.dims.axis_labels)
     
     @property
     def scale(self) -> dict[str: float]:
         """
-        Dimension scales of the current viewer.
+        Scale information of current viewer. Defined to make compatible with ``ImgArray``.
         """        
         d = self.viewer.dims
         return {a: r[2] for a, r in zip(d.axis_labels, d.range)}
@@ -156,6 +161,7 @@ class napariViewers:
         ----------
         kind : str, optional
             Kind of layers/shapes to return.
+            
                 - "image": Image layer.
                 - "labels": Labels layer
                 - "points": Points layer.
@@ -166,13 +172,17 @@ class napariViewers:
                 - "path": Path shapes in Shapes layer.
                 - "polygon": Polygon shapes in Shapes layer.
                 - "ellipse": Ellipse shapes in Shapes layer.
+                
         layer_state : {"selected", "visible", "none"}, default is "none"
             How to filter layer list.
+            
                 - "selected": Only selected layers will be searched.
                 - "visible": Only visible layers will be searched.
                 - "none": All the layers will be searched.    
+                
         returns : {"first", "last", "all"}
             What will be returned in case that there are multiple layers/shapes.
+            
                 - "first": Only the first object will be returned.
                 - "last": Only the last object will be returned.
                 - "all": All the objects will be returned as a list.
@@ -230,7 +240,7 @@ class napariViewers:
         return out
         
         
-    def add(self, obj=None, title=None, **kwargs):
+    def add(self, obj:Any=None, title:str=None, **kwargs):
         """
         Add images, points, labels, tracks etc to viewer.
 
@@ -238,6 +248,8 @@ class napariViewers:
         ----------
         obj : Any
             Object to add.
+        title : str, optional
+            Title (key) of the viewer to add object(s).
         """
         if title is None:
             if self._front_viewer is None:
@@ -322,7 +334,7 @@ class napariViewers:
         dims : str or int, optional
             Axes along which values will be down-sampled.
         title : str, optional
-            Title of the new viewer.
+            Title (key) of the viewer to add object(s).
         """        
         if title is None:
             if self._front_viewer is None:
@@ -373,7 +385,7 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key="F1", progress:bool=False):
+    def bind(self, func=None, key:str="F1", progress:bool=False):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
         ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to

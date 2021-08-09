@@ -153,17 +153,18 @@ Functions Menu
 
 There is a custom menu called "Functions" added in the menu bar.
 
-- "Threshold/Label"
+- "Threshold/Label": Make binary image or label an image with thresholded binary image by sweeping threshold
+value.
 
-- "Filters"
+- "Filters": Run filter functions by sweeping the first parameter.
 
-- "Measure Region Properties"
+- "Measure Region Properties": Call ``regionprops`` and add the result as properties in ``Label`` layer.
 
-- "Rectangle Editor"
+- "Rectangle Editor": Edit selected rectangles pixelwise.
 
-- "Template Matcher"
+- "Template Matcher": Match a template layer to a reference layer.
 
-- "Function Handler"
+- "Function Handler": Call ``impy`` functions inside the viewer.
 
 Others
 ------
@@ -176,7 +177,10 @@ Others
 Fit Custom Functions into GUI
 -----------------------------
 
-``impy`` provides easier way to integrate your function to ``napari``. 
+In image analysis, you usually want to set parameters using manually drawn shapes or points. You don't have
+to do that by getting properties of the viewer for every function call. ``impy`` provides easier way to integrate 
+your function to ``napari``. Just decorate your function with `@ip.gui.bind` and call function with keybind "F1". 
+You can also plot on the figure canvas inside `napari`.
 
 *Example*: Fit filament tips to sigmoid function
 
