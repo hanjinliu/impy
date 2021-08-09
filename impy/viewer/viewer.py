@@ -1,6 +1,7 @@
 from __future__ import annotations
-from ..utils.axesop import switch_slice
 import os
+from sys import prefix
+from typing import Any
 import napari
 import pandas as pd
 import numpy as np
@@ -13,6 +14,7 @@ from .utils import *
 from .mouse import *
 from .widgets import TableWidget
 
+from ..utils.axesop import switch_slice
 from ..collections import *
 from ..arrays import *
 from ..frame import *
@@ -155,6 +157,83 @@ class napariViewers:
         self._front_viewer = key
 
         return None
+
+    def get(self, kind:str="image", layer_state:str="none", returns:str="last") -> Any|list[Any]:
+        """
+        Simple way to get impy object from viewer.
+
+        Parameters
+        ----------
+        kind : str, optional
+            Kind of layers/shapes to return.
+                - "image": Image layer.
+                - "labels": Labels layer
+                - "points": Points layer.
+                - "shapes": Shapes layer.
+                - "tracks": Tracks layer.
+                - "line": Line shapes in Shapes layer.
+                - "rectangle": Rectangle shapes in Shapes layer.
+                - "path": Path shapes in Shapes layer.
+                - "polygon": Polygon shapes in Shapes layer.
+                - "ellipse": Ellipse shapes in Shapes layer.
+        layer_state : {"selected", "visible", "none"}, default is "none"
+            How to filter layer list.
+                - "selected": Only selected layers will be searched.
+                - "visible": Only visible layers will be searched.
+                - "none": All the layers will be searched.    
+        returns : {"first", "last", "all"}
+            What will be returned in case that there are multiple layers/shapes.
+                - "first": Only the first object will be returned.
+                - "last": Only the last object will be returned.
+                - "all": All the objects will be returned as a list.
+        """        
+        if layer_state == "selected":
+            layer_list = list(self.viewer.layers.selection)
+        elif layer_state == "visible":
+            layer_list = [layer for layer in self.viewer.layers if layer.visible]
+        elif layer_state == "none":
+            layer_list = self.viewer.layers
+        else:
+            raise ValueError("`filter` must be 'selected', 'visible' or 'none'")
+            
+        kind = kind.capitalize()
+        out = []
+        if kind in ("Image", "Labels", "Points", "Shapes", "Tracks"):
+            layer_type = getattr(napari.layers, kind)
+            
+            for layer in layer_list:
+                if isinstance(layer, layer_type):
+                    out.append(layer_to_impy_object(self.viewer, layer))
+            
+        elif kind in ("Line", "Rectangle", "Path", "Polygon", "Ellipse"):
+            layer_type = napari.layers.Shapes
+            shape_type = kind.lower()
+            for layer in layer_list:
+                if not isinstance(layer, layer_type):
+                    continue
+                for s, t in zip(layer.data, layer.shape_type):
+                    if t == shape_type:
+                        out.append(s)
+            
+        else:
+            raise TypeError(f"Cannot interpret type {kind}")
+        
+        try:
+            if returns == "first":
+                out = out[0]
+            elif returns == "last":
+                out = out[-1]
+            elif returns != "all":
+                raise ValueError("`returns` must be 'first', 'last' or 'all'")
+        except IndexError:
+            if layer_state != "none":
+                msg = f"No {layer_state} {kind.lower()} found in the viewer layer list."
+            else:
+                msg = f"No {kind.lower()} found in the viewer layer list."
+            raise IndexError(msg)
+        
+        return out
+        
         
     def add(self, obj=None, title=None, **kwargs):
         """
@@ -359,7 +438,8 @@ class napariViewers:
                     self._add_figure()
                 @self.viewer.bind_key(key, overwrite=True)
                 def _(viewer):
-                    self.ax.cla()
+                    self.fig.clf()
+                    self.ax = self.fig.add_subplot(111)
                     with Progress(f.__name__, out="stdout" if progress else None):
                         out = f(self, self.ax)
                     self.fig.canvas.draw()
