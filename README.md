@@ -120,7 +120,7 @@ In `impy`, there are several ways to efficiently deal with large datasets. See [
 
 Affine transformation, deconvolution and many filter functions are automatically conducted with GPU if accessible. On importing `impy`, it checks if `cupy` and GPU are correctly installed, so that you don't have to change your code. See [Image Analysis Tools](#image-analysis-tools) for details.
 
-#### 8. Fit Your Function into GUI
+#### 8. Fit Your Function into GUI (WIP)
 
 In image analysis, you usually want to set parameters using manually drawn shapes or points. You don't have to do that by getting properties of the viewer for every function call. Just decorate your function with `@ip.gui.bind` and call function with keybind "F1". You can also plot on the figure canvas inside `napari`. See [Bind Your Function to Napari](#bind-your-function-to-napari) for an example.
 

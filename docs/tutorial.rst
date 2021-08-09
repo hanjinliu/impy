@@ -8,6 +8,10 @@ Tutorial
 Basics
 ------
 
+``impy``'s concept is to make image analysis on Python much more user friendly. The core array object, 
+``ImgArray``, retains all the features of ``numpy.ndaaray`` while implemented with variety of function
+that minimize your effort of image processing.
+
 Let's start with a simple example.
 
 .. code-block:: python

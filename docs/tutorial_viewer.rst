@@ -1,6 +1,9 @@
 Viewer Tutorial
 ===============
 
+``impy`` provides simple interaction between console and ``napari.Viewer``. The controller object ``ip.gui`` has
+multiple abilities to make your image processing efficient.
+
 Send Data from Console to Viewer
 --------------------------------
 
@@ -15,10 +18,13 @@ plausible array types that are compatible with ``impy`` and similarly send to th
 
 .. code-block:: python
 
+    import impy as ip
+
     # Basically you'll run ...
     img = ip.imread("path/to/img.tif")
     ip.gui.add(img)
-    # but this also works
+    
+    # This also works
     ip.gui.add("path/to/img.tif")
 
 If ``LazyImgArray`` is given, or a path is given but the image size is too large, then image is loaded as ``dask`` 
@@ -66,7 +72,8 @@ which is able to copy data, store data or plot the selected table contents like 
 
 5. Add shapes layer as an text layer
 
-"Text" button on the lower-left corner.
+"Text" button on the lower-left corner. You can easily edit the text using the widget "Property Editor".
+
 
 Get impy Objects from Viewer
 ----------------------------
@@ -86,9 +93,23 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
 
     - ``ip.gui.points`` returns a list of points in the layer list as ``MarkerFrame``.
 
+
+*Example* Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.
+
+.. code-block:: python
+
+    img_filt = ip.gui.images[0].gaussian_filter()
+    ip.gui.add(img_filt)
+
 - When you want to get the `i`-th selected layers' ``impy`` objects, you only have to call ``ip.gui.selection[i]`` 
 instead of some long scripts like ``ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]``. Property ``ip.gui.selection`` 
 returns list of selected ``impy`` objects as a list.
+
+*Example* Make an image Z-stack from all the selected images in the viewer.
+
+.. code-block:: python
+
+    img_stack = np.stack(ip.gui.selection, axis="z")
 
 
 Mouse Callbacks
@@ -98,8 +119,9 @@ There are several custom mouse callbacks in addition to the basic ones in ``napa
 
 - When you're drawing shapes, you'll find shape information as a text overlay in the upper left corner.
 
-.. image:: images/shapes_info.png
-    :scale: 50%
+- You can drag shapes with right click.
+
+.. image:: images/shapes_info.gif
 
 - ``Alt`` + mouse drag -> lateral translation
 
@@ -131,9 +153,9 @@ cropping is also supported!
 
 - ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` -> Link/Unlink layers. Like "grouping" in PowerPoint.
 
-- ``S`` -> Add nD shape-layer.
+- ``S`` -> Add `n`-D shape-layer.
 
-- ``P`` -> Add nD point-layer.
+- ``P`` -> Add `n`-D point-layer.
 
 Functions Menu
 --------------
@@ -155,8 +177,6 @@ There is a custom menu called "Functions" added in the menu bar.
 Others
 ------
 
-- Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.
-
 - Note pad in ``Window > Note``.
 
 - Call ``impy.imread`` in "File > imread ...". Call ``impy.imsave`` in "File > imsave ...".
@@ -165,8 +185,11 @@ Others
 Fit Custom Functions into GUI
 -----------------------------
 
-.. code-block:: python
+``impy`` provides easier way to integrate your function to ``napari``. 
 
+- Example 1: Fit filament tips to sigmoid function
+
+.. code-block:: python
     :linenos:
 
     from scipy.optimize import curve_fit
@@ -179,7 +202,7 @@ Fit Custom Functions into GUI
         return a/(1 + np.exp(-(x-x0)/sg)) + b
         
     @ip.gui.bind
-    def fit_mt(gui, ax):
+    def fit(gui, ax):
         # get line scan from viewer
         img = gui.images[0]            # get the first image
         line = gui.layers[-1].data[-1] # get the last line in the last shapes layer
@@ -194,6 +217,7 @@ Fit Custom Functions into GUI
         ax.plot(scan, color="lime", alpha=0.5)
         ax.plot(model(xdata, *params), color="crimson")
         ax.scatter(params[0], model(params[0], *params), color="crimson", marker="+", s=260)
+
         return params
 
 .. image:: images/line_scan.gif
