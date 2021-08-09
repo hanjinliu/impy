@@ -79,27 +79,18 @@ class napariViewers:
         return self.viewer.layers
     
     @property
-    def image_layers(self):
+    def current_slice(self) -> tuple[slice|int, ...]:
         """
-        Return all the image layers as a list.
+        Return a tuple of slicer that corresponds to current field of view. For instance,
+        when the viewer is displaying yx-plane at t=1, then this property returns 
+        ``(1, slice(None), slice(None))``.
         """        
-        return list(iter_layer(self.viewer, "Image"))
-    
-    @property
-    def images(self):
-        """
-        Return all the images as a list.
-        """        
-        return list(layer_to_impy_object(self.viewer, a) 
-                    for a in iter_layer(self.viewer, "Image"))
-    
-    @property
-    def points(self):
-        """
-        Return all the images as a list.
-        """        
-        return list(layer_to_impy_object(self.viewer, a) 
-                    for a in iter_layer(self.viewer, "Points"))
+        current_step = list(self.viewer.dims.current_step)
+        ndim = min(self.viewer.dims.ndisplay, self.viewer.dims.ndim)
+        active_plane = list(self.viewer.dims.order[-ndim:])
+        for i in active_plane:
+            current_step[i] = slice(None)
+        return tuple(current_step)
     
     @property
     def results(self):
@@ -430,8 +421,13 @@ class napariViewers:
             
             use_figure_canvas = f"{gui_sym}.ax." in source
             
-            if use_figure_canvas and not hasattr(self, "ax"):
-                self._add_figure()
+            if use_figure_canvas:
+                if not hasattr(self, "fig") or not hasattr(self, "ax"):
+                    self._add_figure()
+                else:
+                    self.fig.clf()
+                    self.ax = self.fig.add_subplot(111)
+                    self.viewer.window._dock_widgets["Plot"].show()
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
                 if use_figure_canvas:

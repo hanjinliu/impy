@@ -85,20 +85,11 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
 ``impy`` objects such as ``ImgArray`` are directly passed to layer objects, you can recover ``impy`` object by 
 ``ip.gui.layers[i].data``.
 
-- Especially, 
-
-    - ``ip.gui.images`` returns a list of images in the layer list as ``ImgArray``.
-
-    - ``ip.gui.image_layers`` returns a list of images in the layer list as ``Layers`` objects.
-
-    - ``ip.gui.points`` returns a list of points in the layer list as ``MarkerFrame``.
-
-
 *Example:* Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.
 
 .. code-block:: python
 
-    img_filt = ip.gui.images[0].gaussian_filter()
+    img_filt = ip.gui.layers[0].gaussian_filter()
     ip.gui.add(img_filt)
 
 - When you want to get the `i`-th selected layers' ``impy`` objects, you only have to call ``ip.gui.selection[i]`` 
@@ -221,3 +212,45 @@ Fit Custom Functions into GUI
         return params
 
 .. image:: images/line_scan.gif
+
+*Example*: Marking single molecule movie with centroid-aided auto centering.
+
+.. code-block:: python
+    :linenos:
+
+    from skimage.measure import moments
+
+    @ip.gui.bind
+    def func(gui):
+        # Get cursor position
+        # Because we want to mark in 2D, we have to split (x,y) from others.
+        *multi, y, x = gui.viewer.cursor.position
+        
+        # Get 2D image by slicing with "gui.current_slice"
+        img = gui.get("image")[gui.current_slice] 
+
+        # um -> pixel
+        y /= gui.scale["y"]
+        x /= gui.scale["x"]
+        
+        y0 = int(y-4)
+        x0 = int(x-4)
+        img0 = img[...,y0:y0+9, x0:x0+9] # image region around cursor
+        img0 = img0 - img0.mean()        # normalize
+
+        # calculate centroid
+        M = moments(img0.value)
+        cy, cx = M[1, 0]/M[0, 0] + y0, M[0, 1]/M[0, 0] + x0
+        
+        if "Auto center" not in gui.layers:
+            # Create Points layer if not exists
+            gui.viewer.add_points(ndim=gui.viewer.dims.ndim, name="Auto center",
+                                scale=list(img.scale.values()))
+
+        point = multi + [cy, cx]
+        
+        gui.layers["Auto center"].add(point)
+        
+        return None
+
+.. image:: images/auto_center.gif
