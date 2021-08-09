@@ -187,7 +187,7 @@ Fit Custom Functions into GUI
 
 ``impy`` provides easier way to integrate your function to ``napari``. 
 
-- Example 1: Fit filament tips to sigmoid function
+*Example*: Fit filament tips to sigmoid function
 
 .. code-block:: python
     :linenos:
@@ -202,11 +202,11 @@ Fit Custom Functions into GUI
         return a/(1 + np.exp(-(x-x0)/sg)) + b
         
     @ip.gui.bind
-    def fit(gui, ax):
+    def fit(gui):
         # get line scan from viewer
-        img = gui.images[0]            # get the first image
-        line = gui.layers[-1].data[-1] # get the last line in the last shapes layer
-        scan = img.reslice(line)       # line scan
+        img = gui.get("image")      # get the first image
+        line = gui.get("line")      # get the last line in the last shapes layer
+        scan = img.reslice(line)    # line scan
 
         # fitting
         xdata = np.arange(len(scan))
@@ -214,9 +214,9 @@ Fit Custom Functions into GUI
         params, _ = curve_fit(model, xdata, scan, p0=p0)
 
         # plot the raw profile and fit
-        ax.plot(scan, color="lime", alpha=0.5)
-        ax.plot(model(xdata, *params), color="crimson")
-        ax.scatter(params[0], model(params[0], *params), color="crimson", marker="+", s=260)
+        gui.ax.plot(scan, color="lime", alpha=0.5)
+        gui.ax.plot(model(xdata, *params), color="crimson")
+        gui.ax.scatter(params[0], model(params[0], *params), color="crimson", marker="+", s=260)
 
         return params
 

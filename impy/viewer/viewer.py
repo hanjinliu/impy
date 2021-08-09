@@ -1,11 +1,10 @@
 from __future__ import annotations
 import os
-from sys import prefix
 from typing import Any
 import napari
 import pandas as pd
 import numpy as np
-from inspect import signature
+import inspect
 from dask import array as da
 from skimage.measure import marching_cubes
 import warnings
@@ -186,6 +185,11 @@ class napariViewers:
                 - "first": Only the first object will be returned.
                 - "last": Only the last object will be returned.
                 - "all": All the objects will be returned as a list.
+        
+        Returns
+        -------
+        ImgArray, Label, MarkerFrame or TrackFrame, np.ndarray, or list of one of them.
+            impy object(s) that satisfies the options.
         """        
         if layer_state == "selected":
             layer_list = list(self.viewer.layers.selection)
@@ -401,57 +405,53 @@ class napariViewers:
         
             >>> @ip.gui.bind
             >>> def measure(gui):
-            >>>     return gui.images[0].mean()
+            >>>     return gui.get("image").mean()
         
         2. Plot line scan of 2D image.
         
             >>> @ip.gui.bind
-            >>> def profile(gui, ax=None)
-            >>>     img = gui.images[0]
-            >>>     line = gui.layers[-1].data[-1] # must be line!
+            >>> def profile(gui)
+            >>>     img = gui.get("image")
+            >>>     line = gui.get("line")
             >>>     with ip.SetConst("SHOW_PROGRESS", False):
             >>>         scan = img.reslice(line)
-            >>>     ax.plot(scan)
+            >>>     gui.ax.plot(scan)
             >>>     return None
             
         """        
+        # TODO: generate parameter widget using magicgui if func takes more than one input.
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
+                        
+            source = inspect.getsource(f) # get source code
+            params = inspect.signature(f).parameters
+            gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
-            nparams = len(signature(f).parameters)
+            use_figure_canvas = f"{gui_sym}.ax." in source
             
-            if nparams == 1:
-                @self.viewer.bind_key(key, overwrite=True)
-                def _(viewer):
-                    with Progress(f.__name__, out="stdout" if progress else None):
-                        out = f(self)
-                    win = viewer.window
+            if use_figure_canvas and not hasattr(self, "ax"):
+                self._add_figure()
+            @self.viewer.bind_key(key, overwrite=True)
+            def _(viewer):
+                if use_figure_canvas:
+                    self.fig.clf()
+                    self.ax = self.fig.add_subplot(111)
+                
+                with Progress(f.__name__, out="stdout" if progress else None):
+                    out = f(self)
+                
+                if use_figure_canvas:
+                    self.fig.canvas.draw()
+                    self.fig.tight_layout()
+                win = viewer.window
+                if out is not None:
                     if hasattr(win, "results") and isinstance(win.results, list):
                         win.results.append(out)
                     else:
                         win.results = [out]
-                    viewer.status = f"'{f.__name__}' returned {out}"
+                viewer.status = f"'{f.__name__}' returned {out}"
             
-            elif nparams > 1:
-                if not hasattr(self, "ax"):
-                    self._add_figure()
-                @self.viewer.bind_key(key, overwrite=True)
-                def _(viewer):
-                    self.fig.clf()
-                    self.ax = self.fig.add_subplot(111)
-                    with Progress(f.__name__, out="stdout" if progress else None):
-                        out = f(self, self.ax)
-                    self.fig.canvas.draw()
-                    self.fig.tight_layout()
-                    win = viewer.window
-                    if out is not None:
-                        if hasattr(win, "results") and isinstance(win.results, list):
-                            win.results.append(out)
-                        else:
-                            win.results = [out]
-                    viewer.status = f"'{f.__name__}' returned {out}"
-                
             return f
         
         if func is None:

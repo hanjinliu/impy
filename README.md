@@ -38,6 +38,8 @@ git clone https://github.com/hanjinliu/impy
   
 `impy` is partly dependent on `numba`, `cupy`, `trackpy` and `dask-image`. Please install these packages if needed. 
 
+:warning: Image processing algorithms are almost stable so that their behavior will not change a lot. However, since `napari` is under development and I'm groping for better UI right now, any functions that currently implemented in `impy` viewer may change or no longer work in the future. Make sure keeping `napari` and `impy` updated when you use.
+
 ## Highlights
 
 #### 1. Handling Axes Easily
@@ -334,8 +336,8 @@ Using `@ip.gui.bind` decorator, you can use your function as is to make your cus
 ```python
 from skimage.measure import moments
 @ip.gui.bind
-def func(gui, ax):
-    img = gui.images[0] # get the first image
+def func(gui):
+    img = gui.get("image") # get the front image
     y, x = gui.viewer.cursor.position # get cursor position
     img0 = img[int(y-5):int(y+6), int(x-5):int(x+6)] # image region around cursor
     
@@ -344,10 +346,10 @@ def func(gui, ax):
     cy, cx = M[1, 0]/M[0, 0], M[0, 1]/M[0, 0]
     
     # plot
-    ax.imshow(img0, cmap="gray")
-    ax.scatter([cx], [cy], s=300, color="crimson", marker="+")
-    ax.text(cx, cy, f"({cx:.1f}, {cy:.1f})", size="x-large", color="crimson")
-    ax.set_title("Centroid")
+    gui.ax.imshow(img0, cmap="gray")
+    gui.ax.scatter([cx], [cy], s=300, color="crimson", marker="+")
+    gui.ax.text(cx, cy, f"({cx:.1f}, {cy:.1f})", size="x-large", color="crimson")
+    gui.ax.set_title("Centroid")
     return (cy, cx)
 ```
 
