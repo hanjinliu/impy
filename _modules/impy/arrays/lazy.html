@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>impy.arrays.lazy &#8212; impy 1.17.8 documentation</title>
+    <title>impy.arrays.lazy &#8212; impy 1.19.5 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
     
@@ -26,7 +26,7 @@
         <li class="right" >
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.17.8 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.19.5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">impy.arrays.lazy</a></li> 
       </ul>
@@ -42,6 +42,8 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
 <span class="kn">from</span> <span class="nn">.labeledarray</span> <span class="kn">import</span> <span class="n">LabeledArray</span>
 <span class="kn">from</span> <span class="nn">.imgarray</span> <span class="kn">import</span> <span class="n">ImgArray</span>
 <span class="kn">from</span> <span class="nn">.axesmixin</span> <span class="kn">import</span> <span class="n">AxesMixin</span>
@@ -140,6 +142,10 @@
         
         <span class="k">return</span> <span class="n">out</span>
     
+    <span class="k">def</span> <span class="fm">__neg__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">next_history</span><span class="o">=</span><span class="s2">&quot;neg&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
     
     <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
@@ -302,10 +308,11 @@
         <span class="k">return</span> <span class="n">out</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.imsave"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.imsave">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">LabeledArray</span><span class="o">.</span><span class="n">imsave</span><span class="p">)</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dirpath</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dirpath</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dirpath</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tifname</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tifname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.tif&quot;</span><span class="p">):</span>
+            <span class="n">tifname</span> <span class="o">+=</span> <span class="s2">&quot;.tif&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tifname</span><span class="p">:</span>
+            <span class="n">tifname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">tifname</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -314,24 +321,17 @@
         <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_img_type</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">sort_axes</span><span class="p">()</span>
         <span class="n">imsave_kwargs</span> <span class="o">=</span> <span class="n">get_imsave_meta_from_img</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_lut</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         
-        <span class="n">rechunk_to</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">ifnot</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        
-        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img</span><span class="o">.</span><span class="n">rechunk</span><span class="p">(</span><span class="n">rechunk_to</span><span class="p">)</span>
-        
-        <span class="c1"># convert to float32 if image is float64</span>
-        <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
-            <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">memmap_image</span> <span class="o">=</span> <span class="n">memmap</span><span class="p">(</span><span class="n">tifname</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">imsave_kwargs</span><span class="p">)</span>
         
         <span class="c1"># save image</span>
-        <span class="k">def</span> <span class="nf">_imwrite</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">block_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">block_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">None</span>
-            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">block_info</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;chunk-location&quot;</span><span class="p">]))</span> <span class="o">+</span> <span class="s2">&quot;.tif&quot;</span><span class="p">)</span>
-            <span class="n">imwrite</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_imwrite</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">block_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">sl</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">j</span> <span class="ow">in</span> <span class="n">block_info</span><span class="p">[</span><span class="kc">None</span><span class="p">][</span><span class="s1">&#39;array-location&#39;</span><span class="p">])</span>
+            <span class="n">memmap_image</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
             <span class="k">return</span> <span class="n">arr</span>
         
-        <span class="n">da</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span><span class="n">_imwrite</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">imsave_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Succesfully saved: </span><span class="si">{</span><span class="n">dirpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span><span class="n">_imwrite</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">memmap_image</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+        <span class="n">memmap_image</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Succesfully saved: </span><span class="si">{</span><span class="n">tifname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.rechunk"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.rechunk">[docs]</a>    <span class="k">def</span> <span class="nf">rechunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">block_size_limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">balance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
@@ -847,7 +847,6 @@
 
         <span class="c1"># I don&#39;t know the reason why but output dask array&#39;s chunk size along t-axis should be </span>
         <span class="c1"># specified to be 1, and rechunk it map_overlap. </span>
-        
         <span class="n">result</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">map_overlap</span><span class="p">(</span><span class="n">pcc</span><span class="p">,</span> <span class="n">img_fft</span><span class="p">,</span> 
                                 <span class="n">depth</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)},</span> 
                                 <span class="n">trim</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -855,7 +854,7 @@
                                 <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span><span class="o">*</span><span class="p">(</span><span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
                                 <span class="n">meta</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
                                 <span class="p">)</span>
-
+        
         <span class="c1"># For cupy, we must call map_blocks (or from_delayed and delayed) here.</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">cumsum</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rechunk</span><span class="p">((</span><span class="n">len_t</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)),</span> 
                                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -867,8 +866,8 @@
     <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="nd">@record_lazy</span><span class="p">()</span>
     <span class="nd">@dims_to_spatial_axes</span>
-    <span class="k">def</span> <span class="nf">drift_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">:</span><span class="n">Coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span><span class="n">ImgArray</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">zero_ave</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> 
-                         <span class="n">along</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">drift_correction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shift</span><span class="p">:</span><span class="n">Coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span><span class="n">ImgArray</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">zero_ave</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">along</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                         <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">affine_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
         
         <span class="k">if</span> <span class="n">along</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">along</span> <span class="o">=</span> <span class="n">find_first_appeared</span><span class="p">(</span><span class="s2">&quot;tpzci&lt;&quot;</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
@@ -879,8 +878,14 @@
             <span class="c1"># determine &#39;ref&#39;</span>
             <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">ref</span> <span class="o">=</span> <span class="bp">self</span>
+                <span class="n">_dims</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">along</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">dims</span> <span class="o">!=</span> <span class="n">_dims</span><span class="p">:</span>
+                    <span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dims=</span><span class="si">{</span><span class="n">dims</span><span class="si">}</span><span class="s2"> with along=</span><span class="si">{</span><span class="n">along</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">-image are not &quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot;valid input. Changed to dims=</span><span class="si">{</span><span class="n">_dims</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                         <span class="ne">UserWarning</span><span class="p">)</span>
+                    <span class="n">dims</span> <span class="o">=</span> <span class="n">_dims</span>
             <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;ref&#39; must be ImgArray object, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;ref&#39; must be LazyImgArray object, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">axes</span> <span class="o">!=</span> <span class="n">along</span> <span class="o">+</span> <span class="n">dims</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Arguments `along`(</span><span class="si">{</span><span class="n">along</span><span class="si">}</span><span class="s2">) + `dims`(</span><span class="si">{</span><span class="n">dims</span><span class="si">}</span><span class="s2">) do not match &quot;</span>
                                  <span class="sa">f</span><span class="s2">&quot;axes of `ref`(</span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
@@ -890,7 +895,7 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">along</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Wrong shape of &#39;shift&#39;.&quot;</span><span class="p">)</span>
             <span class="n">shift</span> <span class="o">=</span> <span class="n">shift</span><span class="o">.</span><span class="n">values</span>
-            
+
         <span class="k">if</span> <span class="n">zero_ave</span><span class="p">:</span>
             <span class="n">shift</span> <span class="o">=</span> <span class="n">shift</span> <span class="o">-</span> <span class="n">da</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             
@@ -898,17 +903,19 @@
         <span class="n">slice_in</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">ifnot</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">slice_out</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">ifnot</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">)</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        
-        <span class="k">def</span> <span class="nf">warp</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">block_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># Here shift must be a local variable for the function. Otherwise, it takes dask very long time </span>
+        <span class="c1"># for graph construction.</span>
+        <span class="k">def</span> <span class="nf">warp</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">block_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
             <span class="n">mx</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ndim</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
             <span class="n">loc</span> <span class="o">=</span> <span class="n">block_info</span><span class="p">[</span><span class="kc">None</span><span class="p">][</span><span class="s1">&#39;array-location&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">mx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">shift</span><span class="p">[</span><span class="n">loc</span><span class="p">[</span><span class="n">t_index</span><span class="p">]]</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
-            <span class="k">return</span> <span class="n">_transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">slice_in</span><span class="p">],</span> <span class="n">mx</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)[</span><span class="n">slice_out</span><span class="p">]</span>
+            <span class="n">mx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">shift</span><span class="p">[</span><span class="n">loc</span><span class="p">[</span><span class="n">t_index</span><span class="p">]]</span>
+            <span class="k">return</span> <span class="n">_transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">slice_in</span><span class="p">],</span> <span class="n">mx</span><span class="p">,</span> <span class="o">**</span><span class="n">affine_kwargs</span><span class="p">)[</span><span class="n">slice_out</span><span class="p">]</span>
         
         <span class="n">chunks</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">ifnot</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="n">out</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span><span class="n">warp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img</span><span class="o">.</span><span class="n">rechunk</span><span class="p">(</span><span class="n">chunks</span><span class="p">),</span> <span class="n">meta</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-
+        
+        <span class="n">out</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span><span class="n">warp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img</span><span class="o">.</span><span class="n">rechunk</span><span class="p">(</span><span class="n">chunks</span><span class="p">),</span> <span class="n">shift</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+        
         <span class="k">return</span> <span class="n">out</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.pad"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.pad">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">pad</span><span class="p">)</span>
@@ -1001,6 +1008,10 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_uint8</span><span class="p">()</span>
         <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;float32&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;float64&quot;</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Data type float64 is not valid for images. It was converted to float32 instead&quot;</span><span class="p">,</span>
+                 <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">asfloat</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dtype: </span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
     
@@ -1049,7 +1060,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -1068,14 +1079,14 @@
         <li class="right" >
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.17.8 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.19.5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">impy.arrays.lazy</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2021, Hanjin Liu.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.0.2.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.1.2.
     </div>
   </body>
 </html>

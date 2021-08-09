@@ -1,157 +1,420 @@
 
+
 <!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Viewer Tutorial &mdash; impy 1.19.5 documentation</title>
+  
 
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
-    <title>Viewer Tutorial &#8212; impy 1.17.8 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/classic.css" />
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
     
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API References" href="api.html" />
     <link rel="prev" title="Tutorial" href="tutorial.html" /> 
-  </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="api.html" title="API References"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="tutorial.html" title="Tutorial"
-             accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">impy 1.17.8 documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">Viewer Tutorial</a></li> 
-      </ul>
-    </div>  
+</head>
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> impy
+          
+
+          
+          </a>
+
+          
             
-  <section id="viewer-tutorial">
-<h1>Viewer Tutorial<a class="headerlink" href="#viewer-tutorial" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><p>Add any objects (images, labels, points, …) to the viewer by <code class="docutils literal notranslate"><span class="pre">ip.gui.add(...)</span></code>.</p></li>
-<li><p>Return all the manually selected layers’ data by <code class="docutils literal notranslate"><span class="pre">layers</span> <span class="pre">=</span> <span class="pre">ip.gui.selection</span></code>.</p></li>
-<li><p>Run <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>’s method inside viewers.</p></li>
+            
+              <div class="version">
+                1.19.5
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Viewer Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#send-data-from-console-to-viewer">Send Data from Console to Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#get-impy-objects-from-viewer">Get impy Objects from Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mouse-callbacks">Mouse Callbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions-menu">Functions Menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#others">Others</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fit-custom-functions-into-gui">Fit Custom Functions into GUI</a></li>
 </ul>
-<section id="mouse-callbacks">
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">impy</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Viewer Tutorial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/tutorial_viewer.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="viewer-tutorial">
+<h1>Viewer Tutorial<a class="headerlink" href="#viewer-tutorial" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> provides simple interaction between console and <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code>. The controller object <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> has
+multiple abilities to make your image processing efficient.</p>
+<div class="section" id="send-data-from-console-to-viewer">
+<h2>Send Data from Console to Viewer<a class="headerlink" href="#send-data-from-console-to-viewer" title="Permalink to this headline">¶</a></h2>
+<p>You can add any objects (images, labels, points, …) to the viewer by <code class="docutils literal notranslate"><span class="pre">ip.gui.add(...)</span></code>. <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> can determine
+layer types according to the instance type.</p>
+<ol class="arabic simple">
+<li><p>Add images</p></li>
+</ol>
+<p>When <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, <code class="docutils literal notranslate"><span class="pre">PhaseArray</span></code>, <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>, or path to the image file are given, an <code class="docutils literal notranslate"><span class="pre">Image</span></code> layer with
+proper settings will be created. If <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> or <code class="docutils literal notranslate"><span class="pre">dask.array.core.Array</span></code> are given, they will be converted to
+plausible array types that are compatible with <code class="docutils literal notranslate"><span class="pre">impy</span></code> and similarly send to the viewer.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">impy</span> <span class="k">as</span> <span class="nn">ip</span>
+
+<span class="c1"># Basically you&#39;ll run ...</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;path/to/img.tif&quot;</span><span class="p">)</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+<span class="c1"># This also works</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;path/to/img.tif&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code> is given, or a path is given but the image size is too large, then image is loaded as <code class="docutils literal notranslate"><span class="pre">dask</span></code>
+array so that it will be viewed as “virtual stack”, i.e., read from the disk every time it is needed to. However,
+viewing large images is not as slow as you expect because image data will be cached by methods in <code class="docutils literal notranslate"><span class="pre">dask.cache</span></code>.</p>
+<ol class="arabic simple" start="2">
+<li><p>Add labels</p></li>
+</ol>
+<p>When <code class="docutils literal notranslate"><span class="pre">Label</span></code> or <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> that has <code class="docutils literal notranslate"><span class="pre">labels</span></code> attribute are given, a <code class="docutils literal notranslate"><span class="pre">Labels</span></code> layer will be created. View
+of labels will be passed to the viewer as <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> so that when either values are changed it will affect
+the other.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">delete_label</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># this affects viewer&#39;s labels layer</span>
+</pre></div>
+</div>
+<p>You can also manually draw a label directly as <code class="docutils literal notranslate"><span class="pre">Label</span></code> anchored on <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> by pushing “Label” button on the
+lower-left corner.</p>
+<ol class="arabic simple" start="3">
+<li><p>Add points</p></li>
+</ol>
+<p>When <code class="docutils literal notranslate"><span class="pre">MarkerFrame</span></code> or <code class="docutils literal notranslate"><span class="pre">TrackFrame</span></code> are given, a <code class="docutils literal notranslate"><span class="pre">Points</span></code> layer will be created.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mols</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">find_sm</span><span class="p">()</span>    <span class="c1"># find single molecules</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>         <span class="c1"># add image</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mols</span><span class="p">)</span>        <span class="c1"># add points</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Add table widgets</p></li>
+</ol>
+<p>When <code class="docutils literal notranslate"><span class="pre">PropArray</span></code> or <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> are given, an Excel-like table widget will be added on the right side of
+the viewer. If you want to get coordinates of a <code class="docutils literal notranslate"><span class="pre">Points</span></code> layer or <code class="docutils literal notranslate"><span class="pre">Tracks</span></code> layer as a table widget, select the
+layer and push the “(x,y)” button on the lower-left corner. This widget comes from generic <code class="docutils literal notranslate"><span class="pre">TableWidget</span></code> class,
+which is able to copy data, store data or plot the selected table contents like Excel. It has following buttons.</p>
+<ul class="simple">
+<li><p>“Copy”: Copy all the contents into clipboard. You can paste it directly as csv style.</p></li>
+<li><p>“Store”: Store all the contents as <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> temporary in <code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code>.</p></li>
+<li><p>“Plot”: Plot selected data on the figure canvas inside <code class="docutils literal notranslate"><span class="pre">napari</span></code>. One table one canvas.</p></li>
+<li><p>“Setting…”: Settings of plot, which is the options of <code class="docutils literal notranslate"><span class="pre">plot</span></code> function of <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>.</p></li>
+</ul>
+<ol class="arabic simple" start="5">
+<li><p>Add shapes layer as an text layer</p></li>
+</ol>
+<p>“Text” button on the lower-left corner. You can easily edit the text using the widget “Property Editor”.</p>
+</div>
+<div class="section" id="get-impy-objects-from-viewer">
+<h2>Get impy Objects from Viewer<a class="headerlink" href="#get-impy-objects-from-viewer" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code> object is accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer</span></code>, so that basically you can call any method from it.
+However, methods that are frequently used are again defined in <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>, in a simpler form.</p>
+<ul class="simple">
+<li><p>When you want to get <cite>i</cite>-th layer, you can use <code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i]</span></code> instead of <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers[i]</span></code>. Because</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> objects such as <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> are directly passed to layer objects, you can recover <code class="docutils literal notranslate"><span class="pre">impy</span></code> object by
+<code class="docutils literal notranslate"><span class="pre">ip.gui.layers[i].data</span></code>.</p>
+<ul>
+<li><p>Especially,</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.images</span></code> returns a list of images in the layer list as <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.image_layers</span></code> returns a list of images in the layer list as <code class="docutils literal notranslate"><span class="pre">Layers</span></code> objects.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.points</span></code> returns a list of points in the layer list as <code class="docutils literal notranslate"><span class="pre">MarkerFrame</span></code>.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><em>Example:</em> Apply Gaussian filter to the first image in the viewer, and againg send the result to the viewer.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img_filt</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">()</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img_filt</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>When you want to get the <cite>i</cite>-th selected layers’ <code class="docutils literal notranslate"><span class="pre">impy</span></code> objects, you only have to call <code class="docutils literal notranslate"><span class="pre">ip.gui.selection[i]</span></code></p></li>
+</ul>
+<p>instead of some long scripts like <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer.layers[list(ip.gui.viewer.selection)[i]]</span></code>. Property <code class="docutils literal notranslate"><span class="pre">ip.gui.selection</span></code>
+returns list of selected <code class="docutils literal notranslate"><span class="pre">impy</span></code> objects as a list.</p>
+<p><em>Example:</em> Make an image Z-stack from all the selected images in the viewer.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img_stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">selection</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="mouse-callbacks">
 <h2>Mouse Callbacks<a class="headerlink" href="#mouse-callbacks" title="Permalink to this headline">¶</a></h2>
+<p>There are several custom mouse callbacks in addition to the basic ones in <code class="docutils literal notranslate"><span class="pre">napari</span></code>.</p>
+<ul class="simple">
+<li><p>When you’re drawing shapes, you’ll find shape information as a text overlay in the upper left corner.</p></li>
+<li><p>You can drag shapes with right click.</p></li>
+</ul>
+<img alt="_images/shapes_info.gif" src="_images/shapes_info.gif" />
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + mouse drag -&gt; lateral translation</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + mouse drag -&gt; lateral translation restricted in either x- or y-orientation (left button or right button respectively).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + mouse drag -&gt; lateral translation restricted in either x- or y-orientation (left button or</p></li>
+</ul>
+<p>right button respectively).</p>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + mouse wheel -&gt; rescaling</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">R</span></code> -&gt; reset original states.</p></li>
 </ul>
-</section>
-<section id="keyboard-shortcuts">
+</div>
+<div class="section" id="keyboard-shortcuts">
 <h2>Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">A</span></code> -&gt; Hide non-selected layers. Display all the layers by push again.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code> -&gt; Move selected layers to front.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">L</span></code> -&gt; Convert all the shapes in seleted shape-layers into labels of selected image-layers.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">D</span></code> -&gt; Duplicate selected layers.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">X</span></code> -&gt; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated cropping is also supported!</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> -&gt; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in <code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code> for now.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">X</span></code> -&gt; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated</p></li>
+</ul>
+<p>cropping is also supported!</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> -&gt; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code> for now.</p>
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Projection of shape-layers or point-layers to 2D layers.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> / <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> -&gt; Link/Unlink layers. Like “grouping” in PowerPoint.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">S</span></code> / <code class="docutils literal notranslate"><span class="pre">S</span></code> -&gt; Add 2D/nD shape-layer.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">P</span></code> / <code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Add 2D/nD point-layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">S</span></code> -&gt; Add <cite>n</cite>-D shape-layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Add <cite>n</cite>-D point-layer.</p></li>
 </ul>
-</section>
-<section id="others">
+</div>
+<div class="section" id="functions-menu">
+<h2>Functions Menu<a class="headerlink" href="#functions-menu" title="Permalink to this headline">¶</a></h2>
+<p>There is a custom menu called “Functions” added in the menu bar.</p>
+<ul class="simple">
+<li><p>“Threshold/Label”</p></li>
+<li><p>“Filters”</p></li>
+<li><p>“Measure Region Properties”</p></li>
+<li><p>“Rectangle Editor”</p></li>
+<li><p>“Template Matcher”</p></li>
+<li><p>“Function Handler”</p></li>
+</ul>
+</div>
+<div class="section" id="others">
 <h2>Others<a class="headerlink" href="#others" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>Show coordinates of selected point-layers or track-layers. You can also copy it to clipboard.</p></li>
 <li><p>Note pad in <code class="docutils literal notranslate"><span class="pre">Window</span> <span class="pre">&gt;</span> <span class="pre">Note</span></code>.</p></li>
-<li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imread</span></code> in <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">&gt;</span> <span class="pre">imread</span> <span class="pre">...</span></code>. Call <code class="docutils literal notranslate"><span class="pre">impy.imsave</span></code> in <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">&gt;</span> <span class="pre">imsave</span> <span class="pre">...</span></code>.</p></li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imread</span></code> in “File &gt; imread …”. Call <code class="docutils literal notranslate"><span class="pre">impy.imsave</span></code> in “File &gt; imsave …”.</p></li>
 </ul>
-</section>
-</section>
-
-
-            <div class="clearer"></div>
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Viewer Tutorial</a><ul>
-<li><a class="reference internal" href="#mouse-callbacks">Mouse Callbacks</a></li>
-<li><a class="reference internal" href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
-<li><a class="reference internal" href="#others">Others</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="tutorial.html"
-                        title="previous chapter">Tutorial</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="api.html"
-                        title="next chapter">API References</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/tutorial_viewer.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<div class="section" id="fit-custom-functions-into-gui">
+<h2>Fit Custom Functions into GUI<a class="headerlink" href="#fit-custom-functions-into-gui" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> provides easier way to integrate your function to <code class="docutils literal notranslate"><span class="pre">napari</span></code>.</p>
+<ul class="simple">
+<li><p>Example 1: Fit filament tips to sigmoid function</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span>
+<span class="linenos"> 2</span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">sg</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<span class="linenos"> 5</span>    <span class="sd">&quot;&quot;&quot;</span>
+<span class="linenos"> 6</span><span class="sd">    Sigmoid function.</span>
+<span class="linenos"> 7</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos"> 8</span>    <span class="k">return</span> <span class="n">a</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">x0</span><span class="p">)</span><span class="o">/</span><span class="n">sg</span><span class="p">))</span> <span class="o">+</span> <span class="n">b</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind</span>
+<span class="linenos">11</span><span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="n">gui</span><span class="p">,</span> <span class="n">ax</span><span class="p">):</span>
+<span class="linenos">12</span>    <span class="c1"># get line scan from viewer</span>
+<span class="linenos">13</span>    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>            <span class="c1"># get the first image</span>
+<span class="linenos">14</span>    <span class="n">line</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># get the last line in the last shapes layer</span>
+<span class="linenos">15</span>    <span class="n">scan</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">reslice</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>       <span class="c1"># line scan</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span>    <span class="c1"># fitting</span>
+<span class="linenos">18</span>    <span class="n">xdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
+<span class="linenos">19</span>    <span class="n">p0</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">xdata</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">scan</span><span class="p">)]</span>
+<span class="linenos">20</span>    <span class="n">params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">)</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span>    <span class="c1"># plot the raw profile and fit</span>
+<span class="linenos">23</span>    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scan</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lime&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="linenos">24</span>    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">)</span>
+<span class="linenos">25</span>    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">model</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">260</span><span class="p">)</span>
+<span class="linenos">26</span>
+<span class="linenos">27</span>    <span class="k">return</span> <span class="n">params</span>
+</pre></div>
+</div>
+<img alt="_images/line_scan.gif" src="_images/line_scan.gif" />
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="api.html" class="btn btn-neutral float-right" title="API References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="tutorial.html" class="btn btn-neutral float-left" title="Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Hanjin Liu.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
         </div>
       </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="api.html" title="API References"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="tutorial.html" title="Tutorial"
-             >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">impy 1.17.8 documentation</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">Viewer Tutorial</a></li> 
-      </ul>
-    </div>
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2021, Hanjin Liu.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.0.2.
-    </div>
-  </body>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
 </html>

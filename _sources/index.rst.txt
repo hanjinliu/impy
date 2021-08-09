@@ -14,7 +14,8 @@ Highlights
 - Automatic parallel batch processing using ``dask``.
 - You don't have to care about ``numpy`` / ``scipy`` on CPU, or ``cupy`` on GPU. Same code works for both processors.
 - n-D viewing, cropping, image annotation using ``napari``.
-- Easily integrate your own functions with ``@ip.bind``.
+- Easily integrate your custom functions with ``@ip.bind``.
+- Easily make a interactive GUI plugin from your custom functions with ``@ip.gui.bind``
 
 `Source code <https://github.com/hanjinliu/impy>`_
 
@@ -36,6 +37,17 @@ or
 
 Contents
 --------
+
+.. blockdiag::
+
+   blockdiag {
+      numpy.ndarray -> MetaArray -> HistoryArray -> LabeledArray -> ImgArray;
+      AxesMixin -> MetaArray;
+      MetaArray -> PropArray;
+      HistoryArray -> Label;
+      LabeledArray -> PhaseArray;
+   }
+
 
 .. toctree::
    :maxdepth: 1

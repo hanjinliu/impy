@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>impy.viewer.viewer &#8212; impy 1.17.8 documentation</title>
+    <title>impy.viewer.viewer &#8212; impy 1.19.5 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
     
@@ -26,7 +26,7 @@
         <li class="right" >
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.17.8 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.19.5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">impy.viewer.viewer</a></li> 
       </ul>
@@ -39,27 +39,42 @@
             
   <h1>Source code for impy.viewer.viewer</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">switch_slice</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">napari</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">..arrays</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">ip_array</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+<span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
+<span class="kn">from</span> <span class="nn">skimage.measure</span> <span class="kn">import</span> <span class="n">marching_cubes</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">.mouse</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">..utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span>
-<span class="kn">from</span> <span class="nn">.widgets</span> <span class="kn">import</span> <span class="n">_make_table_widget</span>
-<span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
-<span class="kn">from</span> <span class="nn">.._cupy</span> <span class="kn">import</span> <span class="n">asnumpy</span>
+<span class="kn">from</span> <span class="nn">.widgets</span> <span class="kn">import</span> <span class="n">TableWidget</span>
 
+<span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..arrays</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">ip_array</span><span class="p">,</span> <span class="n">aslazy</span> <span class="k">as</span> <span class="n">ip_aslazy</span><span class="p">,</span> <span class="n">imread</span> <span class="k">as</span> <span class="n">ip_imread</span><span class="p">,</span> <span class="n">lazy_imread</span> <span class="k">as</span> <span class="n">ip_lazy_imread</span><span class="p">,</span> <span class="n">read_meta</span>
+<span class="kn">from</span> <span class="nn">..utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span>
+<span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
 
 <span class="c1"># TODO: </span>
 <span class="c1"># - Layer does not remember the original data after c-split ... this will be solved after </span>
 <span class="c1">#   layer group is implemented in napari.</span>
 <span class="c1"># - 3D viewing in old viewer -&gt; new viewer responds. napari&#39;s bug.</span>
 <span class="c1"># - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019</span>
+<span class="c1"># - Embed plot: https://github.com/napari/napari/blob/master/examples/mpl_plot.py</span>
 
-        
+<div class="viewcode-block" id="change_theme"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.change_theme">[docs]</a><span class="k">def</span> <span class="nf">change_theme</span><span class="p">(</span><span class="n">viewer</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">napari.utils.theme</span> <span class="kn">import</span> <span class="n">get_theme</span><span class="p">,</span> <span class="n">register_theme</span>
+    <span class="n">theme</span> <span class="o">=</span> <span class="n">get_theme</span><span class="p">(</span><span class="s2">&quot;dark&quot;</span><span class="p">)</span>
+    <span class="n">theme</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">console</span><span class="o">=</span><span class="s2">&quot;rgb(20, 21, 22)&quot;</span><span class="p">,</span>
+                <span class="n">canvas</span><span class="o">=</span><span class="s2">&quot;#090909&quot;</span><span class="p">)</span>
+    <span class="n">register_theme</span><span class="p">(</span><span class="s2">&quot;night&quot;</span><span class="p">,</span> <span class="n">theme</span><span class="p">)</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">theme</span> <span class="o">=</span> <span class="s2">&quot;night&quot;</span></div>
+
 <div class="viewcode-block" id="napariViewers"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers">[docs]</a><span class="k">class</span> <span class="nc">napariViewers</span><span class="p">:</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -90,18 +105,53 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">viewer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The most front viewer you&#39;re using</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span><span class="p">]</span>
         
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">layers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Napari layer list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span>
     
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">image_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return all the image layers as a list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iter_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="s2">&quot;Image&quot;</span><span class="p">))</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">images</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return all the images as a list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">layer_to_impy_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> 
+                    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">iter_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="s2">&quot;Image&quot;</span><span class="p">))</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return all the images as a list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">layer_to_impy_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> 
+                    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">iter_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="s2">&quot;Points&quot;</span><span class="p">))</span>
+    
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Temporary results stored in the viewer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">results</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">selection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return selected layers&#39; data as impy objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="p">[</span><span class="n">layer_to_impy_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span> 
                 <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">selection</span><span class="p">]</span>
     
@@ -117,13 +167,10 @@
         <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">range</span><span class="p">)}</span>
     
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">front_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">front_image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">)</span>
     
 <div class="viewcode-block" id="napariViewers.start"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s2">&quot;impy&quot;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a napari window with name `key`.</span>
+<span class="sd">        Create a napari window with name ``key``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`key` must be str.&quot;</span><span class="p">)</span>
@@ -135,36 +182,23 @@
             <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">keybinds</span>
         
         <span class="n">viewer</span> <span class="o">=</span> <span class="n">napari</span><span class="o">.</span><span class="n">Viewer</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">change_theme</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span>
         
         <span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">file_menu</span><span class="o">.</span><span class="n">addSeparator</span><span class="p">()</span>
         <span class="n">default_viewer_settings</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span>
         <span class="n">load_mouse_callbacks</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span>
+        <span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">function_menu</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">main_menu</span><span class="o">.</span><span class="n">addMenu</span><span class="p">(</span><span class="s2">&quot;&amp;Functions&quot;</span><span class="p">)</span>
         <span class="n">load_widgets</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span>
         <span class="c1"># Add event</span>
         <span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">inserted</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">upon_add_layer</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">viewer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span> <span class="o">=</span> <span class="n">key</span>
-        <span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">n_table</span> <span class="o">=</span> <span class="mi">0</span>
+
         <span class="k">return</span> <span class="kc">None</span></div>
-    
-<div class="viewcode-block" id="napariViewers.get_data"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Convert layer to real data.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        layer : napari.layers.Layer</span>
-<span class="sd">            Input layer.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        ImgArray, Label, MarkerFrame or TrackFrame, or Shape features.</span>
-<span class="sd">        &quot;&quot;&quot;</span> 
-        <span class="k">return</span> <span class="n">layer_to_impy_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span></div>
         
 <div class="viewcode-block" id="napariViewers.add"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Add images, points, labels, tracks or graph to viewer.</span>
+<span class="sd">        Add images, points, labels, tracks etc to viewer.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -181,40 +215,213 @@
             <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span> <span class="o">=</span> <span class="n">title</span>
-            
+        
+        <span class="c1"># Add image and its labels</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_image</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">DataList</span><span class="p">):</span>
-            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">each</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+        
+        <span class="c1"># Add points</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">MarkerFrame</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_points</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Add labels</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Label</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_labels</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Add tracks</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">TrackFrame</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_tracks</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Add path</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">PathFrame</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_paths</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">,</span> <span class="n">DataDict</span><span class="p">)):</span>
+        
+        <span class="c1"># Add a table</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">)):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_properties</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Add a lazy-loaded image</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">LazyImgArray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">gb</span> <span class="o">&gt;</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;MAX_GB&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">ndisplay</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">MemoryError</span><span class="p">(</span><span class="s2">&quot;Cannot send large files while the viewer is 3D mode.&quot;</span><span class="p">)</span>
             <span class="k">with</span> <span class="n">Progress</span><span class="p">(</span><span class="s2">&quot;Sending Dask arrays to napari&quot;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_add_dask</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Add an array as an image</span>
         <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_add_image</span><span class="p">(</span><span class="n">ip_array</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+        
+        <span class="c1"># Add an dask array as an image</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">is</span> <span class="n">da</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">Array</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_image</span><span class="p">(</span><span class="n">ip_aslazy</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+        
+        <span class="c1"># Add an image from a path</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path does not exists: </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">/</span><span class="mf">1e9</span>
+            <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;MAX_GB&quot;</span><span class="p">]:</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="n">ip_imread</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="n">ip_lazy_imread</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>                
+            
+        <span class="c1"># Add many objects of same type</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">DataList</span><span class="p">):</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">each</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+        
         <span class="k">elif</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not interpret type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="napariViewers.preview"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers.preview">[docs]</a>    <span class="k">def</span> <span class="nf">preview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">downsample_factor</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Preview a large image with a strided image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str</span>
+<span class="sd">            Path to the image file.</span>
+<span class="sd">        downsample_factor : int, default is 4</span>
+<span class="sd">            Image value is sampled every ``downsample_factor`` pixels.</span>
+<span class="sd">        dims : str or int, optional</span>
+<span class="sd">            Axes along which values will be down-sampled.</span>
+<span class="sd">        title : str, optional</span>
+<span class="sd">            Title of the new viewer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;impy&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span>
                 
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span> <span class="o">=</span> <span class="n">title</span>
+        
+        <span class="k">if</span> <span class="n">dims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="n">read_meta</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="s2">&quot;zyx&quot;</span> <span class="k">if</span> <span class="s2">&quot;z&quot;</span> <span class="ow">in</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;axes&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;yx&quot;</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="s2">&quot;zyx&quot;</span> <span class="k">if</span> <span class="n">dims</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="s2">&quot;yx&quot;</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">downsample_factor</span><span class="o">//</span><span class="mi">2</span><span class="si">}</span><span class="s2">::</span><span class="si">{</span><span class="n">downsample_factor</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">ip_imread</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">img</span><span class="o">.</span><span class="n">set_scale</span><span class="p">({</span><span class="n">a</span><span class="p">:</span> <span class="n">img</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">*</span><span class="n">downsample_factor</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">})</span>
+        <span class="n">trs</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="n">downsample_factor</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">ifnot</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">trs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">trs</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">/</span><span class="n">downsample_factor</span>
+        <span class="n">add_labeledarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;[Prev]</span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="n">trs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="kc">None</span></div>
+            
+        
+<div class="viewcode-block" id="napariViewers.add_surface"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers.add_surface">[docs]</a>    <span class="k">def</span> <span class="nf">add_surface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image3d</span><span class="p">:</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step_size</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a surface layer from a 3D image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        image3d : LabeledArray</span>
+<span class="sd">            3D image from which surface will be generated</span>
+<span class="sd">        level, step_size, mask : </span>
+<span class="sd">            Passed to ``skimage.measure.marching_cubes``</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="n">verts</span><span class="p">,</span> <span class="n">faces</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">marching_cubes</span><span class="p">(</span><span class="n">image3d</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> 
+                                                 <span class="n">step_size</span><span class="o">=</span><span class="n">step_size</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">image3d</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Surf]</span><span class="si">{</span><span class="n">image3d</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">colormap</span><span class="o">=</span><span class="s2">&quot;magma&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">add_surface</span><span class="p">((</span><span class="n">verts</span><span class="p">,</span> <span class="n">faces</span><span class="p">,</span> <span class="n">values</span><span class="p">),</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="napariViewers.bind"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.napariViewers.bind">[docs]</a>    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;F1&quot;</span><span class="p">,</span> <span class="n">progress</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decorator that makes it easy to call custom function on the viewer. Every time &quot;F1&quot; is pushed, </span>
+<span class="sd">        ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to</span>
+<span class="sd">        ``self.results`` if exists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        func : callable</span>
+<span class="sd">            Function to be called when ``key`` is pushed. This function must accept ``func(self)``, or</span>
+<span class="sd">            ``func(self, self.ax)`` if you want to plot something inside the function. A figure widget will</span>
+<span class="sd">            be added to the viewer unless ``func`` takes only one argument.</span>
+<span class="sd">        key : str, default is &quot;F1&quot;</span>
+<span class="sd">            Key binding.</span>
+<span class="sd">        progress : bool, default is False</span>
+<span class="sd">            If True, progress will be shown in the console like ``ImgArray``.</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        1. Calculate mean intensity of images.</span>
+<span class="sd">        </span>
+<span class="sd">            &gt;&gt;&gt; @ip.gui.bind</span>
+<span class="sd">            &gt;&gt;&gt; def measure(gui):</span>
+<span class="sd">            &gt;&gt;&gt;     return gui.images[0].mean()</span>
+<span class="sd">        </span>
+<span class="sd">        2. Plot line scan of 2D image.</span>
+<span class="sd">        </span>
+<span class="sd">            &gt;&gt;&gt; @ip.gui.bind</span>
+<span class="sd">            &gt;&gt;&gt; def profile(gui, ax=None)</span>
+<span class="sd">            &gt;&gt;&gt;     img = gui.images[0]</span>
+<span class="sd">            &gt;&gt;&gt;     line = gui.layers[-1].data[-1] # must be line!</span>
+<span class="sd">            &gt;&gt;&gt;     with ip.SetConst(&quot;SHOW_PROGRESS&quot;, False):</span>
+<span class="sd">            &gt;&gt;&gt;         scan = img.reslice(line)</span>
+<span class="sd">            &gt;&gt;&gt;     ax.plot(scan)</span>
+<span class="sd">            &gt;&gt;&gt;     return None</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;func must be callable.&quot;</span><span class="p">)</span>
+            
+            <span class="n">nparams</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">nparams</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nd">@self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">viewer</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="n">Progress</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s2">&quot;stdout&quot;</span> <span class="k">if</span> <span class="n">progress</span> <span class="k">else</span> <span class="kc">None</span><span class="p">):</span>
+                        <span class="n">out</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                    <span class="n">win</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">window</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">win</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">win</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+                    <span class="n">viewer</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; returned </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2">&quot;</span>
+            
+            <span class="k">elif</span> <span class="n">nparams</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;ax&quot;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_add_figure</span><span class="p">()</span>
+                <span class="nd">@self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">viewer</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">cla</span><span class="p">()</span>
+                    <span class="k">with</span> <span class="n">Progress</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s2">&quot;stdout&quot;</span> <span class="k">if</span> <span class="n">progress</span> <span class="k">else</span> <span class="kc">None</span><span class="p">):</span>
+                        <span class="n">out</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+                    <span class="n">win</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">window</span>
+                    <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                            <span class="n">win</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">win</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+                    <span class="n">viewer</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; returned </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2">&quot;</span>
+                
+            <span class="k">return</span> <span class="n">f</span>
+        
+        <span class="k">if</span> <span class="n">func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">wrapper</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">)</span></div>
+    
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # </span>
     <span class="c1">#    Others</span>
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # </span>
-    
-    <span class="k">def</span> <span class="nf">_iter_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">iter_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">)</span>
-    
-    <span class="k">def</span> <span class="nf">_iter_selected_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">iter_selected_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">)</span>
         
     <span class="k">def</span> <span class="nf">_add_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">layer</span> <span class="o">=</span> <span class="n">add_labeledarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -223,7 +430,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_add_labels</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_labels</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;destination_image&quot;</span><span class="p">:</span> <span class="n">img</span><span class="p">})</span>
         <span class="k">return</span> <span class="kc">None</span>
     
     <span class="k">def</span> <span class="nf">_add_dask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span><span class="n">LazyImgArray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -234,16 +441,16 @@
         <span class="k">if</span> <span class="s2">&quot;contrast_limits&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="c1"># contrast limits should be determined quickly.</span>
             <span class="n">leny</span><span class="p">,</span> <span class="n">lenx</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
-            <span class="n">sample</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">img</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">::</span><span class="n">leny</span><span class="o">//</span><span class="mi">3</span><span class="p">,</span> <span class="p">::</span><span class="n">lenx</span><span class="o">//</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">sample</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">img</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">::</span><span class="n">leny</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">leny</span><span class="p">),</span> <span class="p">::</span><span class="n">lenx</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">lenx</span><span class="p">)]</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;contrast_limits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">()),</span> 
                                          <span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">())]</span>
 
         <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;No-Name&quot;</span> <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">img</span><span class="o">.</span><span class="n">name</span>
 
         <span class="k">if</span> <span class="n">chn_ax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;[Preview][C</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">))]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;[Lazy][C</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">))]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;[Preview]&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;[Lazy]&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">]</span>
 
         <span class="n">layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">channel_axis</span><span class="o">=</span><span class="n">chn_ax</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> 
                                       <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="k">else</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -292,7 +499,7 @@
             <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
             
         <span class="k">for</span> <span class="n">lbl</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lbls</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="n">opacity</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">lbl</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="n">opacity</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="nf">_add_tracks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">track</span><span class="p">:</span><span class="n">TrackFrame</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -326,31 +533,30 @@
         <span class="k">return</span> <span class="kc">None</span>
     
     <span class="k">def</span> <span class="nf">_add_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">:</span><span class="n">PropArray</span><span class="o">|</span><span class="n">DataDict</span><span class="o">|</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-        <span class="n">QtViewerDockWidget</span> <span class="o">=</span> <span class="n">napari</span><span class="o">.</span><span class="n">_qt</span><span class="o">.</span><span class="n">widgets</span><span class="o">.</span><span class="n">qt_viewer_dock_widget</span><span class="o">.</span><span class="n">QtViewerDockWidget</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">):</span>
             <span class="n">df</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">as_frame</span><span class="p">()</span>
             <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">table</span> <span class="o">=</span> <span class="n">_make_table_widget</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">prop</span><span class="o">.</span><span class="n">propname</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">DataDict</span><span class="p">):</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">pr</span> <span class="ow">in</span> <span class="n">prop</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">df</span> <span class="o">=</span> <span class="n">pr</span><span class="o">.</span><span class="n">as_frame</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">data</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="n">k</span><span class="p">})</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;f&quot;</span><span class="p">]</span>
-            <span class="n">table</span> <span class="o">=</span> <span class="n">_make_table_widget</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">TableWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">prop</span><span class="o">.</span><span class="n">propname</span><span class="p">)</span>
+            
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-            <span class="n">table</span> <span class="o">=</span> <span class="n">_make_table_widget</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">TableWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">prop</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`prop` cannot be </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                
-        <span class="n">widget</span> <span class="o">=</span> <span class="n">QtViewerDockWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">qt_viewer</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Table&quot;</span><span class="p">,</span>
-                                    <span class="n">area</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">add_vertical_stretch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">_add_viewer_dock_widget</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">tabify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">n_table</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">n_table</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">add_dock_widget</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        
         <span class="k">return</span> <span class="kc">None</span>
 
+    <span class="k">def</span> <span class="nf">_add_figure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="kn">from</span> <span class="nn">matplotlib.backends.backend_qt5agg</span> <span class="kn">import</span> <span class="n">FigureCanvas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">add_dock_widget</span><span class="p">(</span><span class="n">FigureCanvas</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">),</span> 
+                                            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Plot&quot;</span><span class="p">,</span>
+                                            <span class="n">area</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span>
+                                            <span class="n">allowed_areas</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        
     <span class="k">def</span> <span class="nf">_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;impy&quot;</span><span class="p">):</span>
         <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
@@ -365,7 +571,6 @@
     <span class="n">viewer</span><span class="o">.</span><span class="n">scale_bar</span><span class="o">.</span><span class="n">ticks</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">scale_bar</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;FONT_SIZE_FACTOR&quot;</span><span class="p">]</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">text_overlay</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">viewer</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">colored</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">cmap</span> <span class="o">=</span> <span class="n">ColorCycle</span><span class="p">()</span>
     <span class="k">return</span> <span class="kc">None</span></div>
@@ -380,9 +585,9 @@
         <span class="n">viewer</span><span class="o">.</span><span class="n">mouse_move_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mouse</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="load_widgets"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.viewer.load_widgets">[docs]</a><span class="k">def</span> <span class="nf">load_widgets</span><span class="p">(</span><span class="n">viewer</span><span class="p">):</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">widgets</span>
-    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">widgets</span><span class="o">.</span><span class="n">__all__</span><span class="p">:</span>
-        <span class="nb">getattr</span><span class="p">(</span><span class="n">widgets</span><span class="p">,</span> <span class="n">f</span><span class="p">)(</span><span class="n">viewer</span><span class="p">)</span></div>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_widgets</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">_widgets</span><span class="o">.</span><span class="n">__all__</span><span class="p">:</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">_widgets</span><span class="p">,</span> <span class="n">f</span><span class="p">)(</span><span class="n">viewer</span><span class="p">)</span></div>
 
 </pre></div>
 
@@ -396,7 +601,7 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -415,14 +620,14 @@
         <li class="right" >
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.17.8 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">impy 1.19.5 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">impy.viewer.viewer</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2021, Hanjin Liu.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.0.2.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.1.2.
     </div>
   </body>
 </html>
