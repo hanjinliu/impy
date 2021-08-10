@@ -126,12 +126,17 @@ class napariViewers:
     
     @property
     def fig(self):
+        """
+        ``matplotlib.figure.Figure`` object bound to the viewer.
+        """        
         return self._fig
     
     @property
     def ax(self):
+        """
+        ``matplotlib.axes._subplots.AxesSubplot`` object bound to the viewer.
+        """        
         return self._ax
-    
     
     def start(self, key:str="impy"):
         """
@@ -199,6 +204,21 @@ class napariViewers:
         -------
         ImgArray, Label, MarkerFrame or TrackFrame, np.ndarray, or list of one of them.
             impy object(s) that satisfies the options.
+        
+        Examples
+        --------
+        1. Get the front image.
+        
+            >>> ip.gui.get("image")
+        
+        2. Get all the selected images as a list.
+            
+            >>> ip.gui.get("image", layer_state="selected", returns="all")
+            
+        3. Get all the lines from the front visible shapes layer.
+            
+            >>> ip.gui.get("line", layer_state="visible") 
+            
         """        
         if layer_state == "selected":
             layer_list = list(self.viewer.layers.selection)
@@ -444,7 +464,7 @@ class napariViewers:
             add_ax = f"{gui_sym}.fig.add_subplot(" in source
             
             self._add_parameter_container(params)
-                
+            
             if use_figure_canvas:
                 if not hasattr(self, "fig") or not hasattr(self, "ax"):
                     self._add_figure()
@@ -611,14 +631,28 @@ class napariViewers:
         return None
 
     def _add_figure(self):
+        """
+        Add figure canvas to the viewer.
+        """        
+        import matplotlib as mpl
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_qt5agg import FigureCanvas
+        
+        # It first seems that we can block inline plot with mpl.rc_context. Strangely it has no effect.
+        # We have to call mpl.use to block it. 
+        # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
+        
+        backend = mpl.get_backend() 
+        mpl.use("Agg")
+        
         self._fig = plt.figure()
         self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
                                            name="Plot",
                                            area="right",
                                            allowed_areas=["right"])
         self._ax = self._fig.add_subplot(111)
+        
+        mpl.use(backend)
         return None
     
     def _add_parameter_container(self, params:dict[str: inspect.Parameter]):
