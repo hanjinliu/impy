@@ -2,6 +2,7 @@ from __future__ import annotations
 import napari
 import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction
+
 from .widgets import *
 from .utils import *
 from .._const import SetConst
@@ -180,7 +181,7 @@ def layer_template_matcher(viewer:"napari.viewer.Viewer"):
         return None
     
     viewer.window.function_menu.addAction(action)
-    return None        
+    return None   
 
 def function_handler(viewer:"napari.viewer.Viewer"):
     action = QAction("Function Handler", viewer.window._qt_window)

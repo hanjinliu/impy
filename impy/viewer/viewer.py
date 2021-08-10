@@ -124,6 +124,14 @@ class napariViewers:
         d = self.viewer.dims
         return {a: r[2] for a, r in zip(d.axis_labels, d.range)}
     
+    @property
+    def fig(self):
+        return self._fig
+    
+    @property
+    def ax(self):
+        return self._ax
+    
     
     def start(self, key:str="impy"):
         """
@@ -142,10 +150,10 @@ class napariViewers:
         change_theme(viewer)
         
         viewer.window.file_menu.addSeparator()
-        default_viewer_settings(viewer)
-        load_mouse_callbacks(viewer)
+        _default_viewer_settings(viewer)
+        _load_mouse_callbacks(viewer)
         viewer.window.function_menu = viewer.window.main_menu.addMenu("&Functions")
-        load_widgets(viewer)
+        _load_widgets(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
         self._viewers[key] = viewer
@@ -422,7 +430,8 @@ class napariViewers:
             >>>     return None
             
         """        
-        # TODO: generate parameter widget using magicgui if func takes more than one input.
+        # TODO: plt.plot should be allowed like https://github.com/napari/napari/issues/1005.
+        
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
@@ -432,22 +441,31 @@ class napariViewers:
             gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
             use_figure_canvas = f"{gui_sym}.ax." in source
+            add_ax = f"{gui_sym}.fig.add_subplot(" in source
             
             if use_figure_canvas:
                 if not hasattr(self, "fig") or not hasattr(self, "ax"):
                     self._add_figure()
                 else:
-                    self.fig.clf()
-                    self.ax = self.fig.add_subplot(111)
                     self.viewer.window._dock_widgets["Plot"].show()
+            
+            if len(params) > 1:
+                self._add_parameter_container(f)
+                    
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
                 if use_figure_canvas:
                     self.fig.clf()
-                    self.ax = self.fig.add_subplot(111)
+                    if not add_ax:
+                        self._ax = self.fig.add_subplot(111)
                 
+                if len(params) > 1:
+                    kwargs = {wid.name: wid.value for wid in self._container}
+                else:
+                    kwargs = {}
+                    
                 with Progress(f.__name__, out="stdout" if progress else None):
-                    out = f(self)
+                    out = f(self, **kwargs)
                 
                 if use_figure_canvas:
                     self.fig.canvas.draw()
@@ -459,6 +477,7 @@ class napariViewers:
                     else:
                         win.results = [out]
                 viewer.status = f"'{f.__name__}' returned {out}"
+                return None
             
             return f
         
@@ -598,12 +617,34 @@ class napariViewers:
     def _add_figure(self):
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_qt5agg import FigureCanvas
-        self.fig = plt.figure()
-        self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
-                                            name="Plot",
-                                            area="right",
-                                            allowed_areas=["right"])
-        self.ax = self.fig.add_subplot(111)
+        self._fig = plt.figure()
+        self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
+                                           name="Plot",
+                                           area="right",
+                                           allowed_areas=["right"])
+        self._ax = self._fig.add_subplot(111)
+        return None
+    
+    def _add_parameter_container(self, func):
+        from magicgui.widgets import Container, create_widget
+        name = "Parameter Controller"
+        params = inspect.signature(func).parameters
+        container = Container(name=name)
+        for i, (sym, param) in enumerate(params.items()):
+            if i == 0:
+                continue
+            widget = create_widget(param.default, param.annotation, name=sym, param_kind=param.kind)
+            container.append(widget)
+        
+        if name in self.viewer.window._dock_widgets:
+            dock = self.viewer.window._dock_widgets[name]
+            self.viewer.window.remove_dock_widget(dock)
+        
+        self.viewer.window.add_dock_widget(container, area="right", name=name)
+        
+        self._container = container
+        return None
+            
         
     def _name(self, name="impy"):
         i = 0
@@ -614,7 +655,7 @@ class napariViewers:
         return name
     
     
-def default_viewer_settings(viewer):
+def _default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
     viewer.scale_bar.font_size = 8 * Const["FONT_SIZE_FACTOR"]
@@ -623,7 +664,7 @@ def default_viewer_settings(viewer):
     viewer.window.cmap = ColorCycle()
     return None
 
-def load_mouse_callbacks(viewer):
+def _load_mouse_callbacks(viewer):
     from . import mouse
     for f in mouse.mouse_drag_callbacks:
         viewer.mouse_drag_callbacks.append(getattr(mouse, f))
@@ -632,8 +673,7 @@ def load_mouse_callbacks(viewer):
     for f in mouse.mouse_move_callbacks:
         viewer.mouse_move_callbacks.append(getattr(mouse, f))
 
-def load_widgets(viewer):
+def _load_widgets(viewer):
     from . import _widgets
     for f in _widgets.__all__:
         getattr(_widgets, f)(viewer)
-
