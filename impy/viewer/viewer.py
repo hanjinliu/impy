@@ -443,15 +443,14 @@ class napariViewers:
             use_figure_canvas = f"{gui_sym}.ax." in source
             add_ax = f"{gui_sym}.fig.add_subplot(" in source
             
+            self._add_parameter_container(params)
+                
             if use_figure_canvas:
                 if not hasattr(self, "fig") or not hasattr(self, "ax"):
                     self._add_figure()
                 else:
                     self.viewer.window._dock_widgets["Plot"].show()
-            
-            if len(params) > 1:
-                self._add_parameter_container(f)
-                    
+                
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
                 if use_figure_canvas:
@@ -459,10 +458,7 @@ class napariViewers:
                     if not add_ax:
                         self._ax = self.fig.add_subplot(111)
                 
-                if len(params) > 1:
-                    kwargs = {wid.name: wid.value for wid in self._container}
-                else:
-                    kwargs = {}
+                kwargs = {wid.name: wid.value for wid in self._container}
                     
                 with Progress(f.__name__, out="stdout" if progress else None):
                     out = f(self, **kwargs)
@@ -625,24 +621,33 @@ class napariViewers:
         self._ax = self._fig.add_subplot(111)
         return None
     
-    def _add_parameter_container(self, func):
+    def _add_parameter_container(self, params:dict[str: inspect.Parameter]):
         from magicgui.widgets import Container, create_widget
-        name = "Parameter Controller"
-        params = inspect.signature(func).parameters
-        container = Container(name=name)
-        for i, (sym, param) in enumerate(params.items()):
-            if i == 0:
-                continue
-            widget = create_widget(param.default, param.annotation, name=sym, param_kind=param.kind)
-            container.append(widget)
-        
-        if name in self.viewer.window._dock_widgets:
-            dock = self.viewer.window._dock_widgets[name]
+        widget_name = "Parameter Controller"
+        self._container = Container(name=widget_name)
+                
+        if widget_name in self.viewer.window._dock_widgets:
+            # Call clear() is faster but the previous parameter labels are left on the widget with
+            # unknown reason. Create new widget for now.
+            dock = self.viewer.window._dock_widgets[widget_name]
             self.viewer.window.remove_dock_widget(dock)
         
-        self.viewer.window.add_dock_widget(container, area="right", name=name)
+        if len(params) == 1:
+            return None
         
-        self._container = container
+        self.viewer.window.add_dock_widget(self._container, area="right", name=widget_name)
+            
+        for i, (name, param) in enumerate(params.items()):
+            if i == 0:
+                continue
+            value = None if param.default is inspect._empty else param.default
+            
+            widget = create_widget(value=value, annotation=param.annotation, 
+                                   name=name, param_kind=param.kind)
+            self._container.append(widget)
+        
+        self.viewer.window._dock_widgets[widget_name].show()
+        
         return None
             
         

@@ -45,10 +45,6 @@ class bind:
         Dimension of image that the original function supports. If None, then it is assumed to
         support both 2 and 3 dimensional images and automatically determined by the universal
         `dims_to_spatial_axes` method.
-    mapping : dict of str -> (str, callable), optional
-        If given, keyword arguments are converted using this mapping before passed to `func`. This
-        keyword is used for modifing original function without wrapping it. For more detail see
-        Example (2).
 
     Examples
     --------
