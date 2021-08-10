@@ -135,15 +135,23 @@ class napariViewers:
     def fig(self):
         """
         ``matplotlib.figure.Figure`` object bound to the viewer.
-        """        
-        return self._fig
+        """
+        try:
+            return self._fig
+        except AttributeError:
+            self._add_figure()
+            return self._fig
     
     @property
     def ax(self):
         """
         ``matplotlib.axes._subplots.AxesSubplot`` object bound to the viewer.
         """        
-        return self._ax
+        try:
+            return self._ax
+        except AttributeError:
+            self._add_figure()
+            return self._ax
     
     def start(self, key:str="impy"):
         """
@@ -488,7 +496,7 @@ class napariViewers:
                 if not hasattr(self, "fig") or not hasattr(self, "ax"):
                     self._add_figure()
                 else:
-                    self.viewer.window._dock_widgets["Plot"].show()
+                    self.viewer.window._dock_widgets["Main Plot"].show()
                 
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
@@ -692,7 +700,6 @@ class napariViewers:
         """
         Add figure canvas to the viewer.
         """        
-        import matplotlib as mpl
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_qt5agg import FigureCanvas
         
@@ -702,7 +709,7 @@ class napariViewers:
         with canvas_plot():
             self._fig = plt.figure()
             self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
-                                               name="Plot",
+                                               name="Main Plot",
                                                area="right",
                                                allowed_areas=["right"])
             self._ax = self._fig.add_subplot(111)
