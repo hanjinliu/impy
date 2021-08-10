@@ -110,6 +110,21 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
     ip.gui.get("image", layer_state="selected", returns="all") # get all the selected images as a list
     ip.gui.get("line", layer_state="visible") # get all the lines from the front visible shapes layer.
 
+Get Current Slice
+-----------------
+
+We usually want to get a slice of an image stack from the viewer. However, there is no straightforward way to get the image
+slice being displayed on the viewer. ``impy`` provides a simple way to do that, with ``ip.gui.current_slice``.
+
+.. code-block:: python
+
+    ip.gui.current_slice # Out: (4, slice(None, None, None), slice(None, None, None))
+
+.. code-block:: python
+
+    # get the front image slice
+    ip.gui.get("image")[ip.gui.current_slice]
+
 
 Mouse Callbacks
 ---------------
@@ -198,8 +213,8 @@ This is the most simple but practical example of binding a function that only ad
         
         y0 = int(y-4)
         x0 = int(x-4)
-        img0 = img[...,y0:y0+9, x0:x0+9] # image region around cursor
-        img0 = img0 - img0.mean()        # normalize
+        img0 = img[y0:y0+9, x0:x0+9] # image region around cursor
+        img0 = img0 - img0.mean()    # normalize
 
         # calculate centroid
         M = moments(img0.value)

@@ -83,11 +83,11 @@ class AxesMixin:
         """
         return html
         
-    def axisof(self, axisname):
-        if type(axisname) is int:
-            return axisname
+    def axisof(self, symbol):
+        if type(symbol) is int:
+            return symbol
         else:
-            return self.axes.find(axisname)
+            return self.axes.find(symbol)
     
     
     def sizeof(self, axis:str):

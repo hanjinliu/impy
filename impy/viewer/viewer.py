@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os
-from typing import Any
+from typing import Any, NewType
 import napari
 import pandas as pd
 import numpy as np
@@ -28,12 +28,15 @@ from .._const import Const
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
 # - area=None for new dock widgets
 
-def change_theme(viewer):
-    from napari.utils.theme import get_theme, register_theme
-    theme = get_theme("dark")
-    theme.update(console="rgb(20, 21, 22)",
-                canvas="#0F0F0F")
-    register_theme("night", theme)
+ImpyObject = NewType("ImpyObject", Any)
+
+def _change_theme(viewer):
+    from napari.utils.theme import get_theme, register_theme, available_themes
+    if "night" not in available_themes():
+        theme = get_theme("dark")
+        theme.update(console="rgb(20, 21, 22)",
+                    canvas="#0F0F0F")
+        register_theme("night", theme)
     viewer.theme = "night"
 
 class napariViewers:
@@ -41,8 +44,8 @@ class napariViewers:
     The controller of ``napari.Viewer``s from ``impy``. Always access by ``ip.gui``.
     """    
     def __init__(self):
-        self._viewers = {}
-        self._front_viewer = None
+        self._viewers:dict[str:"napari.viewer.Viewer"] = {}
+        self._front_viewer:str = None
     
     def __repr__(self):
         w = "".join([f"<{k}>" for k in self._viewers.keys()])
@@ -67,14 +70,14 @@ class napariViewers:
         return self
     
     @property
-    def viewer(self):
+    def viewer(self) -> "napari.viewer.Viewer":
         """
         The most front viewer you're using
         """        
         return self._viewers[self._front_viewer]
         
     @property
-    def layers(self):
+    def layers(self) -> "napari.components.LayerList":
         """
         Napari layer list. Identical to ``ip.gui.viewer.layers``.
         """        
@@ -95,14 +98,17 @@ class napariViewers:
         return tuple(current_step)
     
     @property
-    def results(self):
+    def results(self) -> Any:
         """
         Temporary results stored in the viewer.
         """        
-        return self.viewer.window.results
+        try:
+            return self.viewer.window.results
+        except AttributeError:
+            raise AttributeError("Viewer does not have temporary result.")
     
     @property
-    def selection(self) -> list[Any]:
+    def selection(self) -> list[ImpyObject]:
         """
         Return selected layers' data as a list of impy objects.
         """        
@@ -152,7 +158,7 @@ class napariViewers:
             from . import keybinds
         
         viewer = napari.Viewer(title=key)
-        change_theme(viewer)
+        _change_theme(viewer)
         
         viewer.window.file_menu.addSeparator()
         _default_viewer_settings(viewer)
@@ -166,7 +172,7 @@ class napariViewers:
 
         return None
 
-    def get(self, kind:str="image", layer_state:str="none", returns:str="last") -> Any|list[Any]:
+    def get(self, kind:str="image", layer_state:str="any", returns:str="last") -> ImpyObject|list[ImpyObject]:
         """
         Simple way to get impy object from viewer.
 
@@ -186,12 +192,12 @@ class napariViewers:
                 - "polygon": Polygon shapes in Shapes layer.
                 - "ellipse": Ellipse shapes in Shapes layer.
                 
-        layer_state : {"selected", "visible", "none"}, default is "none"
+        layer_state : {"selected", "visible", "any"}, default is "any"
             How to filter layer list.
             
                 - "selected": Only selected layers will be searched.
                 - "visible": Only visible layers will be searched.
-                - "none": All the layers will be searched.    
+                - "any": All the layers will be searched.    
                 
         returns : {"first", "last", "all"}
             What will be returned in case that there are multiple layers/shapes.
@@ -224,10 +230,10 @@ class napariViewers:
             layer_list = list(self.viewer.layers.selection)
         elif layer_state == "visible":
             layer_list = [layer for layer in self.viewer.layers if layer.visible]
-        elif layer_state == "none":
+        elif layer_state == "any":
             layer_list = self.viewer.layers
         else:
-            raise ValueError("`filter` must be 'selected', 'visible' or 'none'")
+            raise ValueError("`filter` must be 'selected', 'visible' or 'any'")
             
         kind = kind.capitalize()
         out = []
@@ -258,6 +264,7 @@ class napariViewers:
                 out = out[-1]
             elif returns != "all":
                 raise ValueError("`returns` must be 'first', 'last' or 'all'")
+            
         except IndexError:
             if layer_state != "none":
                 msg = f"No {layer_state} {kind.lower()} found in the viewer layer list."
@@ -268,13 +275,13 @@ class napariViewers:
         return out
         
         
-    def add(self, obj:Any=None, title:str=None, **kwargs):
+    def add(self, obj:ImpyObject=None, title:str=None, **kwargs):
         """
         Add images, points, labels, tracks etc to viewer.
 
         Parameters
         ----------
-        obj : Any
+        obj : ImpyObject
             Object to add.
         title : str, optional
             Title (key) of the viewer to add object(s).
@@ -413,7 +420,7 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key:str="F1", progress:bool=False):
+    def bind(self, func=None, key:str="F1", progress:bool=False, allowed_dims:int|tuple[int, ...]=(2, 3)):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
         ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to
@@ -429,6 +436,8 @@ class napariViewers:
             Key binding.
         progress : bool, default is False
             If True, progress will be shown in the console like ``ImgArray``.
+        allowed_dims : int or tuple of int, default is (2, 3)
+            Function will not be called if the number of displayed dimensions does not match it.
         
         Examples
         --------
@@ -452,6 +461,11 @@ class napariViewers:
         """        
         # TODO: plt.plot should be allowed like https://github.com/napari/napari/issues/1005.
         import matplotlib as mpl
+        if isinstance(allowed_dims, int):
+            allowed_dims = (allowed_dims,)
+        else:
+            allowed_dims = tuple(allowed_dims)
+            
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
@@ -473,6 +487,9 @@ class napariViewers:
                 
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
+                if not viewer.dims.ndisplay in allowed_dims:
+                    return None
+                
                 if use_figure_canvas:
                     self.fig.clf()
                     if not add_ax:
@@ -502,6 +519,33 @@ class napariViewers:
             return wrapper
         else:
             return wrapper(func)
+    
+    def goto(self, **kwargs) -> tuple[int, ...]:
+        """
+        Change the current step of the viewer.
+
+        Examples
+        --------
+        1. Go to t=3.
+        
+            >>> ip.gui.goto(t=3)
+        
+        2. Go to t=3 and z=12. 
+        
+            >>> ip.gui.goto(t=3, z=12)
+            
+        """        
+        step = list(self.viewer.dims.current_step)
+        for axis, ind in kwargs.items():
+            i = self.axisof(axis)
+            step[i] = ind
+        
+        step = tuple(step)
+        self.viewer.dims.current_step = step
+        return step
+
+    def axisof(self, symbol:str) -> int:
+        return self.axes.find(symbol)
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     #    Others
