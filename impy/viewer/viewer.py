@@ -684,8 +684,7 @@ class napariViewers:
         
         return None
             
-        
-    def _name(self, name="impy"):
+    def _name(self, name="impy"):        
         i = 0
         existing = self._viewers.keys()
         while name in existing:

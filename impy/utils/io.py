@@ -87,25 +87,6 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     
     return out
 
-def open_nd2(path:str, return_img:bool=False, memmap:bool=False):
-    # TODO: How to read z-scale?
-    from nd2reader import ND2Reader
-    with ND2Reader(path) as nd2:
-        nd2.parser._raw_metadata        
-        ijmeta = {"unit": "um"}
-        axes = ""
-        for a, l in nd2.sizes.items():
-            if l > 1:
-                axes += a
-        dx = nd2.metadata["pixel_microns"]
-        tags = {}
-        tags["XResolution"] = [1, dx]
-        tags["YResolution"] = [1, dx]
-        out = {"axes": None, "ijmeta": ijmeta, "history": [], "tags": tags}
-        if return_img:
-            out["image"] = np.asarray(nd2)
-    
-    return out
 
 def open_as_dask(path:str, chunks):
     meta, img = open_img(path, memmap=True)

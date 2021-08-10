@@ -171,7 +171,56 @@ to do that by getting properties of the viewer for every function call. ``impy``
 your function to ``napari``. Just decorate your function with `@ip.gui.bind` and call function with keybind "F1". 
 You can also plot on the figure canvas inside `napari`.
 
-*Example*: Fit filament tips to sigmoid function
+Examples
+^^^^^^^^ 
+
+1. Marking single molecule movie with centroid-aided auto centering.
+
+This is the most simple but practical example of binding a function that only add new points in the viewer.
+
+.. code-block:: python
+    :linenos:
+
+    from skimage.measure import moments
+
+    @ip.gui.bind
+    def func(gui):
+        # Get cursor position
+        # Because we want to mark in 2D, we have to split (x,y) from others.
+        *multi, y, x = gui.viewer.cursor.position
+        
+        # Get 2D image by slicing with "gui.current_slice"
+        img = gui.get("image")[gui.current_slice] 
+
+        # um -> pixel
+        y /= gui.scale["y"]
+        x /= gui.scale["x"]
+        
+        y0 = int(y-4)
+        x0 = int(x-4)
+        img0 = img[...,y0:y0+9, x0:x0+9] # image region around cursor
+        img0 = img0 - img0.mean()        # normalize
+
+        # calculate centroid
+        M = moments(img0.value)
+        cy, cx = M[1, 0]/M[0, 0] + y0, M[0, 1]/M[0, 0] + x0
+        
+        if "Auto center" not in gui.layers:
+            # Create Points layer if not exists
+            gui.viewer.add_points(ndim=gui.viewer.dims.ndim, name="Auto center",
+                                  scale=list(img.scale.values()))
+
+        point = multi + [cy, cx]
+        
+        gui.layers["Auto center"].add(point)
+        
+        return None
+
+.. image:: images/auto_center.gif
+
+2. Fit filament tips to sigmoid function
+
+This is an example of binding a function with plot function. A figure canvas will be automatically generated.
 
 .. code-block:: python
     :linenos:
@@ -206,44 +255,3 @@ You can also plot on the figure canvas inside `napari`.
 
 .. image:: images/line_scan.gif
 
-*Example*: Marking single molecule movie with centroid-aided auto centering.
-
-.. code-block:: python
-    :linenos:
-
-    from skimage.measure import moments
-
-    @ip.gui.bind
-    def func(gui):
-        # Get cursor position
-        # Because we want to mark in 2D, we have to split (x,y) from others.
-        *multi, y, x = gui.viewer.cursor.position
-        
-        # Get 2D image by slicing with "gui.current_slice"
-        img = gui.get("image")[gui.current_slice] 
-
-        # um -> pixel
-        y /= gui.scale["y"]
-        x /= gui.scale["x"]
-        
-        y0 = int(y-4)
-        x0 = int(x-4)
-        img0 = img[...,y0:y0+9, x0:x0+9] # image region around cursor
-        img0 = img0 - img0.mean()        # normalize
-
-        # calculate centroid
-        M = moments(img0.value)
-        cy, cx = M[1, 0]/M[0, 0] + y0, M[0, 1]/M[0, 0] + x0
-        
-        if "Auto center" not in gui.layers:
-            # Create Points layer if not exists
-            gui.viewer.add_points(ndim=gui.viewer.dims.ndim, name="Auto center",
-                                scale=list(img.scale.values()))
-
-        point = multi + [cy, cx]
-        
-        gui.layers["Auto center"].add(point)
-        
-        return None
-
-.. image:: images/auto_center.gif
