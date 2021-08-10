@@ -1,10 +1,13 @@
 from __future__ import annotations
 import warnings
-from qtpy.QtWidgets import QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox
+from PyQt5.QtWidgets import QAction
+from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
+                            QMenuBar)
 
 import magicgui
 import napari
 import numpy as np
+from functools import partial
 import pandas as pd
 
 from ..utils import canvas_plot
@@ -12,10 +15,10 @@ from ..utils import canvas_plot
 class TableWidget(QWidget):
     """
     +-------------------------------+
+    |[Data][Plot]                   |
     |                               |
     |            (table)            |
     |                               |
-    |[Copy][Store][Plot][Setting...]|
     +-------------------------------+
     """        
     n_table = 0
@@ -49,34 +52,69 @@ class TableWidget(QWidget):
             data = df.values
         else:
             data = df
+        
+        self.menu_bar = QMenuBar(self)
+        
         self.table = magicgui.widgets.Table(data, name=self.name, columns=columns)
         self.table_native = self.table.native
-        copy_button = QPushButton("Copy")
-        copy_button.clicked.connect(self.copy_as_dataframe)
-        store_button = QPushButton("Store")
-        store_button.clicked.connect(self.store_as_dataframe)
-        plot_button = QPushButton("Plot")
-        plot_button.clicked.connect(self.plot)
-        setting_button = QPushButton("Setting...")
-        setting_button.clicked.connect(self.change_setting)
+                
+        self._add_data_menu()
+        self._add_plot_menu()
         
-        button_widget = QWidget()
-        layout = QHBoxLayout()
-        layout.addWidget(copy_button)
-        layout.addWidget(store_button)
-        layout.addWidget(plot_button)
-        layout.addWidget(setting_button)
-        button_widget.setLayout(layout)
-        
+        self.layout().addWidget(self.menu_bar)
         self.layout().addWidget(self.table_native)
-        self.layout().addWidget(button_widget)
     
-    def store_as_dataframe(self):
-        self.viewer.window.results = self.table.to_dataframe()
+    def _add_data_menu(self):
+        self.data_menu = self.menu_bar.addMenu("&Data")
+        
+        copy_all = QAction("Copy all", self.viewer.window._qt_window)
+        copy_all.triggered.connect(self.copy_as_dataframe)
+        copy_all.setShortcut("Ctrl+Shift+C")
+        
+        copy = QAction("Copy selected", self.viewer.window._qt_window)
+        copy.triggered.connect(partial(self.copy_as_dataframe, selected=True))
+        copy.setShortcut("Ctrl+C")
+        
+        store_all = QAction("Store all", self.viewer.window._qt_window)
+        store_all.triggered.connect(self.store_as_dataframe)
+        store_all.setShortcut("Ctrl+Shift+S")
+        
+        store = QAction("Store all", self.viewer.window._qt_window)
+        store.triggered.connect(partial(self.store_as_dataframe, selected=True))
+        store.setShortcut("Ctrl+S")
+        
+        self.data_menu.addAction(copy_all)
+        self.data_menu.addAction(copy)
+        self.data_menu.addAction(store_all)
+        self.data_menu.addAction(store)
+        
+    def _add_plot_menu(self):
+        self.plot_menu = self.menu_bar.addMenu("&Plot")
+        
+        plot = QAction("Plot", self.viewer.window._qt_window)
+        plot.triggered.connect(self.plot)
+        plot.setShortcut("P")
+        
+        setting = QAction("Setting ...", self.viewer.window._qt_window)
+        setting.triggered.connect(self.change_setting)
+        
+        self.plot_menu.addAction(plot)
+        self.plot_menu.addAction(setting)
+    
+    def store_as_dataframe(self, selected=False):
+        if selected:
+            df = self._get_selected_dataframe()
+        else:
+            df = self.table.to_dataframe()
+        self.viewer.window.results = df
         return None
     
-    def copy_as_dataframe(self):
-        self.table.to_dataframe().to_clipboard()
+    def copy_as_dataframe(self, selected=False):
+        if selected:
+            df = self._get_selected_dataframe()
+        else:
+            df = self.table.to_dataframe()
+        df.to_clipboard()
         return None
     
     def plot(self):
@@ -85,19 +123,16 @@ class TableWidget(QWidget):
             if self.figure_widget is None:      
                 from matplotlib.backends.backend_qt5agg import FigureCanvas
                 self.fig = plt.figure()
-                self.figure_widget = self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
-                                                                        name=f"Plot of {self.name}",
-                                                                        area="right",
-                                                                        allowed_areas=["right"])
+                self.figure_widget = \
+                    self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
+                                                       name=f"Plot of {self.name}",
+                                                       area="right",
+                                                       allowed_areas=["right"])
             else:
                 self.fig.clf()
             self.ax = self.fig.add_subplot(111)
             
-        sl = self._get_selected()
-        try:
-            df:pd.DataFrame = self.table.to_dataframe().iloc[sl]
-        except TypeError:
-            raise ValueError("Table range is not correctly selected")
+        df = self._get_selected_dataframe()
         
         with plt.style.context("dark_background"), warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
@@ -120,6 +155,14 @@ class TableWidget(QWidget):
     def change_setting(self):
         dlg = PlotSetting(self)
         dlg.exec_()
+        
+    def _get_selected_dataframe(self):
+        sl = self._get_selected()
+        try:
+            df:pd.DataFrame = self.table.to_dataframe().iloc[sl]
+        except TypeError:
+            raise ValueError("Table range is not correctly selected")
+        return df
     
     def _get_selected(self) -> tuple[list[int], list[int]]:
         selected:list = self.table_native.selectedRanges() # list of QTableWidgetSelectionRange
