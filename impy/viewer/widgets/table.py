@@ -1,12 +1,13 @@
 from __future__ import annotations
 import warnings
-from pandas.core.algorithms import isin
 from qtpy.QtWidgets import QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox
 
 import magicgui
 import napari
 import numpy as np
 import pandas as pd
+
+from ..utils import canvas_plot
 
 class TableWidget(QWidget):
     """
@@ -80,16 +81,16 @@ class TableWidget(QWidget):
     
     def plot(self):
         import matplotlib.pyplot as plt
-        if self.figure_widget is None:      
-            from matplotlib.backends.backend_qt5agg import FigureCanvas
-            self.fig = plt.figure()
-            self.figure_widget = self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
-                                                                    name=f"Plot of {self.name}",
-                                                                    area="right",
-                                                                    allowed_areas=["right"])
-            self.ax = self.fig.add_subplot(111)
-        else:
-            self.fig.clf()
+        with canvas_plot():
+            if self.figure_widget is None:      
+                from matplotlib.backends.backend_qt5agg import FigureCanvas
+                self.fig = plt.figure()
+                self.figure_widget = self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
+                                                                        name=f"Plot of {self.name}",
+                                                                        area="right",
+                                                                        allowed_areas=["right"])
+            else:
+                self.fig.clf()
             self.ax = self.fig.add_subplot(111)
             
         sl = self._get_selected()

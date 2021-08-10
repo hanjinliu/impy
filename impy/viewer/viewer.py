@@ -699,12 +699,7 @@ class napariViewers:
         # It first seems that we can block inline plot with mpl.rc_context. Strangely it has no effect.
         # We have to call mpl.use to block it. 
         # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
-        
-        backend = mpl.get_backend() 
-        mpl.use("Agg")
-        
-        with mpl.rc_context({"figure.facecolor": "#0F0F0F",
-                             "axes.facecolor": "#0F0F0F"}):
+        with canvas_plot():
             self._fig = plt.figure()
             self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
                                                name="Plot",
@@ -712,7 +707,6 @@ class napariViewers:
                                                allowed_areas=["right"])
             self._ax = self._fig.add_subplot(111)
         
-        mpl.use(backend)
         return None
     
     def _add_parameter_container(self, params:dict[str: inspect.Parameter]):
