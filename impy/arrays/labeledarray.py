@@ -138,7 +138,10 @@ class LabeledArray(HistoryArray):
         Make a view of label **if possible**.
         """
         if hasattr(other, "labels") and axes_included(self, other.labels) and _shape_match(self, other.labels):
-            self.labels = other.labels
+            if self is not other:
+                self.labels = other.labels.copy()
+            else:
+                self.labels = other.labels
     
     def _getitem_additional_set_info(self, other, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
@@ -156,7 +159,7 @@ class LabeledArray(HistoryArray):
             try:
                 self.labels = other.labels[tuple(label_sl)]
             except IndexError as e:
-                print("`labels` was not inherited due to IndexError :", e)
+                warn(f"Labels was not inherited due to IndexError : {e}", UserWarning)
         
         return None
 

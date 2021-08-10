@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 from typing import Any, NewType
+import types
 import napari
 import pandas as pd
 import numpy as np
@@ -420,7 +421,8 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key:str="F1", progress:bool=False, allowed_dims:int|tuple[int, ...]=(2, 3)):
+    def bind(self, func=None, key:str="F1", progress:bool=False, allowed_dims:int|tuple[int, ...]=(1, 2, 3),
+             refresh:bool=True):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
         ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to
@@ -436,8 +438,11 @@ class napariViewers:
             Key binding.
         progress : bool, default is False
             If True, progress will be shown in the console like ``ImgArray``.
-        allowed_dims : int or tuple of int, default is (2, 3)
+        allowed_dims : int or tuple of int, default is (1, 2, 3)
             Function will not be called if the number of displayed dimensions does not match it.
+        refresh : bool, default is True
+            If refresh all the layers for every function call. Layers should be refreshed if their data are
+            changed by function call. Set ``False`` if slow.
         
         Examples
         --------
@@ -500,6 +505,10 @@ class napariViewers:
                     
                 with Progress(f.__name__, out="stdout" if progress else None):
                     out = f(self, **kwargs)
+                    if isinstance(out, types.GeneratorType):
+                        # If original function returns a generator. This makes wrapper working almost same as
+                        # napari's bind_key method.
+                        yield from out
                 
                 if use_figure_canvas:
                     self.fig.canvas.draw()
@@ -511,6 +520,10 @@ class napariViewers:
                     else:
                         win.results = [out]
                 viewer.status = f"'{f.__name__}' returned {out}"
+                
+                if refresh:
+                    for layer in viewer.layers:
+                        layer.refresh()
                 return None
             
             return f

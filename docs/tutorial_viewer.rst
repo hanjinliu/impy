@@ -110,7 +110,7 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
     ip.gui.get("image", layer_state="selected", returns="all") # get all the selected images as a list
     ip.gui.get("line", layer_state="visible") # get all the lines from the front visible shapes layer.
 
-Get Current Slice
+Get or Set Current Slice
 -----------------
 
 We usually want to get a slice of an image stack from the viewer. However, there is no straightforward way to get the image
@@ -125,6 +125,11 @@ slice being displayed on the viewer. ``impy`` provides a simple way to do that, 
     # get the front image slice
     ip.gui.get("image")[ip.gui.current_slice]
 
+If you want to go to other view, you can use `ip.gui.goto` method. This method is very simple.
+
+.. code-block:: python
+
+    ip.gui.goto(t=4) # Change t-dimension of current_step to 4 while keep others.
 
 Mouse Callbacks
 ---------------
@@ -270,3 +275,23 @@ This is an example of binding a function with plot function. A figure canvas wil
 
 .. image:: images/line_scan.gif
 
+3. Draw Gaussian points with different sizes
+
+``ip.gui.bind`` also supports calling functions with additional parameters. ``magicgui.widgets.create_widget`` 
+is called inside to infer proper widgets to add, so that in this case you must annotate all the additional 
+parameters. The example below also shows that updating data inplace immediately updates layers as well.
+
+.. code-block:: python
+    :linenos:
+
+    import numpy as np
+    
+    @ip.gui.bind
+    def draw_gaussian(gui, sigma:float=2):
+        img = gui.get("image")
+        y, x = np.indices(img.shape)
+        my, mx = gui.viewer.cursor.position
+        gauss = np.exp(-((x-mx)**2 + (y-my)**2)/sigma**2)
+        img += gauss
+
+.. image:: images/points.gif
