@@ -4,10 +4,11 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Tutorial &mdash; impy 1.20.0 documentation</title>
+  <title>Tutorial &mdash; impy 1.20.1 documentation</title>
   
 
   
@@ -66,7 +67,7 @@
             
             
               <div class="version">
-                1.20.0
+                1.20.1
               </div>
             
           
@@ -178,7 +179,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="tutorial">
+  <section id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
 <div class="contents local topic" id="contents-of-tutorial">
 <p class="topic-title">Contents of Tutorial</p>
@@ -201,7 +202,7 @@
 </li>
 </ul>
 </div>
-<div class="section" id="basics">
+<section id="basics">
 <h2><a class="toc-backref" href="#id1">Basics</a><a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code>’s concept is to make image analysis on Python much more user friendly. The core array object,
 <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, retains all the features of <code class="docutils literal notranslate"><span class="pre">numpy.ndaaray</span></code> while implemented with variety of function
@@ -243,8 +244,8 @@ image object to GUI handler object <code class="docutils literal notranslate"><s
 </pre></div>
 </div>
 <p>and wait until viewer window opens.</p>
-</div>
-<div class="section" id="axes-targeted-slicing">
+</section>
+<section id="axes-targeted-slicing">
 <h2><a class="toc-backref" href="#id2">Axes Targeted Slicing</a><a class="headerlink" href="#axes-targeted-slicing" title="Permalink to this headline">¶</a></h2>
 <p>You may want to get slice(s) of an image with a format like “t=3:10” but generally you always have to
 care about which is t-axis. Most arrays in <code class="docutils literal notranslate"><span class="pre">impy</span></code> have extended <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> to enable the
@@ -255,10 +256,10 @@ care about which is t-axis. Most arrays in <code class="docutils literal notrans
 <li><p>Fancy slicing, like <code class="docutils literal notranslate"><span class="pre">img[&quot;t=1,3,5&quot;]</span></code></p></li>
 <li><p>Conbination of them with splitter “;”, like <code class="docutils literal notranslate"><span class="pre">img[&quot;t=3;z=5:7&quot;]</span></code></p></li>
 </ul>
-</div>
-<div class="section" id="batch-processing">
+</section>
+<section id="batch-processing">
 <h2><a class="toc-backref" href="#id3">Batch Processing</a><a class="headerlink" href="#batch-processing" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="image-stacks">
+<section id="image-stacks">
 <h3><a class="toc-backref" href="#id4">Image Stacks</a><a class="headerlink" href="#image-stacks" title="Permalink to this headline">¶</a></h3>
 <p>Owing to the axes information, impy can automatically execute functions for every image slice properly.
 As in the first example, with a <cite>tzyx</cite> image, instead of running</p>
@@ -278,8 +279,8 @@ keyword argument:</p>
 <span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># this is fine!</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="images-with-different-shapes">
+</section>
+<section id="images-with-different-shapes">
 <h3><a class="toc-backref" href="#id5">Images with Different Shapes</a><a class="headerlink" href="#images-with-different-shapes" title="Permalink to this headline">¶</a></h3>
 <p>For images with different shapes, they cannot be stacked into a single array. In this case, you can use <code class="docutils literal notranslate"><span class="pre">DataList</span></code>, an
 extension of Python <code class="docutils literal notranslate"><span class="pre">list</span></code>. <code class="docutils literal notranslate"><span class="pre">DataList</span></code> recognizes any member functions of its components and call the function for all
@@ -305,9 +306,9 @@ attribution, <code class="docutils literal notranslate"><span class="pre">imgdic
 <span class="n">outputs</span><span class="o">.</span><span class="n">first</span>
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="extended-numpy-functions">
+</section>
+</section>
+<section id="extended-numpy-functions">
 <h2><a class="toc-backref" href="#id6">Extended Numpy functions</a><a class="headerlink" href="#extended-numpy-functions" title="Permalink to this headline">¶</a></h2>
 <p>In almost all the <code class="docutils literal notranslate"><span class="pre">numpy</span></code> functions, the keyword argument <code class="docutils literal notranslate"><span class="pre">axis</span></code> can be given as the symbol of axis if the argument(s) are <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>
 or other arrays that belong to subclass of <code class="docutils literal notranslate"><span class="pre">MetaArray</span></code>.</p>
@@ -323,23 +324,23 @@ for details.</p>
 <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="advanced-reading-options">
+</section>
+<section id="advanced-reading-options">
 <h2><a class="toc-backref" href="#id7">Advanced Reading Options</a><a class="headerlink" href="#advanced-reading-options" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="read-separate-images-as-an-image-stack">
+<section id="read-separate-images-as-an-image-stack">
 <h3><a class="toc-backref" href="#id8">Read Separate Images as an Image Stack</a><a class="headerlink" href="#read-separate-images-as-an-image-stack" title="Permalink to this headline">¶</a></h3>
 <p>If images are saved as separate tif files in a directory, you can read them as an image stack by:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="read-separate-images-as-an-datalist">
+</section>
+<section id="read-separate-images-as-an-datalist">
 <h3><a class="toc-backref" href="#id9">Read Separate Images as an DataList</a><a class="headerlink" href="#read-separate-images-as-an-datalist" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread_collection</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="read-very-large-images">
+</section>
+<section id="read-very-large-images">
 <h3><a class="toc-backref" href="#id10">Read Very Large Images</a><a class="headerlink" href="#read-very-large-images" title="Permalink to this headline">¶</a></h3>
 <p>If you deal with very large images that exceeds PC memory, you can use <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>. This object retains
 memory map of the image file that is split into smaller chunks, and passes it to <code class="docutils literal notranslate"><span class="pre">dask</span></code> array as “ready to
@@ -365,9 +366,9 @@ are also implemented in <code class="docutils literal notranslate"><span class="
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">15.72864</span>
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>
