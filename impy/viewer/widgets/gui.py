@@ -113,33 +113,53 @@ class ThresholdAndLabel(FunctionGui):
         def _func(layer:napari.layers.Image, percentile=50, label=False) -> napari.types.LayerDataTuple:
             if not self.visible:
                 return None
+            if layer is None:
+                return None
             # define the name for the new layer
             if label:
                 name = f"[L]{layer.name}"
             else:
                 name = f"Threshold of {layer.name}"
                 
-            if layer is not None:
-                with SetConst("SHOW_PROGRESS", False):
-                    thr = np.percentile(layer.data, percentile) # TODO: this is slow.
-                    if label:
-                        out = layer.data.label_threshold(thr)
-                        props_to_inherit = ["opacity", "blending", "translate", "scale"]
-                        _as_layer_data_tuple = label_tuple
-                    else:
-                        out = layer.data.threshold(thr)
-                        props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
-                        _as_layer_data_tuple = image_tuple
-                try:
-                    kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
-                except KeyError:
-                    if label:
-                        kwargs = dict(translate=layer.translate, opacity=0.3)
-                    else:
-                        kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
-                
-                return _as_layer_data_tuple(layer, out, name=name, **kwargs)
-            return None
+            with SetConst("SHOW_PROGRESS", False):
+                thr = np.percentile(layer.data, percentile) # TODO: this is slow.
+                if label:
+                    out = layer.data.label_threshold(thr)
+                    props_to_inherit = ["opacity", "blending", "translate", "scale"]
+                    _as_layer_data_tuple = label_tuple
+                else:
+                    out = layer.data.threshold(thr)
+                    props_to_inherit = ["colormap", "opacity", "blending", "translate", "scale"]
+                    _as_layer_data_tuple = image_tuple
+            try:
+                kwargs = {k: getattr(viewer.layers[name], k, None) for k in props_to_inherit}
+            except KeyError:
+                if label:
+                    kwargs = dict(translate=layer.translate, opacity=0.3)
+                else:
+                    kwargs = dict(translate=layer.translate, colormap="red", blending="additive")
+            
+            return _as_layer_data_tuple(layer, out, name=name, **kwargs)
+        
+        super().__init__(_func, auto_call=True, param_options=opt)
+
+class Rotator(FunctionGui):
+    def __init__(self, viewer:"napari.viewer.Viewer"):
+        self.viewer = viewer
+        opt = dict(rotate={"widget_type": "FloatSlider",
+                           "min": -180, "max": 180,
+                           "step": 1,
+                           "tooltip": "Rotation Angle"},
+                   )
+        def _func(layer:napari.layers.Image, rotate) -> napari.types.LayerDataTuple:
+            if not self.visible:
+                return None
+            if layer is None:
+                return None
+            name = f"Rotation of {layer.name}"
+            with SetConst("SHOW_PROGRESS", False):
+                out = layer.data.rotate(rotate)
+            return image_tuple(layer, out, contrast_limits=layer.contrast_limits, name=name)
         
         super().__init__(_func, auto_call=True, param_options=opt)
 

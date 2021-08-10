@@ -1,5 +1,6 @@
 from __future__ import annotations
 import napari
+import os
 import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction
 
@@ -9,10 +10,12 @@ from .._const import SetConst
 
 __all__ = ["add_imread_menu",
            "add_imsave_menu",
+           "add_read_csv_menu",
            "add_controller_widget", 
            "add_note_widget",
            "edit_properties",
            "add_threshold", 
+           "add_rotator",
            "add_filter", 
            "add_regionprops",
            "add_rectangle_editor",
@@ -42,7 +45,7 @@ def add_imread_menu(viewer:"napari.viewer.Viewer"):
         napari.utils.history.update_open_history(filenames[0])
         return None
     
-    action = QAction('imread ...', viewer.window._qt_window)
+    action = QAction("imread ...", viewer.window._qt_window)
     action.triggered.connect(open_img)
     viewer.window.file_menu.addAction(action)
     return None
@@ -53,11 +56,10 @@ def add_imsave_menu(viewer:"napari.viewer.Viewer"):
         dlg = QFileDialog()
         layers = list(viewer.layers.selection)
         if len(layers) == 0:
-            viewer.status = "Select a layer first."
-            return None
+            raise ValueError("Select a layer first.")
         elif len(layers) > 1:
-            viewer.status = "Select only one layer."
-            return None
+            raise ValueError("Select only one layer.")
+
         img = layer_to_impy_object(viewer, layers[0])
         hist = napari.utils.history.get_save_history()
         dlg.setHistory(hist)
@@ -77,11 +79,36 @@ def add_imsave_menu(viewer:"napari.viewer.Viewer"):
             napari.utils.history.update_save_history(filename)
         return None
     
-    action = QAction('imsave ...', viewer.window._qt_window)
+    action = QAction("imsave ...", viewer.window._qt_window)
     action.triggered.connect(save_img)
     viewer.window.file_menu.addAction(action)
     return None
 
+def add_read_csv_menu(viewer:"napari.viewer.Viewer"):
+    import pandas as pd
+    from .widgets import TableWidget
+    def open_csv():
+        dlg = QFileDialog()
+        hist = napari.utils.history.get_open_history()
+        dlg.setHistory(hist)
+        filenames, _ = dlg.getOpenFileNames(
+            parent=viewer.window.qt_viewer,
+            caption="Select file ...",
+            directory=hist[0],
+        )
+        if (filenames != []) and (filenames is not None):
+            path = filenames[0]
+            df = pd.read_csv(path)
+            name = os.path.splitext(os.path.basename(path))[0]
+            table = TableWidget(viewer, df, name=name)
+            viewer.window.add_dock_widget(table, area="right", name=table.name)
+        napari.utils.history.update_open_history(filenames[0])
+        return None
+    
+    action = QAction("pandas.read_csv ...", viewer.window._qt_window)
+    action.triggered.connect(open_csv)
+    viewer.window.file_menu.addAction(action)
+    return None
 
 def edit_properties(viewer:"napari.viewer.Viewer"):
     """
@@ -143,6 +170,9 @@ def add_threshold(viewer:"napari.viewer.Viewer"):
 
 def add_rectangle_editor(viewer:"napari.viewer.Viewer"):
     return add_gui_to_function_menu(viewer, RectangleEditor, "Rectangle Editor")
+
+def add_rotator(viewer:"napari.viewer.Viewer"):
+    return add_gui_to_function_menu(viewer, Rotator, "Rotation")
 
 def add_regionprops(viewer:"napari.viewer.Viewer"):
     
