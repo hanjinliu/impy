@@ -111,7 +111,7 @@ However, methods that are frequently used are again defined in ``ip.gui``, in a 
     ip.gui.get("line", layer_state="visible") # get all the lines from the front visible shapes layer.
 
 Get or Set Current Slice
------------------
+------------------------
 
 We usually want to get a slice of an image stack from the viewer. However, there is no straightforward way to get the image
 slice being displayed on the viewer. ``impy`` provides a simple way to do that, with ``ip.gui.current_slice``.
@@ -285,7 +285,7 @@ parameters. The example below also shows that updating data inplace immediately 
     :linenos:
 
     import numpy as np
-    
+
     @ip.gui.bind
     def draw_gaussian(gui, sigma:float=2):
         img = gui.get("image")
