@@ -26,13 +26,13 @@ from .._const import Const
 #   layer group is implemented in napari.
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
-# - Embed plot: https://github.com/napari/napari/blob/master/examples/mpl_plot.py
+# - area=None for new dock widgets
 
 def change_theme(viewer):
     from napari.utils.theme import get_theme, register_theme
     theme = get_theme("dark")
     theme.update(console="rgb(20, 21, 22)",
-                canvas="#090909")
+                canvas="#0F0F0F")
     register_theme("night", theme)
     viewer.theme = "night"
 
@@ -451,7 +451,7 @@ class napariViewers:
             
         """        
         # TODO: plt.plot should be allowed like https://github.com/napari/napari/issues/1005.
-        
+        import matplotlib as mpl
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
@@ -476,7 +476,8 @@ class napariViewers:
                 if use_figure_canvas:
                     self.fig.clf()
                     if not add_ax:
-                        self._ax = self.fig.add_subplot(111)
+                        with mpl.rc_context({"axes.facecolor": "#0F0F0F"}):
+                            self._ax = self.fig.add_subplot(111)
                 
                 kwargs = {wid.name: wid.value for wid in self._container}
                     
@@ -645,12 +646,14 @@ class napariViewers:
         backend = mpl.get_backend() 
         mpl.use("Agg")
         
-        self._fig = plt.figure()
-        self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
-                                           name="Plot",
-                                           area="right",
-                                           allowed_areas=["right"])
-        self._ax = self._fig.add_subplot(111)
+        with mpl.rc_context({"figure.facecolor": "#0F0F0F",
+                             "axes.facecolor": "#0F0F0F"}):
+            self._fig = plt.figure()
+            self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
+                                               name="Plot",
+                                               area="right",
+                                               allowed_areas=["right"])
+            self._ax = self._fig.add_subplot(111)
         
         mpl.use(backend)
         return None
