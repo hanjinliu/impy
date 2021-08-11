@@ -10,9 +10,7 @@ import napari
 # Delete, Home, End, Escape, Backspace, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
 # F11, F12, Space, Enter, Tab
 
-KEYS = {"add_new_shape_3d": "S",
-        "add_new_point_3d": "P",
-        "focus_next": "]",
+KEYS = {"focus_next": "]",
         "focus_previous": "[",
         "hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
@@ -30,19 +28,6 @@ __all__ = list(KEYS.keys())
 
 def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
-
-@bind_key
-def add_new_shape_3d(viewer:"napari.viewer.Viewer"):
-    scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_shapes(scale=scale, ndim=viewer.dims.ndim)
-    layer.mode = "add_rectangle"
-    
-
-@bind_key
-def add_new_point_3d(viewer:"napari.viewer.Viewer"):
-    scale = [r[2] for r in viewer.dims.range]
-    layer = viewer.add_points(scale=scale, ndim=viewer.dims.ndim)
-    layer.mode = "add"
     
 @bind_key
 def focus_next(viewer:"napari.viewer.Viewer"):
