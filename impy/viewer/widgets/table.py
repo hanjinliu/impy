@@ -1,15 +1,13 @@
 from __future__ import annotations
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
-                            QMainWindow, QAction, QHeaderView)
+                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem)
 
 import magicgui
 import napari
 import numpy as np
 from functools import partial
 import pandas as pd
-
-from ..utils import canvas_plot
 
 class TableWidget(QMainWindow):
     """
@@ -52,7 +50,7 @@ class TableWidget(QMainWindow):
             data = df
         
         self.table = magicgui.widgets.Table(data, name=self.name, columns=columns)
-        self.table_native = self.table.native
+        self.table_native:QTableWidget = self.table.native
         self.table_native.resizeColumnsToContents()
         header = self.table_native.horizontalHeader()
         for i in range(self.table.shape[1]):
@@ -103,13 +101,14 @@ class TableWidget(QMainWindow):
         return None
     
     def plot(self):
-        import matplotlib.pyplot as plt
+        from .._plt import canvas_plot, plt, EventedCanvas
         with canvas_plot():
-            if self.fig is None:      
-                from matplotlib.backends.backend_qt5agg import FigureCanvas
+            if self.fig is None:
                 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+                
                 self.fig = plt.figure()
-                self.figure_widget = QtViewerDockWidget(self, FigureCanvas(self.fig), name="Plot",
+                canvas = EventedCanvas(self.fig)
+                self.figure_widget = QtViewerDockWidget(self, canvas, name="Plot",
                                                         area="bottom", allowed_areas=["right", "bottom"])
                 
                 self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
@@ -137,6 +136,30 @@ class TableWidget(QMainWindow):
     def change_setting(self):
         dlg = PlotSetting(self)
         dlg.exec_()
+    
+    def appendRow(self, data=None):
+        nrow = self.table_native.rowCount()
+        self.table_native.insertRow(nrow)
+        if not hasattr(data, "__len__"):
+            return None
+        elif len(data) > self.table_native.columnCount():
+            raise ValueError("Input data is longer than the column size.")
+        
+        for i, item in enumerate(data):
+            self.table_native.setItem(nrow, i, QTableWidgetItem(item))
+        return None
+    
+    def appendColumn(self, data=None):
+        ncol = self.table_native.columnCount()
+        self.table_native.insertColumn(ncol)
+        if not hasattr(data, "__len__"):
+            return None
+        elif len(data) > self.table_native.rowCount():
+            raise ValueError("Input data is longer than the row size.")
+        
+        for i, item in enumerate(data):
+            self.table_native.setItem(i, ncol, QTableWidgetItem(item))
+        return None
         
     def show(self):
         if self.figure_widget is not None:
@@ -192,11 +215,22 @@ class TableWidget(QMainWindow):
         resize.triggered.connect(self.table_native.resizeColumnsToContents)
         resize.setShortcut("Ctrl+R")
         
+        addrow = QAction("Append row", self)
+        addrow.triggered.connect(self.appendRow)
+        addrow.setShortcut("Alt+R")
+        
+        addcol = QAction("Append Column", self)
+        addcol.triggered.connect(self.appendColumn)
+        addcol.setShortcut("Alt+C")
+        
         self.data_menu.addAction(copy_all)
         self.data_menu.addAction(copy)
         self.data_menu.addAction(store_all)
         self.data_menu.addAction(store)
         self.data_menu.addAction(resize)
+        self.data_menu.addAction(addrow)
+        self.data_menu.addAction(addcol)
+        
         
     def _add_plot_menu(self):
         self.plot_menu = self.menu_bar.addMenu("&Plot")

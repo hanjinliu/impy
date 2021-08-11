@@ -283,23 +283,3 @@ class ColorCycle:
         self.color_id += 1
         return list(self.cmap(self.color_id * (self.cmap.N//2+1) % self.cmap.N))
 
-class canvas_plot:
-    def __init__(self):
-        pass
-    
-    def __enter__(self):
-        import matplotlib as mpl
-        self.backend = mpl.get_backend()
-        self.figure_face_color = mpl.rcParams["figure.facecolor"]
-        self.axes_face_color = mpl.rcParams["axes.facecolor"]
-        mpl.use("Agg")
-        mpl.rcParams["figure.facecolor"] = "#0F0F0F"
-        mpl.rcParams["axes.facecolor"] = "#0F0F0F"
-        
-        return self
-    
-    def __exit__(self, *args):
-        import matplotlib as mpl
-        mpl.use(self.backend)
-        mpl.rcParams["figure.facecolor"] = self.figure_face_color
-        mpl.rcParams["axes.facecolor"] = self.axes_face_color

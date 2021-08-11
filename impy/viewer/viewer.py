@@ -700,15 +700,10 @@ class napariViewers:
         """
         Add figure canvas to the viewer.
         """        
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_qt5agg import FigureCanvas
-        
-        # It first seems that we can block inline plot with mpl.rc_context. Strangely it has no effect.
-        # We have to call mpl.use to block it. 
-        # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
+        from ._plt import plt, canvas_plot, EventedCanvas        
         with canvas_plot():
             self._fig = plt.figure()
-            self.viewer.window.add_dock_widget(FigureCanvas(self._fig), 
+            self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
                                                name="Main Plot",
                                                area="right",
                                                allowed_areas=["right"])
