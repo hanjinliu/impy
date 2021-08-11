@@ -1,8 +1,7 @@
 from __future__ import annotations
 import warnings
-from PyQt5.QtWidgets import QAction
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
-                            QMenuBar)
+                            QMainWindow, QAction, QHeaderView)
 
 import magicgui
 import napari
@@ -12,26 +11,25 @@ import pandas as pd
 
 from ..utils import canvas_plot
 
-class TableWidget(QWidget):
+class TableWidget(QMainWindow):
     """
     +-------------------------------+
     |[Data][Plot]                   |
     |                               |
     |            (table)            |
-    |                               |
+    +-------------------------------+
+    |        (figure canvas)        |
     +-------------------------------+
     """        
     n_table = 0
     def __init__(self, viewer:"napari.viewer.Viewer", df:np.ndarray|pd.DataFrame|dict, columns=None, name=None):
+        # TODO: Warning of QMainWindow::count
         self.viewer = viewer
         self.fig = None
         self.ax = None
         self.figure_widget = None
-        self.plot_settings = dict(x=None, kind="line", subplots=False, sharex=False, sharey=False,
+        self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False)
-        
-        super().__init__(viewer.window._qt_window)
-        self.setLayout(QGridLayout())
         
         if isinstance(df, dict):
             df = pd.DataFrame(df)
@@ -53,55 +51,34 @@ class TableWidget(QWidget):
         else:
             data = df
         
-        self.menu_bar = QMenuBar(self)
-        
         self.table = magicgui.widgets.Table(data, name=self.name, columns=columns)
         self.table_native = self.table.native
+        self.table_native.resizeColumnsToContents()
+        header = self.table_native.horizontalHeader()
+        for i in range(self.table.shape[1]):
+            header.setSectionResizeMode(i, QHeaderView.Fixed)
+        
+        super().__init__(viewer.window._qt_window)
+        
+        self.menu_bar = self.menuBar()
                 
         self._add_data_menu()
         self._add_plot_menu()
         
-        self.layout().addWidget(self.menu_bar)
-        self.layout().addWidget(self.table_native)
-    
-    def _add_data_menu(self):
-        self.data_menu = self.menu_bar.addMenu("&Data")
+        self.setUnifiedTitleAndToolBarOnMac(True)
+        self.setWindowTitle(self.name)
         
-        copy_all = QAction("Copy all", self.viewer.window._qt_window)
-        copy_all.triggered.connect(self.copy_as_dataframe)
-        copy_all.setShortcut("Ctrl+Shift+C")
-        
-        copy = QAction("Copy selected", self.viewer.window._qt_window)
-        copy.triggered.connect(partial(self.copy_as_dataframe, selected=True))
-        copy.setShortcut("Ctrl+C")
-        
-        store_all = QAction("Store all", self.viewer.window._qt_window)
-        store_all.triggered.connect(self.store_as_dataframe)
-        store_all.setShortcut("Ctrl+Shift+S")
-        
-        store = QAction("Store all", self.viewer.window._qt_window)
-        store.triggered.connect(partial(self.store_as_dataframe, selected=True))
-        store.setShortcut("Ctrl+S")
-        
-        self.data_menu.addAction(copy_all)
-        self.data_menu.addAction(copy)
-        self.data_menu.addAction(store_all)
-        self.data_menu.addAction(store)
-        
-    def _add_plot_menu(self):
-        self.plot_menu = self.menu_bar.addMenu("&Plot")
-        
-        plot = QAction("Plot", self.viewer.window._qt_window)
-        plot.triggered.connect(self.plot)
-        plot.setShortcut("P")
-        
-        setting = QAction("Setting ...", self.viewer.window._qt_window)
-        setting.triggered.connect(self.change_setting)
-        
-        self.plot_menu.addAction(plot)
-        self.plot_menu.addAction(setting)
+        self.setCentralWidget(self.table_native)
     
     def store_as_dataframe(self, selected=False):
+        """
+        Send table contents to ``self.viewer.window.results``.
+
+        Parameters
+        ----------
+        selected : bool, default is False
+            If True, only selected range will be send to results.
+        """        
         if selected:
             df = self._get_selected_dataframe()
         else:
@@ -110,6 +87,14 @@ class TableWidget(QWidget):
         return None
     
     def copy_as_dataframe(self, selected=False):
+        """
+        Send table contents to clipboard.
+
+        Parameters
+        ----------
+        selected : bool, default is False
+            If True, only selected range will be send to clipboard.
+        """        
         if selected:
             df = self._get_selected_dataframe()
         else:
@@ -120,14 +105,14 @@ class TableWidget(QWidget):
     def plot(self):
         import matplotlib.pyplot as plt
         with canvas_plot():
-            if self.figure_widget is None:      
+            if self.fig is None:      
                 from matplotlib.backends.backend_qt5agg import FigureCanvas
+                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
                 self.fig = plt.figure()
-                self.figure_widget = \
-                    self.viewer.window.add_dock_widget(FigureCanvas(self.fig), 
-                                                       name=f"Plot of {self.name}",
-                                                       area="right",
-                                                       allowed_areas=["right"])
+                self.figure_widget = QtViewerDockWidget(self, FigureCanvas(self.fig), name="Plot",
+                                                        area="bottom", allowed_areas=["right", "bottom"])
+                
+                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
             else:
                 self.fig.clf()
             self.ax = self.fig.add_subplot(111)
@@ -138,17 +123,14 @@ class TableWidget(QWidget):
             warnings.simplefilter("ignore", UserWarning)
             if df.shape[1] == 1 and self.plot_settings["x"] == 0:
                 self.plot_settings["x"] = None
-                df.plot(ax=self.ax, grid=True, legend=self.plot_settings["subplots"],
-                        **self.plot_settings)
+                df.plot(ax=self.ax, grid=True, **self.plot_settings)
                 self.plot_settings["x"] = 0
             else:
-                df.plot(ax=self.ax, grid=True, legend=self.plot_settings["subplots"],
-                        **self.plot_settings)
+                df.plot(ax=self.ax, grid=True, **self.plot_settings)
             
-            if not self.plot_settings["subplots"]:
-                self.ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
             self.fig.canvas.draw()
             self.fig.tight_layout()
+            self.figure_widget.show()
             
         return None
     
@@ -156,10 +138,15 @@ class TableWidget(QWidget):
         dlg = PlotSetting(self)
         dlg.exec_()
         
-    def _get_selected_dataframe(self):
+    def show(self):
+        if self.figure_widget is not None:
+            self.figure_widget.show()
+        return super().show()
+        
+    def _get_selected_dataframe(self) -> pd.DataFrame:
         sl = self._get_selected()
         try:
-            df:pd.DataFrame = self.table.to_dataframe().iloc[sl]
+            df = self.table.to_dataframe().iloc[sl]
         except TypeError:
             raise ValueError("Table range is not correctly selected")
         return df
@@ -180,6 +167,50 @@ class TableWidget(QWidget):
         if len(sl_row) * len(sl_column) != n_selected:
             raise ValueError("Wrong selection range.")
         return list(sl_row), list(sl_column)
+
+    
+    def _add_data_menu(self):
+        self.data_menu = self.menu_bar.addMenu("&Data")
+        
+        copy_all = QAction("Copy all", self)
+        copy_all.triggered.connect(self.copy_as_dataframe)
+        copy_all.setShortcut("Ctrl+Shift+C")
+        
+        copy = QAction("Copy selected", self)
+        copy.triggered.connect(partial(self.copy_as_dataframe, selected=True))
+        copy.setShortcut("Ctrl+C")
+        
+        store_all = QAction("Store all", self)
+        store_all.triggered.connect(self.store_as_dataframe)
+        store_all.setShortcut("Ctrl+Shift+S")
+        
+        store = QAction("Store all", self)
+        store.triggered.connect(partial(self.store_as_dataframe, selected=True))
+        store.setShortcut("Ctrl+S")
+        
+        resize = QAction("Resize Columns", self)
+        resize.triggered.connect(self.table_native.resizeColumnsToContents)
+        resize.setShortcut("Ctrl+R")
+        
+        self.data_menu.addAction(copy_all)
+        self.data_menu.addAction(copy)
+        self.data_menu.addAction(store_all)
+        self.data_menu.addAction(store)
+        self.data_menu.addAction(resize)
+        
+    def _add_plot_menu(self):
+        self.plot_menu = self.menu_bar.addMenu("&Plot")
+        
+        plot = QAction("Plot", self.viewer.window._qt_window)
+        plot.triggered.connect(self.plot)
+        plot.setShortcut("P")
+        
+        setting = QAction("Setting ...", self.viewer.window._qt_window)
+        setting.triggered.connect(self.change_setting)
+        
+        self.plot_menu.addAction(plot)
+        self.plot_menu.addAction(setting)
+    
         
 class PlotSetting(QDialog):
     def __init__(self, table:TableWidget):
@@ -212,6 +243,11 @@ class PlotSetting(QDialog):
         combo.layout().addWidget(label)
         self.layout().addWidget(combo)
         
+        self.legend = QCheckBox(self)
+        self.legend.setText("Show legend")
+        self.legend.setChecked(self.table.plot_settings["legend"])
+        self.layout().addWidget(self.legend)
+        
         self.subplots = QCheckBox(self)
         self.subplots.setText("Subplots")
         self.subplots.setChecked(self.table.plot_settings["subplots"])
@@ -240,21 +276,36 @@ class PlotSetting(QDialog):
         buttons = QWidget(self)
         buttons.setLayout(QHBoxLayout())
         
-        self.ok_button = QPushButton("OK", self)
-        self.ok_button.clicked.connect(self.ok)
-        buttons.layout().addWidget(self.ok_button)
-        self.cancel_button = QPushButton("Cancel", self)
-        self.cancel_button.clicked.connect(self.close)
-        buttons.layout().addWidget(self.cancel_button)
+        ok_button = QPushButton("OK", self)
+        ok_button.clicked.connect(self.ok)
+        buttons.layout().addWidget(ok_button)
+        
+        apply_button = QPushButton("Apply", self)
+        apply_button.clicked.connect(self.apply)
+        buttons.layout().addWidget(apply_button)
+        
+        cancel_button = QPushButton("Cancel", self)
+        cancel_button.clicked.connect(self.close)
+        buttons.layout().addWidget(cancel_button)
         
         self.layout().addWidget(buttons)
         
     def ok(self):
+        self._change_setting()
+        self.close()
+        return None
+    
+    def apply(self):
+        self._change_setting()
+        self.table.plot()
+        return None
+    
+    def _change_setting(self):
         out = dict()
         out["x"] = 0 if self.usex.isChecked() else None
         out["kind"] = str(self.kind.currentText())
-        for attr in ["subplots", "sharex", "sharey", "logx", "logy"]:
+        for attr in ["legend", "subplots", "sharex", "sharey", "logx", "logy"]:
             out[attr] = getattr(self, attr).isChecked()
         self.table.plot_settings = out
-        self.close()
-        return out
+        return None
+        
