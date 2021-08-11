@@ -2,8 +2,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseEvent
+import warnings
 
-__all__ = ["plt", "canvas_plot", "EventedCanvas"]
+__all__ = ["mpl", "plt", "canvas_plot", "EventedCanvas"]
 
 class EventedCanvas(FigureCanvas):
     def __init__(self, fig):
@@ -81,24 +82,21 @@ class EventedCanvas(FigureCanvas):
         
     
 class canvas_plot:
-    # It first seems that we can block inline plot with mpl.rc_context. Strangely it has no effect.
-    # We have to call mpl.use to block it. 
-    # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
-       
     def __init__(self):
         pass
     
     def __enter__(self):
+        self.original = mpl.rcParams.copy()
         self.backend = mpl.get_backend()
-        self.figure_face_color = mpl.rcParams["figure.facecolor"]
-        self.axes_face_color = mpl.rcParams["axes.facecolor"]
-        mpl.use("Agg")
+        
+        params = plt.style.library["dark_background"]
+        mpl.rcParams.update(params)
         mpl.rcParams["figure.facecolor"] = "#0F0F0F"
         mpl.rcParams["axes.facecolor"] = "#0F0F0F"
         
         return self
     
     def __exit__(self, *args):
-        mpl.use(self.backend)
-        mpl.rcParams["figure.facecolor"] = self.figure_face_color
-        mpl.rcParams["axes.facecolor"] = self.axes_face_color
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            mpl.rcParams.update(self.original)

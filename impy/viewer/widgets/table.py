@@ -31,6 +31,8 @@ class TableWidget(QMainWindow):
         
         if isinstance(df, dict):
             df = pd.DataFrame(df)
+        elif isinstance(df, np.ndarray):
+            df = np.atleast_2d(df)
         
         if columns is None:
             if isinstance(df, pd.DataFrame):
@@ -101,7 +103,9 @@ class TableWidget(QMainWindow):
         return None
     
     def plot(self):
-        from .._plt import canvas_plot, plt, EventedCanvas
+        from .._plt import canvas_plot, plt, EventedCanvas, mpl
+        backend = mpl.get_backend()
+        mpl.use("Agg")
         with canvas_plot():
             if self.fig is None:
                 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
@@ -116,21 +120,22 @@ class TableWidget(QMainWindow):
                 self.fig.clf()
             self.ax = self.fig.add_subplot(111)
             
-        df = self._get_selected_dataframe()
+            df = self._get_selected_dataframe()
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                if df.shape[1] == 1 and self.plot_settings["x"] == 0:
+                    self.plot_settings["x"] = None
+                    df.plot(ax=self.ax, grid=True, **self.plot_settings)
+                    self.plot_settings["x"] = 0
+                else:
+                    df.plot(ax=self.ax, grid=True, **self.plot_settings)
+                
+                self.fig.canvas.draw()
+                self.fig.tight_layout()
+                self.figure_widget.show()
         
-        with plt.style.context("dark_background"), warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            if df.shape[1] == 1 and self.plot_settings["x"] == 0:
-                self.plot_settings["x"] = None
-                df.plot(ax=self.ax, grid=True, **self.plot_settings)
-                self.plot_settings["x"] = 0
-            else:
-                df.plot(ax=self.ax, grid=True, **self.plot_settings)
-            
-            self.fig.canvas.draw()
-            self.fig.tight_layout()
-            self.figure_widget.show()
-            
+        mpl.use(backend)
         return None
     
     def change_setting(self):
@@ -213,7 +218,7 @@ class TableWidget(QMainWindow):
         
         resize = QAction("Resize Columns", self)
         resize.triggered.connect(self.table_native.resizeColumnsToContents)
-        resize.setShortcut("Ctrl+R")
+        resize.setShortcut("R")
         
         addrow = QAction("Append row", self)
         addrow.triggered.connect(self.appendRow)

@@ -473,7 +473,7 @@ class napariViewers:
             
         """        
         # TODO: plt.plot should be allowed like https://github.com/napari/napari/issues/1005.
-        import matplotlib as mpl
+        
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -493,6 +493,7 @@ class napariViewers:
             self._add_parameter_container(params)
             
             if use_figure_canvas:
+                from ._plt import canvas_plot
                 if not hasattr(self, "fig") or not hasattr(self, "ax"):
                     self._add_figure()
                 else:
@@ -506,7 +507,7 @@ class napariViewers:
                 if use_figure_canvas:
                     self.fig.clf()
                     if not add_ax:
-                        with mpl.rc_context({"axes.facecolor": "#0F0F0F"}):
+                        with canvas_plot():
                             self._ax = self.fig.add_subplot(111)
                 
                 kwargs = {wid.name: wid.value for wid in self._container}
@@ -681,7 +682,7 @@ class napariViewers:
         
         return None
     
-    def _add_properties(self, prop:PropArray|DataDict|pd.DataFrame):
+    def _add_properties(self, prop:PropArray|pd.DataFrame):
         if isinstance(prop, PropArray):
             df = prop.as_frame()
             df.rename(columns = {"f": "value"}, inplace=True)
@@ -700,7 +701,13 @@ class napariViewers:
         """
         Add figure canvas to the viewer.
         """        
-        from ._plt import plt, canvas_plot, EventedCanvas        
+        from ._plt import plt, canvas_plot, EventedCanvas, mpl
+        
+        # It first seems that we can block inline plot with mpl.rc_context. Strangely it has no effect.
+        # We have to call mpl.use to block it. 
+        # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
+        backend = mpl.get_backend()
+        mpl.use("Agg")
         with canvas_plot():
             self._fig = plt.figure()
             self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
@@ -709,6 +716,7 @@ class napariViewers:
                                                allowed_areas=["right"])
             self._ax = self._fig.add_subplot(111)
         
+        mpl.use(backend)
         return None
     
     def _add_parameter_container(self, params:dict[str: inspect.Parameter]):

@@ -17,6 +17,7 @@ class Controller(QWidget):
         self.add_get_props_button()
         self.add_text_button()
         self.add_label_button()
+        self.add_table_button()
     
     def add_get_coords_button(self):
         button = QPushButton("(x,y)")
@@ -106,3 +107,15 @@ class Controller(QWidget):
         self.layout().addWidget(button)
         return None
     
+    def add_table_button(self):
+        button = QPushButton("Table")
+        button.setToolTip("Add empty table")
+        @button.clicked.connect
+        def _():
+            from .table import TableWidget
+            table = TableWidget(self.viewer, np.array([np.nan]*3))
+            self.viewer.window.add_dock_widget(table)
+            return None
+    
+        self.layout().addWidget(button)
+        return None
