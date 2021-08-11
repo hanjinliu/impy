@@ -114,7 +114,7 @@ class Controller(QWidget):
         def _():
             from .table import TableWidget
             table = TableWidget(self.viewer, None)
-            self.viewer.window.add_dock_widget(table)
+            self.viewer.window.add_dock_widget(table, area="right", name=table.name)
             return None
     
         self.layout().addWidget(button)
