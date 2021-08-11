@@ -153,6 +153,14 @@ class napariViewers:
             self._add_figure()
             return self._ax
     
+    @property
+    def table(self):
+        try:
+            return self._table
+        except AttributeError:
+            self._table = self._add_table()
+            return self._table
+    
     def start(self, key:str="impy"):
         """
         Create a napari window with name ``key``.
@@ -479,6 +487,8 @@ class napariViewers:
         else:
             allowed_dims = tuple(allowed_dims)
             
+        self.viewer.window.results = []
+            
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
@@ -489,6 +499,7 @@ class napariViewers:
             
             use_figure_canvas = f"{gui_sym}.ax." in source
             add_ax = f"{gui_sym}.fig.add_subplot(" in source
+            use_table = f"{gui_sym}.table." in source
             
             self._add_parameter_container(params)
             
@@ -498,7 +509,10 @@ class napariViewers:
                     self._add_figure()
                 else:
                     self.viewer.window._dock_widgets["Main Plot"].show()
-                
+            
+            if use_table:
+                self._table = self._add_table()
+        
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
                 if not viewer.dims.ndisplay in allowed_dims:
@@ -523,11 +537,10 @@ class napariViewers:
                     self.fig.canvas.draw()
                     self.fig.tight_layout()
                 win = viewer.window
+                
                 if out is not None:
-                    if hasattr(win, "results") and isinstance(win.results, list):
-                        win.results.append(out)
-                    else:
-                        win.results = [out]
+                    win.results.append(out)
+                    
                 viewer.status = f"'{f.__name__}' returned {out}"
                 
                 if refresh:
@@ -696,6 +709,11 @@ class napariViewers:
         self.viewer.window.add_dock_widget(table, area="right", name=table.name)
         
         return None
+    
+    def _add_table(self, data=None, columns=None, name=None):
+        table = TableWidget(self.viewer, data, columns=columns, name=name)
+        self.viewer.window.add_dock_widget(table, area="right", name=table.name)
+        return table
 
     def _add_figure(self):
         """

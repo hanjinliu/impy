@@ -1,13 +1,13 @@
 from __future__ import annotations
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
-                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem)
-
+                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QLineEdit)
 import magicgui
 import napari
 import numpy as np
-from functools import partial
 import pandas as pd
+
+# TODO: rename column, Warning of QMainWindowLayout::count
 
 class TableWidget(QMainWindow):
     """
@@ -21,17 +21,20 @@ class TableWidget(QMainWindow):
     """        
     n_table = 0
     def __init__(self, viewer:"napari.viewer.Viewer", df:np.ndarray|pd.DataFrame|dict, columns=None, name=None):
-        # TODO: Warning of QMainWindow::count
         self.viewer = viewer
         self.fig = None
         self.ax = None
         self.figure_widget = None
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False)
-        
-        if isinstance(df, dict):
-            df = pd.DataFrame(df)
-        elif isinstance(df, np.ndarray):
+        if df is None:
+            df = np.array([])
+        elif isinstance(df, dict):
+            if np.isscalar(next(iter(df.values()))):
+                df = pd.DataFrame(df, index=[0])
+            else:
+                df = pd.DataFrame(df)
+        else:
             df = np.atleast_2d(df)
         
         if columns is None:
@@ -63,13 +66,25 @@ class TableWidget(QMainWindow):
         self.menu_bar = self.menuBar()
                 
         self._add_data_menu()
+        self._add_edit_menu()
         self._add_plot_menu()
         
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.setWindowTitle(self.name)
-        
         self.setCentralWidget(self.table_native)
     
+    def __repr__(self):
+        return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
+    
+    @property
+    def columns(self):
+        return self.table.column_headers
+    
+    @columns.setter
+    def columns(self, value):
+        self.table.column_headers = value
+        return None
+        
     def store_as_dataframe(self, selected=False):
         """
         Send table contents to ``self.viewer.window.results``.
@@ -138,32 +153,67 @@ class TableWidget(QMainWindow):
         mpl.use(backend)
         return None
     
-    def change_setting(self):
+    def change_plot_setting(self):
         dlg = PlotSetting(self)
         dlg.exec_()
     
     def appendRow(self, data=None):
         nrow = self.table_native.rowCount()
-        self.table_native.insertRow(nrow)
+        ncol = self.table_native.columnCount()
+        if ncol == 0:
+            return self.newRow(data)
+        
         if not hasattr(data, "__len__"):
             return None
+        elif isinstance(data, dict):
+            header = self.table.column_headers
+            data_ = [""] * len(header)
+            for k, v in data.items():
+                i = header.index(k)
+                data_[i] = v
+            data = data_
         elif len(data) > self.table_native.columnCount():
             raise ValueError("Input data is longer than the column size.")
         
+        self.table_native.insertRow(nrow)
+            
+        self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(nrow)))
+        
         for i, item in enumerate(data):
-            self.table_native.setItem(nrow, i, QTableWidgetItem(item))
+            self.table_native.setItem(nrow, i, QTableWidgetItem(str(item)))
         return None
+    
+    append = appendRow
     
     def appendColumn(self, data=None):
         ncol = self.table_native.columnCount()
         self.table_native.insertColumn(ncol)
+        self.table_native.setHorizontalHeaderItem(ncol, QTableWidgetItem(str(ncol)))
         if not hasattr(data, "__len__"):
             return None
+        elif isinstance(data, dict):
+            raise TypeError("dict input is not been implemented yet.")
         elif len(data) > self.table_native.rowCount():
             raise ValueError("Input data is longer than the row size.")
         
         for i, item in enumerate(data):
-            self.table_native.setItem(i, ncol, QTableWidgetItem(item))
+            self.table_native.setItem(i, ncol, QTableWidgetItem(str(item)))
+        
+        return None
+    
+    def newRow(self, data):
+        if not hasattr(data, "__len__"):
+            return None
+        elif isinstance(data, dict):
+            header = list(data.keys())
+            data = list(data.values())
+        else:
+            header = np.arange(len(data))
+        
+        for i, h in enumerate(header):
+            self.table_native.insertColumn(i)
+            self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(h)))
+            self.table_native.setItem(0, i, QTableWidgetItem(str(data[i])))
         return None
         
     def show(self):
@@ -205,15 +255,15 @@ class TableWidget(QMainWindow):
         copy_all.setShortcut("Ctrl+Shift+C")
         
         copy = QAction("Copy selected", self)
-        copy.triggered.connect(partial(self.copy_as_dataframe, selected=True))
+        copy.triggered.connect(lambda: self.copy_as_dataframe(selected=True))
         copy.setShortcut("Ctrl+C")
         
         store_all = QAction("Store all", self)
         store_all.triggered.connect(self.store_as_dataframe)
         store_all.setShortcut("Ctrl+Shift+S")
         
-        store = QAction("Store all", self)
-        store.triggered.connect(partial(self.store_as_dataframe, selected=True))
+        store = QAction("Store selected", self)
+        store.triggered.connect(lambda: self.store_as_dataframe(selected=True))
         store.setShortcut("Ctrl+S")
         
         resize = QAction("Resize Columns", self)
@@ -235,7 +285,9 @@ class TableWidget(QMainWindow):
         self.data_menu.addAction(resize)
         self.data_menu.addAction(addrow)
         self.data_menu.addAction(addcol)
-        
+    
+    def _add_edit_menu(self):
+        pass
         
     def _add_plot_menu(self):
         self.plot_menu = self.menu_bar.addMenu("&Plot")
@@ -245,7 +297,7 @@ class TableWidget(QMainWindow):
         plot.setShortcut("P")
         
         setting = QAction("Setting ...", self.viewer.window._qt_window)
-        setting.triggered.connect(self.change_setting)
+        setting.triggered.connect(self.change_plot_setting)
         
         self.plot_menu.addAction(plot)
         self.plot_menu.addAction(setting)
@@ -347,4 +399,3 @@ class PlotSetting(QDialog):
             out[attr] = getattr(self, attr).isChecked()
         self.table.plot_settings = out
         return None
-        

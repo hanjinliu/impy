@@ -113,7 +113,7 @@ class Controller(QWidget):
         @button.clicked.connect
         def _():
             from .table import TableWidget
-            table = TableWidget(self.viewer, np.array([np.nan]*3))
+            table = TableWidget(self.viewer, None)
             self.viewer.window.add_dock_widget(table)
             return None
     
