@@ -1,12 +1,15 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.backend_bases import MouseEvent
+from matplotlib.backend_bases import MouseEvent, FigureManagerBase
 import warnings
 
 __all__ = ["mpl", "plt", "canvas_plot", "EventedCanvas"]
 
 class EventedCanvas(FigureCanvas):
+    """
+    A figure canvas implemented with mouse callbacks.
+    """    
     def __init__(self, fig):
         super().__init__(fig)
         self.pressed = False
@@ -14,6 +17,10 @@ class EventedCanvas(FigureCanvas):
         self.lasty = 0
         
     def wheelEvent(self, event):
+        """
+        Resize figure by changing axes xlim and ylim. If there are subplots, only the subplot
+        in which cursor exists will be resized.
+        """        
         fig = self.figure
         
         delta = event.angleDelta().y() / 120
@@ -41,12 +48,19 @@ class EventedCanvas(FigureCanvas):
         return None
     
     def mousePressEvent(self, event):
+        """
+        Record the starting coordinates of mouse drag.
+        """        
         self.pressed = True
         event = self.get_mouse_event(event)
         self.lastx, self.lasty = event.xdata, event.ydata
         return None
         
     def mouseMoveEvent(self, event):
+        """
+        Translate axes focus while dragging. If there are subplots, only the subplot in which
+        cursor exists will be translated.
+        """        
         if not self.pressed:
             return None
         fig = self.figure
@@ -70,7 +84,18 @@ class EventedCanvas(FigureCanvas):
         return None
 
     def mouseReleaseEvent(self, event):
+        """
+        Stop dragging state.
+        """        
         self.pressed = False
+        return None
+    
+    def mouseDoubleClickEvent(self, event):
+        """
+        Adjust layout upon dougle click.
+        """        
+        self.figure.tight_layout()
+        self.figure.canvas.draw()
         return None
     
     def get_mouse_event(self, event, name="") -> MouseEvent:
@@ -85,7 +110,6 @@ class canvas_plot:
     
     def __enter__(self):
         self.original = mpl.rcParams.copy()
-        self.backend = mpl.get_backend()
         
         params = plt.style.library["dark_background"]
         mpl.rcParams.update(params)
@@ -99,3 +123,21 @@ class canvas_plot:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             mpl.rcParams.update(self.original)
+
+
+class NapariFigureManager(FigureManagerBase):
+    """
+    A figure manager that enables plotting inside the napari viewer.
+    """    
+    def __init__(self, canvas=None, num=1):
+        from . import gui
+        canvas = gui.fig.canvas
+        super().__init__(canvas, num)
+        gui.fig.clf()
+        
+    def show(self):
+        self.canvas.draw()
+        return None
+
+def new_figure_manager(*args, **kwargs):
+    return NapariFigureManager()

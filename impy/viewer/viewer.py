@@ -3,6 +3,7 @@ import os
 from typing import Any, NewType
 import types
 import napari
+import sys
 import pandas as pd
 import numpy as np
 import inspect
@@ -136,23 +137,11 @@ class napariViewers:
         """
         ``matplotlib.figure.Figure`` object bound to the viewer.
         """
-        try:
-            return self._fig
-        except AttributeError:
+        if not (hasattr(self, "_fig") and 
+                "Main Plot" in self.viewer.window._dock_widgets.keys()):
             self._add_figure()
-            return self._fig
-    
-    @property
-    def ax(self):
-        """
-        ``matplotlib.axes._subplots.AxesSubplot`` object bound to the viewer.
-        """        
-        try:
-            return self._ax
-        except AttributeError:
-            self._add_figure()
-            return self._ax
-    
+        return self._fig
+        
     @property
     def table(self):
         try:
@@ -448,8 +437,8 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key:str="F1", progress:bool=False, allowed_dims:int|tuple[int, ...]=(1, 2, 3),
-             refresh:bool=True):
+    def bind(self, func=None, key:str="F1", allowed_dims:int|tuple[int, ...]=(1, 2, 3),
+             refresh:bool=True, use_logger:bool=False, use_plt:bool=True):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
         ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to
@@ -463,8 +452,6 @@ class napariViewers:
             be added to the viewer unless ``func`` takes only one argument.
         key : str, default is "F1"
             Key binding.
-        progress : bool, default is False
-            If True, progress will be shown in the console like ``ImgArray``.
         allowed_dims : int or tuple of int, default is (1, 2, 3)
             Function will not be called if the number of displayed dimensions does not match it.
         refresh : bool, default is True
@@ -485,14 +472,11 @@ class napariViewers:
             >>> def profile(gui)
             >>>     img = gui.get("image")
             >>>     line = gui.get("line")
-            >>>     with ip.SetConst("SHOW_PROGRESS", False):
-            >>>         scan = img.reslice(line)
-            >>>     gui.ax.plot(scan)
+            >>>     scan = img.reslice(line)
+            >>>     plt.plot(scan)
             >>>     return None
             
         """        
-        # TODO: plt.plot should be allowed like https://github.com/napari/napari/issues/1005.
-        
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -508,46 +492,47 @@ class napariViewers:
             params = inspect.signature(f).parameters
             gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
-            use_figure_canvas = f"{gui_sym}.ax." in source
-            add_ax = f"{gui_sym}.fig.add_subplot(" in source
-            use_table = f"{gui_sym}.table." in source
-            use_log = f"{gui_sym}.log." in source
+            _use_canvas = f"{gui_sym}.fig" in source or use_plt
+            _use_table = f"{gui_sym}.table" in source
+            _use_log = f"{gui_sym}.log." in source or use_logger
             
             self._add_parameter_container(params)
             
-            if use_figure_canvas:
-                from ._plt import canvas_plot
-                if not hasattr(self, "fig") or not hasattr(self, "ax"):
+            # show main plot widget if it is supposed to be used
+            if _use_canvas:
+                from ._plt import canvas_plot, mpl
+                if not hasattr(self, "fig"):
                     self._add_figure()
                 else:
                     self.viewer.window._dock_widgets["Main Plot"].show()
             
-            use_table and self.table
-            use_log and self.log                
+            _use_table and self.table
+            _use_log and self.log                
         
             @self.viewer.bind_key(key, overwrite=True)
-            def _(viewer):
+            def _(viewer:"napari.Viewer"):
                 if not viewer.dims.ndisplay in allowed_dims:
                     return None
                 
-                if use_figure_canvas:
-                    self.fig.clf()
-                    if not add_ax:
-                        with canvas_plot():
-                            self._ax = self.fig.add_subplot(111)
-                
                 kwargs = {wid.name: wid.value for wid in self._container}
-                    
-                with Progress(f.__name__, out="stdout" if progress else None):
-                    out = f(self, **kwargs)
-                    if isinstance(out, types.GeneratorType):
-                        # If original function returns a generator. This makes wrapper working almost same as
-                        # napari's bind_key method.
-                        yield from out
+                std_ = self if use_logger else None
+                with Progress(f.__name__, out=None), set_logger(std_):
+                    if use_plt:
+                        backend = mpl.get_backend()
+                        mpl.use("module://impy.viewer._plt")
+                        with canvas_plot():
+                            out = f(self, **kwargs)
+                        mpl.use(backend)
+                    else:
+                        out = f(self, **kwargs)
+                if isinstance(out, types.GeneratorType):
+                    # If original function returns a generator. This makes wrapper working almost same as
+                    # napari's bind_key method.
+                    yield from out
                 
-                if use_figure_canvas:
-                    self.fig.canvas.draw()
+                if _use_canvas:
                     self.fig.tight_layout()
+                    self.fig.canvas.draw()
                 win = viewer.window
                 
                 if out is not None:
@@ -744,7 +729,6 @@ class napariViewers:
                                                name="Main Plot",
                                                area="right",
                                                allowed_areas=["right"])
-            self._ax = self._fig.add_subplot(111)
         
         mpl.use(backend)
         return None
@@ -809,3 +793,18 @@ def _load_widgets(viewer):
     from . import _widgets
     for f in _widgets.__all__:
         getattr(_widgets, f)(viewer)
+
+
+class set_logger:
+    def __init__(self, gui=None):
+        self.gui = gui
+
+    def __enter__(self):
+        if self.gui:
+            sys.stdout = self.gui.log
+            sys.stderr = self.gui.log
+
+    def __exit__(self, *args):
+        if self.gui:
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
