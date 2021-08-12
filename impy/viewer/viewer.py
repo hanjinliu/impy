@@ -437,12 +437,11 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key:str="F1", allowed_dims:int|tuple[int, ...]=(1, 2, 3),
-             refresh:bool=True, use_logger:bool=False, use_plt:bool=True):
+    def bind(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
+             allowed_dims:int|tuple[int, ...]=(1, 2, 3), refresh:bool=True):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
-        ``func(self)`` or `func(self, self.ax)` will be called. Returned values will appeded to
-        ``self.results`` if exists.
+        ``func(self, ...) will be called. Returned values will appeded to ``self.results`` if exists.
 
         Parameters
         ----------
@@ -452,6 +451,14 @@ class napariViewers:
             be added to the viewer unless ``func`` takes only one argument.
         key : str, default is "F1"
             Key binding.
+        use_logger : bool, default is False
+            If True, all the texts that are printed out will be displayed in the log widget. In detail,
+            ``sys.stdout`` and `sys.stderr` are substituted to the log widget during function call.
+        use_plt : bool, default is True
+            If True, the backend of ``matplotlib`` is set to "impy.viewer._plt" during function call. All
+            the plot functions such as ``plt.plot`` will update the figure canvas inside the viewer. If
+            ``plt.figure`` or other figure generation function is not called, the figure canvas will not be
+            refreshed so that new results will drawn over the old ones.
         allowed_dims : int or tuple of int, default is (1, 2, 3)
             Function will not be called if the number of displayed dimensions does not match it.
         refresh : bool, default is True
@@ -477,6 +484,7 @@ class napariViewers:
             >>>     return None
             
         """        
+        from ._plt import canvas_plot, mpl
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -492,7 +500,7 @@ class napariViewers:
             params = inspect.signature(f).parameters
             gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
-            _use_canvas = f"{gui_sym}.fig" in source or use_plt
+            _use_canvas = f"{gui_sym}.fig" in source or (use_plt and "plt" in source)
             _use_table = f"{gui_sym}.table" in source
             _use_log = f"{gui_sym}.log." in source or use_logger
             
@@ -500,7 +508,6 @@ class napariViewers:
             
             # show main plot widget if it is supposed to be used
             if _use_canvas:
-                from ._plt import canvas_plot, mpl
                 if not hasattr(self, "fig"):
                     self._add_figure()
                 else:

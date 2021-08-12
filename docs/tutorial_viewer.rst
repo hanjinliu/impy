@@ -64,12 +64,23 @@ When ``MarkerFrame`` or ``TrackFrame`` are given, a ``Points`` layer will be cre
 When ``PropArray`` or ``pandas.DataFrame`` are given, an Excel-like table widget will be added on the right side of 
 the viewer. If you want to get coordinates of a ``Points`` layer or ``Tracks`` layer as a table widget, select the 
 layer and push the "(x,y)" button on the lower-left corner. This widget comes from generic ``TableWidget`` class, 
-which is able to copy data, store data or plot the selected table contents like Excel. It has following buttons.
+which is able to copy data, store data or plot the selected table contents like Excel.
 
-- "Copy": Copy all the contents into clipboard. You can paste it directly as csv style.
-- "Store": Store all the contents as ``pandas.DataFrame`` temporary in ``ip.gui.results``.
-- "Plot": Plot selected data on the figure canvas inside ``napari``. One table one canvas.
-- "Setting...": Settings of plot, which is the options of ``plot`` function of ``pandas.DataFrame``.
+- Table menu
+    
+    - "Resize": Resize column width to fit the contents.
+    - "Append row"/"Append column": Add a new row/column.
+    - "Delete widget": Delete table from the viewer.
+
+- Data menu
+    - "Copy all"/"Copy selected": Copy the contents into clipboard. You can paste it directly as csv style.
+    - "Store all"/"Store selected": Store all the contents as ``pandas.DataFrame`` temporary item in ``ip.gui.results``.
+
+- Plot menu
+  
+  - "Plot": Plot selected data on the figure canvas, as a dock widget in the table widget.
+  - "Setting...": Settings of plot, which is the options of ``plot`` function of ``pandas.DataFrame``.
+
 
 5. Add shapes layer as an text layer
 
