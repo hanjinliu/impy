@@ -149,8 +149,8 @@ class TableWidget(QMainWindow):
                 else:
                     df.plot(ax=self.ax, grid=True, **self.plot_settings)
                 
-                self.fig.canvas.draw()
                 self.fig.tight_layout()
+                self.fig.canvas.draw()
                 self.figure_widget.show()
         
         mpl.use(backend)
@@ -394,7 +394,7 @@ class PlotSetting(QDialog):
         buttons = QWidget(self)
         buttons.setLayout(QHBoxLayout())
         
-        ok_button = QPushButton("OK", self)
+        ok_button = QPushButton("Save and close", self)
         ok_button.clicked.connect(self.ok)
         buttons.layout().addWidget(ok_button)
         

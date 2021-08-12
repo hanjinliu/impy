@@ -4,6 +4,10 @@ Viewer Tutorial
 ``impy`` provides simple interaction between console and ``napari.Viewer``. The controller object ``ip.gui`` has
 multiple abilities to make your image processing efficient.
 
+.. contents:: Contents of Tutorial
+    :local:
+    :depth: 2
+
 Send Data from Console to Viewer
 --------------------------------
 
@@ -160,8 +164,6 @@ Keyboard Shortcuts
   ``ip.gui.results`` for now.
 - ``Ctrl`` + ``P`` -> Projection of shape-layers or point-layers to 2D layers.
 - ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` -> Link/Unlink layers. Like "grouping" in PowerPoint.
-- ``S`` -> Add `n`-D shape-layer.
-- ``P`` -> Add `n`-D point-layer.
 
 Functions Menu
 --------------
@@ -199,7 +201,6 @@ Examples
 This is the most simple but practical example of binding a function that only add new points in the viewer.
 
 .. code-block:: python
-    :linenos:
 
     from skimage.measure import moments
 
@@ -238,12 +239,13 @@ This is the most simple but practical example of binding a function that only ad
 
 .. image:: images/auto_center.gif
 
+
+
 2. Fit filament tips to sigmoid function
 
 This is an example of binding a function with plot function. A figure canvas will be automatically generated.
 
 .. code-block:: python
-    :linenos:
 
     from scipy.optimize import curve_fit
     import numpy as np
@@ -266,14 +268,17 @@ This is an example of binding a function with plot function. A figure canvas wil
         p0 = [len(xdata)/2, 1, np.max(scan)-np.min(scan), np.min(scan)]
         params, _ = curve_fit(model, xdata, scan, p0=p0)
 
-        # plot the raw profile and fit
-        gui.ax.plot(scan, color="lime", alpha=0.5)
-        gui.ax.plot(model(xdata, *params), color="crimson")
-        gui.ax.scatter(params[0], model(params[0], *params), color="crimson", marker="+", s=260)
-
+        # plot the raw profile and the fitting result
+        plt.figure()
+        plt.plot(scan, color="lime", alpha=0.5)
+        plt.plot(model(xdata, *params), color="crimson")
+        plt.scatter(params[0], model(params[0], *params), color="crimson", marker="+", s=260)
+        plt.show()
         return params
 
 .. image:: images/line_scan.gif
+
+
 
 3. Draw Gaussian points with different sizes
 
@@ -282,7 +287,6 @@ is called inside to infer proper widgets to add, so that in this case you must a
 parameters. The example below also shows that updating data inplace immediately updates layers as well.
 
 .. code-block:: python
-    :linenos:
 
     import numpy as np
 

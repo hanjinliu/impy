@@ -6,6 +6,8 @@ import warnings
 
 __all__ = ["mpl", "plt", "canvas_plot", "EventedCanvas"]
 
+# TODO: resize xlim/ylim separately when outside is clicked
+
 class EventedCanvas(FigureCanvas):
     """
     A figure canvas implemented with mouse callbacks.
@@ -13,8 +15,8 @@ class EventedCanvas(FigureCanvas):
     def __init__(self, fig):
         super().__init__(fig)
         self.pressed = False
-        self.lastx = 0
-        self.lasty = 0
+        self.lastx = None
+        self.lasty = None
         
     def wheelEvent(self, event):
         """
@@ -51,9 +53,10 @@ class EventedCanvas(FigureCanvas):
         """
         Record the starting coordinates of mouse drag.
         """        
-        self.pressed = True
         event = self.get_mouse_event(event)
         self.lastx, self.lasty = event.xdata, event.ydata
+        if event.inaxes:
+            self.pressed = True
         return None
         
     def mouseMoveEvent(self, event):
@@ -61,7 +64,7 @@ class EventedCanvas(FigureCanvas):
         Translate axes focus while dragging. If there are subplots, only the subplot in which
         cursor exists will be translated.
         """        
-        if not self.pressed:
+        if not self.pressed or self.lastx is None:
             return None
         fig = self.figure
         
