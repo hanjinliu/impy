@@ -57,11 +57,11 @@ class TableWidget(QMainWindow):
         self.table = magicgui.widgets.Table(data, name=self.name, columns=columns)
         self.table_native:QTableWidget = self.table.native
         self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
-        
+        self.table_native.resizeColumnsToContents()
         header = self.table_native.horizontalHeader()
+        
         for i in range(self.table.shape[1]):
             header.setSectionResizeMode(i, QHeaderView.Fixed)
-            self.table_native.setColumnWidth(i, 70)
         
         super().__init__(viewer.window._qt_window)
         
@@ -199,7 +199,6 @@ class TableWidget(QMainWindow):
         self.table_native.insertColumn(ncol)
         self.table_native.setHorizontalHeaderItem(ncol, QTableWidgetItem(str(ncol)))
         self.table_native.horizontalHeader().setSectionResizeMode(ncol, QHeaderView.Fixed)
-        self.table_native.setColumnWidth(ncol, 70)
         
         if not hasattr(data, "__len__"):
             return None
@@ -210,6 +209,8 @@ class TableWidget(QMainWindow):
         
         for i, item in enumerate(data):
             self.table_native.setItem(i, ncol, QTableWidgetItem(str(item)))
+        
+        self.table_native.resizeColumnsToContents()
         
         return None
     
@@ -229,9 +230,10 @@ class TableWidget(QMainWindow):
         for i, h in enumerate(header):
             self.table_native.insertColumn(i)
             self.table_native.horizontalHeader().setSectionResizeMode(i, QHeaderView.Fixed)
-            self.table_native.setColumnWidth(i, 70)
             self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(h)))
             self.table_native.setItem(0, i, QTableWidgetItem(str(data[i])))
+        
+        self.table_native.resizeColumnsToContents()
         return None
         
         
