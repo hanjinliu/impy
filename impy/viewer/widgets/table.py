@@ -1,7 +1,8 @@
 from __future__ import annotations
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
-                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QLineEdit)
+                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QItemDelegate)
+from qtpy.QtCore import Qt
 import magicgui
 import napari
 import numpy as np
@@ -56,10 +57,12 @@ class TableWidget(QMainWindow):
         
         self.table = magicgui.widgets.Table(data, name=self.name, columns=columns)
         self.table_native:QTableWidget = self.table.native
-        self.table_native.resizeColumnsToContents()
+        self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
+        
         header = self.table_native.horizontalHeader()
         for i in range(self.table.shape[1]):
             header.setSectionResizeMode(i, QHeaderView.Fixed)
+            self.table_native.setColumnWidth(i, 70)
         
         super().__init__(viewer.window._qt_window)
         
@@ -169,6 +172,7 @@ class TableWidget(QMainWindow):
             return self.newRow(data)
         
         self.table_native.insertRow(nrow)
+        self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(nrow)))
         
         if not hasattr(data, "__len__"):
             return None
@@ -181,8 +185,6 @@ class TableWidget(QMainWindow):
             data = data_
         elif len(data) > self.table_native.columnCount():
             raise ValueError("Input data is longer than the column size.")
-        
-        self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(nrow)))
         
         for i, item in enumerate(data):
             self.table_native.setItem(nrow, i, QTableWidgetItem(str(item)))
@@ -197,6 +199,8 @@ class TableWidget(QMainWindow):
         ncol = self.table_native.columnCount()
         self.table_native.insertColumn(ncol)
         self.table_native.setHorizontalHeaderItem(ncol, QTableWidgetItem(str(ncol)))
+        self.table_native.setColumnWidth(ncol, 70)
+        
         if not hasattr(data, "__len__"):
             return None
         elif isinstance(data, dict):
@@ -416,3 +420,36 @@ class PlotSetting(QDialog):
             out[attr] = getattr(self, attr).isChecked()
         self.table.plot_settings = out
         return None
+
+class FloatDelegate(QItemDelegate):
+    def __init__(self, ndigit=3, parent=None):
+        super().__init__(parent=parent)
+        self.ndigit = ndigit
+
+    def paint(self, painter, option, index):
+        value = index.model().data(index, Qt.EditRole)
+        value = _convert_type(value)
+        if isinstance(value, (int, float)):
+            if 0.1 <= abs(value) < 10000 or value == 0:
+                if isinstance(value, int):
+                    painter.drawText(option.rect, Qt.AlignRight, str(value))
+                else:
+                    value = float(value)
+                    painter.drawText(option.rect, Qt.AlignRight, f"{value:.{self.ndigit}f}")
+            else:
+                painter.drawText(option.rect, Qt.AlignRight, f"{value:.{self.ndigit}e}")
+        else:
+            super().paint(painter, option, index)
+
+def _convert_type(value:str):
+    if value is None:
+        return None
+    try:
+        out = int(value)
+    except ValueError:
+        try:
+            out = float(value)
+        except ValueError:
+            out = value
+    
+    return out
