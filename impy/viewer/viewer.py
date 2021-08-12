@@ -12,7 +12,7 @@ import warnings
 
 from .utils import *
 from .mouse import *
-from .widgets import TableWidget
+from .widgets import TableWidget, LoggerWidget
 
 from ..utils.axesop import switch_slice
 from ..collections import *
@@ -160,6 +160,17 @@ class napariViewers:
         except AttributeError:
             self._table = self.add_table()
             return self._table
+    
+    @property
+    def log(self):
+        try:
+            return self._log
+        except AttributeError:
+            logger = LoggerWidget(self.viewer)
+            self.viewer.window.add_dock_widget(logger, name="Log", area="right", 
+                                               allowed_areas=["right"])
+            self._log = logger
+            return self._log
     
     def start(self, key:str="impy"):
         """
@@ -500,6 +511,7 @@ class napariViewers:
             use_figure_canvas = f"{gui_sym}.ax." in source
             add_ax = f"{gui_sym}.fig.add_subplot(" in source
             use_table = f"{gui_sym}.table." in source
+            use_log = f"{gui_sym}.log." in source
             
             self._add_parameter_container(params)
             
@@ -510,8 +522,8 @@ class napariViewers:
                 else:
                     self.viewer.window._dock_widgets["Main Plot"].show()
             
-            if use_table:
-                self._table = self.add_table()
+            use_table and self.table
+            use_log and self.log                
         
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
