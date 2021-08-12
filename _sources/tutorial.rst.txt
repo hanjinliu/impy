@@ -101,7 +101,25 @@ keyword argument:
 .. code-block:: python
 
     out = img.gaussian_filter(sigma=1, dims="yx")
-    out = img.gaussian_filter(sigma=1, dims=2) # this is fine!
+    out = img.gaussian_filter(sigma=1, dims=2) # this is fine
+
+Running Function with Different Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. Apply a function to whole image with different parameters
+
+.. code-block:: python
+
+    out = img.for_params("log_filter", var={"sigma":[1, 2, 3, 4]})
+    out = img.for_params("log_filter", sigma=[1, 2, 3, 4]) # This is also supported.
+
+2. Apply a function along an axis with different parameters
+
+You usually want to apply same function to each channel but with different parameters.
+
+.. code-block:: python
+
+    out = img.for_each_channel("hessian_eigval", sigma=[1, 2])
 
 
 Images with Different Shapes
