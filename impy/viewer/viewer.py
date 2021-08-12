@@ -441,7 +441,7 @@ class napariViewers:
              allowed_dims:int|tuple[int, ...]=(1, 2, 3), refresh:bool=True):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
-        ``func(self, ...) will be called. Returned values will appeded to ``self.results`` if exists.
+        ``func(self, ...)`` will be called. Returned values will appeded to ``self.results`` if exists.
 
         Parameters
         ----------
@@ -714,7 +714,24 @@ class napariViewers:
         
         return None
     
-    def add_table(self, data=None, columns=None, name=None):
+    def add_table(self, data=None, columns=None, name=None) -> TableWidget:
+        """
+        Add table widget in the viewer.
+
+        Parameters
+        ----------
+        data : array-like, optional
+            Initial data to add in the table. If not given, an empty table will be made.
+        columns : sequence, optional
+            Column names of the table.
+        name : str, optional
+            Name of the table widget.
+
+        Returns
+        -------
+        TabelWidget
+            Pointer to the table widget.
+        """        
         table = TableWidget(self.viewer, data, columns=columns, name=name)
         self.viewer.window.add_dock_widget(table, area="right", name=table.name)
         return table

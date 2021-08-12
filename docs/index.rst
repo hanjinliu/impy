@@ -6,7 +6,10 @@
 Welcome to impy's documentation!
 ================================
 
-``impy`` is a fast to code, easy to extend image processing package. 
+`impy` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and 
+so on.
+
+`Source code <https://github.com/hanjinliu/impy>`_
 
 Highlights
 ----------
@@ -17,7 +20,6 @@ Highlights
 - Easily integrate your custom functions with ``@ip.bind``.
 - Easily make a interactive GUI plugin from your custom functions with ``@ip.gui.bind``
 
-`Source code <https://github.com/hanjinliu/impy>`_
 
 
 Installation
