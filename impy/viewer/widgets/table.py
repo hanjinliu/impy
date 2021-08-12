@@ -1,8 +1,7 @@
 from __future__ import annotations
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
-                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QItemDelegate)
-from qtpy.QtCore import Qt
+                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate)
 import magicgui
 import napari
 import numpy as np
@@ -35,14 +34,14 @@ class TableWidget(QMainWindow):
                 df = pd.DataFrame(df, index=[0])
             else:
                 df = pd.DataFrame(df)
-        else:
+        elif not isinstance(df, pd.DataFrame):
             df = np.atleast_2d(df)
         
         if columns is None:
             if isinstance(df, pd.DataFrame):
                 columns = list(df.columns)
             else:
-                columns = list(chr(i) for i in range(65, 65+df.shape[1]))
+                columns = list(range(df.shape[1]))
         
         if name is None:
             self.name = f"Table-{self.__class__.n_table}"
@@ -199,6 +198,7 @@ class TableWidget(QMainWindow):
         ncol = self.table_native.columnCount()
         self.table_native.insertColumn(ncol)
         self.table_native.setHorizontalHeaderItem(ncol, QTableWidgetItem(str(ncol)))
+        self.table_native.horizontalHeader().setSectionResizeMode(ncol, QHeaderView.Fixed)
         self.table_native.setColumnWidth(ncol, 70)
         
         if not hasattr(data, "__len__"):
@@ -228,6 +228,8 @@ class TableWidget(QMainWindow):
         
         for i, h in enumerate(header):
             self.table_native.insertColumn(i)
+            self.table_native.horizontalHeader().setSectionResizeMode(i, QHeaderView.Fixed)
+            self.table_native.setColumnWidth(i, 70)
             self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(h)))
             self.table_native.setItem(0, i, QTableWidgetItem(str(data[i])))
         return None
@@ -300,10 +302,7 @@ class TableWidget(QMainWindow):
         addcol.setShortcut("Alt+C")
         
         close = QAction("Delete Widget", self)
-        @close.triggered.connect
-        def _():
-            dock = self.viewer.window._dock_widgets[self.name]
-            self.viewer.window.remove_dock_widget(dock)
+        close.triggered.connect(self.delete_self)
             
         self.table_menu.addAction(resize)
         self.table_menu.addAction(addrow)
@@ -322,6 +321,11 @@ class TableWidget(QMainWindow):
         
         self.plot_menu.addAction(plot)
         self.plot_menu.addAction(setting)
+    
+    def delete_self(self):
+        self.removeDockWidget(self.figure_widget)
+        dock = self.viewer.window._dock_widgets[self.name]
+        self.viewer.window.remove_dock_widget(dock)
     
         
 class PlotSetting(QDialog):
@@ -421,26 +425,25 @@ class PlotSetting(QDialog):
         self.table.plot_settings = out
         return None
 
-class FloatDelegate(QItemDelegate):
+class FloatDelegate(QStyledItemDelegate):
     def __init__(self, ndigit=3, parent=None):
         super().__init__(parent=parent)
         self.ndigit = ndigit
 
-    def paint(self, painter, option, index):
-        value = index.model().data(index, Qt.EditRole)
+    def displayText(self, value, locale):
         value = _convert_type(value)
         if isinstance(value, (int, float)):
             if 0.1 <= abs(value) < 10000 or value == 0:
                 if isinstance(value, int):
-                    painter.drawText(option.rect, Qt.AlignRight, str(value))
+                    value = str(value)
                 else:
                     value = float(value)
-                    painter.drawText(option.rect, Qt.AlignRight, f"{value:.{self.ndigit}f}")
+                    value = f"{value:.{self.ndigit}f}"
             else:
-                painter.drawText(option.rect, Qt.AlignRight, f"{value:.{self.ndigit}e}")
-        else:
-            super().paint(painter, option, index)
-
+                value = f"{value:.{self.ndigit}e}"
+        
+        return super().displayText(value, locale)
+    
 def _convert_type(value:str):
     if value is None:
         return None
