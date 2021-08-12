@@ -1121,7 +1121,7 @@ def _iter_dict(d, nparam):
             if isinstance(v, list):
                 if len(v) != nparam:
                     # raise error here for an earlier feedback.
-                    raise ValueError("Number of parameter '{k}' does not match the number channels.")
+                    raise ValueError(f"Number of parameter '{k}' does not match the number channels.")
                 out[k] = v[i]
             else:
                 out[k] = v

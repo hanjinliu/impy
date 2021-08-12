@@ -299,11 +299,11 @@ class TableWidget(QMainWindow):
         addrow.triggered.connect(self.appendRow)
         addrow.setShortcut("Alt+R")
         
-        addcol = QAction("Append Column", self)
+        addcol = QAction("Append column", self)
         addcol.triggered.connect(self.appendColumn)
         addcol.setShortcut("Alt+C")
         
-        close = QAction("Delete Widget", self)
+        close = QAction("Delete widget", self)
         close.triggered.connect(self.delete_self)
             
         self.table_menu.addAction(resize)
