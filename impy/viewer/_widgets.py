@@ -28,7 +28,7 @@ FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filte
            "erosion", "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
            "tophat", "rolling_ball"]
 
-def add_imread_menu(viewer:"napari.viewer.Viewer"):
+def add_imread_menu(viewer:"napari.Viewer"):
     from ..core import imread
     def open_img():
         dlg = QFileDialog()
@@ -51,7 +51,7 @@ def add_imread_menu(viewer:"napari.viewer.Viewer"):
     return None
 
 
-def add_imsave_menu(viewer:"napari.viewer.Viewer"):
+def add_imsave_menu(viewer:"napari.Viewer"):
     def save_img():
         dlg = QFileDialog()
         layers = list(viewer.layers.selection)
@@ -84,7 +84,7 @@ def add_imsave_menu(viewer:"napari.viewer.Viewer"):
     viewer.window.file_menu.addAction(action)
     return None
 
-def add_read_csv_menu(viewer:"napari.viewer.Viewer"):
+def add_read_csv_menu(viewer:"napari.Viewer"):
     import pandas as pd
     from .widgets import TableWidget
     def open_csv():
@@ -110,7 +110,7 @@ def add_read_csv_menu(viewer:"napari.viewer.Viewer"):
     viewer.window.file_menu.addAction(action)
     return None
 
-def edit_properties(viewer:"napari.viewer.Viewer"):
+def edit_properties(viewer:"napari.Viewer"):
     """
     Edit properties of selected shapes or points.
     """    
@@ -138,18 +138,18 @@ def edit_properties(viewer:"napari.viewer.Viewer"):
     viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
-def add_controller_widget(viewer:"napari.viewer.Viewer"):
+def add_controller_widget(viewer:"napari.Viewer"):
     controller_widget = Controller(viewer)
     viewer.window.add_dock_widget(controller_widget, area="left", name="impy controller")
     return None
     
-def add_note_widget(viewer:"napari.viewer.Viewer"):
+def add_note_widget(viewer:"napari.Viewer"):
     text = magicgui.widgets.TextEdit(tooltip="Note")
     text = viewer.window.add_dock_widget(text, area="right", name="Note")
     text.setVisible(False)
     return None
 
-def add_gui_to_function_menu(viewer:"napari.viewer.Viewer", gui:type, name:str):
+def add_gui_to_function_menu(viewer:"napari.Viewer", gui:type, name:str):
     action = QAction(name, viewer.window._qt_window)
     @action.triggered.connect
     def _():
@@ -162,20 +162,19 @@ def add_gui_to_function_menu(viewer:"napari.viewer.Viewer", gui:type, name:str):
     viewer.window.function_menu.addAction(action)
     return None
 
-def add_filter(viewer:"napari.viewer.Viewer"):
+def add_filter(viewer:"napari.Viewer"):
     return add_gui_to_function_menu(viewer, FunctionCaller, "Filters")
 
-def add_threshold(viewer:"napari.viewer.Viewer"):
+def add_threshold(viewer:"napari.Viewer"):
     return add_gui_to_function_menu(viewer, ThresholdAndLabel, "Threshold/Label")
 
-def add_rectangle_editor(viewer:"napari.viewer.Viewer"):
+def add_rectangle_editor(viewer:"napari.Viewer"):
     return add_gui_to_function_menu(viewer, RectangleEditor, "Rectangle Editor")
 
-def add_rotator(viewer:"napari.viewer.Viewer"):
+def add_rotator(viewer:"napari.Viewer"):
     return add_gui_to_function_menu(viewer, Rotator, "Rotation")
 
-def add_regionprops(viewer:"napari.viewer.Viewer"):
-    
+def add_regionprops(viewer:"napari.Viewer"):
     action = QAction("Measure Region Properties", viewer.window._qt_window)
     @action.triggered.connect
     def _():
@@ -187,7 +186,7 @@ def add_regionprops(viewer:"napari.viewer.Viewer"):
     return None
 
 
-def layer_template_matcher(viewer:"napari.viewer.Viewer"):
+def layer_template_matcher(viewer:"napari.Viewer"):
     action = QAction("Template Matcher", viewer.window._qt_window)
     @action.triggered.connect
     def _():
@@ -213,7 +212,7 @@ def layer_template_matcher(viewer:"napari.viewer.Viewer"):
     viewer.window.function_menu.addAction(action)
     return None   
 
-def function_handler(viewer:"napari.viewer.Viewer"):
+def function_handler(viewer:"napari.Viewer"):
     action = QAction("Function Handler", viewer.window._qt_window)
     @action.triggered.connect
     def _():
@@ -308,6 +307,9 @@ def function_handler(viewer:"napari.viewer.Viewer"):
     
     viewer.window.function_menu.addAction(action)
     return None
+
+def add_time_stamper(viewer:"napari.Viewer"):
+    ...
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))

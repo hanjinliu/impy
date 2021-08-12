@@ -45,7 +45,7 @@ class napariViewers:
     The controller of ``napari.Viewer``s from ``impy``. Always access by ``ip.gui``.
     """    
     def __init__(self):
-        self._viewers:dict[str:"napari.viewer.Viewer"] = {}
+        self._viewers:dict[str:"napari.Viewer"] = {}
         self._front_viewer:str = None
     
     def __repr__(self):
@@ -71,7 +71,7 @@ class napariViewers:
         return self
     
     @property
-    def viewer(self) -> "napari.viewer.Viewer":
+    def viewer(self) -> "napari.Viewer":
         """
         The most front viewer you're using
         """        
@@ -158,7 +158,7 @@ class napariViewers:
         try:
             return self._table
         except AttributeError:
-            self._table = self._add_table()
+            self._table = self.add_table()
             return self._table
     
     def start(self, key:str="impy"):
@@ -511,7 +511,7 @@ class napariViewers:
                     self.viewer.window._dock_widgets["Main Plot"].show()
             
             if use_table:
-                self._table = self._add_table()
+                self._table = self.add_table()
         
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer):
@@ -710,7 +710,7 @@ class napariViewers:
         
         return None
     
-    def _add_table(self, data=None, columns=None, name=None):
+    def add_table(self, data=None, columns=None, name=None):
         table = TableWidget(self.viewer, data, columns=columns, name=name)
         self.viewer.window.add_dock_widget(table, area="right", name=table.name)
         return table

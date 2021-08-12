@@ -21,7 +21,7 @@ class TableWidget(QMainWindow):
     +-------------------------------+
     """        
     n_table = 0
-    def __init__(self, viewer:"napari.viewer.Viewer", df:np.ndarray|pd.DataFrame|dict, columns=None, name=None):
+    def __init__(self, viewer:"napari.Viewer", df:np.ndarray|pd.DataFrame|dict, columns=None, name=None):
         self.viewer = viewer
         self.fig = None
         self.ax = None

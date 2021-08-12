@@ -30,7 +30,7 @@ RANGES = {"None": (None, None),
           }
 
 class FunctionCaller(FunctionGui):
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         self.viewer = viewer            # parent napari viewer object
         self.running_function = None    # currently running function
         self.current_layer = None       # currently selected layer
@@ -103,7 +103,7 @@ class FunctionCaller(FunctionGui):
         
 class ThresholdAndLabel(FunctionGui):
     cache = dict()
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         self.viewer = viewer
         opt = dict(percentile={"widget_type": "FloatSlider", 
                                "min": 0, "max": 100,
@@ -144,7 +144,7 @@ class ThresholdAndLabel(FunctionGui):
         super().__init__(_func, auto_call=True, param_options=opt)
 
 class Rotator(FunctionGui):
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         self.viewer = viewer
         opt = dict(rotate={"widget_type": "FloatSlider",
                            "min": -180, "max": 180,
@@ -164,7 +164,7 @@ class Rotator(FunctionGui):
         super().__init__(_func, auto_call=True, param_options=opt)
 
 class RectangleEditor(FunctionGui):
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         self.viewer = viewer
         opt = dict(len_v={"widget_type": "SpinBox", 
                           "label": "V",

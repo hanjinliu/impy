@@ -30,16 +30,16 @@ def bind_key(func):
     return napari.Viewer.bind_key(KEYS[func.__name__])(func)
     
 @bind_key
-def focus_next(viewer:"napari.viewer.Viewer"):
+def focus_next(viewer:"napari.Viewer"):
     _change_focus(viewer, 1)
     return None
 
 @bind_key
-def focus_previous(viewer:"napari.viewer.Viewer"):
+def focus_previous(viewer:"napari.Viewer"):
     _change_focus(viewer, -1)
     return None
 
-def _change_focus(viewer:"napari.viewer.Viewer", ind:int):
+def _change_focus(viewer:"napari.Viewer", ind:int):
     # assert one Shapes or Points layer is selected
     selected_layer = list(viewer.layers.selection)
     if len(selected_layer) != 1:
@@ -78,7 +78,7 @@ def _change_focus(viewer:"napari.viewer.Viewer", ind:int):
     
     
 @bind_key
-def hide_others(viewer:"napari.viewer.Viewer"):
+def hide_others(viewer:"napari.Viewer"):
     """
     Make selected layers visible and others invisible. 
     """
@@ -93,21 +93,21 @@ def hide_others(viewer:"napari.viewer.Viewer"):
             layer.visible = True
 
 @bind_key
-def link_selected_layers(viewer:"napari.viewer.Viewer"):
+def link_selected_layers(viewer:"napari.Viewer"):
     """
     Link selected layers.
     """
     link_layers(viewer.layers.selection)
     
 @bind_key
-def unlink_selected_layers(viewer:"napari.viewer.Viewer"):
+def unlink_selected_layers(viewer:"napari.Viewer"):
     """
     Unlink selected layers.
     """
     unlink_layers(viewer.layers.selection)
 
 @bind_key
-def to_front(viewer:"napari.viewer.Viewer"):
+def to_front(viewer:"napari.Viewer"):
     """
     Let selected layers move to front.
     """
@@ -116,7 +116,7 @@ def to_front(viewer:"napari.viewer.Viewer"):
     viewer.layers.move_multiple(not_selected_index, 0)
     
 @bind_key
-def reset_view(viewer:"napari.viewer.Viewer"):
+def reset_view(viewer:"napari.Viewer"):
     """
     Reset translate/scale parameters to the initial value.
     """    
@@ -126,7 +126,7 @@ def reset_view(viewer:"napari.viewer.Viewer"):
         layer.scale = layer.metadata["init_scale"]
 
 @bind_key
-def layers_to_labels(viewer:"napari.viewer.Viewer"):
+def layers_to_labels(viewer:"napari.Viewer"):
     """
     Convert manually drawn shapes to labels and store it.
     """        
@@ -172,7 +172,7 @@ def layers_to_labels(viewer:"napari.viewer.Viewer"):
     return None
 
 @bind_key
-def crop(viewer:"napari.viewer.Viewer"):
+def crop(viewer:"napari.Viewer"):
     """
     Crop images with (rotated) rectangle shapes.
     """        
@@ -244,7 +244,7 @@ def crop(viewer:"napari.viewer.Viewer"):
     return None
 
 @bind_key
-def reslice(viewer:"napari.viewer.Viewer"):
+def reslice(viewer:"napari.Viewer"):
     """
     2D Reslice with currently selected lines/paths and images.
     """
@@ -285,7 +285,7 @@ def reslice(viewer:"napari.viewer.Viewer"):
     return None
 
 @bind_key
-def proj(viewer:"napari.viewer.Viewer"):
+def proj(viewer:"napari.Viewer"):
     """
     Projection
     """
@@ -328,7 +328,7 @@ def proj(viewer:"napari.viewer.Viewer"):
             raise NotImplementedError(type(layer))
         
 @bind_key
-def duplicate_layer(viewer:"napari.viewer.Viewer"):
+def duplicate_layer(viewer:"napari.Viewer"):
     """
     Duplicate selected layer(s).
     """

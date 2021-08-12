@@ -14,7 +14,7 @@ def copy_layer(layer):
     copy = layer.__class__(args, **kwargs)
     return copy
 
-def iter_layer(viewer:"napari.viewer.Viewer", layer_type:str):
+def iter_layer(viewer:"napari.Viewer", layer_type:str):
     """
     Iterate over layers and yield only certain type of layers.
 
@@ -36,7 +36,7 @@ def iter_layer(viewer:"napari.viewer.Viewer", layer_type:str):
         if isinstance(layer, layer_type):
             yield layer
 
-def iter_selected_layer(viewer:"napari.viewer.Viewer", layer_type:str|list[str]):
+def iter_selected_layer(viewer:"napari.Viewer", layer_type:str|list[str]):
     if isinstance(layer_type, str):
         layer_type = [layer_type]
     layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
@@ -45,7 +45,7 @@ def iter_selected_layer(viewer:"napari.viewer.Viewer", layer_type:str|list[str])
         if isinstance(layer, layer_type):
             yield layer
 
-def front_image(viewer:"napari.viewer.Viewer"):
+def front_image(viewer:"napari.Viewer"):
     """
     From list of image layers return the most front visible image.
     """        
@@ -189,7 +189,7 @@ def _text_bound_init(new_layer):
         pass
     
 
-def add_labeledarray(viewer:"napari.viewer.Viewer", img:LabeledArray, **kwargs):
+def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
         
     if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
@@ -222,10 +222,10 @@ def add_labeledarray(viewer:"napari.viewer.Viewer", img:LabeledArray, **kwargs):
         viewer.dims.axis_labels = new_axes
     return layer
 
-def get_viewer_scale(viewer:"napari.viewer.Viewer"):
+def get_viewer_scale(viewer:"napari.Viewer"):
     return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
 
-def layer_to_impy_object(viewer:"napari.viewer.Viewer", layer):
+def layer_to_impy_object(viewer:"napari.Viewer", layer):
     """
     Convert layer to real data.
 

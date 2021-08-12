@@ -8,7 +8,7 @@ from ..utils import iter_selected_layer
 from ..._const import Const, SetConst
 
 class Controller(QWidget):
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         super().__init__()
         self.viewer = viewer
         layout = QHBoxLayout()

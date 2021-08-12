@@ -8,7 +8,7 @@ mouse_drag_callbacks = ["drag_translation", "profile_shape"]
 mouse_wheel_callbacks = ["wheel_resize"]
 mouse_move_callbacks = ["on_move"]
 
-def trace_mouse_drag(viewer:"napari.viewer.Viewer", event, func=None):
+def trace_mouse_drag(viewer:"napari.Viewer", event, func=None):
     if func is None:
         return None
     last_event_position = event.position
@@ -48,7 +48,7 @@ def trace_mouse_drag(viewer:"napari.viewer.Viewer", event, func=None):
         last_event_position = event.position
         yield
 
-def drag_translation(viewer:"napari.viewer.Viewer", event):
+def drag_translation(viewer:"napari.Viewer", event):
     if viewer.dims.ndisplay == 3:
         # forbid translation in 3D mode
         return None
@@ -87,7 +87,7 @@ def drag_translation(viewer:"napari.viewer.Viewer", event):
     
     return trace_mouse_drag(viewer, event, func)
 
-def wheel_resize(viewer:"napari.viewer.Viewer", event):
+def wheel_resize(viewer:"napari.Viewer", event):
     """
     Manually resize image layer in xy-plane while pushing "Alt".
     """ 
@@ -108,10 +108,10 @@ def wheel_resize(viewer:"napari.viewer.Viewer", event):
         viewer.text_overlay.font_size = 10 * Const["FONT_SIZE_FACTOR"]
         viewer.text_overlay.color = "white"
 
-def on_move(viewer:"napari.viewer.Viewer", event):
+def on_move(viewer:"napari.Viewer", event):
     viewer.text_overlay.text = ""
 
-def profile_shape(viewer:"napari.viewer.Viewer", event):
+def profile_shape(viewer:"napari.Viewer", event):
     active_layer = viewer.layers.selection.active
     if active_layer is None:
         return None

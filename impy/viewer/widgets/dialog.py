@@ -10,7 +10,7 @@ from ...utils.slicer import axis_targeted_slicing
 class RegionPropsDialog(QDialog):
     history = "mean_intensity"
     
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         self.viewer = viewer
         super().__init__(viewer.window._qt_window)
         self.resize(180, 120)
@@ -67,7 +67,7 @@ class RegionPropsDialog(QDialog):
     
 
 class DuplicateDialog(QDialog):
-    def __init__(self, viewer:"napari.viewer.Viewer"):
+    def __init__(self, viewer:"napari.Viewer"):
         self.viewer = viewer
         super().__init__(viewer.window._qt_window)
         self.resize(180, 120)
