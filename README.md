@@ -21,11 +21,11 @@ Almost all the functions, such as filtering, deconvolution, labeling, single mol
 import impy as ip
 import numpy as np
 
-img = ip.imread("path/to/image") # Read images with metadata.
-img["z=3;t=0"].imshow() # Plot image slice at z=3 and t=0.
+img = ip.imread("path/to/image")       # Read images with metadata.
+img["z=3;t=0"].imshow()                # Plot image slice at z=3 and t=0.
 img_fil = img.gaussian_filter(sigma=2) # Paralell batch denoising. No more for loop!
-img_prj = np.max(img_fil, axis="z") # Z-projection (numpy is aware of image axes!).
-img_prj.imsave(f"Max-{img.name}") # Save in the same place. Don't spend time on searching for the directory!
+img_prj = np.max(img_fil, axis="z")    # Z-projection (numpy is aware of image axes!).
+img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend time on searching for the directory!
 ```
 
 ### Seamless interface between `napari`

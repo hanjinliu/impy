@@ -1,12 +1,33 @@
+===============
 Viewer Tutorial
 ===============
 
 ``impy`` provides simple interaction between console and ``napari.Viewer``. The controller object ``ip.gui`` has
 multiple abilities to make your image processing efficient.
 
-.. contents:: Contents of Tutorial
+`ip.gui` can have one figure canvas, many tables and one logger, while each table can also have its own figure.
+
+.. blockdiag::
+   
+   blockdiag {
+      
+      ip.gui -> napari.Viewer components + extended functions in impy;
+      ip.gui -> Figure;
+      ip.gui -> Table -> Figure;
+      ip.gui -> Table -> Figure;
+      ip.gui -> Table -> Figure;
+      ip.gui -> Logger;
+      
+      ip.gui [color = pink];
+      
+   }
+
+.. contents:: Contents
     :local:
     :depth: 2
+
+Viewer
+======
 
 Send Data from Console to Viewer
 --------------------------------
@@ -63,24 +84,7 @@ When ``MarkerFrame`` or ``TrackFrame`` are given, a ``Points`` layer will be cre
 
 When ``PropArray`` or ``pandas.DataFrame`` are given, an Excel-like table widget will be added on the right side of 
 the viewer. If you want to get coordinates of a ``Points`` layer or ``Tracks`` layer as a table widget, select the 
-layer and push the "(x,y)" button on the lower-left corner. This widget comes from generic ``TableWidget`` class, 
-which is able to copy data, store data or plot the selected table contents like Excel.
-
-- Table menu
-    
-    - "Resize": Resize column width to fit the contents.
-    - "Append row"/"Append column": Add a new row/column.
-    - "Delete widget": Delete table from the viewer.
-
-- Data menu
-    - "Copy all"/"Copy selected": Copy the contents into clipboard. You can paste it directly as csv style.
-    - "Store all"/"Store selected": Store all the contents as ``pandas.DataFrame`` temporary item in ``ip.gui.results``.
-
-- Plot menu
-  
-  - "Plot": Plot selected data on the figure canvas, as a dock widget in the table widget.
-  - "Setting...": Settings of plot, which is the options of ``plot`` function of ``pandas.DataFrame``.
-
+layer and push the "(x,y)" button on the lower-left corner. 
 
 5. Add shapes layer as an text layer
 
@@ -310,3 +314,43 @@ parameters. The example below also shows that updating data inplace immediately 
         img += gauss
 
 .. image:: images/points.gif
+
+
+Figure
+======
+
+Table
+=====
+
+This widget is implemented by the class ``TableWidget``. Unlike the pure ``QTableWidget``, it is much more user friendly.
+
+1. It can have its own figure canvas, independent of that in the viewer. Of course, the canvas is interactive. It is 
+   provided as an dock widget of ``TableWidget`` so that you won't be confused when you have a lot of tables.
+2. You can edit data and header, plot the selected data, and get access to the whole data from the console.
+
+You can find useful function in the menu bar.
+
+- "Table" menu
+    This menu contains functions that refer to the table and its contents but do not change the data.
+    - "Copy all"/"Copy selected": Copy the contents into clipboard. You can paste it directly as csv style.
+    - "Store all"/"Store selected": Store all the contents as ``pandas.DataFrame`` temporary item in ``ip.gui.results``.
+    - "Resize": Resize column width to fit the contents.
+    - "Delete widget": Delete table from the viewer. Figure canvas will also be deleted.
+
+- "Edit" menu
+    This menu contains functions that will change the contents of the table.
+    - "Header to top row": Move the header to the top of the table. New header will be named with sequential integers.
+    - "Append row": Add a new row in the bottom.
+    - "Append column": Add a new column on the right.
+    - "Delete selected rows": Delete all the rows that selected cells exist. Index number will **NOT** be renamed.
+    - "Delete selected columns": Delete all the columns that selected cells exist. Index number will **NOT** be renamed.
+
+- "Plot" menu
+    This menu contains functions that can plot the contents of the table.
+    - "Plot": Plot selected data on the figure canvas, as a dock widget in the table widget.
+    - "Histogram": Show histogram of selected data on the figure canvas, as a dock widget in the table widget.
+    - "Setting ...": Settings of plot, which is the options of ``plot`` and ``hist`` function of ``pandas.DataFrame``.
+
+
+Logger
+======

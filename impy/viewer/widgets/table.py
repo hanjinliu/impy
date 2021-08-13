@@ -73,7 +73,7 @@ class TableWidget(QMainWindow):
         self.menu_bar = self.menuBar()
                 
         self._add_table_menu()
-        self._add_data_menu()
+        self._add_edit_menu()
         self._add_plot_menu()
         
         self.setUnifiedTitleAndToolBarOnMac(True)
@@ -330,8 +330,35 @@ class TableWidget(QMainWindow):
         return list(sl_row), list(sl_column)
 
     
-    def _add_data_menu(self):
-        self.data_menu = self.menu_bar.addMenu("&Data")
+    def _add_edit_menu(self):
+        self.edit_menu = self.menu_bar.addMenu("&Edit")
+        
+        addrow = QAction("Append row", self)
+        addrow.triggered.connect(self.appendRow)
+        addrow.setShortcut("Alt+R")
+        
+        addcol = QAction("Append column", self)
+        addcol.triggered.connect(self.appendColumn)
+        addcol.setShortcut("Alt+C")
+        
+        head2row = QAction("Header to top row", self)
+        head2row.triggered.connect(self.header_to_row)
+        
+        delrow = QAction("Delete selected rows", self)
+        delrow.triggered.connect(self.delete_selected_rows)
+        
+        delcol = QAction("Delete selected columns", self)
+        delcol.triggered.connect(self.delete_selected_columns)
+
+        self.edit_menu.addAction(head2row)
+        self.edit_menu.addAction(addrow)
+        self.edit_menu.addAction(addcol)
+        self.edit_menu.addAction(delrow)
+        self.edit_menu.addAction(delcol)
+        
+    
+    def _add_table_menu(self):
+        self.table_menu = self.menu_bar.addMenu("&Table")
         
         copy_all = QAction("Copy all", self)
         copy_all.triggered.connect(self.copy_as_dataframe)
@@ -349,45 +376,18 @@ class TableWidget(QMainWindow):
         store.triggered.connect(lambda: self.store_as_dataframe(selected=True))
         store.setShortcut("Ctrl+S")
         
-        head2row = QAction("Header to top row", self)
-        head2row.triggered.connect(self.header_to_row)
-        
-        delrow = QAction("Delete selected rows", self)
-        delrow.triggered.connect(self.delete_selected_rows)
-        
-        delcol = QAction("Delete selected columns", self)
-        delcol.triggered.connect(self.delete_selected_columns)
-
-        self.data_menu.addAction(copy_all)
-        self.data_menu.addAction(copy)
-        self.data_menu.addAction(store_all)
-        self.data_menu.addAction(store)
-        self.data_menu.addAction(head2row)
-        self.data_menu.addAction(delrow)
-        self.data_menu.addAction(delcol)
-        
-    
-    def _add_table_menu(self):
-        self.table_menu = self.menu_bar.addMenu("&Table")
-        
         resize = QAction("Resize Columns", self)
         resize.triggered.connect(self.table_native.resizeColumnsToContents)
         resize.setShortcut("R")
-        
-        addrow = QAction("Append row", self)
-        addrow.triggered.connect(self.appendRow)
-        addrow.setShortcut("Alt+R")
-        
-        addcol = QAction("Append column", self)
-        addcol.triggered.connect(self.appendColumn)
-        addcol.setShortcut("Alt+C")
-        
+                
         close = QAction("Delete widget", self)
         close.triggered.connect(self.delete_self)
-            
+        
+        self.table_menu.addAction(copy_all)
+        self.table_menu.addAction(copy)
+        self.table_menu.addAction(store_all)
+        self.table_menu.addAction(store)
         self.table_menu.addAction(resize)
-        self.table_menu.addAction(addrow)
-        self.table_menu.addAction(addcol)
         self.table_menu.addAction(close)
         
     def _add_plot_menu(self):
