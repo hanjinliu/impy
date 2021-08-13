@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
@@ -8,12 +9,10 @@ import napari
 import numpy as np
 import pandas as pd
 
-# TODO: header to row0 and vice versa, Warning of QMainWindowLayout::count
-
 class TableWidget(QMainWindow):
     """
     +-------------------------------+
-    |[Data][Plot]                   |
+    |[Table][Data][Plot]            |
     |                               |
     |            (table)            |
     +-------------------------------+
@@ -98,7 +97,7 @@ class TableWidget(QMainWindow):
     def header(self) -> QHeaderView:
         return self.table_native.horizontalHeader()
     
-    def set_header(self, i:int, name):
+    def set_header(self, i:int, name:Any):
         self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(name)))
     
     def store_as_dataframe(self, selected=False):
@@ -205,6 +204,27 @@ class TableWidget(QMainWindow):
         self.last_plot = "hist"
         return None
     
+    def header_to_row(self):
+        self.table_native.insertRow(0)
+        for i, item in enumerate(self.columns):
+            self.table_native.setItem(0, i, QTableWidgetItem(str(item)))
+            self.set_header(i, i)
+        for i in range(self.table_native.rowCount()):
+            self.table_native.setVerticalHeaderItem(i, QTableWidgetItem(str(i)))
+        return None
+    
+    def delete_selected_rows(self):
+        rows, cols = self._get_selected()
+        for i in reversed(rows):
+            self.table_native.removeRow(i)
+        return None
+
+    def delete_selected_columns(self):
+        rows, cols = self._get_selected()
+        for i in reversed(cols):
+            self.table_native.removeColumn(i)
+        return None
+        
     def change_plot_setting(self):
         dlg = PlotSetting(self)
         dlg.exec_()
@@ -329,10 +349,22 @@ class TableWidget(QMainWindow):
         store.triggered.connect(lambda: self.store_as_dataframe(selected=True))
         store.setShortcut("Ctrl+S")
         
+        head2row = QAction("Header to top row", self)
+        head2row.triggered.connect(self.header_to_row)
+        
+        delrow = QAction("Delete selected rows", self)
+        delrow.triggered.connect(self.delete_selected_rows)
+        
+        delcol = QAction("Delete selected columns", self)
+        delcol.triggered.connect(self.delete_selected_columns)
+
         self.data_menu.addAction(copy_all)
         self.data_menu.addAction(copy)
         self.data_menu.addAction(store_all)
         self.data_menu.addAction(store)
+        self.data_menu.addAction(head2row)
+        self.data_menu.addAction(delrow)
+        self.data_menu.addAction(delcol)
         
     
     def _add_table_menu(self):
@@ -392,15 +424,17 @@ class TableWidget(QMainWindow):
         edit_geometry.moveLeft(self.header.sectionViewportPosition(i))
         line.setGeometry(edit_geometry)
         
-        line.setText(self.columns[i])
+        line.setText(str(self.columns[i]))
         line.setHidden(False)
         line.setFocus()
         line.selectAll()
         
-        @line.editingFinished.connect
+        self._line = line # we have to retain the pointer, otherwise got error sometimes
+        
+        @self._line.editingFinished.connect
         def _():
-            line.setHidden(True)
-            self.set_header(i, line.text())
+            self._line.setHidden(True)
+            self.set_header(i, self._line.text())
         
         return None
 
