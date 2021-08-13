@@ -88,17 +88,31 @@ class TableWidget(QMainWindow):
     def columns(self) -> tuple:
         return self.table.column_headers
     
-    @columns.setter
-    def columns(self, value):
-        self.table.column_headers = value
-        return None
-    
     @property
     def header(self) -> QHeaderView:
         return self.table_native.horizontalHeader()
     
+    def __array__(self) -> np.ndarray:
+        return self.table.to_dataframe().values
+    
+    def to_dataframe(self, selected=False) -> pd.DataFrame:
+        """
+        Convert table to ``pandas.DataFrame``.
+        
+        Parameters
+        ----------
+        selected : bool, default is False
+            If True, only selected range will be converted.
+        """        
+        if selected:
+            df = self._get_selected_dataframe()
+        else:
+            df = self.table.to_dataframe()
+        return df
+    
     def set_header(self, i:int, name:Any):
         self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(name)))
+        return None
     
     def store_as_dataframe(self, selected=False):
         """
@@ -109,11 +123,7 @@ class TableWidget(QMainWindow):
         selected : bool, default is False
             If True, only selected range will be send to results.
         """        
-        if selected:
-            df = self._get_selected_dataframe()
-        else:
-            df = self.table.to_dataframe()
-        self.viewer.window.results = df
+        self.viewer.window.results = self.to_dataframe(selected)
         return None
     
     def copy_as_dataframe(self, selected=False):
@@ -125,49 +135,49 @@ class TableWidget(QMainWindow):
         selected : bool, default is False
             If True, only selected range will be send to clipboard.
         """        
-        if selected:
-            df = self._get_selected_dataframe()
-        else:
-            df = self.table.to_dataframe()
-        df.to_clipboard()
+        self.to_dataframe(selected).to_clipboard()
         return None
     
     def plot(self):
         from .._plt import canvas_plot, plt, EventedCanvas, mpl
         backend = mpl.get_backend()
         mpl.use("Agg")
-        with canvas_plot():
-            if self.fig is None:
-                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-                
-                self.fig = plt.figure()
-                canvas = EventedCanvas(self.fig)
-                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
-                                                        area="bottom", allowed_areas=["right", "bottom"])
-                
-                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
-            else:
-                self.fig.clf()
-            self.ax = self.fig.add_subplot(111)
-            
-            df = self._get_selected_dataframe()
-            
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", UserWarning)
-                kw = self.plot_settings.copy()
-                kw.pop("bins")
-                if df.shape[1] == 1 and kw["x"] == 0:
-                    kw["x"] = None
-                    df.plot(ax=self.ax, grid=True, **kw)
-                    kw["x"] = 0
+        try:
+            with canvas_plot():
+                if self.fig is None:
+                    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+                    
+                    self.fig = plt.figure()
+                    canvas = EventedCanvas(self.fig)
+                    self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
+                                                            area="bottom", allowed_areas=["right", "bottom"])
+                    
+                    self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
                 else:
-                    df.plot(ax=self.ax, grid=True, **kw)
+                    self.fig.clf()
+                self.ax = self.fig.add_subplot(111)
                 
-                self.fig.tight_layout()
-                self.fig.canvas.draw()
-                self.figure_widget.show()
-        
-        mpl.use(backend)
+                df = self._get_selected_dataframe()
+                
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", UserWarning)
+                    kw = self.plot_settings.copy()
+                    kw.pop("bins")
+                    if df.shape[1] == 1 and kw["x"] == 0:
+                        kw["x"] = None
+                        df.plot(ax=self.ax, grid=True, **kw)
+                        kw["x"] = 0
+                    else:
+                        df.plot(ax=self.ax, grid=True, **kw)
+                    
+                    self.fig.tight_layout()
+                    self.fig.canvas.draw()
+                    self.figure_widget.show()
+        except Exception:
+            mpl.use(backend)
+            raise
+        else:
+            mpl.use(backend)
         self.last_plot = "plot"
         return None
     
@@ -175,32 +185,36 @@ class TableWidget(QMainWindow):
         from .._plt import canvas_plot, plt, EventedCanvas, mpl
         backend = mpl.get_backend()
         mpl.use("Agg")
-        with canvas_plot():
-            if self.fig is None:
-                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+        try:
+            with canvas_plot():
+                if self.fig is None:
+                    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+                    
+                    self.fig = plt.figure()
+                    canvas = EventedCanvas(self.fig)
+                    self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
+                                                            area="bottom", allowed_areas=["right", "bottom"])
+                    
+                    self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
+                else:
+                    self.fig.clf()
+                self.ax = self.fig.add_subplot(111)
                 
-                self.fig = plt.figure()
-                canvas = EventedCanvas(self.fig)
-                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
-                                                        area="bottom", allowed_areas=["right", "bottom"])
+                df = self._get_selected_dataframe()
                 
-                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
-            else:
-                self.fig.clf()
-            self.ax = self.fig.add_subplot(111)
-            
-            df = self._get_selected_dataframe()
-            
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", UserWarning)
-                kw = {k:self.plot_settings[k] for k in ["sharex", "sharey", "bins", "legend"]}
-                df.hist(ax=self.ax, grid=True, **kw)
-                
-                self.fig.tight_layout()
-                self.fig.canvas.draw()
-                self.figure_widget.show()
-        
-        mpl.use(backend)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", UserWarning)
+                    kw = {k:self.plot_settings[k] for k in ["sharex", "sharey", "bins", "legend"]}
+                    df.hist(ax=self.ax, grid=True, **kw)
+                    
+                    self.fig.tight_layout()
+                    self.fig.canvas.draw()
+                    self.figure_widget.show()
+        except Exception:
+            mpl.use(backend)
+            raise
+        else:
+            mpl.use(backend)
         self.last_plot = "hist"
         return None
     
@@ -415,10 +429,21 @@ class TableWidget(QMainWindow):
         return None
     
     def edit_header(self, i:int):
-        # https://www.qtcentre.org/threads/42388-Make-QHeaderView-Editable
-        
+        """
+        Enter edit header mode when a header item is double-clicked.
+
+        Parameters
+        ----------
+        i : int
+            The index of header item that is double-clicked.
+
+        References
+        ----------
+        - https://www.qtcentre.org/threads/42388-Make-QHeaderView-Editable
+        """        
         line = QLineEdit(parent=self.header)
-    
+
+        # set geometry
         edit_geometry = line.geometry()
         edit_geometry.setWidth(self.header.sectionSize(i))
         edit_geometry.moveLeft(self.header.sectionViewportPosition(i))
@@ -535,6 +560,10 @@ class PlotSetting(QDialog):
     
 
 class FloatDelegate(QStyledItemDelegate):
+    """
+    This class is used for displaying table widget items. With this float will be displayed as a
+    formated string.
+    """    
     def __init__(self, ndigit=3, parent=None):
         super().__init__(parent=parent)
         self.ndigit = ndigit

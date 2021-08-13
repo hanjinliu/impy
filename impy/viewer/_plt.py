@@ -6,6 +6,12 @@ import warnings
 
 __all__ = ["mpl", "plt", "canvas_plot", "EventedCanvas"]
 
+params = plt.style.library["dark_background"]
+params["figure.facecolor"] = "#0F0F0F"
+params["axes.facecolor"] = "#0F0F0F"
+params["font.size"] = 10.5
+plt.style.library["night"] = params
+
 class EventedCanvas(FigureCanvas):
     """
     A figure canvas implemented with mouse callbacks.
@@ -119,11 +125,8 @@ class canvas_plot:
     def __enter__(self):
         self.original = mpl.rcParams.copy()
         
-        params = plt.style.library["dark_background"]
+        params = plt.style.library["night"]
         mpl.rcParams.update(params)
-        mpl.rcParams["figure.facecolor"] = "#0F0F0F"
-        mpl.rcParams["axes.facecolor"] = "#0F0F0F"
-        mpl.rcParams["font.size"] = 10.5
         
         return self
     
@@ -148,4 +151,6 @@ class NapariFigureManager(FigureManagerBase):
         return None
 
 def new_figure_manager(*args, **kwargs):
+    params = plt.style.library["night"]
+    mpl.rcParams.update(params)
     return NapariFigureManager()

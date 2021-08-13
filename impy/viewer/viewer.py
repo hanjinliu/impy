@@ -505,9 +505,14 @@ class napariViewers:
                     if use_plt:
                         backend = mpl.get_backend()
                         mpl.use(GUIcanvas)
-                        with canvas_plot():
-                            out = f(self, **kwargs)
-                        mpl.use(backend)
+                        try:
+                            with canvas_plot():
+                                out = f(self, **kwargs)
+                        except Exception:
+                            mpl.use(backend)
+                            raise
+                        else:
+                            mpl.use(backend)
                     else:
                         out = f(self, **kwargs)
                 if isinstance(out, types.GeneratorType):
