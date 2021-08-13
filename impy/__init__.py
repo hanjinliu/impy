@@ -14,7 +14,7 @@ del GPU_AVAILABLE
 from .collections import *
 from .core import *
 from .binder import bind
-from .viewer import gui
+from .viewer import gui, GUIcanvas
 from .correlation import *
 import numpy as np
 

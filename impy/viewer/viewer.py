@@ -31,6 +31,7 @@ from .._const import Const
 # - area=None for new dock widgets
 
 ImpyObject = NewType("ImpyObject", Any)
+GUIcanvas = "module://impy.viewer._plt"
 
 def _change_theme(viewer):
     from napari.utils.theme import get_theme, register_theme, available_themes
@@ -149,7 +150,7 @@ class napariViewers:
         try:
             return self._table
         except AttributeError:
-            self._table = self.add_table()
+            self.add_table()
             return self._table
     
     @property
@@ -490,7 +491,7 @@ class napariViewers:
                 else:
                     self.viewer.window._dock_widgets["Main Plot"].show()
             
-            _use_table and self.table
+            _use_table and self.add_table()
             _use_log and self.log                
         
             @self.viewer.bind_key(key, overwrite=True)
@@ -500,10 +501,10 @@ class napariViewers:
                 
                 kwargs = {wid.name: wid.value for wid in self._container}
                 std_ = self if use_logger else None
-                with Progress(f.__name__, out=None), set_logger(std_):
+                with Progress(f.__name__, out=None), setLogger(std_):
                     if use_plt:
                         backend = mpl.get_backend()
-                        mpl.use("module://impy.viewer._plt")
+                        mpl.use(GUIcanvas)
                         with canvas_plot():
                             out = f(self, **kwargs)
                         mpl.use(backend)
@@ -598,8 +599,11 @@ class napariViewers:
         if isinstance(data, PropArray):
             df = data.as_frame()
             df.rename(columns = {"f": "value"}, inplace=True)
-            
-        return add_table(self.viewer, data, columns, name)
+        self._table = add_table(self.viewer, data, columns, name)
+        return self._table
+
+    def use_logger(self):
+        return setLogger(self)
 
     def _add_figure(self):
         """
@@ -676,7 +680,7 @@ def _load_widgets(viewer):
         getattr(_widgets, f)(viewer)
 
 
-class set_logger:
+class setLogger:
     def __init__(self, gui=None):
         self.gui = gui
 

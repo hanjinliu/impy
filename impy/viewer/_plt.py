@@ -140,8 +140,8 @@ class NapariFigureManager(FigureManagerBase):
     def __init__(self, canvas=None, num=1):
         from . import gui
         canvas = gui.fig.canvas
-        super().__init__(canvas, num)
         gui.fig.clf()
+        super().__init__(canvas, num)
         
     def show(self):
         self.canvas.draw()

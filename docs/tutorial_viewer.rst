@@ -5,13 +5,13 @@ Viewer Tutorial
 ``impy`` provides simple interaction between console and ``napari.Viewer``. The controller object ``ip.gui`` has
 multiple abilities to make your image processing efficient.
 
-`ip.gui` can have one figure canvas, many tables and one logger, while each table can also have its own figure.
+``ip.gui`` can have one figure canvas, many tables and one logger, while each table can also have its own figure.
 
 .. blockdiag::
    
    blockdiag {
       
-      ip.gui -> napari.Viewer components + extended functions in impy;
+      ip.gui -> napari.Viewer components;
       ip.gui -> Figure;
       ip.gui -> Table -> Figure;
       ip.gui -> Table -> Figure;
@@ -22,9 +22,16 @@ multiple abilities to make your image processing efficient.
       
    }
 
+These are accessible via attributes of ``ip.gui``.
+
+* ``ip.gui.viewer``: ``napari.Viewer`` object
+* ``ip.gui.fig``: ``matplotlib.figure.Figure`` object
+* ``ip.gui.table``: ``impy``'s ``TableWidget`` object
+* ``ip.gui.log``: ``impy``'s ``LoggerWidget`` object
+
 .. contents:: Contents
     :local:
-    :depth: 2
+    :depth: 1
 
 Viewer
 ======
@@ -85,6 +92,8 @@ When ``MarkerFrame`` or ``TrackFrame`` are given, a ``Points`` layer will be cre
 When ``PropArray`` or ``pandas.DataFrame`` are given, an Excel-like table widget will be added on the right side of 
 the viewer. If you want to get coordinates of a ``Points`` layer or ``Tracks`` layer as a table widget, select the 
 layer and push the "(x,y)" button on the lower-left corner. 
+
+You can also add a new table by calling ``ip.gui.add_table()``
 
 5. Add shapes layer as an text layer
 
@@ -196,17 +205,98 @@ There is a custom menu called "Functions" added in the menu bar.
 Others
 ------
 
-- Note pad in ``Window > Note``.
-- Call ``impy.imread`` in "File > imread ...". Call ``impy.imsave`` in "File > imsave ...".
+* Note pad in ``Window > Note``.
+* Call ``impy.imread`` in "File > imread ...". 
+* Call ``impy.imsave`` in "File > imsave ...".
+* Call ``pandas.read_csv`` and add an table widget in "File > pandas.read_csv ...".
 
+|
 
-Fit Custom Functions into GUI
------------------------------
+Figure
+======
+
+When launched from ``impy``, ``napari``'s viewer is implemented with a highly interactive figure canvas. You can drag
+the figure with mouse left button, call ``tight_layout`` with double click, resize with wheel and stretch the graph
+with mouse right button.
+
+.. image:: images/figure.gif
+
+|
+
+This ``matplotlib`` backend is available via ``ip.GUIcanvas``. Only during function call in ``ip.gui.bind``, the backend
+is always switched to it. However, You can fully switch to ``ip.GUIcanvas``:
+
+.. code-block:: python
+
+    # change the backend
+    import matplotlib as mpl
+    mpl.use(ip.GUIcanvas)
+
+    # "plt" in GUI canvas
+    plt.figure()
+    plt.plot(np.random.random(100))
+    plt.show()
+
+Figure is also accessible via ``ip.gui.fig``, so that you can use it by such as ``ax = ip.gui.fig.add_subplot(111)``.
+
+Table
+=====
+
+This widget is implemented by the class ``TableWidget``. Unlike the pure ``QTableWidget``, it is much more user friendly.
+
+1. It can have its own figure canvas, independent of that in the viewer. Of course, the canvas is interactive. It is 
+   provided as an dock widget of ``TableWidget`` so that you won't be confused when you have a lot of tables.
+2. You can edit data and header, plot the selected data, and get access to the whole data from the console.
+
+.. image:: images/table.png
+
+You can find useful function in the menu bar.
+
+* "Table" menu ... This menu contains functions that refer to the table and its contents but do not change the data.
+    * "Copy all"/"Copy selected": Copy the contents into clipboard. You can paste it directly as csv style.
+    * "Store all"/"Store selected": Store all the contents as ``pandas.DataFrame`` temporary item in ``ip.gui.results``.
+    * "Resize": Resize column width to fit the contents.
+    * "Delete widget": Delete table from the viewer. Figure canvas will also be deleted.
+
+* "Edit" menu ... This menu contains functions that will change the contents of the table.
+    * "Header to top row": Move the header to the top of the table. New header will be named with sequential integers.
+    * "Append row": Add a new row in the bottom.
+    * "Append column": Add a new column on the right.
+    * "Delete selected rows": Delete all the rows that selected cells exist. Index number will **NOT** be renamed.
+    * "Delete selected columns": Delete all the columns that selected cells exist. Index number will **NOT** be renamed.
+
+* "Plot" menu ... This menu contains functions that can plot the contents of the table.
+    * "Plot": Plot selected data on the figure canvas, as a dock widget in the table widget.
+    * "Histogram": Show histogram of selected data on the figure canvas, as a dock widget in the table widget.
+    * "Setting ...": Settings of plot, which is the options of ``plot`` and ``hist`` function of ``pandas.DataFrame``.
+
+The lastly added table is accessible via ``ip.gui.table``. You can append data by calling ``ip.gui.table.append(...)``.
+
+Logger
+======
+
+``impy``'s viewer also provides a logger widget, which would be useful to print some information. It is accessible via
+``ip.gui.log``. You can append log by calling ``ip.gui.log.append(...)``.
+
+If you want to show all the printed strings in the logger, you can use context manager ``ip.setLogger``.
+
+.. code-block:: python
+
+    import logging
+
+    with ip.gui.use_logger():
+        # both will be printed in the viewer's logger widget
+        print("something")
+        logging.warning("WARNING")
+
+Plug Custom Functions into GUI
+==============================
 
 In image analysis, you usually want to set parameters using manually drawn shapes or points. You don't have
 to do that by getting properties of the viewer for every function call. ``impy`` provides easier way to integrate 
 your function to ``napari``. Just decorate your function with `@ip.gui.bind` and call function with keybind "F1". 
-You can also plot on the figure canvas inside `napari`.
+Of course, abovementioned figure canvas, table, logger are all accessible during function calls. Fully utilize them
+to make your plugin nice.
 
 Examples
 ^^^^^^^^ 
@@ -254,7 +344,7 @@ This is the most simple but practical example of binding a function that only ad
 
 .. image:: images/auto_center.gif
 
-
+|
 
 2. Fit filament tips to sigmoid function
 
@@ -293,7 +383,7 @@ This is an example of binding a function with plot function. A figure canvas wil
 
 .. image:: images/line_scan.gif
 
-
+|
 
 3. Draw Gaussian points with different sizes
 
@@ -314,43 +404,3 @@ parameters. The example below also shows that updating data inplace immediately 
         img += gauss
 
 .. image:: images/points.gif
-
-
-Figure
-======
-
-Table
-=====
-
-This widget is implemented by the class ``TableWidget``. Unlike the pure ``QTableWidget``, it is much more user friendly.
-
-1. It can have its own figure canvas, independent of that in the viewer. Of course, the canvas is interactive. It is 
-   provided as an dock widget of ``TableWidget`` so that you won't be confused when you have a lot of tables.
-2. You can edit data and header, plot the selected data, and get access to the whole data from the console.
-
-You can find useful function in the menu bar.
-
-- "Table" menu
-    This menu contains functions that refer to the table and its contents but do not change the data.
-    - "Copy all"/"Copy selected": Copy the contents into clipboard. You can paste it directly as csv style.
-    - "Store all"/"Store selected": Store all the contents as ``pandas.DataFrame`` temporary item in ``ip.gui.results``.
-    - "Resize": Resize column width to fit the contents.
-    - "Delete widget": Delete table from the viewer. Figure canvas will also be deleted.
-
-- "Edit" menu
-    This menu contains functions that will change the contents of the table.
-    - "Header to top row": Move the header to the top of the table. New header will be named with sequential integers.
-    - "Append row": Add a new row in the bottom.
-    - "Append column": Add a new column on the right.
-    - "Delete selected rows": Delete all the rows that selected cells exist. Index number will **NOT** be renamed.
-    - "Delete selected columns": Delete all the columns that selected cells exist. Index number will **NOT** be renamed.
-
-- "Plot" menu
-    This menu contains functions that can plot the contents of the table.
-    - "Plot": Plot selected data on the figure canvas, as a dock widget in the table widget.
-    - "Histogram": Show histogram of selected data on the figure canvas, as a dock widget in the table widget.
-    - "Setting ...": Settings of plot, which is the options of ``plot`` and ``hist`` function of ``pandas.DataFrame``.
-
-
-Logger
-======
