@@ -75,7 +75,9 @@ class napariViewers:
     def viewer(self) -> "napari.Viewer":
         """
         The most front viewer you're using
-        """        
+        """
+        if self._front_viewer not in self._viewers.keys():
+            self.start()
         return self._viewers[self._front_viewer]
         
     @property
@@ -292,7 +294,7 @@ class napariViewers:
         return out
         
         
-    def add(self, obj:ImpyObject=None, title:str=None, **kwargs):
+    def add(self, obj:ImpyObject=None, **kwargs):
         """
         Add images, points, labels, tracks etc to viewer.
 
@@ -300,19 +302,7 @@ class napariViewers:
         ----------
         obj : ImpyObject
             Object to add.
-        title : str, optional
-            Title (key) of the viewer to add object(s).
         """
-        if title is None:
-            if self._front_viewer is None:
-                title = "impy"
-            else:
-                title = self._front_viewer
-                
-        if title not in self._viewers.keys():
-            title = self._name(title)
-            self.start(title)
-        self._front_viewer = title
         
         # Add image and its labels
         if isinstance(obj, LabeledArray):
@@ -362,18 +352,18 @@ class napariViewers:
                 img = ip_imread(obj)
             else:
                 img = ip_lazy_imread(obj)
-            self.add(img, title=title, **kwargs)                
+            self.add(img, **kwargs)                
             
         # Add many objects of same type
         elif isinstance(obj, DataList):
-            [self.add(each, title=title, **kwargs) for each in obj]
+            [self.add(each, **kwargs) for each in obj]
         
         elif obj is None:
             pass
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
-    def preview(self, path:str, downsample_factor=4, dims=None, title=None, **kwargs):
+    def preview(self, path:str, downsample_factor=4, dims=None, **kwargs):
         """
         Preview a large image with a strided image.
 
@@ -385,20 +375,7 @@ class napariViewers:
             Image value is sampled every ``downsample_factor`` pixels.
         dims : str or int, optional
             Axes along which values will be down-sampled.
-        title : str, optional
-            Title (key) of the viewer to add object(s).
         """        
-        if title is None:
-            if self._front_viewer is None:
-                title = "impy"
-            else:
-                title = self._front_viewer
-                
-        if title not in self._viewers.keys():
-            title = self._name(title)
-            self.start(title)
-        self._front_viewer = title
-        
         if dims is None:
             meta = read_meta(path)
             dims = "zyx" if "z" in meta["axes"] else "yx"
@@ -785,15 +762,7 @@ class napariViewers:
         self.viewer.window._dock_widgets[widget_name].show()
         
         return None
-            
-    def _name(self, name="impy"):        
-        i = 0
-        existing = self._viewers.keys()
-        while name in existing:
-            name += f"-{i}"
-            i += 1
-        return name
-    
+                
     
 def _default_viewer_settings(viewer):
     viewer.scale_bar.visible = True
