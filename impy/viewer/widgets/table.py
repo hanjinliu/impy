@@ -1,13 +1,14 @@
 from __future__ import annotations
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
-                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate)
+                            QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
+                            QLineEdit, QSpinBox)
 import magicgui
 import napari
 import numpy as np
 import pandas as pd
 
-# TODO: rename column, Warning of QMainWindowLayout::count
+# TODO: header to row0 and vice versa, Warning of QMainWindowLayout::count
 
 class TableWidget(QMainWindow):
     """
@@ -26,7 +27,9 @@ class TableWidget(QMainWindow):
         self.ax = None
         self.figure_widget = None
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
-                                  logx=False, logy=False)
+                                  logx=False, logy=False, bins=10)
+        self.last_plot = "plot"
+        
         if df is None:
             if columns is None:
                 df = np.atleast_2d([])
@@ -61,8 +64,10 @@ class TableWidget(QMainWindow):
         self.table_native:QTableWidget = self.table.native
         self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
         self.table_native.resizeColumnsToContents()
-        header = self.table_native.horizontalHeader()
+        header = self.header
         header.setSectionResizeMode(QHeaderView.Interactive)
+        header.setSectionsClickable(True)
+        header.sectionDoubleClicked.connect(self.edit_header)
         
         super().__init__(viewer.window._qt_window)
         
@@ -81,14 +86,21 @@ class TableWidget(QMainWindow):
         return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
     
     @property
-    def columns(self):
+    def columns(self) -> tuple:
         return self.table.column_headers
     
     @columns.setter
     def columns(self, value):
         self.table.column_headers = value
         return None
-        
+    
+    @property
+    def header(self) -> QHeaderView:
+        return self.table_native.horizontalHeader()
+    
+    def set_header(self, i:int, name):
+        self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(name)))
+    
     def store_as_dataframe(self, selected=False):
         """
         Send table contents to ``self.viewer.window.results``.
@@ -131,7 +143,7 @@ class TableWidget(QMainWindow):
                 
                 self.fig = plt.figure()
                 canvas = EventedCanvas(self.fig)
-                self.figure_widget = QtViewerDockWidget(self, canvas, name="Plot",
+                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
                                                         area="bottom", allowed_areas=["right", "bottom"])
                 
                 self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
@@ -143,18 +155,54 @@ class TableWidget(QMainWindow):
             
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", UserWarning)
-                if df.shape[1] == 1 and self.plot_settings["x"] == 0:
-                    self.plot_settings["x"] = None
-                    df.plot(ax=self.ax, grid=True, **self.plot_settings)
-                    self.plot_settings["x"] = 0
+                kw = self.plot_settings.copy()
+                kw.pop("bins")
+                if df.shape[1] == 1 and kw["x"] == 0:
+                    kw["x"] = None
+                    df.plot(ax=self.ax, grid=True, **kw)
+                    kw["x"] = 0
                 else:
-                    df.plot(ax=self.ax, grid=True, **self.plot_settings)
+                    df.plot(ax=self.ax, grid=True, **kw)
                 
                 self.fig.tight_layout()
                 self.fig.canvas.draw()
                 self.figure_widget.show()
         
         mpl.use(backend)
+        self.last_plot = "plot"
+        return None
+    
+    def hist(self):
+        from .._plt import canvas_plot, plt, EventedCanvas, mpl
+        backend = mpl.get_backend()
+        mpl.use("Agg")
+        with canvas_plot():
+            if self.fig is None:
+                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+                
+                self.fig = plt.figure()
+                canvas = EventedCanvas(self.fig)
+                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
+                                                        area="bottom", allowed_areas=["right", "bottom"])
+                
+                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
+            else:
+                self.fig.clf()
+            self.ax = self.fig.add_subplot(111)
+            
+            df = self._get_selected_dataframe()
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                kw = {k:self.plot_settings[k] for k in ["sharex", "sharey", "bins", "legend"]}
+                df.hist(ax=self.ax, grid=True, **kw)
+                
+                self.fig.tight_layout()
+                self.fig.canvas.draw()
+                self.figure_widget.show()
+        
+        mpl.use(backend)
+        self.last_plot = "hist"
         return None
     
     def change_plot_setting(self):
@@ -190,7 +238,7 @@ class TableWidget(QMainWindow):
             self.table_native.setItem(nrow, i, QTableWidgetItem(str(item)))
         return None
     
-    append = appendRow
+    append = appendRow # for compatibility
     
     def appendColumn(self, data=None):
         """
@@ -198,7 +246,7 @@ class TableWidget(QMainWindow):
         """        
         ncol = self.table_native.columnCount()
         self.table_native.insertColumn(ncol)
-        self.table_native.setHorizontalHeaderItem(ncol, QTableWidgetItem(str(ncol)))
+        self.set_header(ncol, ncol)
         
         if not hasattr(data, "__len__"):
             return None
@@ -229,7 +277,7 @@ class TableWidget(QMainWindow):
         
         for i, h in enumerate(header):
             self.table_native.insertColumn(i)
-            self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(h)))
+            self.set_header(i, h)
             self.table_native.setItem(0, i, QTableWidgetItem(str(data[i])))
         
         self.table_native.resizeColumnsToContents()
@@ -317,41 +365,66 @@ class TableWidget(QMainWindow):
         plot.triggered.connect(self.plot)
         plot.setShortcut("P")
         
+        hist = QAction("Histogram", self.viewer.window._qt_window)
+        hist.triggered.connect(self.hist)
+        hist.setShortcut("H")
+        
         setting = QAction("Setting ...", self.viewer.window._qt_window)
         setting.triggered.connect(self.change_plot_setting)
         
         self.plot_menu.addAction(plot)
+        self.plot_menu.addAction(hist)
         self.plot_menu.addAction(setting)
     
     def delete_self(self):
         self.removeDockWidget(self.figure_widget)
         dock = self.viewer.window._dock_widgets[self.name]
         self.viewer.window.remove_dock_widget(dock)
+        return None
     
+    def edit_header(self, i:int):
+        # https://www.qtcentre.org/threads/42388-Make-QHeaderView-Editable
         
+        line = QLineEdit(parent=self.header)
+    
+        edit_geometry = line.geometry()
+        edit_geometry.setWidth(self.header.sectionSize(i))
+        edit_geometry.moveLeft(self.header.sectionViewportPosition(i))
+        line.setGeometry(edit_geometry)
+        
+        line.setText(self.columns[i])
+        line.setHidden(False)
+        line.setFocus()
+        line.selectAll()
+        
+        @line.editingFinished.connect
+        def _():
+            line.setHidden(True)
+            self.set_header(i, line.text())
+        
+        return None
+
 class PlotSetting(QDialog):
     def __init__(self, table:TableWidget):
         self.table = table
         super().__init__(table.viewer.window._qt_window)
         self.resize(180, 120)
         self.setLayout(QGridLayout())
-        self._add_widgets()
-    
-    def _add_widgets(self):
+        self.add_widgets()
+        
+    def add_widgets(self):
         label = QLabel(self)
         label.setText("Set the plotting style.")
         self.layout().addWidget(label)
         
-        self.usex = QCheckBox(self)
-        self.usex.setText("Left-most column as X-axis")
-        self.usex.setChecked(self.table.plot_settings["x"] == 0)
-        self.layout().addWidget(self.usex)
+        self.usex = self._add_checkbox(text="Left-most column as X-axis",
+                                       checked=(self.table.plot_settings["x"] == 0))
         
         combo = QWidget(self)
         combo.setLayout(QHBoxLayout())
         
         self.kind = QComboBox(self)
-        self.kind.addItems(["line", "bar", "hist", "box", "kde"])
+        self.kind.addItems(["line", "bar", "box", "kde"])
         self.kind.setCurrentText(self.table.plot_settings["kind"])
         combo.layout().addWidget(self.kind)
         
@@ -360,36 +433,54 @@ class PlotSetting(QDialog):
         combo.layout().addWidget(label)
         self.layout().addWidget(combo)
         
-        self.legend = QCheckBox(self)
-        self.legend.setText("Show legend")
-        self.legend.setChecked(self.table.plot_settings["legend"])
-        self.layout().addWidget(self.legend)
-        
-        self.subplots = QCheckBox(self)
-        self.subplots.setText("Subplots")
-        self.subplots.setChecked(self.table.plot_settings["subplots"])
-        self.layout().addWidget(self.subplots)
-        
-        self.sharex = QCheckBox(self)
-        self.sharex.setText("Share X-axis")
-        self.sharex.setChecked(self.table.plot_settings["sharex"])
-        self.layout().addWidget(self.sharex)
-        
-        self.sharey = QCheckBox(self)
-        self.sharey.setText("Share Y-axis")
-        self.sharey.setChecked(self.table.plot_settings["sharey"])
-        self.layout().addWidget(self.sharey)
-        
-        self.logx = QCheckBox(self)
-        self.logx.setText("log-X")
-        self.logx.setChecked(self.table.plot_settings["logx"])
-        self.layout().addWidget(self.logx)
-        
-        self.logy = QCheckBox(self)
-        self.logy.setText("log-Y")
-        self.logy.setChecked(self.table.plot_settings["logy"])
-        self.layout().addWidget(self.logy)
-        
+        self.bins = QSpinBox(self)
+        self.bins.setRange(2, 100)
+        self.bins.setValue(self.table.plot_settings["bins"])
+        self.layout().addWidget(self.bins)
+
+        self.legend = self._add_checkbox(text="Show legend",
+                                         checked=self.table.plot_settings["legend"])
+        self.subplots = self._add_checkbox(text="Subplots",
+                                           checked=self.table.plot_settings["subplots"])
+        self.sharex = self._add_checkbox(text="Share X-axis",
+                                         checked=self.table.plot_settings["sharex"])
+        self.sharey = self._add_checkbox(text="Share Y-axis",
+                                         checked=self.table.plot_settings["sharey"])
+        self.logx = self._add_checkbox(text="log-X",
+                                       checked=self.table.plot_settings["logx"])
+        self.logy = self._add_checkbox(text="log-Y",
+                                       checked=self.table.plot_settings["logy"])
+        self._add_buttons()
+    
+    
+    def ok(self):
+        self.change_setting()
+        self.close()
+        return None
+
+    def apply(self):
+        self.change_setting()
+        getattr(self.table, self.table.last_plot)()
+        return None
+    
+    def change_setting(self):
+        out = dict()
+        out["x"] = 0 if self.usex.isChecked() else None
+        out["kind"] = str(self.kind.currentText())
+        out["bins"] = self.bins.value()
+        for attr in ["legend", "subplots", "sharex", "sharey", "logx", "logy"]:
+            out[attr] = getattr(self, attr).isChecked()
+        self.table.plot_settings.update(out)
+        return None
+    
+    def _add_checkbox(self, text:str, checked:bool):
+        checkbox = QCheckBox(self)
+        checkbox.setText(text)
+        checkbox.setChecked(checked)
+        self.layout().addWidget(checkbox)
+        return checkbox
+    
+    def _add_buttons(self):
         buttons = QWidget(self)
         buttons.setLayout(QHBoxLayout())
         
@@ -406,25 +497,8 @@ class PlotSetting(QDialog):
         buttons.layout().addWidget(cancel_button)
         
         self.layout().addWidget(buttons)
-        
-    def ok(self):
-        self._change_setting()
-        self.close()
-        return None
     
-    def apply(self):
-        self._change_setting()
-        self.table.plot()
-        return None
     
-    def _change_setting(self):
-        out = dict()
-        out["x"] = 0 if self.usex.isChecked() else None
-        out["kind"] = str(self.kind.currentText())
-        for attr in ["legend", "subplots", "sharex", "sharey", "logx", "logy"]:
-            out[attr] = getattr(self, attr).isChecked()
-        self.table.plot_settings = out
-        return None
 
 class FloatDelegate(QStyledItemDelegate):
     def __init__(self, ndigit=3, parent=None):
