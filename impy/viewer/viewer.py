@@ -310,30 +310,30 @@ class napariViewers:
         
         # Add points
         elif isinstance(obj, MarkerFrame):
-            self._add_points(obj, **kwargs)
+            add_points(self.viewer, obj, **kwargs)
         
         # Add labels
         elif isinstance(obj, Label):
-            self._add_labels(obj, **kwargs)
+            add_labels(self.viewer, obj, **kwargs)
         
         # Add tracks
         elif isinstance(obj, TrackFrame):
-            self._add_tracks(obj, **kwargs)
+            add_tracks(self.viewer, obj, **kwargs)
         
         # Add path
         elif isinstance(obj, PathFrame):
-            self._add_paths(obj, **kwargs)
+            add_paths(self.viewer, obj, **kwargs)
         
         # Add a table
         elif isinstance(obj, (pd.DataFrame, PropArray)):
-            self._add_properties(obj, **kwargs)
+            self.add_table(obj, **kwargs)
         
         # Add a lazy-loaded image
         elif isinstance(obj, LazyImgArray):
             if obj.gb > Const["MAX_GB"] and self.viewer.dims.ndisplay == 3:
                 raise MemoryError("Cannot send large files while the viewer is 3D mode.")
             with Progress("Sending Dask arrays to napari"):
-                self._add_dask(obj, **kwargs)
+                add_dask(self.viewer, obj, **kwargs)
         
         # Add an array as an image
         elif type(obj) is np.ndarray:
@@ -574,121 +574,7 @@ class napariViewers:
         else:
             name = layer.name
         if hasattr(img, "labels"):
-            self._add_labels(img.labels, name=name, metadata={"destination_image": img})
-        return None
-    
-    def _add_dask(self, img:LazyImgArray, **kwargs):
-        chn_ax = img.axisof("c") if "c" in img.axes else None
-                    
-        scale = make_world_scale(img)
-        
-        if "contrast_limits" not in kwargs.keys():
-            # contrast limits should be determined quickly.
-            leny, lenx = img.shape[-2:]
-            sample = img.img[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
-            kwargs["contrast_limits"] = [float(sample.min().compute()), 
-                                         float(sample.max().compute())]
-
-        name = "No-Name" if img.name is None else img.name
-
-        if chn_ax is not None:
-            name = [f"[Lazy][C{i}]{name}" for i in range(img.sizeof("c"))]
-        else:
-            name = ["[Lazy]" + name]
-
-        layer = self.viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
-                                      name=name if len(name)>1 else name[0], **kwargs)
-        self.viewer.scale_bar.unit = img.scale_unit
-        new_axes = [a for a in img.axes if a != "c"]
-        # add axis labels to slide bars and image orientation.
-        if len(new_axes) >= len(self.viewer.dims.axis_labels):
-            self.viewer.dims.axis_labels = new_axes
-        return layer
-    
-    def _add_points(self, points, **kwargs):
-        if isinstance(points, MarkerFrame):
-            scale = make_world_scale(points)
-            points = points.get_coords()
-        else:
-            scale=None
-        
-        if "c" in points._axes:
-            pnts = points.split("c")
-        else:
-            pnts = [points]
-            
-        for each in pnts:
-            metadata = {"axes": str(each._axes), "scale": each.scale}
-            kw = dict(size=3.2, face_color=[0,0,0,0], metadata=metadata,
-                      edge_color=self.viewer.window.cmap())
-            kw.update(kwargs)
-            self.viewer.add_points(each.values, scale=scale, **kw)
-            
-        return None
-    
-    def _add_labels(self, labels:Label, opacity:float=0.3, name:str|list[str]=None, **kwargs):
-        scale = make_world_scale(labels)
-        # prepare label list
-        if "c" in labels.axes:
-            lbls = labels.split("c")
-        else:
-            lbls = [labels]
-        
-        # prepare name list
-        if isinstance(name, list):
-            names = [f"[L]{n}" for n in name]
-        elif isinstance(name, str):
-            names = [f"[L]{name}"] * len(lbls)
-        else:
-            names = [labels.name]
-            
-        for lbl, name in zip(lbls, names):
-            self.viewer.add_labels(lbl.value, opacity=opacity, scale=scale, name=name, **kwargs)
-        return None
-
-    def _add_tracks(self, track:TrackFrame, **kwargs):
-        if "c" in track._axes:
-            track_list = track.split("c")
-        else:
-            track_list = [track]
-            
-        scale = make_world_scale(track[[a for a in track._axes if a != Const["ID_AXIS"]]])
-        for tr in track_list:
-            metadata = {"axes": str(tr._axes), "scale": tr.scale}
-            self.viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
-        
-        return None
-    
-    def _add_paths(self, paths:PathFrame, **kwargs):
-        if "c" in paths._axes:
-            path_list = paths.split("c")
-        else:
-            path_list = [paths]
-            
-        scale = make_world_scale(paths[[a for a in paths._axes if a != Const["ID_AXIS"]]])
-        kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
-        kw.update(kwargs)
-
-        for path in path_list:
-            metadata = {"axes": str(path._axes), "scale": path.scale}
-            paths = [single_path.values for single_path in path.split(Const["ID_AXIS"])]
-            self.viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
-        
-        return None
-    
-    def _add_properties(self, prop:PropArray|pd.DataFrame):
-        if isinstance(prop, PropArray):
-            df = prop.as_frame()
-            df.rename(columns = {"f": "value"}, inplace=True)
-            table = TableWidget(self.viewer, df, name=prop.propname)
-            
-        elif isinstance(prop, pd.DataFrame):
-            table = TableWidget(self.viewer, prop)
-        else:
-            raise TypeError(f"`prop` cannot be {type(prop)}")
-        
-        self.viewer.window.add_dock_widget(table, area="right", name=table.name)
-        
+            add_labels(self.viewer, img.labels, name=name, metadata={"destination_image": img})
         return None
     
     def add_table(self, data=None, columns=None, name=None) -> TableWidget:
@@ -709,9 +595,11 @@ class napariViewers:
         TabelWidget
             Pointer to the table widget.
         """        
-        table = TableWidget(self.viewer, data, columns=columns, name=name)
-        self.viewer.window.add_dock_widget(table, area="right", name=table.name)
-        return table
+        if isinstance(data, PropArray):
+            df = data.as_frame()
+            df.rename(columns = {"f": "value"}, inplace=True)
+            
+        return add_table(self.viewer, data, columns, name)
 
     def _add_figure(self):
         """

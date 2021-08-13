@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 import napari
+
 from ..arrays import *
 from ..frame import *
 from .._const import Const
@@ -221,6 +222,116 @@ def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     if len(new_axes) >= len(viewer.dims.axis_labels):
         viewer.dims.axis_labels = new_axes
     return layer
+
+def add_labels(viewer:"napari.Viewer", labels:Label, opacity:float=0.3, name:str|list[str]=None, 
+               **kwargs):
+    scale = make_world_scale(labels)
+    # prepare label list
+    if "c" in labels.axes:
+        lbls = labels.split("c")
+    else:
+        lbls = [labels]
+    
+    # prepare name list
+    if isinstance(name, list):
+        names = [f"[L]{n}" for n in name]
+    elif isinstance(name, str):
+        names = [f"[L]{name}"] * len(lbls)
+    else:
+        names = [labels.name]
+        
+    kw = dict(opacity=opacity, scale=scale, name=name)
+    kw.update(kwargs)
+    
+    out_layers = []
+    for lbl, name in zip(lbls, names):
+        layer = viewer.add_labels(lbl.value, **kw)
+        out_layers.append(layer)
+    return out_layers
+
+def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
+    chn_ax = img.axisof("c") if "c" in img.axes else None
+                
+    scale = make_world_scale(img)
+    
+    if "contrast_limits" not in kwargs.keys():
+        # contrast limits should be determined quickly.
+        leny, lenx = img.shape[-2:]
+        sample = img.img[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
+        kwargs["contrast_limits"] = [float(sample.min().compute()), 
+                                        float(sample.max().compute())]
+
+    name = "No-Name" if img.name is None else img.name
+
+    if chn_ax is not None:
+        name = [f"[Lazy][C{i}]{name}" for i in range(img.sizeof("c"))]
+    else:
+        name = ["[Lazy]" + name]
+
+    layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
+                                    name=name if len(name)>1 else name[0], **kwargs)
+    viewer.scale_bar.unit = img.scale_unit
+    new_axes = [a for a in img.axes if a != "c"]
+    # add axis labels to slide bars and image orientation.
+    if len(new_axes) >= len(viewer.dims.axis_labels):
+        viewer.dims.axis_labels = new_axes
+    return layer
+
+def add_points(viewer:"napari.Viewer", points, **kwargs):
+    if isinstance(points, MarkerFrame):
+        scale = make_world_scale(points)
+        points = points.get_coords()
+    else:
+        scale=None
+    
+    if "c" in points._axes:
+        pnts = points.split("c")
+    else:
+        pnts = [points]
+        
+    for each in pnts:
+        metadata = {"axes": str(each._axes), "scale": each.scale}
+        kw = dict(size=3.2, face_color=[0,0,0,0], metadata=metadata, edge_color=viewer.window.cmap())
+        kw.update(kwargs)
+        viewer.add_points(each.values, scale=scale, **kw)
+        
+    return None
+
+def add_tracks(viewer:"napari.Viewer", track:TrackFrame, **kwargs):
+    if "c" in track._axes:
+        track_list = track.split("c")
+    else:
+        track_list = [track]
+        
+    scale = make_world_scale(track[[a for a in track._axes if a != Const["ID_AXIS"]]])
+    for tr in track_list:
+        metadata = {"axes": str(tr._axes), "scale": tr.scale}
+        viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
+    
+    return None
+
+def add_paths(viewer:"napari.Viewer", paths:PathFrame, **kwargs):
+    if "c" in paths._axes:
+        path_list = paths.split("c")
+    else:
+        path_list = [paths]
+        
+    scale = make_world_scale(paths[[a for a in paths._axes if a != Const["ID_AXIS"]]])
+    kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
+    kw.update(kwargs)
+
+    for path in path_list:
+        metadata = {"axes": str(path._axes), "scale": path.scale}
+        paths = [single_path.values for single_path in path.split(Const["ID_AXIS"])]
+        viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
+    
+    return None
+
+def add_table(viewer:"napari.Viewer", data=None, columns=None, name=None):
+    from .widgets import TableWidget
+    table = TableWidget(viewer, data, columns=columns, name=name)
+    viewer.window.add_dock_widget(table, area="right", name=table.name)
+    return table
 
 def get_viewer_scale(viewer:"napari.Viewer"):
     return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
