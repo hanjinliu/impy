@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Viewer Tutorial &mdash; impy 1.20.5 documentation</title>
+  <title>Viewer Tutorial &mdash; impy 1.20.6 documentation</title>
   
 
   
@@ -67,7 +67,7 @@
             
             
               <div class="version">
-                1.20.5
+                1.20.6
               </div>
             
           
@@ -95,17 +95,20 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Viewer Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#send-data-from-console-to-viewer">Send Data from Console to Viewer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#get-impy-objects-from-viewer">Get impy Objects from Viewer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#get-or-set-current-slice">Get or Set Current Slice</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#mouse-callbacks">Mouse Callbacks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#functions-menu">Functions Menu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#others">Others</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#fit-custom-functions-into-gui">Fit Custom Functions into GUI</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#viewer">Viewer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#send-data-from-console-to-viewer">Send Data from Console to Viewer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-impy-objects-from-viewer">Get impy Objects from Viewer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-or-set-current-slice">Get or Set Current Slice</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mouse-callbacks">Mouse Callbacks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#functions-menu">Functions Menu</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#others">Others</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#figure">Figure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#table">Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logger">Logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plug-custom-functions-into-gui">Plug Custom Functions into GUI</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
@@ -180,25 +183,28 @@
 <h1>Viewer Tutorial<a class="headerlink" href="#viewer-tutorial" title="Permalink to this headline">¶</a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code> provides simple interaction between console and <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code>. The controller object <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> has
 multiple abilities to make your image processing efficient.</p>
-<div class="contents local topic" id="contents-of-tutorial">
-<p class="topic-title">Contents of Tutorial</p>
+<p><code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> can have one figure canvas, many tables and one logger, while each table can also have its own figure.</p>
+<div><img height="520" src="_images/blockdiag-6894128bbeb3010913c64fcc8ad5f1c7dcdd1218.png" width="872" /></div><p>These are accessible via attributes of <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>.</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#send-data-from-console-to-viewer" id="id1">Send Data from Console to Viewer</a></p></li>
-<li><p><a class="reference internal" href="#get-impy-objects-from-viewer" id="id2">Get impy Objects from Viewer</a></p></li>
-<li><p><a class="reference internal" href="#get-or-set-current-slice" id="id3">Get or Set Current Slice</a></p></li>
-<li><p><a class="reference internal" href="#mouse-callbacks" id="id4">Mouse Callbacks</a></p></li>
-<li><p><a class="reference internal" href="#keyboard-shortcuts" id="id5">Keyboard Shortcuts</a></p></li>
-<li><p><a class="reference internal" href="#functions-menu" id="id6">Functions Menu</a></p></li>
-<li><p><a class="reference internal" href="#others" id="id7">Others</a></p></li>
-<li><p><a class="reference internal" href="#fit-custom-functions-into-gui" id="id8">Fit Custom Functions into GUI</a></p>
-<ul>
-<li><p><a class="reference internal" href="#examples" id="id9">Examples</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.viewer</span></code>: <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.fig</span></code>: <code class="docutils literal notranslate"><span class="pre">matplotlib.figure.Figure</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.table</span></code>: <code class="docutils literal notranslate"><span class="pre">impy</span></code>’s <code class="docutils literal notranslate"><span class="pre">TableWidget</span></code> object</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.log</span></code>: <code class="docutils literal notranslate"><span class="pre">impy</span></code>’s <code class="docutils literal notranslate"><span class="pre">LoggerWidget</span></code> object</p></li>
 </ul>
-</li>
+<div class="contents local topic" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#viewer" id="id1">Viewer</a></p></li>
+<li><p><a class="reference internal" href="#figure" id="id2">Figure</a></p></li>
+<li><p><a class="reference internal" href="#table" id="id3">Table</a></p></li>
+<li><p><a class="reference internal" href="#logger" id="id4">Logger</a></p></li>
+<li><p><a class="reference internal" href="#plug-custom-functions-into-gui" id="id5">Plug Custom Functions into GUI</a></p></li>
 </ul>
 </div>
+<section id="viewer">
+<h2><a class="toc-backref" href="#id1">Viewer</a><a class="headerlink" href="#viewer" title="Permalink to this headline">¶</a></h2>
 <section id="send-data-from-console-to-viewer">
-<h2><a class="toc-backref" href="#id1">Send Data from Console to Viewer</a><a class="headerlink" href="#send-data-from-console-to-viewer" title="Permalink to this headline">¶</a></h2>
+<h3>Send Data from Console to Viewer<a class="headerlink" href="#send-data-from-console-to-viewer" title="Permalink to this headline">¶</a></h3>
 <p>You can add any objects (images, labels, points, …) to the viewer by <code class="docutils literal notranslate"><span class="pre">ip.gui.add(...)</span></code>. <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> can determine
 layer types according to the instance type.</p>
 <ol class="arabic simple">
@@ -246,40 +252,15 @@ lower-left corner.</p>
 </ol>
 <p>When <code class="docutils literal notranslate"><span class="pre">PropArray</span></code> or <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> are given, an Excel-like table widget will be added on the right side of
 the viewer. If you want to get coordinates of a <code class="docutils literal notranslate"><span class="pre">Points</span></code> layer or <code class="docutils literal notranslate"><span class="pre">Tracks</span></code> layer as a table widget, select the
-layer and push the “(x,y)” button on the lower-left corner. This widget comes from generic <code class="docutils literal notranslate"><span class="pre">TableWidget</span></code> class,
-which is able to copy data, store data or plot the selected table contents like Excel.</p>
-<ul>
-<li><p>Table menu</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>“Resize”: Resize column width to fit the contents.</p></li>
-<li><p>“Append row”/”Append column”: Add a new row/column.</p></li>
-<li><p>“Delete widget”: Delete table from the viewer.</p></li>
-</ul>
-</div></blockquote>
-</li>
-<li><dl class="simple">
-<dt>Data menu</dt><dd><ul class="simple">
-<li><p>“Copy all”/”Copy selected”: Copy the contents into clipboard. You can paste it directly as csv style.</p></li>
-<li><p>“Store all”/”Store selected”: Store all the contents as <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> temporary item in <code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code>.</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><p>Plot menu</p>
-<ul class="simple">
-<li><p>“Plot”: Plot selected data on the figure canvas, as a dock widget in the table widget.</p></li>
-<li><p>“Setting…”: Settings of plot, which is the options of <code class="docutils literal notranslate"><span class="pre">plot</span></code> function of <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>.</p></li>
-</ul>
-</li>
-</ul>
+layer and push the “(x,y)” button on the lower-left corner.</p>
+<p>You can also add a new table by calling <code class="docutils literal notranslate"><span class="pre">ip.gui.add_table()</span></code></p>
 <ol class="arabic simple" start="5">
 <li><p>Add shapes layer as an text layer</p></li>
 </ol>
 <p>“Text” button on the lower-left corner. You can easily edit the text using the widget “Property Editor”.</p>
 </section>
 <section id="get-impy-objects-from-viewer">
-<h2><a class="toc-backref" href="#id2">Get impy Objects from Viewer</a><a class="headerlink" href="#get-impy-objects-from-viewer" title="Permalink to this headline">¶</a></h2>
+<h3>Get impy Objects from Viewer<a class="headerlink" href="#get-impy-objects-from-viewer" title="Permalink to this headline">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code> object is accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.viewer</span></code>, so that basically you can call any method from it.
 However, methods that are frequently used are again defined in <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>, in a simpler form.</p>
 <ul class="simple">
@@ -313,7 +294,7 @@ returns list of selected <code class="docutils literal notranslate"><span class=
 </div>
 </section>
 <section id="get-or-set-current-slice">
-<h2><a class="toc-backref" href="#id3">Get or Set Current Slice</a><a class="headerlink" href="#get-or-set-current-slice" title="Permalink to this headline">¶</a></h2>
+<h3>Get or Set Current Slice<a class="headerlink" href="#get-or-set-current-slice" title="Permalink to this headline">¶</a></h3>
 <p>We usually want to get a slice of an image stack from the viewer. However, there is no straightforward way to get the image
 slice being displayed on the viewer. <code class="docutils literal notranslate"><span class="pre">impy</span></code> provides a simple way to do that, with <code class="docutils literal notranslate"><span class="pre">ip.gui.current_slice</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">current_slice</span> <span class="c1"># Out: (4, slice(None, None, None), slice(None, None, None))</span>
@@ -329,7 +310,7 @@ slice being displayed on the viewer. <code class="docutils literal notranslate">
 </div>
 </section>
 <section id="mouse-callbacks">
-<h2><a class="toc-backref" href="#id4">Mouse Callbacks</a><a class="headerlink" href="#mouse-callbacks" title="Permalink to this headline">¶</a></h2>
+<h3>Mouse Callbacks<a class="headerlink" href="#mouse-callbacks" title="Permalink to this headline">¶</a></h3>
 <p>There are several custom mouse callbacks in addition to the basic ones in <code class="docutils literal notranslate"><span class="pre">napari</span></code>.</p>
 <ul class="simple">
 <li><p>When you’re drawing shapes, you’ll find shape information as a text overlay in the upper left corner.</p></li>
@@ -345,7 +326,7 @@ right button respectively).</p></li>
 </ul>
 </section>
 <section id="keyboard-shortcuts">
-<h2><a class="toc-backref" href="#id5">Keyboard Shortcuts</a><a class="headerlink" href="#keyboard-shortcuts" title="Permalink to this headline">¶</a></h2>
+<h3>Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">A</span></code> -&gt; Hide non-selected layers. Display all the layers by push again.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code> -&gt; Move selected layers to front.</p></li>
@@ -360,7 +341,7 @@ cropping is also supported!</p></li>
 </ul>
 </section>
 <section id="functions-menu">
-<h2><a class="toc-backref" href="#id6">Functions Menu</a><a class="headerlink" href="#functions-menu" title="Permalink to this headline">¶</a></h2>
+<h3>Functions Menu<a class="headerlink" href="#functions-menu" title="Permalink to this headline">¶</a></h3>
 <p>There is a custom menu called “Functions” added in the menu bar.</p>
 <ul class="simple">
 <li><p>“Threshold/Label”: Make binary image or label an image with thresholded binary image by sweeping threshold
@@ -373,20 +354,109 @@ value.</p></li>
 </ul>
 </section>
 <section id="others">
-<h2><a class="toc-backref" href="#id7">Others</a><a class="headerlink" href="#others" title="Permalink to this headline">¶</a></h2>
+<h3>Others<a class="headerlink" href="#others" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Note pad in <code class="docutils literal notranslate"><span class="pre">Window</span> <span class="pre">&gt;</span> <span class="pre">Note</span></code>.</p></li>
-<li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imread</span></code> in “File &gt; imread …”. Call <code class="docutils literal notranslate"><span class="pre">impy.imsave</span></code> in “File &gt; imsave …”.</p></li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imread</span></code> in “File &gt; imread …”.</p></li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imsave</span></code> in “File &gt; imsave …”.</p></li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">pandas.read_csv</span></code> and add an table widget in “File &gt; pandas.read_csv …”.</p></li>
 </ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
 </section>
-<section id="fit-custom-functions-into-gui">
-<h2><a class="toc-backref" href="#id8">Fit Custom Functions into GUI</a><a class="headerlink" href="#fit-custom-functions-into-gui" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="figure">
+<h2><a class="toc-backref" href="#id2">Figure</a><a class="headerlink" href="#figure" title="Permalink to this headline">¶</a></h2>
+<p>When launched from <code class="docutils literal notranslate"><span class="pre">impy</span></code>, <code class="docutils literal notranslate"><span class="pre">napari</span></code>’s viewer is implemented with a highly interactive figure canvas. You can drag
+the figure with mouse left button, call <code class="docutils literal notranslate"><span class="pre">tight_layout</span></code> with double click, resize with wheel and stretch the graph
+with mouse right button.</p>
+<img alt="_images/figure.gif" src="_images/figure.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>This <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> backend is available via <code class="docutils literal notranslate"><span class="pre">ip.GUIcanvas</span></code>. Only during function call in <code class="docutils literal notranslate"><span class="pre">ip.gui.bind</span></code>, the backend
+is always switched to it. However, You can fully switch to <code class="docutils literal notranslate"><span class="pre">ip.GUIcanvas</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># change the backend</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">ip</span><span class="o">.</span><span class="n">GUIcanvas</span><span class="p">)</span>
+
+<span class="c1"># &quot;plt&quot; in GUI canvas</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Figure is also accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.fig</span></code>, so that you can use it by such as <code class="docutils literal notranslate"><span class="pre">ax</span> <span class="pre">=</span> <span class="pre">ip.gui.fig.add_subplot(111)</span></code>.</p>
+</section>
+<section id="table">
+<h2><a class="toc-backref" href="#id3">Table</a><a class="headerlink" href="#table" title="Permalink to this headline">¶</a></h2>
+<p>This widget is implemented by the class <code class="docutils literal notranslate"><span class="pre">TableWidget</span></code>. Unlike the pure <code class="docutils literal notranslate"><span class="pre">QTableWidget</span></code>, it is much more user friendly.</p>
+<ol class="arabic simple">
+<li><p>It can have its own figure canvas, independent of that in the viewer. Of course, the canvas is interactive. It is
+provided as an dock widget of <code class="docutils literal notranslate"><span class="pre">TableWidget</span></code> so that you won’t be confused when you have a lot of tables.</p></li>
+<li><p>You can edit data and header, plot the selected data, and get access to the whole data from the console.</p></li>
+</ol>
+<img alt="_images/table.png" src="_images/table.png" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>You can find useful function in the menu bar.</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>“Table” menu … This menu contains functions that refer to the table and its contents but do not change the data.</dt><dd><ul>
+<li><p>“Copy all”/”Copy selected”: Copy the contents into clipboard. You can paste it directly as csv style.</p></li>
+<li><p>“Store all”/”Store selected”: Store all the contents as <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> temporary item in <code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code>.</p></li>
+<li><p>“Resize”: Resize column width to fit the contents.</p></li>
+<li><p>“Delete widget”: Delete table from the viewer. Figure canvas will also be deleted.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>“Edit” menu … This menu contains functions that will change the contents of the table.</dt><dd><ul>
+<li><p>“Header to top row”: Move the header to the top of the table. New header will be named with sequential integers.</p></li>
+<li><p>“Append row”: Add a new row in the bottom.</p></li>
+<li><p>“Append column”: Add a new column on the right.</p></li>
+<li><p>“Delete selected rows”: Delete all the rows that selected cells exist. Index number will <strong>NOT</strong> be renamed.</p></li>
+<li><p>“Delete selected columns”: Delete all the columns that selected cells exist. Index number will <strong>NOT</strong> be renamed.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>“Plot” menu … This menu contains functions that can plot the contents of the table.</dt><dd><ul>
+<li><p>“Plot”: Plot selected data on the figure canvas, as a dock widget in the table widget.</p></li>
+<li><p>“Histogram”: Show histogram of selected data on the figure canvas, as a dock widget in the table widget.</p></li>
+<li><p>“Setting …”: Settings of plot, which is the options of <code class="docutils literal notranslate"><span class="pre">plot</span></code> and <code class="docutils literal notranslate"><span class="pre">hist</span></code> function of <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The lastly added table is accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.table</span></code>. You can append data by calling <code class="docutils literal notranslate"><span class="pre">ip.gui.table.append(...)</span></code>.</p>
+</section>
+<section id="logger">
+<h2><a class="toc-backref" href="#id4">Logger</a><a class="headerlink" href="#logger" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code>’s viewer also provides a logger widget, which would be useful to print some information. It is accessible via
+<code class="docutils literal notranslate"><span class="pre">ip.gui.log</span></code>. You can append log by calling <code class="docutils literal notranslate"><span class="pre">ip.gui.log.append(...)</span></code>.</p>
+<p>If you want to show all the printed strings in the logger, you can use context manager <code class="docutils literal notranslate"><span class="pre">ip.setLogger</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="k">with</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">use_logger</span><span class="p">():</span>
+    <span class="c1"># both will be printed in the viewer&#39;s logger widget</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;something&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WARNING&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="plug-custom-functions-into-gui">
+<h2><a class="toc-backref" href="#id5">Plug Custom Functions into GUI</a><a class="headerlink" href="#plug-custom-functions-into-gui" title="Permalink to this headline">¶</a></h2>
 <p>In image analysis, you usually want to set parameters using manually drawn shapes or points. You don’t have
 to do that by getting properties of the viewer for every function call. <code class="docutils literal notranslate"><span class="pre">impy</span></code> provides easier way to integrate
 your function to <code class="docutils literal notranslate"><span class="pre">napari</span></code>. Just decorate your function with <cite>&#64;ip.gui.bind</cite> and call function with keybind “F1”.
-You can also plot on the figure canvas inside <cite>napari</cite>.</p>
-<section id="examples">
-<h3><a class="toc-backref" href="#id9">Examples</a><a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+Of course, abovementioned figure canvas, table, logger are all accessible during function calls. Fully utilize them
+to make your plugin nice.</p>
 <ol class="arabic simple">
 <li><p>Marking single molecule movie with centroid-aided auto centering.</p></li>
 </ol>
@@ -428,6 +498,9 @@ You can also plot on the figure canvas inside <cite>napari</cite>.</p>
 </pre></div>
 </div>
 <img alt="_images/auto_center.gif" src="_images/auto_center.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
 <ol class="arabic simple" start="2">
 <li><p>Fit filament tips to sigmoid function</p></li>
 </ol>
@@ -463,6 +536,9 @@ You can also plot on the figure canvas inside <cite>napari</cite>.</p>
 </pre></div>
 </div>
 <img alt="_images/line_scan.gif" src="_images/line_scan.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
 <ol class="arabic simple" start="3">
 <li><p>Draw Gaussian points with different sizes</p></li>
 </ol>
@@ -481,7 +557,6 @@ parameters. The example below also shows that updating data inplace immediately 
 </pre></div>
 </div>
 <img alt="_images/points.gif" src="_images/points.gif" />
-</section>
 </section>
 </section>
 
