@@ -1,12 +1,10 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.backend_bases import MouseEvent, FigureManagerBase
+from matplotlib.backend_bases import MouseEvent, MouseButton, FigureManagerBase
 import warnings
 
 __all__ = ["mpl", "plt", "canvas_plot", "EventedCanvas"]
-
-# TODO: resize xlim/ylim separately when outside is clicked
 
 class EventedCanvas(FigureCanvas):
     """
@@ -14,7 +12,7 @@ class EventedCanvas(FigureCanvas):
     """    
     def __init__(self, fig):
         super().__init__(fig)
-        self.pressed = False
+        self.pressed = None
         self.lastx = None
         self.lasty = None
         
@@ -56,7 +54,7 @@ class EventedCanvas(FigureCanvas):
         event = self.get_mouse_event(event)
         self.lastx, self.lasty = event.xdata, event.ydata
         if event.inaxes:
-            self.pressed = True
+            self.pressed = event.button
         return None
         
     def mouseMoveEvent(self, event):
@@ -64,7 +62,7 @@ class EventedCanvas(FigureCanvas):
         Translate axes focus while dragging. If there are subplots, only the subplot in which
         cursor exists will be translated.
         """        
-        if not self.pressed or self.lastx is None:
+        if self.pressed not in (MouseButton.LEFT, MouseButton.RIGHT) or self.lastx is None:
             return None
         fig = self.figure
         
@@ -78,9 +76,12 @@ class EventedCanvas(FigureCanvas):
             
             x0, x1 = ax.get_xlim()
             y0, y1 = ax.get_ylim()
-            
-            ax.set_xlim([x0 - dx, x1 - dx])
-            ax.set_ylim([y0 - dy, y1 - dy])
+            if self.pressed is MouseButton.LEFT:
+                ax.set_xlim([x0 - dx, x1 - dx])
+                ax.set_ylim([y0 - dy, y1 - dy])
+            elif self.pressed is MouseButton.RIGHT:
+                ax.set_xlim([x0, x1 - dx])
+                ax.set_ylim([y0, y1 - dy])
             break
 
         fig.canvas.draw()
@@ -90,7 +91,7 @@ class EventedCanvas(FigureCanvas):
         """
         Stop dragging state.
         """        
-        self.pressed = False
+        self.pressed = None
         return None
     
     def mouseDoubleClickEvent(self, event):
@@ -103,7 +104,11 @@ class EventedCanvas(FigureCanvas):
     
     def get_mouse_event(self, event, name="") -> MouseEvent:
         x, y = self.mouseEventCoords(event)
-        mouse_event = MouseEvent(name, self, x, y, event)
+        if hasattr(event, "button"):
+            button = self.buttond.get(event.button())
+        else:
+            button = None
+        mouse_event = MouseEvent(name, self, x, y, button=button, guiEvent=event)
         return mouse_event
         
     
