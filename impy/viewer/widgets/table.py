@@ -28,7 +28,10 @@ class TableWidget(QMainWindow):
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False)
         if df is None:
-            df = np.atleast_2d([])
+            if columns is None:
+                df = np.atleast_2d([])
+            else:
+                df = np.atleast_2d([""]*len(columns))
         elif isinstance(df, dict):
             if np.isscalar(next(iter(df.values()))):
                 df = pd.DataFrame(df, index=[0])
@@ -59,9 +62,7 @@ class TableWidget(QMainWindow):
         self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
         self.table_native.resizeColumnsToContents()
         header = self.table_native.horizontalHeader()
-        
-        for i in range(self.table.shape[1]):
-            header.setSectionResizeMode(i, QHeaderView.Fixed)
+        header.setSectionResizeMode(QHeaderView.Interactive)
         
         super().__init__(viewer.window._qt_window)
         
@@ -198,7 +199,6 @@ class TableWidget(QMainWindow):
         ncol = self.table_native.columnCount()
         self.table_native.insertColumn(ncol)
         self.table_native.setHorizontalHeaderItem(ncol, QTableWidgetItem(str(ncol)))
-        self.table_native.horizontalHeader().setSectionResizeMode(ncol, QHeaderView.Fixed)
         
         if not hasattr(data, "__len__"):
             return None
@@ -229,7 +229,6 @@ class TableWidget(QMainWindow):
         
         for i, h in enumerate(header):
             self.table_native.insertColumn(i)
-            self.table_native.horizontalHeader().setSectionResizeMode(i, QHeaderView.Fixed)
             self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(h)))
             self.table_native.setItem(0, i, QTableWidgetItem(str(data[i])))
         

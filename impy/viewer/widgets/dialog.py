@@ -1,11 +1,23 @@
 from qtpy.QtWidgets import QDialog, QPushButton, QLabel, QGridLayout, QCheckBox, QLineEdit
 import napari
 import numpy as np
+from functools import wraps
 
-from ..utils import copy_layer
+from ..utils import copy_layer, front_image, add_labels
 from ..._const import SetConst
 from ...utils.slicer import axis_targeted_slicing
 
+def close_anyway(func):
+    @wraps(func)
+    def wrapped_func(self, *args, **kwargs):
+        try:
+            out = func(self, *args, **kwargs)
+        except Exception:
+            self.close()
+            raise
+        self.close()
+        return out
+    return wrapped_func
 
 class RegionPropsDialog(QDialog):
     history = "mean_intensity"
@@ -17,42 +29,45 @@ class RegionPropsDialog(QDialog):
         self.setLayout(QGridLayout())
         self._add_widgets()
     
-    
-    def run(self):
+    @close_anyway
+    def run(self, *args):
         selected = list(self.viewer.layers.selection)
-        if len(selected) < 1:
-            self.close()
-            raise ValueError("No layer selected")
+        if not any(isinstance(layer, napari.layers.Image) for layer in selected):
+            selected = [front_image(self.viewer)]
         
         properties = ("label",) + tuple(self.line.text().split(","))
         
         for layer in selected:
             if not isinstance(layer, napari.layers.Image):
                 continue
-            try:
-                lbl = layer.data.labels
-                with SetConst("SHOW_PROGRESS", False):
-                    out = layer.data.regionprops(properties=properties)
             
-                out["label"] = out["label"].astype(lbl.dtype)
-                order = np.argsort(out["label"].value)
-                prop = {k: np.concatenate([[np.nan], out[k].value[order]]) for k in properties}
-                # find Labels layer
-                for l in self.viewer.layers:
-                    if l.metadata.get("destination_image", None) is layer.data:
-                        l.properties = prop
-                        break
-                else:
-                    l = self.viewer.add_labels(lbl.value, opacity=0.3, scale=layer.scale, 
-                                        name=f"[L]{layer.name}", translate=layer.translate)
+            if not hasattr(layer.data, "labels"):
+                raise ValueError(f"Image of layer {layer.name} does not have labels.")
+            
+            lbl = layer.data.labels
+            with SetConst("SHOW_PROGRESS", False):
+                out = layer.data.regionprops(properties=properties)
+        
+            out["label"] = out["label"].astype(lbl.dtype)
+            order = np.argsort(out["label"].value)
+            prop = {k: np.concatenate([[np.nan], out[k].value[order]]) for k in properties}
+            # find Labels layer
+            for l in self.viewer.layers:
+                if l.metadata.get("destination_image", None) is layer.data:
                     l.properties = prop
+                    break
+            else:
+                l = add_labels(self.viewer, lbl, translate=layer.translate)[0]
+                l.properties = prop
             
-            except Exception:
-                self.close()
-                raise 
+            from .table import TableWidget
+            import pandas as pd
+            df = pd.DataFrame(l.properties)
+            df = df.drop(df.index[0]) # The first row is background
+            table = TableWidget(self.viewer, df, name=f"Properties of {layer.name}")
+            self.viewer.window.add_dock_widget(table, area="right", name=table.name)
         
         self.__class__.history = self.line.text()
-        self.close()
         return None
     
     def _add_widgets(self):
@@ -74,25 +89,20 @@ class DuplicateDialog(QDialog):
         self.setLayout(QGridLayout())
         self._add_widgets()
         
-    
-    def run(self):
+    @close_anyway
+    def run(self, *args):
         line = self.line.text()
-        try:
-            for layer in list(self.viewer.layers.selection):
-                if line.strip() == "" and not self.check.isChecked():
-                    new_layer = copy_layer(layer)
-                elif line.strip():
-                    new_layer = self.duplicate_sliced_layer(layer)
-                else:
-                    new_layer = self.duplicate_current_step(layer)
-                
-                self.viewer.add_layer(new_layer)
-        except Exception:
-            self.close()
-            raise
-        
-        self.close()
+        for layer in list(self.viewer.layers.selection):
+            if line.strip() == "" and not self.check.isChecked():
+                new_layer = copy_layer(layer)
+            elif line.strip():
+                new_layer = self.duplicate_sliced_layer(layer)
+            else:
+                new_layer = self.duplicate_current_step(layer)
             
+            self.viewer.add_layer(new_layer)
+        return None
+    
     def duplicate_current_step(self, layer):
         sl = self.viewer.dims.current_step[:-2]
         
