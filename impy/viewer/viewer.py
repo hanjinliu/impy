@@ -621,14 +621,18 @@ class napariViewers:
         # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
         backend = mpl.get_backend()
         mpl.use("Agg")
-        with canvas_plot():
-            self._fig = plt.figure()
-            self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
-                                               name="Main Plot",
-                                               area="right",
-                                               allowed_areas=["right"])
-        
-        mpl.use(backend)
+        try:
+            with canvas_plot():
+                self._fig = plt.figure()
+                self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
+                                                name="Main Plot",
+                                                area="right",
+                                                allowed_areas=["right"])
+        except Exception:
+            mpl.use(backend)
+            raise
+        else:
+            mpl.use(backend)
         return None
     
     def _add_parameter_container(self, params:dict[str: inspect.Parameter]):
