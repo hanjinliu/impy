@@ -11,11 +11,19 @@ multiple abilities to make your image processing efficient.
    
    blockdiag {
       
-      ip.gui -> napari.Viewer components;
-      ip.gui -> Figure;
-      ip.gui -> Table -> Figure;
-      ip.gui -> Table -> Figure;
-      ip.gui -> Table -> Figure;
+      ip.gui -> viewer;
+      viewer [label = "napari.Viewer components + extended functions", width = 360];
+      ip.gui -> MainFig;
+      MainFig [label = "Figure"];
+      ip.gui -> Table-0 -> Figure-0;
+      ip.gui -> Table-1 -> Figure-1;
+      ip.gui -> Table-2 -> Figure-2;
+      Table-0 [label = "Table"];
+      Figure-0 [label = "Figure"];
+      Table-1 [label = "Table"];
+      Figure-1 [label = "Figure"];
+      Table-2 [label = "Table"];
+      Figure-2 [label = "Figure"];
       ip.gui -> Logger;
       
       ip.gui [color = pink];
@@ -249,6 +257,8 @@ This widget is implemented by the class ``TableWidget``. Unlike the pure ``QTabl
 2. You can edit data and header, plot the selected data, and get access to the whole data from the console.
 
 .. image:: images/table.png
+
+|
 
 You can find useful function in the menu bar.
 
