@@ -35,9 +35,9 @@ class EventedCanvas(FigureCanvas):
             y0, y1 = ax.get_ylim()
             
             if delta > 0:
-                factor = 1/1.1
+                factor = 1/1.3
             else:
-                factor = 1.1
+                factor = 1.3
 
             ax.set_xlim([(x1 + x0)/2 - (x1 - x0)/2*factor,
                          (x1 + x0)/2 + (x1 - x0)/2*factor])
