@@ -462,7 +462,7 @@ class napariViewers:
             >>>     return None
             
         """        
-        from ._plt import canvas_plot, mpl
+        from ._plt import mpl
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -506,7 +506,7 @@ class napariViewers:
                         backend = mpl.get_backend()
                         mpl.use(GUIcanvas)
                         try:
-                            with canvas_plot():
+                            with mpl.style.context("night"):
                                 out = f(self, **kwargs)
                         except Exception:
                             mpl.use(backend)
@@ -515,6 +515,7 @@ class napariViewers:
                             mpl.use(backend)
                     else:
                         out = f(self, **kwargs)
+                        
                 if isinstance(out, types.GeneratorType):
                     # If original function returns a generator. This makes wrapper working almost same as
                     # napari's bind_key method.
@@ -568,10 +569,6 @@ class napariViewers:
 
     def axisof(self, symbol:str) -> int:
         return self.axes.find(symbol)
-    
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    #    Others
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
         
     def _add_image(self, img:LabeledArray, **kwargs):
         layer = add_labeledarray(self.viewer, img, **kwargs)
@@ -608,23 +605,36 @@ class napariViewers:
         return self._table
 
     def use_logger(self):
+        """
+        Return a context manager that all the texts will be printed in the logger.
+
+        Examples
+        --------
+        
+        >>> import logging
+        >>> with ip.gui.use_logger():
+        >>>     # both will be printed in the viewer's logger widget
+        >>>     print("something")
+        >>>     logging.warning("WARNING")
+        """        
         return setLogger(self)
 
     def _add_figure(self):
         """
         Add figure canvas to the viewer.
         """        
-        from ._plt import plt, canvas_plot, EventedCanvas, mpl
-        
+        from ._plt import EventedCanvas, mpl, plt_figure
+        # To block inline plot, we have to temporary change the backend.
         # It first seems that we can block inline plot with mpl.rc_context. Strangely it has no effect.
         # We have to call mpl.use to block it. 
         # See https://stackoverflow.com/questions/18717877/prevent-plot-from-showing-in-jupyter-notebook
         backend = mpl.get_backend()
         mpl.use("Agg")
+        
+        # To avoid irreversible backend change, we must ensure backend recovery by try/except.
         try:
-            with canvas_plot():
-                self._fig = plt.figure()
-                self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
+            self._fig = plt_figure()
+            self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
                                                 name="Main Plot",
                                                 area="right",
                                                 allowed_areas=["right"])

@@ -223,6 +223,9 @@ Others
 Figure
 ======
 
+Interactivity
+-------------
+
 When launched from ``impy``, ``napari``'s viewer is implemented with a highly interactive figure canvas. You can drag
 the figure with mouse left button, call ``tight_layout`` with double click, resize with wheel and stretch the graph
 with mouse right button.
@@ -231,7 +234,10 @@ with mouse right button.
 
 |
 
-This ``matplotlib`` backend is available via ``ip.GUIcanvas``. Only during function call in ``ip.gui.bind``, the backend
+How to Use Figure Canvas from Console
+-------------------------------------
+
+The backend in ``napari`` is available via ``ip.GUIcanvas``. Only during function call in ``ip.gui.bind``, the backend
 is always switched to it. However, You can fully switch to ``ip.GUIcanvas``:
 
 .. code-block:: python
@@ -245,7 +251,13 @@ is always switched to it. However, You can fully switch to ``ip.GUIcanvas``:
     plt.plot(np.random.random(100))
     plt.show()
 
-Figure is also accessible via ``ip.gui.fig``, so that you can use it by such as ``ax = ip.gui.fig.add_subplot(111)``.
+Figure is also accessible via ``ip.gui.fig``, so that you can use it without changing the backend.
+
+.. code-block:: python
+
+    ax = ip.gui.fig.add_subplot(111)
+    ax.plot(np.random.random(100))
+    
 
 Table
 =====

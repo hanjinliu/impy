@@ -1,15 +1,17 @@
+from functools import wraps
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseEvent, MouseButton, FigureManagerBase
-import warnings
 
-__all__ = ["mpl", "plt", "canvas_plot", "EventedCanvas"]
+__all__ = ["mpl", "plt_figure", "EventedCanvas", "StyledFigure"]
 
+# add new style
 params = plt.style.library["dark_background"]
 params["figure.facecolor"] = "#0F0F0F"
 params["axes.facecolor"] = "#0F0F0F"
 params["font.size"] = 10.5
+params["grid.color"] = "gray"
 plt.style.library["night"] = params
 
 class EventedCanvas(FigureCanvas):
@@ -118,23 +120,38 @@ class EventedCanvas(FigureCanvas):
         return mouse_event
         
     
-class canvas_plot:
-    def __init__(self):
-        pass
-    
-    def __enter__(self):
-        self.original = mpl.rcParams.copy()
-        
-        params = plt.style.library["night"]
-        mpl.rcParams.update(params)
-        
-        return self
-    
-    def __exit__(self, *args):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            mpl.rcParams.update(self.original)
+def change_style(func):
+    @wraps(func)
+    def wrapped_func(self, *args, **kwargs):
+        with plt.style.context("night"):
+            out = func(self, *args, **kwargs)
+        return out
+    return wrapped_func
 
+def plt_figure(num=None, figsize=None, dpi=None, frameon=True, clear=False, **kwargs):
+    """
+    Call ``plt.figure`` in the context of using StyledFigure.
+    """    
+    return plt.figure(facecolor=params["figure.facecolor"], FigureClass=StyledFigure, 
+                      num=num, figsize=figsize, dpi=dpi, frameon=frameon, clear=clear, **kwargs)
+
+class StyledFigure(mpl.figure.Figure):
+    @change_style
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    @change_style
+    def add_subplot(self, *args, **kwargs):
+        return super().add_subplot(*args, **kwargs)
+    
+    @change_style
+    def subplots(self, *args, **kwargs):
+        return super().subplots(*args, **kwargs)
+    
+    @change_style
+    def legend(self, *args, **kwargs):
+        return super().legend(*args, **kwargs)
+        
 
 class NapariFigureManager(FigureManagerBase):
     """
@@ -151,6 +168,8 @@ class NapariFigureManager(FigureManagerBase):
         return None
 
 def new_figure_manager(*args, **kwargs):
-    params = plt.style.library["night"]
-    mpl.rcParams.update(params)
+    """
+    Always use StyledFigure class.
+    """    
+    kwargs["FigureClass"] = StyledFigure
     return NapariFigureManager()

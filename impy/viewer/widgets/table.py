@@ -139,40 +139,39 @@ class TableWidget(QMainWindow):
         return None
     
     def plot(self):
-        from .._plt import canvas_plot, plt, EventedCanvas, mpl
+        from .._plt import EventedCanvas, mpl, plt_figure
         backend = mpl.get_backend()
         mpl.use("Agg")
         try:
-            with canvas_plot():
-                if self.fig is None:
-                    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-                    
-                    self.fig = plt.figure()
-                    canvas = EventedCanvas(self.fig)
-                    self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
-                                                            area="bottom", allowed_areas=["right", "bottom"])
-                    
-                    self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
+            if self.fig is None:
+                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+                
+                self.fig = plt_figure()
+                canvas = EventedCanvas(self.fig)
+                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
+                                                        area="bottom", allowed_areas=["right", "bottom"])
+                
+                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
+            else:
+                self.fig.clf()
+            self.ax = self.fig.add_subplot(111)
+            
+            df = self._get_selected_dataframe()
+            
+            with warnings.catch_warnings(), mpl.style.context("night"):
+                warnings.simplefilter("ignore", UserWarning)
+                kw = self.plot_settings.copy()
+                kw.pop("bins")
+                if df.shape[1] == 1 and kw["x"] == 0:
+                    kw["x"] = None
+                    df.plot(ax=self.ax, grid=True, **kw)
+                    kw["x"] = 0
                 else:
-                    self.fig.clf()
-                self.ax = self.fig.add_subplot(111)
+                    df.plot(ax=self.ax, grid=True, **kw)
                 
-                df = self._get_selected_dataframe()
-                
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", UserWarning)
-                    kw = self.plot_settings.copy()
-                    kw.pop("bins")
-                    if df.shape[1] == 1 and kw["x"] == 0:
-                        kw["x"] = None
-                        df.plot(ax=self.ax, grid=True, **kw)
-                        kw["x"] = 0
-                    else:
-                        df.plot(ax=self.ax, grid=True, **kw)
-                    
-                    self.fig.tight_layout()
-                    self.fig.canvas.draw()
-                    self.figure_widget.show()
+                self.fig.tight_layout()
+                self.fig.canvas.draw()
+                self.figure_widget.show()
         except Exception:
             mpl.use(backend)
             raise
@@ -182,34 +181,33 @@ class TableWidget(QMainWindow):
         return None
     
     def hist(self):
-        from .._plt import canvas_plot, plt, EventedCanvas, mpl
+        from .._plt import EventedCanvas, mpl, plt_figure
         backend = mpl.get_backend()
         mpl.use("Agg")
         try:
-            with canvas_plot():
-                if self.fig is None:
-                    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-                    
-                    self.fig = plt.figure()
-                    canvas = EventedCanvas(self.fig)
-                    self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
-                                                            area="bottom", allowed_areas=["right", "bottom"])
-                    
-                    self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
-                else:
-                    self.fig.clf()
-                self.ax = self.fig.add_subplot(111)
+            if self.fig is None:
+                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
                 
-                df = self._get_selected_dataframe()
+                self.fig = plt_figure()
+                canvas = EventedCanvas(self.fig)
+                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
+                                                        area="bottom", allowed_areas=["right", "bottom"])
                 
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", UserWarning)
-                    kw = {k:self.plot_settings[k] for k in ["sharex", "sharey", "bins", "legend"]}
-                    df.hist(ax=self.ax, grid=True, **kw)
-                    
-                    self.fig.tight_layout()
-                    self.fig.canvas.draw()
-                    self.figure_widget.show()
+                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
+            else:
+                self.fig.clf()
+            self.ax = self.fig.add_subplot(111)
+            
+            df = self._get_selected_dataframe()
+            
+            with warnings.catch_warnings(), mpl.style.context("night"):
+                warnings.simplefilter("ignore", UserWarning)
+                kw = {k:self.plot_settings[k] for k in ["sharex", "sharey", "bins", "legend"]}
+                df.hist(ax=self.ax, grid=True, **kw)
+                
+                self.fig.tight_layout()
+                self.fig.canvas.draw()
+                self.figure_widget.show()
         except Exception:
             mpl.use(backend)
             raise
