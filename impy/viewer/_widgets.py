@@ -5,6 +5,7 @@ import magicgui
 from qtpy.QtWidgets import QFileDialog, QAction
 
 from .widgets import *
+from .widgets.table import read_csv
 from .utils import *
 from .._const import SetConst
 
@@ -98,10 +99,7 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
         )
         if (filenames != []) and (filenames is not None):
             path = filenames[0]
-            df = pd.read_csv(path)
-            name = os.path.splitext(os.path.basename(path))[0]
-            table = TableWidget(viewer, df, name=name)
-            viewer.window.add_dock_widget(table, area="right", name=table.name)
+            read_csv(viewer, path)
         napari.utils.history.update_open_history(filenames[0])
         return None
     

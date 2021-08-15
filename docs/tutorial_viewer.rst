@@ -257,6 +257,7 @@ Figure is also accessible via ``ip.gui.fig``, so that you can use it without cha
 
     ax = ip.gui.fig.add_subplot(111)
     ax.plot(np.random.random(100))
+    ip.gui.fig.canvas.draw() # This line is needed to update canvas.
     
 
 Table
@@ -371,6 +372,7 @@ This is the most simple but practical example of binding a function that only ad
 2. Fit filament tips to sigmoid function
 
 This is an example of binding a function with plot function. A figure canvas will be automatically generated.
+Because ``plt.figure`` will be called for every function call, figure canvas is cleared every time you push "F1".
 
 .. code-block:: python
 

@@ -6,8 +6,15 @@ from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDia
                             QLineEdit, QSpinBox)
 import magicgui
 import napari
+import os
 import numpy as np
 import pandas as pd
+
+def read_csv(viewer:"napari.Viewer", path):
+    df = pd.read_csv(path)
+    name = os.path.splitext(os.path.basename(path))[0]
+    table = TableWidget(viewer, df, name=name)
+    return viewer.window.add_dock_widget(table, area="right", name=table.name)
 
 class TableWidget(QMainWindow):
     """

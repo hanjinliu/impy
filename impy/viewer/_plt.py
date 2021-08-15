@@ -110,6 +110,15 @@ class EventedCanvas(FigureCanvas):
         self.figure.canvas.draw()
         return None
     
+    def resizeEvent(self, event):
+        """
+        Adjust layout upon canvas resized.
+        """        
+        super().resizeEvent(event)
+        self.figure.tight_layout()
+        self.figure.canvas.draw()
+        return None
+    
     def get_mouse_event(self, event, name="") -> MouseEvent:
         x, y = self.mouseEventCoords(event)
         if hasattr(event, "button"):

@@ -618,6 +618,11 @@ class napariViewers:
         >>>     logging.warning("WARNING")
         """        
         return setLogger(self)
+    
+    def add_explorer(self, path:str=""):
+        from .widgets import Explorer
+        ex = Explorer(self.viewer, path)
+        self.viewer.window.add_dock_widget(ex, name="explorer", area="right", allowed_areas=["right"])
 
     def _add_figure(self):
         """
@@ -634,10 +639,11 @@ class napariViewers:
         # To avoid irreversible backend change, we must ensure backend recovery by try/except.
         try:
             self._fig = plt_figure()
-            self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
-                                                name="Main Plot",
-                                                area="right",
-                                                allowed_areas=["right"])
+            fig = self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
+                                                     name="Main Plot",
+                                                     area="right",
+                                                     allowed_areas=["right"])
+            fig.setFloating(True)
         except Exception:
             mpl.use(backend)
             raise
