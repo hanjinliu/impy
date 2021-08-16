@@ -7,9 +7,10 @@ import napari
 import pyperclip
 
 from .table import read_csv
-from ..utils import viewer_imread
+from ..utils import viewer_imread, add_labeledarray
+from ...core import imread
 
-# TODO: open txt, open folder
+# TODO: open txt
 
 class Explorer(QWidget):
     def __init__(self, viewer:"napari.Viewer", path:str=""):
@@ -65,8 +66,7 @@ class FileTree(QTreeView):
         # Set QFileSystemModel
         self.file_system = QFileSystemModel(self)
         self.file_system.setReadOnly(True)
-        self.file_system.setNameFilterDisables(False)            
-        self.setExpandsOnDoubleClick(True)
+        self.file_system.setNameFilterDisables(False)
         self._set_file_model(path)
         
         # hide columns except for name
@@ -107,9 +107,12 @@ class FileTree(QTreeView):
     
     def open_path_at(self, index:QModelIndex):
         path = self.file_system.filePath(index)
+        if os.path.isdir(path):
+            img = imread(os.path.join(path, "*.tif"))
+            add_labeledarray(self.viewer, img)
         _, ext = os.path.splitext(path)
         if ext in (".tif", ".tiff", ".mrc", ".rec", ".png", ".jpg"):
-            viewer_imread(path)
+            viewer_imread(self.viewer, path)
         elif ext in (".csv", ".dat"):
             read_csv(self.viewer, path)
         return None
@@ -132,10 +135,6 @@ class FileTree(QTreeView):
         if os.path.isfile(path):
             self.open_path_at(index)
         else:
-            if self.isExpanded(index):
-                self.collapse(index)
-            else:
-                self.expand(index)
             return None
     
     def set_filter(self, names:str|list[str]):

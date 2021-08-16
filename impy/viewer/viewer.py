@@ -180,7 +180,7 @@ class napariViewers:
         viewer = napari.Viewer(title=key)
         _change_theme(viewer)
         
-        viewer.window.file_menu.addSeparator()
+        viewer.window.file_menu.addSeparator().setText("impy menu")
         _default_viewer_settings(viewer)
         _load_mouse_callbacks(viewer)
         viewer.window.function_menu = viewer.window.main_menu.addMenu("&Functions")
