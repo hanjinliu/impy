@@ -1,0 +1,102 @@
+from __future__ import annotations
+import os
+import re
+import napari
+from qtpy.QtWidgets import QPlainTextEdit, QWidget, QLineEdit, QGridLayout, QLabel, QHBoxLayout, QCheckBox
+from qtpy.QtGui import QFont, QSyntaxHighlighter, QTextCharFormat
+from qtpy.QtCore import QRegularExpression, Qt
+
+def read_txt(viewer:"napari.Viewer", path:str):
+    with open(path, mode="r") as f:
+        content = f.read()
+    title, _ = os.path.splitext(os.path.basename(path))
+    text = TxtFileWidget(viewer, title=title)
+    text.initText(content)
+    return viewer.window.add_dock_widget(text, area="right", name=title)
+
+class TxtFileWidget(QWidget):
+    def __init__(self, viewer:"napari.Viewer", title:str=None):
+        super().__init__(viewer.window._qt_window)
+        self.setLayout(QGridLayout())
+        self._add_txt_viewer(title)
+        self._add_filter_line()
+    
+    def initText(self, text:str):
+        self.original_text = text
+        self.setText(text)
+        
+    def setText(self, text:str):
+        self.txtviewer.setPlainText(text)
+    
+    def _add_txt_viewer(self, title):
+        self.txtviewer = TxtViewer(self, title=title)
+        self.txtviewer.setReadOnly(True)
+        self.txtviewer.setFont(QFont("Consolas"))
+        title is None or self.txtviewer.setDocumentTitle(title)
+        self.highlighter = StringHighlighter(self.txtviewer.document())
+        self.layout().addWidget(self.txtviewer)
+    
+    def _add_filter_line(self):
+        wid = QWidget(self)
+        wid.setLayout(QHBoxLayout())
+        
+        # add label
+        label = QLabel(self)
+        label.setText("Filter:")
+        
+        # add line edit
+        self.line = QLineEdit(self)        
+        @self.line.editingFinished.connect
+        def _():
+            text = self.line.text()
+            print("called:", text)
+            if text in ("", ".", ".+", ".*"):
+                self.setText(self.original_text)
+            else:
+                lines = self.original_text.split("\n")
+                if self.checkbox.isChecked():
+                    reg = re.compile(".*" + self.line.text() + ".*")
+                    matched_lines = filter(lambda l: reg.match(l), lines)
+                else:
+                    matched_lines = filter(lambda l: text in l, lines)
+                    
+                self.setText("\n".join(matched_lines))
+        
+        # add check box
+        self.checkbox = QCheckBox(self)
+        self.checkbox.setText("Regex")
+        
+        wid.layout().addWidget(label)
+        wid.layout().addWidget(self.line)
+        wid.layout().addWidget(self.checkbox)
+        
+        self.layout().addWidget(wid)
+
+class TxtViewer(QPlainTextEdit):
+    def __init__(self, parent, title:str=None):
+        super().__init__(parent)
+        self.setReadOnly(True)
+        self.setFont(QFont("Consolas"))
+        self.createStandardContextMenu()
+        title is None or self.setDocumentTitle(title)
+        self.highlighter = StringHighlighter(self.document())
+
+class StringHighlighter(QSyntaxHighlighter):
+    def highlightBlock(self, text:str):
+        exp = Regex((" \".*\""))
+        exp.defineFormat(fcolor=Qt.magenta)
+        
+        it = exp.globalMatch(text)
+        while it.hasNext():
+            match = it.next()
+            self.setFormat(match.capturedStart(), match.capturedLength(), exp.format_)
+
+
+class Regex(QRegularExpression):
+    def defineFormat(self, fcolor=None, bcolor=None, weight=None):
+        format_ = QTextCharFormat()
+        fcolor is None or format_.setForeground(fcolor)
+        bcolor is None or format_.setBackground(bcolor)
+        weight is None or format_.setFontWeight(weight)
+        self.format_ = format_
+        return None
