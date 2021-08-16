@@ -119,7 +119,7 @@ def add_explorer_menu(viewer:"napari.Viewer"):
             root = napari.utils.history.get_open_history()[0]
             ex = Explorer(viewer, root)
             viewer.window.add_dock_widget(ex, name="Explorer", area="right", allowed_areas=["right"])
-        
+    action.setShortcut("Ctrl+Shift+E")
     viewer.window.file_menu.addAction(action)
     return None
 

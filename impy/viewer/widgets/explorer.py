@@ -10,10 +10,9 @@ except ImportError:
     pass
 
 from .table import read_csv
+from .textedit import read_txt
 from ..utils import viewer_imread, add_labeledarray
 from ...core import imread
-
-# TODO: open txt
 
 class Explorer(QWidget):
     def __init__(self, viewer:"napari.Viewer", path:str=""):
@@ -118,6 +117,8 @@ class FileTree(QTreeView):
             viewer_imread(self.viewer, path)
         elif ext in (".csv", ".dat"):
             read_csv(self.viewer, path)
+        elif ext in (".txt",):
+            read_txt(self.viewer, path)
         return None
         
     def copy_path_at(self, index:QModelIndex):
