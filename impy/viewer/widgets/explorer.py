@@ -4,7 +4,10 @@ from qtpy.QtWidgets import (QWidget, QFileSystemModel, QTreeView, QMenu, QAction
 from qtpy.QtCore import Qt, QModelIndex
 import os
 import napari
-import pyperclip
+try:
+    import pyperclip
+except ImportError:
+    pass
 
 from .table import read_csv
 from ..utils import viewer_imread, add_labeledarray

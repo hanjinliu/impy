@@ -344,8 +344,6 @@ class TableWidget(QMainWindow):
             sl_column |= column_range
         
         n_selected = len(self.table_native.selectedItems())
-        if len(sl_row) * len(sl_column) != n_selected:
-            raise ValueError("Wrong selection range.")
         return list(sl_row), list(sl_column)
 
     
