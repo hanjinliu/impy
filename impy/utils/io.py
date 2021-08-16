@@ -120,22 +120,27 @@ def open_img(path, memmap:bool=False):
 
 
 def get_scale_from_meta(meta:dict):
-    spacing = meta["ijmeta"].get("spacing", 1.0)
     scale = dict()
+    dz = meta["ijmeta"].get("spacing", 1.0)
     try:
-        tags = meta["tags"]
-        xres = tags["XResolution"]
-        yres = tags["YResolution"]
-        dx = xres[1]/xres[0]
-        dy = yres[1]/yres[0]
-    except KeyError:
-        dx = dy = spacing
+        # For MicroManager
+        info = load_json(meta["ijmeta"]["Info"])
+        dx = dy = info["PixelSize_um"]
+    except Exception:
+        try:
+            tags = meta["tags"]
+            xres = tags["XResolution"]
+            yres = tags["YResolution"]
+            dx = xres[1]/xres[0]
+            dy = yres[1]/yres[0]
+        except KeyError:
+            dx = dy = dz
     
     scale["x"] = dx
     scale["y"] = dy
     # read z scale if needed
     if "z" in meta["axes"]:
-        scale["z"] = spacing
+        scale["z"] = dz
         
     return scale
 
