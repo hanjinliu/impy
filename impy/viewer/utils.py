@@ -1,10 +1,12 @@
 from __future__ import annotations
 import numpy as np
 import napari
+import os
 
 from ..arrays import *
 from ..frame import *
 from .._const import Const
+from ..core import imread, lazy_imread
 
 def copy_layer(layer):
     args, kwargs, *_ = layer.as_layer_data_tuple()
@@ -188,7 +190,14 @@ def _text_bound_init(new_layer):
         new_layer.text.anchor = "upper_left"
     else:
         pass
-    
+
+def viewer_imread(viewer:"napari.Viewer", path:str):
+    size = os.path.getsize(path)/1e9
+    if size < Const["MAX_GB"]:
+        img = imread(path)
+    else:
+        img = lazy_imread(path)
+    return add_labeledarray(viewer, img)
 
 def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None

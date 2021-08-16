@@ -19,7 +19,7 @@ from ..utils.axesop import switch_slice
 from ..collections import *
 from ..arrays import *
 from ..frame import *
-from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, lazy_imread as ip_lazy_imread, read_meta
+from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, read_meta
 from ..utils.utilcls import Progress
 from .._const import Const
 
@@ -348,12 +348,7 @@ class napariViewers:
         elif isinstance(obj, str):
             if not os.path.exists(obj):
                 raise FileNotFoundError(f"Path does not exists: {obj}")
-            size = os.path.getsize(obj)/1e9
-            if size < Const["MAX_GB"]:
-                img = ip_imread(obj)
-            else:
-                img = ip_lazy_imread(obj)
-            self.add(img, **kwargs)                
+            viewer_imread(self.viewer, obj)
             
         # Add many objects of same type
         elif isinstance(obj, DataList):
@@ -619,11 +614,6 @@ class napariViewers:
         """        
         return setLogger(self)
     
-    def add_explorer(self, path:str=""):
-        from .widgets import Explorer
-        ex = Explorer(self.viewer, path)
-        self.viewer.window.add_dock_widget(ex, name="explorer", area="right", allowed_areas=["right"])
-
     def _add_figure(self):
         """
         Add figure canvas to the viewer.

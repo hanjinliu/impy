@@ -12,6 +12,7 @@ from .._const import SetConst
 __all__ = ["add_imread_menu",
            "add_imsave_menu",
            "add_read_csv_menu",
+           "add_explorer_menu",
            "add_controller_widget", 
            "add_note_widget",
            "edit_properties",
@@ -40,7 +41,7 @@ def add_imread_menu(viewer:"napari.Viewer"):
             caption="Select file ...",
             directory=hist[0],
         )
-        if (filenames != []) and (filenames is not None):
+        if filenames != [] and filenames is not None:
             img = imread(filenames[0])
             add_labeledarray(viewer, img)
         napari.utils.history.update_open_history(filenames[0])
@@ -86,8 +87,6 @@ def add_imsave_menu(viewer:"napari.Viewer"):
     return None
 
 def add_read_csv_menu(viewer:"napari.Viewer"):
-    import pandas as pd
-    from .widgets import TableWidget
     def open_csv():
         dlg = QFileDialog()
         hist = napari.utils.history.get_open_history()
@@ -105,6 +104,22 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
     
     action = QAction("pandas.read_csv ...", viewer.window._qt_window)
     action.triggered.connect(open_csv)
+    viewer.window.file_menu.addAction(action)
+    return None
+
+def add_explorer_menu(viewer:"napari.Viewer"):
+    action = QAction("Open explorer", viewer.window._qt_window)
+    @action.triggered.connect
+    def _():
+        from .widgets import Explorer
+        name = "Explorer"
+        if name in viewer.window._dock_widgets.keys():
+            viewer.window._dock_widgets[name].show()
+        else:
+            root = napari.utils.history.get_open_history()[0]
+            ex = Explorer(viewer, root)
+            viewer.window.add_dock_widget(ex, name="Explorer", area="right", allowed_areas=["right"])
+        
     viewer.window.file_menu.addAction(action)
     return None
 
