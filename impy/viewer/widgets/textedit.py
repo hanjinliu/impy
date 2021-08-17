@@ -2,7 +2,8 @@ from __future__ import annotations
 import os
 import re
 import napari
-from qtpy.QtWidgets import QPlainTextEdit, QWidget, QLineEdit, QGridLayout, QLabel, QHBoxLayout, QCheckBox
+from qtpy.QtWidgets import (QPlainTextEdit, QWidget, QLineEdit, QGridLayout, QLabel, QHBoxLayout, QCheckBox,
+                            QMenuBar, QMenu, QAction)
 from qtpy.QtGui import QFont, QSyntaxHighlighter, QTextCharFormat
 from qtpy.QtCore import QRegularExpression, Qt
 
@@ -17,7 +18,10 @@ def read_txt(viewer:"napari.Viewer", path:str):
 class TxtFileWidget(QWidget):
     def __init__(self, viewer:"napari.Viewer", title:str=None):
         super().__init__(viewer.window._qt_window)
+        self.viewer = viewer
+        self.title = title
         self.setLayout(QGridLayout())
+        self._add_menu()
         self._add_txt_viewer(title)
         self._add_filter_line()
     
@@ -29,6 +33,23 @@ class TxtFileWidget(QWidget):
         self.txtviewer.setPlainText(text)
         self.highlighter.setDocument(self.txtviewer.document())
     
+    def _add_menu(self):
+        self.menubar = QMenuBar(self)
+        self.menu = QMenu("&Menu", self)
+        
+        wrap = QAction("Wrap", self, checkable=True, checked=False)
+        wrap.triggered.connect(self.change_wrap_mode)
+        self.menu.addAction(wrap)
+        
+        close = QAction("Close", self)
+        close.triggered.connect(self.delete_self)
+        self.menu.addAction(close)
+        
+        self.menubar.addMenu(self.menu)
+        
+        self.layout().addWidget(self.menubar)
+        return None
+        
     def _add_txt_viewer(self, title):
         self.txtviewer = TxtViewer(self, title=title)
         self.txtviewer.setReadOnly(True)
@@ -36,7 +57,7 @@ class TxtFileWidget(QWidget):
         title is None or self.txtviewer.setDocumentTitle(title)
         self.highlighter = WordHighlighter(self.txtviewer.document())
         self.highlighter.appendRule(r" [-\+]?\d*(\.\d+)?", fcolor=Qt.yellow)
-        self.highlighter.appendRule(r"\".*?\"", fcolor=Qt.magenta)
+        self.highlighter.appendRule(r"\".*?\"", fcolor=Qt.green)
         self.layout().addWidget(self.txtviewer)
     
     def _add_filter_line(self):
@@ -78,6 +99,16 @@ class TxtFileWidget(QWidget):
         wid.layout().addWidget(self.checkbox)
         
         self.layout().addWidget(wid)
+    
+    def change_wrap_mode(self):
+        mode = self.txtviewer.lineWrapMode()
+        self.txtviewer.setLineWrapMode(1-mode)
+        return None
+    
+    def delete_self(self):
+        dock = self.viewer.window._dock_widgets[self.title]
+        self.viewer.window.remove_dock_widget(dock)
+        return None
 
 class TxtViewer(QPlainTextEdit):
     def __init__(self, parent, title:str=None):
@@ -85,6 +116,8 @@ class TxtViewer(QPlainTextEdit):
         self.setReadOnly(True)
         self.setFont(QFont("Consolas"))
         self.createStandardContextMenu()
+        self.setLineWrapMode(0)
+        
         title is None or self.setDocumentTitle(title)
 
 class WordHighlighter(QSyntaxHighlighter):
