@@ -17,7 +17,7 @@ class CollectionBase:
         """
         elif len(self) > 1:
             return \
-        f"""{self.__class__.__name__}[{self._type.__name__}] with components such as:
+        f"""{self.__class__.__name__}[{self._type.__name__}] with {len(self)} components such as:
         {getattr(self._such_as, _repr_, self.__repr__)()}
         """
         else:
@@ -79,23 +79,28 @@ class DataList(CollectionBase, UserList):
         elif self._type is other._type or self._type is None or other._type is None:
             return super().__add__(other)
         else:
-            raise TypeError(f"Cannot add two lists composed of different type of objects: {self._type} and {other._type}.")
+            raise TypeError("Cannot add two lists composed of different type of objects: "
+                           f"{self._type} and {other._type}.")
     
     def __iadd__(self, other:DataList):
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot add {type(other)}.")
         elif self._type is other._type or self._type is None or other._type is None:
+            self._type = self._type if other._type is None else other._type
             return super().__iadd__(other)
         else:
-            raise TypeError(f"Cannot add two lists composed of different type of objects: {self._type} and {other._type}.")
+            raise TypeError("Cannot add two lists composed of different type of objects: "
+                           f"{self._type} and {other._type}.")
     
     def extend(self, other:DataList):
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot extend DataList with {type(other)}.")
         elif self._type is other._type or self._type is None or other._type is None:
+            self._type = self._type if other._type is None else other._type
             return super().extend(other)
         else:
-            raise TypeError(f"Cannot add two lists composed of different type of objects: {self._type} and {other._type}.")
+            raise TypeError("Cannot add two lists composed of different type of objects: "
+                           f"{self._type} and {other._type}.")
         
 
     

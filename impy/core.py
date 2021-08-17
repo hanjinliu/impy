@@ -525,22 +525,29 @@ def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
         self = np.squeeze(self)
     return self.sort_axes()
 
-def imread_collection(path:str, filt=None) -> DataList:
+def imread_collection(path:str|list[str], filt=None) -> DataList:
     """
     Open images as ImgArray and store them in DataList.
 
     Parameters
     ----------
-    path : str
-        Path than can be passed to ``glob.glob``.
+    path : str or list of str
+        Path than can be passed to ``glob.glob``. If a list of path is given, all the matched 
+        images will be read and concatenated into a DataList.
     filt : callable, optional
         If specified, only images that satisfies filt(img)==True will be stored in the returned 
-        ArrayList.
+        DataList.
 
     Returns
     -------
     DataList
     """    
+    if isinstance(path, list):
+        arrlist = DataList()
+        for p in path:
+            arrlist += imread_collection(p, filt=filt)
+        return arrlist
+    
     path = str(path)
     if os.path.isdir(path):
         path = os.path.join(path, "*.tif")
