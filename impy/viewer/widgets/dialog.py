@@ -1,6 +1,4 @@
 from __future__ import annotations
-from impy.utils.axesop import find_first_appeared
-from PyQt5.QtWidgets import QVBoxLayout
 from qtpy.QtWidgets import QDialog, QPushButton, QLabel, QGridLayout, QCheckBox, QLineEdit, QComboBox, QHBoxLayout
 import napari
 import numpy as np
@@ -9,6 +7,7 @@ from functools import wraps
 from ..utils import add_labeledarray, copy_layer, front_image, add_labels
 from ..._const import SetConst
 from ...utils.slicer import axis_targeted_slicing
+from ...utils.axesop import find_first_appeared
 
 def close_anyway(func):
     @wraps(func)
@@ -85,6 +84,9 @@ class RegionPropsDialog(QDialog):
     
 
 class DuplicateDialog(QDialog):
+    """
+    This dialog is opened when an image layer is duplicated.
+    """
     def __init__(self, viewer:"napari.Viewer", layer):
         self.viewer = viewer
         self.layer = layer
@@ -169,6 +171,9 @@ class DuplicateDialog(QDialog):
         return None
 
 class ProjectionDialog(QDialog):
+    """
+    This dialog is opened when an image layer is projected.
+    """
     def __init__(self, viewer:"napari.Viewer", layer):
         self.viewer = viewer
         self.layer = layer

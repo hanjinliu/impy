@@ -15,6 +15,10 @@ from ..utils import viewer_imread, add_labeledarray
 from ...core import imread
 
 class Explorer(QWidget):
+    """
+    A Read-only explorer widget. Capable of filter, set working directory, copy path and open file in the viewer.
+    By default QTreeView supports real time update on file change.
+    """
     def __init__(self, viewer:"napari.Viewer", path:str=""):
         super().__init__(viewer.window._qt_window)
         self.viewer = viewer
@@ -92,7 +96,7 @@ class FileTree(QTreeView):
         
         self.show()
     
-    def _set_file_model(self, path):
+    def _set_file_model(self, path:str):
         self.file_system.setRootPath(path)
         self.setModel(self.file_system)
         self.setRootIndex(self.file_system.index(path))
@@ -173,7 +177,7 @@ class FileTree(QTreeView):
             return super().keyPressEvent(event)
     
     @property
-    def selected(self):
+    def selected(self) -> QModelIndex:
         inds = self.selectionModel().selectedIndexes()
         if len(inds) > 0:
             index = inds[0]

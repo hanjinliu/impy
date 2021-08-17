@@ -1,11 +1,12 @@
-from impy.viewer.widgets.dialog import ProjectionDialog
-from ..arrays import LabeledArray
-from ..core import array as ip_array
-from .utils import *
-from .widgets import DuplicateDialog
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
+
+from .utils import *
+from .widgets import DuplicateDialog, ProjectionDialog
+
+from ..arrays import LabeledArray
+from ..core import array as ip_array
 
 # Shift, Control, Alt, Meta, Up, Down, Left, Right, PageUp, PageDown, Insert, 
 # Delete, Home, End, Escape, Backspace, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
@@ -336,7 +337,7 @@ def proj(viewer:"napari.Viewer"):
 @bind_key
 def duplicate_layer(viewer:"napari.Viewer"):
     """
-    Duplicate selected layer(s).
+    Duplicate the selected layer.
     """
     layer = get_a_selected_layer(viewer)
     

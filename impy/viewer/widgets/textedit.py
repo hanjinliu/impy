@@ -16,6 +16,9 @@ def read_txt(viewer:"napari.Viewer", path:str):
     return viewer.window.add_dock_widget(text, area="right", name=title)
 
 class TxtFileWidget(QWidget):
+    """
+    A read-only text viewer widget with JSON-like highlight. Capable of search lines.
+    """
     def __init__(self, viewer:"napari.Viewer", title:str=None):
         super().__init__(viewer.window._qt_window)
         self.viewer = viewer
@@ -103,6 +106,8 @@ class TxtFileWidget(QWidget):
         self.layout().addWidget(wid)
     
     def change_wrap_mode(self):
+        # line wrap mode = 0 -> No wrap 
+        # line wrap mode = 1 -> wrapped
         mode = self.txtviewer.lineWrapMode()
         self.txtviewer.setLineWrapMode(1-mode)
         return None
