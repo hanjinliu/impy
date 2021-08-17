@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy package &mdash; impy 1.20.6 documentation</title>
+  <title>impy package &mdash; impy 1.20.10 documentation</title>
   
 
   
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                1.20.6
+                1.20.10
               </div>
             
           
@@ -621,14 +621,15 @@ file.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.core.imread_collection">
-<span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">imread_collection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.collections.DataList" title="impy.collections.DataList"><span class="pre">impy.collections.DataList</span></a></span></span><a class="reference internal" href="_modules/impy/core.html#imread_collection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.imread_collection" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">imread_collection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span> <span class="p"><span class="pre">|</span></span> <span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataList</span></span></span><a class="reference internal" href="_modules/impy/core.html#imread_collection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.imread_collection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Open images as ImgArray and store them in DataList.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<em>str</em>) – Path than can be passed to <code class="docutils literal notranslate"><span class="pre">glob.glob</span></code>.</p></li>
+<li><p><strong>path</strong> (<em>str</em><em> or </em><em>list of str</em>) – Path than can be passed to <code class="docutils literal notranslate"><span class="pre">glob.glob</span></code>. If a list of path is given, all the matched
+images will be read and concatenated into a DataList.</p></li>
 <li><p><strong>filt</strong> (<em>callable</em><em>, </em><em>optional</em>) – If specified, only images that satisfies filt(img)==True will be stored in the returned
-ArrayList.</p></li>
+DataList.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

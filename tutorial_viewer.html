@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Viewer Tutorial &mdash; impy 1.20.6 documentation</title>
+  <title>Viewer Tutorial &mdash; impy 1.20.10 documentation</title>
   
 
   
@@ -67,7 +67,7 @@
             
             
               <div class="version">
-                1.20.6
+                1.20.10
               </div>
             
           
@@ -105,9 +105,15 @@
 <li class="toctree-l3"><a class="reference internal" href="#others">Others</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#figure">Figure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#figure">Figure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#interactivity">Interactivity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use-figure-canvas-from-console">How to Use Figure Canvas from Console</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#table">Table</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#logger">Logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#explorer">Explorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#text-file-viewer">Text File Viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#plug-custom-functions-into-gui">Plug Custom Functions into GUI</a></li>
 </ul>
 </li>
@@ -184,7 +190,7 @@
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code> provides simple interaction between console and <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code>. The controller object <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> has
 multiple abilities to make your image processing efficient.</p>
 <p><code class="docutils literal notranslate"><span class="pre">ip.gui</span></code> can have one figure canvas, many tables and one logger, while each table can also have its own figure.</p>
-<div><img height="520" src="_images/blockdiag-6894128bbeb3010913c64fcc8ad5f1c7dcdd1218.png" width="872" /></div><p>These are accessible via attributes of <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>.</p>
+<div><img height="600" src="_images/blockdiag-8db4c087057c578ff8ec8c5c1fbcca318ba06563.png" width="872" /></div><p>These are accessible via attributes of <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.viewer</span></code>: <code class="docutils literal notranslate"><span class="pre">napari.Viewer</span></code> object</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ip.gui.fig</span></code>: <code class="docutils literal notranslate"><span class="pre">matplotlib.figure.Figure</span></code> object</p></li>
@@ -198,7 +204,9 @@ multiple abilities to make your image processing efficient.</p>
 <li><p><a class="reference internal" href="#figure" id="id2">Figure</a></p></li>
 <li><p><a class="reference internal" href="#table" id="id3">Table</a></p></li>
 <li><p><a class="reference internal" href="#logger" id="id4">Logger</a></p></li>
-<li><p><a class="reference internal" href="#plug-custom-functions-into-gui" id="id5">Plug Custom Functions into GUI</a></p></li>
+<li><p><a class="reference internal" href="#explorer" id="id5">Explorer</a></p></li>
+<li><p><a class="reference internal" href="#text-file-viewer" id="id6">Text File Viewer</a></p></li>
+<li><p><a class="reference internal" href="#plug-custom-functions-into-gui" id="id7">Plug Custom Functions into GUI</a></p></li>
 </ul>
 </div>
 <section id="viewer">
@@ -331,12 +339,13 @@ right button respectively).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">A</span></code> -&gt; Hide non-selected layers. Display all the layers by push again.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code> -&gt; Move selected layers to front.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">L</span></code> -&gt; Convert all the shapes in seleted shape-layers into labels of selected image-layers.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">D</span></code> -&gt; Duplicate selected layers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">D</span></code> -&gt; Duplicate the selected layer. If an image layer is selected, an dialog box opens.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">X</span></code> -&gt; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated
 cropping is also supported!</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> -&gt; Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in
 <code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code> for now.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Projection of shape-layers or point-layers to 2D layers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">E</span></code> -&gt; Open an explorer widget.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Projection of the selected layer. If an image layer is selected, an dialog box opens.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> / <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> -&gt; Link/Unlink layers. Like “grouping” in PowerPoint.</p></li>
 </ul>
 </section>
@@ -360,6 +369,7 @@ value.</p></li>
 <li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imread</span></code> in “File &gt; imread …”.</p></li>
 <li><p>Call <code class="docutils literal notranslate"><span class="pre">impy.imsave</span></code> in “File &gt; imsave …”.</p></li>
 <li><p>Call <code class="docutils literal notranslate"><span class="pre">pandas.read_csv</span></code> and add an table widget in “File &gt; pandas.read_csv …”.</p></li>
+<li><p>Open explorer widget in “File &gt; Open explorer”.</p></li>
 </ul>
 <div class="line-block">
 <div class="line"><br /></div>
@@ -368,6 +378,8 @@ value.</p></li>
 </section>
 <section id="figure">
 <h2><a class="toc-backref" href="#id2">Figure</a><a class="headerlink" href="#figure" title="Permalink to this headline">¶</a></h2>
+<section id="interactivity">
+<h3>Interactivity<a class="headerlink" href="#interactivity" title="Permalink to this headline">¶</a></h3>
 <p>When launched from <code class="docutils literal notranslate"><span class="pre">impy</span></code>, <code class="docutils literal notranslate"><span class="pre">napari</span></code>’s viewer is implemented with a highly interactive figure canvas. You can drag
 the figure with mouse left button, call <code class="docutils literal notranslate"><span class="pre">tight_layout</span></code> with double click, resize with wheel and stretch the graph
 with mouse right button.</p>
@@ -375,7 +387,10 @@ with mouse right button.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<p>This <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> backend is available via <code class="docutils literal notranslate"><span class="pre">ip.GUIcanvas</span></code>. Only during function call in <code class="docutils literal notranslate"><span class="pre">ip.gui.bind</span></code>, the backend
+</section>
+<section id="how-to-use-figure-canvas-from-console">
+<h3>How to Use Figure Canvas from Console<a class="headerlink" href="#how-to-use-figure-canvas-from-console" title="Permalink to this headline">¶</a></h3>
+<p>The backend in <code class="docutils literal notranslate"><span class="pre">napari</span></code> is available via <code class="docutils literal notranslate"><span class="pre">ip.GUIcanvas</span></code>. Only during function call in <code class="docutils literal notranslate"><span class="pre">ip.gui.bind</span></code>, the backend
 is always switched to it. However, You can fully switch to <code class="docutils literal notranslate"><span class="pre">ip.GUIcanvas</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># change the backend</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
@@ -387,7 +402,13 @@ is always switched to it. However, You can fully switch to <code class="docutils
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>Figure is also accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.fig</span></code>, so that you can use it by such as <code class="docutils literal notranslate"><span class="pre">ax</span> <span class="pre">=</span> <span class="pre">ip.gui.fig.add_subplot(111)</span></code>.</p>
+<p>Figure is also accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.fig</span></code>, so that you can use it without changing the backend.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ax</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span> <span class="c1"># This line is needed to update canvas.</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="table">
 <h2><a class="toc-backref" href="#id3">Table</a><a class="headerlink" href="#table" title="Permalink to this headline">¶</a></h2>
@@ -450,8 +471,20 @@ provided as an dock widget of <code class="docutils literal notranslate"><span c
 </pre></div>
 </div>
 </section>
+<section id="explorer">
+<h2><a class="toc-backref" href="#id5">Explorer</a><a class="headerlink" href="#explorer" title="Permalink to this headline">¶</a></h2>
+<p>You can open a read-only explorer widget inside the viewer, from “File” menu or shortcut “Ctrl+Shift+E”. From the
+explorer you can open files by double-clicking them, or filter files with wildcard strings. When a file is copied
+by “Ctrl+C” its absolute path is always copied to the clipboard.</p>
+</section>
+<section id="text-file-viewer">
+<h2><a class="toc-backref" href="#id6">Text File Viewer</a><a class="headerlink" href="#text-file-viewer" title="Permalink to this headline">¶</a></h2>
+<p>When you double-clicked a txt file in the explorer, a read-only text file viewer widget is added to the viewer. You can
+search by words or regular expressions in the widget. This widget is very useful when you want to view an image file and
+refer to its metadata file at the same time.</p>
+</section>
 <section id="plug-custom-functions-into-gui">
-<h2><a class="toc-backref" href="#id5">Plug Custom Functions into GUI</a><a class="headerlink" href="#plug-custom-functions-into-gui" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id7">Plug Custom Functions into GUI</a><a class="headerlink" href="#plug-custom-functions-into-gui" title="Permalink to this headline">¶</a></h2>
 <p>In image analysis, you usually want to set parameters using manually drawn shapes or points. You don’t have
 to do that by getting properties of the viewer for every function call. <code class="docutils literal notranslate"><span class="pre">impy</span></code> provides easier way to integrate
 your function to <code class="docutils literal notranslate"><span class="pre">napari</span></code>. Just decorate your function with <cite>&#64;ip.gui.bind</cite> and call function with keybind “F1”.
@@ -504,7 +537,8 @@ to make your plugin nice.</p>
 <ol class="arabic simple" start="2">
 <li><p>Fit filament tips to sigmoid function</p></li>
 </ol>
-<p>This is an example of binding a function with plot function. A figure canvas will be automatically generated.</p>
+<p>This is an example of binding a function with plot function. A figure canvas will be automatically generated.
+Because <code class="docutils literal notranslate"><span class="pre">plt.figure</span></code> will be called for every function call, figure canvas is cleared every time you push “F1”.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 

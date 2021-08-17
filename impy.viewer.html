@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy.viewer package &mdash; impy 1.20.6 documentation</title>
+  <title>impy.viewer package &mdash; impy 1.20.10 documentation</title>
   
 
   
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                1.20.6
+                1.20.10
               </div>
             
           
@@ -314,6 +314,11 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="impy.viewer.utils.get_a_selected_layer">
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">get_a_selected_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">napari.Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/utils.html#get_a_selected_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.get_a_selected_layer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.get_viewer_scale">
 <span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">get_viewer_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">napari.Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/utils.html#get_viewer_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.get_viewer_scale" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -377,6 +382,11 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.upon_add_layer">
 <span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">upon_add_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/utils.html#upon_add_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.upon_add_layer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.viewer.utils.viewer_imread">
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">viewer_imread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">napari.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/viewer/utils.html#viewer_imread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.viewer_imread" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
@@ -654,7 +664,16 @@ when the viewer is displaying yx-plane at t=1, then this property returns
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.use_logger">
 <span class="sig-name descname"><span class="pre">use_logger</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#impy.viewer.viewer.napariViewers.use_logger" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Return a context manager that all the texts will be printed in the logger.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">use_logger</span><span class="p">():</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># both will be printed in the viewer&#39;s logger widget</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;something&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WARNING&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.viewer">
