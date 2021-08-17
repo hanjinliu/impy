@@ -16,8 +16,8 @@ def copy_layer(layer):
         kwargs["interpolation"] = "nearest"
     
     # This is necessarry for text bound layers.
-    if "properties" in kwargs:
-        kwargs.pop("properties")
+    kwargs.pop("properties", None)
+    kwargs.pop("property_choices", None)
     
     copy = layer.__class__(args, **kwargs)
     

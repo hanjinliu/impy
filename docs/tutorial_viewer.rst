@@ -13,8 +13,12 @@ multiple abilities to make your image processing efficient.
       
       ip.gui -> viewer;
       viewer [label = "napari.Viewer components + extended functions", width = 360];
+      
       ip.gui -> MainFig;
       MainFig [label = "Figure"];
+      
+      ip.gui -> Explorer;
+      
       ip.gui -> Table-0 -> Figure-0;
       ip.gui -> Table-1 -> Figure-1;
       ip.gui -> Table-2 -> Figure-2;
@@ -24,6 +28,7 @@ multiple abilities to make your image processing efficient.
       Figure-1 [label = "Figure"];
       Table-2 [label = "Table"];
       Figure-2 [label = "Figure"];
+      
       ip.gui -> Logger;
       
       ip.gui [color = pink];
@@ -189,12 +194,13 @@ Keyboard Shortcuts
 - ``Ctrl`` + ``Shift`` + ``A`` -> Hide non-selected layers. Display all the layers by push again.
 - ``Ctrl`` + ``Shift`` + ``F`` -> Move selected layers to front.
 - ``Alt`` + ``L`` -> Convert all the shapes in seleted shape-layers into labels of selected image-layers.
-- ``Ctrl`` + ``Shift`` + ``D`` -> Duplicate selected layers.
+- ``Ctrl`` + ``Shift`` + ``D`` -> Duplicate the selected layer. If an image layer is selected, an dialog box opens.
 - ``Ctrl`` + ``Shift`` + ``X`` -> Crop selected image-layers with all the rectangles in selected shape-layers. Rotated 
   cropping is also supported!
 - ``/`` -> Reslice selected image-layers with all the lines and paths in selected shape-layers. Result is stored in 
   ``ip.gui.results`` for now.
-- ``Ctrl`` + ``P`` -> Projection of shape-layers or point-layers to 2D layers.
+- ``Ctrl`` + ``Shift`` + ``E`` -> Open an explorer widget.
+- ``Ctrl`` + ``P`` -> Projection of the selected layer. If an image layer is selected, an dialog box opens.
 - ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` -> Link/Unlink layers. Like "grouping" in PowerPoint.
 
 Functions Menu
@@ -217,6 +223,7 @@ Others
 * Call ``impy.imread`` in "File > imread ...". 
 * Call ``impy.imsave`` in "File > imsave ...".
 * Call ``pandas.read_csv`` and add an table widget in "File > pandas.read_csv ...".
+* Open explorer widget in "File > Open explorer".
 
 |
 
@@ -311,6 +318,20 @@ If you want to show all the printed strings in the logger, you can use context m
         # both will be printed in the viewer's logger widget
         print("something")
         logging.warning("WARNING")
+
+Explorer
+========
+
+You can open a read-only explorer widget inside the viewer, from "File" menu or shortcut "Ctrl+Shift+E". From the 
+explorer you can open files by double-clicking them, or filter files with wildcard strings. When a file is copied
+by "Ctrl+C" its absolute path is always copied to the clipboard.
+
+Text File Viewer
+================
+
+When you double-clicked a txt file in the explorer, a read-only text file viewer widget is added to the viewer. You can
+search by words or regular expressions in the widget. This widget is very useful when you want to view an image file and
+refer to its metadata file at the same time.
 
 Plug Custom Functions into GUI
 ==============================
