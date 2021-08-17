@@ -2,6 +2,9 @@ from __future__ import annotations
 import napari
 from qtpy.QtWidgets import QPlainTextEdit
 from qtpy.QtGui import QFont
+from qtpy.QtCore import Qt
+
+from .textedit import WordHighlighter
 
 class LoggerWidget(QPlainTextEdit):
     def __init__(self, viewer:"napari.Viewer"):
@@ -9,9 +12,14 @@ class LoggerWidget(QPlainTextEdit):
         self.setReadOnly(True)
         self.setMaximumBlockCount(500)
         self.setFont(QFont("Consolas"))
+        
+        self.highlighter = WordHighlighter(self.document())
+        self.highlighter.appendRule(r"[a-zA-Z]+Warning", fcolor=Qt.yellow)
+        self.highlighter.appendRule(r"[a-zA-Z]+Error", fcolor=Qt.red)
     
     def appendPlainText(self, text:str):
         super().appendPlainText(text)
+        self.highlighter.setDocument(self.document())
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
         return None
     
