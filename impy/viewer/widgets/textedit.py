@@ -27,13 +27,16 @@ class TxtFileWidget(QWidget):
         
     def setText(self, text:str):
         self.txtviewer.setPlainText(text)
+        self.highlighter.setDocument(self.txtviewer.document())
     
     def _add_txt_viewer(self, title):
         self.txtviewer = TxtViewer(self, title=title)
         self.txtviewer.setReadOnly(True)
         self.txtviewer.setFont(QFont("Consolas"))
         title is None or self.txtviewer.setDocumentTitle(title)
-        self.highlighter = StringHighlighter(self.txtviewer.document())
+        self.highlighter = WordHighlighter(self.txtviewer.document())
+        self.highlighter.appendRule(r" [-\+]?\d*(\.\d+)?", fcolor=Qt.yellow)
+        self.highlighter.appendRule(r"\".*?\"", fcolor=Qt.magenta)
         self.layout().addWidget(self.txtviewer)
     
     def _add_filter_line(self):
@@ -49,17 +52,21 @@ class TxtFileWidget(QWidget):
         @self.line.editingFinished.connect
         def _():
             text = self.line.text()
-            print("called:", text)
             if text in ("", ".", ".+", ".*"):
+                if self.highlighter.nrule > 2:
+                    self.highlighter.popRule(-1)
                 self.setText(self.original_text)
             else:
                 lines = self.original_text.split("\n")
                 if self.checkbox.isChecked():
-                    reg = re.compile(".*" + self.line.text() + ".*")
+                    reg = re.compile(".*" + text + ".*")
                     matched_lines = filter(lambda l: reg.match(l), lines)
                 else:
                     matched_lines = filter(lambda l: text in l, lines)
-                    
+                
+                if self.highlighter.nrule > 2:
+                    self.highlighter.popRule(-1)    
+                self.highlighter.appendRule(text, fcolor=Qt.cyan, underline=True, weight=QFont.Bold)
                 self.setText("\n".join(matched_lines))
         
         # add check box
@@ -79,24 +86,39 @@ class TxtViewer(QPlainTextEdit):
         self.setFont(QFont("Consolas"))
         self.createStandardContextMenu()
         title is None or self.setDocumentTitle(title)
-        self.highlighter = StringHighlighter(self.document())
 
-class StringHighlighter(QSyntaxHighlighter):
-    def highlightBlock(self, text:str):
-        exp = Regex((" \".*\""))
-        exp.defineFormat(fcolor=Qt.magenta)
+class WordHighlighter(QSyntaxHighlighter):
+    def __init__(self, doc) -> None:
+        super().__init__(doc)
+        self.exps:list[Regex] = []
+    
+    def appendRule(self, regex:str, **kwargs):
+        exp = Regex(regex)
+        exp.defineFormat(**kwargs)
+        self.exps.append(exp)
+    
+    def popRule(self, i:int):
+        return self.exps.pop(i)
+    
+    @property
+    def nrule(self):
+        return len(self.exps)
         
-        it = exp.globalMatch(text)
-        while it.hasNext():
-            match = it.next()
-            self.setFormat(match.capturedStart(), match.capturedLength(), exp.format_)
+    def highlightBlock(self, text:str):
+        for exp in self.exps:
+            it = exp.globalMatch(text)
+            while it.hasNext():
+                match = it.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), exp.format_)
 
 
 class Regex(QRegularExpression):
-    def defineFormat(self, fcolor=None, bcolor=None, weight=None):
+    def defineFormat(self, fcolor=None, bcolor=None, weight=None, underline=False, strikeout=False):
         format_ = QTextCharFormat()
         fcolor is None or format_.setForeground(fcolor)
         bcolor is None or format_.setBackground(bcolor)
         weight is None or format_.setFontWeight(weight)
+        underline and format_.setFontUnderline(True)
+        strikeout and format_.setFontStrikeOut(True)
         self.format_ = format_
         return None
