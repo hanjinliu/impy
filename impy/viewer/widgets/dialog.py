@@ -1,9 +1,12 @@
-from qtpy.QtWidgets import QDialog, QPushButton, QLabel, QGridLayout, QCheckBox, QLineEdit
+from __future__ import annotations
+from impy.utils.axesop import find_first_appeared
+from PyQt5.QtWidgets import QVBoxLayout
+from qtpy.QtWidgets import QDialog, QPushButton, QLabel, QGridLayout, QCheckBox, QLineEdit, QComboBox, QHBoxLayout
 import napari
 import numpy as np
 from functools import wraps
 
-from ..utils import copy_layer, front_image, add_labels
+from ..utils import add_labeledarray, copy_layer, front_image, add_labels
 from ..._const import SetConst
 from ...utils.slicer import axis_targeted_slicing
 
@@ -82,8 +85,9 @@ class RegionPropsDialog(QDialog):
     
 
 class DuplicateDialog(QDialog):
-    def __init__(self, viewer:"napari.Viewer"):
+    def __init__(self, viewer:"napari.Viewer", layer):
         self.viewer = viewer
+        self.layer = layer
         super().__init__(viewer.window._qt_window)
         self.resize(180, 120)
         self.setLayout(QGridLayout())
@@ -92,15 +96,14 @@ class DuplicateDialog(QDialog):
     @close_anyway
     def run(self, *args):
         line = self.line.text()
-        for layer in list(self.viewer.layers.selection):
-            if line.strip() == "" and not self.check.isChecked():
-                new_layer = copy_layer(layer)
-            elif line.strip():
-                new_layer = self.duplicate_sliced_layer(layer)
-            else:
-                new_layer = self.duplicate_current_step(layer)
-            
-            self.viewer.add_layer(new_layer)
+        if line.strip() == "" and not self.check.isChecked():
+            new_layer = copy_layer(self.layer)
+        elif line.strip():
+            new_layer = self.duplicate_sliced_layer(self.layer)
+        else:
+            new_layer = self.duplicate_current_step(self.layer)
+        
+        self.viewer.add_layer(new_layer)
         return None
     
     def duplicate_current_step(self, layer):
@@ -164,4 +167,38 @@ class DuplicateDialog(QDialog):
         self.run_button.clicked.connect(self.run)
         self.layout().addWidget(self.run_button)
         return None
+
+class ProjectionDialog(QDialog):
+    def __init__(self, viewer:"napari.Viewer", layer):
+        self.viewer = viewer
+        self.layer = layer
+        super().__init__(viewer.window._qt_window)
+        self.resize(180, 120)
+        self.setLayout(QHBoxLayout())
+        self._add_widgets()
+    
+    @close_anyway
+    def run(self, *args):
+        img = self.layer.data
+        out = img.proj(axis=self.axis.currentText(), method=self.method.currentText())
+        translate = [t for a, t in zip(img.axes, self.layer.translate) if a in out.axes]
+        add_labeledarray(self.viewer, out, translate=translate)
+        return None
+    
+    def _add_widgets(self):
+        self.method = QComboBox(self)
+        self.method.setToolTip("Projection method")
+        self.method.addItems(["mean", "max", "median", "min", "std"])
+        self.method.setCurrentText("mean")
+        self.layout().addWidget(self.method)
         
+        axes = str(self.layer.data.axes)
+        self.axis = QComboBox(self)
+        self.axis.setToolTip("Projection axis")
+        self.axis.addItems(list(axes[:-2]))
+        self.axis.setCurrentText(find_first_appeared("ztpi<c", axes, "yx"))
+        self.layout().addWidget(self.axis)
+        
+        self.run_button= QPushButton("Run", self)
+        self.run_button.clicked.connect(self.run)
+        self.layout().addWidget(self.run_button)

@@ -11,10 +11,16 @@ from ..core import imread, lazy_imread
 def copy_layer(layer):
     args, kwargs, *_ = layer.as_layer_data_tuple()
     # linear interpolation is valid only in 3D mode.
-    if kwargs["interpolation"] == "linear":
+    if kwargs.get("interpolation", None) == "linear":
         kwargs = kwargs.copy()
         kwargs["interpolation"] = "nearest"
+    
+    # This is necessarry for text bound layers.
+    if "properties" in kwargs:
+        kwargs.pop("properties")
+    
     copy = layer.__class__(args, **kwargs)
+    
     return copy
 
 def iter_layer(viewer:"napari.Viewer", layer_type:str):
@@ -391,6 +397,14 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
     else:
         raise NotImplementedError(type(layer))
 
+def get_a_selected_layer(viewer:"napari.Viewer"):
+    selected = list(viewer.layers.selection)
+    if len(selected) == 0:
+        raise ValueError("No layer is selected.")
+    elif len(selected) > 1:
+        raise ValueError("More than one layers are selected.")
+    return selected[0]
+    
 
 class ColorCycle:
     def __init__(self, cmap="rainbow") -> None:

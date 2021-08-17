@@ -1,3 +1,4 @@
+from impy.viewer.widgets.dialog import ProjectionDialog
 from ..arrays import LabeledArray
 from ..core import array as ip_array
 from .utils import *
@@ -289,51 +290,63 @@ def proj(viewer:"napari.Viewer"):
     """
     Projection
     """
-    layers = list(viewer.layers.selection)
-    for layer in layers:
-        data = layer.data
-        kwargs = {}
-        kwargs.update({"scale": layer.scale[-2:], 
-                       "translate": layer.translate[-2:],
-                       "blending": layer.blending,
-                       "opacity": layer.opacity,
-                       "ndim": 2,
-                       "name": layer.name+"-proj"})
-        if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
-            raise TypeError("Projection not supported.")
-        elif isinstance(layer, napari.layers.Shapes):
-            data = [d[:,-2:] for d in data]
-            
-            if layer.nshapes > 0:
-                for k in ["face_color", "edge_color", "edge_width"]:
-                    kwargs[k] = getattr(layer, k)
-            else:
-                data = None
-            kwargs["ndim"] = 2
-            kwargs["shape_type"] = layer.shape_type
-            viewer.add_shapes(data, **kwargs)
-        elif isinstance(layer, napari.layers.Points):
-            data = data[:, -2:]
-            for k in ["face_color", "edge_color", "size", "symbol"]:
-                kwargs[k] = getattr(layer, k, None)
-            kwargs["size"] = layer.size[:,-2:]
-            if len(data) == 0:
-                data = None
-            kwargs["ndim"] = 2
-            viewer.add_points(data, **kwargs)
-        elif isinstance(layer, napari.layers.Tracks):
-            data = data[:, [0,-2,-1]]
-            viewer.add_tracks(data, **kwargs)
-        else:
-            raise NotImplementedError(type(layer))
+    layer = get_a_selected_layer(viewer)
+    
+    data = layer.data
+    kwargs = {}
+    kwargs.update({"scale": layer.scale[-2:], 
+                    "translate": layer.translate[-2:],
+                    "blending": layer.blending,
+                    "opacity": layer.opacity,
+                    "ndim": 2,
+                    "name": layer.name+"-proj"})
+    if isinstance(layer, napari.layers.Image):
+        if layer.data.ndim < 3:
+            return None
+        dlg = ProjectionDialog(viewer, layer)
+        dlg.exec_()
+    elif isinstance(layer, napari.layers.Labels):
+        raise TypeError("Projection not supported.")
+    elif isinstance(layer, napari.layers.Shapes):
+        data = [d[:,-2:] for d in data]
         
+        if layer.nshapes > 0:
+            for k in ["face_color", "edge_color", "edge_width"]:
+                kwargs[k] = getattr(layer, k)
+        else:
+            data = None
+        kwargs["ndim"] = 2
+        kwargs["shape_type"] = layer.shape_type
+        viewer.add_shapes(data, **kwargs)
+    elif isinstance(layer, napari.layers.Points):
+        data = data[:, -2:]
+        for k in ["face_color", "edge_color", "size", "symbol"]:
+            kwargs[k] = getattr(layer, k, None)
+        kwargs["size"] = layer.size[:,-2:]
+        if len(data) == 0:
+            data = None
+        kwargs["ndim"] = 2
+        viewer.add_points(data, **kwargs)
+    elif isinstance(layer, napari.layers.Tracks):
+        data = data[:, [0,-2,-1]]
+        viewer.add_tracks(data, **kwargs)
+    else:
+        raise NotImplementedError(type(layer))
+    
 @bind_key
 def duplicate_layer(viewer:"napari.Viewer"):
     """
     Duplicate selected layer(s).
     """
-    dlg = DuplicateDialog(viewer)
-    dlg.exec_()
+    layer = get_a_selected_layer(viewer)
+    
+    if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+        dlg = DuplicateDialog(viewer, layer)
+        dlg.exec_()
+    else:
+        new_layer = copy_layer(layer)
+        viewer.add_layer(new_layer)
+    return None
 
 def _crop_rotated_rectangle(img, crds, dims):
     translate = np.min(crds, axis=0)
