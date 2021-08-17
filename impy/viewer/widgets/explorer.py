@@ -1,6 +1,6 @@
 from __future__ import annotations
 from qtpy.QtWidgets import (QWidget, QFileSystemModel, QTreeView, QMenu, QAction, QGridLayout, QLineEdit, QPushButton,
-                            QFileDialog)
+                            QFileDialog, QHBoxLayout, QLabel)
 from qtpy.QtCore import Qt, QModelIndex
 import os
 import napari
@@ -46,13 +46,25 @@ class Explorer(QWidget):
         return None
     
     def _add_filter_line(self):
-        self.line = QLineEdit(self)        
+        wid = QWidget(self)
+        wid.setLayout(QHBoxLayout())
+        
+        # add label
+        label = QLabel(self)
+        label.setText("Filter file name: ")
+        
+        self.line = QLineEdit(self)
+        self.line.setToolTip("Filter by names split by comma. e.g. '*.tif, *csv'.")
         
         @self.line.editingFinished.connect
         def _():
             self.tree.set_filter(self.line.text())
-            
-        self.layout().addWidget(self.line)
+        
+        
+        wid.layout().addWidget(label)
+        wid.layout().addWidget(self.line)
+        
+        self.layout().addWidget(wid)
 
 class FileTree(QTreeView):
     def __init__(self, parent, path:str):
@@ -143,6 +155,8 @@ class FileTree(QTreeView):
     
     def set_filter(self, names:str|list[str]):
         if isinstance(names, str):
+            if names == "":
+                names = "*"
             names = names.split(",")
             names = [s.strip() for s in names]
         self.file_system.setNameFilters(names)

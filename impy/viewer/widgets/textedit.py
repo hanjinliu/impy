@@ -66,10 +66,11 @@ class TxtFileWidget(QWidget):
         
         # add label
         label = QLabel(self)
-        label.setText("Filter:")
+        label.setText("Search:")
         
         # add line edit
-        self.line = QLineEdit(self)        
+        self.line = QLineEdit(self)
+        self.line.setToolTip("Search line by line with words or regular expressions.")
         @self.line.editingFinished.connect
         def _():
             text = self.line.text()
@@ -93,6 +94,7 @@ class TxtFileWidget(QWidget):
         # add check box
         self.checkbox = QCheckBox(self)
         self.checkbox.setText("Regex")
+        self.checkbox.setToolTip("Use regular expression.")
         
         wid.layout().addWidget(label)
         wid.layout().addWidget(self.line)

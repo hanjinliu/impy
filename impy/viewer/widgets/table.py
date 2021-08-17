@@ -83,9 +83,9 @@ class TableWidget(QMainWindow):
         self._add_edit_menu()
         self._add_plot_menu()
         
+        self.setCentralWidget(self.table_native)
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.setWindowTitle(self.name)
-        self.setCentralWidget(self.table_native)
         
     
     def __repr__(self):
