@@ -39,8 +39,9 @@ ip.gui.add(img)
 `impy`'s viewer also provides **many useful widgets and functions** such as 
 
 - Excel-like table
+- Compact file explorer
 - interactive `matplotlib` figure canvas
-- cropping, measurement, filtering tools
+- cropping, duplication, measurement, filtering tools
 
 ### Extend your function for batch processing
 
