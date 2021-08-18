@@ -871,17 +871,16 @@ class LabeledArray(HistoryArray):
             self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
         return self.labels
     
-    @_docs.write_docs
-    @dims_to_spatial_axes
     @record(append_history=False, need_labels=True)
-    def proj_labels(self, *, dims=None, forbid_overlap=False) -> Label:
+    def proj_labels(self, axis=None, forbid_overlap=False) -> Label:
         """
         Label projection. This function is useful when zyx-labels are drawn but you want to reduce the 
         dimension.
 
         Parameters
         ----------
-        {dims}
+        axis : str, optional
+            Along which axis projection will be calculated. If None, most plausible one will be chosen.
         forbid_overlap : bool, default is False
             If True and there were any label overlap, this function will raise ValueError.
 
@@ -890,7 +889,7 @@ class LabeledArray(HistoryArray):
         Label
             Projected labels.
         """
-        self.labels = self.labels.proj(dims=dims, forbid_overlap=forbid_overlap)
+        self.labels = self.labels.proj(axis=axis, forbid_overlap=forbid_overlap)
         return self.labels
     
     def split(self, axis=None) -> DataList[LabeledArray]:
