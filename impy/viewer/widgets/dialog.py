@@ -4,7 +4,7 @@ import napari
 import numpy as np
 from functools import wraps
 
-from ..utils import add_labeledarray, copy_layer, front_image, add_labels
+from ..utils import add_labeledarray, copy_layer, front_image, add_labels, layer_to_impy_object
 from ..._const import SetConst
 from ...utils.slicer import axis_targeted_slicing
 from ...utils.axesop import find_first_appeared
@@ -171,23 +171,27 @@ class DuplicateDialog(QDialog):
         return None
 
 class ProjectionDialog(QDialog):
-    """
-    This dialog is opened when an image layer is projected.
-    """
     def __init__(self, viewer:"napari.Viewer", layer):
         self.viewer = viewer
         self.layer = layer
+        self.data = layer_to_impy_object(viewer, layer)
         super().__init__(viewer.window._qt_window)
         self.resize(180, 120)
         self.setLayout(QHBoxLayout())
         self._add_widgets()
     
+    def _add_widgets(self): ...
+
+class ImageProjectionDialog(ProjectionDialog):
+    """
+    This dialog is opened when an image layer is projected.
+    """
     @close_anyway
     def run(self, *args):
-        img = self.layer.data
+        img = self.data
         out = img.proj(axis=self.axis.currentText(), method=self.method.currentText())
         translate = [t for a, t in zip(img.axes, self.layer.translate) if a in out.axes]
-        add_labeledarray(self.viewer, out, translate=translate)
+        add_labeledarray(self.viewer, out, translate=translate, name=f"[Proj]{self.layer.name}")
         return None
     
     def _add_widgets(self):
@@ -197,7 +201,31 @@ class ProjectionDialog(QDialog):
         self.method.setCurrentText("mean")
         self.layout().addWidget(self.method)
         
-        axes = str(self.layer.data.axes)
+        axes = str(self.data.axes)
+        self.axis = QComboBox(self)
+        self.axis.setToolTip("Projection axis")
+        self.axis.addItems(list(axes[:-2]))
+        self.axis.setCurrentText(find_first_appeared("ztpi<c", axes, "yx"))
+        self.layout().addWidget(self.axis)
+        
+        self.run_button= QPushButton("Run", self)
+        self.run_button.clicked.connect(self.run)
+        self.layout().addWidget(self.run_button)
+
+class LabelProjectionDialog(ProjectionDialog):
+    """
+    This dialog is opened when an image layer is projected.
+    """    
+    @close_anyway
+    def run(self, *args):
+        lbl = self.data
+        out = lbl.proj(axis=self.axis.currentText())
+        translate = [t for a, t in zip(lbl.axes, self.layer.translate) if a in out.axes]
+        add_labels(self.viewer, out, translate=translate, name=f"[Proj]{self.layer.name}")
+        return None
+    
+    def _add_widgets(self):        
+        axes = str(self.data.axes)
         self.axis = QComboBox(self)
         self.axis.setToolTip("Projection axis")
         self.axis.addItems(list(axes[:-2]))

@@ -3,7 +3,7 @@ from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
 from .utils import *
-from .widgets import DuplicateDialog, ProjectionDialog
+from .widgets import DuplicateDialog, ImageProjectionDialog, LabelProjectionDialog
 
 from ..arrays import LabeledArray
 from ..core import array as ip_array
@@ -300,14 +300,19 @@ def proj(viewer:"napari.Viewer"):
                     "blending": layer.blending,
                     "opacity": layer.opacity,
                     "ndim": 2,
-                    "name": layer.name+"-proj"})
+                    "name": f"[Proj]{layer.name}"})
     if isinstance(layer, napari.layers.Image):
         if layer.data.ndim < 3:
             return None
-        dlg = ProjectionDialog(viewer, layer)
+        dlg = ImageProjectionDialog(viewer, layer)
         dlg.exec_()
+        
     elif isinstance(layer, napari.layers.Labels):
-        raise TypeError("Projection not supported.")
+        if layer.data.ndim < 3:
+            return None
+        dlg = LabelProjectionDialog(viewer, layer)
+        dlg.exec_()
+            
     elif isinstance(layer, napari.layers.Shapes):
         data = [d[:,-2:] for d in data]
         
@@ -319,6 +324,7 @@ def proj(viewer:"napari.Viewer"):
         kwargs["ndim"] = 2
         kwargs["shape_type"] = layer.shape_type
         viewer.add_shapes(data, **kwargs)
+        
     elif isinstance(layer, napari.layers.Points):
         data = data[:, -2:]
         for k in ["face_color", "edge_color", "size", "symbol"]:
@@ -328,9 +334,11 @@ def proj(viewer:"napari.Viewer"):
             data = None
         kwargs["ndim"] = 2
         viewer.add_points(data, **kwargs)
+        
     elif isinstance(layer, napari.layers.Tracks):
-        data = data[:, [0,-2,-1]]
+        data = data[:, [0, -2, -1]] # p, y, x axes
         viewer.add_tracks(data, **kwargs)
+        
     else:
         raise NotImplementedError(type(layer))
     
