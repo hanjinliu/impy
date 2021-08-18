@@ -40,16 +40,30 @@ class Explorer(QWidget):
             if dirname:
                 self.tree.rootpath = dirname
                 self.tree._set_file_model(dirname)
+                napari.utils.history.update_open_history(dirname)
+            return None
         
         self.layout().addWidget(self.root_button)
+        return None
     
-    def _add_filetree(self, path:str):
+    def _add_filetree(self, path:str=""):
+        """
+        Add tree view of files with root directory set to ``path``.
+
+        Parameters
+        ----------
+        path : str, default is ""
+            Path of the root directory. If not found, current directory will be used.
+        """        
         path = os.getcwd() if not os.path.exists(path) else path
         self.tree = FileTree(self, path)
         self.layout().addWidget(self.tree)
         return None
     
     def _add_filter_line(self):
+        """
+        Add line edit widget which filters file tree by file names.
+        """        
         wid = QWidget(self)
         wid.setLayout(QHBoxLayout())
         
@@ -122,6 +136,7 @@ class FileTree(QTreeView):
         menu.addAction(open_file)
         menu.addAction(copy_path)
         menu.exec_(self.mapToGlobal(point))
+        return None
     
     def open_path_at(self, index:QModelIndex):
         path = self.file_system.filePath(index)
@@ -158,6 +173,9 @@ class FileTree(QTreeView):
             return None
     
     def set_filter(self, names:str|list[str]):
+        """
+        Apply filter with comma separated string or list of string as an input.
+        """        
         if isinstance(names, str):
             if names == "":
                 names = "*"

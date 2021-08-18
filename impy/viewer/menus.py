@@ -49,7 +49,7 @@ def add_imread_menu(viewer:"napari.Viewer"):
         if filenames != [] and filenames is not None:
             img = imread(filenames[0])
             add_labeledarray(viewer, img)
-        napari.utils.history.update_open_history(filenames[0])
+            napari.utils.history.update_open_history(filenames[0])
         return None
     
     viewer.window.file_menu.addAction(action)
@@ -104,7 +104,7 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
         if (filenames != []) and (filenames is not None):
             path = filenames[0]
             read_csv(viewer, path)
-        napari.utils.history.update_open_history(filenames[0])
+            napari.utils.history.update_open_history(filenames[0])
         return None
     
     viewer.window.file_menu.addAction(action)
@@ -122,6 +122,7 @@ def add_explorer_menu(viewer:"napari.Viewer"):
             root = napari.utils.history.get_open_history()[0]
             ex = Explorer(viewer, root)
             viewer.window.add_dock_widget(ex, name="Explorer", area="right", allowed_areas=["right"])
+        return None
     action.setShortcut("Ctrl+Shift+E")
     viewer.window.file_menu.addAction(action)
     return None
