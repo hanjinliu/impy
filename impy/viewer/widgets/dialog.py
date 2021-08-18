@@ -11,7 +11,7 @@ from ...utils.axesop import find_first_appeared
 
 def close_anyway(func):
     @wraps(func)
-    def wrapped_func(self, *args, **kwargs):
+    def wrapped_func(self:QDialog, *args, **kwargs):
         from napari.utils.notifications import Notification, notification_manager
         try:
             out = func(self, *args, **kwargs)

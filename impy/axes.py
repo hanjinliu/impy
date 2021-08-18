@@ -19,7 +19,9 @@ class NoneAxes:
 
 NONE = NoneAxes()
 
-
+class ScaleDict(dict):
+    __getattr__ = dict.__getitem__
+    
 def check_none(func):
     def checked(self, *args, **kwargs):
         if self.is_none():
@@ -59,6 +61,16 @@ class Axes:
         else:
             raise ImageAxesError(f"Cannot set {type(value)} to axes.")
     
+    @property
+    def scale(self):
+        return self._scale
+    
+    @scale.setter
+    def scale(self, value):
+        if value is None:
+            self._scale = None
+        else:
+            self._scale = ScaleDict(value)
         
     @check_none
     def __str__(self):

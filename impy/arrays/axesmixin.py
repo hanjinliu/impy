@@ -34,7 +34,7 @@ class AxesMixin:
         
     @property
     def scale(self):
-        return self.axes.scale
+        return self.axes._scale
     
     @property
     def scale_unit(self):
