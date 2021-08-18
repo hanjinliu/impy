@@ -3,6 +3,7 @@ from qtpy.QtWidgets import (QWidget, QFileSystemModel, QTreeView, QMenu, QAction
                             QFileDialog, QHBoxLayout, QLabel)
 from qtpy.QtCore import Qt, QModelIndex
 import os
+import datetime
 import napari
 try:
     import pyperclip
@@ -13,6 +14,7 @@ from .table import read_csv
 from .textedit import read_txt
 from ..utils import viewer_imread, add_labeledarray
 from ...core import imread
+from ..._const import Const
 
 class Explorer(QWidget):
     """
@@ -96,7 +98,7 @@ class FileTree(QTreeView):
         self.header().hide()
 
         # Set QFileSystemModel
-        self.file_system = QFileSystemModel(self)
+        self.file_system = FileSystemModel(self)
         self.file_system.setReadOnly(True)
         self.file_system.setNameFilterDisables(False)
         self._set_file_model(path)
@@ -105,7 +107,6 @@ class FileTree(QTreeView):
         for i in range(1, self.file_system.columnCount()):
             self.hideColumn(i)
             
-        self.clicked.connect(self.onClicked)
         self.doubleClicked.connect(self.onDoubleClicked)
         
         self.show()
@@ -159,11 +160,6 @@ class FileTree(QTreeView):
         path = self.file_system.filePath(index)
         pyperclip.copy('"' + path + '"')
         return None
-    
-    def onClicked(self, index:QModelIndex):
-        path = self.file_system.filePath(index)
-        
-        return None
         
     def onDoubleClicked(self, index:QModelIndex):
         path = self.file_system.filePath(index)
@@ -202,3 +198,40 @@ class FileTree(QTreeView):
         else:
             index = None
         return index
+
+class FileSystemModel(QFileSystemModel):
+    """
+    File system model with tooltips.
+    """    
+    def data(self, index:QModelIndex, role:int=Qt.DisplayRole):
+        if role == Qt.ToolTipRole:
+            path = self.filePath(index)
+            name = os.path.basename(path)
+            stat = os.stat(path)
+            if os.path.isdir(path):
+                size = ""
+            elif stat.st_size < 10**3:
+                size = f"size: {stat.st_size:.1f} B\n"
+            elif stat.st_size < 10**6:
+                size = f"size: {stat.st_size/10**3:.1f} KB\n"
+            elif stat.st_size < 10**9:
+                size = f"size: {stat.st_size/10**6:.1f} MB\n"
+            else:
+                size = f"size: {stat.st_size/10**9:.1f} GB\n"
+                
+            info = f"name: {name}\n" \
+                f"{size}" \
+                f"last accessed: {get_time_stamp(stat.st_atime)}\n" \
+                f"last modified: {get_time_stamp(stat.st_mtime)}"
+            return info
+        else:
+            return super().data(index, role)
+
+    def flags(self, index:QModelIndex):
+        if not index.isValid():
+            return Qt.NoItemFlags
+        return Qt.ItemIsSelectable
+
+def get_time_stamp(epoch):
+    t = str(datetime.datetime.fromtimestamp(epoch))
+    return t.split(".")[0]

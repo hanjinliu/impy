@@ -1,5 +1,7 @@
 from __future__ import annotations
-from qtpy.QtWidgets import QDialog, QPushButton, QLabel, QGridLayout, QCheckBox, QLineEdit, QComboBox, QHBoxLayout
+import datetime
+from qtpy.QtWidgets import (QDialog, QPushButton, QLabel, QGridLayout, QCheckBox, QLineEdit, 
+                            QComboBox, QVBoxLayout, QHBoxLayout, QSpinBox, QWidget)
 import napari
 import numpy as np
 from functools import wraps
@@ -18,6 +20,7 @@ def close_anyway(func):
         except Exception as e:
             self.close()
             notification_manager.dispatch(Notification.from_exception(e))
+            out = None
         else:
             self.close()
         return out
@@ -235,5 +238,60 @@ class LabelProjectionDialog(ProjectionDialog):
         self.layout().addWidget(self.axis)
         
         self.run_button= QPushButton("Run", self)
+        self.run_button.clicked.connect(self.run)
+        self.layout().addWidget(self.run_button)
+    
+class TimeStamper(QDialog):
+    def __init__(self, viewer:"napari.Viewer", layer):
+        self.viewer = viewer
+        self.layer = layer
+        super().__init__(viewer.window._qt_window)
+        self.resize(180, 120)
+        self.setLayout(QVBoxLayout())
+        self._add_widgets()
+    
+    @close_anyway
+    def run(self, *args):
+        i = np.arange(self.layer.data.sizeof("t"))
+        factor = {"hr": 3600, "min": 60, "sec": 1, "msec":0.001}[self.unit.currentText()]
+        sec = i * self.dt.value() * factor
+        time_stamp = [str(datetime.timedelta(seconds=float(s))) for s in sec]
+        taxis = self.layer.data.axisof("t")
+        arr_basic = np.zeros((4, self.viewer.dims.ndim))
+        arr_basic[1, -2] = 1
+        arr_basic[2, -2] = 1
+        arr_basic[2, -1] = 1
+        arr_basic[3, -1] = 1
+        def _rectangle(t):
+            arr = arr_basic.copy()
+            arr[:, taxis] = t
+            return arr
+        shapes = [_rectangle(t) for t in i]
+        
+        text_params = {"text": "{time}",
+                       "color": "white",
+                       "anchor": "upper_left"}
+        self.viewer.add_shapes(shapes, text=text_params, properties={"time": time_stamp}, face_color=[0,0,0,0],
+                               edge_color=[0,0,0,0], name="Time Stamp")
+        return None
+    
+    def _add_widgets(self):
+        wid = QWidget(self)
+        wid.setLayout(QHBoxLayout())
+        
+        self.dt = QSpinBox(wid)
+        self.dt.setToolTip("Time per frame")
+        self.dt.setValue(10)
+        wid.layout().addWidget(self.dt)
+        
+        self.unit = QComboBox(wid)
+        self.unit.setToolTip("Time unit")
+        self.unit.addItems(["hr", "min", "sec", "msec"])
+        self.unit.setCurrentText("sec")
+        wid.layout().addWidget(self.unit)
+        
+        self.layout().addWidget(wid)
+        
+        self.run_button= QPushButton("OK", self)
         self.run_button.clicked.connect(self.run)
         self.layout().addWidget(self.run_button)

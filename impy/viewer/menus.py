@@ -16,6 +16,7 @@ __all__ = ["add_imread_menu",
            "add_proj_menu",
            "add_crop_menu",
            "add_layer_to_labels_menu",
+           "add_time_stamper_menu",
            "add_controller_widget", 
            "add_note_widget",
            "edit_properties",
@@ -161,11 +162,11 @@ def add_proj_menu(viewer:"napari.Viewer"):
         data = layer.data
         kwargs = {}
         kwargs.update({"scale": layer.scale[-2:], 
-                        "translate": layer.translate[-2:],
-                        "blending": layer.blending,
-                        "opacity": layer.opacity,
-                        "ndim": 2,
-                        "name": f"[Proj]{layer.name}"})
+                       "translate": layer.translate[-2:],
+                       "blending": layer.blending,
+                       "opacity": layer.opacity,
+                       "ndim": 2,
+                       "name": f"[Proj]{layer.name}"})
         if isinstance(layer, napari.layers.Image):
             if layer.data.ndim < 3:
                 return None
@@ -340,11 +341,27 @@ def add_layer_to_labels_menu(viewer:"napari.Viewer"):
     viewer.window.layer_menu.addAction(action)
     return None
 
+def add_time_stamper_menu(viewer:"napari.Viewer"):
+    action = QAction("Add time stamp", viewer.window._qt_window)
+    @action.triggered.connect
+    def _():
+        layer = get_a_selected_layer(viewer)
+        if not isinstance(layer, napari.layers.Image):
+            raise TypeError("Select an image layer.")
+        dlg = TimeStamper(viewer, layer)
+        dlg.exec_()
+        return None
+    
+    viewer.window.layer_menu.addAction(action)
+    return None
+
 def edit_properties(viewer:"napari.Viewer"):
     """
     Edit properties of selected shapes or points.
     """    
-    def edit_prop(event):
+    line = magicgui.widgets.LineEdit(tooltip="Property editor")
+    @line.changed.connect
+    def _(event):
         # get the selected shape layer
         layers = list(viewer.layers.selection)
         if len(layers) != 1:
@@ -363,8 +380,6 @@ def edit_properties(viewer:"napari.Viewer"):
         layer.text.refresh_text({"text": old})
         return None
         
-    line = magicgui.widgets.LineEdit(tooltip="Property editor")
-    line.changed.connect(edit_prop)
     viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
 
