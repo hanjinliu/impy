@@ -876,8 +876,8 @@ class LabeledArray(HistoryArray):
     @record(append_history=False, need_labels=True)
     def proj_labels(self, *, dims=None, forbid_overlap=False) -> Label:
         """
-        Label projection. This function is useful when yx-labels are drawn in different z but
-        you want to merge them.
+        Label projection. This function is useful when zyx-labels are drawn but you want to reduce the 
+        dimension.
 
         Parameters
         ----------
@@ -889,15 +889,8 @@ class LabeledArray(HistoryArray):
         -------
         Label
             Projected labels.
-        """        
-        c_axes = complement_axes(dims, self.labels.axes)
-        new_labels = np.max(self.labels, axis=c_axes)
-        if forbid_overlap:
-            test_array = np.sum(self.labels>0, axis=c_axes)
-            if (test_array>1).any():
-                raise ValueError("Label overlapped.")
-        new_labels._set_info(self.labels, "proj", new_axes=dims)
-        self.labels = new_labels
+        """
+        self.labels = self.labels.proj(dims=dims, forbid_overlap=forbid_overlap)
         return self.labels
     
     def split(self, axis=None) -> DataList[LabeledArray]:

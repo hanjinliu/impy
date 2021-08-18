@@ -84,8 +84,7 @@ class Label(HistoryArray):
         ----------
         distance : int, optional
             The distance to expand, by default 1
-        dims : int or str, optional
-            Dimension of axes.
+        {dims}
 
         Returns
         -------
@@ -100,6 +99,34 @@ class Label(HistoryArray):
         self.value[:] = labels
         
         return self
+
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record()
+    def proj(self, *, dims=None, forbid_overlap=False) -> Label:
+        """
+        Label projection. This function is useful when zyx-labels are drawn but you want to reduce the 
+        dimension.
+        
+        Parameters
+        ----------
+        {dims}
+        forbid_overlap : bool, default is False
+            If True and there were any label overlap, this function will raise ValueError.
+
+        Returns
+        -------
+        Label
+            Projected labels.
+        """        
+        c_axes = complement_axes(dims, self.axes)
+        new_labels = np.max(self, axis=c_axes)
+        if forbid_overlap:
+            test_array = np.sum(self>0, axis=c_axes)
+            if (test_array>1).any():
+                raise ValueError("Label overlapped.")
+        new_labels._set_info(self, "proj", new_axes=dims)
+        return new_labels
     
     def add_label(self, label_image):
         label_image = label_image.view(self.__class__).relabel()
