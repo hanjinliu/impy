@@ -295,27 +295,50 @@ class napariViewers:
         
         return out
     
-    def cursor_to_pixel(self, layer:"napari.layers.Image"|int|str|LabeledArray) -> np.ndarray:
-        if isinstance(layer, (int, str)):
-            layer = self.viewer.layers[layer]
-        elif isinstance(layer, LabeledArray):
+    def cursor_to_pixel(self, ref:"napari.layers.Image"|int|str|LabeledArray|LazyImgArray) -> np.ndarray:
+        """
+        With cursor position and a layer as inputs, this function returns the cursor "pixel" coordinates on the given
+        layer. This function is useful when you want to get such as pixel value at the cursor position.
+
+        Parameters
+        ----------
+        ref : napari.layers.Image, int, str, LabeledArray or LazyImgArray
+            Reference layer or its identifier. To determine the reference layer, this parameter is interpreted in 
+            different ways depending on its type:
+
+            - napari.layers.Image ... layer itself 
+            - int ... the index of layer list
+            - str ... the name of layer list
+            - LabeledArray or LazyImgArray ... layer that has same object as data
+        
+        Returns
+        -------
+        np.ndarray
+            1-D, int64 array of cursor position along each dimension.
+        """
+        if isinstance(ref, (int, str)):
+            layer = self.viewer.layers[ref]
+        elif isinstance(ref, (LabeledArray, LazyImgArray)):
             for l in self.viewer.layers:
-                if l.data is layer:
+                if l.data is ref:
                     layer = l
                     break
             else:
                 raise ValueError("Input image was not found in napari layer list.")
-        elif isinstance(layer, napari.layers.Image):
-            pass
+        
+        elif isinstance(ref, (napari.layers.Image, napari.layers.Labels)):
+            layer = ref
         else:
             raise TypeError("`layer` must be an image layer, int, str or impy's LabeledArray, "
-                           f"but got {type(layer)}")
+                           f"but got {type(ref)}")
         
-        if not isinstance(layer, napari.layers.Image):
-            raise TypeError(f"Layer {layer} is not an image layer.")
+        if not isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+            raise TypeError(f"Layer {layer} is not an image or labels layer.")
+
         ndim = layer.data.ndim
         cursor_coords = np.array(self.viewer.cursor.position[-ndim:])
-        return ((cursor_coords - layer.translate)/layer.scale).astype(np.int64)
+        pos = (cursor_coords - layer.translate)/layer.scale
+        return pos.astype(np.int64)
         
     def add(self, obj:ImpyObject=None, **kwargs):
         """
@@ -620,6 +643,7 @@ class napariViewers:
         if isinstance(data, PropArray):
             df = data.as_frame()
             df.rename(columns = {"f": "value"}, inplace=True)
+        
         self._table = add_table(self.viewer, data, columns, name)
         return self._table
 
