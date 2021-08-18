@@ -3,10 +3,6 @@ from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
 from .utils import *
-from .widgets import ImageProjectionDialog, LabelProjectionDialog
-
-from ..arrays import LabeledArray
-from ..core import array as ip_array
 
 # Shift, Control, Alt, Meta, Up, Down, Left, Right, PageUp, PageDown, Insert, 
 # Delete, Home, End, Escape, Backspace, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
@@ -17,13 +13,9 @@ KEYS = {"focus_next": "]",
         "hide_others": "Control-Shift-A",
         "link_selected_layers": "Control-G",
         "unlink_selected_layers": "Control-Shift-G",
-        "layers_to_labels": "Alt-L",
-        "crop": "Control-Shift-X",
         "reslice": "/",
         "to_front": "Control-Shift-F",
         "reset_view": "Control-Shift-R",
-        "proj": "Control-P",
-        "duplicate_layer": "Control-Shift-D",
         }
 
 __all__ = list(KEYS.keys())
@@ -126,52 +118,6 @@ def reset_view(viewer:"napari.Viewer"):
         # layer.translte[:] = 0. did not work
         layer.translate -= (layer.translate - layer.metadata["init_translate"])
         layer.scale = layer.metadata["init_scale"]
-
-@bind_key
-def layers_to_labels(viewer:"napari.Viewer"):
-    """
-    Convert manually drawn shapes to labels and store it.
-    """        
-    # determine destinations.
-    destinations = [l.data for l in iter_selected_layer(viewer, "Image")]
-    if len(destinations) == 0:
-        destinations = [front_image(viewer).data]
-    
-    for dst in destinations:
-        # check zoom_factors
-        d = viewer.dims
-        scale = {a: r[2] for a, r in zip(d.axis_labels, d.range)}
-        # TODO: image translation
-        # zoom_factors = layer.scale[-2:]/shape_layer_scale[-2:]
-        zoom_factors = [scale[a]/dst.scale[a] for a in "yx"]
-        if np.unique(zoom_factors).size == 1:
-            zoom_factor = zoom_factors[0]
-        else:
-            raise ValueError("Scale mismatch in images and napari world.")
-        
-        # make labels from selected layers
-        shapes = [to_labels(layer, dst.shape, zoom_factor=zoom_factor) 
-                  for layer in iter_selected_layer(viewer, "Shapes")]
-        labels = [layer.data for layer in iter_selected_layer(viewer, "Labels")]
-        
-        if len(shapes) > 0 and len(labels) > 0:
-            viewer.status = "Both Shapes and Labels were selected"
-            return None
-        elif len(shapes) > 0:
-            labelout = np.max(shapes, axis=0)
-            viewer.add_labels(labelout, opacity=0.3, scale=list(scale.values()), name="Labeled by Shapes")
-        elif len(labels) > 0:
-            labelout = np.max(labels, axis=0)
-        else:
-            return None
-        
-        # append labels to each destination
-        if hasattr(dst, "labels"):
-            print(f"Label already exist in {dst}. Overlapped.")
-            del dst.labels
-        dst.append_label(labelout)
-        
-    return None
 
 @bind_key
 def reslice(viewer:"napari.Viewer"):

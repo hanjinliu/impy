@@ -691,9 +691,9 @@ def _load_mouse_callbacks(viewer):
         viewer.mouse_move_callbacks.append(getattr(mouse, f))
 
 def _load_widgets(viewer):
-    from . import _widgets
-    for f in _widgets.__all__:
-        getattr(_widgets, f)(viewer)
+    from . import menus
+    for f in menus.__all__:
+        getattr(menus, f)(viewer)
 
 
 class setLogger:
