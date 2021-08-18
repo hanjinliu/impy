@@ -1,8 +1,7 @@
 import numpy as np
-from dask import array as da
-from ..._cupy import xp, xp_fft, asnumpy, xp_ndarray
+from ..._cupy import xp, xp_fft, xp_ndarray
 
-# skimage/registration/_phase_cross_correlation.py
+# Modified from skimage/registration/_phase_cross_correlation.py
 # Compatible between numpy/cupy.
 
 def subpixel_pcc(f0:xp_ndarray, f1:xp_ndarray, upsample_factor:int):

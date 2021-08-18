@@ -6,12 +6,13 @@ from functools import partial
 from warnings import warn
 from .arrays import ImgArray, PropArray
 from .arrays.utils import _docs
+from .arrays.utils._corr import subpixel_pcc
 from .utils.axesop import *
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
-           "nmi", "pearson_coloc", "manders_coloc"]
+           "nmi", "pcc_maximum", "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
 @dims_to_spatial_axes
@@ -288,33 +289,27 @@ def fourier_zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:
             corr = _masked_zncc(f0, f1, dims, mask)
     return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
 
-@_docs.write_docs
-@dims_to_spatial_axes
-def pcc(img0:ImgArray, img1:ImgArray, squeeze:bool=True, *,
-        dims=None) -> PropArray|float:
+
+def pcc_maximum(img0:ImgArray, img1:ImgArray, upsample_factor:int=10) -> np.ndarray:
     """
-    Phase Cross Correlation.
-    
+    Calculate lateral shift between two images. Same as ``skimage.registration.phase_cross_correlation``.
+
     Parameters
     ----------
     {inputs_of_correlation}
-    {squeeze}
-    {dims}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating phase cross correlation.
 
     Returns
     -------
-    PropArray or float
-        Correlation value(s).
+    np.ndarray
+        Shift in pixel.
     """    
-    with Progress("pcc"):
+    with Progress("pcc_maximum"):
         img0, img1 = _check_inputs(img0, img1)
-        f0 = img0.fft(dims=dims)
-        f1 = img1.fft(dims=dims)
-        cov = f0 * f1.conj()
-        corr_ft = cov/np.abs(cov)
-        corr = corr_ft.ifft(real=True, dims=dims)
-    return _make_corr_output(corr, img0, "pcc", squeeze, dims)
-
+        shift = subpixel_pcc(img0.fft(), img1.fft(), upsample_factor)
+    return np.asarray(shift)
+    
 
 @_docs.write_docs
 @dims_to_spatial_axes
