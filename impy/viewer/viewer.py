@@ -294,7 +294,28 @@ class napariViewers:
             raise IndexError(msg)
         
         return out
+    
+    def cursor_to_pixel(self, layer:"napari.layers.Image"|int|str|LabeledArray) -> np.ndarray:
+        if isinstance(layer, (int, str)):
+            layer = self.viewer.layers[layer]
+        elif isinstance(layer, LabeledArray):
+            for l in self.viewer.layers:
+                if l.data is layer:
+                    layer = l
+                    break
+            else:
+                raise ValueError("Input image was not found in napari layer list.")
+        elif isinstance(layer, napari.layers.Image):
+            pass
+        else:
+            raise TypeError("`layer` must be an image layer, int, str or impy's LabeledArray, "
+                           f"but got {type(layer)}")
         
+        if not isinstance(layer, napari.layers.Image):
+            raise TypeError(f"Layer {layer} is not an image layer.")
+        ndim = layer.data.ndim
+        cursor_coords = np.array(self.viewer.cursor.position[-ndim:])
+        return ((cursor_coords - layer.translate)/layer.scale).astype(np.int64)
         
     def add(self, obj:ImpyObject=None, **kwargs):
         """
@@ -478,8 +499,6 @@ class napariViewers:
             _use_table = f"{gui_sym}.table" in source
             _use_log = f"{gui_sym}.log." in source or use_logger
             
-            self._add_parameter_container(params)
-            
             # show main plot widget if it is supposed to be used
             if _use_canvas:
                 if not hasattr(self, "fig"):
@@ -489,7 +508,9 @@ class napariViewers:
             
             _use_table and self.add_table()
             _use_log and self.log                
-        
+            
+            self._add_parameter_container(params)
+            
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer:"napari.Viewer"):
                 if not viewer.dims.ndisplay in allowed_dims:
@@ -635,6 +656,7 @@ class napariViewers:
                                                      area="right",
                                                      allowed_areas=["right"])
             fig.setFloating(True)
+            
         except Exception:
             mpl.use(backend)
             raise
@@ -656,7 +678,9 @@ class napariViewers:
         if len(params) == 1:
             return None
         
-        self.viewer.window.add_dock_widget(self._container, area="right", name=widget_name)
+        wid = self.viewer.window.add_dock_widget(self._container, area="right", name=widget_name)
+        wid.resize(140, 100)
+        wid.setFloating(True)
             
         for i, (name, param) in enumerate(params.items()):
             if i == 0:

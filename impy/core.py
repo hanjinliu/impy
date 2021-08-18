@@ -236,7 +236,7 @@ def circular_mask(radius:nDFloat, shape:tuple[int,...], center:str|tuple[float,.
     elif len(radius) != len(shape):
         raise ValueError("Length of `shape` and `radius` must be same.")
 
-    x = np.meshgrid(*shape)
+    x = np.indices(shape)
     s = sum(((x0 - c0)/r0)**2 for x0, c0, r0 in zip(x, center, radius))
     axes = "zyx" if len(shape) == 3 else None # change the default axes in `array`
     
