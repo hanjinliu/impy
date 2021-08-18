@@ -12,12 +12,14 @@ from ...utils.axesop import find_first_appeared
 def close_anyway(func):
     @wraps(func)
     def wrapped_func(self, *args, **kwargs):
+        from napari.utils.notifications import Notification, notification_manager
         try:
             out = func(self, *args, **kwargs)
-        except Exception:
+        except Exception as e:
             self.close()
-            raise
-        self.close()
+            notification_manager.dispatch(Notification.from_exception(e))
+        else:
+            self.close()
         return out
     return wrapped_func
 

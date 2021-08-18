@@ -480,6 +480,7 @@ class napariViewers:
             
         """        
         from ._plt import mpl
+        from napari.utils.notifications import Notification, notification_manager
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -525,9 +526,10 @@ class napariViewers:
                         try:
                             with mpl.style.context("night"):
                                 out = f(self, **kwargs)
-                        except Exception:
+                        except Exception as e:
                             mpl.use(backend)
-                            raise
+                            out = None
+                            notification_manager.dispatch(Notification.from_exception(e))
                         else:
                             mpl.use(backend)
                     else:
