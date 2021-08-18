@@ -183,6 +183,7 @@ class napariViewers:
         viewer.window.file_menu.addSeparator()
         _default_viewer_settings(viewer)
         _load_mouse_callbacks(viewer)
+        viewer.window.layer_menu = viewer.window.main_menu.addMenu("&Layers")
         viewer.window.function_menu = viewer.window.main_menu.addMenu("&Functions")
         _load_widgets(viewer)
         # Add event
