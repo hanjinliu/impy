@@ -24,5 +24,10 @@ class LoggerWidget(QPlainTextEdit):
         return None
     
     append = appendPlainText # compatibility with TableWidget
-    write = appendPlainText  # compatibility with IO
+    
+    def write(self, text:str):
+        if text != "\n":
+            self.appendPlainText(text)
+        return None
+        
     def flush(self): pass    # compatibility with IO

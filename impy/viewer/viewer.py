@@ -459,7 +459,7 @@ class napariViewers:
         return None
     
     def bind(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
-             allowed_dims:int|tuple[int, ...]=(1, 2, 3), refresh:bool=True):
+             allowed_dims:int|tuple[int, ...]=(1, 2, 3)):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
         ``func(self, ...)`` will be called. Returned values will be appeded to ``self.results`` if exists.
@@ -480,9 +480,6 @@ class napariViewers:
             refreshed so that new results will drawn over the old ones.
         allowed_dims : int or tuple of int, default is (1, 2, 3)
             Function will not be called if the number of displayed dimensions does not match it.
-        refresh : bool, default is True
-            If refresh all the layers for every function call. Layers should be refreshed if their data are
-            changed by function call. Set ``False`` if slow.
         
         Examples
         --------
@@ -572,9 +569,8 @@ class napariViewers:
                     
                 viewer.status = f"'{f.__name__}' returned {out}"
                 
-                if refresh:
-                    for layer in viewer.layers:
-                        layer.refresh()
+                for layer in viewer.layers:
+                    layer.refresh()
                 return None
             
             return f
@@ -585,18 +581,18 @@ class napariViewers:
             return wrapper(func)
     
     def bind_protocol(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
-                      allowed_dims:int|tuple[int, ...]=(1, 2, 3), refresh:bool=True):
+                      allowed_dims:int|tuple[int, ...]=(1, 2, 3)):
         """
         Decorator that makes it easy to call custom function on the viewer. Unlike ``bind`` method, this
         decorator is used for call a function ``func`` that is composed of several steps (that's why it
         is called "protocol" here). Protocol ``func`` waits for next input at the "yield" statement, and
         it proceeds when "F1" is pushed. At every step the yielded value will be appended
-        ``func(self, ...)`` will be called. Returned values will appeded to ``self.results``.
+        ``func(self)`` will be called. Returned values will appeded to ``self.results``.
 
         Parameters
         ----------
         func : callable
-            Protocol function. This function must accept ``func(self, **kwargs)`` and yield something.
+            Protocol function. This function must accept ``func(self)`` and yield something.
         key : str, default is "F1"
             Key binding.
         use_logger : bool, default is False
@@ -609,9 +605,6 @@ class napariViewers:
             refreshed so that new results will drawn over the old ones.
         allowed_dims : int or tuple of int, default is (1, 2, 3)
             Function will not be called if the number of displayed dimensions does not match it.
-        refresh : bool, default is True
-            If refresh all the layers for every function call. Layers should be refreshed if their data are
-            changed by function call. Set ``False`` if slow.
         
         Examples
         --------
@@ -658,12 +651,9 @@ class napariViewers:
                     self.viewer.window._dock_widgets["Main Plot"].show()
             
             _use_table and self.add_table()
-            _use_log and self.log                
+            _use_log and self.log
             
-            self._add_parameter_container(params)
-
-            kwargs = {wid.name: wid.value for wid in self._container}
-            gen = f(self, **kwargs)
+            gen = f(self) # prepare generator
 
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer:"napari.Viewer"):
@@ -691,9 +681,8 @@ class napariViewers:
                     self.fig.tight_layout()
                     self.fig.canvas.draw()
                     
-                if refresh:
-                    for layer in viewer.layers:
-                        layer.refresh()
+                for layer in viewer.layers:
+                    layer.refresh()
                 
                 return None
             
