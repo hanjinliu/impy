@@ -1,6 +1,7 @@
 from __future__ import annotations
 import napari
 import magicgui
+from functools import wraps
 from qtpy.QtWidgets import QFileDialog, QAction
 
 from .widgets import *
@@ -17,7 +18,9 @@ __all__ = ["add_imread_menu",
            "add_crop_menu",
            "add_layer_to_labels_menu",
            "add_time_stamper_menu",
-           "add_controller_widget", 
+           "add_text_layer_menu",
+           "add_get_props_menu",
+           "add_label_menu",
            "add_note_widget",
            "edit_properties",
            "add_threshold", 
@@ -34,11 +37,24 @@ FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filte
            "erosion", "dilation", "opening", "closing", "entropy_filter", "std_filter", "coef_filter",
            "tophat", "rolling_ball"]
 
+def catch_notification(func):
+    from napari.utils.notifications import Notification, notification_manager
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            out = func(*args, **kwargs)
+        except Exception as e:
+            out = None
+            notification_manager.dispatch(Notification.from_exception(e))
+        return out
+    return wrapped
+
 def add_imread_menu(viewer:"napari.Viewer"):
     from ..core import imread
     action = QAction("imread ...", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         dlg = QFileDialog()
         hist = napari.utils.history.get_open_history()
         dlg.setHistory(hist)
@@ -60,7 +76,8 @@ def add_imread_menu(viewer:"napari.Viewer"):
 def add_imsave_menu(viewer:"napari.Viewer"):
     action = QAction("imsave ...", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         dlg = QFileDialog()
         layers = list(viewer.layers.selection)
         if len(layers) == 0:
@@ -93,7 +110,8 @@ def add_imsave_menu(viewer:"napari.Viewer"):
 def add_read_csv_menu(viewer:"napari.Viewer"):
     action = QAction("pandas.read_csv ...", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         dlg = QFileDialog()
         hist = napari.utils.history.get_open_history()
         dlg.setHistory(hist)
@@ -114,7 +132,8 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
 def add_explorer_menu(viewer:"napari.Viewer"):
     action = QAction("Open explorer", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         from .widgets import Explorer
         name = "Explorer"
         if name in viewer.window._dock_widgets.keys():
@@ -215,7 +234,8 @@ def add_proj_menu(viewer:"napari.Viewer"):
 def add_crop_menu(viewer:"napari.Viewer"):
     action = QAction("Crop", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         """
         Crop images with (rotated) rectangle shapes.
         """        
@@ -294,7 +314,8 @@ def add_crop_menu(viewer:"napari.Viewer"):
 def add_layer_to_labels_menu(viewer:"napari.Viewer"):   
     action = QAction("Layer to labels", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         """
         Convert manually drawn shapes to labels and store it.
         """        
@@ -344,7 +365,8 @@ def add_layer_to_labels_menu(viewer:"napari.Viewer"):
 def add_time_stamper_menu(viewer:"napari.Viewer"):
     action = QAction("Add time stamp", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         layer = get_a_selected_layer(viewer)
         if not isinstance(layer, napari.layers.Image):
             raise TypeError("Select an image layer.")
@@ -355,12 +377,82 @@ def add_time_stamper_menu(viewer:"napari.Viewer"):
     viewer.window.layer_menu.addAction(action)
     return None
 
+def add_get_props_menu(viewer:"napari.Viewer"):
+    action = QAction("Get Properties", viewer.window._qt_window)
+    @action.triggered.connect
+    @catch_notification
+    def _(*args):
+        layers = list(iter_selected_layer(viewer, ["Points", "Tracks", "Shapes", "Labels"]))
+        if len(layers) == 0:
+            raise ValueError("No Points, Tracks or Shapes layer selected")
+        
+        for layer in layers:
+            name = f"Properties of {layer.name}"
+            widget = TableWidget(viewer, layer.properties, name=name)
+            viewer.window.add_dock_widget(widget, area="right", name=name)
+            
+        return None
+    
+    viewer.window.layer_menu.addAction(action)
+    return None
+
+def add_text_layer_menu(viewer:"napari.Viewer"):
+    action = QAction("Add a text layer", viewer.window._qt_window)
+    @action.triggered.connect
+    @catch_notification
+    def _(*args):
+        layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")
+        layer.mode = "add_rectangle"
+        layer.blending = "additive"
+        layer.current_edge_width = 2.0 # unit is pixel here
+        layer.current_face_color = [0, 0, 0, 0]
+        layer.current_edge_color = [0, 0, 0, 0]
+        layer._rotation_handle_length = 20/np.mean(layer.scale[-2:])
+        layer.current_properties = {"text": np.array(["text here"], dtype="<U32")}
+        layer.properties = {"text": np.array([], dtype="<U32")}
+        layer.text = "{text}"
+        layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
+        layer.text.color = "white"
+        layer.text.anchor = "center"
+        return None
+    
+    viewer.window.layer_menu.addAction(action)
+    return None
+
+
+def add_label_menu(viewer:"napari.Viewer"):
+    action = QAction("Label ImgArray", viewer.window._qt_window)
+    @action.triggered.connect
+    @catch_notification
+    def _(*args):
+        selected = list(viewer.layers.selection)
+        if len(selected) != 1:
+            raise ValueError("No layer selected")
+        selected = selected[0]
+        if not isinstance(selected, napari.layers.Image):
+            raise TypeError("Selected layer is not an image layer")
+        img = selected.data
+        if hasattr(img, "labels"):
+            raise ValueError("Image layer already has labels.")
+        with SetConst("SHOW_PROGRESS", False):
+            img.append_label(np.zeros(img.shape, dtype=np.uint8))
+            
+        layer = viewer.add_labels(img.labels.value, opacity=0.3, scale=selected.scale, 
+                                        name=f"[L]{img.name}", translate=selected.translate,
+                                        metadata={"destination_image": img})
+        layer.mode = "paint"
+        return None
+
+    viewer.window.layer_menu.addAction(action)
+    return None
+
 def edit_properties(viewer:"napari.Viewer"):
     """
     Edit properties of selected shapes or points.
     """    
     line = magicgui.widgets.LineEdit(tooltip="Property editor")
     @line.changed.connect
+    @catch_notification
     def _(event):
         # get the selected shape layer
         layers = list(viewer.layers.selection)
@@ -381,11 +473,6 @@ def edit_properties(viewer:"napari.Viewer"):
         return None
         
     viewer.window.add_dock_widget(line, area="left", name="Property editor")
-    return None
-
-def add_controller_widget(viewer:"napari.Viewer"):
-    controller_widget = Controller(viewer)
-    viewer.window.add_dock_widget(controller_widget, area="left", name="impy controller")
     return None
     
 def add_note_widget(viewer:"napari.Viewer"):
@@ -434,7 +521,8 @@ def add_regionprops(viewer:"napari.Viewer"):
 def layer_template_matcher(viewer:"napari.Viewer"):
     action = QAction("Template Matcher", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         @magicgui.magicgui(call_button="Match",
                            img={"label": "image",
                                 "tooltip": "Reference image. This image will not move."},
@@ -460,7 +548,8 @@ def layer_template_matcher(viewer:"napari.Viewer"):
 def function_handler(viewer:"napari.Viewer"):
     action = QAction("Function Handler", viewer.window._qt_window)
     @action.triggered.connect
-    def _():
+    @catch_notification
+    def _(*args):
         @magicgui.magicgui(call_button="Run")
         def run_func(method="gaussian_filter", 
                      arguments="",
