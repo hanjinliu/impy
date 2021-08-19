@@ -255,12 +255,12 @@ def add_labels(viewer:"napari.Viewer", labels:Label, opacity:float=0.3, name:str
     else:
         names = [labels.name]
         
-    kw = dict(opacity=opacity, scale=scale, name=name)
+    kw = dict(opacity=opacity, scale=scale)
     kw.update(kwargs)
     
     out_layers = []
     for lbl, name in zip(lbls, names):
-        layer = viewer.add_labels(lbl.value, **kw)
+        layer = viewer.add_labels(lbl.value, name=name, **kw)
         out_layers.append(layer)
     return out_layers
 
@@ -375,7 +375,10 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
             if isinstance(layer, napari.layers.Image):
                 data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
             else:
-                data = Label(data, name=layer.name, axes=axes)
+                try:
+                    data = layer.metadata["destination_image"].labels
+                except (KeyError, AttributeError):
+                    data = Label(data, name=layer.name, axes=axes)
             data.set_scale({k: v for k, v in scale.items() if k in axes})
         return data
     elif isinstance(layer, napari.layers.Shapes):
