@@ -193,7 +193,7 @@ class napariViewers:
 
         return None
 
-    def get(self, kind:str="image", layer_state:str="any", returns:str="last") -> ImpyObject|list[ImpyObject]:
+    def get(self, kind:str="image", layer_state:str="visible", returns:str="last") -> ImpyObject|list[ImpyObject]:
         """
         Simple way to get impy object from viewer.
 
@@ -207,6 +207,8 @@ class napariViewers:
                 - "points": Points layer.
                 - "shapes": Shapes layer.
                 - "tracks": Tracks layer.
+                - "vectors":  Vectors layer.
+                - "surface": Surface layer.
                 - "line": Line shapes in Shapes layer.
                 - "rectangle": Rectangle shapes in Shapes layer.
                 - "path": Path shapes in Shapes layer.
@@ -258,7 +260,7 @@ class napariViewers:
             
         kind = kind.capitalize()
         out = []
-        if kind in ("Image", "Labels", "Points", "Shapes", "Tracks"):
+        if kind in ("Image", "Labels", "Points", "Shapes", "Tracks", "Vectors", "Surface"):
             layer_type = getattr(napari.layers, kind)
             
             for layer in layer_list:
