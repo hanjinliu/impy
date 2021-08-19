@@ -35,10 +35,7 @@ def focus_previous(viewer:"napari.Viewer"):
 
 def _change_focus(viewer:"napari.Viewer", ind:int):
     # assert one Shapes or Points layer is selected
-    selected_layer = list(viewer.layers.selection)
-    if len(selected_layer) != 1:
-        return None
-    selected_layer = selected_layer[0]
+    selected_layer = get_a_selected_layer(viewer)
     if not isinstance(selected_layer, (napari.layers.Shapes, napari.layers.Points)):
         return None
 
@@ -57,9 +54,8 @@ def _change_focus(viewer:"napari.Viewer", ind:int):
     scale = selected_layer.scale
     center = np.mean(next_data, axis=0) * scale
     current_zoom = viewer.camera.zoom
-    current_center = viewer.camera.center
-    next_center = current_center[:-2] + center[-2:]
-    viewer.dims.current_step = list(next_data[0, :-2].astype(np.int64)) + [0, 0]
+    next_center = center
+    viewer.dims.current_step = list(next_data[0,:].astype(np.int64))
     
     # TODO: Currently the value of "zoom" is inconsistent with unknown reason.
     # I don't know if this problem will be fixed in 0.4.11.

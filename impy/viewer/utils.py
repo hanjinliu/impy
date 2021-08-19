@@ -203,7 +203,12 @@ def viewer_imread(viewer:"napari.Viewer", path:str):
         img = imread(path)
     else:
         img = lazy_imread(path)
-    return add_labeledarray(viewer, img)
+    layer = add_labeledarray(viewer, img)
+    viewer.text_overlay.font_size = 4 * Const["FONT_SIZE_FACTOR"]
+    viewer.text_overlay.visible = True
+    viewer.text_overlay.color = "white"
+    viewer.text_overlay.text = repr(img)
+    return layer
 
 def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None

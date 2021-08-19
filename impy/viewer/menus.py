@@ -553,8 +553,6 @@ def function_handler(viewer:"napari.Viewer"):
     viewer.window.function_menu.addAction(action)
     return None
 
-def add_time_stamper(viewer:"napari.Viewer"):
-    ...
 
 def str_to_args(s:str) -> tuple[list, dict]:
     args_or_kwargs = list(_iter_args_and_kwargs(s))

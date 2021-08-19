@@ -270,7 +270,8 @@ class TimeStamper(QDialog):
         
         text_params = {"text": "{time}",
                        "color": "white",
-                       "anchor": "upper_left"}
+                       "anchor": "upper_left",
+                       "size": 10}
         self.viewer.add_shapes(shapes, text=text_params, properties={"time": time_stamp}, face_color=[0,0,0,0],
                                edge_color=[0,0,0,0], name="Time Stamp")
         return None
