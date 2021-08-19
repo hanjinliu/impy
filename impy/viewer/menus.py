@@ -1,4 +1,5 @@
 from __future__ import annotations
+from warnings import warn
 import napari
 import magicgui
 from functools import wraps
@@ -131,6 +132,7 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
 
 def add_explorer_menu(viewer:"napari.Viewer"):
     action = QAction("Open explorer", viewer.window._qt_window)
+    action.setStatusTip("Add an file tree widget in the viewer. You can open, filter, copy or see the summary of files under a root directory.")
     @action.triggered.connect
     @catch_notification
     def _(*args):
@@ -150,11 +152,10 @@ def add_explorer_menu(viewer:"napari.Viewer"):
 
 def add_duplicate_menu(viewer:"napari.Viewer"):
     action = QAction("Duplicate", viewer.window._qt_window)
+    action.setStatusTip("Duplicate the selected layer. If an image or labels layer is selected, "
+                        "you can set precise duplication method in a dialog.")
     @action.triggered.connect
     def _():
-        """
-        Duplicate the selected layer.
-        """
         layer = get_a_selected_layer(viewer)
         
         if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
@@ -171,6 +172,8 @@ def add_duplicate_menu(viewer:"napari.Viewer"):
 
 def add_proj_menu(viewer:"napari.Viewer"):
     action = QAction("Project", viewer.window._qt_window)
+    action.setStatusTip("Project the selected layer. If an image or labels layer is selected, "
+                        "you can set precise projection method in a dialog.")
     @action.triggered.connect
     def _():
         """
@@ -233,6 +236,7 @@ def add_proj_menu(viewer:"napari.Viewer"):
 
 def add_crop_menu(viewer:"napari.Viewer"):
     action = QAction("Crop", viewer.window._qt_window)
+    action.setStatusTip("Crop selected image layers with rectangle shapes.")
     @action.triggered.connect
     @catch_notification
     def _(*args):
@@ -313,6 +317,7 @@ def add_crop_menu(viewer:"napari.Viewer"):
 
 def add_layer_to_labels_menu(viewer:"napari.Viewer"):   
     action = QAction("Layer to labels", viewer.window._qt_window)
+    action.setStatusTip("Convert the selected shapes layer to a labels layer.")
     @action.triggered.connect
     @catch_notification
     def _(*args):
@@ -353,7 +358,7 @@ def add_layer_to_labels_menu(viewer:"napari.Viewer"):
             
             # append labels to each destination
             if hasattr(dst, "labels"):
-                print(f"Label already exist in {dst}. Overlapped.")
+                warn(f"Label already exist in {dst}. Overlapped.", UserWarning)
                 del dst.labels
             dst.append_label(labelout)
             
@@ -364,6 +369,7 @@ def add_layer_to_labels_menu(viewer:"napari.Viewer"):
 
 def add_time_stamper_menu(viewer:"napari.Viewer"):
     action = QAction("Add time stamp", viewer.window._qt_window)
+    action.setStatusTip("Add a shapes layer with time stamp texts.")
     @action.triggered.connect
     @catch_notification
     def _(*args):
@@ -379,6 +385,7 @@ def add_time_stamper_menu(viewer:"napari.Viewer"):
 
 def add_get_props_menu(viewer:"napari.Viewer"):
     action = QAction("Get Properties", viewer.window._qt_window)
+    action.setStatusTip("Get properties from selected layer(s) and show in table widget(s).")
     @action.triggered.connect
     @catch_notification
     def _(*args):
@@ -398,6 +405,7 @@ def add_get_props_menu(viewer:"napari.Viewer"):
 
 def add_text_layer_menu(viewer:"napari.Viewer"):
     action = QAction("Add a text layer", viewer.window._qt_window)
+    action.setStatusTip("Add a shapes layer as a text layer. Shapes themselves are invisible. Use property editor to edit their names.")
     @action.triggered.connect
     @catch_notification
     def _(*args):
@@ -422,6 +430,7 @@ def add_text_layer_menu(viewer:"napari.Viewer"):
 
 def add_label_menu(viewer:"napari.Viewer"):
     action = QAction("Label ImgArray", viewer.window._qt_window)
+    action.setStatusTip("Add labels layer that is connected with the selected image layer.")
     @action.triggered.connect
     @catch_notification
     def _(*args):
