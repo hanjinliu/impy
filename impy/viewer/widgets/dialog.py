@@ -18,10 +18,9 @@ def close_anyway(func):
         try:
             out = func(self, *args, **kwargs)
         except Exception as e:
-            self.close()
             notification_manager.dispatch(Notification.from_exception(e))
             out = None
-        else:
+        finally:
             self.close()
         return out
     return wrapped_func

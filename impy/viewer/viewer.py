@@ -552,10 +552,9 @@ class napariViewers:
                             with mpl.style.context("night"):
                                 out = f(self, **kwargs)
                         except Exception as e:
-                            mpl.use(backend)
                             out = None
                             notification_manager.dispatch(Notification.from_exception(e))
-                        else:
+                        finally:
                             mpl.use(backend)
                     else:
                         out = f(self, **kwargs)

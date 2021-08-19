@@ -198,6 +198,7 @@ class TableWidget(QMainWindow):
     
     def plot(self):
         from .._plt import EventedCanvas, mpl, plt_figure
+        from napari.utils.notifications import Notification, notification_manager
         backend = mpl.get_backend()
         mpl.use("Agg")
         try:
@@ -230,16 +231,16 @@ class TableWidget(QMainWindow):
                 self.fig.tight_layout()
                 self.fig.canvas.draw()
                 self.figure_widget.show()
-        except Exception:
-            mpl.use(backend)
-            raise
-        else:
+        except Exception as e:
+            notification_manager.dispatch(Notification.from_exception(e))
+        finally:
             mpl.use(backend)
         self.last_plot = "plot"
         return None
     
     def hist(self):
         from .._plt import EventedCanvas, mpl, plt_figure
+        from napari.utils.notifications import Notification, notification_manager
         backend = mpl.get_backend()
         mpl.use("Agg")
         try:
@@ -266,10 +267,9 @@ class TableWidget(QMainWindow):
                 self.fig.tight_layout()
                 self.fig.canvas.draw()
                 self.figure_widget.show()
-        except Exception:
-            mpl.use(backend)
-            raise
-        else:
+        except Exception as e:
+            notification_manager.dispatch(Notification.from_exception(e))
+        finally:
             mpl.use(backend)
         self.last_plot = "hist"
         return None
