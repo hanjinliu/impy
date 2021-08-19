@@ -227,10 +227,6 @@ class FileSystemModel(QFileSystemModel):
         else:
             return super().data(index, role)
 
-    def flags(self, index:QModelIndex):
-        if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsSelectable
 
 def get_time_stamp(epoch):
     t = str(datetime.datetime.fromtimestamp(epoch))

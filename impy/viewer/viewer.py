@@ -1,4 +1,5 @@
 from __future__ import annotations
+from logging import warn
 import os
 from typing import Any, NewType
 import types
@@ -461,14 +462,12 @@ class napariViewers:
              allowed_dims:int|tuple[int, ...]=(1, 2, 3), refresh:bool=True):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
-        ``func(self, ...)`` will be called. Returned values will appeded to ``self.results`` if exists.
+        ``func(self, ...)`` will be called. Returned values will be appeded to ``self.results`` if exists.
 
         Parameters
         ----------
         func : callable
-            Function to be called when ``key`` is pushed. This function must accept ``func(self)``, or
-            ``func(self, self.ax)`` if you want to plot something inside the function. A figure widget will
-            be added to the viewer unless ``func`` takes only one argument.
+            Function to be called when ``key`` is pushed. This function must accept ``func(self, **kwargs)``.
         key : str, default is "F1"
             Key binding.
         use_logger : bool, default is False
@@ -510,7 +509,9 @@ class napariViewers:
             allowed_dims = (allowed_dims,)
         else:
             allowed_dims = tuple(allowed_dims)
-            
+        
+        if hasattr(self.viewer.window, "results") and self.viewer.window.results:
+            warn("Existing results are deleted from the current window.", UserWarning)
         self.viewer.window.results = []
             
         def wrapper(f):
@@ -545,19 +546,16 @@ class napariViewers:
                 kwargs = {wid.name: wid.value for wid in self._container}
                 std_ = self if use_logger else None
                 with Progress(f.__name__, out=None), setLogger(std_):
-                    if use_plt:
-                        backend = mpl.get_backend()
-                        mpl.use(GUIcanvas)
-                        try:
-                            with mpl.style.context("night"):
-                                out = f(self, **kwargs)
-                        except Exception as e:
-                            out = None
-                            notification_manager.dispatch(Notification.from_exception(e))
-                        finally:
-                            mpl.use(backend)
-                    else:
-                        out = f(self, **kwargs)
+                    backend = mpl.get_backend()
+                    mpl.use(GUIcanvas)
+                    try:
+                        with mpl.style.context("night"):
+                            out = f(self, **kwargs)
+                    except Exception as e:
+                        out = None
+                        notification_manager.dispatch(Notification.from_exception(e))
+                    finally:
+                        mpl.use(backend)
                         
                 if isinstance(out, types.GeneratorType):
                     # If original function returns a generator. This makes wrapper working almost same as
@@ -586,6 +584,126 @@ class napariViewers:
         else:
             return wrapper(func)
     
+    def bind_protocol(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
+                      allowed_dims:int|tuple[int, ...]=(1, 2, 3), refresh:bool=True):
+        """
+        Decorator that makes it easy to call custom function on the viewer. Unlike ``bind`` method, this
+        decorator is used for call a function ``func`` that is composed of several steps (that's why it
+        is called "protocol" here). Protocol ``func`` waits for next input at the "yield" statement, and
+        it proceeds when "F1" is pushed. At every step the yielded value will be appended
+        ``func(self, ...)`` will be called. Returned values will appeded to ``self.results``.
+
+        Parameters
+        ----------
+        func : callable
+            Protocol function. This function must accept ``func(self, **kwargs)`` and yield something.
+        key : str, default is "F1"
+            Key binding.
+        use_logger : bool, default is False
+            If True, all the texts that are printed out will be displayed in the log widget. In detail,
+            ``sys.stdout`` and `sys.stderr` are substituted to the log widget during function call.
+        use_plt : bool, default is True
+            If True, the backend of ``matplotlib`` is set to "impy.viewer._plt" during function call. All
+            the plot functions such as ``plt.plot`` will update the figure canvas inside the viewer. If
+            ``plt.figure`` or other figure generation function is not called, the figure canvas will not be
+            refreshed so that new results will drawn over the old ones.
+        allowed_dims : int or tuple of int, default is (1, 2, 3)
+            Function will not be called if the number of displayed dimensions does not match it.
+        refresh : bool, default is True
+            If refresh all the layers for every function call. Layers should be refreshed if their data are
+            changed by function call. Set ``False`` if slow.
+        
+        Examples
+        --------
+        1. Draw a 3-D line and get the line scan.
+
+            >>> @ip.gui.bind_protocol
+            >>> def add_line(gui):
+            >>>     pos0 = gui.viewer.cursor.position
+            >>>     yield
+            >>>     pos1 = gui.viewer.cursor.position
+            >>>     line = np.stack([pos0, pos1])
+            >>>     gui.viewer.add_shapes([line], shape_type="line")
+            >>>     plt.plot(gui.get("image").reslice(line))
+            >>>     return None
+        """        
+        from ._plt import mpl
+        from napari.utils.notifications import Notification, notification_manager
+        if isinstance(allowed_dims, int):
+            allowed_dims = (allowed_dims,)
+        else:
+            allowed_dims = tuple(allowed_dims)
+            
+        if hasattr(self.viewer.window, "results") and self.viewer.window.results:
+            warn("Existing results are deleted from the current window.", UserWarning)
+        self.viewer.window.results = []
+            
+        def wrapper(f):
+            if not callable(f):
+                raise TypeError("func must be callable.")
+                        
+            source = inspect.getsource(f) # get source code
+            params = inspect.signature(f).parameters
+            gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
+            
+            _use_canvas = f"{gui_sym}.fig" in source or (use_plt and "plt" in source)
+            _use_table = f"{gui_sym}.table" in source
+            _use_log = f"{gui_sym}.log." in source or use_logger
+            
+            # show main plot widget if it is supposed to be used
+            if _use_canvas:
+                if not hasattr(self, "fig"):
+                    self._add_figure()
+                else:
+                    self.viewer.window._dock_widgets["Main Plot"].show()
+            
+            _use_table and self.add_table()
+            _use_log and self.log                
+            
+            self._add_parameter_container(params)
+
+            kwargs = {wid.name: wid.value for wid in self._container}
+            gen = f(self, **kwargs)
+
+            @self.viewer.bind_key(key, overwrite=True)
+            def _(viewer:"napari.Viewer"):
+                if not viewer.dims.ndisplay in allowed_dims:
+                    return None
+                
+                std_ = self if use_logger else None
+                with Progress(f.__name__, out=None), setLogger(std_):
+                    backend = mpl.get_backend()
+                    mpl.use(GUIcanvas)
+                    try:
+                        with mpl.style.context("night"):
+                            out = next(gen)
+                            viewer.window.results.append(out)
+                    except StopIteration as e:
+                        # The last returned value is stored in e.value
+                        viewer.window.results.append(e.value)
+                        viewer.keymap.pop(key)
+                    except Exception as e:
+                        notification_manager.dispatch(Notification.from_exception(e))
+                    finally:
+                        mpl.use(backend)
+                
+                if _use_canvas:
+                    self.fig.tight_layout()
+                    self.fig.canvas.draw()
+                    
+                if refresh:
+                    for layer in viewer.layers:
+                        layer.refresh()
+                
+                return None
+            
+            return f
+        
+        if func is None:
+            return wrapper
+        else:
+            return wrapper(func)
+
     def goto(self, **kwargs) -> tuple[int, ...]:
         """
         Change the current step of the viewer.

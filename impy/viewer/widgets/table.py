@@ -394,7 +394,6 @@ class TableWidget(QMainWindow):
             sl_row |= row_range
             sl_column |= column_range
         
-        n_selected = len(self.table_native.selectedItems())
         return list(sl_row), list(sl_column)
 
     
