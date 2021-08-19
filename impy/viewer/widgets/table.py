@@ -4,6 +4,7 @@ import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
                             QLineEdit, QSpinBox)
+from qtpy.QtCore import Qt
 import magicgui
 import napari
 import os
@@ -32,6 +33,7 @@ class TableWidget(QMainWindow):
         self.fig = None
         self.ax = None
         self.figure_widget = None
+        self.registered = dict()
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False, bins=10)
         self.last_plot = "plot"
@@ -70,10 +72,15 @@ class TableWidget(QMainWindow):
         self.table_native:QTableWidget = self.table.native
         self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
         self.table_native.resizeColumnsToContents()
+        
+        # When horizontal header is double-clicked, table enters edit mode.
         header = self.header
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setSectionsClickable(True)
         header.sectionDoubleClicked.connect(self.edit_header)
+        
+        # When vertical header is double-clicked, move camera/step in viewer.
+        self.table_native.verticalHeader().sectionDoubleClicked.connect(self._move_in_viewer)
         
         super().__init__(viewer.window._qt_window)
         
@@ -143,6 +150,50 @@ class TableWidget(QMainWindow):
             If True, only selected range will be send to clipboard.
         """        
         self.to_dataframe(selected).to_clipboard()
+        return None
+    
+    def link(self, row_index:int=-1, *, step=None, center=None, zoom=None, angles=None):
+        """
+        Link table row index and viewer states.
+
+        Parameters
+        ----------
+        row_index : int, default is -1
+            Specify which index of row will be linked to the viewer states.
+        step : sequence, optional
+            If provided, the provided value will be registered instead of ``viewer.dims.current_step``.
+        center : sequence, optional
+            If provided, the provided value will be registered instead of ``viewer.camera.center``.
+        zoom : sequence, optional
+            If provided, the provided value will be registered instead of ``viewer.camera.zoom``.
+        angles : sequence, optional
+            If provided, the provided value will be registered instead of ``viewer.camera.angles``.
+
+        """        
+        ncol = self.table_native.rowCount()
+        if row_index < 0:
+            row_index = self.table.row_headers[ncol + row_index]
+        elif row_index not in self.table.row_headers:
+            raise IndexError(f"Index {row_index} does not exist in the table '{self.name}'")
+            
+        step = self.viewer.dims.current_step if step is None else tuple(step)
+        center = self.viewer.camera.center if center is None else tuple(center)
+        zoom = self.viewer.camera.zoom if zoom is None else float(zoom)
+        angles = self.viewer.camera.angles if angles is None else tuple(angles)
+        
+        state = dict(step=step, center=center, zoom=zoom, angles=angles)
+        self.registered[row_index] = state
+        
+        return None
+    
+    def _move_in_viewer(self, index:int):
+        rowi = self.table.row_headers[index]
+        if rowi in self.registered.keys():
+            state = self.registered[rowi]
+            self.viewer.dims.current_step = state["step"]
+            self.viewer.camera.center = state["center"]
+            self.viewer.camera.zoom = state["zoom"]
+            self.viewer.camera.angles = state["angles"]
         return None
     
     def plot(self):
