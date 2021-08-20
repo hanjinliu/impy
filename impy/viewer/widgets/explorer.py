@@ -144,6 +144,7 @@ class FileTree(QTreeView):
         if os.path.isdir(path):
             img = imread(os.path.join(path, "*.tif"))
             add_labeledarray(self.viewer, img)
+            return None
         _, ext = os.path.splitext(path)
         if ext in (".tif", ".tiff", ".mrc", ".rec", ".png", ".jpg"):
             viewer_imread(self.viewer, path)

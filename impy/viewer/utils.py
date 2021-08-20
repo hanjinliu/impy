@@ -89,10 +89,6 @@ def upon_add_layer(event):
             
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
-        # change default
-        new_layer.current_edge_width = 2.0 # unit is pixel here
-        new_layer.current_face_color = [1, 1, 1, 0]
-        new_layer.current_edge_color = "#dd23cb"
         new_layer._rotation_handle_length = 20/np.mean(new_layer.scale[-2:])
         @new_layer.bind_key("Left")
         def left(layer):
@@ -112,10 +108,6 @@ def upon_add_layer(event):
             
     elif isinstance(new_layer, napari.layers.Points):
         _text_bound_init(new_layer)
-        new_layer.current_face_color = [1, 1, 1, 0]
-        new_layer.current_edge_color = "#68cbc3ff"
-        new_layer.edge_width = 3
-        new_layer.current_size = 4
                 
     new_layer.metadata["init_translate"] = new_layer.translate.copy()
     new_layer.metadata["init_scale"] = new_layer.scale.copy()

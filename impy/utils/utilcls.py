@@ -49,7 +49,7 @@ class Progress:
         if out is None:
             self.out = DummyOut()
         elif out == "stdout":
-            out = sys.stdout
+            self.out = sys.stdout
         else:
             self.out = out
         
