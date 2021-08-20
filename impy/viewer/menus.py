@@ -1,4 +1,5 @@
 from __future__ import annotations
+from impy.axes import ImageAxesError
 from warnings import warn
 import napari
 import magicgui
@@ -376,6 +377,7 @@ def add_time_stamper_menu(viewer:"napari.Viewer"):
         layer = get_a_selected_layer(viewer)
         if not isinstance(layer, napari.layers.Image):
             raise TypeError("Select an image layer.")
+        layer.data.axisof("t") # check image axes here.
         dlg = TimeStamper(viewer, layer)
         dlg.exec_()
         return None

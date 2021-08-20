@@ -122,6 +122,13 @@ class napariViewers:
                 for layer in self.viewer.layers.selection]
     
     @property
+    def cursor_pos(self) -> np.ndarray:
+        """
+        Return cursor position
+        """        
+        return np.array(self.viewer.cursor.position)
+    
+    @property
     def axes(self) -> str:
         """
         Axes information of current viewer. Defined to make compatible with ``ImgArray``.
@@ -669,11 +676,11 @@ class napariViewers:
                             out = next(gen)
                             viewer.window.results.append(out)
                     except StopIteration as e:
-                        # The last returned value is stored in e.value
-                        viewer.window.results.append(e.value)
-                        viewer.keymap.pop(key)
+                        viewer.window.results.append(e.value) # The last returned value is stored in e.value
+                        viewer.keymap.pop(key) # delete keymap
                     except Exception as e:
                         notification_manager.dispatch(Notification.from_exception(e))
+                        viewer.keymap.pop(key) # delete keymap
                     finally:
                         mpl.use(backend)
                 
@@ -703,17 +710,18 @@ class napariViewers:
         
             >>> ip.gui.goto(t=3)
         
-        2. Go to t=3 and z=12. 
+        2. Go to t=3 and last z. 
         
-            >>> ip.gui.goto(t=3, z=12)
+            >>> ip.gui.goto(t=3, z=-1)
             
         """        
         step = list(self.viewer.dims.current_step)
         for axis, ind in kwargs.items():
             i = self.axisof(axis)
-            step[i] = ind
+            if ind < 0:
+                ind = self.viewer.dims.nsteps[i] + ind # support minus indexing
+            step[i] = min(max(int(ind), 0), self.viewer.dims.nsteps[i]-1) # between min/max
         
-        step = tuple(step)
         self.viewer.dims.current_step = step
         return step
 

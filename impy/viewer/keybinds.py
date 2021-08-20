@@ -18,6 +18,32 @@ KEYS = {"focus_next": "]",
         "reset_view": "Control-Shift-R",
         }
 
+# Overwrite napari shortcut
+@napari.Viewer.bind_key("Alt-Up", overwrite=True)
+def z_up(viewer:"napari.Viewer"):
+    axes = "".join(viewer.dims.axis_labels)
+    i = axes.find("z")
+    if i < 0:
+        return None
+    else:
+        step = list(viewer.dims.current_step)
+        step[i] = min(step[i]+1, viewer.dims.nsteps[i]-1)
+        viewer.dims.current_step = step
+        return None
+
+
+@napari.Viewer.bind_key("Alt-Down", overwrite=True)
+def z_up(viewer:"napari.Viewer"):
+    axes = "".join(viewer.dims.axis_labels)
+    i = axes.find("z")
+    if i < 0:
+        return None
+    else:
+        step = list(viewer.dims.current_step)
+        step[i] = max(step[i]-1, 0)
+        viewer.dims.current_step = step
+        return None
+    
 __all__ = list(KEYS.keys())
 
 def bind_key(func):
