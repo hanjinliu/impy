@@ -176,7 +176,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def stretch(self, scale, center="center", *, dims=None, order:int=1) -> ImgArray:
+    def stretch(self, scale, center="center", *, cval=0, dims=None, order:int=1) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -186,6 +186,8 @@ class ImgArray(LabeledArray):
             Stretch factors.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
+        cval : int, default is 0
+            Constant value to fill outside the image for mode == "constant".
         {dims}
         {order}
 
@@ -210,7 +212,7 @@ class ImgArray(LabeledArray):
         
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx.params, order=order)
+                               kwargs=dict(matrix=mx.params, order=order, cval=cval)
                                )
 
     @_docs.write_docs
