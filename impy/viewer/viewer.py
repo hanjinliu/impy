@@ -154,7 +154,7 @@ class napariViewers:
         return self._fig
         
     @property
-    def table(self):
+    def table(self) -> TableWidget:
         try:
             return self._table
         except AttributeError:

@@ -12,6 +12,7 @@ class LoggerWidget(QPlainTextEdit):
         self.setReadOnly(True)
         self.setMaximumBlockCount(500)
         self.setFont(QFont("Consolas"))
+        self.setLineWrapMode(0)
         
         self.highlighter = WordHighlighter(self.document())
         self.highlighter.appendRule(r"[a-zA-Z]+Warning", fcolor=Qt.yellow)

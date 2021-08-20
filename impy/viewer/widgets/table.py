@@ -33,7 +33,7 @@ class TableWidget(QMainWindow):
         self.fig = None
         self.ax = None
         self.figure_widget = None
-        self.registered = dict()
+        self.linked_layer = None
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False, bins=10)
         self.last_plot = "plot"
@@ -80,7 +80,7 @@ class TableWidget(QMainWindow):
         header.sectionDoubleClicked.connect(self.edit_header)
         
         # When vertical header is double-clicked, move camera/step in viewer.
-        self.table_native.verticalHeader().sectionDoubleClicked.connect(self._move_in_viewer)
+        self.table_native.verticalHeader().sectionDoubleClicked.connect(self._linked_callback)
         
         super().__init__(viewer.window._qt_window)
         
@@ -152,49 +152,62 @@ class TableWidget(QMainWindow):
         self.to_dataframe(selected).to_clipboard()
         return None
     
-    def link(self, row_index:int=-1, *, step=None, center=None, zoom=None, angles=None):
+
+    def add_point(self, data="cursor position", size=None, face_color=None, edge_color=None, properties=None):
         """
-        Link table row index and viewer states.
-
-        Parameters
-        ----------
-        row_index : int, default is -1
-            Specify which index of row will be linked to the viewer states.
-        step : sequence, optional
-            If provided, the provided value will be registered instead of ``viewer.dims.current_step``.
-        center : sequence, optional
-            If provided, the provided value will be registered instead of ``viewer.camera.center``.
-        zoom : sequence, optional
-            If provided, the provided value will be registered instead of ``viewer.camera.zoom``.
-        angles : sequence, optional
-            If provided, the provided value will be registered instead of ``viewer.camera.angles``.
-
-        """        
-        ncol = self.table_native.rowCount()
-        if row_index < 0:
-            row_index = self.table.row_headers[ncol + row_index]
-        elif row_index not in self.table.row_headers:
-            raise IndexError(f"Index {row_index} does not exist in the table '{self.name}'")
-            
-        step = self.viewer.dims.current_step if step is None else tuple(step)
-        center = self.viewer.camera.center if center is None else tuple(center)
-        zoom = self.viewer.camera.zoom if zoom is None else float(zoom)
-        angles = self.viewer.camera.angles if angles is None else tuple(angles)
+        Add point in a layer and append its property to the end of the table. They are linked to each other.
+        """
+        scale = np.array([r[2] for r in self.viewer.dims.range])
         
-        state = dict(step=step, center=center, zoom=zoom, angles=angles)
-        self.registered[row_index] = state
+        if data == "cursor position":
+            data = np.array(self.viewer.cursor.position) / scale
+
+        if self.linked_layer is None:
+            if self.table_native.rowCount() * self.table_native.columnCount() > 0:
+                raise ValueError("Table already has data. Cannot make a linked layer.")
+            self.linked_layer = self.viewer.add_points(data, 
+                                                       properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
+                                                       scale=scale,
+                                                       size=5 if size is None else size, 
+                                                       face_color=[0, 0, 0, 0] if face_color is None else face_color, 
+                                                       edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
+                                                       name=f"Points from {self.name}", 
+                                                       n_dimensional=True)
+            # TODO: listen to data change and link to add/delete in the future version of napari
+            @self.linked_layer.events.data.connect
+            def _(*args):
+                pass
+        else:
+            self.linked_layer.add(data)
+            if size is not None:
+                self.linked_layer.current_size = size
+            if face_color is not None:
+                self.linked_layer.current_face_color = face_color
+            if edge_color is not None:
+                self.linked_layer.current_edge_color = edge_color
+            if properties is not None:
+                self.linked_layer.current_properties.update(properties)
         
+        self._appendRow(data=properties)
         return None
+        
     
-    def _move_in_viewer(self, index:int):
-        rowi = self.table.row_headers[index]
-        if rowi in self.registered.keys():
-            state = self.registered[rowi]
-            self.viewer.dims.current_step = state["step"]
-            self.viewer.camera.center = state["center"]
-            self.viewer.camera.zoom = state["zoom"]
-            self.viewer.camera.angles = state["angles"]
+    def _linked_callback(self, index:int):
+        if self.linked_layer is None:
+            return None
+
+        data = np.atleast_2d(self.linked_layer.data[index])
+        # update camera    
+        scale = self.linked_layer.scale
+        center = np.mean(data, axis=0) * scale
+        self.viewer.dims.current_step = list(data[0,:].astype(np.int64))
+        
+        self.viewer.camera.center = center
+        
+        self.linked_layer.selected_data = {index}
+        self.linked_layer._set_highlight()
         return None
+
     
     def plot(self):
         from .._plt import EventedCanvas, mpl, plt_figure
@@ -287,6 +300,11 @@ class TableWidget(QMainWindow):
         rows, cols = self._get_selected()
         for i in reversed(rows):
             self.table_native.removeRow(i)
+
+        # If a points layer is linked, also delete points. 
+        if self.linked_layer is not None:
+            self.linked_layer.selected_data = set(rows)
+            self.linked_layer.remove_selected()
         return None
 
     def delete_selected_columns(self):
@@ -303,6 +321,18 @@ class TableWidget(QMainWindow):
         """
         Append a row on the bottom side.
         """        
+        if self.linked_layer is not None:
+            raise ValueError("Table has a linked layer. Use 'add_point' instead")
+
+        return self._appendRow(data=data)
+    
+    append = appendRow # for compatibility
+
+    def _appendRow(self, data=None):
+        """
+        Append a row on the bottom side.
+        """        
+
         nrow = self.table_native.rowCount()
         ncol = self.table_native.columnCount()
         
@@ -327,8 +357,6 @@ class TableWidget(QMainWindow):
         for i, item in enumerate(data):
             self.table_native.setItem(nrow, i, QTableWidgetItem(str(item)))
         return None
-    
-    append = appendRow # for compatibility
     
     def appendColumn(self, data=None):
         """
