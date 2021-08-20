@@ -727,8 +727,27 @@ class napariViewers:
     def axisof(self, symbol:str) -> int:
         return self.axes.find(symbol)
     
-    def register_point(self, data="cursor position", size=None, face_color=None, edge_color=None, properties=None, **kwargs):
-        kwargs = dict(data=data, size=size, face_color=face_color, edge_color=edge_color, properties=properties, **kwargs)
+    def register_point(self, data="cursor position", size:float=None, face_color=None, edge_color=None, 
+                       properties:dict=None, **kwargs):
+        """
+        Register a point in a points layer, and link it to a table widget. Similar to "ROI Manager" in ImageJ.
+        New points layer will be created when the first point is added.
+
+        Parameters
+        ----------
+        data : array, optional
+            Point coordinate. By default the cursor position willbe added.
+        size : float, optional
+            Point size.
+        face_color : str or array, optional
+            Face color of point.
+        edge_color : str or array, optional
+            Edge color of the point.
+        properties : dict, optional
+            Propertied of the point. Values in this parameter is also added to table.
+        """        
+        kwargs = dict(data=data, size=size, face_color=face_color, edge_color=edge_color, 
+                      properties=properties, **kwargs)
         try:
             self.table.add_point(**kwargs)
         except Exception:

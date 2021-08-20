@@ -1,3 +1,4 @@
+from operator import ne
 import numpy as np
 from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
@@ -33,7 +34,7 @@ def z_up(viewer:"napari.Viewer"):
 
 
 @napari.Viewer.bind_key("Alt-Down", overwrite=True)
-def z_up(viewer:"napari.Viewer"):
+def z_down(viewer:"napari.Viewer"):
     axes = "".join(viewer.dims.axis_labels)
     i = axes.find("z")
     if i < 0:
@@ -78,15 +79,13 @@ def _change_focus(viewer:"napari.Viewer", ind:int):
     
     # update camera    
     scale = selected_layer.scale
-    center = np.mean(next_data, axis=0) * scale
-    current_zoom = viewer.camera.zoom
-    next_center = center
-    viewer.dims.current_step = list(next_data[0,:].astype(np.int64))
+    next_center = np.mean(next_data, axis=0) * scale
+    viewer.dims.current_step = list(next_data[0, :].astype(np.int64))
     
-    # TODO: Currently the value of "zoom" is inconsistent with unknown reason.
-    # I don't know if this problem will be fixed in 0.4.11.
     viewer.camera.center = next_center
-    viewer.camera.zoom = current_zoom
+    zoom = viewer.camera.zoom
+    viewer.camera.events.zoom() # Here events are emitted and zoom changes automatically.
+    viewer.camera.zoom = zoom
     
     selected_layer.selected_data = {next_to_select}
     selected_layer._set_highlight()

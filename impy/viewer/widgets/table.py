@@ -203,11 +203,15 @@ class TableWidget(QMainWindow):
         scale = self.linked_layer.scale
         center = np.mean(data, axis=0) * scale
         self.viewer.dims.current_step = list(data[0,:].astype(np.int64))
-        
+
         self.viewer.camera.center = center
+        zoom = self.viewer.camera.zoom
+        self.viewer.camera.events.zoom() # Here events are emitted and zoom changes automatically.
+        self.viewer.camera.zoom = zoom
         
         self.linked_layer.selected_data = {index}
         self.linked_layer._set_highlight()
+        
         return None
 
     
@@ -290,6 +294,9 @@ class TableWidget(QMainWindow):
         return None
     
     def header_to_row(self):
+        """
+        Convert table header to the top row.
+        """        
         self.table_native.insertRow(0)
         for i, item in enumerate(self.columns):
             self.table_native.setItem(0, i, QTableWidgetItem(str(item)))
@@ -299,6 +306,9 @@ class TableWidget(QMainWindow):
         return None
     
     def delete_selected_rows(self):
+        """
+        Delete all the rows that contain selected cells.
+        """        
         rows, cols = self._get_selected()
         for i in reversed(rows):
             self.table_native.removeRow(i)
@@ -310,6 +320,9 @@ class TableWidget(QMainWindow):
         return None
 
     def delete_selected_columns(self):
+        """
+        Delete all the columns that contain selected cells.
+        """        
         rows, cols = self._get_selected()
         for i in reversed(cols):
             self.table_native.removeColumn(i)
@@ -318,6 +331,7 @@ class TableWidget(QMainWindow):
     def change_plot_setting(self):
         dlg = PlotSetting(self)
         dlg.exec_()
+        return None
     
     def appendRow(self, data=None):
         """
@@ -328,7 +342,7 @@ class TableWidget(QMainWindow):
 
         return self._appendRow(data=data)
     
-    append = appendRow # for compatibility
+    append = appendRow # for compatibility with other widgets
 
     def _appendRow(self, data=None):
         """
@@ -405,6 +419,9 @@ class TableWidget(QMainWindow):
         
         
     def _get_selected_dataframe(self) -> pd.DataFrame:
+        """
+        Convert selected cells into pandas.DataFrame if possible.
+        """        
         sl = self._get_selected()
         try:
             df = self.table.to_dataframe().iloc[sl]
@@ -413,6 +430,9 @@ class TableWidget(QMainWindow):
         return df
     
     def _get_selected(self) -> tuple[list[int], list[int]]:
+        """
+        Get fancy indexing slices of the selected region.
+        """        
         selected:list = self.table_native.selectedRanges() # list of QTableWidgetSelectionRange
         if len(selected) == 0:
             return None
@@ -506,6 +526,9 @@ class TableWidget(QMainWindow):
         self.plot_menu.addAction(setting)
     
     def delete_self(self):
+        """
+        Remove from the dock widget list of the parent viewer.
+        """        
         self.removeDockWidget(self.figure_widget)
         dock = self.viewer.window._dock_widgets[self.name]
         self.viewer.window.remove_dock_widget(dock)
