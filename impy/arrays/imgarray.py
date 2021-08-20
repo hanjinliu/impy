@@ -135,7 +135,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rotate(self, degree:float, center="center", *, dims=2, order:int=1) -> ImgArray:
+    def rotate(self, degree:float, center="center", *, cval=0, dims=2, order:int=1) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero.
 
@@ -145,6 +145,8 @@ class ImgArray(LabeledArray):
             Clockwise degree of rotation. Not radian.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
+        cval : int, default is 0
+            Constant value to fill outside the image for mode == "constant".
         {dims}
         {order}
 
@@ -166,7 +168,7 @@ class ImgArray(LabeledArray):
         mx[-1, :] = [0] * len(dims) + [1]
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx, order=order)
+                               kwargs=dict(matrix=mx, order=order, cval=cval)
                                )
     
     

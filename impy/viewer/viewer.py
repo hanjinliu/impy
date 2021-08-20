@@ -155,11 +155,10 @@ class napariViewers:
         
     @property
     def table(self) -> TableWidget:
-        try:
-            return self._table
-        except AttributeError:
+        if not (hasattr(self, "_table") and
+                self._table.name in self.viewer.window._dock_widgets.keys()):
             self.add_table()
-            return self._table
+        return self._table
     
     @property
     def log(self):
@@ -727,6 +726,16 @@ class napariViewers:
 
     def axisof(self, symbol:str) -> int:
         return self.axes.find(symbol)
+    
+    def register_point(self, data="cursor position", size=None, face_color=None, edge_color=None, properties=None, **kwargs):
+        kwargs = dict(data=data, size=size, face_color=face_color, edge_color=edge_color, properties=properties, **kwargs)
+        try:
+            self.table.add_point(**kwargs)
+        except Exception:
+            self.add_table()
+            self.table.add_point(**kwargs)
+        return None
+
         
     def _add_image(self, img:LabeledArray, **kwargs):
         layer = add_labeledarray(self.viewer, img, **kwargs)

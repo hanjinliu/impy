@@ -153,13 +153,13 @@ class TableWidget(QMainWindow):
         return None
     
 
-    def add_point(self, data="cursor position", size=None, face_color=None, edge_color=None, properties=None):
+    def add_point(self, data="cursor position", size=None, face_color=None, edge_color=None, properties=None, **kwargs):
         """
         Add point in a layer and append its property to the end of the table. They are linked to each other.
         """
         scale = np.array([r[2] for r in self.viewer.dims.range])
         
-        if data == "cursor position":
+        if isinstance(data, str) and data == "cursor position":
             data = np.array(self.viewer.cursor.position) / scale
 
         if self.linked_layer is None:
@@ -172,7 +172,9 @@ class TableWidget(QMainWindow):
                                                        face_color=[0, 0, 0, 0] if face_color is None else face_color, 
                                                        edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
                                                        name=f"Points from {self.name}", 
-                                                       n_dimensional=True)
+                                                       n_dimensional=True,
+                                                       metadata={"linked_table": self}, 
+                                                       **kwargs)
             # TODO: listen to data change and link to add/delete in the future version of napari
             @self.linked_layer.events.data.connect
             def _(*args):

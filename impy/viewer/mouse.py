@@ -173,7 +173,7 @@ def profile_shape(viewer:"napari.Viewer", event):
                     text = f"L = {np.hypot(y, x):.1f} ({np.hypot(y*dy, x*dx):.3g} {unit})\nangle = {deg:.1f} deg"
                 else:
                     deg = np.rad2deg(np.arctan2(y/dy, x/dx))
-                    text = f"L = {np.hypot(y, x):.1f} ({np.hypot(y*dy, x*dx):.3g} {unit}) angle = {deg:.1f} ({degreal:.1f}) deg"
+                    text = f"L = {np.hypot(y, x):.1f} ({np.hypot(y*dy, x*dx):.3g} {unit}) angle = {deg:.1f} deg"
                 
                 # update text overlay
                 viewer.text_overlay.font_size = 5 * Const["FONT_SIZE_FACTOR"]
