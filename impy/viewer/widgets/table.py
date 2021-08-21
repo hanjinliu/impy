@@ -163,10 +163,13 @@ class TableWidget(QMainWindow):
             data = np.array(self.viewer.cursor.position) / scale
         else:
             data = np.asarray(data)
-        properties = {} if properties is None else properties
+        
+        nrow = self.table_native.rowCount()
+        nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
+        properties = {"ID": nrow} if properties is None else properties
         
         if self.linked_layer is None:
-            if self.table_native.rowCount() * self.table_native.columnCount() > 0:
+            if nrow > 0:
                 raise ValueError("Table already has data. Cannot make a linked layer.")
             self.linked_layer = self.viewer.add_points(data, 
                                                        properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
@@ -204,12 +207,14 @@ class TableWidget(QMainWindow):
         """
         Add point in a layer and append its property to the end of the table. They are linked to each other.
         """
+        nrow = self.table_native.rowCount()
+        nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
         scale = np.array([r[2] for r in self.viewer.dims.range])
         data = np.asarray(data)
-        properties = {} if properties is None else properties
+        properties = {"ID": nrow} if properties is None else properties
         
         if self.linked_layer is None:
-            if self.table_native.rowCount() * self.table_native.columnCount() > 0:
+            if nrow > 0:
                 raise ValueError("Table already has data. Cannot make a linked layer.")
             self.linked_layer = self.viewer.add_shapes([data], 
                                                        shape_type=shape_type,
