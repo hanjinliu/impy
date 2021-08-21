@@ -270,6 +270,9 @@ Figure is also accessible via ``ip.gui.fig``, so that you can use it without cha
 Table
 =====
 
+Basic usage
+^^^^^^^^^^^
+
 This widget is implemented by the class ``TableWidget``. Unlike the pure ``QTableWidget``, it is much more user friendly.
 
 1. It can have its own figure canvas, independent of that in the viewer. Of course, the canvas is interactive. It is 
@@ -286,6 +289,7 @@ You can find useful function in the menu bar.
     * "Copy all"/"Copy selected": Copy the contents into clipboard. You can paste it directly as csv style.
     * "Store all"/"Store selected": Store all the contents as ``pandas.DataFrame`` temporary item in ``ip.gui.results``.
     * "Resize": Resize column width to fit the contents.
+    * "Restore linked layer": Add linked layer if it was deleted from the layer list.
     * "Delete widget": Delete table from the viewer. Figure canvas will also be deleted.
 
 * "Edit" menu ... This menu contains functions that will change the contents of the table.
@@ -301,6 +305,38 @@ You can find useful function in the menu bar.
     * "Setting ...": Settings of plot, which is the options of ``plot`` and ``hist`` function of ``pandas.DataFrame``.
 
 The lastly added table is accessible via ``ip.gui.table``. You can append data by calling ``ip.gui.table.append(...)``.
+
+Link table with layers
+^^^^^^^^^^^^^^^^^^^^^^
+
+Just like ImageJ ROI manager, you usually want to link shapes/points, their properties and table rows. For instance, you
+may want to add rectangles in a shapes layer, measure the mean intensity of an image for each rectangle and store the
+measurement results in a table to see or plot the results.
+
+``impy`` provides useful functions for this purpose. You can add shapes/points and at the same time append a 1-D data to
+the bottom of a table. They are linked to each other so that you can jump to any shapes/points by double-clicking one of
+the table rows.
+
+.. code-block:: python
+    
+    # Like "append" function ...
+    ip.gui.table.append({"ID": 0, "value": 0.5})
+
+    # ... you can add a point and link it to a table row
+    ip.gui.register_points([0, 0],          # Point coordinate. By default the cursor position will be added.
+                           face_color="yellow",
+                           edge_color="white", 
+                           properties={"ID": 0, "value": 0.5} # This dictionary will be appended to a table.
+                           )
+    # ... or add a line and link it to a table row
+    ip.gui.register_points([[0, 0], [100, 50]], # Shape data. By default the cursor position will be added.
+                           shape_type="line", 
+                           face_color="yellow",
+                           edge_color="white", 
+                           properties={"ID": 0, "value": 0.5} # This dictionary will be appended to a table.
+                           )
+
+See examples and GIF in "Plug Custom Functions into GUI" section below.
 
 Logger
 ======
@@ -347,7 +383,8 @@ Examples
 
 1. Marking single molecule movie with centroid-aided auto centering.
 
-This is the most simple but practical example of binding a function that only add new points in the viewer.
+This is the most simple but practical example. Regsiter centroid with ``register_point`` function, and you can jump
+to any points by double-clicking table rows.
 
 .. code-block:: python
 
@@ -357,33 +394,23 @@ This is the most simple but practical example of binding a function that only ad
     def func(gui):
         # Get cursor position
         # Because we want to mark in 2D, we have to split (x,y) from others.
-        *multi, y, x = gui.viewer.cursor.position
-        
-        # Get 2D image by slicing with "gui.current_slice"
-        img = gui.get("image")[gui.current_slice] 
+        img = gui.get("image")
+        *multi, y, x = gui.cursor_to_pixel(img)
 
-        # um -> pixel
-        y /= gui.scale["y"]
-        x /= gui.scale["x"]
-        
-        y0 = int(y-4)
-        x0 = int(x-4)
-        img0 = img[y0:y0+9, x0:x0+9] # image region around cursor
+        # Get 2D image around cursor by slicing with "gui.current_slice"
+        y0 = y-4
+        x0 = x-4
+        img0 = img[gui.current_slice][y0:y0+9, x0:x0+9]
         img0 = img0 - img0.mean()    # normalize
 
         # calculate centroid
         M = moments(img0.value)
         cy, cx = M[1, 0]/M[0, 0] + y0, M[0, 1]/M[0, 0] + x0
-        
-        if "Auto center" not in gui.layers:
-            # Create Points layer if not exists
-            gui.viewer.add_points(ndim=gui.viewer.dims.ndim, name="Auto center",
-                                  scale=list(img.scale.values()))
 
         point = multi + [cy, cx]
-        
-        gui.layers["Auto center"].add(point)
-        
+
+        gui.register_point(point, properties={"x":cx, "y":cy})
+
         return None
 
 .. image:: images/auto_center.gif
@@ -449,3 +476,7 @@ parameters. The example below also shows that updating data inplace immediately 
         img += gauss
 
 .. image:: images/points.gif
+
+Plugin Protocols
+================
+
