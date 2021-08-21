@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy package &mdash; impy 1.20.10 documentation</title>
+  <title>impy package &mdash; impy 1.21.5 documentation</title>
   
 
   
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                1.20.10
+                1.21.5
               </div>
             
           
@@ -231,6 +231,11 @@ will be copied.</p>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.axes.Axes.scale">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">scale</span></span><a class="headerlink" href="#impy.axes.Axes.scale" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.axes.Axes.sort">
 <span class="sig-name descname"><span class="pre">sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/axes.html#Axes.sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.sort" title="Permalink to this definition">¶</a></dt>
@@ -253,6 +258,12 @@ will be copied.</p>
 <dt class="sig sig-object py" id="impy.axes.NoneAxes">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">NoneAxes</span></span><a class="reference internal" href="_modules/impy/axes.html#NoneAxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.NoneAxes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.axes.ScaleDict">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">ScaleDict</span></span><a class="reference internal" href="_modules/impy/axes.html#ScaleDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.ScaleDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
 </dd></dl>
 
 <dl class="py function">
@@ -991,6 +1002,26 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="impy.arrays.html#impy.arrays.specials.PropArray" title="impy.arrays.specials.PropArray">PropArray</a> or float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.correlation.pcc_maximum">
+<span class="sig-prename descclassname"><span class="pre">impy.correlation.</span></span><span class="sig-name descname"><span class="pre">pcc_maximum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">img1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample_factor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="reference internal" href="_modules/impy/correlation.html#pcc_maximum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.correlation.pcc_maximum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate lateral shift between two images. Same as <code class="docutils literal notranslate"><span class="pre">skimage.registration.phase_cross_correlation</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>{inputs_of_correlation}</strong> – </p></li>
+<li><p><strong>upsample_factor</strong> (<em>int</em><em>, </em><em>default is 10</em>) – Up-sampling factor when calculating phase cross correlation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Shift in pixel.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>

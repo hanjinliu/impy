@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Index &mdash; impy 1.20.10 documentation</title>
+  <title>Index &mdash; impy 1.21.5 documentation</title>
   
 
   
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.20.10
+                1.21.5
               </div>
             
           
@@ -321,6 +321,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.bind_protocol">bind_protocol() (impy.viewer.viewer.napariViewers method)</a>
+</li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.binning">binning() (impy.arrays.imgarray.ImgArray method)</a>
 
       <ul>
@@ -365,12 +367,12 @@
 </li>
       <li><a href="impy.frame.html#impy.frame.frames.AxesFrame.col_axes">col_axes (impy.frame.frames.AxesFrame property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.viewer.html#impy.viewer.utils.ColorCycle">ColorCycle (class in impy.viewer.utils)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.convex_hull">convex_hull() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.convolve">convolve() (impy.arrays.imgarray.ImgArray method)</a>
 
       <ul>
@@ -387,8 +389,6 @@
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.count_neighbors">count_neighbors() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
-      <li><a href="impy.viewer.html#impy.viewer.keybinds.crop">crop() (in module impy.viewer.keybinds)</a>
-</li>
       <li><a href="impy.arrays.html#impy.arrays.labeledarray.LabeledArray.crop_center">crop_center() (impy.arrays.labeledarray.LabeledArray method)</a>
 
       <ul>
@@ -397,7 +397,15 @@
       </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.labeledarray.LabeledArray.crop_kernel">crop_kernel() (impy.arrays.labeledarray.LabeledArray method)</a>
 </li>
+      <li><a href="impy.viewer.html#impy.viewer.utils.crop_rectangle">crop_rectangle() (in module impy.viewer.utils)</a>
+</li>
+      <li><a href="impy.viewer.html#impy.viewer.utils.crop_rotated_rectangle">crop_rotated_rectangle() (in module impy.viewer.utils)</a>
+</li>
       <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.current_slice">current_slice (impy.viewer.viewer.napariViewers property)</a>
+</li>
+      <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.cursor_pos">cursor_pos (impy.viewer.viewer.napariViewers property)</a>
+</li>
+      <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.cursor_to_pixel">cursor_to_pixel() (impy.viewer.viewer.napariViewers method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.specials.PropArray.curve_fit">curve_fit() (impy.arrays.specials.PropArray method)</a>
 </li>
@@ -444,8 +452,6 @@
 </li>
       </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.dtype">dtype (impy.arrays.lazy.LazyImgArray property)</a>
-</li>
-      <li><a href="impy.viewer.html#impy.viewer.keybinds.duplicate_layer">duplicate_layer() (in module impy.viewer.keybinds)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -857,8 +863,6 @@
 </li>
       <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.layers">layers (impy.viewer.viewer.napariViewers property)</a>
 </li>
-      <li><a href="impy.viewer.html#impy.viewer.keybinds.layers_to_labels">layers_to_labels() (in module impy.viewer.keybinds)</a>
-</li>
       <li><a href="impy.html#impy.core.lazy_imread">lazy_imread() (in module impy.core)</a>
 </li>
   </ul></td>
@@ -1028,6 +1032,8 @@
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.pathprops">pathprops() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
+      <li><a href="impy.html#impy.correlation.pcc_maximum">pcc_maximum() (in module impy.correlation)</a>
+</li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.peak_local_max">peak_local_max() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="impy.html#impy.correlation.pearson_coloc">pearson_coloc() (in module impy.correlation)</a>
@@ -1053,11 +1059,11 @@
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.proj">proj() (impy.arrays.imgarray.ImgArray method)</a>
 
       <ul>
+        <li><a href="impy.arrays.html#impy.arrays.label.Label.proj">(impy.arrays.label.Label method)</a>
+</li>
         <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.proj">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
         <li><a href="impy.frame.html#impy.frame.frames.AxesFrame.proj">(impy.frame.frames.AxesFrame method)</a>
-</li>
-        <li><a href="impy.viewer.html#impy.viewer.keybinds.proj">(in module impy.viewer.keybinds)</a>
 </li>
       </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.labeledarray.LabeledArray.proj_labels">proj_labels() (impy.arrays.labeledarray.LabeledArray method)</a>
@@ -1090,6 +1096,10 @@
         <li><a href="impy.arrays.html#impy.arrays.phasearray.PhaseArray.regionprops">(impy.arrays.phasearray.PhaseArray method)</a>
 </li>
       </ul></li>
+      <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.register_point">register_point() (impy.viewer.viewer.napariViewers method)</a>
+</li>
+      <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.register_shape">register_shape() (impy.viewer.viewer.napariViewers method)</a>
+</li>
       <li><a href="impy.arrays.html#impy.arrays.label.Label.relabel">relabel() (impy.arrays.label.Label method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.release">release() (impy.arrays.lazy.LazyImgArray method)</a>
@@ -1098,10 +1108,10 @@
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_fine_objects">remove_fine_objects() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
-      <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_large_objects">remove_large_objects() (impy.arrays.imgarray.ImgArray method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_large_objects">remove_large_objects() (impy.arrays.imgarray.ImgArray method)</a>
+</li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_skeleton_structure">remove_skeleton_structure() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="impy.html#impy.axes.Axes.replace">replace() (impy.axes.Axes method)</a>
@@ -1145,12 +1155,16 @@
       <li><a href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin.scale">scale (impy.arrays.axesmixin.AxesMixin property)</a>
 
       <ul>
+        <li><a href="impy.html#impy.axes.Axes.scale">(impy.axes.Axes property)</a>
+</li>
         <li><a href="impy.frame.html#impy.frame.frames.AxesFrame.scale">(impy.frame.frames.AxesFrame property)</a>
 </li>
         <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.scale">(impy.viewer.viewer.napariViewers property)</a>
 </li>
       </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin.scale_unit">scale_unit (impy.arrays.axesmixin.AxesMixin property)</a>
+</li>
+      <li><a href="impy.html#impy.axes.ScaleDict">ScaleDict (class in impy.axes)</a>
 </li>
       <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.selection">selection (impy.viewer.viewer.napariViewers property)</a>
 </li>
@@ -1207,6 +1221,8 @@
       <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.start">start() (impy.viewer.viewer.napariViewers method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.std_filter">std_filter() (impy.arrays.imgarray.ImgArray method)</a>
+</li>
+      <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers.stepof">stepof() (impy.viewer.viewer.napariViewers method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.stokes">stokes() (impy.arrays.imgarray.ImgArray method)</a>
 </li>

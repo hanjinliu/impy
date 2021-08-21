@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy.arrays package &mdash; impy 1.20.10 documentation</title>
+  <title>impy.arrays package &mdash; impy 1.21.5 documentation</title>
   
 
   
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                1.20.10
+                1.21.5
               </div>
             
           
@@ -2440,13 +2440,14 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.imgarray.ImgArray.rotate">
-<span class="sig-name descname"><span class="pre">rotate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">degree</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'center'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.rotate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.rotate" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">rotate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">degree</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'center'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.rotate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.rotate" title="Permalink to this definition">¶</a></dt>
 <dd><p>2D rotation of an image around a point. Outside will be padded with zero.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>degree</strong> (<em>float</em>) – Clockwise degree of rotation. Not radian.</p></li>
 <li><p><strong>center</strong> (<em>str</em><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Rotation center coordinate. By default the center of image will be the rotation center.</p></li>
+<li><p><strong>cval</strong> (<em>int</em><em>, </em><em>default is 0</em>) – Constant value to fill outside the image for mode == “constant”.</p></li>
 <li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
 For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
 <li><p><strong>order</strong> (<em>int</em><em>, </em><em>default is 1</em>) – <p>Spline interpolation order.
@@ -2670,13 +2671,14 @@ polarization imaging. May. <a class="reference external" href="https://doi.org/1
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.imgarray.ImgArray.stretch">
-<span class="sig-name descname"><span class="pre">stretch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'center'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.stretch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.stretch" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">stretch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'center'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.stretch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.stretch" title="Permalink to this definition">¶</a></dt>
 <dd><p>2D stretching of an image from a point.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>scale</strong> (<em>array-like</em>) – Stretch factors.</p></li>
 <li><p><strong>center</strong> (<em>str</em><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Rotation center coordinate. By default the center of image will be the rotation center.</p></li>
+<li><p><strong>cval</strong> (<em>int</em><em>, </em><em>default is 0</em>) – Constant value to fill outside the image for mode == “constant”.</p></li>
 <li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
 For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
 <li><p><strong>order</strong> (<em>int</em><em>, </em><em>default is 1</em>) – <p>Spline interpolation order.
@@ -3050,7 +3052,7 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>distance</strong> (<em>int</em><em>, </em><em>optional</em>) – The distance to expand, by default 1</p></li>
-<li><p><strong>dims</strong> (<em>int</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – Dimension of axes.</p></li>
+<li><p><strong>{dims}</strong> – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -3120,6 +3122,27 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 <dt class="sig sig-object py" id="impy.arrays.label.Label.optimize">
 <span class="sig-name descname"><span class="pre">optimize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/label.html#Label.optimize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.label.Label.optimize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.label.Label.proj">
+<span class="sig-name descname"><span class="pre">proj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forbid_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.label.Label" title="impy.arrays.label.Label"><span class="pre">impy.arrays.label.Label</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/label.html#Label.proj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.label.Label.proj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label projection. This function is useful when zyx-labels are drawn but you want to reduce the
+dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<em>str</em><em>, </em><em>optional</em>) – Along which axis projection will be calculated. If None, most plausible one will be chosen.</p></li>
+<li><p><strong>forbid_overlap</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True and there were any label overlap, this function will raise ValueError.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Projected labels.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.label.Label" title="impy.arrays.label.Label">Label</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.label.Label.relabel">
@@ -3471,14 +3494,13 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.labeledarray.LabeledArray.proj_labels">
-<span class="sig-name descname"><span class="pre">proj_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forbid_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.label.Label" title="impy.arrays.label.Label"><span class="pre">impy.arrays.label.Label</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/labeledarray.html#LabeledArray.proj_labels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.proj_labels" title="Permalink to this definition">¶</a></dt>
-<dd><p>Label projection. This function is useful when yx-labels are drawn in different z but
-you want to merge them.</p>
+<span class="sig-name descname"><span class="pre">proj_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forbid_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.label.Label" title="impy.arrays.label.Label"><span class="pre">impy.arrays.label.Label</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/labeledarray.html#LabeledArray.proj_labels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.proj_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label projection. This function is useful when zyx-labels are drawn but you want to reduce the
+dimension.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
-For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
+<li><p><strong>axis</strong> (<em>str</em><em>, </em><em>optional</em>) – Along which axis projection will be calculated. If None, most plausible one will be chosen.</p></li>
 <li><p><strong>forbid_overlap</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True and there were any label overlap, this function will raise ValueError.</p></li>
 </ul>
 </dd>

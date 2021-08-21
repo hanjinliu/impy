@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Viewer Tutorial &mdash; impy 1.20.10 documentation</title>
+  <title>Viewer Tutorial &mdash; impy 1.21.5 documentation</title>
   
 
   
@@ -67,7 +67,7 @@
             
             
               <div class="version">
-                1.20.10
+                1.21.5
               </div>
             
           
@@ -101,6 +101,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#get-or-set-current-slice">Get or Set Current Slice</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mouse-callbacks">Mouse Callbacks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#layers-menu">Layers Menu</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#functions-menu">Functions Menu</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#others">Others</a></li>
 </ul>
@@ -110,11 +111,19 @@
 <li class="toctree-l3"><a class="reference internal" href="#how-to-use-figure-canvas-from-console">How to Use Figure Canvas from Console</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#table">Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#table">Table</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#link-table-with-layers">Link table with layers</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#logger">Logger</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#explorer">Explorer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#text-file-viewer">Text File Viewer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#plug-custom-functions-into-gui">Plug Custom Functions into GUI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plug-custom-functions-into-gui">Plug Custom Functions into GUI</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#plugin-protocols">Plugin Protocols</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
@@ -207,6 +216,7 @@ multiple abilities to make your image processing efficient.</p>
 <li><p><a class="reference internal" href="#explorer" id="id5">Explorer</a></p></li>
 <li><p><a class="reference internal" href="#text-file-viewer" id="id6">Text File Viewer</a></p></li>
 <li><p><a class="reference internal" href="#plug-custom-functions-into-gui" id="id7">Plug Custom Functions into GUI</a></p></li>
+<li><p><a class="reference internal" href="#plugin-protocols" id="id8">Plugin Protocols</a></p></li>
 </ul>
 </div>
 <section id="viewer">
@@ -338,7 +348,6 @@ right button respectively).</p></li>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">A</span></code> -&gt; Hide non-selected layers. Display all the layers by push again.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">F</span></code> -&gt; Move selected layers to front.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">L</span></code> -&gt; Convert all the shapes in seleted shape-layers into labels of selected image-layers.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">D</span></code> -&gt; Duplicate the selected layer. If an image layer is selected, an dialog box opens.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">X</span></code> -&gt; Crop selected image-layers with all the rectangles in selected shape-layers. Rotated
 cropping is also supported!</p></li>
@@ -347,7 +356,13 @@ cropping is also supported!</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">E</span></code> -&gt; Open an explorer widget.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">P</span></code> -&gt; Projection of the selected layer. If an image layer is selected, an dialog box opens.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> / <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> + <code class="docutils literal notranslate"><span class="pre">Shift</span></code> + <code class="docutils literal notranslate"><span class="pre">G</span></code> -&gt; Link/Unlink layers. Like “grouping” in PowerPoint.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Alt</span></code> + <code class="docutils literal notranslate"><span class="pre">Up</span></code>/<code class="docutils literal notranslate"><span class="pre">Down</span></code> -&gt; Change z-focus (overwrote <code class="docutils literal notranslate"><span class="pre">napari</span></code>’s default because it is errorous)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[</span></code>/<code class="docutils literal notranslate"><span class="pre">]</span></code> -&gt; Go to and focus on previous/next point or shape.</p></li>
 </ul>
+</section>
+<section id="layers-menu">
+<h3>Layers Menu<a class="headerlink" href="#layers-menu" title="Permalink to this headline">¶</a></h3>
+<p>Duplicate, crop, project layers and some useful functions are availabel via this custom menu.</p>
 </section>
 <section id="functions-menu">
 <h3>Functions Menu<a class="headerlink" href="#functions-menu" title="Permalink to this headline">¶</a></h3>
@@ -412,6 +427,8 @@ is always switched to it. However, You can fully switch to <code class="docutils
 </section>
 <section id="table">
 <h2><a class="toc-backref" href="#id3">Table</a><a class="headerlink" href="#table" title="Permalink to this headline">¶</a></h2>
+<section id="basic-usage">
+<h3>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h3>
 <p>This widget is implemented by the class <code class="docutils literal notranslate"><span class="pre">TableWidget</span></code>. Unlike the pure <code class="docutils literal notranslate"><span class="pre">QTableWidget</span></code>, it is much more user friendly.</p>
 <ol class="arabic simple">
 <li><p>It can have its own figure canvas, independent of that in the viewer. Of course, the canvas is interactive. It is
@@ -429,6 +446,7 @@ provided as an dock widget of <code class="docutils literal notranslate"><span c
 <li><p>“Copy all”/”Copy selected”: Copy the contents into clipboard. You can paste it directly as csv style.</p></li>
 <li><p>“Store all”/”Store selected”: Store all the contents as <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> temporary item in <code class="docutils literal notranslate"><span class="pre">ip.gui.results</span></code>.</p></li>
 <li><p>“Resize”: Resize column width to fit the contents.</p></li>
+<li><p>“Restore linked layer”: Add linked layer if it was deleted from the layer list.</p></li>
 <li><p>“Delete widget”: Delete table from the viewer. Figure canvas will also be deleted.</p></li>
 </ul>
 </dd>
@@ -456,6 +474,35 @@ provided as an dock widget of <code class="docutils literal notranslate"><span c
 </li>
 </ul>
 <p>The lastly added table is accessible via <code class="docutils literal notranslate"><span class="pre">ip.gui.table</span></code>. You can append data by calling <code class="docutils literal notranslate"><span class="pre">ip.gui.table.append(...)</span></code>.</p>
+</section>
+<section id="link-table-with-layers">
+<h3>Link table with layers<a class="headerlink" href="#link-table-with-layers" title="Permalink to this headline">¶</a></h3>
+<p>Just like ImageJ ROI manager, you usually want to link shapes/points, their properties and table rows. For instance, you
+may want to add rectangles in a shapes layer, measure the mean intensity of an image for each rectangle and store the
+measurement results in a table to see or plot the results.</p>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> provides useful functions for this purpose. You can add shapes/points and at the same time append a 1-D data to
+the bottom of a table. They are linked to each other so that you can jump to any shapes/points by double-clicking one of
+the table rows.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Like &quot;append&quot; function ...</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;ID&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">})</span>
+
+<span class="c1"># ... you can add a point and link it to a table row</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">register_points</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>          <span class="c1"># Point coordinate. By default the cursor position will be added.</span>
+                       <span class="n">face_color</span><span class="o">=</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span>
+                       <span class="n">edge_color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+                       <span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ID&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">}</span> <span class="c1"># This dictionary will be appended to a table.</span>
+                       <span class="p">)</span>
+<span class="c1"># ... or add a line and link it to a table row</span>
+<span class="n">ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">register_points</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">]],</span> <span class="c1"># Shape data. By default the cursor position will be added.</span>
+                       <span class="n">shape_type</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
+                       <span class="n">face_color</span><span class="o">=</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span>
+                       <span class="n">edge_color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+                       <span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ID&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">}</span> <span class="c1"># This dictionary will be appended to a table.</span>
+                       <span class="p">)</span>
+</pre></div>
+</div>
+<p>See examples and GIF in “Plug Custom Functions into GUI” section below.</p>
+</section>
 </section>
 <section id="logger">
 <h2><a class="toc-backref" href="#id4">Logger</a><a class="headerlink" href="#logger" title="Permalink to this headline">¶</a></h2>
@@ -490,42 +537,35 @@ to do that by getting properties of the viewer for every function call. <code cl
 your function to <code class="docutils literal notranslate"><span class="pre">napari</span></code>. Just decorate your function with <cite>&#64;ip.gui.bind</cite> and call function with keybind “F1”.
 Of course, abovementioned figure canvas, table, logger are all accessible during function calls. Fully utilize them
 to make your plugin nice.</p>
+<section id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
 <ol class="arabic simple">
 <li><p>Marking single molecule movie with centroid-aided auto centering.</p></li>
 </ol>
-<p>This is the most simple but practical example of binding a function that only add new points in the viewer.</p>
+<p>This is the most simple but practical example. Regsiter centroid with <code class="docutils literal notranslate"><span class="pre">register_point</span></code> function, and you can jump
+to any points by double-clicking table rows.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">skimage.measure</span> <span class="kn">import</span> <span class="n">moments</span>
 
 <span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind</span>
 <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
     <span class="c1"># Get cursor position</span>
     <span class="c1"># Because we want to mark in 2D, we have to split (x,y) from others.</span>
-    <span class="o">*</span><span class="n">multi</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">position</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span>
+    <span class="o">*</span><span class="n">multi</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">cursor_to_pixel</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
 
-    <span class="c1"># Get 2D image by slicing with &quot;gui.current_slice&quot;</span>
-    <span class="n">img</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)[</span><span class="n">gui</span><span class="o">.</span><span class="n">current_slice</span><span class="p">]</span>
-
-    <span class="c1"># um -&gt; pixel</span>
-    <span class="n">y</span> <span class="o">/=</span> <span class="n">gui</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>
-    <span class="n">x</span> <span class="o">/=</span> <span class="n">gui</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
-
-    <span class="n">y0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span>
-    <span class="n">x0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span>
-    <span class="n">img0</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">y0</span><span class="p">:</span><span class="n">y0</span><span class="o">+</span><span class="mi">9</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span><span class="n">x0</span><span class="o">+</span><span class="mi">9</span><span class="p">]</span> <span class="c1"># image region around cursor</span>
+    <span class="c1"># Get 2D image around cursor by slicing with &quot;gui.current_slice&quot;</span>
+    <span class="n">y0</span> <span class="o">=</span> <span class="n">y</span><span class="o">-</span><span class="mi">4</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">x</span><span class="o">-</span><span class="mi">4</span>
+    <span class="n">img0</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">gui</span><span class="o">.</span><span class="n">current_slice</span><span class="p">][</span><span class="n">y0</span><span class="p">:</span><span class="n">y0</span><span class="o">+</span><span class="mi">9</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span><span class="n">x0</span><span class="o">+</span><span class="mi">9</span><span class="p">]</span>
     <span class="n">img0</span> <span class="o">=</span> <span class="n">img0</span> <span class="o">-</span> <span class="n">img0</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>    <span class="c1"># normalize</span>
 
     <span class="c1"># calculate centroid</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">moments</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
     <span class="n">cy</span><span class="p">,</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">y0</span><span class="p">,</span> <span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x0</span>
 
-    <span class="k">if</span> <span class="s2">&quot;Auto center&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-        <span class="c1"># Create Points layer if not exists</span>
-        <span class="n">gui</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">add_points</span><span class="p">(</span><span class="n">ndim</span><span class="o">=</span><span class="n">gui</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Auto center&quot;</span><span class="p">,</span>
-                              <span class="n">scale</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
-
     <span class="n">point</span> <span class="o">=</span> <span class="n">multi</span> <span class="o">+</span> <span class="p">[</span><span class="n">cy</span><span class="p">,</span> <span class="n">cx</span><span class="p">]</span>
 
-    <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="s2">&quot;Auto center&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+    <span class="n">gui</span><span class="o">.</span><span class="n">register_point</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span><span class="n">cx</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span><span class="n">cy</span><span class="p">})</span>
 
     <span class="k">return</span> <span class="kc">None</span>
 </pre></div>
@@ -591,6 +631,135 @@ parameters. The example below also shows that updating data inplace immediately 
 </pre></div>
 </div>
 <img alt="_images/points.gif" src="_images/points.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+</section>
+<section id="plugin-protocols">
+<h2><a class="toc-backref" href="#id8">Plugin Protocols</a><a class="headerlink" href="#plugin-protocols" title="Permalink to this headline">¶</a></h2>
+<p>In image analysis, several steps of different manual operation are often needed. You have to add instructions, make
+new widgets and implement all the probable error handlings.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">impy</span></code>, you can make this kind of image analysis, here I call “protocol”, much more easily than ever. <code class="docutils literal notranslate"><span class="pre">ip.gui</span></code>’s
+decorator method <code class="docutils literal notranslate"><span class="pre">bind_protocol</span></code> provides several functions that cover most of demands in terms of making plugin that
+people won’t have difficulty using it.</p>
+<p>First you have to make a “protocol function” that will yield functions as a generator.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind_protocol</span>
+<span class="k">def</span> <span class="nf">protocol</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">step1</span><span class="p">(</span><span class="n">gui</span><span class="p">,</span> <span class="n">param1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">string</span><span class="o">=</span><span class="s2">&quot;name&quot;</span><span class="p">):</span>
+        <span class="o">...</span>
+    <span class="c1"># do step-1 twice</span>
+    <span class="k">yield</span> <span class="n">step1</span>
+    <span class="k">yield</span> <span class="n">step1</span>
+
+    <span class="k">def</span> <span class="nf">step2</span><span class="p">(</span><span class="n">gui</span><span class="p">,</span> <span class="n">param2</span><span class="o">=</span><span class="mf">3.0</span><span class="p">):</span>
+        <span class="o">...</span>
+    <span class="c1"># do step-2 once</span>
+    <span class="k">yield</span> <span class="n">step2</span>
+
+    <span class="c1"># end protocol</span>
+    <span class="k">return</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>In this most basic form, every time you push “F1”, functions are called one by one. Widgets that enable parameter
+input will be prepared every time new function is generated.</p>
+<p>If your analysis is a little bit complicated, you may want to add instructions for each step. It can be achieved by
+writing docstring to each function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind_protocol</span>
+<span class="k">def</span> <span class="nf">protocol</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">step1</span><span class="p">(</span><span class="n">gui</span><span class="p">,</span> <span class="n">param1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">string</span><span class="o">=</span><span class="s2">&quot;name&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is docstring.</span>
+<span class="sd">        In this step, do something and something.</span>
+<span class="sd">        And push &quot;F1&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>However, it is still not enough. For instance, with these options you’ll be at a loss when you need to implement
+function “choose as many points as you want, and go to next step”. Apparently you need at least two buttons. To
+achieve this, <code class="docutils literal notranslate"><span class="pre">bind_protocol</span></code> prepares two keys: “F1” for mainly running same step while “F2” for proceeding to next
+step. Which button you pushed can be distinguished by <code class="docutils literal notranslate"><span class="pre">ip.bui.proceed</span></code> attribute. It takes <code class="docutils literal notranslate"><span class="pre">False</span></code> if “F1” is
+pushed while takes <code class="docutils literal notranslate"><span class="pre">True</span></code> otherwise. Now, functions “know” whether you want to proceed or not.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind_protocol</span>
+<span class="k">def</span> <span class="nf">protocol</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">def</span> <span class="nf">get_cursor_position</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">gui</span><span class="o">.</span><span class="n">proceed</span><span class="p">:</span> <span class="c1"># This &quot;if&quot; is necessary if you don&#39;t want to call function when &quot;F2&quot; is pushed</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gui</span><span class="o">.</span><span class="n">cursor_pos</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">gui</span><span class="o">.</span><span class="n">proceed</span><span class="p">:</span> <span class="c1"># Repeat until &quot;F2&quot; is pushed</span>
+        <span class="k">yield</span> <span class="n">get_cursor_position</span>
+
+    <span class="c1"># next step ...</span>
+</pre></div>
+</div>
+<p>Here’s a practical example. This class is designed to conduct following analysis:</p>
+<ol class="arabic simple">
+<li><p>Manually select <cite>(x, y)</cite> coordinates.</p></li>
+<li><p>Select target image.</p></li>
+<li><p>Label selected image <code class="docutils literal notranslate"><span class="pre">radius</span></code> pixels around coordinates.</p></li>
+<li><p>Measure time-series mean intensity changes int each label.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Measure</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels_layer</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">select_molecules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gui</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add markers with &quot;F1&quot;.</span>
+<span class="sd">        Go to next step with &quot;F2&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">gui</span><span class="o">.</span><span class="n">proceed</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">gui</span><span class="o">.</span><span class="n">register_point</span><span class="p">(</span><span class="n">gui</span><span class="o">.</span><span class="n">cursor_pos</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+
+    <span class="k">def</span> <span class="nf">select_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gui</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Select target image and push &quot;F1&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="n">layer_state</span><span class="o">=</span><span class="s2">&quot;selected&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gui</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set proper radius to label around markers.</span>
+<span class="sd">        Push &quot;F1&quot; to preview.</span>
+<span class="sd">        Push &quot;F2&quot; to apply.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">linked_layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;radius&quot;</span><span class="p">:</span><span class="n">radius</span><span class="p">,</span> <span class="s2">&quot;labeltype&quot;</span><span class="p">:</span><span class="s2">&quot;circle&quot;</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">specify</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">labels_layer</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">labels</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">specify</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">labels_layer</span> <span class="o">=</span> <span class="n">gui</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">measure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gui</span><span class="p">):</span>
+        <span class="n">gui</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">regionprops</span><span class="p">()</span><span class="o">.</span><span class="n">mean_intensity</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using this class, we can make a protocol using only ~10 lines. The comment out <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">gui</span> <span class="pre">table</span></code> is a mere trick.
+Because <code class="docutils literal notranslate"><span class="pre">ip.gui.bind_protocol</span></code> determines whether add a table widget before you actually need it by looking
+over the source code and find “gui.table” (“gui” may vary depending on your definition of the protocol function).
+Since it is hidden in the class method, we have to “tell” it we use table widgets to avoid tables suddenly appear.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@ip</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">bind_protocol</span>
+<span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">gui</span><span class="p">):</span>
+    <span class="c1"># gui.table</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">Measure</span><span class="p">()</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">gui</span><span class="o">.</span><span class="n">proceed</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">m</span><span class="o">.</span><span class="n">select_molecules</span>
+    <span class="k">yield</span> <span class="n">m</span><span class="o">.</span><span class="n">select_image</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">gui</span><span class="o">.</span><span class="n">proceed</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">m</span><span class="o">.</span><span class="n">label</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">gui</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the demonstration below, image is projected by standard deviation during protocol to make single molecules easier
+to see.</p>
+<img alt="_images/protocol.gif" src="_images/protocol.gif" />
 </section>
 </section>
 

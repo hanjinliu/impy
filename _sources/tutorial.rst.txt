@@ -234,5 +234,10 @@ You can check its size in GB:
 
     15.72864
 
+When you have to convert it to ``ImgArray``, use ``data`` property:
+
+.. code-block:: python
+
+    img.data # dask's compute() function will be called inside
 
 

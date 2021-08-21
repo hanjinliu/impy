@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy.viewer.utils &mdash; impy 1.20.10 documentation</title>
+  <title>impy.viewer.utils &mdash; impy 1.21.4 documentation</title>
   
 
   
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.20.10
+                1.21.4
               </div>
             
           
@@ -250,33 +250,25 @@
             
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
         <span class="n">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">)</span>
-        <span class="c1"># change default</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_edge_width</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="c1"># unit is pixel here</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_face_color</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_edge_color</span> <span class="o">=</span> <span class="s2">&quot;#dd23cb&quot;</span>
         <span class="n">new_layer</span><span class="o">.</span><span class="n">_rotation_handle_length</span> <span class="o">=</span> <span class="mi">20</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">new_layer</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
-        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Left&quot;</span><span class="p">)</span>
+        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Left&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">def</span> <span class="nf">left</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
             <span class="n">_translate_shape</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             
-        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Right&quot;</span><span class="p">)</span>
+        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Right&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">def</span> <span class="nf">right</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
             <span class="n">_translate_shape</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             
-        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Up&quot;</span><span class="p">)</span>
+        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Up&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">def</span> <span class="nf">up</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
             <span class="n">_translate_shape</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             
-        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Down&quot;</span><span class="p">)</span>
+        <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Down&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">def</span> <span class="nf">down</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
             <span class="n">_translate_shape</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Points</span><span class="p">):</span>
         <span class="n">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">)</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_face_color</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_edge_color</span> <span class="o">=</span> <span class="s2">&quot;#68cbc3ff&quot;</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">edge_width</span> <span class="o">=</span> <span class="mi">3</span>
-        <span class="n">new_layer</span><span class="o">.</span><span class="n">current_size</span> <span class="o">=</span> <span class="mi">4</span>
                 
     <span class="n">new_layer</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;init_translate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">translate</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">new_layer</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;init_scale&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -327,19 +319,19 @@
     <span class="k">return</span> <span class="kc">None</span>
 
 <span class="k">def</span> <span class="nf">_text_bound_init</span><span class="p">(</span><span class="n">new_layer</span><span class="p">):</span>
-    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Alt-A&quot;</span><span class="p">)</span>
+    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Alt-A&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">select_all</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
         <span class="n">layer</span><span class="o">.</span><span class="n">selected_data</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="p">)))</span>
         <span class="n">layer</span><span class="o">.</span><span class="n">_set_highlight</span><span class="p">()</span>
     
-    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Control-Shift-&lt;&quot;</span><span class="p">)</span>
+    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Control-Shift-&lt;&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">size_down</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
             <span class="n">new_layer</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">size</span> <span class="o">-=</span> <span class="mf">1.0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">new_layer</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">size</span> <span class="o">*=</span> <span class="mf">0.8</span>
     
-    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Control-Shift-&gt;&quot;</span><span class="p">)</span>
+    <span class="nd">@new_layer</span><span class="o">.</span><span class="n">bind_key</span><span class="p">(</span><span class="s2">&quot;Control-Shift-&gt;&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">size_up</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">new_layer</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
             <span class="n">new_layer</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">size</span> <span class="o">+=</span> <span class="mf">1.0</span>
@@ -364,7 +356,12 @@
         <span class="n">img</span> <span class="o">=</span> <span class="n">imread</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">lazy_imread</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">add_labeledarray</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="n">img</span><span class="p">)</span></div>
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">add_labeledarray</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="n">img</span><span class="p">)</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">text_overlay</span><span class="o">.</span><span class="n">font_size</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;FONT_SIZE_FACTOR&quot;</span><span class="p">]</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">text_overlay</span><span class="o">.</span><span class="n">visible</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">text_overlay</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;white&quot;</span>
+    <span class="n">viewer</span><span class="o">.</span><span class="n">text_overlay</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">layer</span></div>
 
 <div class="viewcode-block" id="add_labeledarray"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.add_labeledarray">[docs]</a><span class="k">def</span> <span class="nf">add_labeledarray</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">chn_ax</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">else</span> <span class="kc">None</span>
@@ -416,12 +413,12 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
         
-    <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">opacity</span><span class="o">=</span><span class="n">opacity</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">opacity</span><span class="o">=</span><span class="n">opacity</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
     <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
     
     <span class="n">out_layers</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">lbl</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lbls</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
-        <span class="n">layer</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">lbl</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">lbl</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
         <span class="n">out_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out_layers</span></div>
 
@@ -536,7 +533,10 @@
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Image</span><span class="p">):</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">ImgArray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;destination_image&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
             <span class="n">data</span><span class="o">.</span><span class="n">set_scale</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scale</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">})</span>
         <span class="k">return</span> <span class="n">data</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
@@ -565,7 +565,38 @@
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;More than one layers are selected.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">selected</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="crop_rotated_rectangle"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.crop_rotated_rectangle">[docs]</a><span class="k">def</span> <span class="nf">crop_rotated_rectangle</span><span class="p">(</span><span class="n">img</span><span class="p">:</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="n">crds</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">):</span>
+    <span class="n">translate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">crds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     
+    <span class="c1"># check is sorted</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">==</span> <span class="n">ids</span><span class="p">:</span>
+        <span class="n">cropped_img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">rotated_crop</span><span class="p">(</span><span class="n">crds</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">crds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">crds</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">crds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">(</span><span class="n">crds</span><span class="p">)</span>
+        <span class="n">cropped_img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">rotated_crop</span><span class="p">(</span><span class="n">crds</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">crds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">crds</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">cropped_img</span><span class="p">,</span> <span class="n">translate</span></div>
+
+<div class="viewcode-block" id="crop_rectangle"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.crop_rectangle">[docs]</a><span class="k">def</span> <span class="nf">crop_rectangle</span><span class="p">(</span><span class="n">img</span><span class="p">:</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="n">crds</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">LabeledArray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">crds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">crds</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">sl</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">translate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+        <span class="n">sl0</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">start</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sl0</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sl0</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">img</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">dims</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="n">sl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">x0</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">x1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">translate</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">x0</span>
+    
+    <span class="n">area_to_crop</span> <span class="o">=</span> <span class="s2">&quot;;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span>
+    
+    <span class="n">cropped_img</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">area_to_crop</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">cropped_img</span><span class="p">,</span> <span class="n">translate</span></div>
+
 
 <div class="viewcode-block" id="ColorCycle"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.ColorCycle">[docs]</a><span class="k">class</span> <span class="nc">ColorCycle</span><span class="p">:</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;rainbow&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

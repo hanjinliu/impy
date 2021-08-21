@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>impy.arrays.labeledarray &mdash; impy 1.20.5 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 1.21.4 documentation</title>
   
 
   
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.20.5
+                1.21.4
               </div>
             
           
@@ -1032,17 +1032,16 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">label_image</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">dirpath</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
     
-<div class="viewcode-block" id="LabeledArray.proj_labels"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.proj_labels">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@record</span><span class="p">(</span><span class="n">append_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">proj_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forbid_overlap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
+<div class="viewcode-block" id="LabeledArray.proj_labels"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.proj_labels">[docs]</a>    <span class="nd">@record</span><span class="p">(</span><span class="n">append_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">proj_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forbid_overlap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Label projection. This function is useful when yx-labels are drawn in different z but</span>
-<span class="sd">        you want to merge them.</span>
+<span class="sd">        Label projection. This function is useful when zyx-labels are drawn but you want to reduce the </span>
+<span class="sd">        dimension.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {dims}</span>
+<span class="sd">        axis : str, optional</span>
+<span class="sd">            Along which axis projection will be calculated. If None, most plausible one will be chosen.</span>
 <span class="sd">        forbid_overlap : bool, default is False</span>
 <span class="sd">            If True and there were any label overlap, this function will raise ValueError.</span>
 
@@ -1050,15 +1049,8 @@
 <span class="sd">        -------</span>
 <span class="sd">        Label</span>
 <span class="sd">            Projected labels.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
-        <span class="n">new_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">c_axes</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">forbid_overlap</span><span class="p">:</span>
-            <span class="n">test_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">c_axes</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">test_array</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Label overlapped.&quot;</span><span class="p">)</span>
-        <span class="n">new_labels</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="s2">&quot;proj&quot;</span><span class="p">,</span> <span class="n">new_axes</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">new_labels</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">forbid_overlap</span><span class="o">=</span><span class="n">forbid_overlap</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
     
 <div class="viewcode-block" id="LabeledArray.split"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.split">[docs]</a>    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataList</span><span class="p">[</span><span class="n">LabeledArray</span><span class="p">]:</span>
