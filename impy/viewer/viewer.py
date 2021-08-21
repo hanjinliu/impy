@@ -1,7 +1,6 @@
 from __future__ import annotations
-from logging import warn
 import os
-from typing import Any, NewType
+from typing import Any, Callable, NewType
 import types
 import napari
 import sys
@@ -55,7 +54,7 @@ class napariViewers:
         w = "".join([f"<{k}>" for k in self._viewers.keys()])
         return f"{self.__class__}{w}"
     
-    def __getitem__(self, key):
+    def __getitem__(self, key:str) -> napariViewers:
         """
         This method looks strange but intuitive because you can access the last viewer by
         >>> ip.gui.add(...)
@@ -124,9 +123,9 @@ class napariViewers:
     @property
     def cursor_pos(self) -> np.ndarray:
         """
-        Return cursor position
+        Return cursor position. Scale is considered.
         """        
-        return np.array(self.viewer.cursor.position)
+        return np.array(self.viewer.cursor.position)/[r[2] for r in self.viewer.dims.range]
     
     @property
     def axes(self) -> str:
@@ -161,7 +160,7 @@ class napariViewers:
         return self._table
     
     @property
-    def log(self):
+    def log(self) -> LoggerWidget:
         try:
             return self._log
         except AttributeError:
@@ -304,7 +303,8 @@ class napariViewers:
         
         return out
     
-    def cursor_to_pixel(self, ref:"napari.layers.Image"|int|str|LabeledArray|LazyImgArray) -> np.ndarray:
+    def cursor_to_pixel(self, ref:"napari.layers.Image"|int|str|LabeledArray|LazyImgArray, 
+                        ndim:int=None) -> np.ndarray:
         """
         With cursor position and a layer as inputs, this function returns the cursor "pixel" coordinates on the given
         layer. This function is useful when you want to get such as pixel value at the cursor position.
@@ -319,6 +319,9 @@ class napariViewers:
             - int ... the index of layer list
             - str ... the name of layer list
             - LabeledArray or LazyImgArray ... layer that has same object as data
+        
+        ndim : int, optional
+            If specified, the last ndim coordinates will be returned.
         
         Returns
         -------
@@ -344,7 +347,7 @@ class napariViewers:
         if not isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
             raise TypeError(f"Layer {layer} is not an image or labels layer.")
 
-        ndim = layer.data.ndim
+        ndim = layer.data.ndim if ndim is None else ndim
         cursor_coords = np.array(self.viewer.cursor.position[-ndim:])
         pos = (cursor_coords - layer.translate)/layer.scale
         return pos.astype(np.int64)
@@ -413,7 +416,7 @@ class napariViewers:
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
-    def preview(self, path:str, downsample_factor=4, dims=None, **kwargs):
+    def preview(self, path:str, downsample_factor:int=4, dims:str|int=None, **kwargs):
         """
         Preview a large image with a strided image.
 
@@ -474,6 +477,7 @@ class napariViewers:
         ----------
         func : callable
             Function to be called when ``key`` is pushed. This function must accept ``func(self, **kwargs)``.
+            Docstring of this function will be displayed on the top of the parameter container as a tooltip.
         key : str, default is "F1"
             Key binding.
         use_logger : bool, default is False
@@ -514,7 +518,7 @@ class napariViewers:
             allowed_dims = tuple(allowed_dims)
         
         if hasattr(self.viewer.window, "results") and self.viewer.window.results:
-            warn("Existing results are deleted from the current window.", UserWarning)
+            warnings.warn("Existing results are deleted from the current window.", UserWarning)
         self.viewer.window.results = []
             
         def wrapper(f):
@@ -526,7 +530,8 @@ class napariViewers:
             gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
             _use_canvas = f"{gui_sym}.fig" in source or (use_plt and "plt" in source)
-            _use_table = f"{gui_sym}.table" in source
+            _use_table = f"{gui_sym}.table" in source or f"{gui_sym}.register_point" in source or \
+                f"{gui_sym}.register_shape" in source
             _use_log = f"{gui_sym}.log." in source or use_logger
             
             # show main plot widget if it is supposed to be used
@@ -539,14 +544,14 @@ class napariViewers:
             _use_table and self.add_table()
             _use_log and self.log                
             
-            self._add_parameter_container(params)
+            self._add_parameter_container(f)
             
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer:"napari.Viewer"):
                 if not viewer.dims.ndisplay in allowed_dims:
                     return None
                 
-                kwargs = {wid.name: wid.value for wid in self._container}
+                kwargs = {wid.name: wid.value for wid in self._container[1:]}
                 std_ = self if use_logger else None
                 with Progress(f.__name__, out=None), setLogger(std_):
                     backend = mpl.get_backend()
@@ -581,24 +586,23 @@ class napariViewers:
             
             return f
         
-        if func is None:
-            return wrapper
-        else:
-            return wrapper(func)
+        return wrapper if func is None else wrapper(func)
+
     
     def bind_protocol(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
-                      allowed_dims:int|tuple[int, ...]=(1, 2, 3)):
+                      allowed_dims:int|tuple[int, ...]=(1, 2, 3), exit_with_error:bool=False):
         """
-        Decorator that makes it easy to call custom function on the viewer. Unlike ``bind`` method, this
-        decorator is used for call a function ``func`` that is composed of several steps (that's why it
-        is called "protocol" here). Protocol ``func`` waits for next input at the "yield" statement, and
-        it proceeds when "F1" is pushed. At every step the yielded value will be appended
-        ``func(self)`` will be called. Returned values will appeded to ``self.results``.
-
+        Decorator that makes it easy to make protocol (series of function call) on the viewer. Unlike
+        ``bind`` method, input function ``func`` must yield callable objects, from which parameter
+        container will be generated.
+        
         Parameters
         ----------
         func : callable
-            Protocol function. This function must accept ``func(self)`` and yield something.
+            Protocol function. This function must accept ``func(self)`` and yield functions that accept
+            ``f(self, **kwargs)`` . Docstring of the yielded functions will be displayed on the top of the 
+            parameter container as a tooltip. Therefore it would be very useful that you write procedure of
+            the protocol as docstrings. 
         key : str, default is "F1"
             Key binding.
         use_logger : bool, default is False
@@ -611,6 +615,9 @@ class napariViewers:
             refreshed so that new results will drawn over the old ones.
         allowed_dims : int or tuple of int, default is (1, 2, 3)
             Function will not be called if the number of displayed dimensions does not match it.
+        exit_with_error :bool default is False
+            If True, protocol will quit whenever exception is raised and key binding will be released. If
+            False, protocol continues from the same step.
         
         Examples
         --------
@@ -634,7 +641,7 @@ class napariViewers:
             allowed_dims = tuple(allowed_dims)
             
         if hasattr(self.viewer.window, "results") and self.viewer.window.results:
-            warn("Existing results are deleted from the current window.", UserWarning)
+            warnings.warn("Existing results are deleted from the current window.", UserWarning)
         self.viewer.window.results = []
             
         def wrapper(f):
@@ -646,7 +653,8 @@ class napariViewers:
             gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
             _use_canvas = f"{gui_sym}.fig" in source or (use_plt and "plt" in source)
-            _use_table = f"{gui_sym}.table" in source
+            _use_table = f"{gui_sym}.table" in source or f"{gui_sym}.register_point" in source or \
+                f"{gui_sym}.register_shape" in source
             _use_log = f"{gui_sym}.log." in source or use_logger
             
             # show main plot widget if it is supposed to be used
@@ -659,33 +667,49 @@ class napariViewers:
             _use_table and self.add_table()
             _use_log and self.log
             
+                
+            std_ = self if use_logger else None
             gen = f(self) # prepare generator
-
+            
+            # initialize
+            self._yielded_func = next(gen)
+            self._add_parameter_container(self._yielded_func)
+            
+            def exit(viewer):
+                viewer.keymap.pop(key) # delete keymap
+                del self._yielded_func # delete temporal attribute
+                viewer.window.remove_dock_widget(viewer.window._dock_widgets["Parameter Container"])
+                
+            
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer:"napari.Viewer"):
                 if not viewer.dims.ndisplay in allowed_dims:
                     return None
-                
-                std_ = self if use_logger else None
-                with Progress(f.__name__, out=None), setLogger(std_):
-                    backend = mpl.get_backend()
-                    mpl.use(GUIcanvas)
+                backend = mpl.get_backend()
+                mpl.use(GUIcanvas)
+                with Progress(f.__name__, out=None), setLogger(std_), mpl.style.context("night"):
+                    kwargs = {wid.name: wid.value for wid in self._container[1:]}
                     try:
-                        with mpl.style.context("night"):
-                            out = next(gen)
-                            viewer.window.results.append(out)
-                    except StopIteration as e:
-                        viewer.window.results.append(e.value) # The last returned value is stored in e.value
-                        viewer.keymap.pop(key) # delete keymap
+                        viewer.window.results.append(self._yielded_func(self, **kwargs))
                     except Exception as e:
                         notification_manager.dispatch(Notification.from_exception(e))
-                        viewer.keymap.pop(key) # delete keymap
-                    finally:
-                        mpl.use(backend)
+                        if exit_with_error:
+                            exit(viewer)
+                    else:
+                        try:
+                            self._yielded_func = next(gen)
+                            self._add_parameter_container(self._yielded_func)
                 
-                if _use_canvas:
-                    self.fig.tight_layout()
-                    self.fig.canvas.draw()
+                        except StopIteration as e:
+                            viewer.window.results.append(e.value) # The last returned value is stored in e.value
+                            exit(viewer)
+                            return None
+                    finally:
+                        if _use_canvas:
+                            self.fig.tight_layout()
+                            self.fig.canvas.draw()
+                
+                mpl.use(backend)
                     
                 for layer in viewer.layers:
                     layer.refresh()
@@ -694,11 +718,8 @@ class napariViewers:
             
             return f
         
-        if func is None:
-            return wrapper
-        else:
-            return wrapper(func)
-
+        return wrapper if func is None else wrapper(func)
+    
     def goto(self, **kwargs) -> tuple[int, ...]:
         """
         Change the current step of the viewer.
@@ -755,7 +776,8 @@ class napariViewers:
             self.table.add_point(**kwargs)
         return None
 
-    def register_shape(self, data, shape_type="rectangle", face_color=None, edge_color=None, properties=None, **kwargs):
+    def register_shape(self, data, shape_type="rectangle", face_color=None, edge_color=None, properties=None, 
+                       **kwargs):
         """
         Register a shape in a shapes layer, and link it to a table widget. Similar to "ROI Manager" in ImageJ.
         New shapes layer will be created when the first shape is added.
@@ -817,7 +839,7 @@ class napariViewers:
         self._table = add_table(self.viewer, data, columns, name)
         return self._table
 
-    def use_logger(self):
+    def use_logger(self) -> setLogger:
         """
         Return a context manager that all the texts will be printed in the logger.
 
@@ -860,23 +882,29 @@ class napariViewers:
             mpl.use(backend)
         return None
     
-    def _add_parameter_container(self, params:dict[str: inspect.Parameter]):
-        from magicgui.widgets import Container, create_widget
-        widget_name = "Parameter Controller"
-        self._container = Container(name=widget_name)
-                
+    
+    def _add_parameter_container(self, f:Callable):
+        from magicgui.widgets import Container, create_widget, Label
+        widget_name = "Parameter Container"
+        
         if widget_name in self.viewer.window._dock_widgets:
-            # Call clear() is faster but the previous parameter labels are left on the widget with
-            # unknown reason. Create new widget for now.
-            dock = self.viewer.window._dock_widgets[widget_name]
-            self.viewer.window.remove_dock_widget(dock)
+            # Only with clear() method, the previous parameter labels are left on the widget.
+            self._container.clear()
+            while self._container.native.layout().count() > 0:
+                self._container.native.layout().takeAt(0)
+        else:
+            self._container = Container(name=widget_name)
+            wid = self.viewer.window.add_dock_widget(self._container, area="right", name=widget_name)
+            wid.resize(140, 100)
+            wid.setFloating(True)
+        
+        params = inspect.signature(f).parameters
         
         if len(params) == 1:
             return None
         
-        wid = self.viewer.window.add_dock_widget(self._container, area="right", name=widget_name)
-        wid.resize(140, 100)
-        wid.setFloating(True)
+        if f.__doc__:
+            self._container.append(Label(value=f.__doc__))
             
         for i, (name, param) in enumerate(params.items()):
             if i == 0:
