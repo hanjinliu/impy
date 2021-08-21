@@ -512,6 +512,8 @@ class napariViewers:
         """        
         from ._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
+        from magicgui.widgets import Label
+        
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -551,7 +553,7 @@ class napariViewers:
                 if not viewer.dims.ndisplay in allowed_dims:
                     return None
                 
-                kwargs = {wid.name: wid.value for wid in self._container[1:]}
+                kwargs = {wid.name: wid.value for wid in self._container if not isinstance(wid, Label)}
                 std_ = self if use_logger else None
                 with Progress(f.__name__, out=None), setLogger(std_):
                     backend = mpl.get_backend()
@@ -678,6 +680,8 @@ class napariViewers:
         """        
         from ._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
+        from magicgui.widgets import Label
+        
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
@@ -745,7 +749,7 @@ class napariViewers:
                 backend = mpl.get_backend()
                 mpl.use(GUIcanvas)
                 with Progress(protocol.__name__, out=None), setLogger(std_), mpl.style.context("night"):
-                    kwargs = {wid.name: wid.value for wid in self._container[1:]}
+                    kwargs = {wid.name: wid.value for wid in self._container if not isinstance(wid, Label)}
                     try:
                         self.proceed = proceed
                         out = self._yielded_func(self, **kwargs)

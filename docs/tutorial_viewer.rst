@@ -193,7 +193,6 @@ Keyboard Shortcuts
 
 - ``Ctrl`` + ``Shift`` + ``A`` -> Hide non-selected layers. Display all the layers by push again.
 - ``Ctrl`` + ``Shift`` + ``F`` -> Move selected layers to front.
-- ``Alt`` + ``L`` -> Convert all the shapes in seleted shape-layers into labels of selected image-layers.
 - ``Ctrl`` + ``Shift`` + ``D`` -> Duplicate the selected layer. If an image layer is selected, an dialog box opens.
 - ``Ctrl`` + ``Shift`` + ``X`` -> Crop selected image-layers with all the rectangles in selected shape-layers. Rotated 
   cropping is also supported!
@@ -202,6 +201,13 @@ Keyboard Shortcuts
 - ``Ctrl`` + ``Shift`` + ``E`` -> Open an explorer widget.
 - ``Ctrl`` + ``P`` -> Projection of the selected layer. If an image layer is selected, an dialog box opens.
 - ``Ctrl`` + ``G`` / ``Ctrl`` + ``Shift`` + ``G`` -> Link/Unlink layers. Like "grouping" in PowerPoint.
+- ``Alt`` + ``Up``/``Down`` -> Change z-focus (overwrote ``napari``'s default because it is errorous)
+- ``[``/``]`` -> Go to and focus on previous/next point or shape.
+
+Layers Menu
+-----------
+
+Duplicate, crop, project layers and some useful functions are availabel via this custom menu.
 
 Functions Menu
 --------------
@@ -271,7 +277,7 @@ Table
 =====
 
 Basic usage
-^^^^^^^^^^^
+-----------
 
 This widget is implemented by the class ``TableWidget``. Unlike the pure ``QTableWidget``, it is much more user friendly.
 
@@ -307,7 +313,7 @@ You can find useful function in the menu bar.
 The lastly added table is accessible via ``ip.gui.table``. You can append data by calling ``ip.gui.table.append(...)``.
 
 Link table with layers
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 Just like ImageJ ROI manager, you usually want to link shapes/points, their properties and table rows. For instance, you
 may want to add rectangles in a shapes layer, measure the mean intensity of an image for each rectangle and store the
@@ -379,7 +385,7 @@ Of course, abovementioned figure canvas, table, logger are all accessible during
 to make your plugin nice.
 
 Examples
-^^^^^^^^ 
+--------
 
 1. Marking single molecule movie with centroid-aided auto centering.
 
@@ -476,6 +482,8 @@ parameters. The example below also shows that updating data inplace immediately 
         img += gauss
 
 .. image:: images/points.gif
+
+|
 
 Plugin Protocols
 ================
