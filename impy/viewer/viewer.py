@@ -755,6 +755,32 @@ class napariViewers:
             self.table.add_point(**kwargs)
         return None
 
+    def register_shape(self, data, shape_type="rectangle", face_color=None, edge_color=None, properties=None, **kwargs):
+        """
+        Register a shape in a shapes layer, and link it to a table widget. Similar to "ROI Manager" in ImageJ.
+        New shapes layer will be created when the first shape is added.
+
+        Parameters
+        ----------
+        data : array, optional
+            Shape data.
+        shape_type : str, default is "rectangle"
+            Shape type of the new one.
+        face_color : str or array, optional
+            Face color of point.
+        edge_color : str or array, optional
+            Edge color of the point.
+        properties : dict, optional
+            Propertied of the point. Values in this parameter is also added to table.
+        """        
+        kwargs = dict(data=data, shape_type=shape_type, face_color=face_color, edge_color=edge_color, 
+                      properties=properties, **kwargs)
+        try:
+            self.table.add_shape(**kwargs)
+        except Exception:
+            self.add_table()
+            self.table.add_shape(**kwargs)
+        return None
         
     def _add_image(self, img:LabeledArray, **kwargs):
         layer = add_labeledarray(self.viewer, img, **kwargs)

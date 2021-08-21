@@ -3,7 +3,7 @@ from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
-                            QLineEdit, QSpinBox)
+                            QLineEdit, QSpinBox, QAbstractItemView)
 from qtpy.QtCore import Qt
 import magicgui
 import napari
@@ -179,7 +179,7 @@ class TableWidget(QMainWindow):
             @self.linked_layer.events.data.connect
             def _(*args):
                 pass
-        else:
+        elif isinstance(self.linked_layer, napari.layers.Points):
             self.linked_layer.add(data)
             if size is not None:
                 self.linked_layer.current_size = size
@@ -189,6 +189,43 @@ class TableWidget(QMainWindow):
                 self.linked_layer.current_edge_color = edge_color
             if properties is not None:
                 self.linked_layer.current_properties.update(properties)
+        else:
+            type_ = self.linked_layer.__class__.__name__.split(".")[-1]
+            raise TypeError(f"Table is linked to {type_} layer now. Cannot add points.")
+        
+        self._appendRow(data=properties)
+        return None
+    
+    def add_shape(self, data, shape_type="rectangle", face_color=None, edge_color=None, 
+                  properties=None, **kwargs):
+        """
+        Add point in a layer and append its property to the end of the table. They are linked to each other.
+        """
+        scale = np.array([r[2] for r in self.viewer.dims.range])
+        
+        if self.linked_layer is None:
+            if self.table_native.rowCount() * self.table_native.columnCount() > 0:
+                raise ValueError("Table already has data. Cannot make a linked layer.")
+            self.linked_layer = self.viewer.add_shapes([data], 
+                                                       shape_type=shape_type,
+                                                       properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
+                                                       scale=scale,
+                                                       face_color=[0, 0, 0, 0] if face_color is None else face_color, 
+                                                       edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
+                                                       name=f"Shapes from {self.name}",
+                                                       metadata={"linked_table": self},
+                                                       **kwargs)
+            
+            @self.linked_layer.events.data.connect
+            def _(*args):
+                pass
+        elif isinstance(self.linked_layer, napari.layers.Shapes):
+            self.linked_layer.add(data, shape_type=shape_type, edge_color=edge_color, face_color=face_color)
+            if properties is not None:
+                self.linked_layer.current_properties.update(properties)
+        else:
+            type_ = self.linked_layer.__class__.__name__.split(".")[-1]
+            raise TypeError(f"Table is linked to {type_} layer now. Cannot add points.")
         
         self._appendRow(data=properties)
         return None
@@ -212,6 +249,7 @@ class TableWidget(QMainWindow):
         self.linked_layer.selected_data = {index}
         self.linked_layer._set_highlight()
         
+        self.table_native.setEditTriggers(QAbstractItemView.NoEditTriggers) # disable editable state.
         return None
 
     
@@ -292,6 +330,17 @@ class TableWidget(QMainWindow):
             mpl.use(backend)
         self.last_plot = "hist"
         return None
+    
+    def restore_linked_layer(self):
+        """
+        Add linked layer to the viewer again, if it has deleted from the layer list.
+        """ 
+        if self.linked_layer is None:
+            raise ValueError("No linked layer in this table.")
+        elif self.linked_layer in self.viewer.layers:
+            self.viewer.layers.selection = {self.linked_layer}
+        else:
+            self.viewer.add_layer(self.linked_layer)
     
     def header_to_row(self):
         """
@@ -445,7 +494,46 @@ class TableWidget(QMainWindow):
             sl_column |= column_range
         
         return list(sl_row), list(sl_column)
-
+        
+    
+    def _add_table_menu(self):
+        self.table_menu = self.menu_bar.addMenu("&Table")
+        
+        copy_all = QAction("Copy all", self)
+        copy_all.triggered.connect(self.copy_as_dataframe)
+        copy_all.setShortcut("Ctrl+Shift+C")
+        
+        copy = QAction("Copy selected", self)
+        copy.triggered.connect(lambda: self.copy_as_dataframe(selected=True))
+        copy.setShortcut("Ctrl+C")
+        
+        store_all = QAction("Store all", self)
+        store_all.triggered.connect(self.store_as_dataframe)
+        store_all.setShortcut("Ctrl+Shift+S")
+        
+        store = QAction("Store selected", self)
+        store.triggered.connect(lambda: self.store_as_dataframe(selected=True))
+        store.setShortcut("Ctrl+S")
+        
+        resize = QAction("Resize columns", self)
+        resize.triggered.connect(self.table_native.resizeColumnsToContents)
+        resize.setShortcut("R")
+        
+        restore = QAction("Restore linked layer", self)
+        restore.triggered.connect(self.restore_linked_layer)
+                
+        close = QAction("Delete widget", self)
+        close.triggered.connect(self.delete_self)
+        
+        self.table_menu.addAction(copy_all)
+        self.table_menu.addAction(copy)
+        self.table_menu.addAction(store_all)
+        self.table_menu.addAction(store)
+        self.table_menu.addAction(resize)
+        self.table_menu.addAction(restore)
+        self.table_menu.addAction(close)
+        return None
+    
     
     def _add_edit_menu(self):
         self.edit_menu = self.menu_bar.addMenu("&Edit")
@@ -472,40 +560,7 @@ class TableWidget(QMainWindow):
         self.edit_menu.addAction(addcol)
         self.edit_menu.addAction(delrow)
         self.edit_menu.addAction(delcol)
-        
-    
-    def _add_table_menu(self):
-        self.table_menu = self.menu_bar.addMenu("&Table")
-        
-        copy_all = QAction("Copy all", self)
-        copy_all.triggered.connect(self.copy_as_dataframe)
-        copy_all.setShortcut("Ctrl+Shift+C")
-        
-        copy = QAction("Copy selected", self)
-        copy.triggered.connect(lambda: self.copy_as_dataframe(selected=True))
-        copy.setShortcut("Ctrl+C")
-        
-        store_all = QAction("Store all", self)
-        store_all.triggered.connect(self.store_as_dataframe)
-        store_all.setShortcut("Ctrl+Shift+S")
-        
-        store = QAction("Store selected", self)
-        store.triggered.connect(lambda: self.store_as_dataframe(selected=True))
-        store.setShortcut("Ctrl+S")
-        
-        resize = QAction("Resize Columns", self)
-        resize.triggered.connect(self.table_native.resizeColumnsToContents)
-        resize.setShortcut("R")
-                
-        close = QAction("Delete widget", self)
-        close.triggered.connect(self.delete_self)
-        
-        self.table_menu.addAction(copy_all)
-        self.table_menu.addAction(copy)
-        self.table_menu.addAction(store_all)
-        self.table_menu.addAction(store)
-        self.table_menu.addAction(resize)
-        self.table_menu.addAction(close)
+        return None
         
     def _add_plot_menu(self):
         self.plot_menu = self.menu_bar.addMenu("&Plot")
@@ -524,6 +579,7 @@ class TableWidget(QMainWindow):
         self.plot_menu.addAction(plot)
         self.plot_menu.addAction(hist)
         self.plot_menu.addAction(setting)
+        return None
     
     def delete_self(self):
         """
