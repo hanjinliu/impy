@@ -480,3 +480,136 @@ parameters. The example below also shows that updating data inplace immediately 
 Plugin Protocols
 ================
 
+In image analysis, several steps of different manual operation are often needed. You have to add instructions, make 
+new widgets and implement all the probable error handlings.
+
+In ``impy``, you can make this kind of image analysis, here I call "protocol", much more easily than ever. ``ip.gui``'s
+decorator method ``bind_protocol`` provides several functions that cover most of demands in terms of making plugin that
+people won't have difficulty using it.
+
+First you have to make a "protocol function" that will yield functions as a generator.
+
+.. code-block:: python
+
+    @ip.gui.bind_protocol
+    def protocol(gui):
+        def step1(gui, param1=1, string="name"):
+            ...
+        # do step-1 twice
+        yield step1
+        yield step1
+
+        def step2(gui, param2=3.0):
+            ...
+        # do step-2 once
+        yield step2
+        
+        # end protocol
+        return ...
+
+In this most basic form, every time you push "F1", functions are called one by one. Widgets that enable parameter 
+input will be prepared every time new function is generated. 
+
+If your analysis is a little bit complicated, you may want to add instructions for each step. It can be achieved by
+writing docstring to each function.
+
+.. code-block:: python
+
+    @ip.gui.bind_protocol
+    def protocol(gui):
+        def step1(gui, param1=1, string="name"):
+            """
+            This is docstring.
+            In this step, do something and something.
+            And push "F1"
+            """
+            ...    
+        
+However, it is still not enough. For instance, with these options you'll be at a loss when you need to implement
+function "choose as many points as you want, and go to next step". Apparently you need at least two buttons. To
+achieve this, ``bind_protocol`` prepares two keys: "F1" for mainly running same step while "F2" for proceeding to next
+step. Which button you pushed can be distinguished by ``ip.bui.proceed`` attribute. It takes ``False`` if "F1" is 
+pushed while takes ``True`` otherwise. Now, functions "know" whether you want to proceed or not.
+
+.. code-block:: python
+
+    @ip.gui.bind_protocol
+    def protocol(gui):
+        pos = []
+        def get_cursor_position(gui):
+            if not gui.proceed: # This "if" is necessary if you don't want to call function when "F2" is pushed
+                pos.append(gui.cursor_pos)
+        
+        while not gui.proceed: # Repeat until "F2" is pushed
+            yield get_cursor_position
+        
+        # next step ...
+
+Here's a practical example. This class is designed to conduct following analysis:
+
+1. Manually select `(x, y)` coordinates.
+2. Select target image.
+3. Label selected image ``radius`` pixels around coordinates.
+4. Measure time-series mean intensity changes int each label.
+
+.. code-block:: python
+
+    class Measure:
+        def __init__(self):
+            self.image = None
+            self.labels_layer = None
+
+        def select_molecules(self, gui):
+            """
+            Add markers with "F1".
+            Go to next step with "F2".
+            """
+            if gui.proceed:
+                return
+            gui.register_point(gui.cursor_pos[-2:])
+
+        def select_image(self, gui):
+            """
+            Select target image and push "F1".
+            """
+            self.image = gui.get("image", layer_state="selected")
+
+        def label(self, gui, radius:float=3):
+            """
+            Set proper radius to label around markers.
+            Push "F1" to preview.
+            Push "F2" to apply.
+            """
+            coords = gui.table.linked_layer.data.astype(np.int32)
+            kwargs = {"radius":radius, "labeltype":"circle"}
+            if self.labels_layer is not None:
+                self.image.specify(coords, **kwargs)
+                self.labels_layer.data = self.image.labels
+            else:
+                self.image.specify(coords, **kwargs)
+                gui.add(self.image.labels)
+                self.labels_layer = gui.layers[-1]
+
+        def measure(self, gui):
+            gui.add(self.image.regionprops().mean_intensity)
+
+
+Using this class, we can make a protocol using only ~10 lines. The comment out ``# gui table`` is a mere trick.
+Because ``ip.gui.bind_protocol`` determines whether add a table widget before you actually need it by looking
+over the source code and find "gui.table" ("gui" may vary depending on your definition of the protocol function).
+Since it is hidden in the class method, we have to "tell" it we use table widgets to avoid tables suddenly appear. 
+
+.. code-block:: python
+
+    @ip.gui.bind_protocol
+    def func(gui):
+        # gui.table
+        m = Measure()
+        while not gui.proceed:
+            yield m.select_molecules
+        yield m.select_image
+        while not gui.proceed:
+            yield m.label
+        m.measure(gui)
+
+.. image:: images/protocol.gif
