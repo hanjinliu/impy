@@ -90,19 +90,19 @@ def upon_add_layer(event):
     if isinstance(new_layer, napari.layers.Shapes):
         _text_bound_init(new_layer)
         new_layer._rotation_handle_length = 20/np.mean(new_layer.scale[-2:])
-        @new_layer.bind_key("Left")
+        @new_layer.bind_key("Left", overwrite=True)
         def left(layer):
             _translate_shape(layer, -1, -1)
             
-        @new_layer.bind_key("Right")
+        @new_layer.bind_key("Right", overwrite=True)
         def right(layer):
             _translate_shape(layer, -1, 1)
             
-        @new_layer.bind_key("Up")
+        @new_layer.bind_key("Up", overwrite=True)
         def up(layer):
             _translate_shape(layer, -2, -1)
             
-        @new_layer.bind_key("Down")
+        @new_layer.bind_key("Down", overwrite=True)
         def down(layer):
             _translate_shape(layer, -2, 1)
             
@@ -158,19 +158,19 @@ def _translate_shape(layer, ind, direction):
     return None
 
 def _text_bound_init(new_layer):
-    @new_layer.bind_key("Alt-A")
+    @new_layer.bind_key("Alt-A", overwrite=True)
     def select_all(layer):
         layer.selected_data = set(np.arange(len(layer.data)))
         layer._set_highlight()
     
-    @new_layer.bind_key("Control-Shift-<")
+    @new_layer.bind_key("Control-Shift-<", overwrite=True)
     def size_down(layer):
         if new_layer.text.size > 4:
             new_layer.text.size -= 1.0
         else:
             new_layer.text.size *= 0.8
     
-    @new_layer.bind_key("Control-Shift->")
+    @new_layer.bind_key("Control-Shift->", overwrite=True)
     def size_up(layer):
         if new_layer.text.size < 4:
             new_layer.text.size += 1.0
