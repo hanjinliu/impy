@@ -161,13 +161,16 @@ class TableWidget(QMainWindow):
         
         if isinstance(data, str) and data == "cursor position":
             data = np.array(self.viewer.cursor.position) / scale
-
+        else:
+            data = np.asarray(data)
+        properties = {} if properties is None else properties
+        
         if self.linked_layer is None:
             if self.table_native.rowCount() * self.table_native.columnCount() > 0:
                 raise ValueError("Table already has data. Cannot make a linked layer.")
             self.linked_layer = self.viewer.add_points(data, 
                                                        properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
-                                                       scale=scale,
+                                                       scale=scale[-len(data):],
                                                        size=5 if size is None else size, 
                                                        face_color=[0, 0, 0, 0] if face_color is None else face_color, 
                                                        edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
@@ -202,6 +205,8 @@ class TableWidget(QMainWindow):
         Add point in a layer and append its property to the end of the table. They are linked to each other.
         """
         scale = np.array([r[2] for r in self.viewer.dims.range])
+        data = np.asarray(data)
+        properties = {} if properties is None else properties
         
         if self.linked_layer is None:
             if self.table_native.rowCount() * self.table_native.columnCount() > 0:
@@ -209,7 +214,7 @@ class TableWidget(QMainWindow):
             self.linked_layer = self.viewer.add_shapes([data], 
                                                        shape_type=shape_type,
                                                        properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
-                                                       scale=scale,
+                                                       scale=scale[-data.shape[1]:],
                                                        face_color=[0, 0, 0, 0] if face_color is None else face_color, 
                                                        edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
                                                        name=f"Shapes from {self.name}",
