@@ -594,7 +594,8 @@ class napariViewers:
         """
         Decorator that makes it easy to make protocol (series of function call) on the viewer. Unlike
         ``bind`` method, input function ``func`` must yield callable objects, from which parameter
-        container will be generated.
+        container will be generated. Simply, ``bind``-like method is called for every yielded function and
+        each time parameter container will be renewed.
         Two keys, ``key1`` and ``key2``, are useful when you want to distinguish "repeat same function" and
         "proceed to next step". For instance, if in the first step you should add multiple points in the
         viewer as many as you want, it is hard for the protocol function to "know" whether you finish adding
@@ -666,11 +667,11 @@ class napariViewers:
             >>>     def read_z(gui):
             >>>         '''set z borders'''
             >>>         return gui.stepof("z")
-            >>>     yield read_z
-            >>>     yield read_z
+            >>>     yield read_z        # get one z-border coordinate
+            >>>     yield read_z        # get the other z-border coordinate
             >>>     rect, z0, z1 = gui.results
-            >>>     x0, _, _, x1 = sorted(rect[:, 1])
-            >>>     y0, _, _, y1 = sorted(rect[:, 0])
+            >>>     x0, _, _, x1 = sorted(rect[:, 1]) # get x-border coordinate
+            >>>     y0, _, _, y1 = sorted(rect[:, 0]) # get y-border coordinate
             >>>     z0, z1 = sorted([z0, z1])
             >>>     gui.add(img[f"z={z0}:{z1+1};y={y0}:{y1+1};x={x0}:{x1+1}"])
         
@@ -732,13 +733,11 @@ class napariViewers:
                 
             @self.viewer.bind_key(key1, overwrite=True)
             def _1(viewer:"napari.Viewer"):
-                _base(viewer, proceed=False)
-                return None
+                return _base(viewer, proceed=False)
             
             @self.viewer.bind_key(key2, overwrite=True)
             def _2(viewer:"napari.Viewer"):
-                _base(viewer, proceed=True)
-                return None
+                return _base(viewer, proceed=True)
             
             def _base(viewer:"napari.Viewer", proceed=False):
                 if not viewer.dims.ndisplay in allowed_dims:
@@ -748,25 +747,27 @@ class napariViewers:
                 with Progress(protocol.__name__, out=None), setLogger(std_), mpl.style.context("night"):
                     kwargs = {wid.name: wid.value for wid in self._container[1:]}
                     try:
+                        self.proceed = proceed
                         out = self._yielded_func(self, **kwargs)
                         if proceed:
-                            self.proceed = True
-                        else:
-                            self.proceed = False
                             viewer.window.results.append(out)
+                            
                     except Exception as e:
                         notification_manager.dispatch(Notification.from_exception(e))
-                        if exit_with_error:
-                            exit(viewer)
+                        exit_with_error and exit(viewer)
+                            
                     else:
                         try:
-                            self._yielded_func = next(gen)
-                            self._add_parameter_container(self._yielded_func)
+                            next_func = next(gen)
+                            if next_func != self._yielded_func:
+                                # This avoid container renewing
+                                self._yielded_func = next_func
+                                self._add_parameter_container(self._yielded_func)
                 
                         except StopIteration as e:
                             viewer.window.results.append(e.value) # The last returned value is stored in e.value
                             exit(viewer)
-                            return None
+                            
                         finally:
                             if _use_canvas:
                                 self.fig.tight_layout()
@@ -900,8 +901,8 @@ class napariViewers:
             Pointer to the table widget.
         """        
         if isinstance(data, PropArray):
-            df = data.as_frame()
-            df.rename(columns = {"f": "value"}, inplace=True)
+            data = data.as_frame()
+            data.rename(columns = {"f": "value"}, inplace=True)
         
         self._table = add_table(self.viewer, data, columns, name)
         return self._table
