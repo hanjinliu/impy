@@ -21,6 +21,7 @@ from ..arrays import *
 from ..frame import *
 from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, read_meta
 from ..utils.utilcls import Progress
+from ..axes import ScaleDict
 from .._const import Const
 
 # TODO: 
@@ -28,7 +29,6 @@ from .._const import Const
 #   layer group is implemented in napari.
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
-# - area=None for new dock widgets
 
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"
@@ -140,7 +140,7 @@ class napariViewers:
         Scale information of current viewer. Defined to make compatible with ``ImgArray``.
         """        
         d = self.viewer.dims
-        return {a: r[2] for a, r in zip(d.axis_labels, d.range)}
+        return ScaleDict({a: r[2] for a, r in zip(d.axis_labels, d.range)})
     
     @property
     def fig(self):
@@ -589,12 +589,18 @@ class napariViewers:
         return wrapper if func is None else wrapper(func)
 
     
-    def bind_protocol(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
+    def bind_protocol(self, func=None, key1:str="F1", key2:str="F2", use_logger:bool=False, use_plt:bool=True, 
                       allowed_dims:int|tuple[int, ...]=(1, 2, 3), exit_with_error:bool=False):
         """
         Decorator that makes it easy to make protocol (series of function call) on the viewer. Unlike
         ``bind`` method, input function ``func`` must yield callable objects, from which parameter
         container will be generated.
+        Two keys, ``key1`` and ``key2``, are useful when you want to distinguish "repeat same function" and
+        "proceed to next step". For instance, if in the first step you should add multiple points in the
+        viewer as many as you want, it is hard for the protocol function to "know" whether you finish adding
+        points. In this case, you can assign key "F1" to "add point" and key "F2" to "finish adding point"
+        and inside the protocol function these different event can be distinguished by check whether 
+        ``gui.proceed`` is True or not. See examples for details.
         
         Parameters
         ----------
@@ -603,8 +609,12 @@ class napariViewers:
             ``f(self, **kwargs)`` . Docstring of the yielded functions will be displayed on the top of the 
             parameter container as a tooltip. Therefore it would be very useful that you write procedure of
             the protocol as docstrings. 
-        key : str, default is "F1"
-            Key binding.
+        key1 : str, default is "F1"
+            First key binding. When this key is pushed, returned value will be appended to ``ip.gui.results``
+            and attribute ``proceed`` will be False.
+        key2 : str, default is "F2"
+            Second key binding. When this key is pushed, returned value will be discarded and 
+            attribute ``proceed`` will be True.
         use_logger : bool, default is False
             If True, all the texts that are printed out will be displayed in the log widget. In detail,
             ``sys.stdout`` and `sys.stderr` are substituted to the log widget during function call.
@@ -621,17 +631,49 @@ class napariViewers:
         
         Examples
         --------
-        1. Draw a 3-D line and get the line scan.
+        1. Draw a 3-D path and get the line scan.
 
             >>> @ip.gui.bind_protocol
             >>> def add_line(gui):
-            >>>     pos0 = gui.viewer.cursor.position
-            >>>     yield
-            >>>     pos1 = gui.viewer.cursor.position
-            >>>     line = np.stack([pos0, pos1])
-            >>>     gui.viewer.add_shapes([line], shape_type="line")
-            >>>     plt.plot(gui.get("image").reslice(line))
-            >>>     return None
+            >>>     def func(gui):
+            >>>         '''
+            >>>         Push F1 to add line.
+            >>>         Push F2 to finish.
+            >>>         '''
+            >>>         return gui.cursor_pos
+            >>>     while not gui.proceed:
+            >>>         yield func
+            >>>     line = np.stack(gui.results)
+            >>>     img = gui.get("image")
+            >>>     gui.register_shape(line, shape_type="path")
+            >>>     plt.plot(img.reslice(line))
+            >>>     plt.show()
+        
+        2. 3-D cropper.
+        
+            >>> @ip.gui.bind_protocol
+            >>> def crop(gui):
+            >>>     img = gui.get("image")
+            >>>     layer = gui.viewer.add_shapes()
+            >>>     layer.mode = "add_rectangle"
+            >>>     def draw_rectangle(gui):
+            >>>         '''draw a rectangle'''
+            >>>         rect = gui.get("rectangle")[:,-2:]
+            >>>         rect[:,0] /= img.scale["y"]
+            >>>         rect[:,1] /= img.scale["x"]
+            >>>         return rect.astype(np.int64)
+            >>>     yield draw_rectangle
+            >>>     def read_z(gui):
+            >>>         '''set z borders'''
+            >>>         return gui.stepof("z")
+            >>>     yield read_z
+            >>>     yield read_z
+            >>>     rect, z0, z1 = gui.results
+            >>>     x0, _, _, x1 = sorted(rect[:, 1])
+            >>>     y0, _, _, y1 = sorted(rect[:, 0])
+            >>>     z0, z1 = sorted([z0, z1])
+            >>>     gui.add(img[f"z={z0}:{z1+1};y={y0}:{y1+1};x={x0}:{x1+1}"])
+        
         """        
         from ._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
@@ -644,12 +686,12 @@ class napariViewers:
             warnings.warn("Existing results are deleted from the current window.", UserWarning)
         self.viewer.window.results = []
             
-        def wrapper(f):
-            if not callable(f):
+        def wrapper(protocol):
+            if not callable(protocol):
                 raise TypeError("func must be callable.")
                         
-            source = inspect.getsource(f) # get source code
-            params = inspect.signature(f).parameters
+            source = inspect.getsource(protocol) # get source code
+            params = inspect.signature(protocol).parameters
             gui_sym = list(params.keys())[0] # symbol of gui, func(gui, ...) -> "gui"
             
             _use_canvas = f"{gui_sym}.fig" in source or (use_plt and "plt" in source)
@@ -669,28 +711,49 @@ class napariViewers:
             
                 
             std_ = self if use_logger else None
-            gen = f(self) # prepare generator
+            gen = protocol(self) # prepare generator from protocol function
             
             # initialize
+            self.proceed = False
             self._yielded_func = next(gen)
             self._add_parameter_container(self._yielded_func)
             
-            def exit(viewer):
-                viewer.keymap.pop(key) # delete keymap
-                del self._yielded_func # delete temporal attribute
-                viewer.window.remove_dock_widget(viewer.window._dock_widgets["Parameter Container"])
+            def exit(viewer:"napari.Viewer"):
+                # delete keymap
+                viewer.keymap.pop(key1) 
                 
+                # delete temporal attribute
+                del self.proceed
+                del self._yielded_func 
+                
+                # delete widget
+                viewer.window.remove_dock_widget(viewer.window._dock_widgets["Parameter Container"])
+                return None
+                
+            @self.viewer.bind_key(key1, overwrite=True)
+            def _1(viewer:"napari.Viewer"):
+                _base(viewer, proceed=False)
+                return None
             
-            @self.viewer.bind_key(key, overwrite=True)
-            def _(viewer:"napari.Viewer"):
+            @self.viewer.bind_key(key2, overwrite=True)
+            def _2(viewer:"napari.Viewer"):
+                _base(viewer, proceed=True)
+                return None
+            
+            def _base(viewer:"napari.Viewer", proceed=False):
                 if not viewer.dims.ndisplay in allowed_dims:
                     return None
                 backend = mpl.get_backend()
                 mpl.use(GUIcanvas)
-                with Progress(f.__name__, out=None), setLogger(std_), mpl.style.context("night"):
+                with Progress(protocol.__name__, out=None), setLogger(std_), mpl.style.context("night"):
                     kwargs = {wid.name: wid.value for wid in self._container[1:]}
                     try:
-                        viewer.window.results.append(self._yielded_func(self, **kwargs))
+                        out = self._yielded_func(self, **kwargs)
+                        if proceed:
+                            self.proceed = True
+                        else:
+                            self.proceed = False
+                            viewer.window.results.append(out)
                     except Exception as e:
                         notification_manager.dispatch(Notification.from_exception(e))
                         if exit_with_error:
@@ -704,11 +767,11 @@ class napariViewers:
                             viewer.window.results.append(e.value) # The last returned value is stored in e.value
                             exit(viewer)
                             return None
-                    finally:
-                        if _use_canvas:
-                            self.fig.tight_layout()
-                            self.fig.canvas.draw()
-                
+                        finally:
+                            if _use_canvas:
+                                self.fig.tight_layout()
+                                self.fig.canvas.draw()
+                                
                 mpl.use(backend)
                     
                 for layer in viewer.layers:
@@ -716,7 +779,7 @@ class napariViewers:
                 
                 return None
             
-            return f
+            return protocol
         
         return wrapper if func is None else wrapper(func)
     
@@ -744,6 +807,10 @@ class napariViewers:
         
         self.viewer.dims.current_step = step
         return step
+    
+    def stepof(self, symbol:str) -> int:
+        i = self.axes.find(symbol)
+        return self.viewer.dims.current_step[i]
 
     def axisof(self, symbol:str) -> int:
         return self.axes.find(symbol)
@@ -900,11 +967,10 @@ class napariViewers:
         
         params = inspect.signature(f).parameters
         
-        if len(params) == 1:
-            return None
-        
         if f.__doc__:
             self._container.append(Label(value=f.__doc__))
+        elif len(params) == 1:
+            return None
             
         for i, (name, param) in enumerate(params.items()):
             if i == 0:

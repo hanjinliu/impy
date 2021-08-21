@@ -404,7 +404,38 @@ def get_a_selected_layer(viewer:"napari.Viewer"):
     elif len(selected) > 1:
         raise ValueError("More than one layers are selected.")
     return selected[0]
+
+
+def crop_rotated_rectangle(img:LabeledArray, crds:np.ndarray, dims="yx"):
+    translate = np.min(crds, axis=0)
     
+    # check is sorted
+    ids = [img.axisof(a) for a in dims]
+    if sorted(ids) == ids:
+        cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
+    else:
+        crds = np.fliplr(crds)
+        cropped_img = img.rotated_crop(crds[3], crds[0], crds[2], dims=dims)
+    
+    return cropped_img, translate
+
+def crop_rectangle(img:LabeledArray, crds:np.ndarray, dims="yx") -> tuple[LabeledArray, np.ndarray]:
+    start = crds[0]
+    end = crds[2]
+    sl = []
+    translate = np.empty(2)
+    for i in [0, 1]:
+        sl0 = sorted([start[i], end[i]])
+        x0 = max(int(sl0[0]), 0)
+        x1 = min(int(sl0[1]), img.sizeof(dims[i]))
+        sl.append(f"{dims[i]}={x0}:{x1}")
+        translate[i] = x0
+    
+    area_to_crop = ";".join(sl)
+    
+    cropped_img = img[area_to_crop]
+    return cropped_img, translate
+
 
 class ColorCycle:
     def __init__(self, cmap="rainbow") -> None:

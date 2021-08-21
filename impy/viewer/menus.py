@@ -1,5 +1,4 @@
 from __future__ import annotations
-from impy.axes import ImageAxesError
 from warnings import warn
 import napari
 import magicgui
@@ -276,9 +275,9 @@ def add_crop_menu(viewer:"napari.Viewer"):
 
         for rect, shape_layer_scale, prop in rects:
             if np.any(np.abs(rect[0] - rect[1])<1e-5):
-                crop_func = _crop_rectangle
+                crop_func = crop_rectangle
             else:
-                crop_func = _crop_rotated_rectangle
+                crop_func = crop_rotated_rectangle
             
             for layer in imglist:
                 factor = layer.scale[active_plane]/shape_layer_scale
@@ -690,35 +689,6 @@ def _iter_args_and_kwargs(string:str):
         yield string
 
 
-def _crop_rotated_rectangle(img, crds, dims):
-    translate = np.min(crds, axis=0)
-    
-    # check is sorted
-    ids = [img.axisof(a) for a in dims]
-    if sorted(ids) == ids:
-        cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
-    else:
-        crds = np.fliplr(crds)
-        cropped_img = img.rotated_crop(crds[3], crds[0], crds[2], dims=dims)
-    
-    return cropped_img, translate
-
-def _crop_rectangle(img, crds, dims):
-    start = crds[0]
-    end = crds[2]
-    sl = []
-    translate = np.empty(2)
-    for i in [0, 1]:
-        sl0 = sorted([start[i], end[i]])
-        x0 = max(int(sl0[0]), 0)
-        x1 = min(int(sl0[1]), img.sizeof(dims[i]))
-        sl.append(f"{dims[i]}={x0}:{x1}")
-        translate[i] = x0
-    
-    area_to_crop = ";".join(sl)
-    
-    cropped_img = img[area_to_crop]
-    return cropped_img, translate
 
 def _get_property(layer, i):
     try:
