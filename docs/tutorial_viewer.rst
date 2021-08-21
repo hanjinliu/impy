@@ -620,4 +620,7 @@ Since it is hidden in the class method, we have to "tell" it we use table widget
             yield m.label
         m.measure(gui)
 
+In the demonstration below, image is projected by standard deviation during protocol to make single molecules easier
+to see.
+
 .. image:: images/protocol.gif
