@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import numpy as np
 import napari
 import os
@@ -203,6 +204,10 @@ def viewer_imread(viewer:"napari.Viewer", path:str):
     return layer
 
 def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
+    if not img.axes.is_sorted() and img.ndim > 2:
+        msg = f"Input image has axes that are not correctly sorted: {img.axes}. "\
+            "This may cause unexpected results."
+        warnings.warn(msg, UserWarning)
     chn_ax = img.axisof("c") if "c" in img.axes else None
         
     if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():

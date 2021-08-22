@@ -36,6 +36,12 @@ class AxesMixin:
     def scale(self):
         return self.axes._scale
     
+    @scale.setter
+    def scale(self, value:dict):
+        if not isinstance(value, dict):
+            raise TypeError(f"Cannot set scale using {type(value)}.")
+        return self.set_scale(value)
+    
     @property
     def scale_unit(self):
         try:
@@ -114,11 +120,18 @@ class AxesMixin:
             raise ImageAxesError("Image does not have axes.")
         
         elif isinstance(other, dict):
+            # voxel-scale can be set with one keyword.
+            if "zyx" in other:
+                zyxscale = other.pop("zyx")
+                other["x"] = other["y"] = other["z"] = zyxscale
+            if "xyz" in other:
+                zyxscale = other.pop("xyz")
+                other["x"] = other["y"] = other["z"] = zyxscale
             # lateral-scale can be set with one keyword.
             if "yx" in other:
                 yxscale = other.pop("yx")
                 other["x"] = other["y"] = yxscale
-            if "xy" in other:
+            elif "xy" in other:
                 yxscale = other.pop("xy")
                 other["x"] = other["y"] = yxscale
             # check if all the keys are contained in axes.

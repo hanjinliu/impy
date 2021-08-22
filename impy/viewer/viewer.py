@@ -4,12 +4,12 @@ from typing import Any, Callable, NewType
 import types
 import napari
 import sys
+import warnings
+import inspect
 import pandas as pd
 import numpy as np
-import inspect
 from dask import array as da
 from skimage.measure import marching_cubes
-import warnings
 
 from .utils import *
 from .mouse import *
@@ -682,10 +682,7 @@ class napariViewers:
         from napari.utils.notifications import Notification, notification_manager
         from magicgui.widgets import Label
         
-        if isinstance(allowed_dims, int):
-            allowed_dims = (allowed_dims,)
-        else:
-            allowed_dims = tuple(allowed_dims)
+        allowed_dims = (allowed_dims,) if isinstance(allowed_dims, int) else tuple(allowed_dims)
             
         if hasattr(self.viewer.window, "results") and self.viewer.window.results:
             warnings.warn("Existing results are deleted from the current window.", UserWarning)
@@ -714,7 +711,6 @@ class napariViewers:
             _use_table and self.add_table()
             _use_log and self.log
             
-                
             std_ = self if use_logger else None
             gen = protocol(self) # prepare generator from protocol function
             
@@ -776,8 +772,8 @@ class napariViewers:
                             if _use_canvas:
                                 self.fig.tight_layout()
                                 self.fig.canvas.draw()
-                                
-                mpl.use(backend)
+                    finally:  
+                        mpl.use(backend)
                     
                 for layer in viewer.layers:
                     layer.refresh()
@@ -947,10 +943,7 @@ class napariViewers:
                                                      allowed_areas=["right"])
             fig.setFloating(True)
             
-        except Exception:
-            mpl.use(backend)
-            raise
-        else:
+        finally:
             mpl.use(backend)
         return None
     
