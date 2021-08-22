@@ -3,7 +3,8 @@ from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
-                            QLineEdit, QSpinBox, QAbstractItemView)
+                            QLineEdit, QSpinBox)
+from qtpy.QtCore import Qt
 import magicgui
 import napari
 import os
@@ -15,6 +16,9 @@ def read_csv(viewer:"napari.Viewer", path):
     name = os.path.splitext(os.path.basename(path))[0]
     table = TableWidget(viewer, df, name=name)
     return viewer.window.add_dock_widget(table, area="right", name=table.name)
+
+Editable = Qt.ItemFlags(63)    # selectable, editable, drag-enabled, drop-enabled, checkable
+NotEditable = Qt.ItemFlags(61) # selectable, not-editable, drag-enabled, drop-enabled, checkable
 
 class TableWidget(QMainWindow):
     """
@@ -36,6 +40,7 @@ class TableWidget(QMainWindow):
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False, bins=10)
         self.last_plot = "plot"
+        self.flag = NotEditable
         
         if df is None:
             if columns is None:
@@ -93,6 +98,7 @@ class TableWidget(QMainWindow):
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.setWindowTitle(self.name)
         
+        self.setEditability(self.flag)
     
     def __repr__(self):
         return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
@@ -259,7 +265,6 @@ class TableWidget(QMainWindow):
         self.linked_layer.selected_data = {index}
         self.linked_layer._set_highlight()
         
-        self.table_native.setEditTriggers(QAbstractItemView.NoEditTriggers) # disable editable state.
         return None
 
     
@@ -430,7 +435,9 @@ class TableWidget(QMainWindow):
             raise ValueError("Input data is longer than the column size.")
         
         for i, item in enumerate(data):
-            self.table_native.setItem(nrow, i, QTableWidgetItem(str(item)))
+            item = QTableWidgetItem(str(item))
+            self.table_native.setItem(nrow, i, item)
+            item.setFlags(self.flag)
         return None
     
     def appendColumn(self, data=None):
@@ -449,8 +456,10 @@ class TableWidget(QMainWindow):
             raise ValueError("Input data is longer than the row size.")
         
         for i, item in enumerate(data):
-            self.table_native.setItem(i, ncol, QTableWidgetItem(str(item)))
-        
+            item = QTableWidgetItem(str(item))
+            self.table_native.setItem(i, ncol, item)
+            item.setFlags(self.flag)
+                
         self.table_native.resizeColumnsToContents()
         
         return None
@@ -471,11 +480,28 @@ class TableWidget(QMainWindow):
         for i, h in enumerate(header):
             self.table_native.insertColumn(i)
             self.set_header(i, h)
-            self.table_native.setItem(0, i, QTableWidgetItem(str(data[i])))
+            item = QTableWidgetItem(str(data[i]))
+            self.table_native.setItem(0, i, item)
+            item.setFlags(self.flag)
         
         self.table_native.resizeColumnsToContents()
         return None
+    
+    def setEditability(self, flag):
+        self.flag = flag
+        for i in range(self.table_native.rowCount()):
+            for j in range(self.table_native.columnCount()):
+                item = self.table_native.item(i, j)
+                item.setFlags(flag)
         
+        return None
+
+    def _change_editability(self):
+        if self.flag is Editable:
+            flag = NotEditable
+        else:
+            flag = Editable
+        return self.setEditability(flag)
         
     def _get_selected_dataframe(self) -> pd.DataFrame:
         """
@@ -564,12 +590,16 @@ class TableWidget(QMainWindow):
         
         delcol = QAction("Delete selected columns", self)
         delcol.triggered.connect(self.delete_selected_columns)
+        
+        change = QAction("Editable", self, checkable=True, checked=False)
+        change.triggered.connect(self._change_editability)
 
         self.edit_menu.addAction(head2row)
         self.edit_menu.addAction(addrow)
         self.edit_menu.addAction(addcol)
         self.edit_menu.addAction(delrow)
         self.edit_menu.addAction(delcol)
+        self.edit_menu.addAction(change)
         return None
         
     def _add_plot_menu(self):

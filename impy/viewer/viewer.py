@@ -105,7 +105,7 @@ class napariViewers:
         return tuple(current_step)
     
     @property
-    def results(self) -> Any:
+    def results(self) -> ResultStackView:
         """
         Temporary results stored in the viewer.
         """    
@@ -747,7 +747,7 @@ class napariViewers:
                     try:
                         self.proceed = proceed
                         out = self._yielded_func(self, **self.params)
-                        if not proceed:
+                        if not proceed and out is not None:
                             self.results.append(out)
                             
                     except Exception as e:
