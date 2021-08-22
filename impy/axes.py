@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections import defaultdict, Counter
 import numpy as np
+from numpy.core.fromnumeric import sort
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
@@ -20,7 +21,30 @@ class NoneAxes:
 NONE = NoneAxes()
 
 class ScaleDict(dict):
-    __getattr__ = dict.__getitem__
+    def __getattr__(self, key):
+        """
+        To enable such as scale.x or scale.y. Simply this can be achieved by
+        
+            .. code-block:: python
+                
+                __getattr__ = dict.__getitem__
+        
+        However, we also want to convert it to np.ndarray for compatibility with napari's "scale" arguments.
+        Because __getattr__ is called inside np.ndarray, it expected to raise AttributeError rather than
+        KeyError.
+
+        """        
+        if key in self.keys():
+            return self[key]
+        else:
+            raise AttributeError
+    
+    def __list__(self):
+        axes = sorted(self.keys(), key=lambda a: ORDER[a])
+        return [self[a] for a in axes]
+    
+    def __array__(self):
+        return np.array(self.__list__())
     
 def check_none(func):
     def checked(self, *args, **kwargs):
