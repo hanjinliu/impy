@@ -17,6 +17,9 @@ class ResultStackView(QWidget):
     def __getitem__(self, key):
         return self._list[key]
     
+    def __iter__(self):
+        return iter(self._list)
+    
     def __repr__(self):
         return f"{self.__class__.__name__} with \n{self._list}"
     

@@ -172,7 +172,7 @@ class napariViewers:
             return self._log
     
     @property
-    def params(self):
+    def params(self) -> dict:
         from magicgui.widgets import Label
         if hasattr(self, "_container"):
             kwargs = {wid.name: wid.value for wid in self._container if not isinstance(wid, Label)}
@@ -553,7 +553,7 @@ class napariViewers:
             _use_table and self.add_table()
             _use_log and self.log                
             
-            self._add_parameter_container(f)
+            self.add_parameter_container(f)
             
             @self.viewer.bind_key(key, overwrite=True)
             def _(viewer:"napari.Viewer"):
@@ -614,7 +614,7 @@ class napariViewers:
         func : callable
             Protocol function. This function must accept ``func(self)`` and yield functions that accept
             ``f(self, **kwargs)`` . Docstring of the yielded functions will be displayed on the top of the 
-            parameter container as a tooltip. Therefore it would be very useful that you write procedure of
+            parameter container as a tooltip. Therefore it would be very useful if you write procedure of
             the protocol as docstrings. 
         key1 : str, default is "F1"
             First key binding. When this key is pushed, returned value will be appended to ``ip.gui.results``
@@ -716,7 +716,7 @@ class napariViewers:
             # initialize
             self.proceed = False
             self._yielded_func = next(gen)
-            self._add_parameter_container(self._yielded_func)
+            self.add_parameter_container(self._yielded_func)
             
             def exit(viewer:"napari.Viewer"):
                 # delete keymap
@@ -760,10 +760,11 @@ class napariViewers:
                             if next_func != self._yielded_func:
                                 # This avoid container renewing
                                 self._yielded_func = next_func
-                                self._add_parameter_container(self._yielded_func)
+                                self.add_parameter_container(self._yielded_func)
                 
                         except StopIteration as e:
-                            self.results.append(e.value) # The last returned value is stored in e.value
+                            if e.value is not None:
+                                self.results.append(e.value) # The last returned value is stored in e.value
                             exit(viewer)
                             
                     finally:
@@ -944,7 +945,17 @@ class napariViewers:
             mpl.use(backend)
         return None
     
-    def _add_parameter_container(self, f:Callable):
+    def add_parameter_container(self, f:Callable):
+        """
+        Make a parameter container widget from a function. Essentially same as magicgui's method.
+        These parameters are accessible via ``ip.gui.param``.
+
+        Parameters
+        ----------
+        f : Callable
+            The function from which parameter types will be inferred.
+
+        """        
         from magicgui.widgets import Container, create_widget, Label
         widget_name = "Parameter Container"
         
