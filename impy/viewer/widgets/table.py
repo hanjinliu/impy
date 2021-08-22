@@ -4,7 +4,6 @@ import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
                             QLineEdit, QSpinBox, QAbstractItemView)
-from qtpy.QtCore import Qt
 import magicgui
 import napari
 import os
@@ -130,14 +129,15 @@ class TableWidget(QMainWindow):
     
     def store_as_dataframe(self, selected=False):
         """
-        Send table contents to ``self.viewer.window.results``.
+        Send table contents to Results widget.
 
         Parameters
         ----------
         selected : bool, default is False
             If True, only selected range will be send to results.
         """        
-        self.viewer.window.results = self.to_dataframe(selected)
+        df = self.to_dataframe(selected)
+        self.viewer.window._results.append(df)
         return None
     
     def copy_as_dataframe(self, selected=False):

@@ -166,17 +166,17 @@ def _text_bound_init(new_layer):
     
     @new_layer.bind_key("Control-Shift-<", overwrite=True)
     def size_down(layer):
-        if new_layer.text.size > 4:
-            new_layer.text.size -= 1.0
+        if layer.text.size > 4:
+            layer.text.size -= 1.0
         else:
-            new_layer.text.size *= 0.8
+            layer.text.size *= 0.8
     
     @new_layer.bind_key("Control-Shift->", overwrite=True)
     def size_up(layer):
-        if new_layer.text.size < 4:
-            new_layer.text.size += 1.0
+        if layer.text.size < 4:
+            layer.text.size += 1.0
         else:
-            new_layer.text.size /= 0.8
+            layer.text.size /= 0.8
             
     n_obj = len(new_layer.data)
     
@@ -233,7 +233,13 @@ def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
                              name=name if len(name)>1 else name[0],
                              **kwargs)
     
-    viewer.scale_bar.unit = img.scale_unit
+    if viewer.scale_bar.unit:
+        if viewer.scale_bar.unit != img.scale_unit:
+            msg = f"Incompatible scales. Viewer is {viewer.scale_bar.unit} while image is {img.scale_unit}."
+            warnings.warn(msg)
+    else:
+        viewer.scale_bar.unit = img.scale_unit
+        
     new_axes = [a for a in img.axes if a != "c"]
     # add axis labels to slide bars and image orientation.
     if len(new_axes) >= len(viewer.dims.axis_labels):

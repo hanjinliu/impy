@@ -177,6 +177,6 @@ def reslice(viewer:"napari.Viewer"):
             out_ = layer.data.reslice(path[:,active_plane]/factor - dr)
             out.append(out_)
     
-    viewer.window.results = out
+    viewer.window._results.append(out)
     
     return None

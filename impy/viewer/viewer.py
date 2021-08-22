@@ -13,7 +13,7 @@ from skimage.measure import marching_cubes
 
 from .utils import *
 from .mouse import *
-from .widgets import TableWidget, LoggerWidget
+from .widgets import TableWidget, LoggerWidget, ResultStackView
 
 from ..utils.axesop import switch_slice
 from ..collections import *
@@ -32,8 +32,10 @@ from .._const import Const
 
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"
+ResultsWidgetName = "Results"
+MainPlotName = "Main Plot"
 
-def _change_theme(viewer):
+def _change_theme(viewer:"napari.Viewer"):
     from napari.utils.theme import get_theme, register_theme, available_themes
     if "night" not in available_themes():
         theme = get_theme("dark")
@@ -106,11 +108,10 @@ class napariViewers:
     def results(self) -> Any:
         """
         Temporary results stored in the viewer.
-        """        
-        try:
-            return self.viewer.window.results
-        except AttributeError:
-            raise AttributeError("Viewer does not have temporary result.")
+        """    
+        self.viewer.window._dock_widgets[ResultsWidgetName].show()
+        return self.viewer.window._results
+
     
     @property
     def selection(self) -> list[ImpyObject]:
@@ -148,7 +149,7 @@ class napariViewers:
         ``matplotlib.figure.Figure`` object bound to the viewer.
         """
         if not (hasattr(self, "_fig") and 
-                "Main Plot" in self.viewer.window._dock_widgets.keys()):
+                MainPlotName in self.viewer.window._dock_widgets.keys()):
             self._add_figure()
         return self._fig
         
@@ -169,6 +170,16 @@ class napariViewers:
                                                allowed_areas=["right"])
             self._log = logger
             return self._log
+    
+    @property
+    def params(self):
+        from magicgui.widgets import Label
+        if hasattr(self, "_container"):
+            kwargs = {wid.name: wid.value for wid in self._container if not isinstance(wid, Label)}
+        else:
+            kwargs = {}
+            
+        return kwargs
     
     def start(self, key:str="impy"):
         """
@@ -191,6 +202,7 @@ class napariViewers:
         _load_mouse_callbacks(viewer)
         viewer.window.layer_menu = viewer.window.main_menu.addMenu("&Layers")
         viewer.window.function_menu = viewer.window.main_menu.addMenu("&Functions")
+        _add_results_widget(viewer)
         _load_widgets(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
@@ -512,17 +524,12 @@ class napariViewers:
         """        
         from ._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
-        from magicgui.widgets import Label
         
         if isinstance(allowed_dims, int):
             allowed_dims = (allowed_dims,)
         else:
             allowed_dims = tuple(allowed_dims)
-        
-        if hasattr(self.viewer.window, "results") and self.viewer.window.results:
-            warnings.warn("Existing results are deleted from the current window.", UserWarning)
-        self.viewer.window.results = []
-            
+                    
         def wrapper(f):
             if not callable(f):
                 raise TypeError("func must be callable.")
@@ -541,7 +548,7 @@ class napariViewers:
                 if not hasattr(self, "fig"):
                     self._add_figure()
                 else:
-                    self.viewer.window._dock_widgets["Main Plot"].show()
+                    self.viewer.window._dock_widgets[MainPlotName].show()
             
             _use_table and self.add_table()
             _use_log and self.log                
@@ -553,14 +560,13 @@ class napariViewers:
                 if not viewer.dims.ndisplay in allowed_dims:
                     return None
                 
-                kwargs = {wid.name: wid.value for wid in self._container if not isinstance(wid, Label)}
                 std_ = self if use_logger else None
                 with Progress(f.__name__, out=None), setLogger(std_):
                     backend = mpl.get_backend()
                     mpl.use(GUIcanvas)
                     try:
                         with mpl.style.context("night"):
-                            out = f(self, **kwargs)
+                            out = f(self, **self.params)
                     except Exception as e:
                         out = None
                         notification_manager.dispatch(Notification.from_exception(e))
@@ -574,11 +580,9 @@ class napariViewers:
                 
                 if _use_canvas:
                     self.fig.tight_layout()
-                    self.fig.canvas.draw()
-                win = viewer.window
                 
                 if out is not None:
-                    win.results.append(out)
+                    self.results.append(out)
                     
                 viewer.status = f"'{f.__name__}' returned {out}"
                 
@@ -680,14 +684,9 @@ class napariViewers:
         """        
         from ._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
-        from magicgui.widgets import Label
         
         allowed_dims = (allowed_dims,) if isinstance(allowed_dims, int) else tuple(allowed_dims)
-            
-        if hasattr(self.viewer.window, "results") and self.viewer.window.results:
-            warnings.warn("Existing results are deleted from the current window.", UserWarning)
-        self.viewer.window.results = []
-            
+                        
         def wrapper(protocol):
             if not callable(protocol):
                 raise TypeError("func must be callable.")
@@ -706,7 +705,7 @@ class napariViewers:
                 if not hasattr(self, "fig"):
                     self._add_figure()
                 else:
-                    self.viewer.window._dock_widgets["Main Plot"].show()
+                    self.viewer.window._dock_widgets[MainPlotName].show()
             
             _use_table and self.add_table()
             _use_log and self.log
@@ -745,12 +744,11 @@ class napariViewers:
                 backend = mpl.get_backend()
                 mpl.use(GUIcanvas)
                 with Progress(protocol.__name__, out=None), setLogger(std_), mpl.style.context("night"):
-                    kwargs = {wid.name: wid.value for wid in self._container if not isinstance(wid, Label)}
                     try:
                         self.proceed = proceed
-                        out = self._yielded_func(self, **kwargs)
-                        if proceed:
-                            viewer.window.results.append(out)
+                        out = self._yielded_func(self, **self.params)
+                        if not proceed:
+                            self.results.append(out)
                             
                     except Exception as e:
                         notification_manager.dispatch(Notification.from_exception(e))
@@ -765,14 +763,13 @@ class napariViewers:
                                 self._add_parameter_container(self._yielded_func)
                 
                         except StopIteration as e:
-                            viewer.window.results.append(e.value) # The last returned value is stored in e.value
+                            self.results.append(e.value) # The last returned value is stored in e.value
                             exit(viewer)
                             
-                        finally:
-                            if _use_canvas:
-                                self.fig.tight_layout()
-                                self.fig.canvas.draw()
-                    finally:  
+                    finally:
+                        if _use_canvas:
+                            self.fig.tight_layout()
+                            self.fig.canvas.draw()
                         mpl.use(backend)
                     
                 for layer in viewer.layers:
@@ -938,7 +935,7 @@ class napariViewers:
         try:
             self._fig = plt_figure()
             fig = self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 
-                                                     name="Main Plot",
+                                                     name=MainPlotName,
                                                      area="right",
                                                      allowed_areas=["right"])
             fig.setFloating(True)
@@ -947,10 +944,14 @@ class napariViewers:
             mpl.use(backend)
         return None
     
-    
     def _add_parameter_container(self, f:Callable):
         from magicgui.widgets import Container, create_widget, Label
         widget_name = "Parameter Container"
+        
+        params = inspect.signature(f).parameters
+        
+        if not f.__doc__ and len(params) == 1:
+            return None
         
         if widget_name in self.viewer.window._dock_widgets:
             # Only with clear() method, the previous parameter labels are left on the widget.
@@ -963,12 +964,8 @@ class napariViewers:
             wid.resize(140, 100)
             wid.setFloating(True)
         
-        params = inspect.signature(f).parameters
-        
         if f.__doc__:
             self._container.append(Label(value=f.__doc__))
-        elif len(params) == 1:
-            return None
             
         for i, (name, param) in enumerate(params.items()):
             if i == 0:
@@ -984,7 +981,7 @@ class napariViewers:
         return None
                 
     
-def _default_viewer_settings(viewer):
+def _default_viewer_settings(viewer:"napari.Viewer"):
     viewer.scale_bar.visible = True
     viewer.scale_bar.ticks = False
     viewer.scale_bar.font_size = 8 * Const["FONT_SIZE_FACTOR"]
@@ -993,7 +990,7 @@ def _default_viewer_settings(viewer):
     viewer.window.cmap = ColorCycle()
     return None
 
-def _load_mouse_callbacks(viewer):
+def _load_mouse_callbacks(viewer:"napari.Viewer"):
     from . import mouse
     for f in mouse.mouse_drag_callbacks:
         viewer.mouse_drag_callbacks.append(getattr(mouse, f))
@@ -1002,11 +999,17 @@ def _load_mouse_callbacks(viewer):
     for f in mouse.mouse_move_callbacks:
         viewer.mouse_move_callbacks.append(getattr(mouse, f))
 
-def _load_widgets(viewer):
+def _load_widgets(viewer:"napari.Viewer"):
     from . import menus
     for f in menus.__all__:
         getattr(menus, f)(viewer)
 
+def _add_results_widget(viewer:"napari.Viewer"):
+    results = ResultStackView(viewer)
+    viewer.window._results = results
+    dock = viewer.window.add_dock_widget(results, name=ResultsWidgetName, area="right")
+    dock.hide()
+    return results
 
 class setLogger:
     def __init__(self, gui=None):
