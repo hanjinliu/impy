@@ -578,13 +578,12 @@ class napariViewers:
                     # napari's bind_key method.
                     yield from out
                 
-                if _use_canvas:
+                if hasattr(self, "_fig"):
                     self.fig.tight_layout()
+                    self.fig.canvas.draw()
                 
                 if out is not None:
                     self.results.append(out)
-                    
-                viewer.status = f"'{f.__name__}' returned {out}"
                 
                 for layer in viewer.layers:
                     layer.refresh()
@@ -718,7 +717,7 @@ class napariViewers:
             self._yielded_func = next(gen)
             self.add_parameter_container(self._yielded_func)
             
-            def exit(viewer:"napari.Viewer"):
+            def _exit(viewer:"napari.Viewer"):
                 # delete keymap
                 viewer.keymap.pop(key1) 
                 
@@ -752,7 +751,7 @@ class napariViewers:
                             
                     except Exception as e:
                         notification_manager.dispatch(Notification.from_exception(e))
-                        exit_with_error and exit(viewer)
+                        exit_with_error and _exit(viewer)
                             
                     else:
                         try:
@@ -765,10 +764,10 @@ class napariViewers:
                         except StopIteration as e:
                             if e.value is not None:
                                 self.results.append(e.value) # The last returned value is stored in e.value
-                            exit(viewer)
+                            _exit(viewer)
                             
                     finally:
-                        if _use_canvas:
+                        if hasattr(self, "_fig"):
                             self.fig.tight_layout()
                             self.fig.canvas.draw()
                         mpl.use(backend)

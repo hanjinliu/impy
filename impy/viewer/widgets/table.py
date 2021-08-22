@@ -3,7 +3,7 @@ from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
-                            QLineEdit, QSpinBox)
+                            QLineEdit, QSpinBox, QDockWidget)
 from qtpy.QtCore import Qt
 import magicgui
 import napari
@@ -36,6 +36,7 @@ class TableWidget(QMainWindow):
         self.fig = None
         self.ax = None
         self.figure_widget = None
+        self.filter_widget = None
         self.linked_layer = None
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False, bins=10)
@@ -274,19 +275,7 @@ class TableWidget(QMainWindow):
         backend = mpl.get_backend()
         mpl.use("Agg")
         try:
-            if self.fig is None:
-                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-                
-                self.fig = plt_figure()
-                canvas = EventedCanvas(self.fig)
-                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
-                                                        area="bottom", allowed_areas=["right", "bottom"])
-                
-                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
-            else:
-                self.fig.clf()
-            self.ax = self.fig.add_subplot(111)
-            
+            self._add_figuire()
             df = self._get_selected_dataframe()
             
             with warnings.catch_warnings(), mpl.style.context("night"):
@@ -311,23 +300,12 @@ class TableWidget(QMainWindow):
         return None
     
     def hist(self):
-        from .._plt import EventedCanvas, mpl, plt_figure
+        from .._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
         backend = mpl.get_backend()
         mpl.use("Agg")
         try:
-            if self.fig is None:
-                from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-                
-                self.fig = plt_figure()
-                canvas = EventedCanvas(self.fig)
-                self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
-                                                        area="bottom", allowed_areas=["right", "bottom"])
-                
-                self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
-            else:
-                self.fig.clf()
-            self.ax = self.fig.add_subplot(111)
+            self._add_figuire()
             
             df = self._get_selected_dataframe()
             
@@ -345,6 +323,7 @@ class TableWidget(QMainWindow):
             mpl.use(backend)
         self.last_plot = "hist"
         return None
+    
     
     def restore_linked_layer(self):
         """
@@ -487,13 +466,59 @@ class TableWidget(QMainWindow):
         self.table_native.resizeColumnsToContents()
         return None
     
-    def setEditability(self, flag):
+    def setEditability(self, flag:Qt.ItemFlags):
         self.flag = flag
         for i in range(self.table_native.rowCount()):
             for j in range(self.table_native.columnCount()):
                 item = self.table_native.item(i, j)
                 item.setFlags(flag)
         
+        return None
+    
+    def add_filter(self):
+        if self.filter_widget is not None:
+            self.filter_widget.show()
+            return None
+        from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+        
+        filter_central = QWidget(self.filter_widget)
+        filter_central.setLayout(QHBoxLayout())
+        
+        filter_label = QLabel(filter_central)
+        filter_label.setText("Filter:")
+        filter_central.layout().addWidget(filter_label)
+        
+        self.filter_line = QLineEdit(filter_central)
+        self.filter_line.textChanged.connect(self._run_filter)
+        self.filter_line.editingFinished.connect(self._run_filter)
+        filter_central.layout().addWidget(self.filter_line)
+        
+        self.filter_widget = QtViewerDockWidget(self, filter_central, name="Table Filter", 
+                                                area="top", allowed_areas=["top", "bottom"])
+        
+        self.addDockWidget(self.filter_widget.qt_area, self.filter_widget)
+        return None
+    
+    def filterRows(self, column_index:int, value:str):
+        nrow = self.table_native.rowCount()
+        hide = [self.table_native.item(i, column_index).text() != value
+                for i in range(nrow)]
+        if all(hide):
+            for i in range(nrow):
+                self.table_native.setRowHidden(i, False)
+        else:
+            for i in range(nrow):
+                self.table_native.setRowHidden(i, hide[i])
+        return None
+    
+    def _run_filter(self):
+        _, selected = self._get_selected()
+                
+        if len(selected) != 1:
+            return None
+        icol = int(selected[0])
+        value = self.filter_line.text()
+        self.filterRows(icol, value)
         return None
 
     def _change_editability(self):
@@ -520,11 +545,14 @@ class TableWidget(QMainWindow):
         """        
         selected:list = self.table_native.selectedRanges() # list of QTableWidgetSelectionRange
         if len(selected) == 0:
-            return None
+            return [], []
         sl_row = set()
         sl_column = set()
         for rng in selected:
-            row_range = set(range(rng.topRow(), rng.bottomRow()+1))
+            row_range = set(filter(lambda x: (not self.table_native.isRowHidden(x)),
+                                   range(rng.topRow(), rng.bottomRow()+1))
+                            )
+            
             column_range = set(range(rng.leftColumn(), rng.rightColumn()+1))
             sl_row |= row_range
             sl_column |= column_range
@@ -555,6 +583,9 @@ class TableWidget(QMainWindow):
         resize.triggered.connect(self.table_native.resizeColumnsToContents)
         resize.setShortcut("R")
         
+        filt = QAction("Filter", self)
+        filt.triggered.connect(self.add_filter)
+        
         restore = QAction("Restore linked layer", self)
         restore.triggered.connect(self.restore_linked_layer)
                 
@@ -567,6 +598,7 @@ class TableWidget(QMainWindow):
         self.table_menu.addAction(store)
         self.table_menu.addAction(resize)
         self.table_menu.addAction(restore)
+        self.table_menu.addAction(filt)
         self.table_menu.addAction(close)
         return None
     
@@ -619,6 +651,25 @@ class TableWidget(QMainWindow):
         self.plot_menu.addAction(plot)
         self.plot_menu.addAction(hist)
         self.plot_menu.addAction(setting)
+        return None
+
+    
+    def _add_figuire(self):
+        from .._plt import EventedCanvas, plt_figure
+        
+        if self.fig is None:
+            from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+            
+            self.fig = plt_figure()
+            canvas = EventedCanvas(self.fig)
+            self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
+                                                    area="bottom", allowed_areas=["right", "bottom"])
+            
+            self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
+        else:
+            self.fig.clf()
+        self.ax = self.fig.add_subplot(111)
+        
         return None
     
     def delete_self(self):
@@ -759,7 +810,17 @@ class PlotSetting(QDialog):
         
         self.layout().addWidget(buttons)
     
+
+class FilterWidget(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent=parent)
+        self.setLayout(QHBoxLayout())
     
+    def _add_widgets(self):
+        self.line = QLineEdit(self)
+        self.line.chan
+
+
 
 class FloatDelegate(QStyledItemDelegate):
     """

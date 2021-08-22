@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt
 import napari
 
 class ResultStackView(QWidget):
-    MAX_ROW_NUMBER = 100
+    MAX_ROW_NUMBER = 50
     def __init__(self, viewer:"napari.Viewer"):
         super().__init__(viewer.window._qt_window)
         self.setLayout(QVBoxLayout())
