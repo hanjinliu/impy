@@ -198,7 +198,7 @@ class TableWidget(QMainWindow):
         
         nrow = self.table_native.rowCount()
         nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
-        properties = {"ID": nrow} if properties is None else properties
+        properties = {"ID": self.max_index} if properties is None else properties
         
         if self.linked_layer is None:
             if nrow > 0:
@@ -248,7 +248,7 @@ class TableWidget(QMainWindow):
         nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
         scale = np.array([r[2] for r in self.viewer.dims.range])
         data = np.asarray(data)
-        properties = {"ID": nrow} if properties is None else properties
+        properties = {"ID": self.max_index} if properties is None else properties
         
         if self.linked_layer is None:
             if nrow > 0:

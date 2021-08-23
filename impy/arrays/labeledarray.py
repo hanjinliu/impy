@@ -188,11 +188,9 @@ class LabeledArray(HistoryArray):
         elif self.dtype == bool:
             out = self.value
         elif self.dtype.kind == "f":
-            if 0 <= self.min() and self.max() < 1:
-                out = self.value * 256
-            else:
-                out = self.value + 0.5
-            out = np.clip(out, 0, 255)
+            out = self.value + 0.5
+            out[out<0] = 0
+            out[out>255] = 255
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
         out = out.astype(np.uint8)
@@ -205,16 +203,13 @@ class LabeledArray(HistoryArray):
         if self.dtype == np.uint16:
             return self
         if self.dtype == np.uint8:
-            out = self.value * 256
+            out = self.value.astype(np.uint16) * 256
         elif self.dtype == bool:
             out = self.value
         elif self.dtype.kind == "f":
-            if 0 <= self.min() and self.max() < 1:
-                out = self.value * 65535
-            else:
-                out = self.value + 0.5
-            out = np.clip(out, 0, 65535)
-            
+            out = self.value + 0.5
+            out[out<0] = 0
+            out[out>65535] = 65535
         else:
             raise TypeError(f"invalid data type: {self.dtype}")
         out = out.astype(np.uint16)
