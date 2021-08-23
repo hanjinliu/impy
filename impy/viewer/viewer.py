@@ -578,20 +578,22 @@ class napariViewers:
                     except Exception as e:
                         out = None
                         notification_manager.dispatch(Notification.from_exception(e))
+                    else:
+                        if isinstance(out, types.GeneratorType):
+                            # If original function returns a generator. This makes wrapper working almost same as
+                            # napari's bind_key method.
+                            yield from out
+                            out = None
+                        
+                        if hasattr(self, "_fig"):
+                            self.fig.tight_layout()
+                            self.fig.canvas.draw()
+                        
+                        if out is not None:
+                            self.results.append(out)
+                    
                     finally:
                         mpl.use(backend)
-                        
-                if isinstance(out, types.GeneratorType):
-                    # If original function returns a generator. This makes wrapper working almost same as
-                    # napari's bind_key method.
-                    yield from out
-                
-                if hasattr(self, "_fig"):
-                    self.fig.tight_layout()
-                    self.fig.canvas.draw()
-                
-                if out is not None:
-                    self.results.append(out)
                 
                 for layer in viewer.layers:
                     layer.refresh()

@@ -3,7 +3,7 @@ from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
-                            QLineEdit, QSpinBox)
+                            QLineEdit, QSpinBox, QFileDialog)
 from qtpy.QtCore import Qt
 import magicgui
 import napari
@@ -128,6 +128,7 @@ class TableWidget(QMainWindow):
             df = self._get_selected_dataframe()
         else:
             df = self.table.to_dataframe()
+        # TODO: Unnamed -> index
         return df
     
     def set_header(self, i:int, name:Any):
@@ -157,6 +158,27 @@ class TableWidget(QMainWindow):
             If True, only selected range will be send to clipboard.
         """        
         self.to_dataframe(selected).to_clipboard()
+        return None
+    
+    def save_as_csv(self):
+        dlg = QFileDialog()
+
+        hist = napari.utils.history.get_save_history()
+        dlg.setHistory(hist)
+        
+        last_hist = hist[0]
+        filename, _ = dlg.getSaveFileName(
+            parent=self.viewer.window.qt_viewer,
+            caption="Save table as csv",
+            directory=last_hist,
+        )
+
+        if filename:
+            if not filename.endswith(".csv"):
+                filename += ".csv"
+            self.to_dataframe(False).to_csv(filename)
+            napari.utils.history.update_save_history(filename)
+
         return None
     
 
@@ -583,6 +605,7 @@ class TableWidget(QMainWindow):
         
     
     def _add_table_menu(self):
+        # TODO: "Save as csv" menu
         self.table_menu = self.menu_bar.addMenu("&Table")
         
         copy_all = QAction("Copy all", self)
@@ -595,11 +618,12 @@ class TableWidget(QMainWindow):
         
         store_all = QAction("Store all", self)
         store_all.triggered.connect(self.store_as_dataframe)
-        store_all.setShortcut("Ctrl+Shift+S")
         
         store = QAction("Store selected", self)
         store.triggered.connect(lambda: self.store_as_dataframe(selected=True))
-        store.setShortcut("Ctrl+S")
+
+        save = QAction("Save as csv", self)
+        save.triggered.connect(self.save_as_csv)
         
         resize = QAction("Resize columns", self)
         resize.triggered.connect(self.table_native.resizeColumnsToContents)
@@ -618,6 +642,7 @@ class TableWidget(QMainWindow):
         self.table_menu.addAction(copy)
         self.table_menu.addAction(store_all)
         self.table_menu.addAction(store)
+        self.table_menu.addAction(save)
         self.table_menu.addAction(resize)
         self.table_menu.addAction(restore)
         self.table_menu.addAction(filt)

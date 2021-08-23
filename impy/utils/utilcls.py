@@ -68,19 +68,19 @@ class Progress:
     def __enter__(self):
         self.__class__.n_ongoing += 1
         if Const["SHOW_PROGRESS"] and self.__class__.n_ongoing == 1:
+            self.timer = Timer()
             self.stop_event = threading.Event()
             self.thread = threading.Thread(target=self.update)
             self.thread.start()
             self.out.write(f"{self.name} -")
             self.out.flush()
-            self.timer = Timer()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__class__.n_ongoing -= 1
         if Const["SHOW_PROGRESS"] and self.__class__.n_ongoing == 0:
-            self.timer.toc()
             self.stop_event.set()
             self.thread.join()
+            self.timer.toc()
             self.out.write(f"\r{self.name} finished ({self.timer})\n")
             self.out.flush()
 
