@@ -56,6 +56,8 @@ class TableWidget(QMainWindow):
         elif not isinstance(df, pd.DataFrame):
             df = np.atleast_2d(df)
         
+        self.max_index = df.shape[0]
+        
         if columns is None:
             if isinstance(df, pd.DataFrame):
                 columns = list(df.columns)
@@ -128,7 +130,8 @@ class TableWidget(QMainWindow):
             df = self._get_selected_dataframe()
         else:
             df = self.table.to_dataframe()
-        # TODO: Unnamed -> index
+        
+        df.index.name = "Index"
         return df
     
     def set_header(self, i:int, name:Any):
@@ -442,7 +445,7 @@ class TableWidget(QMainWindow):
             return self.newRow(data)
         
         self.table_native.insertRow(nrow)
-        self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(nrow)))
+        self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(self.max_index)))
         
         if not hasattr(data, "__len__"):
             return None
@@ -460,6 +463,8 @@ class TableWidget(QMainWindow):
             item = QTableWidgetItem(str(item))
             self.table_native.setItem(nrow, i, item)
             item.setFlags(self.flag)
+        
+        self.max_index += 1
         return None
     
     def appendColumn(self, data=None):
@@ -605,7 +610,6 @@ class TableWidget(QMainWindow):
         
     
     def _add_table_menu(self):
-        # TODO: "Save as csv" menu
         self.table_menu = self.menu_bar.addMenu("&Table")
         
         copy_all = QAction("Copy all", self)
@@ -643,9 +647,11 @@ class TableWidget(QMainWindow):
         self.table_menu.addAction(store_all)
         self.table_menu.addAction(store)
         self.table_menu.addAction(save)
+        self.table_menu.addSeparator()
         self.table_menu.addAction(resize)
         self.table_menu.addAction(restore)
         self.table_menu.addAction(filt)
+        self.table_menu.addSeparator()
         self.table_menu.addAction(close)
         return None
     
