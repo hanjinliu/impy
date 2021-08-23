@@ -30,6 +30,14 @@ from .._const import Const
 # - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
 
+# 0.4.11 updates
+# - layer list context menu
+# - point mask
+# - doubleclick.connect
+# - shapes event
+# - "replace custom signals to accept/reject"?
+# - highlight widget?
+
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"
 ResultsWidgetName = "Results"
@@ -126,7 +134,7 @@ class napariViewers:
         """
         Return cursor position. Scale is considered.
         """        
-        return np.array(self.viewer.cursor.position)/[r[2] for r in self.viewer.dims.range]
+        return np.array(self.viewer.cursor.position)/self.scale
     
     @property
     def axes(self) -> str:
@@ -362,7 +370,7 @@ class napariViewers:
         ndim = layer.data.ndim if ndim is None else ndim
         cursor_coords = np.array(self.viewer.cursor.position[-ndim:])
         pos = (cursor_coords - layer.translate)/layer.scale
-        return pos.astype(np.int64)
+        return (pos + 0.5).astype(np.int64)
         
     def add(self, obj:ImpyObject=None, **kwargs):
         """
@@ -807,6 +815,14 @@ class napariViewers:
         return step
     
     def stepof(self, symbol:str) -> int:
+        """
+        Get the current step of certain axis.
+
+        Parameters
+        ----------
+        symbol : str
+            Axis symbol
+        """        
         i = self.axes.find(symbol)
         return self.viewer.dims.current_step[i]
 
@@ -931,7 +947,7 @@ class napariViewers:
         backend = mpl.get_backend()
         mpl.use("Agg")
         
-        # To avoid irreversible backend change, we must ensure backend recovery by try/except.
+        # To avoid irreversible backend change, we must ensure backend recovery by try/finally.
         try:
             self._fig = plt_figure()
             fig = self.viewer.window.add_dock_widget(EventedCanvas(self._fig), 

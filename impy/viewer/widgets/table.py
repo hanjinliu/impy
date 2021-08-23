@@ -3,7 +3,7 @@ from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
-                            QLineEdit, QSpinBox, QDockWidget)
+                            QLineEdit, QSpinBox)
 from qtpy.QtCore import Qt
 import magicgui
 import napari
@@ -82,7 +82,7 @@ class TableWidget(QMainWindow):
         header = self.header
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setSectionsClickable(True)
-        header.sectionDoubleClicked.connect(self.edit_header)
+        header.sectionDoubleClicked.connect(self._edit_header)
         
         # When vertical header is double-clicked, move camera/step in viewer.
         self.table_native.verticalHeader().sectionDoubleClicked.connect(self._linked_callback)
@@ -100,7 +100,7 @@ class TableWidget(QMainWindow):
         self.setWindowTitle(self.name)
         
         self.setEditability(self.flag)
-    
+        
     def __repr__(self):
         return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
     
@@ -178,16 +178,21 @@ class TableWidget(QMainWindow):
         if self.linked_layer is None:
             if nrow > 0:
                 raise ValueError("Table already has data. Cannot make a linked layer.")
-            self.linked_layer = self.viewer.add_points(data, 
-                                                       properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
-                                                       scale=scale[-len(data):],
-                                                       size=5 if size is None else size, 
-                                                       face_color=[0, 0, 0, 0] if face_color is None else face_color, 
-                                                       edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
-                                                       name=f"Points from {self.name}", 
-                                                       n_dimensional=True,
-                                                       metadata={"linked_table": self}, 
-                                                       **kwargs)
+            
+            self.linked_layer = \
+                self.viewer.add_points(data, 
+                                       properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
+                                       scale=scale[-len(data):],
+                                       size=5 if size is None else size, 
+                                       face_color=[0, 0, 0, 0] if face_color is None else face_color, 
+                                       edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
+                                       name=f"Points from {self.name}", 
+                                       n_dimensional=True,
+                                       metadata={"linked_table": self}, 
+                                       **kwargs)
+                
+            self._connect_item_with_properties()
+            
             # TODO: listen to data change and link to add/delete in the future version of napari
             @self.linked_layer.events.data.connect
             def _(*args):
@@ -223,16 +228,19 @@ class TableWidget(QMainWindow):
         if self.linked_layer is None:
             if nrow > 0:
                 raise ValueError("Table already has data. Cannot make a linked layer.")
-            self.linked_layer = self.viewer.add_shapes([data], 
-                                                       shape_type=shape_type,
-                                                       properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
-                                                       scale=scale[-data.shape[1]:],
-                                                       face_color=[0, 0, 0, 0] if face_color is None else face_color, 
-                                                       edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
-                                                       name=f"Shapes from {self.name}",
-                                                       metadata={"linked_table": self},
-                                                       **kwargs)
             
+            self.linked_layer = \
+                self.viewer.add_shapes([data], 
+                                        shape_type=shape_type,
+                                        properties={k:np.atleast_1d(v) for k, v in properties.items()}, 
+                                        scale=scale[-data.shape[1]:],
+                                        face_color=[0, 0, 0, 0] if face_color is None else face_color, 
+                                        edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
+                                        name=f"Shapes from {self.name}",
+                                        metadata={"linked_table": self},
+                                        **kwargs)
+            
+            self._connect_item_with_properties()
             @self.linked_layer.events.data.connect
             def _(*args):
                 pass
@@ -268,9 +276,19 @@ class TableWidget(QMainWindow):
         
         return None
 
+    def _connect_item_with_properties(self):
+        @self.table_native.itemChanged.connect
+        def _(item:QTableWidgetItem):
+            if not item.isSelected():
+                return None
+            row = item.row()
+            col = item.column()
+            colname = self.columns[col]
+            self.linked_layer.properties[colname][row] = item.text()
+        return None
     
     def plot(self):
-        from .._plt import EventedCanvas, mpl, plt_figure
+        from .._plt import mpl
         from napari.utils.notifications import Notification, notification_manager
         backend = mpl.get_backend()
         mpl.use("Agg")
@@ -468,6 +486,7 @@ class TableWidget(QMainWindow):
     
     def setEditability(self, flag:Qt.ItemFlags):
         self.flag = flag
+        self.table_native.clearSelection()
         for i in range(self.table_native.rowCount()):
             for j in range(self.table_native.columnCount()):
                 item = self.table_native.item(i, j)
@@ -681,7 +700,7 @@ class TableWidget(QMainWindow):
         self.viewer.window.remove_dock_widget(dock)
         return None
     
-    def edit_header(self, i:int):
+    def _edit_header(self, i:int):
         """
         Enter edit header mode when a header item is double-clicked.
 
