@@ -565,31 +565,30 @@ class napariViewers:
                     return None
                 
                 std_ = self if use_logger else None
-                with Progress(f.__name__, out=None), setLogger(std_):
-                    backend = mpl.get_backend()
-                    mpl.use(GUIcanvas)
+                backend = mpl.get_backend()
+                mpl.use(GUIcanvas)
+                with Progress(f.__name__, out=None), setLogger(std_), mpl.style.context("night"):
                     try:
-                        with mpl.style.context("night"):
-                            out = f(self, **self.params)
+                        out = f(self, **self.params)
                     except Exception as e:
                         out = None
-                        notification_manager.dispatch(Notification.from_exception(e))
-                    else:
-                        if isinstance(out, types.GeneratorType):
-                            # If original function returns a generator. This makes wrapper working almost same as
-                            # napari's bind_key method.
-                            yield from out
-                            out = None
-                        
-                        if hasattr(self, "_fig"):
-                            self.fig.tight_layout()
-                            self.fig.canvas.draw()
-                        
-                        if out is not None:
-                            self.results.append(out)
-                    
-                    finally:
                         mpl.use(backend)
+                        notification_manager.dispatch(Notification.from_exception(e))
+                                            
+                        
+                if isinstance(out, types.GeneratorType):
+                    # If original function returns a generator. This makes wrapper working almost same as
+                    # napari's bind_key method.
+                    yield from out
+                
+                elif out is not None:
+                    self.results.append(out)
+                
+                if hasattr(self, "_fig"):
+                    self.fig.tight_layout()
+                    self.fig.canvas.draw()
+                    
+                mpl.use(backend)
                 
                 for layer in viewer.layers:
                     layer.refresh()
