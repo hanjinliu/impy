@@ -190,9 +190,8 @@ def _text_bound_init(new_layer):
     else:
         pass
 
-def viewer_imread(viewer:"napari.Viewer", path:str):
-    size = os.path.getsize(path)/1e9
-    if size < Const["MAX_GB"]:
+def viewer_imread(viewer:"napari.Viewer", path:str):    
+    if "*" in path or os.path.getsize(path)/1e9 < Const["MAX_GB"]:
         img = imread(path)
     else:
         img = lazy_imread(path)

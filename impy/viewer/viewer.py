@@ -380,8 +380,7 @@ class napariViewers:
         ----------
         obj : ImpyObject
             Object to add.
-        """
-        
+        """        
         # Add image and its labels
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
@@ -410,8 +409,7 @@ class napariViewers:
         elif isinstance(obj, LazyImgArray):
             if obj.gb > Const["MAX_GB"] and self.viewer.dims.ndisplay == 3:
                 raise MemoryError("Cannot send large files while the viewer is 3D mode.")
-            with Progress("Sending Dask arrays to napari"):
-                add_dask(self.viewer, obj, **kwargs)
+            add_dask(self.viewer, obj, **kwargs)
         
         # Add an array as an image
         elif type(obj) is np.ndarray:
@@ -423,8 +421,6 @@ class napariViewers:
         
         # Add an image from a path
         elif isinstance(obj, str):
-            if not os.path.exists(obj):
-                raise FileNotFoundError(f"Path does not exists: {obj}")
             viewer_imread(self.viewer, obj)
             
         # Add many objects of same type
