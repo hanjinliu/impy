@@ -1590,7 +1590,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record(append_history=False)
-    def split_pixel_unit(self, center:tuple[float, float]=(0, 0), *, order:int=1,
+    def split_pixel_unit(self, center:tuple[float, float]=(0.5, 0.5), *, order:int=1,
                            angle_order:list[int]=None, newaxis="<") -> ImgArray:
         r"""
         Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, image 
@@ -1662,12 +1662,11 @@ class ImgArray(LabeledArray):
             angle_order = [2, 1, 0, 3]
         imgs = []
         for y, x in [(0,0), (0,1), (1,1), (1,0)]:
-            dr = [(xc-x)/2, (yc-y)/2]
-            imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order).value)
-        imgs = np.stack(imgs, axis=0)
-        imgs = imgs[angle_order]
-        imgs = imgs.view(self.__class__)
-        imgs._set_info(self, "split_pixel_unit", newaxis + str(self.axes))
+            dr = [(yc-y)/2, (xc-x)/2]
+            imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order, dims="yx"))
+        imgs = np.stack(imgs, axis=newaxis)
+        imgs = imgs[f"{newaxis}={str(angle_order)[1:-1]}"]
+        imgs._set_info(self, "split_pixel_unit", new_axes=imgs.axes)
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
         

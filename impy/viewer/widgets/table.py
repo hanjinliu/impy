@@ -541,7 +541,6 @@ class TableWidget(QMainWindow):
         filter_central.layout().addWidget(filter_label)
         
         self.filter_line = QLineEdit(filter_central)
-        self.filter_line.textChanged.connect(self._run_filter)
         self.filter_line.editingFinished.connect(self._run_filter)
         filter_central.layout().addWidget(self.filter_line)
         
