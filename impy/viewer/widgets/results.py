@@ -7,6 +7,7 @@ class ResultStackView(QWidget):
     MAX_ROW_NUMBER = 50
     def __init__(self, viewer:"napari.Viewer"):
         super().__init__(viewer.window._qt_window)
+        self.viewer = viewer
         self.setLayout(QVBoxLayout())
         self._list = []
         self._add_table()        
@@ -21,7 +22,14 @@ class ResultStackView(QWidget):
         return iter(self._list)
     
     def __repr__(self):
-        return f"{self.__class__.__name__} with \n{self._list}"
+        names = []
+        for x in self._list:
+            s = repr(x)
+            if len(s) < 42:
+                names.append(s)
+            else:
+                names.append(s.__class__.__name__)
+        return f"{self.__class__.__name__} with \n{names}"
     
     def append(self, result):
         self._list.append(result)
@@ -41,8 +49,12 @@ class ResultStackView(QWidget):
         
         # scroll to the last
         item = self.table.item(nrow, 0)
-        self.table.scrollToItem(item, QAbstractItemView.PositionAtTop)
+        self.table.scrollToItem(item, hint=QAbstractItemView.PositionAtTop)
         self.table.resizeColumnsToContents()
+        
+        if len(self._list) == 1:
+            from ..viewer import ResultsWidgetName
+            self.viewer.window._dock_widgets[ResultsWidgetName].show()
         return None
     
     def pop(self, i:int=-1):

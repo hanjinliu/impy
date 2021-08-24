@@ -195,11 +195,14 @@ class TableWidget(QMainWindow):
             data = np.array(self.viewer.cursor.position) / scale
         else:
             data = np.asarray(data)
+            if data.ndim != 1:
+                raise ValueError("1-D array required.")
         
         nrow = self.table_native.rowCount()
         nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
-        properties = {"ID": self.max_index} if properties is None else properties
-        
+        if properties is None:
+            properties = {self.viewer.dims.axis_labels[k]: data[k] for k in range(data.size)}
+            
         if self.linked_layer is None:
             if nrow > 0:
                 raise ValueError("Table already has data. Cannot make a linked layer.")
