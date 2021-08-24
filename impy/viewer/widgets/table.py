@@ -719,7 +719,7 @@ class TableWidget(QMainWindow):
             canvas = EventedCanvas(self.fig)
             self.figure_widget = QtViewerDockWidget(self, canvas, name="Figure",
                                                     area="bottom", allowed_areas=["right", "bottom"])
-            
+            self.figure_widget.setMinimumHeight(120)
             self.addDockWidget(self.figure_widget.qt_area, self.figure_widget)
         else:
             self.fig.clf()

@@ -952,6 +952,7 @@ class napariViewers:
                                                      area="right",
                                                      allowed_areas=["right"])
             fig.setFloating(True)
+            fig.setMinimumHeight(120)
             
         finally:
             mpl.use(backend)

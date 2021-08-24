@@ -14,7 +14,6 @@ from .table import read_csv
 from .textedit import read_txt
 from ..utils import viewer_imread, add_labeledarray
 from ...core import imread
-from ..._const import Const
 
 class Explorer(QWidget):
     """
