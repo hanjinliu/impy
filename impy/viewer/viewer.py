@@ -576,13 +576,13 @@ class napariViewers:
                         notification_manager.dispatch(Notification.from_exception(e))
                                             
                         
-                if isinstance(out, types.GeneratorType):
-                    # If original function returns a generator. This makes wrapper working almost same as
-                    # napari's bind_key method.
-                    yield from out
-                
-                elif out is not None:
-                    self.results.append(out)
+                    if isinstance(out, types.GeneratorType):
+                        # If original function returns a generator. This makes wrapper working almost same as
+                        # napari's bind_key method.
+                        yield from out
+                    
+                    elif out is not None:
+                        self.results.append(out)
                 
                 if hasattr(self, "_fig"):
                     self.fig.tight_layout()
