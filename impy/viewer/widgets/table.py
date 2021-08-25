@@ -3,7 +3,7 @@ from typing import Any
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
-                            QLineEdit, QSpinBox, QFileDialog)
+                            QLineEdit, QSpinBox, QFileDialog, QAbstractItemView)
 from qtpy.QtCore import Qt
 import magicgui
 import napari
@@ -117,6 +117,16 @@ class TableWidget(QMainWindow):
         elif not isinstance(layer, (napari.layers.Shapes, napari.layers.Points)):
             raise TypeError(f"Cannot set {type(layer)}")
         self._linked_layer = layer
+        @layer.mouse_drag_callbacks.append
+        def link_selection_to_table(layer, event):
+            first_item = None
+            yield
+            for i in layer.selected_data:
+                self.table_native.selectRow(i)
+                if first_item is None:
+                    first_item = self.table_native.item(i,0)
+            
+            self.table_native.scrollToItem(first_item, hint=QAbstractItemView.PositionAtTop)
         self._connect_item_with_properties()
         return None        
 
@@ -227,7 +237,8 @@ class TableWidget(QMainWindow):
         nrow = self.table_native.rowCount()
         nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
         if properties is None:
-            properties = {self.viewer.dims.axis_labels[k]: data[k] for k in range(data.size)}
+            axes = self.viewer.dims.axis_labels[-data.size:]
+            properties = {axes[k]: data[k] for k in range(data.size)}
             
         if self.linked_layer is None:
             if nrow > 0:
@@ -478,6 +489,8 @@ class TableWidget(QMainWindow):
         self.table_native.insertRow(nrow)
         self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(self.max_index)))
         
+        self.max_index += 1
+        
         if not hasattr(data, "__len__"):
             return None
         elif isinstance(data, dict):
@@ -495,7 +508,6 @@ class TableWidget(QMainWindow):
             self.table_native.setItem(nrow, i, item)
             item.setFlags(self.flag)
         
-        self.max_index += 1
         return None
     
     def appendColumn(self, data=None):
