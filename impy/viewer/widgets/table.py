@@ -37,7 +37,7 @@ class TableWidget(QMainWindow):
         self.ax = None
         self.figure_widget = None
         self.filter_widget = None
-        self.linked_layer = None
+        self._linked_layer = None
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False, bins=10)
         self.last_plot = "plot"
@@ -107,6 +107,20 @@ class TableWidget(QMainWindow):
         return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
     
     @property
+    def linked_layer(self) -> "napari.components.Layer":
+        return self._linked_layer
+    
+    @linked_layer.setter
+    def linked_layer(self, layer):
+        if self.linked_layer is not None:
+            raise AttributeError("Cannot set linked layer again.")
+        elif not isinstance(layer, (napari.layers.Shapes, napari.layers.Points)):
+            raise TypeError(f"Cannot set {type(layer)}")
+        self._linked_layer = layer
+        self._connect_item_with_properties()
+        return None        
+
+    @property
     def columns(self) -> tuple:
         return self.table.column_headers
     
@@ -135,7 +149,19 @@ class TableWidget(QMainWindow):
         return df
     
     def set_header(self, i:int, name:Any):
-        self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(str(name)))
+        # This method is called when
+        # - a new column is created
+        # - header to row
+        newname = str(name)
+        self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(newname))
+        return None
+    
+    def set_header_and_properties(self, i:int, name:Any):
+        newname = str(name)
+        oldname = str(self.columns[i])
+        self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(newname))
+        if self.linked_layer is not None:
+            self.linked_layer.properties[newname] = self.linked_layer.properties.pop(oldname)
         return None
     
     def store_as_dataframe(self, selected=False):
@@ -219,8 +245,6 @@ class TableWidget(QMainWindow):
                                        metadata={"linked_table": self}, 
                                        **kwargs)
                 
-            self._connect_item_with_properties()
-            
             # TODO: listen to data change and link to add/delete in the future version of napari
             @self.linked_layer.events.data.connect
             def _(*args):
@@ -268,7 +292,6 @@ class TableWidget(QMainWindow):
                                         metadata={"linked_table": self},
                                         **kwargs)
             
-            self._connect_item_with_properties()
             @self.linked_layer.events.data.connect
             def _(*args):
                 pass
@@ -311,11 +334,11 @@ class TableWidget(QMainWindow):
                 return None
             row = item.row()
             col = item.column()
-            colname = self.columns[col]
-            try:
-                self.linked_layer.properties[colname][row] = item.text()
-            except KeyError:
-                pass
+            colname = str(self.columns[col])
+            # try:
+            self.linked_layer.properties[colname][row] = item.text()
+            # except KeyError:
+            #     pass
         return None
     
     def plot(self):
@@ -389,6 +412,8 @@ class TableWidget(QMainWindow):
         """
         Convert table header to the top row.
         """        
+        if self.linked_layer is not None:
+            raise ValueError("Cannot convert header to row when linked layer exists.")
         self.table_native.insertRow(0)
         for i, item in enumerate(self.columns):
             self.table_native.setItem(0, i, QTableWidgetItem(str(item)))
@@ -417,6 +442,9 @@ class TableWidget(QMainWindow):
         """        
         rows, cols = self._get_selected()
         for i in reversed(cols):
+            if self.linked_layer is not None:
+                colname = str(self.columns[i])
+                self.linked_layer.properties.pop(colname)
             self.table_native.removeColumn(i)
         return None
         
@@ -476,10 +504,16 @@ class TableWidget(QMainWindow):
         """        
         ncol = self.table_native.columnCount()
         self.table_native.insertColumn(ncol)
-        self.set_header(ncol, ncol)
+        
+        # search for an unique name
+        colname = ncol
+        columns = self.columns
+        while colname in columns:
+            colname += 1
+        colname = str(colname)
         
         if not hasattr(data, "__len__"):
-            return None
+            data = [""]*self.table_native.rowCount()
         elif isinstance(data, dict):
             raise TypeError("dict input is not been implemented yet.")
         elif len(data) > self.table_native.rowCount():
@@ -489,7 +523,11 @@ class TableWidget(QMainWindow):
             item = QTableWidgetItem(str(item))
             self.table_native.setItem(i, ncol, item)
             item.setFlags(self.flag)
+            
+        if self.linked_layer is not None:
+            self.linked_layer.properties[colname] = np.array(data, dtype="<U32")
                 
+        self.set_header(ncol, colname)
         self.table_native.resizeColumnsToContents()
         
         return None
@@ -749,6 +787,8 @@ class TableWidget(QMainWindow):
         ----------
         - https://www.qtcentre.org/threads/42388-Make-QHeaderView-Editable
         """        
+        if self.flag == NotEditable:
+            return None
         line = QLineEdit(parent=self.header)
 
         # set geometry
@@ -767,7 +807,7 @@ class TableWidget(QMainWindow):
         @self._line.editingFinished.connect
         def _():
             self._line.setHidden(True)
-            self.set_header(i, self._line.text())
+            self.set_header_and_properties(i, self._line.text())
         
         return None
 

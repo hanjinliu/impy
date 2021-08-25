@@ -385,7 +385,7 @@ def add_time_stamper_menu(viewer:"napari.Viewer"):
     return None
 
 def add_get_props_menu(viewer:"napari.Viewer"):
-    action = QAction("Get Properties", viewer.window._qt_window)
+    action = QAction("Open property table", viewer.window._qt_window)
     action.setStatusTip("Get properties from selected layer(s) and show in table widget(s).")
     @action.triggered.connect
     @catch_notification
@@ -397,6 +397,8 @@ def add_get_props_menu(viewer:"napari.Viewer"):
         for layer in layers:
             name = f"Properties of {layer.name}"
             widget = TableWidget(viewer, layer.properties, name=name)
+            if isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
+                widget.linked_layer = layer
             viewer.window.add_dock_widget(widget, area="right", name=name)
             
         return None
