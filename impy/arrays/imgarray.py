@@ -2885,9 +2885,9 @@ class ImgArray(LabeledArray):
                                c_axes=complement_axes(dims, self.axes)
                                )
     
-    
+    @dims_to_spatial_axes
     @record()
-    def ncc_filter(self, template:np.ndarray, bg:float=None) -> ImgArray:
+    def ncc_filter(self, template:np.ndarray, bg:float=None, *, dims=None) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
         identical to that in `skimage.feature`, but is optimized for batch processing and improved 
@@ -2900,6 +2900,7 @@ class ImgArray(LabeledArray):
         bg : float, optional
             Background intensity. If not given, it will calculated as the minimum value of 
             the original image.
+        {dims}
 
         Returns
         -------
@@ -2908,7 +2909,9 @@ class ImgArray(LabeledArray):
         """        
         template = _check_template(template)
         bg = _check_bg(self, bg)
-        dims = "yx" if template.ndim == 2 else "zyx"
+        if len(dims) != template.ndim:
+            raise ValueError("dims and the number of template dimension don't match.")
+        
         return self.as_float().apply_dask(_filters.ncc_filter,
                                           c_axes=complement_axes(dims, self.axes), 
                                           args=(template, bg)
