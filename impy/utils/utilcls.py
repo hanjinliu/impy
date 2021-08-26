@@ -46,6 +46,8 @@ class Progress:
     def __init__(self, name, out=sys.stdout):
         self.name = name
         self.timer = None
+        self.stop_event = None
+        self.thread = None
         if out is None:
             self.out = DummyOut()
         elif out == "stdout":
@@ -76,11 +78,15 @@ class Progress:
             self.out.flush()
 
     def __exit__(self, exc_type, exc_value, traceback):
+        # We must be careful not to make any error here.
         self.__class__.n_ongoing -= 1
-        if Const["SHOW_PROGRESS"] and self.__class__.n_ongoing == 0:
+        if self.stop_event is not None:
             self.stop_event.set()
+        if self.thread is not None:
             self.thread.join()
-            self.timer.toc()
+        if Const["SHOW_PROGRESS"] and self.__class__.n_ongoing == 0:
+            if self. timer is not None:
+                self.timer.toc()
             self.out.write(f"\r{self.name} finished ({self.timer})\n")
             self.out.flush()
 
