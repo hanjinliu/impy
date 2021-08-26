@@ -128,6 +128,7 @@ class TableWidget(QMainWindow):
             
             self.table_native.scrollToItem(first_item, hint=QAbstractItemView.PositionAtTop)
         self._connect_item_with_properties()
+        layer.metadata.update({"linked_table": self})
         return None        
 
     @property
@@ -253,7 +254,6 @@ class TableWidget(QMainWindow):
                                        edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
                                        name=f"Points from {self.name}", 
                                        n_dimensional=True,
-                                       metadata={"linked_table": self}, 
                                        **kwargs)
                 
             # TODO: listen to data change and link to add/delete in the future version of napari
@@ -300,7 +300,6 @@ class TableWidget(QMainWindow):
                                         face_color=[0, 0, 0, 0] if face_color is None else face_color, 
                                         edge_color=[0, 1, 0, 1] if edge_color is None else edge_color, 
                                         name=f"Shapes from {self.name}",
-                                        metadata={"linked_table": self},
                                         **kwargs)
             
             @self.linked_layer.events.data.connect
@@ -782,6 +781,8 @@ class TableWidget(QMainWindow):
         Remove from the dock widget list of the parent viewer.
         """        
         self.removeDockWidget(self.figure_widget)
+        if self.linked_layer is not None:
+            self.linked_layer.metadata.pop("linked_table", None)
         dock = self.viewer.window._dock_widgets[self.name]
         self.viewer.window.remove_dock_widget(dock)
         return None
