@@ -345,10 +345,8 @@ class TableWidget(QMainWindow):
             row = item.row()
             col = item.column()
             colname = str(self.columns[col])
-            # try:
             self.linked_layer.properties[colname][row] = item.text()
-            # except KeyError:
-            #     pass
+            
         return None
     
     def plot(self):

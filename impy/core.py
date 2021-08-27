@@ -610,7 +610,7 @@ def lazy_imread(path, chunks="default", *, squeeze:bool=False) -> LazyImgArray:
         # read lateral scale if possible
         scale = get_scale_from_meta(meta)
         self.set_scale(**scale)
-        return self
+        return self.sort_axes()
 
 def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     """

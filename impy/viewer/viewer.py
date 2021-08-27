@@ -35,7 +35,7 @@ from .._const import Const
 # - point mask
 # - doubleclick.connect
 # - shapes event
-# - "replace custom signals to accept/reject"?
+# - check EventedDict.
 # - highlight widget?
 
 ImpyObject = NewType("ImpyObject", Any)
