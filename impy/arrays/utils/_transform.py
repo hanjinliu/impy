@@ -24,6 +24,7 @@ def warp(img, matrix, cval=0, mode="constant", output_shape=None, order=1):
 
 def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):
     # These two modules returns consistent matrix in the two dimensional case.
+    # rotation must be in radian.
     if ndim == 2:
         af = sktrans.AffineTransform(scale=scale, translation=translation, rotation=rotation, shear=shear)
         mx = af.params
@@ -37,6 +38,8 @@ def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=Non
             translation = [0]*ndim
         elif np.isscalar(translation):
             translation = [translation]*ndim
+        if rotation is not None:
+            rotation = np.rad2deg(rotation)
         
         af = Affine(scale=scale, translate=translation, rotate=rotation, shear=shear)
         mx = af.affine_matrix
