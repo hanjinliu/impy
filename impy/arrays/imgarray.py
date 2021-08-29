@@ -337,7 +337,7 @@ class ImgArray(LabeledArray):
         elif len(center) != len(dims):
             raise ValueError(f"Length of `center` must match input dimensionality '{dims}'.")
         
-        r = np.sqrt(sum(((x - c)/self.scale[a])**2 for x, c, a in zip(inds, center, dims)))
+        r = np.sqrt(sum(((x - c)*self.scale[a])**2 for x, c, a in zip(inds, center, dims)))
         r_lim = r.max()
         
         # check r_max
@@ -348,7 +348,7 @@ class ImgArray(LabeledArray):
         
         # make radially separated labels
         r_rel = r/r_max
-        labels = (nbin * r_rel).astype(np.uint16)
+        labels = (nbin * r_rel).astype(np.uint16) + 1
         labels[r_rel >= 1] = 0
         
         c_axes = complement_axes(dims, self.axes)
