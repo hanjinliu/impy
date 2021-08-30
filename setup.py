@@ -21,7 +21,7 @@ setup(name="impy",
             "matplotlib",
             "pandas>=1",
             "dask>=2021.6.0",
-            "tifffile>=2021.6.14"
+            "tifffile>=2021.6.14",
             "napari>=0.4.9",
       ],
       python_requires=">=3.7",
