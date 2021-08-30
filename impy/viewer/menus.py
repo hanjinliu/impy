@@ -412,7 +412,7 @@ def add_text_layer_menu(viewer:"napari.Viewer"):
     @action.triggered.connect
     @catch_notification
     def _(*args):
-        layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")
+        layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")        
         layer.mode = "add_rectangle"
         layer.blending = "additive"
         layer.current_edge_width = 2.0 # unit is pixel here

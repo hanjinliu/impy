@@ -177,18 +177,8 @@ def _text_bound_init(new_layer):
             layer.text.size += 1.0
         else:
             layer.text.size /= 0.8
-            
-    n_obj = len(new_layer.data)
     
-    if n_obj == 0 or new_layer.properties == {}:
-        new_layer.current_properties = {"text": np.array([""], dtype="<U32")}
-        new_layer.properties = {"text": np.array([""]*n_obj, dtype="<U32")}
-        new_layer.text = "{text}"
-        new_layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
-        new_layer.text.color = "#dd23cb"
-        new_layer.text.anchor = "upper_left"
-    else:
-        pass
+    return None
 
 def viewer_imread(viewer:"napari.Viewer", path:str):    
     if "*" in path or os.path.getsize(path)/1e9 < Const["MAX_GB"]:
