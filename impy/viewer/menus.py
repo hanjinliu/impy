@@ -396,6 +396,9 @@ def add_get_props_menu(viewer:"napari.Viewer"):
         
         for layer in layers:
             name = f"Properties of {layer.name}"
+            ndata = len(layer.data)
+            if layer.properties == {} and ndata > 0:
+                layer.properties = {"1": np.array([""]*ndata, dtype="<U32")}
             widget = TableWidget(viewer, layer.properties, name=name)
             if isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
                 widget.linked_layer = layer

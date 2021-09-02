@@ -20,8 +20,9 @@ def read_csv(viewer:"napari.Viewer", path):
 Editable = Qt.ItemFlags(63)    # selectable, editable, drag-enabled, drop-enabled, checkable
 NotEditable = Qt.ItemFlags(61) # selectable, not-editable, drag-enabled, drop-enabled, checkable
 
-# TODO: block 1,2,3,..., [, ] when table is not editable
-# https://stackoverflow.com/questions/48299384/disable-keyevent-for-unneeded-qwidget
+# TODO: 
+# - block 1,2,3,..., [, ] when table is not editable
+#   https://stackoverflow.com/questions/48299384/disable-keyevent-for-unneeded-qwidget
 
 class TableWidget(QMainWindow):
     """
@@ -46,7 +47,7 @@ class TableWidget(QMainWindow):
         self.last_plot = "plot"
         self.flag = NotEditable
         
-        if df is None:
+        if df is None or df == {}:
             if columns is None:
                 df = np.atleast_2d([])
             else:
@@ -82,6 +83,10 @@ class TableWidget(QMainWindow):
         self.table_native:QTableWidget = self.table.native
         self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
         self.table_native.resizeColumnsToContents()
+        @self.table_native.itemChanged.connect
+        def _(item):
+            i = item.column()
+            self.table_native.resizeColumnToContents(i)
         
         # When horizontal header is double-clicked, table enters edit mode.
         header = self.header
@@ -144,7 +149,8 @@ class TableWidget(QMainWindow):
         @layer.events.data.connect
         def _(event):
             nrow = self.table_native.rowCount()
-            if event.value.shape[0] > nrow:
+            ncol = self.table_native.columnCount()
+            if len(event.value) > min(nrow, nrow*ncol):
                 self._appendRow()
             self._read_selected_data_from_layer(event.source)
         
@@ -204,7 +210,9 @@ class TableWidget(QMainWindow):
         oldname = str(self.header_as_tuple[i])
         self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(newname))
         if self.linked_layer is not None:
-            self.linked_layer.properties[newname] = self.linked_layer.properties.pop(oldname)
+            prop:dict = self.linked_layer.properties
+            prop[newname] = prop.pop(oldname)
+            self.linked_layer.properties = prop
         return None
     
     def store_as_dataframe(self, selected=False):
@@ -518,9 +526,8 @@ class TableWidget(QMainWindow):
         self.table_native.setVerticalHeaderItem(nrow, QTableWidgetItem(str(self.max_index)))
         
         self.max_index += 1
-        
         if not hasattr(data, "__len__"):
-            return None
+            data = [""] * ncol
         elif isinstance(data, dict):
             header = self.table.column_headers
             data_ = [""] * len(header)
@@ -565,7 +572,9 @@ class TableWidget(QMainWindow):
             item.setFlags(self.flag)
             
         if self.linked_layer is not None:
-            self.linked_layer.properties[colname] = np.array(data, dtype="<U32")
+            prop:dict = self.linked_layer.properties
+            prop[colname] = np.array(data, dtype="<U32")
+            self.linked_layer.properties = prop
                 
         self.set_header(ncol, colname)
         self.table_native.resizeColumnsToContents()
@@ -850,6 +859,7 @@ class TableWidget(QMainWindow):
         def _():
             self._line.setHidden(True)
             self.set_header_and_properties(i, self._line.text())
+            self.table_native.resizeColumnToContents(i)
         
         return None
 

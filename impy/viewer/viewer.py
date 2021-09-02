@@ -34,8 +34,6 @@ from .._const import Const
 # - layer list context menu
 # - point mask
 # - doubleclick.connect
-# - shapes event
-# - check EventedDict.
 
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"
