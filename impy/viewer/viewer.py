@@ -36,7 +36,6 @@ from .._const import Const
 # - doubleclick.connect
 # - shapes event
 # - check EventedDict.
-# - highlight widget?
 
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"

@@ -20,6 +20,9 @@ def read_csv(viewer:"napari.Viewer", path):
 Editable = Qt.ItemFlags(63)    # selectable, editable, drag-enabled, drop-enabled, checkable
 NotEditable = Qt.ItemFlags(61) # selectable, not-editable, drag-enabled, drop-enabled, checkable
 
+# TODO: block 1,2,3,..., [, ] when table is not editable
+# https://stackoverflow.com/questions/48299384/disable-keyevent-for-unneeded-qwidget
+
 class TableWidget(QMainWindow):
     """
     +-------------------------------+
@@ -116,23 +119,52 @@ class TableWidget(QMainWindow):
             raise AttributeError("Cannot set linked layer again.")
         elif not isinstance(layer, (napari.layers.Shapes, napari.layers.Points)):
             raise TypeError(f"Cannot set {type(layer)}")
+        
         self._linked_layer = layer
+        
+        # highlight row(s) if object(s) are selected in the viewer.
         @layer.mouse_drag_callbacks.append
-        def link_selection_to_table(layer, event):
-            first_item = None
-            yield
-            for i in layer.selected_data:
-                self.table_native.selectRow(i)
-                if first_item is None:
-                    first_item = self.table_native.item(i,0)
-            
-            self.table_native.scrollToItem(first_item, hint=QAbstractItemView.PositionAtTop)
+        def link_selection_to_table(_layer, event):
+            while event.type != "mouse_release":
+                yield
+            self._read_selected_data_from_layer(_layer)
+        
+        # delete row(s) if object(s) are deleted in the viewer.
+        def delete_selected_points(layer):
+            selected = sorted(layer.selected_data)
+            for i in reversed(selected):
+                self.table_native.removeRow(i)
+            layer.remove_selected()
+        
+        layer.bind_key("Delete", delete_selected_points, overwrite=True)
+        layer.bind_key("Backspace", delete_selected_points, overwrite=True)
+        layer.bind_key("1", delete_selected_points, overwrite=True)
+        
+        # add an empty row if new object is added in the viewer.
+        @layer.events.data.connect
+        def _(event):
+            nrow = self.table_native.rowCount()
+            if event.value.shape[0] > nrow:
+                self._appendRow()
+            self._read_selected_data_from_layer(event.source)
+        
         self._connect_item_with_properties()
         layer.metadata.update({"linked_table": self})
         return None        
+    
+    def _read_selected_data_from_layer(self, layer):
+        first_item = None
+        self.table_native.clearSelection()
+        for i in layer.selected_data:
+            self.table_native.selectRow(i)
+            if first_item is None:
+                first_item = self.table_native.item(i,0)
+        
+        self.table_native.scrollToItem(first_item, hint=QAbstractItemView.PositionAtTop)
+        return None
 
     @property
-    def columns(self) -> tuple:
+    def header_as_tuple(self) -> tuple:
         return self.table.column_headers
     
     @property
@@ -169,7 +201,7 @@ class TableWidget(QMainWindow):
     
     def set_header_and_properties(self, i:int, name:Any):
         newname = str(name)
-        oldname = str(self.columns[i])
+        oldname = str(self.header_as_tuple[i])
         self.table_native.setHorizontalHeaderItem(i, QTableWidgetItem(newname))
         if self.linked_layer is not None:
             self.linked_layer.properties[newname] = self.linked_layer.properties.pop(oldname)
@@ -255,13 +287,10 @@ class TableWidget(QMainWindow):
                                        name=f"Points from {self.name}", 
                                        n_dimensional=True,
                                        **kwargs)
-                
-            # TODO: listen to data change and link to add/delete in the future version of napari
-            @self.linked_layer.events.data.connect
-            def _(*args):
-                pass
+                            
         elif isinstance(self.linked_layer, napari.layers.Points):
-            self.linked_layer.add(data)
+            with self.linked_layer.events.blocker_all():
+                self.linked_layer.add(data)
             if size is not None:
                 self.linked_layer.current_size = size
             if face_color is not None:
@@ -306,7 +335,8 @@ class TableWidget(QMainWindow):
             def _(*args):
                 pass
         elif isinstance(self.linked_layer, napari.layers.Shapes):
-            self.linked_layer.add(data, shape_type=shape_type, edge_color=edge_color, face_color=face_color)
+            with self.linked_layer.events.blocker_all():
+                self.linked_layer.add(data, shape_type=shape_type, edge_color=edge_color, face_color=face_color)
             if properties is not None:
                 self.linked_layer.current_properties.update(properties)
         else:
@@ -344,7 +374,7 @@ class TableWidget(QMainWindow):
                 return None
             row = item.row()
             col = item.column()
-            colname = str(self.columns[col])
+            colname = str(self.header_as_tuple[col])
             self.linked_layer.properties[colname][row] = item.text()
             
         return None
@@ -423,7 +453,7 @@ class TableWidget(QMainWindow):
         if self.linked_layer is not None:
             raise ValueError("Cannot convert header to row when linked layer exists.")
         self.table_native.insertRow(0)
-        for i, item in enumerate(self.columns):
+        for i, item in enumerate(self.header_as_tuple):
             self.table_native.setItem(0, i, QTableWidgetItem(str(item)))
             self.set_header(i, i)
         for i in range(self.table_native.rowCount()):
@@ -437,7 +467,8 @@ class TableWidget(QMainWindow):
         rows, cols = self._get_selected()
         for i in reversed(rows):
             self.table_native.removeRow(i)
-
+            
+        # BUG: when multiple rows are deleted, wrong points/shapes are deleted
         # If a points layer is linked, also delete points. 
         if self.linked_layer is not None:
             self.linked_layer.selected_data = set(rows)
@@ -451,7 +482,7 @@ class TableWidget(QMainWindow):
         rows, cols = self._get_selected()
         for i in reversed(cols):
             if self.linked_layer is not None:
-                colname = str(self.columns[i])
+                colname = str(self.header_as_tuple[i])
                 self.linked_layer.properties.pop(colname)
             self.table_native.removeColumn(i)
         return None
@@ -516,7 +547,7 @@ class TableWidget(QMainWindow):
         
         # search for an unique name
         colname = ncol
-        columns = self.columns
+        columns = self.header_as_tuple
         while colname in columns:
             colname += 1
         colname = str(colname)
@@ -808,7 +839,7 @@ class TableWidget(QMainWindow):
         edit_geometry.moveLeft(self.header.sectionViewportPosition(i))
         line.setGeometry(edit_geometry)
         
-        line.setText(str(self.columns[i]))
+        line.setText(str(self.header_as_tuple[i]))
         line.setHidden(False)
         line.setFocus()
         line.selectAll()
