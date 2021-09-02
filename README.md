@@ -38,7 +38,7 @@ ip.gui.add(img)
 
 `impy`'s viewer also provides **many useful widgets and functions** such as 
 
-- Excel-like table
+- Excel-like table for data analysis, layer property editing etc.
 - Compact file explorer
 - interactive `matplotlib` figure canvas
 - cropping, duplication, measurement, filtering tools

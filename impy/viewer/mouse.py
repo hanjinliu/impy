@@ -4,6 +4,7 @@ from .._const import Const
 
 __all__ = ["mouse_drag_callbacks", "mouse_wheel_callbacks", "mouse_move_callbacks"]
 
+mouse_double_click_callbacks = []
 mouse_drag_callbacks = ["drag_translation", "profile_shape"]
 mouse_wheel_callbacks = ["wheel_resize"]
 mouse_move_callbacks = ["on_move"]
