@@ -43,8 +43,8 @@ class ScaleDict(dict):
         axes = sorted(self.keys(), key=lambda a: ORDER[a])
         return [self[a] for a in axes]
     
-    def __array__(self):
-        return np.array(self.__list__())
+    def __array__(self, dtype=None):
+        return np.array(self.__list__(), dtype=dtype)
     
 def check_none(func):
     def checked(self, *args, **kwargs):
