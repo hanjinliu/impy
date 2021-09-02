@@ -720,7 +720,6 @@ class TableWidget(QMainWindow):
         
         resize = QAction("Resize columns", self)
         resize.triggered.connect(self.table_native.resizeColumnsToContents)
-        resize.setShortcut("R")
         
         filt = QAction("Filter", self)
         filt.triggered.connect(self.add_filter)
@@ -781,11 +780,9 @@ class TableWidget(QMainWindow):
         
         plot = QAction("Plot", self.viewer.window._qt_window)
         plot.triggered.connect(self.plot)
-        plot.setShortcut("P")
         
         hist = QAction("Histogram", self.viewer.window._qt_window)
         hist.triggered.connect(self.hist)
-        hist.setShortcut("H")
         
         setting = QAction("Setting ...", self.viewer.window._qt_window)
         setting.triggered.connect(self.change_plot_setting)
