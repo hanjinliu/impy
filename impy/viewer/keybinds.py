@@ -1,6 +1,4 @@
-from operator import ne
 import numpy as np
-from napari.layers.utils._link_layers import link_layers, unlink_layers
 import napari
 
 from .utils import *
@@ -12,8 +10,6 @@ from .utils import *
 KEYS = {"focus_next": "]",
         "focus_previous": "[",
         "hide_others": "Control-Shift-A",
-        "link_selected_layers": "Control-G",
-        "unlink_selected_layers": "Control-Shift-G",
         "reslice": "/",
         "to_front": "Control-Shift-F",
         "reset_view": "Control-Shift-R",
@@ -108,20 +104,6 @@ def hide_others(viewer:"napari.Viewer"):
             layer.visible = True
 
 @bind_key
-def link_selected_layers(viewer:"napari.Viewer"):
-    """
-    Link selected layers.
-    """
-    link_layers(viewer.layers.selection)
-    
-@bind_key
-def unlink_selected_layers(viewer:"napari.Viewer"):
-    """
-    Unlink selected layers.
-    """
-    unlink_layers(viewer.layers.selection)
-
-@bind_key
 def to_front(viewer:"napari.Viewer"):
     """
     Let selected layers move to front.
@@ -136,7 +118,6 @@ def reset_view(viewer:"napari.Viewer"):
     Reset translate/scale parameters to the initial value.
     """    
     for layer in viewer.layers.selection:
-        # layer.translte[:] = 0. did not work
         layer.translate -= (layer.translate - layer.metadata["init_translate"])
         layer.scale = layer.metadata["init_scale"]
 
