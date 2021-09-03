@@ -17,8 +17,8 @@ def read_csv(viewer:"napari.Viewer", path):
     table = TableWidget(viewer, df, name=name)
     return viewer.window.add_dock_widget(table, area="right", name=table.name)
 
-Editable = Qt.ItemFlags(63)    # selectable, editable, drag-enabled, drop-enabled, checkable
-NotEditable = Qt.ItemFlags(61) # selectable, not-editable, drag-enabled, drop-enabled, checkable
+Editable = QTableWidget.DoubleClicked
+NotEditable = QTableWidget.NoEditTriggers
 
 # TODO: 
 # - block 1,2,3,..., [, ] when table is not editable
@@ -476,8 +476,6 @@ class TableWidget(QMainWindow):
         for i in reversed(rows):
             self.table_native.removeRow(i)
             
-        # BUG: when multiple rows are deleted, wrong points/shapes are deleted
-        # If a points layer is linked, also delete points. 
         if self.linked_layer is not None:
             self.linked_layer.selected_data = set(rows)
             self.linked_layer.remove_selected()
@@ -603,15 +601,14 @@ class TableWidget(QMainWindow):
         
         self.table_native.resizeColumnsToContents()
         return None
-    
-    def setEditability(self, flag:Qt.ItemFlags):
+        
+    def setEditability(self, flag):
+        """
+        Set table item editability.
+        """        
         self.flag = flag
         self.table_native.clearSelection()
-        for i in range(self.table_native.rowCount()):
-            for j in range(self.table_native.columnCount()):
-                item = self.table_native.item(i, j)
-                item.setFlags(flag)
-        
+        self.table_native.setEditTriggers(flag)
         return None
     
     def add_filter(self):
@@ -638,6 +635,7 @@ class TableWidget(QMainWindow):
         return None
     
     def filterRows(self, column_index:int, value:str):
+        # TODO: float filter such as "a>5"
         nrow = self.table_native.rowCount()
         hide = [self.table_native.item(i, column_index).text() != value
                 for i in range(nrow)]
@@ -835,7 +833,7 @@ class TableWidget(QMainWindow):
         ----------
         - https://www.qtcentre.org/threads/42388-Make-QHeaderView-Editable
         """        
-        if self.flag == NotEditable:
+        if self.flag is NotEditable:
             return None
         line = QLineEdit(parent=self.header)
 
