@@ -211,6 +211,10 @@ class napariViewers:
         _load_widgets(viewer)
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
+        
+        activity_dlg = viewer.window.qt_viewer.window()._activity_dialog
+        activity_dlg.resize(int(activity_dlg.width()*0.7), activity_dlg.height())
+        
         self._viewers[key] = viewer
         self._front_viewer = key
 
@@ -1013,6 +1017,8 @@ def _default_viewer_settings(viewer:"napari.Viewer"):
 
 def _load_mouse_callbacks(viewer:"napari.Viewer"):
     from . import mouse
+    for f in mouse.mouse_double_click_callbacks:
+        viewer.mouse_double_click_callbacks.append(getattr(mouse, f))
     for f in mouse.mouse_drag_callbacks:
         viewer.mouse_drag_callbacks.append(getattr(mouse, f))
     for f in mouse.mouse_wheel_callbacks:

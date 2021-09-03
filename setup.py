@@ -22,7 +22,7 @@ setup(name="impy",
             "pandas>=1",
             "dask>=2021.6.0",
             "tifffile>=2021.6.14",
-            "napari>=0.4.9",
+            "napari>=0.4.11",
       ],
       python_requires=">=3.7",
       )

@@ -415,19 +415,21 @@ def add_text_layer_menu(viewer:"napari.Viewer"):
     @action.triggered.connect
     @catch_notification
     def _(*args):
-        layer = viewer.add_shapes(ndim=2, shape_type="rectangle", name="Text Layer")        
+        layer = viewer.add_shapes(ndim=2, 
+                                  shape_type="rectangle",
+                                  name="Text Layer",
+                                  properties={"text": np.array(["text here"], dtype="<U32")},
+                                  blending = "additive",
+                                  edge_width=2.0,
+                                  face_color=[0,0,0,0],
+                                  edge_color=[0,0,0,0],
+                                  text={"text": "{text}", 
+                                        "size": 6.0 * Const["FONT_SIZE_FACTOR"],
+                                        "color": "white",
+                                        "anchor": "center"}
+                                  )
         layer.mode = "add_rectangle"
-        layer.blending = "additive"
-        layer.current_edge_width = 2.0 # unit is pixel here
-        layer.current_face_color = [0, 0, 0, 0]
-        layer.current_edge_color = [0, 0, 0, 0]
         layer._rotation_handle_length = 20/np.mean(layer.scale[-2:])
-        layer.current_properties = {"text": np.array(["text here"], dtype="<U32")}
-        layer.properties = {"text": np.array([], dtype="<U32")}
-        layer.text = "{text}"
-        layer.text.size = 6.0 * Const["FONT_SIZE_FACTOR"]
-        layer.text.color = "white"
-        layer.text.anchor = "center"
         return None
     
     viewer.window.layer_menu.addAction(action)
