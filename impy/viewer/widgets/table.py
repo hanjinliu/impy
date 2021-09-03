@@ -140,9 +140,13 @@ class TableWidget(QMainWindow):
                     world=True
                     )
 
-                if i is not None:
+                if i is None:
+                    _layer.selected_data = {}
+                elif "Control" in event.modifiers:
+                    _layer.selected_data = _layer.selected_data | {i}
+                else:
                     _layer.selected_data = {i}
-                    
+                
             self._read_selected_data_from_layer(_layer)
             
                 
