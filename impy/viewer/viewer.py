@@ -34,6 +34,7 @@ from .._const import Const
 # - layer list context menu
 # - point mask
 # - doubleclick.connect
+# - clipping_planes_interactively.py, cursor_ray.py
 
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"
@@ -217,7 +218,6 @@ class napariViewers:
         
         self._viewers[key] = viewer
         self._front_viewer = key
-
         return None
 
     def get(self, kind:str="image", layer_state:str="visible", returns:str="last") -> ImpyObject|list[ImpyObject]:

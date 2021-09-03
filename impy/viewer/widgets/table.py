@@ -4,7 +4,6 @@ import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
                             QLineEdit, QSpinBox, QFileDialog, QAbstractItemView)
-from qtpy.QtCore import Qt
 import magicgui
 import napari
 import os
@@ -132,8 +131,21 @@ class TableWidget(QMainWindow):
         def link_selection_to_table(_layer, event):
             while event.type != "mouse_release":
                 yield
+                
+            if self.viewer.dims.ndim == 3:
+                i, _ = layer.get_value(
+                    event.position, 
+                    view_direction=event.view_direction, 
+                    dims_displayed=event.dims_displayed,
+                    world=True
+                    )
+
+                if i is not None:
+                    _layer.selected_data = {i}
+                    
             self._read_selected_data_from_layer(_layer)
-        
+            
+                
         # delete row(s) if object(s) are deleted in the viewer.
         def delete_selected_points(layer):
             selected = sorted(layer.selected_data)
