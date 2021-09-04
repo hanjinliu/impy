@@ -4,6 +4,7 @@ import napari
 import magicgui
 from functools import wraps
 from qtpy.QtWidgets import QFileDialog, QAction
+from qtpy.QtGui import QCursor
 
 from .widgets import *
 from .widgets.table import read_csv
@@ -24,7 +25,6 @@ __all__ = ["add_imread_menu",
            "add_label_menu",
            "add_plane_clipper",
            "add_note_widget",
-           "edit_properties",
            "add_threshold", 
            "add_rotator",
            "add_filter", 
@@ -431,7 +431,48 @@ def add_text_layer_menu(viewer:"napari.Viewer"):
                                   )
         layer.mode = "add_rectangle"
         layer._rotation_handle_length = 20/np.mean(layer.scale[-2:])
-        return None
+        
+        @layer.mouse_double_click_callbacks.append
+        def edit(layer, event):
+            i, _ = layer.get_value(
+                event.position,
+                view_direction=event.view_direction,
+                dims_displayed=event.dims_displayed,
+                world=True
+            )
+
+            if i is None:
+                return None
+            
+            window_geo = viewer.window._qt_window.geometry()
+            pos = QCursor().pos()
+            x = pos.x() - window_geo.x()
+            y = pos.y() - window_geo.y()
+            line = QLineEdit(viewer.window._qt_window)
+            edit_geometry = line.geometry()
+            edit_geometry.setWidth(140)
+            edit_geometry.moveLeft(x)
+            edit_geometry.moveTop(y)
+            line.setGeometry(edit_geometry)
+            f = line.font()
+            f.setPointSize(20)
+            line.setFont(f)
+            line.setText(layer.text.values[i])
+            line.setHidden(False)
+            line.setFocus()
+            line.selectAll()
+            @line.textChanged.connect
+            def _():
+                old = layer.properties.get("text", [""]*len(layer.data))
+                old[i] = line.text().strip()
+                layer.text.refresh_text({"text": old})
+                return None
+            @line.editingFinished.connect
+            def _():
+                line.setHidden(True)
+                line.deleteLater()
+                return None
+            
     
     viewer.window.layer_menu.addAction(action)
     return None
@@ -478,35 +519,6 @@ def add_plane_clipper(viewer:"napari.Viewer"):
             viewer.window.add_dock_widget(wid, name="Plane Clip", area="left")
         return None
     viewer.window.layer_menu.addAction(action)
-    return None
-
-def edit_properties(viewer:"napari.Viewer"):
-    """
-    Edit properties of selected shapes or points.
-    """    
-    line = magicgui.widgets.LineEdit(tooltip="Property editor")
-    @line.changed.connect
-    @catch_notification
-    def _(event):
-        # get the selected shape layer
-        layers = list(viewer.layers.selection)
-        if len(layers) != 1:
-            return None
-        layer = layers[0]
-        if not isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
-            return None
-        
-        old = layer.properties.get("text", [""]*len(layer.data))
-        for i in layer.selected_data:
-            try:
-                old[i] = event.value.format(n=i).strip()
-            except (ValueError, KeyError):
-                old[i] = event.value.strip()
-                
-        layer.text.refresh_text({"text": old})
-        return None
-        
-    viewer.window.add_dock_widget(line, area="left", name="Property editor")
     return None
     
 def add_note_widget(viewer:"napari.Viewer"):
