@@ -22,6 +22,7 @@ __all__ = ["add_imread_menu",
            "add_text_layer_menu",
            "add_get_props_menu",
            "add_label_menu",
+           "add_plane_clipper",
            "add_note_widget",
            "edit_properties",
            "add_threshold", 
@@ -460,6 +461,22 @@ def add_label_menu(viewer:"napari.Viewer"):
         layer.mode = "paint"
         return None
 
+    viewer.window.layer_menu.addAction(action)
+    return None
+
+def add_plane_clipper(viewer:"napari.Viewer"):
+    action = QAction("Clipping plane", viewer.window._qt_window)
+    @action.triggered.connect
+    def _(*args):
+        layer = get_a_selected_layer(viewer)
+        
+        wid = PlaneClipRange(viewer)
+        wid.connectLayer(layer)
+        if "Plane Clip" in viewer.window._dock_widgets.keys():
+            viewer.window._dock_widgets["Plane Clip"].show()
+        else:
+            viewer.window.add_dock_widget(wid, name="Plane Clip", area="left")
+        return None
     viewer.window.layer_menu.addAction(action)
     return None
 

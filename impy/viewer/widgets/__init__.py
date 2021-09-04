@@ -5,3 +5,4 @@ from .log import LoggerWidget
 from .explorer import Explorer
 from .textedit import TxtFileWidget
 from .results import ResultStackView
+from .plane_clip import PlaneClipRange
