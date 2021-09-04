@@ -513,10 +513,8 @@ def add_plane_clipper(viewer:"napari.Viewer"):
         
         wid = PlaneClipRange(viewer)
         wid.connectLayer(layer)
-        if "Plane Clip" in viewer.window._dock_widgets.keys():
-            viewer.window._dock_widgets["Plane Clip"].show()
-        else:
-            viewer.window.add_dock_widget(wid, name="Plane Clip", area="left")
+        viewer.window.add_dock_widget(wid, name="Plane Clip", area="left")
+        
         return None
     viewer.window.layer_menu.addAction(action)
     return None

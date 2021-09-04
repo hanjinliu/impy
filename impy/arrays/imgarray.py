@@ -135,7 +135,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rotate(self, degree:float, center="center", *, cval=0, dims=2, order:int=1) -> ImgArray:
+    def rotate(self, degree:float, center="center", *, cval=0, dims=2, order:int=1, 
+               update:bool=False) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero.
 
@@ -149,6 +150,7 @@ class ImgArray(LabeledArray):
             Constant value to fill outside the image for mode == "constant".
         {dims}
         {order}
+        {update}
 
         Returns
         -------
