@@ -399,6 +399,7 @@ def add_get_props_menu(viewer:"napari.Viewer"):
             name = f"Properties of {layer.name}"
             ndata = len(layer.data)
             if layer.properties == {} and ndata > 0:
+                layer.current_properties = {"1": np.array([""], dtype="<U32")}
                 layer.properties = {"1": np.array([""]*ndata, dtype="<U32")}
             widget = TableWidget(viewer, layer.properties, name=name)
             if isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
@@ -473,7 +474,6 @@ def add_text_layer_menu(viewer:"napari.Viewer"):
                 line.deleteLater()
                 return None
             
-    
     viewer.window.layer_menu.addAction(action)
     return None
 

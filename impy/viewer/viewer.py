@@ -27,14 +27,7 @@ from .._const import Const
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
 #   layer group is implemented in napari.
-# - 3D viewing in old viewer -> new viewer responds. napari's bug.
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
-
-# 0.4.11 updates
-# - layer list context menu
-# - point mask
-# - doubleclick.connect
-# - clipping_planes_interactively.py, cursor_ray.py
 
 ImpyObject = NewType("ImpyObject", Any)
 GUIcanvas = "module://impy.viewer._plt"
@@ -349,6 +342,7 @@ class napariViewers:
         np.ndarray
             1-D, int64 array of cursor position along each dimension.
         """
+        from napari.layers import Image, Labels
         if isinstance(ref, (int, str)):
             layer = self.viewer.layers[ref]
         elif isinstance(ref, (LabeledArray, LazyImgArray)):
@@ -359,13 +353,13 @@ class napariViewers:
             else:
                 raise ValueError("Input image was not found in napari layer list.")
         
-        elif isinstance(ref, (napari.layers.Image, napari.layers.Labels)):
+        elif isinstance(ref, (Image, Labels)):
             layer = ref
         else:
             raise TypeError("`layer` must be an image layer, int, str or impy's LabeledArray, "
                            f"but got {type(ref)}")
         
-        if not isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+        if not isinstance(layer, (Image, Labels)):
             raise TypeError(f"Layer {layer} is not an image or labels layer.")
 
         ndim = layer.data.ndim if ndim is None else ndim

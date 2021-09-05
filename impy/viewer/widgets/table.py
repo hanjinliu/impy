@@ -16,7 +16,7 @@ def read_csv(viewer:"napari.Viewer", path):
     table = TableWidget(viewer, df, name=name)
     return viewer.window.add_dock_widget(table, area="right", name=table.name)
 
-Editable = QTableWidget.DoubleClicked
+Editable = QTableWidget.EditKeyPressed
 NotEditable = QTableWidget.NoEditTriggers
 
 # TODO: 
@@ -114,26 +114,27 @@ class TableWidget(QMainWindow):
         return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
     
     @property
-    def linked_layer(self) -> "napari.components.Layer":
+    def linked_layer(self):
         return self._linked_layer
     
     @linked_layer.setter
     def linked_layer(self, layer):
+        from napari.layers import Shapes, Points
         if self.linked_layer is not None:
             raise AttributeError("Cannot set linked layer again.")
-        elif not isinstance(layer, (napari.layers.Shapes, napari.layers.Points)):
+        elif not isinstance(layer, (Shapes, Points)):
             raise TypeError(f"Cannot set {type(layer)}")
         
         self._linked_layer = layer
         
         # highlight row(s) if object(s) are selected in the viewer.
         @layer.mouse_drag_callbacks.append
-        def link_selection_to_table(_layer, event):
+        def link_selection_to_table(_layer:Shapes|Points, event):
             while event.type != "mouse_release":
                 yield
                 
             if self.viewer.dims.ndim == 3:
-                i, _ = layer.get_value(
+                i, _ = _layer.get_value(
                     event.position, 
                     view_direction=event.view_direction, 
                     dims_displayed=event.dims_displayed,
@@ -151,11 +152,11 @@ class TableWidget(QMainWindow):
             
                 
         # delete row(s) if object(s) are deleted in the viewer.
-        def delete_selected_points(layer):
-            selected = sorted(layer.selected_data)
+        def delete_selected_points(_layer:Shapes|Points):
+            selected = sorted(_layer.selected_data)
             for i in reversed(selected):
                 self.table_native.removeRow(i)
-            layer.remove_selected()
+            _layer.remove_selected()
         
         layer.bind_key("Delete", delete_selected_points, overwrite=True)
         layer.bind_key("Backspace", delete_selected_points, overwrite=True)
@@ -229,6 +230,16 @@ class TableWidget(QMainWindow):
             prop:dict = self.linked_layer.properties
             prop[newname] = prop.pop(oldname)
             self.linked_layer.properties = prop
+            # Due to inconsistency of properties setters between shapes and points, we have to update current
+            # properties only for shapes layer here.
+            from napari.layers import Shapes
+            if isinstance(self.linked_layer, Shapes):
+                from napari.layers.utils.layer_utils import get_current_properties
+                with self.linked_layer.block_update_properties():
+                    self.linked_layer.current_properties = get_current_properties(
+                        self.linked_layer._properties, self.linked_layer._property_choices, 
+                        len(self.linked_layer.data)
+                    )
         return None
     
     def store_as_dataframe(self, selected=False):
@@ -282,6 +293,7 @@ class TableWidget(QMainWindow):
         """
         Add point in a layer and append its property to the end of the table. They are linked to each other.
         """
+        from napari.layers import Points
         scale = np.array([r[2] for r in self.viewer.dims.range])
         
         if isinstance(data, str) and data == "cursor position":
@@ -312,7 +324,7 @@ class TableWidget(QMainWindow):
                                        n_dimensional=True,
                                        **kwargs)
                             
-        elif isinstance(self.linked_layer, napari.layers.Points):
+        elif isinstance(self.linked_layer, Points):
             with self.linked_layer.events.blocker_all():
                 self.linked_layer.add(data)
             if size is not None:
@@ -335,6 +347,8 @@ class TableWidget(QMainWindow):
         """
         Add point in a layer and append its property to the end of the table. They are linked to each other.
         """
+        from napari.layers import Shapes
+        
         nrow = self.table_native.rowCount()
         nrow = 0 if nrow*self.table_native.columnCount() == 0 else nrow
         scale = np.array([r[2] for r in self.viewer.dims.range])
@@ -358,7 +372,7 @@ class TableWidget(QMainWindow):
             @self.linked_layer.events.data.connect
             def _(*args):
                 pass
-        elif isinstance(self.linked_layer, napari.layers.Shapes):
+        elif isinstance(self.linked_layer, Shapes):
             with self.linked_layer.events.blocker_all():
                 self.linked_layer.add(data, shape_type=shape_type, edge_color=edge_color, face_color=face_color)
             if properties is not None:
@@ -555,7 +569,6 @@ class TableWidget(QMainWindow):
         for i, item in enumerate(data):
             item = QTableWidgetItem(str(item))
             self.table_native.setItem(nrow, i, item)
-            item.setFlags(self.flag)
         
         return None
     
@@ -583,7 +596,6 @@ class TableWidget(QMainWindow):
         for i, item in enumerate(data):
             item = QTableWidgetItem(str(item))
             self.table_native.setItem(i, ncol, item)
-            item.setFlags(self.flag)
             
         if self.linked_layer is not None:
             prop:dict = self.linked_layer.properties
@@ -613,7 +625,6 @@ class TableWidget(QMainWindow):
             self.set_header(i, h)
             item = QTableWidgetItem(str(data[i]))
             self.table_native.setItem(0, i, item)
-            item.setFlags(self.flag)
         
         self.table_native.resizeColumnsToContents()
         return None
@@ -1002,7 +1013,7 @@ class FloatDelegate(QStyledItemDelegate):
                 value = f"{value:.{self.ndigit}e}"
         
         return super().displayText(value, locale)
-    
+
 def _convert_type(value:str):
     if value is None:
         return None
