@@ -1,6 +1,9 @@
 from __future__ import annotations
 from warnings import warn
 import napari
+from napari.utils.notifications import Notification, notification_manager
+from napari.utils import history
+from napari.layers import Image, Shapes, Points, Labels, Tracks
 import magicgui
 from functools import wraps
 from qtpy.QtWidgets import QFileDialog, QAction
@@ -40,7 +43,6 @@ FILTERS = ["None", "gaussian_filter", "median_filter", "mean_filter", "dog_filte
            "tophat", "rolling_ball"]
 
 def catch_notification(func):
-    from napari.utils.notifications import Notification, notification_manager
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
@@ -58,7 +60,7 @@ def add_imread_menu(viewer:"napari.Viewer"):
     @catch_notification
     def _(*args):
         dlg = QFileDialog()
-        hist = napari.utils.history.get_open_history()
+        hist = history.get_open_history()
         dlg.setHistory(hist)
         filenames, _ = dlg.getOpenFileNames(
             parent=viewer.window.qt_viewer,
@@ -68,7 +70,7 @@ def add_imread_menu(viewer:"napari.Viewer"):
         if filenames != [] and filenames is not None:
             img = imread(filenames[0])
             add_labeledarray(viewer, img)
-            napari.utils.history.update_open_history(filenames[0])
+            history.update_open_history(filenames[0])
         return None
     
     viewer.window.file_menu.addAction(action)
@@ -88,7 +90,7 @@ def add_imsave_menu(viewer:"napari.Viewer"):
             raise ValueError("Select only one layer.")
 
         img = layer_to_impy_object(viewer, layers[0])
-        hist = napari.utils.history.get_save_history()
+        hist = history.get_save_history()
         dlg.setHistory(hist)
         
         if img.dirpath:
@@ -103,7 +105,7 @@ def add_imsave_menu(viewer:"napari.Viewer"):
 
         if filename:
             img.imsave(filename)
-            napari.utils.history.update_save_history(filename)
+            history.update_save_history(filename)
         return None
     
     viewer.window.file_menu.addAction(action)
@@ -115,7 +117,7 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
     @catch_notification
     def _(*args):
         dlg = QFileDialog()
-        hist = napari.utils.history.get_open_history()
+        hist = history.get_open_history()
         dlg.setHistory(hist)
         filenames, _ = dlg.getOpenFileNames(
             parent=viewer.window.qt_viewer,
@@ -125,7 +127,7 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
         if (filenames != []) and (filenames is not None):
             path = filenames[0]
             read_csv(viewer, path)
-            napari.utils.history.update_open_history(filenames[0])
+            history.update_open_history(filenames[0])
         return None
     
     viewer.window.file_menu.addAction(action)
@@ -142,7 +144,7 @@ def add_explorer_menu(viewer:"napari.Viewer"):
         if name in viewer.window._dock_widgets.keys():
             viewer.window._dock_widgets[name].show()
         else:
-            root = napari.utils.history.get_open_history()[0]
+            root = history.get_open_history()[0]
             ex = Explorer(viewer, root)
             viewer.window.add_dock_widget(ex, name="Explorer", area="right", allowed_areas=["right"])
         return None
@@ -159,7 +161,7 @@ def add_duplicate_menu(viewer:"napari.Viewer"):
     def _():
         layer = get_a_selected_layer(viewer)
         
-        if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+        if isinstance(layer, (Image, Labels)):
             dlg = DuplicateDialog(viewer, layer)
             dlg.exec_()
         else:
@@ -190,19 +192,19 @@ def add_proj_menu(viewer:"napari.Viewer"):
                        "opacity": layer.opacity,
                        "ndim": 2,
                        "name": f"[Proj]{layer.name}"})
-        if isinstance(layer, napari.layers.Image):
+        if isinstance(layer, Image):
             if layer.data.ndim < 3:
                 return None
             dlg = ImageProjectionDialog(viewer, layer)
             dlg.exec_()
             
-        elif isinstance(layer, napari.layers.Labels):
+        elif isinstance(layer, Labels):
             if layer.data.ndim < 3:
                 return None
             dlg = LabelProjectionDialog(viewer, layer)
             dlg.exec_()
                 
-        elif isinstance(layer, napari.layers.Shapes):
+        elif isinstance(layer, Shapes):
             data = [d[:,-2:] for d in data]
             
             if layer.nshapes > 0:
@@ -214,7 +216,7 @@ def add_proj_menu(viewer:"napari.Viewer"):
             kwargs["shape_type"] = layer.shape_type
             viewer.add_shapes(data, **kwargs)
             
-        elif isinstance(layer, napari.layers.Points):
+        elif isinstance(layer, Points):
             data = data[:, -2:]
             for k in ["face_color", "edge_color", "size", "symbol"]:
                 kwargs[k] = getattr(layer, k, None)
@@ -224,7 +226,7 @@ def add_proj_menu(viewer:"napari.Viewer"):
             kwargs["ndim"] = 2
             viewer.add_points(data, **kwargs)
             
-        elif isinstance(layer, napari.layers.Tracks):
+        elif isinstance(layer, Tracks):
             data = data[:, [0, -2, -1]] # p, y, x axes
             viewer.add_tracks(data, **kwargs)
             
@@ -375,7 +377,7 @@ def add_time_stamper_menu(viewer:"napari.Viewer"):
     @catch_notification
     def _(*args):
         layer = get_a_selected_layer(viewer)
-        if not isinstance(layer, napari.layers.Image):
+        if not isinstance(layer, Image):
             raise TypeError("Select an image layer.")
         layer.data.axisof("t") # check image axes here.
         dlg = TimeStamper(viewer, layer)
@@ -402,7 +404,7 @@ def add_get_props_menu(viewer:"napari.Viewer"):
                 layer.current_properties = {"1": np.array([""], dtype="<U32")}
                 layer.properties = {"1": np.array([""]*ndata, dtype="<U32")}
             widget = TableWidget(viewer, layer.properties, name=name)
-            if isinstance(layer, (napari.layers.Points, napari.layers.Shapes)):
+            if isinstance(layer, (Points, Shapes)):
                 widget.linked_layer = layer
             viewer.window.add_dock_widget(widget, area="right", name=name)
             
@@ -488,7 +490,7 @@ def add_label_menu(viewer:"napari.Viewer"):
         if len(selected) != 1:
             raise ValueError("No layer selected")
         selected = selected[0]
-        if not isinstance(selected, napari.layers.Image):
+        if not isinstance(selected, Image):
             raise TypeError("Selected layer is not an image layer")
         img = selected.data
         if hasattr(img, "labels"):
@@ -573,7 +575,7 @@ def layer_template_matcher(viewer:"napari.Viewer"):
                            template={"label": "temp",
                                      "tooltip": "Template image. This image will move."},
                            ndim={"choices": [2, 3]})
-        def template_matcher(img:napari.layers.Image, template:napari.layers.Image, ndim=2):
+        def template_matcher(img:Image, template:Image, ndim=2):
             step = viewer.dims.current_step[:-min(ndim, img.ndim)]
             img_ = img.data[step]
             template_ = template.data[step]
@@ -724,7 +726,7 @@ def _iter_args_and_kwargs(string:str):
 
 
 
-def _get_property(layer, i):
+def _get_property(layer:Shapes|Points, i):
     try:
         prop = layer.properties["text"][i]
     except (KeyError, IndexError):

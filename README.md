@@ -122,4 +122,3 @@ git clone https://github.com/hanjinliu/impy
 `impy` is partly dependent on `numba`, `cupy`, `trackpy` and `dask-image`. Please install these packages if needed. 
 
 :warning: Image processing algorithms in `ImgArray` are almost stable so that their behavior will not change a lot. However, since `napari` is under development and I'm groping for better UI right now, any functions that currently implemented in `impy` viewer may change or no longer work in the future. Make sure keeping `napari` and `impy` updated when you use.
-
