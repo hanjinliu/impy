@@ -88,7 +88,13 @@ Const = GlobalConstant(
 
 class SetConst:
     n_ongoing = 0
-    def __init__(self, name, value):
+    def __init__(self, name=None, value=None, **kwargs):
+        if name is None and value is None and len(kwargs) == 1:
+            name, value = list(kwargs.items())[0]
+        elif name in Const.keys() and value is not None:
+            pass
+        else:
+            raise TypeError("Invalid input for SetConst")
         self.name = name
         self.value = value
     
