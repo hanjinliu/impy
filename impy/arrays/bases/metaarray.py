@@ -25,8 +25,8 @@ class MetaArray(AxesMixin, np.ndarray):
         self.name = name
         
         # MicroManager
-        if isinstance(self.name, str) and self.name.endswith("_MMStack_Pos0.ome"):
-            self.name = self.name[:-17]
+        if isinstance(self.name, str) and self.name.endswith(".ome") and "_MMStack" in self.name:
+            self.name = self.name.split("_MMStack")[0]
         
         self.axes = axes
         self.metadata = metadata
@@ -35,7 +35,6 @@ class MetaArray(AxesMixin, np.ndarray):
     @property
     def value(self) -> np.ndarray:
         return np.asarray(self)
-    
     
     def _repr_dict_(self):
         return {"    shape     ": self.shape_info,

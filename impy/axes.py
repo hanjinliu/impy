@@ -1,7 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict, Counter
 import numpy as np
-from numpy.core.fromnumeric import sort
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
@@ -45,7 +44,7 @@ class ScaleDict(dict):
     
     def __array__(self, dtype=None):
         return np.array(self.__list__(), dtype=dtype)
-    
+
 def check_none(func):
     def checked(self, *args, **kwargs):
         if self.is_none():
