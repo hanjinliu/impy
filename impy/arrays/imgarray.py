@@ -331,7 +331,7 @@ class ImgArray(LabeledArray):
                 "var": xp_ndi.variance}[method]
         
         spatial_shape = self.sizesof(dims)
-        inds = np.indices(spatial_shape)
+        inds = xp.indices(spatial_shape)
         
         # check center
         if center is None:
@@ -339,7 +339,7 @@ class ImgArray(LabeledArray):
         elif len(center) != len(dims):
             raise ValueError(f"Length of `center` must match input dimensionality '{dims}'.")
         
-        r = np.sqrt(sum(((x - c)*self.scale[a])**2 for x, c, a in zip(inds, center, dims)))
+        r = xp.sqrt(sum(((x - c)*self.scale[a])**2 for x, c, a in zip(inds, center, dims)))
         r_lim = r.max()
         
         # check r_max
@@ -355,9 +355,9 @@ class ImgArray(LabeledArray):
         
         c_axes = complement_axes(dims, self.axes)
         
-        out = PropArray(np.empty(self.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
+        out = PropArray(np.empty(self.sizesof(c_axes)+(int(labels.max()),)), dtype=np.float32, axes=c_axes+dims[-1], 
                         dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
-        radial_func = partial(cupy_dispatcher(func), labels=labels, index=np.arange(1, labels.max()+1))
+        radial_func = partial(cupy_dispatcher(func), labels=labels, index=xp.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = asnumpy(radial_func(img))
         return out
