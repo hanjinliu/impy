@@ -96,7 +96,7 @@ def open_as_dask(path:str, chunks):
     if img.dtype == ">u2":
         img = img.astype(np.uint16)
     
-    img = da.from_array(img, chunks=chunks).map_blocks(xp.array, meta=xp.array([], dtype=img.dtype))
+    img = da.from_array(img, chunks=chunks).map_blocks(np.array, meta=np.array([], dtype=img.dtype))
     return meta, img
 
 

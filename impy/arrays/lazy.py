@@ -416,8 +416,9 @@ class LazyImgArray(AxesMixin):
         else:
             @wraps(func)
             def _func(arr, *args, **kwargs):
+                arr = xp.asarray(arr)
                 out = func(arr[slice_in], *args, **kwargs)
-                return out[slice_out]
+                return asnumpy(out[slice_out])
         
         out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
                             meta=xp.array([], dtype=dtype), **kwargs)
@@ -801,7 +802,7 @@ class LazyImgArray(AxesMixin):
         
         def pcc(x):
             if x.shape[0] < 2:
-                return xp.array([0]*ndim, dtype=np.float32).reshape(*each_shape)
+                return np.array([0]*ndim, dtype=np.float32).reshape(*each_shape)
             result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)
             return result[slice_out]
 
@@ -812,12 +813,12 @@ class LazyImgArray(AxesMixin):
                                 trim=False,
                                 boundary="none",
                                 chunks=(1, ndim) + (1,)*(ndim-1),
-                                meta=xp.array([], dtype=np.float32)
+                                meta=np.array([], dtype=np.float32)
                                 )
         
         # For cupy, we must call map_blocks (or from_delayed and delayed) here.
-        result = da.map_blocks(xp.cumsum, result[..., 0].rechunk((len_t, ndim)), 
-                               axis=0, meta=xp.array([], dtype=np.float32)
+        result = da.map_blocks(np.cumsum, result[..., 0].rechunk((len_t, ndim)), 
+                               axis=0, meta=np.array([], dtype=np.float32)
                                )
 
         return result
@@ -867,14 +868,17 @@ class LazyImgArray(AxesMixin):
         # Here shift must be a local variable for the function. Otherwise, it takes dask very long time 
         # for graph construction.
         def warp(arr, shift, block_info=None):
+            arr = xp.asarray(arr)
             mx = xp.eye(ndim+1, dtype=np.float32)
-            loc = block_info[None]['array-location'][0]
+            loc = block_info[None]["array-location"][0]
             mx[:-1, -1] = -shift[loc[t_index]]
-            return _transform.warp(arr[slice_in], mx, **affine_kwargs)[slice_out]
+            return asnumpy(
+                _transform.warp(arr[slice_in], mx, **affine_kwargs)[slice_out]
+                )
         
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
         
-        out = da.map_blocks(warp, self.img.rechunk(chunks), shift, meta=xp.array([], dtype=self.dtype))
+        out = da.map_blocks(warp, self.img.rechunk(chunks), shift, meta=np.array([], dtype=self.dtype))
         
         return out
     
