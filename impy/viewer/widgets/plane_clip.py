@@ -1,10 +1,12 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from superqt import QRangeSlider
 from qtpy.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QFrame, QLabel
 from qtpy.QtCore import Qt
 import napari
 
-# TODO: reset button
+if TYPE_CHECKING:
+    from napari.layers import Layer
 
 class PlaneClipRange(QWidget):
     def __init__(self, viewer:"napari.Viewer"):
@@ -19,31 +21,49 @@ class PlaneClipRange(QWidget):
         
         xlabel = QLabel(xframe)
         xlabel.setText("x")
+        
+        xbutton = QPushButton(xframe)
+        xbutton.setText("reset")
+        xbutton.clicked.connect(self.resetX)
+        
         xframe.layout().addWidget(xlabel)
         xframe.layout().addWidget(self.xrange)
+        xframe.layout().addWidget(xbutton)
                 
         yframe = QFrame(self)
         yframe.setLayout(QHBoxLayout())
         
         ylabel = QLabel(yframe)
         ylabel.setText("y")
+        
+        ybutton = QPushButton(yframe)
+        ybutton.setText("reset")
+        ybutton.clicked.connect(self.resetY)
+        
         yframe.layout().addWidget(ylabel)
         yframe.layout().addWidget(self.yrange)
+        yframe.layout().addWidget(ybutton)
         
         zframe = QFrame(self)
         zframe.setLayout(QHBoxLayout())
         
         zlabel = QLabel(zframe)
         zlabel.setText("z")
+        
+        zbutton = QPushButton(yframe)
+        zbutton.setText("reset")
+        zbutton.clicked.connect(self.resetZ)
+        
         zframe.layout().addWidget(zlabel)
         zframe.layout().addWidget(self.zrange)
+        zframe.layout().addWidget(zbutton)
         
         self.layout().addWidget(xframe)
         self.layout().addWidget(yframe)
         self.layout().addWidget(zframe)
         
     
-    def connectLayer(self, layer:"napari.components.Layer"):
+    def connectLayer(self, layer: Layer):
         xmin = layer.extent.data[0,-1]
         xmax = layer.extent.data[1,-1]
         ymin = layer.extent.data[0,-2]
@@ -115,3 +135,13 @@ class PlaneClipRange(QWidget):
         self.zminPlane.position = (0,)*(self.connected_layer.ndim-3) + (zmin, 0, 0)
         self.zmaxPlane.position = (0,)*(self.connected_layer.ndim-3) + (zmax, 0, 0)
         return None
+    
+    def resetX(self):
+        self.xrange.setValue((self.xrange.minimum(), self.xrange.maximum()))
+    
+    def resetY(self):
+        self.yrange.setValue((self.yrange.minimum(), self.yrange.maximum()))
+    
+    def resetZ(self):
+        self.zrange.setValue((self.zrange.minimum(), self.zrange.maximum()))
+    
