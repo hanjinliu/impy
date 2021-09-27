@@ -1,3 +1,4 @@
+from __future__ import annotations
 from ..axes import Axes, ImageAxesError
 import numpy as np
 import re
@@ -6,6 +7,10 @@ class AxesMixin:
     """
     Abstract class with shape, ndim and axes are defined.
     """    
+    _axes: Axes
+    shape: tuple[int, ...]
+    ndim: int
+    
     @property
     def shape_info(self):
         if self.axes.is_none():
@@ -61,6 +66,9 @@ class AxesMixin:
         else:
             self.metadata = {"unit": unit}
     
+    def _repr_dict_(self) -> dict[str]:
+        raise NotImplementedError()
+        
     def __repr__(self):
         return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
     

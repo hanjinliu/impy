@@ -138,7 +138,8 @@ class ImgArray(LabeledArray):
     def rotate(self, degree:float, center="center", *, cval=0, dims=2, order:int=1, 
                update:bool=False) -> ImgArray:
         """
-        2D rotation of an image around a point. Outside will be padded with zero.
+        2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
+        this implementation is faster than ``scipy.ndimage.rotate``.
 
         Parameters
         ----------

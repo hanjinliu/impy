@@ -25,7 +25,7 @@ def adjust_bin(img, binsize, check_edges, dims, all_axes):
 def make_rotated_axis(src, dst):
     dr = dst - src
     d = np.sqrt(sum(dr**2))
-    n = int(np.ceil(d))
+    n = int(round(d))
     return np.linspace(src, src+dr/d*(n-1), n)
 
 def make_pad(pad_width, dims, all_axes, **kwargs):

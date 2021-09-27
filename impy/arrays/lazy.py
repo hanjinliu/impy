@@ -920,6 +920,13 @@ class LazyImgArray(AxesMixin):
                           args=(psf_ft, psf_ft_conj, niter, eps)
                           )
     
+    def __array_function__(self, func, types, args, kwargs):
+        """
+        Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
+        function can be overloaded with this method.
+        """
+        img = da.core.Array.__array_function__(self.img, func, types, args, kwargs)
+        
 
     def as_uint8(self) -> LazyImgArray:
         img = self.img

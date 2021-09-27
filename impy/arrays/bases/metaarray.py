@@ -444,26 +444,17 @@ def _list_of_axes(img, axis):
         axis = [axis]
     return axis
         
-def _replace_inputs(img, args, kwargs):
+def _replace_inputs(img:MetaArray, args, kwargs):
     _as_np_ndarray = lambda a: a.value if isinstance(a, MetaArray) else a
     # convert arguments
     args = tuple(_as_np_ndarray(a) for a in args)
     if "axis" in kwargs:
         axis = kwargs["axis"]
         if isinstance(axis, str):
-            _axis = tuple(img.axisof(a) for a in axis)
+            _axis = tuple(map(img.axisof, axis))
             if len(_axis) == 1:
                 _axis = _axis[0]
             kwargs["axis"] = _axis
-        elif isinstance(axis, tuple):
-            axis = "".join(img.axes.axes[i] for i in kwargs["axis"])
-        elif isinstance(axis, int):
-            axis = img.axes.axes[axis]
-    else:
-        axis = ""
-    
-    if "keepdims" in kwargs and kwargs["keepdims"] == True:
-        axis = ""
     
     if "out" in kwargs:
         kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
