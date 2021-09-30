@@ -831,7 +831,7 @@ class LazyImgArray(AxesMixin):
                          dims=2, update:bool=False, **affine_kwargs) -> LazyImgArray:
         
         if along is None:
-            along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
+            along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         

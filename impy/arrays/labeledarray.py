@@ -904,7 +904,7 @@ class LabeledArray(HistoryArray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, include="cztp<")
+            axis = find_first_appeared(self.axes, include="cztpa")
         axisint = self.axisof(axis)
         
         imgs = super().split(axisint)
