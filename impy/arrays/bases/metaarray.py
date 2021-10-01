@@ -73,7 +73,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key):
+    def __getitem__(self, key: int|str|slice) -> MetaArray:
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
             sl = self._str_to_slice(key)
@@ -109,7 +109,7 @@ class MetaArray(AxesMixin, np.ndarray):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: int|str|slice, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
             sl = self._str_to_slice(key)

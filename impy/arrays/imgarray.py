@@ -1594,7 +1594,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @record(append_history=False)
     def split_pixel_unit(self, center:tuple[float, float]=(0.5, 0.5), *, order:int=1,
-                           angle_order:list[int]=None, newaxis="a") -> ImgArray:
+                         angle_order:list[int]=None, newaxis="a") -> ImgArray:
         r"""
         Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, image 
         acquisition with a polarization camera will output :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
@@ -1698,7 +1698,7 @@ class ImgArray(LabeledArray):
         
             >>> img_pol = img.split_polarization()
             >>> dpol = img_pol.stokes()
-            >>> ip.gui.add(img_pol.proj)
+            >>> ip.gui.add(img_pol.proj())
             >>> ip.gui.add(dpol.aop.rad2deg())
         
         References
@@ -2634,6 +2634,18 @@ class ImgArray(LabeledArray):
         def wave(sl: slice, s: int, uf: int):
             start = 0 if sl.start is None else sl.start
             stop = s if sl.stop is None else sl.stop
+            if 0 <= start < s:
+                pass
+            elif -s < start < 0:
+                start += s
+            else:
+                raise ValueError(f"Invalid value encountered in key {key}.")
+            if 0 <= stop <= s:
+                pass
+            elif -s < stop <= 0:
+                stop += s
+            else:
+                raise ValueError(f"Invalid value encountered in key {key}.")
             return xp.linspace(start/s, stop/s, (stop-start)*uf, endpoint=False)[:, xp.newaxis]
         
         # exp(-ikx)
