@@ -3,6 +3,7 @@ from functools import wraps
 import os
 from dask import array as da
 from warnings import warn
+from collections import namedtuple
 
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
@@ -49,7 +50,9 @@ class LazyImgArray(AxesMixin):
     
     @property
     def shape(self):
-        return self.img.shape
+        _shape = self.img.shape
+        tup = namedtuple("AxesShape", list(self.axes))
+        return tup(*_shape)
     
     @property
     def dtype(self):

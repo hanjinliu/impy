@@ -1,18 +1,19 @@
 from __future__ import annotations
-from ..axes import Axes, ImageAxesError
+from ..axes import Axes, ImageAxesError, ScaleDict
 import numpy as np
 import re
+from warnings import warn
 
 class AxesMixin:
     """
     Abstract class with shape, ndim and axes are defined.
     """    
     _axes: Axes
-    shape: tuple[int, ...]
     ndim: int
+    shape: tuple[int, ...]
     
     @property
-    def shape_info(self):
+    def shape_info(self) -> str:
         if self.axes.is_none():
             shape_info = self.shape
         else:
@@ -20,11 +21,11 @@ class AxesMixin:
         return shape_info
     
     @property
-    def spatial_shape(self):
+    def spatial_shape(self) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
     
     @property
-    def axes(self):
+    def axes(self) -> Axes:
         return self._axes
     
     @axes.setter
@@ -38,7 +39,7 @@ class AxesMixin:
                                     f"array (ndim={self.ndim}) and axes ({value})")
         
     @property
-    def scale(self):
+    def scale(self) -> ScaleDict:
         return self.axes._scale
     
     @scale.setter
@@ -48,7 +49,7 @@ class AxesMixin:
         return self.set_scale(value)
     
     @property
-    def scale_unit(self):
+    def scale_unit(self) -> str:
         try:
             unit = self.metadata["unit"]
             if unit.startswith(r"\u"):
@@ -69,10 +70,10 @@ class AxesMixin:
     def _repr_dict_(self) -> dict[str]:
         raise NotImplementedError()
         
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
     
-    def _repr_html_(self):
+    def _repr_html_(self) -> str:
         strs = []
         for k, v in self._repr_dict_().items():
             v = re.sub("->", "<br>&rarr; ", str(v))
@@ -97,7 +98,7 @@ class AxesMixin:
         """
         return html
         
-    def axisof(self, symbol):
+    def axisof(self, symbol) -> int:
         if type(symbol) is int:
             return symbol
         else:
@@ -105,7 +106,7 @@ class AxesMixin:
     
     
     def sizeof(self, axis:str):
-        return self.shape[self.axes.find(axis)]
+        return getattr(self.shape, axis)
     
     def sizesof(self, axes:str):
         return tuple(self.sizeof(a) for a in axes)

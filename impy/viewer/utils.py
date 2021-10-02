@@ -212,7 +212,7 @@ def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     else:
         name = "No-Name" if img.name is None else img.name
         if chn_ax is not None:
-            name = [f"[C{i}]{name}" for i in range(img.sizeof("c"))]
+            name = [f"[C{i}]{name}" for i in range(img.shape.c)]
         else:
             name = [name]
     
@@ -276,7 +276,7 @@ def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
     name = "No-Name" if img.name is None else img.name
 
     if chn_ax is not None:
-        name = [f"[Lazy][C{i}]{name}" for i in range(img.sizeof("c"))]
+        name = [f"[Lazy][C{i}]{name}" for i in range(img.shape.c)]
     else:
         name = ["[Lazy]" + name]
 

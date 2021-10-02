@@ -275,7 +275,7 @@ class LabeledArray(HistoryArray):
                 _plt.plot_3d(imglist, **kwargs)
 
             else:
-                n_chn = self.sizeof("c")
+                n_chn = self.shape.c
                 fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     _plt.plot_2d(self[f"c={i}"].value, ax=ax[i], **kwargs)
@@ -312,7 +312,7 @@ class LabeledArray(HistoryArray):
                 _plt.plot_3d_label(imglist.value, imglist.labels.value, alpha, **kwargs)
 
             else:
-                n_chn = self.sizeof("c")
+                n_chn = self.shape.c
                 fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i}"]

@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from dask import array as da
 import itertools
+from collections import namedtuple
 from ..axesmixin import AxesMixin
 from ..._types import *
 from ...axes import ImageAxesError
@@ -14,6 +15,8 @@ from ...collections import DataList
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
     NP_DISPATCH = {}
+    name: str
+    dirpath: str
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
@@ -45,6 +48,12 @@ class MetaArray(AxesMixin, np.ndarray):
     
     def __str__(self):
         return self.name
+    
+    @property
+    def shape(self):
+        _shape = super().shape
+        tup = namedtuple("AxesShape", list(self.axes))
+        return tup(*_shape)
     
 
     def showinfo(self):
