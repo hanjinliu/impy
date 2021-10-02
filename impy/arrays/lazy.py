@@ -419,7 +419,6 @@ class LazyImgArray(AxesMixin):
         else:
             @wraps(func)
             def _func(arr, *args, **kwargs):
-                arr = xp.asarray(arr)
                 out = func(arr[slice_in], *args, **kwargs)
                 return asnumpy(out[slice_out])
         
@@ -806,8 +805,9 @@ class LazyImgArray(AxesMixin):
         def pcc(x):
             if x.shape[0] < 2:
                 return np.array([0]*ndim, dtype=np.float32).reshape(*each_shape)
+            x = xp.asarray(x)
             result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)
-            return result[slice_out]
+            return asnumpy(result[slice_out])
 
         # I don't know the reason why but output dask array's chunk size along t-axis should be 
         # specified to be 1, and rechunk it map_overlap. 
@@ -874,7 +874,7 @@ class LazyImgArray(AxesMixin):
             arr = xp.asarray(arr)
             mx = xp.eye(ndim+1, dtype=np.float32)
             loc = block_info[None]["array-location"][0]
-            mx[:-1, -1] = -shift[loc[t_index]]
+            mx[:-1, -1] = -xp.asarray(shift[loc[t_index]])
             return asnumpy(
                 _transform.warp(arr[slice_in], mx, **affine_kwargs)[slice_out]
                 )
