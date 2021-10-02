@@ -50,9 +50,11 @@ class MetaArray(AxesMixin, np.ndarray):
     
     @property
     def shape(self):
-        _shape = super().shape
-        tup = namedtuple("AxesShape", list(self.axes))
-        return tup(*_shape)
+        try:
+            tup = namedtuple("AxesShape", list(self.axes))
+            return tup(*super().shape)
+        except ImageAxesError:
+            return super().shape
     
 
     def showinfo(self):
@@ -423,7 +425,7 @@ class MetaArray(AxesMixin, np.ndarray):
             try:
                 if self.sizesof("yx") == value.shape:
                     value = add_axes(self.axes, self.shape, value)
-            except ImageAxesError:
+            except AttributeError:
                 pass
         return value
     

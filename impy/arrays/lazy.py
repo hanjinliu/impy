@@ -50,9 +50,11 @@ class LazyImgArray(AxesMixin):
     
     @property
     def shape(self):
-        _shape = self.img.shape
-        tup = namedtuple("AxesShape", list(self.axes))
-        return tup(*_shape)
+        try:
+            tup = namedtuple("AxesShape", list(self.axes))
+            return tup(*self.img.shape)
+        except ImageAxesError:
+            return self.img.shape
     
     @property
     def dtype(self):
@@ -68,8 +70,12 @@ class LazyImgArray(AxesMixin):
     
     @property
     def chunksize(self):
-        return self.img.chunksize
-    
+        try:
+            tup = namedtuple("AxesShape", list(self.axes))
+            return tup(*self.img.chunksize)
+        except ImageAxesError:
+            return self.img.chunksize
+        
     @property
     def gb(self):
         return self.img.nbytes / 1e9

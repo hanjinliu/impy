@@ -1114,7 +1114,7 @@ def _iter_dict(d, nparam):
                 out[k] = v
         yield out
 
-def _shape_match(img, label):
+def _shape_match(img: LabeledArray, label: Label):
     """
     e.g.)
     img   ... 12(t), 100(y), 50(x)
