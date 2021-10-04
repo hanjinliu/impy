@@ -135,7 +135,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rotate(self, degree:float, center="center", *, cval=0, dims=2, order:int=1, 
+    def rotate(self, degree:float, center="center", *, mode="constant", cval=0, dims=2, order:int=1, 
                update:bool=False) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
@@ -147,6 +147,8 @@ class ImgArray(LabeledArray):
             Clockwise degree of rotation. Not radian.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
+        mode : str
+            Padding mode. See ``scipy.ndimage.affine_transform`` for details.
         cval : int, default is 0
             Constant value to fill outside the image for mode == "constant".
         {dims}
@@ -171,7 +173,7 @@ class ImgArray(LabeledArray):
         mx[-1, :] = [0] * len(dims) + [1]
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx, order=order, cval=cval)
+                               kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval)
                                )
     
     
@@ -179,7 +181,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def stretch(self, scale, center="center", *, cval=0, dims=None, order:int=1) -> ImgArray:
+    def stretch(self, scale, center="center", *, mode="constant", cval=0, dims=None,
+                order:int=1) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -189,6 +192,8 @@ class ImgArray(LabeledArray):
             Stretch factors.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
+        mode : str
+            Padding mode. See ``scipy.ndimage.affine_transform`` for details.
         cval : int, default is 0
             Constant value to fill outside the image for mode == "constant".
         {dims}
@@ -197,7 +202,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Rotated image.
+            Stretched image.
         """        
         if center == "center":
             center = np.array(self.sizesof(dims))/2. - 0.5
@@ -215,7 +220,7 @@ class ImgArray(LabeledArray):
         
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx.params, order=order, cval=cval)
+                               kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval)
                                )
 
     @_docs.write_docs
