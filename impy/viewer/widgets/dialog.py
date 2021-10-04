@@ -251,7 +251,7 @@ class TimeStamper(QDialog):
     
     @close_anyway
     def run(self, *args):
-        i = np.arange(self.layer.data.sizeof("t"))
+        i = np.arange(self.layer.data.shape.t)
         factor = {"hr": 3600, "min": 60, "sec": 1, "msec":0.001}[self.unit.currentText()]
         sec = i * self.dt.value() * factor
         time_stamp = [str(datetime.timedelta(seconds=float(s))) for s in sec]

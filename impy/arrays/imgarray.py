@@ -138,7 +138,8 @@ class ImgArray(LabeledArray):
     def rotate(self, degree:float, center="center", *, cval=0, dims=2, order:int=1, 
                update:bool=False) -> ImgArray:
         """
-        2D rotation of an image around a point. Outside will be padded with zero.
+        2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
+        this implementation is faster than ``scipy.ndimage.rotate``.
 
         Parameters
         ----------
@@ -1593,7 +1594,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @record(append_history=False)
     def split_pixel_unit(self, center:tuple[float, float]=(0.5, 0.5), *, order:int=1,
-                           angle_order:list[int]=None, newaxis="<") -> ImgArray:
+                         angle_order:list[int]=None, newaxis="a") -> ImgArray:
         r"""
         Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, image 
         acquisition with a polarization camera will output :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
@@ -1648,8 +1649,8 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Axis "<" is added in the first dimension.　For example, If input is "tyx"-axes, then output
-            will be "<tyx"-axes.
+            Axis "a" is added in the first dimension.　For example, If input is "tyx"-axes, then output
+            will be "atyx"-axes.
         
         Examples
         --------
@@ -1657,7 +1658,7 @@ class ImgArray(LabeledArray):
         from a polarization camera, and calculate total intensity of light by averaging.
         
             >>> img_pol = img.split_pixel_unit()
-            >>> img_total = img_pol.proj(axis="<")
+            >>> img_total = img_pol.proj(axis="a")
         """        
         yc, xc = center
         if angle_order is None:
@@ -1672,7 +1673,7 @@ class ImgArray(LabeledArray):
         imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
         return imgs
         
-    def stokes(self, *, along:str="<") -> dict:
+    def stokes(self, *, along:str="a") -> dict:
         """
         Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
         Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
@@ -1682,7 +1683,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        along : str, default is "<"
+        along : str, default is "a"
             To define which axis is polarization angle axis. Along this axis the angle of polarizer must be
             in order of 0, 45, 90, 135 degree.
 
@@ -1697,7 +1698,7 @@ class ImgArray(LabeledArray):
         
             >>> img_pol = img.split_polarization()
             >>> dpol = img_pol.stokes()
-            >>> ip.gui.add(img_pol.proj)
+            >>> ip.gui.add(img_pol.proj())
             >>> ip.gui.add(dpol.aop.rad2deg())
         
         References
@@ -2633,6 +2634,18 @@ class ImgArray(LabeledArray):
         def wave(sl: slice, s: int, uf: int):
             start = 0 if sl.start is None else sl.start
             stop = s if sl.stop is None else sl.stop
+            if 0 <= start < s:
+                pass
+            elif -s < start < 0:
+                start += s
+            else:
+                raise ValueError(f"Invalid value encountered in key {key}.")
+            if 0 <= stop <= s:
+                pass
+            elif -s < stop <= 0:
+                stop += s
+            else:
+                raise ValueError(f"Invalid value encountered in key {key}.")
             return xp.linspace(start/s, stop/s, (stop-start)*uf, endpoint=False)[:, xp.newaxis]
         
         # exp(-ikx)
@@ -3587,7 +3600,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         DataDict of ImgArray
-            GLCM with additional axes "d<", where "d" means distance and "<" means angle.
+            GLCM with additional axes "da", where "d" means distance and "a" means angle.
             If input image has "tzyx" axes then output will have "tzd<yx" axes.
         
         Examples
@@ -3622,7 +3635,7 @@ class ImgArray(LabeledArray):
                 out[prop].value[sl] = propout[prop]
             
         for k, v in out.items():
-            v._set_info(self, f"glcm_props-{k}", new_axes=c_axes+"d<"+dims)
+            v._set_info(self, f"glcm_props-{k}", new_axes=c_axes+"da"+dims)
         return out
     
     
@@ -3809,7 +3822,7 @@ class ImgArray(LabeledArray):
         """        
         
         if along is None:
-            along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
+            along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         

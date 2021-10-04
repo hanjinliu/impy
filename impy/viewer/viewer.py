@@ -207,7 +207,7 @@ class napariViewers:
         viewer.layers.events.inserted.connect(upon_add_layer)
         
         activity_dlg = viewer.window.qt_viewer.window()._activity_dialog
-        activity_dlg.resize(int(activity_dlg.width()*0.7), activity_dlg.height())
+        activity_dlg.resize(int(activity_dlg.width()*0.8), activity_dlg.height())
         
         self._viewers[key] = viewer
         self._front_viewer = key

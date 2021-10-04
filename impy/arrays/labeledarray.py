@@ -275,7 +275,7 @@ class LabeledArray(HistoryArray):
                 _plt.plot_3d(imglist, **kwargs)
 
             else:
-                n_chn = self.sizeof("c")
+                n_chn = self.shape.c
                 fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     _plt.plot_2d(self[f"c={i}"].value, ax=ax[i], **kwargs)
@@ -312,7 +312,7 @@ class LabeledArray(HistoryArray):
                 _plt.plot_3d_label(imglist.value, imglist.labels.value, alpha, **kwargs)
 
             else:
-                n_chn = self.sizeof("c")
+                n_chn = self.shape.c
                 fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
                     img = self[f"c={i}"]
@@ -904,7 +904,7 @@ class LabeledArray(HistoryArray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, include="cztp<")
+            axis = find_first_appeared(self.axes, include="cztpa")
         axisint = self.axisof(axis)
         
         imgs = super().split(axisint)
@@ -1114,7 +1114,7 @@ def _iter_dict(d, nparam):
                 out[k] = v
         yield out
 
-def _shape_match(img, label):
+def _shape_match(img: LabeledArray, label: Label):
     """
     e.g.)
     img   ... 12(t), 100(y), 50(x)

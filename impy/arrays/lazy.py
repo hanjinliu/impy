@@ -3,6 +3,7 @@ from functools import wraps
 import os
 from dask import array as da
 from warnings import warn
+from collections import namedtuple
 
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
@@ -49,7 +50,11 @@ class LazyImgArray(AxesMixin):
     
     @property
     def shape(self):
-        return self.img.shape
+        try:
+            tup = namedtuple("AxesShape", list(self.axes))
+            return tup(*self.img.shape)
+        except ImageAxesError:
+            return self.img.shape
     
     @property
     def dtype(self):
@@ -65,8 +70,12 @@ class LazyImgArray(AxesMixin):
     
     @property
     def chunksize(self):
-        return self.img.chunksize
-    
+        try:
+            tup = namedtuple("AxesShape", list(self.axes))
+            return tup(*self.img.chunksize)
+        except ImageAxesError:
+            return self.img.chunksize
+        
     @property
     def gb(self):
         return self.img.nbytes / 1e9
@@ -831,7 +840,7 @@ class LazyImgArray(AxesMixin):
                          dims=2, update:bool=False, **affine_kwargs) -> LazyImgArray:
         
         if along is None:
-            along = find_first_appeared("tpzci<", include=self.axes, exclude=dims)
+            along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         
@@ -920,6 +929,13 @@ class LazyImgArray(AxesMixin):
                           args=(psf_ft, psf_ft_conj, niter, eps)
                           )
     
+    def __array_function__(self, func, types, args, kwargs):
+        """
+        Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
+        function can be overloaded with this method.
+        """
+        img = da.core.Array.__array_function__(self.img, func, types, args, kwargs)
+        
 
     def as_uint8(self) -> LazyImgArray:
         img = self.img

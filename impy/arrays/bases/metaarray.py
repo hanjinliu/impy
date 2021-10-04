@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from dask import array as da
 import itertools
+from collections import namedtuple
 from ..axesmixin import AxesMixin
 from ..._types import *
 from ...axes import ImageAxesError
@@ -14,6 +15,8 @@ from ...collections import DataList
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
     NP_DISPATCH = {}
+    name: str
+    dirpath: str
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None):
@@ -45,6 +48,14 @@ class MetaArray(AxesMixin, np.ndarray):
     def __str__(self):
         return self.name
     
+    @property
+    def shape(self):
+        try:
+            tup = namedtuple("AxesShape", list(self.axes))
+            return tup(*super().shape)
+        except ImageAxesError:
+            return super().shape
+    
 
     def showinfo(self):
         print(repr(self))
@@ -72,7 +83,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key):
+    def __getitem__(self, key: int|str|slice) -> MetaArray:
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
             sl = self._str_to_slice(key)
@@ -108,7 +119,7 @@ class MetaArray(AxesMixin, np.ndarray):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: int|str|slice, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
             sl = self._str_to_slice(key)
@@ -414,7 +425,7 @@ class MetaArray(AxesMixin, np.ndarray):
             try:
                 if self.sizesof("yx") == value.shape:
                     value = add_axes(self.axes, self.shape, value)
-            except ImageAxesError:
+            except AttributeError:
                 pass
         return value
     
@@ -443,26 +454,17 @@ def _list_of_axes(img, axis):
         axis = [axis]
     return axis
         
-def _replace_inputs(img, args, kwargs):
+def _replace_inputs(img:MetaArray, args, kwargs):
     _as_np_ndarray = lambda a: a.value if isinstance(a, MetaArray) else a
     # convert arguments
     args = tuple(_as_np_ndarray(a) for a in args)
     if "axis" in kwargs:
         axis = kwargs["axis"]
         if isinstance(axis, str):
-            _axis = tuple(img.axisof(a) for a in axis)
+            _axis = tuple(map(img.axisof, axis))
             if len(_axis) == 1:
                 _axis = _axis[0]
             kwargs["axis"] = _axis
-        elif isinstance(axis, tuple):
-            axis = "".join(img.axes.axes[i] for i in kwargs["axis"])
-        elif isinstance(axis, int):
-            axis = img.axes.axes[axis]
-    else:
-        axis = ""
-    
-    if "keepdims" in kwargs and kwargs["keepdims"] == True:
-        axis = ""
     
     if "out" in kwargs:
         kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])

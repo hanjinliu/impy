@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 import numpy as np
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
@@ -19,7 +19,7 @@ class NoneAxes:
 
 NONE = NoneAxes()
 
-class ScaleDict(dict):
+class ScaleDict(OrderedDict):
     def __getattr__(self, key):
         """
         To enable such as scale.x or scale.y. Simply this can be achieved by
@@ -33,10 +33,10 @@ class ScaleDict(dict):
         KeyError.
 
         """        
-        if key in self.keys():
+        try:
             return self[key]
-        else:
-            raise AttributeError
+        except KeyError:
+            raise AttributeError(key)
     
     def __list__(self):
         axes = sorted(self.keys(), key=lambda a: ORDER[a])
@@ -46,7 +46,7 @@ class ScaleDict(dict):
         return np.array(self.__list__(), dtype=dtype)
 
 def check_none(func):
-    def checked(self, *args, **kwargs):
+    def checked(self: Axes, *args, **kwargs):
         if self.is_none():
             raise ImageAxesError("Axes not defined.")
         return func(self, *args, **kwargs)

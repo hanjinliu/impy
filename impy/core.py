@@ -345,7 +345,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
                     history=history, metadata=metadata)
         
     # In case the image is in yxc-order. This sometimes happens.
-    if "c" in self.axes and self.sizeof("c") > self.sizeof("x"):
+    if "c" in self.axes and self.shape.c > self.shape.x:
         self = np.moveaxis(self, -1, -3)
         _axes = self.axes.axes
         _axes = _axes[:-3] + "cyx"
