@@ -2639,19 +2639,21 @@ class ImgArray(LabeledArray):
         def wave(sl: slice, s: int, uf: int):
             start = 0 if sl.start is None else sl.start
             stop = s if sl.stop is None else sl.stop
-            if 0 <= start < s:
+            
+            if sl.start and sl.stop and start < 0 and stop > 0:
+                # like "x=-5:5"
                 pass
-            elif -s < start < 0:
-                start += s
             else:
-                raise ValueError(f"Invalid value encountered in key {key}.")
-            if 0 <= stop <= s:
-                pass
-            elif -s < stop <= 0:
-                stop += s
-            else:
-                raise ValueError(f"Invalid value encountered in key {key}.")
-            return xp.linspace(start/s, stop/s, (stop-start)*uf, endpoint=False)[:, xp.newaxis]
+                if -s < start < 0:
+                    start += s
+                elif not 0 <= start < s:
+                    raise ValueError(f"Invalid value encountered in key {key}.")
+                if -s < stop <= 0:
+                    stop += s
+                elif not 0 <= stop <= s:
+                    raise ValueError(f"Invalid value encountered in key {key}.")
+            n = stop - start
+            return xp.linspace(start/s, stop/s, n*uf, endpoint=False)[:, xp.newaxis]
         
         # exp(-ikx)
         exps = [xp.exp(-2j*np.pi * xp.arange(s) * wave(sl, s, uf), dtype=np.complex64)
