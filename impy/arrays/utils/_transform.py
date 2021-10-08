@@ -22,6 +22,12 @@ def warp(img, matrix, cval=0, mode="constant", output_shape=None, order=1):
                                   order=order, prefilter=order>1)
     return out
 
+def shift(img, shift, cval=0, mode="constant", order=1):
+    img = xp.asarray(img, dtype=img.dtype)
+    out = xp_ndi.shift(img, shift, cval=cval, mode=mode, 
+                       order=order, prefilter=order>1)
+    return out
+
 def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):
     # These two modules returns consistent matrix in the two dimensional case.
     # rotation must be in radian.

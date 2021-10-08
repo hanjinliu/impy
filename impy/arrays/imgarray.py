@@ -118,13 +118,21 @@ class ImgArray(LabeledArray):
         """
         if update and output_shape is not None:
             raise ValueError("Cannot update image when output_shape is provided.")
+        if isinstance(cval, str) and hasattr(np, cval):
+            cval = getattr(np, cval)(self.value)
+        elif callable(cval):
+            cval = cval(self.value)
+        
+        if translation is not None and all(a is None for a in [matrix, scale, rotation, shear]):
+            shift = -np.asarray(translation)
+            return self.apply_dask(_transform.shift,
+                                   c_axes=complement_axes(dims, self.axes),
+                                   kwargs=dict(shift=shift, order=order, mode=mode, cval=cval)
+                                   )
         if matrix is None:
             matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
                                                       shear=shear, translation=translation,
                                                       ndim=len(dims))
-        if isinstance(cval, str) and hasattr(np, cval):
-            cval = getattr(np, cval)(self.value)
-        
         return self.apply_dask(_transform.warp,
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
@@ -175,7 +183,6 @@ class ImgArray(LabeledArray):
                                c_axes=complement_axes(dims, self.axes),
                                kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval)
                                )
-    
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -2909,7 +2916,8 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def ncc_filter(self, template:np.ndarray, bg:float=None, *, dims=None) -> ImgArray:
+    def ncc_filter(self, template:np.ndarray, mode:str="constant", cval:float=None, 
+                   *, dims=None) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
         identical to that in `skimage.feature`, but is optimized for batch processing and improved 
@@ -2919,7 +2927,8 @@ class ImgArray(LabeledArray):
         ----------
         template : np.ndarray
             Template image. Must be 2 or 3 dimensional. 
-        bg : float, optional
+        {mode}
+        cval : float, optional
             Background intensity. If not given, it will calculated as the minimum value of 
             the original image.
         {dims}
@@ -2930,13 +2939,13 @@ class ImgArray(LabeledArray):
             Response image with values between -1 and 1.
         """        
         template = _check_template(template)
-        bg = _check_bg(self, bg)
+        cval = _check_bg(self, cval)
         if len(dims) != template.ndim:
             raise ValueError("dims and the number of template dimension don't match.")
         
         return self.as_float().apply_dask(_filters.ncc_filter,
                                           c_axes=complement_axes(dims, self.axes), 
-                                          args=(template, bg)
+                                          args=(template, cval)
                                           )
     
     @record(append_history=False)
