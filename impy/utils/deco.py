@@ -136,10 +136,9 @@ def dims_to_spatial_axes(func):
             
         if isinstance(dims, int):
             s_axes = "".join([a for a in "zyx" if a in self._axes])[-dims:]
-        elif isinstance(dims, str):
-            s_axes = dims
         else:
-            TypeError(f"'dims' must be None, int or str, but got {type(dims)}")
+            s_axes = str(dims)
+        
         kwargs["dims"] = s_axes # update input
         return func(self, *args, **kwargs)
     

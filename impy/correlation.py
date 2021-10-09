@@ -307,8 +307,8 @@ def pcc_maximum(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, upsample_
     """    
     with Progress("pcc_maximum"):
         img0, img1 = _check_inputs(img0, img1)
-        ft0 = img0.fft()
-        ft1 = img1.fft()
+        ft0 = img0.fft(dims=img0.axes)
+        ft1 = img1.fft(dims=img1.axes)
         if mask is not None:
             ft0[mask] = 0
         shift = subpixel_pcc(ft0, ft1, upsample_factor)

@@ -57,20 +57,33 @@ def _(imgs:list[MetaArray], axis="c", dtype=None):
     ImgArray
         Image stack
     """
+    if imgs[0].axes:
+        old_axes = str(imgs[0].axes)
+    else:
+        old_axes = None
     
     if isinstance(axis, int):
+        _axis = axis
         axis = "p"
+        if old_axes:
+            new_axes = old_axes[:_axis] + axis + old_axes[_axis:]
+        else:
+            new_axes = None
     elif not isinstance(axis, str):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
-    
-    # find where to add new axis
-    if imgs[0].axes:
-        new_axes = Axes(axis + str(imgs[0].axes))
-        new_axes.sort()
-        _axis = new_axes.find(axis)
     else:
-        new_axes = None
-        _axis = 0
+        # find where to add new axis
+        if old_axes:
+            if imgs[0].axes.is_sorted():
+                new_axes = Axes(axis + old_axes)
+                new_axes.sort()
+                _axis = new_axes.find(axis)
+            else:
+                new_axes = axis + old_axes
+                _axis = 0
+        else:
+            new_axes = None
+            _axis = 0
 
     if dtype is None:
         dtype = imgs[0].dtype
