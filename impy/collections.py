@@ -1,15 +1,20 @@
 from __future__ import annotations
 from .utils.utilcls import Progress
 from collections import UserList, UserDict
+from typing import Any, Callable, TypeVar
 
 __all__ = ["DataList", "DataDict"]
 
+_T = TypeVar("_T")
+
 class CollectionBase:
+    _type: _T
+    
     @property
-    def _such_as(self):
+    def _such_as(self) -> _T:
         raise NotImplementedError
     
-    def _repr_(self, _repr_=None):
+    def _repr_(self, _repr_: str = None) -> str:
         if len(self) == 1:
             return \
         f"""{self.__class__.__name__}[{self._type.__name__}] with a component:
@@ -23,13 +28,13 @@ class CollectionBase:
         else:
             return f"{self.__class__.__name__} with no component"
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self._repr_("__repr__")
     
-    def _repr_html_(self):
+    def _repr_html_(self) -> str:
         return self._repr_("_repr_html_")
     
-    def _repr_latex_(self):
+    def _repr_latex_(self) -> str:
         return self._repr_("_repr_latex_")
         
     
@@ -49,6 +54,7 @@ class DataList(CollectionBase, UserList):
         >>> imgs = DataList([img1, img2, ...])
         >>> out = imgs.find_sm()
     """ 
+    
     def __init__(self, iterable=()):
         super().__init__(iterable)
         try:
@@ -60,10 +66,10 @@ class DataList(CollectionBase, UserList):
                 raise TypeError("All the components must be the same type.")
     
     @property
-    def _such_as(self):
+    def _such_as(self) -> _T:
         return self[0]
     
-    def append(self, component):
+    def append(self, component: _T) -> None:
         if self._type is None:
             super().append(component)
             self._type = type(component)
@@ -73,7 +79,7 @@ class DataList(CollectionBase, UserList):
             raise TypeError(f"Cannot append {type(component)} because {self.__class__.__name__} is composed of "
                             f"{self._type}.")
     
-    def __add__(self, other:DataList):
+    def __add__(self, other: DataList):
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot add {type(other)}.")
         elif self._type is other._type or self._type is None or other._type is None:
@@ -82,7 +88,7 @@ class DataList(CollectionBase, UserList):
             raise TypeError("Cannot add two lists composed of different type of objects: "
                            f"{self._type} and {other._type}.")
     
-    def __iadd__(self, other:DataList):
+    def __iadd__(self, other: DataList) -> None:
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot add {type(other)}.")
         elif self._type is other._type or self._type is None or other._type is None:
@@ -92,7 +98,7 @@ class DataList(CollectionBase, UserList):
             raise TypeError("Cannot add two lists composed of different type of objects: "
                            f"{self._type} and {other._type}.")
     
-    def extend(self, other:DataList):
+    def extend(self, other: DataList) -> None:
         if not isinstance(other, self.__class__):
             raise TypeError(f"Cannot extend DataList with {type(other)}.")
         elif self._type is other._type or self._type is None or other._type is None:
@@ -102,9 +108,7 @@ class DataList(CollectionBase, UserList):
             raise TypeError("Cannot add two lists composed of different type of objects: "
                            f"{self._type} and {other._type}.")
         
-
-    
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         f = getattr(self._such_as, name) # raise AttributeError here if it should be raised
         if not callable(f):
             return self.__class__(getattr(a, name) for a in self)
@@ -116,7 +120,7 @@ class DataList(CollectionBase, UserList):
             return out
         return _run
     
-    def apply(self, func, *args, **kwargs) -> DataList:
+    def apply(self, func: Callable|str, *args, **kwargs) -> DataList:
         """
         Apply same function to each components. It can be any callable objects or any method of the components.
 
@@ -175,7 +179,7 @@ class DataDict(CollectionBase, UserDict):
                 raise TypeError("All the components must be the same type.")
     
     @property
-    def _such_as(self):
+    def _such_as(self) -> _T:
         return next(iter(self.data.values()))
     
     
@@ -205,7 +209,7 @@ class DataDict(CollectionBase, UserDict):
             return out
         return _run
     
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func: Callable|str, *args, **kwargs):
         """
         Apply same function to each components. It can be any callable objects or any method of the components.
 
