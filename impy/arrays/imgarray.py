@@ -84,8 +84,8 @@ class ImgArray(LabeledArray):
     @same_dtype(True)
     @record()
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
-               mode="constant", cval=0, output_shape=None, order:int=1, *, dims=None, 
-               update:bool=False) -> ImgArray:
+               mode="constant", cval=0, output_shape=None, order:int=1, *, dims: Dims = None, 
+               update: bool = False) -> ImgArray:
         r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
@@ -143,8 +143,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rotate(self, degree:float, center="center", *, mode="constant", cval=0, dims=2, order:int=1, 
-               update:bool=False) -> ImgArray:
+    def rotate(self, degree:float, center="center", *, mode="constant", cval=0, dims: Dims = 2, order:int=1, 
+               update: bool = False) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
         this implementation is faster than ``scipy.ndimage.rotate``.
@@ -188,7 +188,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def stretch(self, scale, center="center", *, mode="constant", cval=0, dims=None,
+    def stretch(self, scale, center="center", *, mode="constant", cval=0, dims: Dims = None,
                 order:int=1) -> ImgArray:
         """
         2D stretching of an image from a point.
@@ -233,7 +233,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(True)
-    def rescale(self, scale:float=1/16, *, dims=None, order:int=None) -> ImgArray:
+    def rescale(self, scale:float=1/16, *, dims: Dims = None, order:int=None) -> ImgArray:
         """
         Rescale image.
 
@@ -265,7 +265,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype()
-    def binning(self, binsize:int=2, method="mean", *, check_edges:bool=True, dims=None) -> ImgArray:
+    def binning(self, binsize:int=2, method="mean", *, check_edges:bool=True, dims: Dims = None) -> ImgArray:
         r"""
         Binning of images. This function is similar to ``rescale`` but is strictly binned by :math:`N \times N` 
         blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -310,7 +310,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     def radial_profile(self, nbin:int=32, center:Iterable[float]=None, r_max:float=None, *, 
-                       method:str="mean", dims=None) -> PropArray:
+                       method:str="mean", dims: Dims = None) -> PropArray:
         """
         Calculate radial profile of images. Scale along each axis will be considered, i.e., rather 
         ellipsoidal profile will be calculated instead if scales are different between axes.
@@ -415,7 +415,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype(asfloat=True)
     @record()
-    def gauss_correction(self, ref:ImgArray=None, scale:float=1/16, median_radius:float=15):
+    def gauss_correction(self, ref:ImgArray=None, scale:float=1/16, median_radius: float = 15):
         """
         Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
         background intensity at the same time. If input image is uint, then output value under 0 will
@@ -457,6 +457,7 @@ class ImgArray(LabeledArray):
         ref_loop_axes = complement_axes("yx", ref.axes)
         out = np.empty(self.shape, dtype=np.float32)
         for sl0, ref_ in ref.iter(ref_loop_axes, israw=True):
+            ref_: ImgArray
             if median_radius >= 1:
                 ref_ = ref_.median_filter(radius=median_radius)
             fit = ref_.gaussfit(scale=scale, show_result=False)
@@ -544,7 +545,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eigval(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
+    def hessian_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. 
         
@@ -584,7 +585,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def hessian_eig(self, sigma:nDFloat=1, *, dims=None) -> tuple[ImgArray, ImgArray]:
+    def hessian_eig(self, sigma: nDFloat = 1, *, dims: Dims = None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
 
@@ -618,7 +619,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eigval(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
+    def structure_tensor_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -651,7 +652,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def structure_tensor_eig(self, sigma:nDFloat=1, *, dims=None)-> tuple[ImgArray, ImgArray]:
+    def structure_tensor_eig(self, sigma: nDFloat = 1, *, dims: Dims = None)-> tuple[ImgArray, ImgArray]:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
 
@@ -687,7 +688,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def edge_filter(self, method:str="sobel", *, dims=None, update:bool=False) -> ImgArray:
+    def edge_filter(self, method: str = "sobel", *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Sobel filter. This filter is useful for edge detection.
 
@@ -719,7 +720,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def lowpass_filter(self, cutoff:nDFloat=0.2, order:float=2, *, dims=None, update:bool=False) -> ImgArray:
+    def lowpass_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, dims: Dims = None, 
+                       update: bool = False) -> ImgArray:
         """
         Butterworth low-pass filter.
 
@@ -750,7 +752,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def highpass_filter(self, cutoff:nDFloat=0.2, order:float=2, *, dims=None, update:bool=False) -> ImgArray:
+    def highpass_filter(self, cutoff:nDFloat=0.2, order:float=2, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Butterworth high-pass filter.
 
@@ -782,8 +784,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None, 
-                 update:bool=False) -> ImgArray:
+    def convolve(self, kernel, *, mode: str = "reflect", cval: float = 0, dims: Dims = None, 
+                 update: bool = False) -> ImgArray:
         """
         General linear convolution by running kernel filtering.
 
@@ -814,7 +816,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+    def erosion(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Morphological erosion. If input is binary image, the running function will automatically switched to
         ``binary_erosion`` to speed up calculation.
@@ -846,7 +848,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+    def dilation(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Morphological dilation. If input is binary image, the running function will automatically switched to
         ``binary_dilation`` to speed up calculation.
@@ -878,7 +880,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def opening(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+    def opening(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Morphological opening. If input is binary image, the running function will automatically switched to
         ``binary_opening`` to speed up calculation.
@@ -910,7 +912,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def closing(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+    def closing(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Morphological closing. If input is binary image, the running function will automatically switched to
         ``binary_closing`` to speed up calculation.
@@ -942,7 +944,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def tophat(self, radius:float=30, *, dims=None, update:bool=False) -> ImgArray:
+    def tophat(self, radius: float = 30, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Tophat morphological image processing. This is useful for background subtraction.
 
@@ -969,7 +971,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+    def mean_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Mean filter. Kernel is filled with same values.
 
@@ -994,7 +996,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def std_filter(self, radius:float=1, *, dims=None) -> ImgArray:
+    def std_filter(self, radius: float = 1, *, dims: Dims = None) -> ImgArray:
         """
         Standard deviation filter.
 
@@ -1017,7 +1019,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def coef_filter(self, radius:float=1, *, dims=None) -> ImgArray:
+    def coef_filter(self, radius: float = 1, *, dims: Dims = None) -> ImgArray:
         r"""
         Coefficient of variance filter. For kernel area X, :math:`\frac{\sqrt{V[X]}}{E[X]}` is calculated.
         This filter is useful for feature extraction from images with uneven background intensity.
@@ -1041,7 +1043,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> ImgArray:
+    def median_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Running median filter. This filter is useful for deleting outliers generated by noise.
 
@@ -1066,8 +1068,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims=None, 
-                         update:bool=False) -> ImgArray:
+    def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims: Dims = None, 
+                         update: bool = False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_opening, 
                                c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
@@ -1076,8 +1078,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims=None,
-                         update:bool=False) -> ImgArray:
+    def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims: Dims = None,
+                         update: bool = False) -> ImgArray:
         return self.apply_dask(skimage.morphology.diameter_closing, 
                                c_axes=complement_axes(dims, self.axes), 
                                kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
@@ -1086,8 +1088,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def area_opening(self, area:int=64, *, connectivity:int=1, dims=None, 
-                     update:bool=False) -> ImgArray:
+    def area_opening(self, area:int=64, *, connectivity:int=1, dims: Dims = None, 
+                     update: bool = False) -> ImgArray:
         if self.dtype == bool:
             return self.apply_dask(skimage.morphology.remove_small_objects,
                                    c_axes=complement_axes(dims, self.axes), 
@@ -1102,8 +1104,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype()
     @record()
-    def area_closing(self, area:int=64, *, connectivity:int=1, dims=None, 
-                     update:bool=False) -> ImgArray:
+    def area_closing(self, area:int=64, *, connectivity:int=1, dims: Dims = None, 
+                     update: bool = False) -> ImgArray:
         if self.dtype == bool:
             return self.apply_dask(skimage.morphology.remove_small_holes,
                                    c_axes=complement_axes(dims, self.axes), 
@@ -1118,7 +1120,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def entropy_filter(self, radius:nDFloat=5, *, dims=None) -> ImgArray:
+    def entropy_filter(self, radius:nDFloat=5, *, dims: Dims = None) -> ImgArray:
         """
         Running entropy filter. This filter is useful for detecting change in background distribution.
 
@@ -1143,7 +1145,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def enhance_contrast(self, radius:nDFloat=1, *, dims=None, update:bool=False) -> ImgArray:
+    def enhance_contrast(self, radius:nDFloat=1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Enhance contrast filter.
 
@@ -1171,7 +1173,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> ImgArray:
+    def laplacian_filter(self, radius: int = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Edge detection using Laplacian filter. Kernel is made by `skimage`'s function.
 
@@ -1200,8 +1202,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def kalman_filter(self, gain:float=0.8, noise_var:float=0.05, *, along:str="t", dims=None, 
-                      update:bool=False) -> ImgArray:
+    def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t", 
+                      dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Kalman filter for image smoothing. This function is same as "Kalman Stack Filter" in ImageJ but support
         batch processing. This filter is useful for preprocessing of particle tracking.
@@ -1238,7 +1240,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def focus_map(self, radius:int=1, *, dims=2) -> PropArray:
+    def focus_map(self, radius: int = 1, *, dims: Dims = 2) -> PropArray:
         """
         Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
         focal plane because sharper image causes higher value of Laplacian on the edges.
@@ -1272,7 +1274,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @same_dtype(asfloat=True)
     @record()
-    def unmix(self, matrix, bg=None, *, along:str="c", update:bool=False) -> ImgArray:
+    def unmix(self, matrix, bg = None, *, along: str = "c", update: bool = False) -> ImgArray:
         r"""
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
         fluorescent leakage can be written as following equation:
@@ -1342,7 +1344,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def fill_hole(self, thr:float|str="otsu", *, dims=None, update:bool=False) -> ImgArray:
+    def fill_hole(self, thr: float|str = "otsu", *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Filling holes.　See skimage's documents 
         `here <https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html>`_.
@@ -1375,7 +1377,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def gaussian_filter(self, sigma:nDFloat=1, *, dims=None, update:bool=False) -> ImgArray:
+    def gaussian_filter(self, sigma: nDFloat = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
         
@@ -1400,7 +1402,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def dog_filter(self, low_sigma:nDFloat=1, high_sigma:nDFloat=None, *, dims=None) -> ImgArray:
+    def dog_filter(self, low_sigma: nDFloat = 1, high_sigma: nDFloat = None, *, dims: Dims = None) -> ImgArray:
         """
         Run Difference of Gaussian filter. This function does not support `update`
         argument because intensity can be negative.
@@ -1430,7 +1432,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def doh_filter(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
+    def doh_filter(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Determinant of Hessian filter. This function does not support `update`
         argument because output has total different scale of intensity. 
@@ -1460,7 +1462,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def log_filter(self, sigma:nDFloat=1, *, dims=None) -> ImgArray:
+    def log_filter(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Laplacian of Gaussian filter.
 
@@ -1484,8 +1486,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(True)
     @record()
-    def rolling_ball(self, radius:float=30, prefilter:str="mean", *, return_bg:bool=False,
-                     dims=None, update:bool=False) -> ImgArray:
+    def rolling_ball(self, radius: float = 30, prefilter:str="mean", *, return_bg:bool=False,
+                     dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
 
@@ -1532,8 +1534,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims=None, 
-                   update:bool=False) -> ImgArray:
+    def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims: Dims = None, 
+                   update: bool = False) -> ImgArray:
         """
         Rudin-Osher-Fatemi's total variation denoising.
 
@@ -1564,7 +1566,7 @@ class ImgArray(LabeledArray):
     @record()
     def wavelet_denoising(self, noise_sigma:float=None, *, wavelet:str="db1", mode:str="soft", 
                           wavelet_levels:int=None, method:str="BayesShrink", max_shifts:int|tuple=0,
-                          shift_steps:int|tuple=1, dims=None) -> ImgArray:
+                          shift_steps:int|tuple=1, dims: Dims = None) -> ImgArray:
         """
         Wavelet denoising. Because it is not shift invariant, ``cycle_spin`` is called inside the 
         function.
@@ -1605,11 +1607,12 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record(append_history=False)
-    def split_pixel_unit(self, center:tuple[float, float]=(0.5, 0.5), *, order:int=1,
-                         angle_order:list[int]=None, newaxis="a") -> ImgArray:
+    def split_pixel_unit(self, center: tuple[float, float] = (0.5, 0.5), *, order: int = 1,
+                         angle_order: list[int] = None, newaxis: str = "a") -> ImgArray:
         r"""
-        Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, image 
-        acquisition with a polarization camera will output :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
+        Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, 
+        image acquisition with a polarization camera will output :math:`(2N, 2M)`-image with 
+        :math:`N \times M` pixel units:
         
         +-+-+-+-+-+-+
         |0|1|0|1|0|1|
@@ -1675,6 +1678,9 @@ class ImgArray(LabeledArray):
         yc, xc = center
         if angle_order is None:
             angle_order = [2, 1, 0, 3]
+            
+        if not self.shape.x % 2 == self.shape.y % 2 == 0:
+            raise ValueError(f"Image pixel sizes must be even numbers, got {self.sizesof('yx')}")
         imgs = []
         for y, x in [(0,0), (0,1), (1,1), (1,0)]:
             dr = [(yc-y)/2, (xc-x)/2]
@@ -1682,10 +1688,10 @@ class ImgArray(LabeledArray):
         imgs = np.stack(imgs, axis=newaxis)
         imgs = imgs[f"{newaxis}={str(angle_order)[1:-1]}"]
         imgs._set_info(self, "split_pixel_unit", new_axes=imgs.axes)
-        imgs.set_scale(y=self.scale["y"]*2, x=self.scale["x"]*2)
+        imgs.set_scale(y=self.scale.y*2, x=self.scale.x*2)
         return imgs
         
-    def stokes(self, *, along:str="a") -> dict:
+    def stokes(self, *, along: str = "a") -> dict:
         """
         Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
         Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
@@ -1758,15 +1764,15 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def peak_local_max(self, *, min_distance:int=1, percentile:float=None, 
-                       topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
-                       use_labels:bool=True, dims=None) -> MarkerFrame:
+    def peak_local_max(self, *, min_distance: float = 1.0, percentile: float = None, 
+                       topn: int = np.inf, topn_per_label: int = np.inf, exclude_border: bool =True,
+                       use_labels: bool = True, dims: Dims = None) -> MarkerFrame:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but is more flexible.
 
         Parameters
         ----------
-        min_distance : int, default is 1
+        min_distance : float, default is 1.0
             Minimum distance allowed for each two peaks. This parameter is slightly
             different from that in ``skimage.feature.peak_local_max`` because here float
             input is allowed and every time footprint is calculated.
@@ -1827,7 +1833,7 @@ class ImgArray(LabeledArray):
     @record(append_history=False)
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
-                     use_labels:bool=True, dims=None) -> MarkerFrame:
+                     use_labels:bool=True, dims: Dims = None) -> MarkerFrame:
         """
         Find local corner maxima. Slightly different from peak_local_max.
 
@@ -1893,7 +1899,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def corner_harris(self, sigma:nDFloat=1, k:float=0.05, *, dims=None) -> ImgArray:
+    def corner_harris(self, sigma: nDFloat=1, k: float=0.05, *, dims: Dims = None) -> ImgArray:
         """
         Calculate Harris response image.
 
@@ -1918,7 +1924,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def find_corners(self, sigma:nDFloat=1, k:float=0.05, *, dims=None) -> ImgArray:
+    def find_corners(self, sigma: nDFloat = 1, k:float=0.05, *, dims: Dims = None) -> ImgArray:
         """
         Corner detection using Harris response.
 
@@ -1942,7 +1948,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def voronoi(self, coords:Coords, *, inf:nDInt=None, dims=2) -> ImgArray:
+    def voronoi(self, coords:Coords, *, inf: nDInt = None, dims: Dims = 2) -> ImgArray:
         """
         Voronoi segmentation of an image. Image region labeled with $i$ means that all
         the points in the region are closer to the $i$-th point than any other points.
@@ -1994,7 +2000,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims=None):
+    def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims: Dims = None):
         """
         Flood filling with a list of seed points. By repeating skimage's ``flood`` function,
         this method can perform segmentation of an image.
@@ -2034,8 +2040,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def refine_sm(self, coords:Coords=None, radius:float=4, *, percentile:float=95, n_iter:int=10, 
-                  sigma:float=1.5, dims=None):
+    def refine_sm(self, coords:Coords=None, radius: float = 4, *, percentile:float=95, n_iter:int=10, 
+                  sigma:float=1.5, dims: Dims = None):
         """
         Refine coordinates of peaks and calculate positional errors using `trackpy`'s functions. Mean
         and noise level are determined using original method.
@@ -2121,8 +2127,9 @@ class ImgArray(LabeledArray):
         
     
     @dims_to_spatial_axes
-    def find_sm(self, sigma:nDFloat=1.5, *, method:str="dog", cutoff:float=None, percentile:float=95, 
-                topn:int=np.inf, exclude_border=True, dims=None) -> MarkerFrame:
+    def find_sm(self, sigma: nDFloat = 1.5, *, method: str = "dog", cutoff: float = None,
+                percentile: float = 95, topn: int = np.inf, exclude_border: bool = True,
+                dims: Dims = None) -> MarkerFrame:
         """
         Single molecule detection using difference of Gaussian, determinant of Hessian, Laplacian of 
         Gaussian or normalized cross correlation method.
@@ -2190,8 +2197,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def centroid_sm(self, coords:Coords=None, radius:nDInt=4, sigma:nDFloat=1.5, filt:Callable=None,
-                    percentile:float=95, *, dims=None) -> MarkerFrame:
+    def centroid_sm(self, coords:Coords=None, radius: nDInt = 4, sigma: nDFloat = 1.5, filt:Callable=None,
+                    percentile:float=95, *, dims: Dims = None) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroid.
 
@@ -2259,8 +2266,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def gauss_sm(self, coords:Coords=None, radius:nDInt=4, sigma:nDFloat=1.5, filt:Callable=None,
-                 percentile:float=95, *, return_all:bool=False, dims=None) -> MarkerFrame|DataDict:
+    def gauss_sm(self, coords:Coords=None, radius: nDInt = 4, sigma: nDFloat = 1.5, filt:Callable=None,
+                 percentile:float=95, *, return_all:bool=False, dims: Dims = None) -> MarkerFrame|DataDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
@@ -2359,7 +2366,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def edge_grad(self, sigma:nDFloat=1.0, method:str="sobel", *, deg:bool=False, dims=2) -> PhaseArray:
+    def edge_grad(self, sigma: nDFloat = 1.0, method:str="sobel", *, deg:bool=False, dims: Dims = 2) -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
         is the direction with maximum gradient, i.e., intensity increase is largest. 
@@ -2410,7 +2417,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def hessian_angle(self, sigma:nDFloat=1., *, deg:bool=False, dims=2) -> PhaseArray:
+    def hessian_angle(self, sigma: nDFloat = 1., *, deg: bool = False, dims: Dims = 2) -> PhaseArray:
         """
         Calculate filament angles using Hessian's eigenvectors.
 
@@ -2441,8 +2448,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def gabor_angle(self, n_sample:int=180, lmd:float=5, sigma:float=2.5, gamma:float=1, phi:float=0,
-                    *, deg:bool=False, dims=2) -> PhaseArray:
+    def gabor_angle(self, n_sample: int = 180, lmd: float = 5, sigma: float = 2.5, gamma: float = 1, 
+                    phi: float = 0, *, deg: bool = False, dims: Dims = 2) -> PhaseArray:
         """
         Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
         calculated, and the strongest response is returned as output array.
@@ -2502,7 +2509,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma:float=1, phi:float=0, 
-                     *, return_imag:bool=False, dims=2) -> ImgArray:
+                     *, return_imag:bool=False, dims: Dims = 2) -> ImgArray:
         """
         Make a Gabor kernel and convolve it.
 
@@ -2555,7 +2562,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def fft(self, *, shape="same", shift:bool=True, dims=None) -> ImgArray:
+    def fft(self, *, shape="same", shift:bool=True, dims: Dims = None) -> ImgArray:
         """
         Fast Fourier transformation. This function returns complex array, which is inconpatible with 
         some ImgArray functions.
@@ -2596,7 +2603,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def local_dft(self, key:str="", upsample_factor:nDInt=1, *, dims=None) -> ImgArray:
+    def local_dft(self, key:str="", upsample_factor: nDInt = 1, *, dims: Dims = None) -> ImgArray:
         """
         Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
         of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
@@ -2683,8 +2690,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def local_power_spectra(self, key:str="", upsample_factor:nDInt=1, norm:bool=False, *, 
-                            dims=None) -> ImgArray:
+    def local_power_spectra(self, key:str="", upsample_factor: nDInt = 1, norm:bool=False, *, 
+                            dims: Dims = None) -> ImgArray:
         """
         Return local n-D power spectra of images. See ``local_dft``.
 
@@ -2719,7 +2726,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> ImgArray:
+    def ifft(self, real:bool=True, *, shift:bool=True, dims: Dims = None) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
         
@@ -2750,7 +2757,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record()
     def power_spectra(self, shape="same", norm:bool=False, zero_norm:bool=False, *,
-                      dims=None) -> ImgArray:
+                      dims: Dims = None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
         
@@ -2897,7 +2904,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def distance_map(self, *, dims=None) -> ImgArray:
+    def distance_map(self, *, dims: Dims = None) -> ImgArray:
         """
         Calculate distance map from binary images.
 
@@ -2913,11 +2920,11 @@ class ImgArray(LabeledArray):
         return self.apply_dask(ndi.distance_transform_edt, 
                                c_axes=complement_axes(dims, self.axes)
                                )
-    
+        
     @dims_to_spatial_axes
     @record()
     def ncc_filter(self, template:np.ndarray, mode:str="constant", cval:float=None, 
-                   *, dims=None) -> ImgArray:
+                   *, dims: Dims = None) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
         identical to that in `skimage.feature`, but is optimized for batch processing and improved 
@@ -3012,7 +3019,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def remove_large_objects(self, radius:float=5, *, dims=None, update:bool=False) -> ImgArray:
+    def remove_large_objects(self, radius: float = 5, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Remove large objects using opening. Those objects that were not removed by opening
         will be removed in output.
@@ -3043,7 +3050,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def remove_fine_objects(self, length:float=10, *, dims=None, update:bool=False) -> ImgArray:
+    def remove_fine_objects(self, length:float=10, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Remove fine objects using diameter_opening.
 
@@ -3073,7 +3080,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def convex_hull(self, *, dims=None, update=False) -> ImgArray:
+    def convex_hull(self, *, dims: Dims = None, update=False) -> ImgArray:
         """
         Compute convex hull image.
 
@@ -3095,7 +3102,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def skeletonize(self, radius:float=0, *, dims=None, update=False) -> ImgArray:
+    def skeletonize(self, radius: float = 0, *, dims: Dims = None, update=False) -> ImgArray:
         """
         Skeletonize images. Only works for binary images.
 
@@ -3125,7 +3132,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def count_neighbors(self, *, connectivity:int=None, mask:bool=True, dims=None) -> ImgArray:
+    def count_neighbors(self, *, connectivity:int=None, mask:bool=True, dims: Dims = None) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
         or branch detection. Only works for binary images.
@@ -3166,7 +3173,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record(only_binary=True)
     def remove_skeleton_structure(self, structure:str="tip", *, connectivity:int=None,
-                                  dims=None, update:bool=False) -> ImgArray:
+                                  dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Remove certain structure from skeletonized images.
 
@@ -3198,7 +3205,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record(append_history=False)
-    def pointprops(self, coords:Coords, *, order:int=1, squeeze:bool=True) -> PropArray:
+    def pointprops(self, coords: Coords, *, order: int = 1, squeeze: bool = True) -> PropArray:
         """
         Measure interpolated intensity at points with float coordinates.
 
@@ -3240,8 +3247,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record(append_history=False)
-    def lineprops(self, src:Coords, dst:Coords, func:str|Callable="mean", *, order:int=1, 
-                  squeeze:bool=True) -> PropArray:
+    def lineprops(self, src: Coords, dst: Coords, func: str|Callable = "mean", *, 
+                  order: int = 1, squeeze: bool = True) -> PropArray:
         """
         Measure line property using func(line_scan).
 
@@ -3296,7 +3303,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record(need_labels=True)
     def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 
-                  min_distance:float=2, dims=None) -> Label:
+                  min_distance:float=2, dims: Dims = None) -> Label:
         """
         Label segmentation using watershed algorithm.
 
@@ -3360,7 +3367,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False, need_labels=True)
-    def random_walker(self, beta:float=130, mode:str="cg_j", tol:float=1e-3, *, dims=None) -> Label:
+    def random_walker(self, beta: float = 130, mode: str = "cg_j", tol: float = 1e-3, *,
+                      dims: Dims = None) -> Label:
         """
         Random walker segmentation. Only wrapped skimage segmentation. ``self.labels`` will be
         segmented.
@@ -3386,8 +3394,9 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(append_history=False)
-    def slic(self, n_segments=100, *, compactness=10.0, max_iter=10, sigma=1, multichannel=False,
-             min_size_factor=0.5, max_size_factor=3, mask=None, dims=None):
+    def slic(self, n_segments: int = 100, *, compactness: float = 10.0, max_iter: int = 10,
+             sigma: nDFloat = 1, multichannel: bool = False, min_size_factor: float = 0.5,
+             max_size_factor: float = 3, mask = None, dims: Dims = None):
         # multichannel not working, needs sort_axes
         # BUG: slic returns a strange label with grayscale images.
         if multichannel:
@@ -3410,7 +3419,7 @@ class ImgArray(LabeledArray):
         self.labels.set_scale(self)
         return self
     
-    def label_threshold(self, thr:float|str="otsu", *, dims=None, **kwargs) -> Label:
+    def label_threshold(self, thr: float|str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
         """
         Make labels with threshold(). Be sure that keyword argument ``dims`` can be
         different (in most cases for >4D images) between threshold() and label().
@@ -3436,8 +3445,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record(append_history=False)
-    def pathprops(self, paths:PathFrame, properties:str|Callable|Iterable[str|Callable]="mean", *, 
-                  order:int=1) -> DataDict:
+    def pathprops(self, paths: PathFrame, properties: str|Callable|Iterable[str|Callable] = "mean", *, 
+                  order: int = 1) -> DataDict:
         """
         Measure line property using func(line_scan) for each func in properties.
 
@@ -3497,8 +3506,8 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False, need_labels=True)
-    def regionprops(self, properties:tuple[str,...]|str=("mean_intensity",), *, 
-                    extra_properties=None) -> DataDict[str, PropArray]:
+    def regionprops(self, properties: tuple[str,...]|str = ("mean_intensity",), *, 
+                    extra_properties: Iterable[Callable]|None = None) -> DataDict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -3563,7 +3572,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def lbp(self, p:int=12, radius:int=1, *, method:str="default", dims=None) -> ImgArray:
+    def lbp(self, p: int = 12, radius: int = 1, *, method: str = "default",
+            dims: Dims = None) -> ImgArray:
         """
         Local binary pattern feature extraction.
 
@@ -3592,7 +3602,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record(append_history=False)
     def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
-                   *, bins:int=None, rescale_max:bool=False, dims=None) -> ImgArray:
+                   *, bins:int=None, rescale_max:bool=False, dims: Dims = None) -> ImgArray:
         """
         Compute properties of "Gray Level Coocurrence Matrix". This will take long time
         because of pure Python for-loop.
@@ -3657,7 +3667,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype()
     @record(append_history=False)
-    def proj(self, axis:str=None, method:str|Callable="mean", mask=None, **kwargs) -> ImgArray:
+    def proj(self, axis: str = None, method: str|Callable = "mean", mask = None, **kwargs) -> ImgArray:
         """
         Z-projection along any axis.
 
@@ -3708,7 +3718,7 @@ class ImgArray(LabeledArray):
         return out
 
     @record()
-    def clip(self, in_range:tuple[int|str, int|str]=("0%", "100%")) -> ImgArray:
+    def clip(self, in_range: tuple[int|str, int|str] = ("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip().
 
@@ -3729,7 +3739,8 @@ class ImgArray(LabeledArray):
         return out
     
     @record()
-    def rescale_intensity(self, in_range:tuple[int|str, int|str]=("0%", "100%"), dtype=np.uint16) -> ImgArray:
+    def rescale_intensity(self, in_range: tuple[int|str, int|str] = ("0%", "100%"), 
+                          dtype = np.uint16) -> ImgArray:
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity().
 
@@ -3755,7 +3766,8 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def track_drift(self, along:str=None, show_drift:bool=False, upsample_factor:int=10) -> MarkerFrame:
+    def track_drift(self, along: str = None, show_drift: bool = False, 
+                    upsample_factor: int = 10) -> MarkerFrame:
         """
         Calculate yx-directional drift using the method of `skimage.registration.phase_cross_correlation`.
 
@@ -3804,8 +3816,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, along:str=None, 
-                         dims=2, update:bool=False, **affine_kwargs) -> ImgArray:
+    def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, zero_ave: bool = True,
+                         along: str = None, dims: Dims = 2, update: bool = False, **affine_kwargs) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors ``shift``
         is not given, then it will be determined using ``track_drift`` method of ImgArray.
@@ -3881,7 +3893,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def estimate_sigma(self, *, squeeze:bool=True, dims=None) -> PropArray|float:
+    def estimate_sigma(self, *, squeeze: bool = True, dims: Dims = None) -> PropArray|float:
         """
         Wavelet-based estimation of Gaussian noise.
 
@@ -3914,7 +3926,7 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record()
-    def pad(self, pad_width, mode:str="constant", *, dims=None, **kwargs) -> ImgArray:
+    def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> ImgArray:
         """
         Pad image only for spatial dimensions.
 
@@ -3949,7 +3961,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype(asfloat=True)
     @record()
-    def defocus(self, kernel, *, depth:int=3, width:int=6, bg:float=None) -> ImgArray:
+    def pad_defocus(self, kernel, *, depth: int = 3, width: int = 6, bg: float = None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
         useful when applying FFT to a 3D image.
@@ -4035,7 +4047,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> ImgArray:
+    def wiener(self, psf: np.ndarray, lmd: float = 0.1, *, dims: Dims = None, 
+               update: bool = False) -> ImgArray:
         r"""
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
@@ -4081,8 +4094,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
-             update:bool=False) -> ImgArray:
+    def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
+             update: bool = False) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
         
@@ -4123,8 +4136,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def lucy_tv(self, psf:np.ndarray, max_iter:int=50, lmd:float=1e-3, tol:float=1e-3, eps=1e-5, 
-                *, dims=None, update:bool=False) -> ImgArray:
+    def lucy_tv(self, psf: np.ndarray, max_iter: int = 50, lmd: float = 1e-3, tol: float = 1e-3,
+                eps: float = 1e-5, *, dims: Dims = None, update: bool = False) -> ImgArray:
         r"""
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position :math:`x`,
@@ -4187,7 +4200,7 @@ class ImgArray(LabeledArray):
                                args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
                                )
 
-def _check_coordinates(coords, img, dims=None):
+def _check_coordinates(coords, img, dims: Dims = None):
     if not isinstance(coords, MarkerFrame):
         coords = np.asarray(coords)
         if coords.ndim == 1:

@@ -34,14 +34,6 @@ GUIcanvas = "module://impy.viewer._plt"
 ResultsWidgetName = "Results"
 MainPlotName = "Main Plot"
 
-def _change_theme(viewer:"napari.Viewer"):
-    from napari.utils.theme import get_theme, register_theme, available_themes
-    if "night" not in available_themes():
-        theme = get_theme("dark")
-        theme.update(console="rgb(20, 21, 22)",
-                    canvas="#0F0F0F")
-        register_theme("night", theme)
-    viewer.theme = "night"
 
 class napariViewers:
     """
@@ -194,7 +186,15 @@ class napariViewers:
             from . import keybinds
         
         viewer = napari.Viewer(title=key)
-        _change_theme(viewer)
+        
+        # change theme
+        from napari.utils.theme import get_theme, register_theme, available_themes
+        if "night" not in available_themes():
+            theme = get_theme("dark")
+            theme.update(console="rgb(20, 21, 22)",
+                        canvas="#0F0F0F")
+            register_theme("night", theme)
+        viewer.theme = "night"
         
         viewer.window.file_menu.addSeparator()
         _default_viewer_settings(viewer)
@@ -877,7 +877,7 @@ class napariViewers:
             self.table.add_shape(**kwargs)
         return None
         
-    def _add_image(self, img:LabeledArray, **kwargs):
+    def _add_image(self, img: LabeledArray, **kwargs):
         layer = add_labeledarray(self.viewer, img, **kwargs)
         if isinstance(layer, list):
             name = [l.name for l in layer]
@@ -973,10 +973,7 @@ class napariViewers:
             return None
         
         if widget_name in self.viewer.window._dock_widgets:
-            # Only with clear() method, the previous parameter labels are left on the widget.
             self._container.clear()
-            while self._container.native.layout().count() > 0:
-                self._container.native.layout().takeAt(0)
         else:
             self._container = Container(name=widget_name)
             wid = self.viewer.window.add_dock_widget(self._container, area="right", name=widget_name)
