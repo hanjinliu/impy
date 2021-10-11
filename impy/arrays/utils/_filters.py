@@ -127,12 +127,12 @@ def skeletonize(img, selem):
 def population(img, selem):
     return skfil.rank.pop(img, selem, mask=img)
     
-def ncc_filter(img, template, bg):
+def ncc_filter(img, template, bg, mode="constant"):
     from scipy.signal import fftconvolve
     ndim = template.ndim
     _win_sum = skfeat.template._window_sum_2d if ndim == 2 else skfeat.template._window_sum_3d
     pad_width = [(w, w) for w in template.shape]
-    padimg = np.pad(img, pad_width=pad_width, mode="constant", constant_values=bg)
+    padimg = np.pad(img, pad_width=pad_width, mode=mode, constant_values=bg)
     
     corr = fftconvolve(padimg, template[(slice(None,None,-1),)*ndim], mode="valid")[(slice(1,-1,None),)*ndim]
     
