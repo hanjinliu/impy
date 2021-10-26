@@ -4,7 +4,6 @@ import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
                             QLineEdit, QSpinBox, QFileDialog, QAbstractItemView)
-import magicgui
 import napari
 import os
 import numpy as np
@@ -15,9 +14,6 @@ def read_csv(viewer:"napari.Viewer", path):
     name = os.path.splitext(os.path.basename(path))[0]
     table = TableWidget(viewer, df, name=name)
     return viewer.window.add_dock_widget(table, area="right", name=table.name)
-
-Editable = QTableWidget.EditKeyPressed
-NotEditable = QTableWidget.NoEditTriggers
 
 # TODO: 
 # - block 1,2,3,..., [, ] when table is not editable
@@ -34,7 +30,7 @@ class TableWidget(QMainWindow):
     +-------------------------------+
     """        
     n_table = 0
-    def __init__(self, viewer:"napari.Viewer", df:np.ndarray|pd.DataFrame|dict, columns=None, name=None):
+    def __init__(self, viewer:"napari.Viewer", df: np.ndarray|pd.DataFrame|dict, columns=None, name=None):
         self.viewer = viewer
         self.fig = None
         self.ax = None
@@ -44,9 +40,8 @@ class TableWidget(QMainWindow):
         self.plot_settings = dict(x=None, kind="line", legend=True, subplots=False, sharex=False, sharey=False,
                                   logx=False, logy=False, bins=10)
         self.last_plot = "plot"
-        self.flag = NotEditable
         
-        if df is None or df == {}:
+        if df is None or (isinstance(df, dict) and df == {}):
             if columns is None:
                 df = np.atleast_2d([])
             else:
@@ -78,9 +73,10 @@ class TableWidget(QMainWindow):
         else:
             data = df
         
-        self.table = magicgui.widgets.Table(data, name=self.name, columns=columns)
-        self.table_native:QTableWidget = self.table.native
-        self.table_native.setItemDelegate(FloatDelegate(parent=self.table_native))
+        from magicgui.widgets import Table
+        
+        self.table = Table(data, name=self.name, columns=columns)
+        self.table_native: QTableWidget = self.table.native
         self.table_native.resizeColumnsToContents()
         @self.table_native.itemChanged.connect
         def _(item):
@@ -89,7 +85,6 @@ class TableWidget(QMainWindow):
         
         # When horizontal header is double-clicked, table enters edit mode.
         header = self.header
-        header.setSectionResizeMode(QHeaderView.Interactive)
         header.setSectionsClickable(True)
         header.sectionDoubleClicked.connect(self._edit_header)
         
@@ -108,7 +103,7 @@ class TableWidget(QMainWindow):
         self.setUnifiedTitleAndToolBarOnMac(True)
         self.setWindowTitle(self.name)
         
-        self.setEditability(self.flag)
+        self.table.read_only = True
         
     def __repr__(self):
         return f"TableWidget with data:\n{self.table.to_dataframe().__repr__()}"
@@ -629,14 +624,6 @@ class TableWidget(QMainWindow):
         self.table_native.resizeColumnsToContents()
         return None
         
-    def setEditability(self, flag):
-        """
-        Set table item editability.
-        """        
-        self.flag = flag
-        self.table_native.clearSelection()
-        self.table_native.setEditTriggers(flag)
-        return None
     
     def add_filter(self):
         if self.filter_widget is not None:
@@ -685,11 +672,8 @@ class TableWidget(QMainWindow):
         return None
 
     def _change_editability(self):
-        if self.flag is Editable:
-            flag = NotEditable
-        else:
-            flag = Editable
-        return self.setEditability(flag)
+        self.table.read_only = not self.table.read_only
+        return None
         
     def _get_selected_dataframe(self) -> pd.DataFrame:
         """
@@ -860,7 +844,7 @@ class TableWidget(QMainWindow):
         ----------
         - https://www.qtcentre.org/threads/42388-Make-QHeaderView-Editable
         """        
-        if self.flag is NotEditable:
+        if self.table.read_only:
             return None
         line = QLineEdit(parent=self.header)
 
@@ -989,40 +973,3 @@ class FilterWidget(QWidget):
         self.line = QLineEdit(self)
         self.line.chan
 
-
-
-class FloatDelegate(QStyledItemDelegate):
-    """
-    This class is used for displaying table widget items. With this float will be displayed as a
-    formated string.
-    """    
-    def __init__(self, ndigit=3, parent=None):
-        super().__init__(parent=parent)
-        self.ndigit = ndigit
-
-    def displayText(self, value, locale):
-        value = _convert_type(value)
-        if isinstance(value, (int, float)):
-            if 0.1 <= abs(value) < 10000 or value == 0:
-                if isinstance(value, int):
-                    value = str(value)
-                else:
-                    value = float(value)
-                    value = f"{value:.{self.ndigit}f}"
-            else:
-                value = f"{value:.{self.ndigit}e}"
-        
-        return super().displayText(value, locale)
-
-def _convert_type(value:str):
-    if value is None:
-        return None
-    try:
-        out = int(value)
-    except ValueError:
-        try:
-            out = float(value)
-        except ValueError:
-            out = value
-    
-    return out
