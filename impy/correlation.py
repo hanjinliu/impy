@@ -10,6 +10,7 @@ from .arrays.utils._corr import subpixel_pcc
 from .utils.axesop import *
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
+from ._cupy import xp, asnumpy
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
            "nmi", "pcc_maximum", "pearson_coloc", "manders_coloc"]
