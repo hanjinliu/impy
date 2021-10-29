@@ -1,7 +1,10 @@
 from __future__ import annotations
+from typing import Sequence, TypeVar
 import numpy as np
 
-def check_nd(x, ndim:int):
+T = TypeVar("T")
+
+def check_nd(x: T, ndim: int) -> Sequence[T]:
     if np.isscalar(x):
         x = (x,) * ndim
     elif len(x) != ndim:

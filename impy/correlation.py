@@ -1,6 +1,5 @@
 from __future__ import annotations
 import scipy
-from scipy import ndimage as ndi
 import numpy as np
 from functools import partial
 from warnings import warn
@@ -10,15 +9,16 @@ from .arrays.utils._corr import subpixel_pcc
 from .utils.axesop import *
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
-from ._cupy import xp, asnumpy
+from ._cupy import xp, asnumpy, xp_ndi
+from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
            "nmi", "pcc_maximum", "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:bool=True,
-        dims=None) -> PropArray:
+def fsc(img0: ImgArray, img1: ImgArray, nbin: int = 32, r_max: float = None, *,
+        squeeze: bool = True, dims: Dims = None) -> PropArray:
     r"""
     Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
     between two images. FSC is defined as:
@@ -71,9 +71,8 @@ def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:
         
         c_axes = complement_axes(dims, img0.axes)
         
-        out = PropArray(np.empty(img0.sizesof(c_axes)+(labels.max(),)), dtype=np.float32, axes=c_axes+dims[-1], 
-                        dirpath=img0.dirpath, metadata=img0.metadata, propname="fsc")
-        radial_sum = partial(ndi.sum_labels, labels=labels, index=np.arange(1, labels.max()+1))
+        out = np.empty(img0.sizesof(c_axes)+(labels.max(),), dtype=xp.float32)
+        radial_sum = partial(xp_ndi.sum_labels, labels=labels, index=np.arange(1, labels.max()+1))
         f0 = img0.fft(dims=dims)
         f1 = img1.fft(dims=dims)
         
@@ -87,19 +86,24 @@ def fsc(img0:ImgArray, img1:ImgArray, nbin:int=32, r_max:float=None, *, squeeze:
     if out.ndim == 0 and squeeze:
         out = out[()]
     
+    out = PropArray(asnumpy(out), dtype=np.float32, axes=c_axes+dims[-1], 
+                    dirpath=img0.dirpath, metadata=img0.metadata, propname="fsc")
     return out
 
 # alias
 fourier_shell_correlation = fsc
 
 
-def _ncc(img0:ImgArray, img1:ImgArray, dims):
+def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     # Basic Normalized Cross Correlation with batch processing
+    img0 = xp.asarray(img0)
+    img1 = xp.asarray(img1)
     n = np.prod(img0.sizesof(dims))
-    return np.sum(img0 * img1, axis=dims) / (
-        np.std(img0, axis=dims)*np.std(img1, axis=dims)) / n
+    corr = xp.sum(img0 * img1, axis=dims) / (
+        xp.std(img0, axis=dims)*xp.std(img1, axis=dims)) / n
+    return asnumpy(corr)
 
-def _masked_ncc(img0:ImgArray, img1:ImgArray, dims, mask:ImgArray):
+def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
     if mask.ndim < img0.ndim:
         mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
     n = np.prod(img0.sizesof(dims))
@@ -109,13 +113,16 @@ def _masked_ncc(img0:ImgArray, img1:ImgArray, dims, mask:ImgArray):
     return np.ma.sum(img0ma * img1ma, axis=axis) / (
         np.ma.std(img0ma, axis=axis)*np.ma.std(img1ma, axis=axis)) / n
 
-def _zncc(img0:ImgArray, img1:ImgArray, dims):
+def _zncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     # Basic Zero-Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
-    return np.sum(img0 * img1, axis=dims) / (
-        np.sqrt(np.sum(img0**2, axis=dims)*np.sum(img1**2, axis=dims)))
+    img0 = xp.asarray(img0)
+    img1 = xp.asarray(img1)
+    corr = xp.sum(img0 * img1, axis=dims) / (
+        xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
+    return asnumpy(corr)
 
-def _masked_zncc(img0:ImgArray, img1:ImgArray, dims, mask:ImgArray):
+def _masked_zncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
     if mask.ndim < img0.ndim:
         mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
     img0ma = np.ma.array(img0.value, mask=mask)
@@ -126,8 +133,8 @@ def _masked_zncc(img0:ImgArray, img1:ImgArray, dims, mask:ImgArray):
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def ncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=True, *, 
-        dims=None) -> PropArray|float:
+def ncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: bool = True, *, 
+        dims: Dims = None) -> PropArray | float:
     """
     Normalized Cross Correlation.
     
@@ -154,8 +161,8 @@ def ncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=True
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=True, *,
-         dims=None) -> PropArray|float:
+def zncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: bool = True, *,
+         dims: Dims = None) -> PropArray | float:
     """
     Zero-Normalized Cross Correlation.
     
@@ -187,8 +194,8 @@ pearson_coloc = zncc
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def nmi(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, bins:int=100, squeeze:bool=True, *,
-        dims=None) -> PropArray|float:
+def nmi(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, bins: int = 100, squeeze: bool = True, *,
+        dims: Dims = None) -> PropArray | float:
     r"""
     Normalized Mutual Information.
     
@@ -230,8 +237,8 @@ def nmi(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, bins:int=100, squ
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fourier_ncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=True, *, 
-                dims=None) -> PropArray|float:
+def fourier_ncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: bool = True, *, 
+                dims: Dims = None) -> PropArray | float:
     """
     Normalized Cross Correlation in Fourier space.
     
@@ -260,8 +267,8 @@ def fourier_ncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:b
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fourier_zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:bool=True, *,
-                 dims=None) -> PropArray|float:
+def fourier_zncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: bool = True, *,
+                 dims: Dims = None) -> PropArray | float:
     """
     Zero-Normalized Cross Correlation in Fourier space.
     
@@ -291,7 +298,8 @@ def fourier_zncc(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, squeeze:
     return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
 
 
-def pcc_maximum(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, upsample_factor:int=10) -> np.ndarray:
+def pcc_maximum(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, 
+                upsample_factor: int = 10) -> np.ndarray:
     """
     Calculate lateral shift between two images. Same as ``skimage.registration.phase_cross_correlation``.
 
@@ -313,12 +321,12 @@ def pcc_maximum(img0:ImgArray, img1:ImgArray, mask:ImgArray|None=None, upsample_
         if mask is not None:
             ft0[mask] = 0
         shift = subpixel_pcc(ft0, ft1, upsample_factor)
-    return np.asarray(shift)
+    return asnumpy(shift)
     
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def manders_coloc(img0:ImgArray, img1:np.ndarray, *, squeeze:bool=True, dims=None) -> PropArray|float:
+def manders_coloc(img0: ImgArray, img1: np.ndarray, *, squeeze: bool = True, dims: Dims = None) -> PropArray|float:
     r"""
     Manders' correlation coefficient. This is defined as following:
     
