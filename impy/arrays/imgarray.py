@@ -741,6 +741,8 @@ class ImgArray(LabeledArray):
         """         
         from .utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
+        if all((c >= 0.5 or c <= 0) for c in cutoff):
+            return self
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
@@ -752,7 +754,46 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record()
-    def highpass_filter(self, cutoff:nDFloat=0.2, order:float=2, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def lowpass_conv_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, 
+                            dims: Dims = None, update: bool = False) -> ImgArray:
+        """
+        Butterworth low-pass filter in real space. Butterworth kernel is created first using inverse
+        Fourier transform of weight function.
+
+        Parameters
+        ----------
+        cutoff : float or array-like, default is 0.2
+            Cutoff frequency.
+        order : float, default is 2
+            Steepness of cutoff.
+        {dims}
+        {update}
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """       
+        from .utils._skimage import _get_ND_butterworth_filter
+        cutoff = check_nd(cutoff, len(dims))
+        if all((c >= 0.5 or c <= 0) for c in cutoff):
+            return self
+        spatial_shape = self.sizesof(dims)
+        weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
+        ker_all = asnumpy(xp_fft.irfftn(weight, s=spatial_shape))
+        ker_all = np.fft.fftshift(ker_all)
+        sl = []
+        for s, c in zip(spatial_shape, cutoff):
+            radius = min(1/c, 11)
+            sl.append(slice(s//2 - radius, s//2 + radius + 1))
+        ker = ker_all[tuple(sl)]
+        return self.convolve(ker)
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @record()
+    def highpass_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Butterworth high-pass filter.
 
