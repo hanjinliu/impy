@@ -4,5 +4,5 @@ try:
     from dask_image import ndinterp as daintr
     from dask_image import ndmeasure as dames
 except ImportError:
-    pass
+    dafil = damorph = daintr = dames = None
 

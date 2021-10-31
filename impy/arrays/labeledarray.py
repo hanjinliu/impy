@@ -7,22 +7,22 @@ import inspect
 from warnings import warn
 from scipy import ndimage as ndi
 
-from .specials import *
-from .utils._skimage import *
+from .specials import PropArray
+from .utils._skimage import skmes, skseg
 from .utils import _misc, _docs
 from .bases import HistoryArray
 from .label import Label
 
-from ..utils.deco import *
-from ..utils.utilcls import *
-from ..utils.axesop import *
-from ..utils.misc import *
-from ..utils.io import *
+from ..utils.misc import check_nd, largest_zeros
+from ..utils.utilcls import Progress
+from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
+from ..utils.deco import record, dims_to_spatial_axes
+from ..utils.io import imwrite, get_imsave_meta_from_img
 
 from ..collections import DataList
 from ..axes import ImageAxesError
 from ..frame import MarkerFrame
-from .._types import *
+from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable
 
 class LabeledArray(HistoryArray):
     @property
@@ -496,7 +496,8 @@ class LabeledArray(HistoryArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def specify(self, center:Coords, radius:Coords, *, dims=None, labeltype:str="square") -> Label:
+    def specify(self, center: Coords, radius: Coords, *, dims: Dims = None, 
+                labeltype: str = "square") -> Label:
         """
         Make rectangle or ellipse labels from points.
         
@@ -999,7 +1000,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @record()
-    def for_params(self, func:Callable|str, var:dict[str,Iterable]=None, **kwargs) -> DataList:
+    def for_params(self, func: Callable|str, var:dict[str, Iterable]=None, **kwargs) -> DataList:
         """
         Apply same function with different parameters with same input. This function will be useful
         when you want to try different conditions to the same image.

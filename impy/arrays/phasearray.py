@@ -1,13 +1,16 @@
 from __future__ import annotations
 import numpy as np
+
 from .utils import _filters, _structures
-from ..utils.deco import *
-from ..utils.utilcls import *
-from ..utils.axesop import *
 from .utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
-from ..collections import *
+
+from ..utils.axesop import complement_axes
+from ..utils.deco import record, dims_to_spatial_axes, same_dtype
+from ..utils.utilcls import Progress
+from ..collections import DataDict
+from .._types import Dims
 
 def _calc_phase_mean(sl, img, periodicity):
     a = 2 * np.pi / periodicity
@@ -87,7 +90,7 @@ class PhaseArray(LabeledArray):
         self.history.pop(-1) # delete "setitem" history
         return None
     
-    def set_border(self, a:float, b:float) -> None:
+    def set_border(self, a: float, b: float) -> None:
         """
         Set new border safely.
 
@@ -126,7 +129,7 @@ class PhaseArray(LabeledArray):
     @record()
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> PhaseArray:
+    def mean_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> PhaseArray:
         r"""
         Mean filter using phase averaging method:
         
@@ -159,7 +162,7 @@ class PhaseArray(LabeledArray):
             kwargs["cmap"] = "hsv"
         return super().imshow(dims=dims, **kwargs)
     
-    def reslice(self, src, dst, *, order:int=1) -> PropArray:
+    def reslice(self, src, dst, *, order: int = 1) -> PropArray:
         """
         Measure line profile iteratively for every slice of image. Because input is phase, we can
         not apply standard interpolation to calculate intensities on float-coordinates.
@@ -190,8 +193,8 @@ class PhaseArray(LabeledArray):
         return out
     
     @record(append_history=False, need_labels=True)
-    def regionprops(self, properties:tuple[str,...]|str=("phase_mean",), *, 
-                    extra_properties=None) -> DataDict[str, PropArray]:
+    def regionprops(self, properties: tuple[str,...]|str = ("phase_mean",), *, 
+                    extra_properties = None) -> DataDict[str, PropArray]:
         """
         Run ``skimage``'s ``regionprops()`` function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is

@@ -10,19 +10,19 @@ from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
 
-from .utils._skimage import *
+from .utils._skimage import skexp, skfeat, skfil, skimage, skmes, skreg, skres, skseg, sktrans
 from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
-from ..utils.axesop import *
-from ..utils.deco import *
-from ..utils.gauss import *
-from ..utils.misc import *
-from ..utils.utilcls import *
+from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.deco import record, dims_to_spatial_axes, same_dtype
+from ..utils.gauss import GaussianBackground, GaussianParticle
+from ..utils.misc import check_nd, largest_zeros
+from ..utils.utilcls import Progress
 from ..utils.slicer import axis_targeted_slicing
 
-from ..collections import *
-from .._types import *
-from ..frame import *
+from ..collections import DataDict
+from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
+from ..frame import MarkerFrame, PathFrame
 from .._const import Const
 from .._cupy import xp, xp_ndi, xp_fft, asnumpy, cupy_dispatcher
 
@@ -309,8 +309,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def radial_profile(self, nbin:int=32, center:Iterable[float]=None, r_max:float=None, *, 
-                       method:str="mean", dims: Dims = None) -> PropArray:
+    def radial_profile(self, nbin: int = 32, center: Iterable[float] = None, r_max: float = None, *, 
+                       method: str = "mean", dims: Dims = None) -> PropArray:
         """
         Calculate radial profile of images. Scale along each axis will be considered, i.e., rather 
         ellipsoidal profile will be calculated instead if scales are different between axes.
@@ -1989,7 +1989,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def voronoi(self, coords:Coords, *, inf: nDInt = None, dims: Dims = 2) -> ImgArray:
+    def voronoi(self, coords: Coords, *, inf: nDInt = None, dims: Dims = 2) -> ImgArray:
         """
         Voronoi segmentation of an image. Image region labeled with $i$ means that all
         the points in the region are closer to the $i$-th point than any other points.
@@ -2238,8 +2238,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def centroid_sm(self, coords:Coords=None, radius: nDInt = 4, sigma: nDFloat = 1.5, filt:Callable=None,
-                    percentile:float=95, *, dims: Dims = None) -> MarkerFrame:
+    def centroid_sm(self, coords:Coords=None, radius: nDInt = 4, sigma: nDFloat = 1.5, 
+                    filt: Callable=None, percentile:float=95, *, dims: Dims = None) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroid.
 
@@ -2307,8 +2307,9 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def gauss_sm(self, coords:Coords=None, radius: nDInt = 4, sigma: nDFloat = 1.5, filt:Callable=None,
-                 percentile:float=95, *, return_all:bool=False, dims: Dims = None) -> MarkerFrame|DataDict:
+    def gauss_sm(self, coords: Coords = None, radius: nDInt = 4, sigma: nDFloat = 1.5, 
+                 filt: Callable = None, percentile: float = 95, *, return_all: bool = False,
+                 dims: Dims = None) -> MarkerFrame|DataDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 

@@ -3,11 +3,10 @@ import numpy as np
 import pandas as pd
 from functools import wraps
 
-from ..utils.axesop import *
-from ..utils.slicer import *
-from ..utils.deco import *
-from ..utils.utilcls import *
-
+from ..utils.axesop import complement_axes
+from ..utils.deco import dims_to_spatial_axes
+from ..utils.slicer import str_to_slice
+from ..utils.utilcls import Progress, ImportOnRequest
 from .._const import Const
 from ..axes import Axes, ImageAxesError, ORDER
 

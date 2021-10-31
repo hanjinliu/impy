@@ -1,12 +1,13 @@
 from __future__ import annotations
+from typing import Callable
 import numpy as np
 from inspect import signature
 from scipy import optimize as opt
 from .bases import MetaArray
 from ..axes import ImageAxesError
 from ..frame import AxesFrame
-from ..utils.axesop import *
-from ..collections import *
+from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
+from ..collections import DataDict
 
 SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
@@ -83,7 +84,8 @@ class PropArray(MetaArray):
         
         return self
     
-    def hist(self, along="p", bins:int=None, cmap="jet", cmap_range=(0, 1)) -> PropArray:
+    def hist(self, along: str = "p", bins: int = None, cmap: str = "jet", 
+             cmap_range: tuple[float, float] = (0., 1.)) -> PropArray:
         """
         Plot histogram.
 
@@ -122,7 +124,7 @@ class PropArray(MetaArray):
         
         return self
     
-    def curve_fit(self, f, p0=None, dims="t", return_fit=True) -> DataDict[str, PropArray]:
+    def curve_fit(self, f: Callable, p0 = None, dims = "t", return_fit: bool = True) -> DataDict[str, PropArray]:
         """
         Run scipy.optimize.curve_fit for each dimesion.
 
@@ -182,7 +184,7 @@ class PropArray(MetaArray):
         else:
             return DataDict(params=params, errs=errs)
     
-    def as_frame(self, colname="f") -> AxesFrame:
+    def as_frame(self, colname: str = "f") -> AxesFrame:
         """
         N-dimensional data to DataFrame. The intensity data is stored in the `colname` column.
 

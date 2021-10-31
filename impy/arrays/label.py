@@ -1,13 +1,12 @@
 from __future__ import annotations
+import numpy as np
+
 from .utils._skimage import skimage, skseg
 from .utils import _filters, _structures, _docs
-
 from .bases import HistoryArray
 
-from ..utils.axesop import *
-from ..utils.utilcls import *
-from ..utils.deco import *
-from ..utils.misc import *
+from ..utils.axesop import complement_axes
+from ..utils.deco import record, dims_to_spatial_axes
 
 def best_dtype(n:int):
     if n < 2**8:
