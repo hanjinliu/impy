@@ -22,7 +22,7 @@ def _get_ND_butterworth_filter(shape: tuple[int, ...], cutoff: float, order: int
                                high_pass: bool, real: bool):
     ranges = []
     for d, fc in zip(shape, cutoff):
-        axis = xp.arange(-(d - 1) // 2, (d - 1) // 2 + 1) / (d*fc)
+        axis = xp.arange(-(d - 1) // 2, (d - 1) // 2 + 1, dtype=xp.float32) / (d*fc)
         ranges.append(xp.fft.ifftshift(axis ** 2))
     if real:
         limit = d // 2 + 1
