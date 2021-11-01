@@ -809,16 +809,17 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.binning)
     @dims_to_spatial_axes
     @same_dtype()
-    def binning(self, binsize:int=2, method="mean", *, check_edges=True, chunks=None, dims=None) -> LazyImgArray:
+    def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, chunks = None,
+                dims: Dims = None) -> LazyImgArray:
+        if binsize == 1:
+            return self
+        
         if isinstance(method, str):
             binfunc = getattr(np, method)
         elif callable(method):
             binfunc = method
         else:
             raise TypeError("`method` must be a numpy function or callable object.")
-        
-        if binsize == 1:
-            return self
         
         img_to_reshape, shape, scale_ = _misc.adjust_bin(self.img, binsize, check_edges, dims, self.axes)
         # rechunk to optimize for bin width

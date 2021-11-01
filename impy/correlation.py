@@ -1,7 +1,6 @@
 from __future__ import annotations
 import scipy
 import numpy as np
-from functools import partial
 from warnings import warn
 from .arrays import ImgArray, PropArray
 from .arrays.utils import _docs
