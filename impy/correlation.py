@@ -50,11 +50,11 @@ def fsc(img0: ImgArray, img1: ImgArray, nbin: int = 32, r_max: float = None, *,
     img0, img1 = _check_inputs(img0, img1)
     
     spatial_shape = img0.sizesof(dims)
-    inds = np.indices(spatial_shape)
+    inds = xp.indices(spatial_shape)
     
     center = [s/2 for s in spatial_shape]
     
-    r = np.sqrt(sum(((x - c)/img0.scale[a])**2 for x, c, a in zip(inds, center, dims)))
+    r = xp.sqrt(sum(((x - c)/img0.scale[a])**2 for x, c, a in zip(inds, center, dims)))
     r_lim = r.max()
         
     # check r_max
@@ -70,9 +70,14 @@ def fsc(img0: ImgArray, img1: ImgArray, nbin: int = 32, r_max: float = None, *,
         labels[r_rel >= 1] = 0
         
         c_axes = complement_axes(dims, img0.axes)
+
+        nlabels = int(asnumpy(labels.max()))
         
-        out = np.empty(img0.sizesof(c_axes)+(labels.max(),), dtype=xp.float32)
-        radial_sum = partial(xp_ndi.sum_labels, labels=labels, index=np.arange(1, labels.max()+1))
+        out = xp.empty(img0.sizesof(c_axes)+(nlabels,), dtype=xp.float32)
+        def radial_sum(arr):
+            arr = xp.asarray(arr)
+            return xp_ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
+
         f0 = img0.fft(dims=dims)
         f1 = img1.fft(dims=dims)
         
@@ -81,7 +86,7 @@ def fsc(img0: ImgArray, img1: ImgArray, nbin: int = 32, r_max: float = None, *,
             pw0 = f0_.real**2 + f0_.imag**2
             pw1 = f1_.real**2 + f1_.imag**2
         
-            out[sl] = radial_sum(cov)/np.sqrt(radial_sum(pw0)*radial_sum(pw1))
+            out[sl] = radial_sum(cov)/xp.sqrt(radial_sum(pw0)*radial_sum(pw1))
         
     if out.ndim == 0 and squeeze:
         out = out[()]
@@ -96,9 +101,11 @@ fourier_shell_correlation = fsc
 
 def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     # Basic Normalized Cross Correlation with batch processing
+    n = np.prod(img0.sizesof(dims))
+    if isinstance(dims, str):
+        dims = tuple(img0.axisof(a) for a in dims)
     img0 = xp.asarray(img0)
     img1 = xp.asarray(img1)
-    n = np.prod(img0.sizesof(dims))
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.std(img0, axis=dims)*xp.std(img1, axis=dims)) / n
     return asnumpy(corr)
@@ -116,6 +123,8 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
 def _zncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     # Basic Zero-Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
+    if isinstance(dims, str):
+        dims = tuple(img0.axisof(a) for a in dims)
     img0 = xp.asarray(img0)
     img1 = xp.asarray(img1)
     corr = xp.sum(img0 * img1, axis=dims) / (
@@ -320,7 +329,7 @@ def pcc_maximum(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None,
         ft1 = img1.fft(dims=img1.axes)
         if mask is not None:
             ft0[mask] = 0
-        shift = subpixel_pcc(ft0, ft1, upsample_factor)
+        shift = subpixel_pcc(xp.asarray(ft0.value), xp.asarray(ft1.value), upsample_factor)
     return asnumpy(shift)
     
 
@@ -381,7 +390,7 @@ def _check_inputs(img0:ImgArray, img1:ImgArray):
         
     return img0, img1
 
-def _make_corr_output(corr:np.ndarray, refimg:ImgArray, propname:str, squeeze:bool, dims:str):
+def _make_corr_output(corr: np.ndarray, refimg: ImgArray, propname: str, squeeze: bool, dims: str):
     if corr.ndim == 0 and squeeze:
         corr = corr[()]
     else:
