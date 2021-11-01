@@ -784,7 +784,7 @@ class ImgArray(LabeledArray):
         ker_all = np.fft.fftshift(ker_all)
         sl = []
         for s, c in zip(spatial_shape, cutoff):
-            radius = min(1/c, 11)
+            radius = int(min(1/c, 11))
             sl.append(slice(s//2 - radius, s//2 + radius + 1))
         ker = ker_all[tuple(sl)]
         return self.convolve(ker)

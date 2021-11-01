@@ -117,7 +117,7 @@ git clone https://github.com/hanjinliu/impy
 - `pandas`>=1.3.1
 - `dask`>=2021.6.0
 - `tifffile`>=2021.6.14
-- `napari`>=0.4.11
+- `napari`>=0.4.12
   
 `impy` is partly dependent on `numba`, `cupy`, `trackpy` and `dask-image`. Please install these packages if needed. 
 
