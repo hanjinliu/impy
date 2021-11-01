@@ -21,10 +21,10 @@ from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.utilcls import Progress
 from ..utils.io import get_imsave_meta_from_img, memmap
 
-from .._types import nDFloat, Coords, Iterable
+from .._types import nDFloat, Coords, Iterable, Dims
 from ..axes import ImageAxesError
 from .._const import Const
-from .._cupy import xp, xp_ndi, asnumpy
+from .._cupy import xp, xp_ndi, xp_fft, asnumpy
 
 
 class LazyImgArray(AxesMixin):
@@ -278,7 +278,8 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(LabeledArray.imsave)
-    def imsave(self, tifname:str, dtype=None):
+    def imsave(self, tifname: str, dtype = None):
+        # TODO: sometimes redundant calculation is running inside.
         if not tifname.endswith(".tif"):
             tifname += ".tif"
         if os.sep not in tifname:
@@ -625,8 +626,8 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record_lazy()
-    def kalman_filter(self, gain:float=0.8, noise_var:float=0.05, *, along:str="t", dims=None, 
-                      update:bool=False) -> LazyImgArray:
+    def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t", 
+                      dims: Dims = None, update: bool = False) -> LazyImgArray:
         if self.axisof(along) != 0:
             raise ValueError("Currently kalman_filter does not support t-axis != 0.")
 
@@ -640,7 +641,8 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
     @record_lazy()
-    def fft(self, *, shape="same", shift:bool=True, dims=None) -> LazyImgArray:
+    def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
+            dims: Dims = None) -> LazyImgArray:
         axes = [self.axisof(a) for a in dims]
         if shape == "square":
             s = 2**int(np.ceil(np.max(self.sizesof(dims))))
@@ -734,9 +736,55 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    @dims_to_spatial_axes
+    @record_lazy()
+    def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
+                             dims: Dims = None, update: bool = False) -> LazyImgArray:
+        """
+        Tile-by-tile Butterworth low-pass filter. This method is an approximation of the standard
+        low-pass filter, which would be useful when the image is very large.
+
+        Parameters
+        ----------
+        cutoff : float or array-like, default is 0.2
+            Cutoff frequency.
+        order : float, default is 2
+            Steepness of cutoff.
+        overlap : int, default is 16
+            Overlapping pixels at the edges of tiles.
+        {dims}
+        {update}
+
+        Returns
+        -------
+        LazyImgArray
+            Filtered image.
+        """        
+        if dims != self.axes:
+            raise NotImplementedError("batch processing not implemented yet.")
+        from .utils._skimage import _get_ND_butterworth_filter
+        self = self.as_float()
+        cutoff = check_nd(cutoff, len(dims))
+        if all((c >= 0.5 or c <= 0) for c in cutoff):
+            return self
+        
+        depth = switch_slice(dims, self.axes, overlap, 0)
+        
+        def func(arr):
+            arr = xp.asarray(arr)
+            shape = arr.shape
+            weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
+            ft = weight * xp_fft.rfftn(arr)
+            ift = xp_fft.irfftn(ft, s=shape)
+            return asnumpy(ift)
+        
+        out = da.map_overlap(func, self.img, depth=depth, boundary="reflect", dtype=self.dtype)
+        
+        return out
+    
     @_docs.copy_docs(ImgArray.proj)
     @same_dtype()
-    def proj(self, axis:str=None, method:str="mean", chunks=None) -> LazyImgArray:
+    def proj(self, axis: str = None, method: str = "mean", chunks = None) -> LazyImgArray:
         if axis is None:
             axis = find_first_appeared("ztpi<c", include=self.axes, exclude="yx")
         elif not isinstance(axis, str):
@@ -795,7 +843,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(ImgArray.track_drift)
-    def track_drift(self, along:str=None, upsample_factor:int=10) -> da.core.Array:
+    def track_drift(self, along: str = None, upsample_factor: int = 10) -> da.core.Array:
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
@@ -837,8 +885,9 @@ class LazyImgArray(AxesMixin):
     @same_dtype(asfloat=True)
     @record_lazy()
     @dims_to_spatial_axes
-    def drift_correction(self, shift:Coords=None, ref:ImgArray=None, *, zero_ave:bool=True, along:str=None, 
-                         dims=2, update:bool=False, **affine_kwargs) -> LazyImgArray:
+    def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, 
+                         zero_ave: bool = True, along: str = None, dims: Dims = 2, 
+                         update: bool = False, **affine_kwargs) -> LazyImgArray:
         
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
@@ -895,7 +944,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.pad)
     @dims_to_spatial_axes
     @record_lazy()
-    def pad(self, pad_width, mode:str="constant", *, dims=None, **kwargs) -> LazyImgArray:
+    def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> LazyImgArray:
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
         padimg = da.pad(self.img, pad_width, mode, **kwargs)
         return padimg
@@ -904,7 +953,7 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record_lazy()
-    def wiener(self, psf:np.ndarray, lmd:float=0.1, *, dims=None, update:bool=False) -> LazyImgArray:
+    def wiener(self, psf: np.ndarray, lmd :float = 0.1, *, dims: Dims = None, update: bool = False) -> LazyImgArray:
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
         
@@ -920,8 +969,8 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record_lazy()
-    def lucy(self, psf:np.ndarray, niter:int=50, eps:float=1e-5, *, dims=None, 
-             update:bool=False) -> LazyImgArray:
+    def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
+             update: bool = False) -> LazyImgArray:
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
         return self.apply(_deconv.richardson_lucy, 

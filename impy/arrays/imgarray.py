@@ -2604,7 +2604,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def fft(self, *, shape="same", shift:bool=True, dims: Dims = None) -> ImgArray:
+    def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
+            dims: Dims = None) -> ImgArray:
         """
         Fast Fourier transformation. This function returns complex array, which is inconpatible with 
         some ImgArray functions.
@@ -2645,7 +2646,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record()
-    def local_dft(self, key:str="", upsample_factor: nDInt = 1, *, dims: Dims = None) -> ImgArray:
+    def local_dft(self, key: str = "", upsample_factor: nDInt = 1, *, dims: Dims = None) -> ImgArray:
         """
         Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
         of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
