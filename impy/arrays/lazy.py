@@ -5,6 +5,7 @@ import numpy as np
 from dask import array as da
 from warnings import warn
 from collections import namedtuple
+import tempfile
 
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
@@ -260,26 +261,30 @@ class LazyImgArray(AxesMixin):
                 setattr(img, attr, getattr(self, attr, None))
         return img
     
-    def release(self, update:bool=True) -> LazyImgArray:
+    def release(self, update: bool = True) -> LazyImgArray:
         """
-        Compute all the task for now and convert to dask again. If image size overwhelms MAX_GB
-        then MemoryError is raised.
+        Compute all the tasks and store the data in memory map, and read it as a dask array
+        again.
         """
-        if self.gb > Const["MAX_GB"]:
-            raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Releasing jobs"):
-            img = da.from_array(self.img.compute(), chunks=self.chunksize)
+            with tempfile.NamedTemporaryFile() as ntf:
+                mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
+                mmap[:] = self.img[:]
+            
+            img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
+                np.array, meta=np.array([], dtype=self.dtype)
+                )
             if update:
                 self.img = img
                 out = self
             else:
                 out = self.__class__(img)
                 out._set_info(self)
+                
         return out
     
     @_docs.copy_docs(LabeledArray.imsave)
     def imsave(self, tifname: str, dtype = None):
-        # TODO: sometimes redundant calculation is running inside.
         if not tifname.endswith(".tif"):
             tifname += ".tif"
         if os.sep not in tifname:
@@ -294,15 +299,10 @@ class LazyImgArray(AxesMixin):
         
         memmap_image = memmap(tifname, shape=self.shape, dtype=self.dtype, **imsave_kwargs)
         
-        # save image
-        def _imwrite(arr, block_info=None):
-            sl = tuple(slice(i,j) for i,j in block_info[None]['array-location'])
-            memmap_image[sl] = arr
-            return arr
-        
-        da.map_blocks(_imwrite, self.img, meta=memmap_image).compute()
-        memmap_image.flush()
-        print(f"Succesfully saved: {tifname}")
+        with Progress("Saving"):
+            memmap_image[:] = self.img[:]
+            memmap_image.flush()
+            
         return None
     
     def rechunk(self, chunks="auto", *, threshold=None, block_size_limit=None, balance=False, 
@@ -330,7 +330,7 @@ class LazyImgArray(AxesMixin):
             out._set_info(self)
             return out
         
-    def apply_dask_func(self, funcname:str, *args, **kwargs) -> LazyImgArray:
+    def apply_dask_func(self, funcname: str, *args, **kwargs) -> LazyImgArray:
         """
         Apply dask array function to the connected dask array.
 
@@ -353,9 +353,9 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
         return out
     
-    def apply(self, func, c_axes:str=None, drop_axis:Iterable[int]=[], new_axis:Iterable[int]=None, 
-              dtype=np.float32, rechunk_to:tuple[int,...]|str="none", dask_wrap:bool=False,
-              args:tuple=None, kwargs:dict[str]=None) -> LazyImgArray:
+    def apply(self, func, c_axes: str = None, drop_axis: Iterable[int] = [], new_axis: Iterable[int] = None, 
+              dtype=np.float32, rechunk_to: tuple[int,...]|str = "none", dask_wrap: bool = False,
+              args: tuple = None, kwargs: dict[str] = None) -> LazyImgArray:
         """
         Rechunk array in a correct shape and apply function using `map_blocks`. This function is similar
         to the `apply_dask` function in `MetaArray` while returns dask array bound LazyImgArray.
@@ -437,7 +437,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(LabeledArray.rotated_crop)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def rotated_crop(self, origin, dst1, dst2, dims=2) -> LazyImgArray:
         origin = np.asarray(origin)
         dst1 = np.asarray(dst1)
@@ -485,8 +485,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.erosion)
     @dims_to_spatial_axes
-    @record_lazy()
-    def erosion(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def erosion(self, radius: float=1, *, dims: Dims = None, update: bool = False
+                ) -> LazyImgArray:
         f = _filters.binary_erosion if self.dtype == bool else _filters.erosion
         disk = _structures.ball_like(radius, len(dims))
         return self.apply(f, 
@@ -498,8 +499,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.dilation)
     @dims_to_spatial_axes
-    @record_lazy()
-    def dilation(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def dilation(self, radius: float = 1, *, dims: Dims = None, update: bool = False
+                 ) -> LazyImgArray:
         f = _filters.binary_dilation if self.dtype == bool else _filters.dilation
         disk = _structures.ball_like(radius, len(dims))
         return self.apply(f, 
@@ -511,8 +513,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.opening)
     @dims_to_spatial_axes
-    @record_lazy()
-    def opening(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def opening(self, radius: float = 1, *, dims: Dims = None, update: bool = False
+                ) -> LazyImgArray:
         f = _filters.binary_opening if self.dtype == bool else _filters.opening
         disk = _structures.ball_like(radius, len(dims))
         return self.apply(f, 
@@ -524,8 +527,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.closing)
     @dims_to_spatial_axes
-    @record_lazy()
-    def closing(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def closing(self, radius: float = 1, *, dims: Dims = None, update: bool = False
+                ) -> LazyImgArray:
         f = _filters.binary_closing if self.dtype == bool else _filters.closing
         disk = _structures.ball_like(radius, len(dims))
         return self.apply(f, 
@@ -537,8 +541,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
-    @record_lazy()
-    def gaussian_filter(self, sigma:nDFloat=1.0, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def gaussian_filter(self, sigma: nDFloat = 1.0, *, dims: Dims = None, update: bool = False
+                        ) -> LazyImgArray:
         return self._switch_apply(dafil.gaussian_filter,
                                   _filters.gaussian_filter,
                                   dims=dims,
@@ -547,8 +552,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.median_filter)
     @dims_to_spatial_axes
-    @record_lazy()
-    def median_filter(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def median_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False
+                      ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         return self._switch_apply(dafil.median_filter,
                                   _filters.median_filter,
@@ -559,8 +565,9 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.mean_filter)
     @same_dtype(asfloat=True)
     @dims_to_spatial_axes
-    @record_lazy()
-    def mean_filter(self, radius:float=1, *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def mean_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False
+                    ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         kernel = (disk/np.sum(disk)).astype(np.float32)
         return self._switch_apply(dafil.convolve,
@@ -571,8 +578,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.convolve)
     @dims_to_spatial_axes
-    @record_lazy()
-    def convolve(self, kernel, *, mode:str="reflect", cval:float=0, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def convolve(self, kernel, *, mode: str = "reflect", cval: float = 0, dims: Dims = None,
+                 update: bool = False) -> LazyImgArray:
         return self._switch_apply(dafil.convolve,
                                   _filters.convolve,
                                   dims=dims,
@@ -582,8 +590,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
-    @record_lazy()
-    def edge_filter(self, method:str="sobel", *, dims=None, update:bool=False) -> LazyImgArray:
+    @record_lazy
+    def edge_filter(self, method: str = "sobel", *, dims: Dims = None, update: bool = False
+                    ) -> LazyImgArray:
         f = {"sobel": dafil.sobel,
              "prewitt": dafil.prewitt}[method]
         return self.apply(f, 
@@ -595,8 +604,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.laplacian_filter)
     @dims_to_spatial_axes
-    @record_lazy()
-    def laplacian_filter(self, radius:int=1, *, dims=None, update:bool=False) -> LazyImgArray:  
+    @record_lazy
+    def laplacian_filter(self, radius: int = 1, *, dims: Dims = None, update: bool = False
+                         ) -> LazyImgArray:  
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
         return self._switch_apply(dafil.convolve,
@@ -608,7 +618,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.affine)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
                mode="constant", cval=0, output_shape=None, order=1, dims=None) -> LazyImgArray:
         if matrix is None:
@@ -625,7 +635,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.kalman_filter)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy()
+    @record_lazy
     def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t", 
                       dims: Dims = None, update: bool = False) -> LazyImgArray:
         if self.axisof(along) != 0:
@@ -640,7 +650,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
             dims: Dims = None) -> LazyImgArray:
         axes = [self.axisof(a) for a in dims]
@@ -658,7 +668,7 @@ class LazyImgArray(AxesMixin):
 
     @_docs.copy_docs(ImgArray.ifft)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
         if shift:
             freq = da.fft.ifftshift(self.img)
@@ -673,9 +683,9 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.power_spectra)
     @dims_to_spatial_axes
-    @record_lazy()
-    def power_spectra(self, shape="same", norm:bool=False, zero_norm:bool=False, *,
-                      dims=None) -> LazyImgArray:
+    @record_lazy
+    def power_spectra(self, shape = "same", norm: bool = False, zero_norm: bool = False, *,
+                      dims: Dims = None) -> LazyImgArray:
         freq = self.fft(dims=dims, shape=shape)
         pw = freq.img.real**2 + freq.img.imag**2
         if norm:
@@ -715,7 +725,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(LabeledArray.crop_center)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def crop_center(self, scale=0.5, *, dims=2) -> LazyImgArray:
         # check scale
         if hasattr(scale, "__iter__") and len(scale) == 3 and len(dims) == 2:
@@ -736,30 +746,11 @@ class LazyImgArray(AxesMixin):
         
         return out
     
+    @_docs.copy_docs(ImgArray.tiled_lowpass_filter)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
                              dims: Dims = None, update: bool = False) -> LazyImgArray:
-        """
-        Tile-by-tile Butterworth low-pass filter. This method is an approximation of the standard
-        low-pass filter, which would be useful when the image is very large.
-
-        Parameters
-        ----------
-        cutoff : float or array-like, default is 0.2
-            Cutoff frequency.
-        order : float, default is 2
-            Steepness of cutoff.
-        overlap : int, default is 16
-            Overlapping pixels at the edges of tiles.
-        {dims}
-        {update}
-
-        Returns
-        -------
-        LazyImgArray
-            Filtered image.
-        """        
         if dims != self.axes:
             raise NotImplementedError("batch processing not implemented yet.")
         from .utils._skimage import _get_ND_butterworth_filter
@@ -884,7 +875,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.drift_correction)
     @same_dtype(asfloat=True)
-    @record_lazy()
+    @record_lazy
     @dims_to_spatial_axes
     def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, 
                          zero_ave: bool = True, along: str = None, dims: Dims = 2, 
@@ -944,7 +935,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.pad)
     @dims_to_spatial_axes
-    @record_lazy()
+    @record_lazy
     def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> LazyImgArray:
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
         padimg = da.pad(self.img, pad_width, mode, **kwargs)
@@ -953,7 +944,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.wiener)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy()
+    @record_lazy
     def wiener(self, psf: np.ndarray, lmd :float = 0.1, *, dims: Dims = None, update: bool = False) -> LazyImgArray:
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
@@ -969,7 +960,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.lucy)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy()
+    @record_lazy
     def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
              update: bool = False) -> LazyImgArray:
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)

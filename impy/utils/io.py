@@ -88,7 +88,7 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     return out
 
 
-def open_as_dask(path:str, chunks):
+def open_as_dask(path: str, chunks):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
     if chunks == "default":
@@ -96,11 +96,13 @@ def open_as_dask(path:str, chunks):
     if img.dtype == ">u2":
         img = img.astype(np.uint16)
     
-    img = da.from_array(img, chunks=chunks).map_blocks(np.array, meta=np.array([], dtype=img.dtype))
+    img = da.from_array(img, chunks=chunks).map_blocks(
+        np.array, meta=np.array([], dtype=img.dtype)
+        )
     return meta, img
 
 
-def open_img(path, memmap:bool=False):
+def open_img(path, memmap: bool = False):
     _, fext = os.path.splitext(os.path.basename(path))
     if fext in (".tif", ".tiff"):
         meta = open_tif(path, True, memmap=memmap)

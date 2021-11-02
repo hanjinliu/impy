@@ -14,7 +14,7 @@ __all__ = ["record",
            ]
             
     
-def record(append_history=True, record_label=False, only_binary=False, need_labels=False):
+def record(func=None, append_history=True, record_label=False, only_binary=False, need_labels=False):
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
@@ -61,9 +61,9 @@ def record(append_history=True, record_label=False, only_binary=False, need_labe
                 out.temp = temp
             return out
         return _record
-    return f
+    return f if func is None else f(func)
 
-def record_lazy(append_history=True, only_binary=False):
+def record_lazy(func=None, append_history=True, only_binary=False):
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
@@ -90,9 +90,9 @@ def record_lazy(append_history=True, only_binary=False):
             
             return out
         return _record
-    return f
+    return f if func is None else f(func)
 
-def same_dtype(asfloat=False):
+def same_dtype(func=None, asfloat=False):
     """
     Decorator to assure output image has the same dtype as the input image. 
     This decorator is compatible with both ImgArray and LazyImgArray.
@@ -112,7 +112,7 @@ def same_dtype(asfloat=False):
             out = out.as_img_type(dtype)
             return out
         return _same_dtype
-    return f
+    return f if func is None else f(func)
 
 
 def dims_to_spatial_axes(func):

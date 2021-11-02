@@ -330,9 +330,9 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     @_docs.write_docs
-    @record()
+    @record
     @dims_to_spatial_axes
-    def crop_center(self, scale:nDFloat=0.5, *, dims=2) -> LabeledArray:
+    def crop_center(self, scale: nDFloat = 0.5, *, dims=2) -> LabeledArray:
         r"""
         Crop out the center of an image. 
         
@@ -378,7 +378,7 @@ class LabeledArray(HistoryArray):
         
         return out
     
-    @record()
+    @record
     def crop_kernel(self, radius:nDInt=2) -> LabeledArray:
         r"""
         Make a kernel from an image by cropping out the center region. This function is useful especially
@@ -409,7 +409,7 @@ class LabeledArray(HistoryArray):
         return self[tuple(slice(s//2-r, (s+1)//2+r) for s, r in zip(sizes, radii))]
     
     @_docs.write_docs
-    @record()
+    @record
     @dims_to_spatial_axes
     def remove_edges(self, pixel:nDInt=1, *, dims=2) -> LabeledArray:
         """
@@ -441,7 +441,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @_docs.write_docs
-    @record()
+    @record
     @dims_to_spatial_axes
     def rotated_crop(self, origin, dst1, dst2, dims=2) -> LabeledArray:
         """
@@ -968,7 +968,7 @@ class LabeledArray(HistoryArray):
             tiled_img.labels = tiled_label
         return tiled_img
     
-    @record()
+    @record
     def for_each_channel(self, func:str, along:str="c", **kwargs) -> LabeledArray:
         """
         Apply same function with different parameters for each channel. This function will be useful
@@ -999,7 +999,7 @@ class LabeledArray(HistoryArray):
         out.history.pop()
         return out
     
-    @record()
+    @record
     def for_params(self, func: Callable|str, var:dict[str, Iterable]=None, **kwargs) -> DataList:
         """
         Apply same function with different parameters with same input. This function will be useful
