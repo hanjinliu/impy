@@ -74,7 +74,7 @@ class Label(HistoryArray):
     
     
     @dims_to_spatial_axes
-    @record()
+    @record
     def expand_labels(self, distance:int=1, *, dims=None) -> Label:
         """
         Expand areas of labels.
@@ -148,7 +148,7 @@ class Label(HistoryArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record()
+    @record
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> Label:
         """
         Morphological opening. 

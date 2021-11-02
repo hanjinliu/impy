@@ -81,11 +81,11 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     @record
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
-               mode="constant", cval=0, output_shape=None, order:int=1, *, dims: Dims = None, 
-               update: bool = False) -> ImgArray:
+               mode: str = "constant", cval: float = 0, output_shape = None, order: int = 1,
+               *, dims: Dims = None, update: bool = False) -> ImgArray:
         r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
@@ -141,10 +141,10 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     @record
-    def rotate(self, degree:float, center="center", *, mode="constant", cval=0, dims: Dims = 2, order:int=1, 
-               update: bool = False) -> ImgArray:
+    def rotate(self, degree:float, center="center", *, mode="constant", cval: float=0, dims: Dims = 2,
+               order: int = 1, update: bool = False) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
         this implementation is faster than ``scipy.ndimage.rotate``.
@@ -157,7 +157,7 @@ class ImgArray(LabeledArray):
             Rotation center coordinate. By default the center of image will be the rotation center.
         mode : str
             Padding mode. See ``scipy.ndimage.affine_transform`` for details.
-        cval : int, default is 0
+        cval : float, default is 0
             Constant value to fill outside the image for mode == "constant".
         {dims}
         {order}
@@ -186,10 +186,10 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     @record
-    def stretch(self, scale, center="center", *, mode="constant", cval=0, dims: Dims = None,
-                order:int=1) -> ImgArray:
+    def stretch(self, scale, center = "center", *, mode: str = "constant", cval: float = 0, dims: Dims = None,
+                order: int = 1) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -201,7 +201,7 @@ class ImgArray(LabeledArray):
             Rotation center coordinate. By default the center of image will be the rotation center.
         mode : str
             Padding mode. See ``scipy.ndimage.affine_transform`` for details.
-        cval : int, default is 0
+        cval : float, default is 0
             Constant value to fill outside the image for mode == "constant".
         {dims}
         {order}
@@ -232,8 +232,8 @@ class ImgArray(LabeledArray):
 
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
-    def rescale(self, scale:float=1/16, *, dims: Dims = None, order:int=None) -> ImgArray:
+    @same_dtype(asfloat=True)
+    def rescale(self, scale: float = 1/16, *, dims: Dims = None, order: int = None) -> ImgArray:
         """
         Rescale image.
 
@@ -265,7 +265,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype
-    def binning(self, binsize:int=2, method="mean", *, check_edges:bool=True, dims: Dims = None) -> ImgArray:
+    def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, dims: Dims = None
+                ) -> ImgArray:
         r"""
         Binning of images. This function is similar to ``rescale`` but is strictly binned by :math:`N \times N` 
         blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -686,7 +687,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     @record
     def edge_filter(self, method: str = "sobel", *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
@@ -1469,7 +1470,7 @@ class ImgArray(LabeledArray):
 
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     @record
     def gaussian_filter(self, sigma: nDFloat = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
@@ -1578,7 +1579,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @same_dtype(True)
+    @same_dtype(asfloat=True)
     @record
     def rolling_ball(self, radius: float = 30, prefilter:str="mean", *, return_bg:bool=False,
                      dims: Dims = None, update: bool = False) -> ImgArray:

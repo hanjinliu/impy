@@ -126,7 +126,7 @@ class PhaseArray(LabeledArray):
         self.border = tuple(np.rad2deg(self.border))
         return self
     
-    @record()
+    @record
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def mean_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> PhaseArray:
