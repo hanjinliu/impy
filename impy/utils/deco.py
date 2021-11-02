@@ -14,7 +14,7 @@ __all__ = ["record",
            ]
             
     
-def record(func=None, append_history=True, record_label=False, only_binary=False, need_labels=False):
+def record(func=None, *, append_history=True, record_label=False, only_binary=False, need_labels=False):
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
@@ -63,7 +63,7 @@ def record(func=None, append_history=True, record_label=False, only_binary=False
         return _record
     return f if func is None else f(func)
 
-def record_lazy(func=None, append_history=True, only_binary=False):
+def record_lazy(func=None, *, append_history=True, only_binary=False):
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
@@ -87,6 +87,7 @@ def record_lazy(func=None, append_history=True, only_binary=False):
                     
             if ifupdate:
                 self.img = out.img
+                self.history = out.history
             
             return out
         return _record

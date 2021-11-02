@@ -270,7 +270,6 @@ class LazyImgArray(AxesMixin):
             with tempfile.NamedTemporaryFile() as ntf:
                 mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
                 mmap[:] = self.img[:]
-                mmap.flush() # write changes into the tempfile
             
             img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
                 np.array, meta=np.array([], dtype=self.dtype)
