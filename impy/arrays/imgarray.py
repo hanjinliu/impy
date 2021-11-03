@@ -2823,7 +2823,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def ifft(self, real:bool=True, *, shift:bool=True, dims: Dims = None) -> ImgArray:
+    def ifft(self, real: bool = True, *, shift: bool = True, dims: Dims = None) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
         
@@ -2844,7 +2844,7 @@ class ImgArray(LabeledArray):
             freq = np.fft.ifftshift(self.value)
         else:
             freq = self.value
-        out = xp_fft.ifftn(xp.asarray(freq, dtype=np.float32), axes=[self.axisof(a) for a in dims])
+        out = xp_fft.ifftn(xp.asarray(freq, dtype=freq.dtype), axes=[self.axisof(a) for a in dims])
         
         if real:
             out = np.real(out)
