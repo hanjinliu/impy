@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections import defaultdict, Counter, OrderedDict
 import numpy as np
+from numbers import Number
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
@@ -20,7 +21,7 @@ class NoneAxes:
 NONE = NoneAxes()
 
 class ScaleDict(OrderedDict):
-    def __getattr__(self, key):
+    def __getattr__(self, key: str):
         """
         To enable such as scale.x or scale.y. Simply this can be achieved by
         
@@ -38,7 +39,18 @@ class ScaleDict(OrderedDict):
         except KeyError:
             raise AttributeError(key)
     
-    def __list__(self):
+    def __setattr__(self, key: str, value: Number) -> None:
+        try:
+            self[key] = value
+        except KeyError:
+            raise AttributeError(key)
+    
+    def __setitem__(self, key: str, value: Number) -> None:
+        if not isinstance(value, Number):
+            raise TypeError(f"Cannot set scale with type {type(value)}")
+        return super().__setitem__(key, value)
+    
+    def __list__(self) -> list[Number]:
         axes = sorted(self.keys(), key=lambda a: ORDER[a])
         return [self[a] for a in axes]
     
