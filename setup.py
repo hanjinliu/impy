@@ -7,7 +7,7 @@ with open("impy/__init__.py", encoding="utf-8") as f:
 with open("README.md", "r") as f:
     readme = f.read()
     
-setup(name="impy",
+setup(name="impy-array",
       version=VERSION,
       description="Speed up image analysis in Python with efficient reading, batch-processing, " \
                   "viewing functions and easily extend your own function for batch processing.",
@@ -17,16 +17,12 @@ setup(name="impy",
       long_description_content_type="text/markdown",
       license="BSD 3-Clause",
       download_url="https://github.com/hanjinliu/impy",
-      packages=find_packages(),
+      packages=find_packages(exclude=["docs"]),
       install_requires=[
             "scikit-image>=0.18.2",
-            "numpy>=1.17",
-            "scipy>=1.6.3",
-            "matplotlib",
-            "pandas>=1",
+            "pandas>=1.3",
             "dask>=2021.6.0",
             "tifffile>=2021.6.14",
-            "magicgui>=0.3.2",
             "napari>=0.4.12",
             "superqt>=0.2.4",
             "qtpy>=1.10.0",
