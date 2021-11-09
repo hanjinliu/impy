@@ -13,6 +13,22 @@ By making full use of them, `impy` provides super efficient tools of image analy
 
 I'm also working on [documentation](https://hanjinliu.github.io/impy/) for tutorials and API. Please take a look if you're interested in.
 
+:warning: Image processing algorithms in `ImgArray` are almost stable so that their behavior will not change a lot. However, since `napari` is under development and I'm groping for better UI right now, any functions that currently implemented in `impy` viewer may change or no longer work in the future. Make sure keeping `napari` and `impy` updated when you use.
+
+## Installation
+
+- use pip
+
+```
+pip install impy-array
+```
+
+- from source
+
+```
+git clone https://github.com/hanjinliu/impy
+```
+
 ### Code as fast as you speak
 
 Almost all the functions, such as filtering, deconvolution, labeling, single molecule detection, and even those pure `numpy` functions, are aware of image metadata. They "know" which dimension corresponds to `"z"` axis, which axes they should iterate along or where to save the image. As a result, **your code will be very concise**:
@@ -94,31 +110,3 @@ def func(gui): # the first argument will be ip.gui
 ```
 
 ![](Figs/bind.gif)
-
-
-## Installation
-
-```
-pip install git+https://github.com/hanjinliu/impy
-```
-
-or
-
-```
-git clone https://github.com/hanjinliu/impy
-```
-
-## Depencencies
-
-- `scikit-image`>=0.18
-- `numpy`>=1.17
-- `scipy`>=1.6.3
-- `matplotlib`>=3.3.4
-- `pandas`>=1.3.1
-- `dask`>=2021.6.0
-- `tifffile`>=2021.6.14
-- `napari`>=0.4.12
-  
-`impy` is partly dependent on `numba`, `cupy`, `trackpy` and `dask-image`. Please install these packages if needed. 
-
-:warning: Image processing algorithms in `ImgArray` are almost stable so that their behavior will not change a lot. However, since `napari` is under development and I'm groping for better UI right now, any functions that currently implemented in `impy` viewer may change or no longer work in the future. Make sure keeping `napari` and `impy` updated when you use.
