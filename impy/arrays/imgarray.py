@@ -847,7 +847,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def highpass_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def highpass_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, dims: Dims = None, 
+                        update: bool = False) -> ImgArray:
         """
         Butterworth high-pass filter.
 
@@ -2963,41 +2964,6 @@ class ImgArray(LabeledArray):
         
         return out
     
-    @record(append_history=False)
-    def label_multiotsu(self, classes: int = 3, nbins: int = 256, *, dims: str = None) -> ImgArray:
-        """
-        Label images using multi-Otsu method. Region lower than the lowest threshold will be labeled
-        zero. This function will take very long time with large ``classes`` value.
-
-        Parameters
-        ----------
-        classes : int, default is 3
-            Number of classes input images will be classified. The result label will have values 0, 1,
-            ..., classes-1.
-        nbins : int, default is 256
-            Number of bins.
-        dims : str, optional
-            Dimensions that will share the same thresholding results.
-
-        Returns
-        -------
-        ImgArray
-            Labeled image.
-        """        
-        if self.dtype != np.uint8:
-            raise ValueError("dtypes other than uint8 seem not working.")
-        if dims is None:
-            dims = complement_axes("c", self.axes)
-        labels = np.zeros(self.shape, dtype=np.uint8)
-        for sl, img in self.iter(complement_axes(dims, self.axes)):
-            thr = skfil.threshold_multiotsu(img, classes=classes, nbins=nbins)
-            labels[sl] = np.digitize(img, bins=thr)
-        
-        self.labels = labels.view(Label)
-        self.labels._set_info(self, "label_multiotsu")
-        self.labels.set_scale(self)
-        return self
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
@@ -3488,33 +3454,6 @@ class ImgArray(LabeledArray):
             
         self.labels._set_info(self, "random_walker")
         return self.labels
-    
-    @dims_to_spatial_axes
-    @record(append_history=False)
-    def slic(self, n_segments: int = 100, *, compactness: float = 10.0, max_iter: int = 10,
-             sigma: nDFloat = 1, multichannel: bool = False, min_size_factor: float = 0.5,
-             max_size_factor: float = 3, mask = None, dims: Dims = None):
-        # multichannel not working, needs sort_axes
-        # BUG: slic returns a strange label with grayscale images.
-        if multichannel:
-            c_axes = complement_axes("c"+dims, self.axes)
-            labels = largest_zeros(self["c=0"].shape)
-            exclude = "c"
-        else:
-            c_axes = complement_axes(dims, self.axes)
-            labels = largest_zeros(self.shape)
-            exclude = ""
-        
-        for sl, img in self.iter(c_axes, exclude=exclude):
-            labels[sl] = \
-            skseg.slic(img, n_segments=n_segments, compactness=compactness, max_iter=max_iter,
-                       sigma=sigma, multichannel=multichannel, min_size_factor=min_size_factor,
-                       max_size_factor=max_size_factor, start_label=1, mask=mask)
-        
-        self.labels = labels.view(Label).optimize()
-        self.labels._set_info(self, "slic")
-        self.labels.set_scale(self)
-        return self
     
     def label_threshold(self, thr: float|str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
         """

@@ -1,4 +1,4 @@
-__version__ = "1.23.3"
+__version__ = "1.24.0"
 
 import logging
 from ._const import Const, SetConst
@@ -16,6 +16,7 @@ from .core import *
 from .binder import bind
 from .viewer import gui, GUIcanvas
 from .correlation import *
+from .arrays import ImgArray, LazyImgArray # for typing
 import numpy as np
 
 r"""
@@ -44,7 +45,7 @@ class Random:
     def __init__(self):
         pass
     
-    def __getattribute__(self, name:str):
+    def __getattribute__(self, name: str):
         npfunc = getattr(np.random, name)
         def _func(*args, **kwargs):
             out = npfunc(*args, **kwargs)
