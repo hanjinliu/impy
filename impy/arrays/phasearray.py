@@ -9,6 +9,7 @@ from .labeledarray import LabeledArray
 from ..utils.axesop import complement_axes
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
 from ..utils.utilcls import Progress
+from .utils import _misc
 from ..collections import DataDict
 from .._types import Dims
 
@@ -125,6 +126,26 @@ class PhaseArray(LabeledArray):
         self.unit = "deg"
         self.border = tuple(np.rad2deg(self.border))
         return self
+    
+    @record
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    def binning(self, binsize: int = 2, *, check_edges: bool = True, dims: Dims = None):
+        if binsize == 1:
+            return self
+        with Progress("binning"):
+            img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
+            
+            reshaped_img = img_to_reshape.reshape(shape)
+            axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+            a = 2 * np.pi / self.periodicity
+            out = np.sum(np.exp(1j*a*reshaped_img), axis=axes_to_reduce)
+            out = np.angle(out)/a
+            out: PhaseArray = out.view(self.__class__)
+            out._set_info(self, f"binning(binsize={binsize})")
+            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
+        return out
     
     @record
     @dims_to_spatial_axes

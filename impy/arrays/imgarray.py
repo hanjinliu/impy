@@ -188,8 +188,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def stretch(self, scale, center = "center", *, mode: str = "constant", cval: float = 0, dims: Dims = None,
-                order: int = 1) -> ImgArray:
+    def stretch(self, scale, center = "center", *, mode: str = "constant", cval: float = 0, 
+                dims: Dims = None, order: int = 1) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -256,7 +256,7 @@ class ImgArray(LabeledArray):
         with Progress("rescale"):
             scale_ = [scale if a in dims else 1 for a in self.axes]
             out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
-            out:ImgArray = out.view(self.__class__)
+            out: ImgArray = out.view(self.__class__)
             out._set_info(self, f"rescale(scale={scale})")
             out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
@@ -2853,7 +2853,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def power_spectra(self, shape="same", norm:bool=False, zero_norm:bool=False, *,
+    def power_spectra(self, shape="same", norm: bool = False, zero_norm: bool = False, *,
                       dims: Dims = None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
@@ -2892,7 +2892,7 @@ class ImgArray(LabeledArray):
         return pw
     
     @record
-    def threshold(self, thr:float|str="otsu", *, along=None, **kwargs) -> ImgArray:
+    def threshold(self, thr: float|str = "otsu", *, along: str = None, **kwargs) -> ImgArray:
         """
         Parameters
         ----------
@@ -2964,7 +2964,7 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False)
-    def label_multiotsu(self, classes:int=3, nbins:int=256, *, dims:str=None) -> ImgArray:
+    def label_multiotsu(self, classes: int = 3, nbins: int = 256, *, dims: str = None) -> ImgArray:
         """
         Label images using multi-Otsu method. Region lower than the lowest threshold will be labeled
         zero. This function will take very long time with large ``classes`` value.
@@ -3020,7 +3020,7 @@ class ImgArray(LabeledArray):
         
     @dims_to_spatial_axes
     @record
-    def ncc_filter(self, template:np.ndarray, mode:str="constant", cval:float=None, 
+    def ncc_filter(self, template: np.ndarray, mode: str="constant", cval: float=None, 
                    *, dims: Dims = None) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
@@ -3049,7 +3049,7 @@ class ImgArray(LabeledArray):
         
         return self.as_float().apply_dask(_filters.ncc_filter,
                                           c_axes=complement_axes(dims, self.axes), 
-                                          args=(template, cval)
+                                          args=(template, cval, mode)
                                           )
     
     @record(append_history=False)
