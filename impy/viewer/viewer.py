@@ -186,16 +186,7 @@ class napariViewers:
             from . import keybinds
         
         viewer = napari.Viewer(title=key)
-        
-        # change theme
-        from napari.utils.theme import get_theme, register_theme, available_themes
-        if "night" not in available_themes():
-            theme = get_theme("dark")
-            theme.update(console="rgb(20, 21, 22)",
-                        canvas="#0F0F0F")
-            register_theme("night", theme)
-        viewer.theme = "night"
-        
+                
         viewer.window.file_menu.addSeparator()
         _default_viewer_settings(viewer)
         _load_mouse_callbacks(viewer)

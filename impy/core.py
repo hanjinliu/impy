@@ -4,9 +4,9 @@ import os
 import re
 import glob
 import itertools
+import inspect
 from functools import wraps
 from dask import array as da
-from skimage import data as skdata
 
 from .utils.io import *
 from .utils import gauss
@@ -26,6 +26,7 @@ __all__ = ["array",
            "zeros", 
            "empty", 
            "ones", 
+           "full",
            "gaussian_kernel", 
            "circular_mask", 
            "imread", 
@@ -150,7 +151,7 @@ def aslazy(arr, dtype=None, *, name:str=None, axes:str=None, chunks="auto") -> L
     return self
 
 @write_docs
-def _template(shape, dtype=np.uint16, *, name:str=None, axes:str=None):
+def _template(shape, dtype=np.uint16, *, name:str=None, axes:str=None) -> ImgArray:
     r"""
     Make an ImgArray object, like ``np.{npfuncname}``.
 
@@ -161,24 +162,26 @@ def _template(shape, dtype=np.uint16, *, name:str=None, axes:str=None):
     {}
     """    
 
-def np_dispatcher(npfunc):
-    def wrapper(func):
-        @wraps(_template)
-        def func(shape, dtype=np.uint16, *, name=None, axes=None):
-            return asarray(npfunc(shape, dtype=dtype), name=name, axes=axes)
-        func.__name__ = npfunc.__name__
-        func.__doc__ = re.sub(r"{npfuncname}", npfunc.__name__, func.__doc__)
-        return func
-    return wrapper
+def np_dispatcher(func):
+    npfunc = getattr(np, func.__name__)
+    @wraps(_template)
+    def _func(*args, name=None, axes=None):
+        return asarray(npfunc(*args), name=name, axes=axes)
+    _func.__name__ = npfunc.__name__
+    _func.__doc__ = re.sub(r"{npfuncname}", npfunc.__name__, _func.__doc__)
+    return _func
 
-@np_dispatcher(np.zeros)
+@np_dispatcher
 def zeros(): ...
     
-@np_dispatcher(np.empty)
+@np_dispatcher
 def empty(): ...
 
-@np_dispatcher(np.ones)
+@np_dispatcher
 def ones(): ...
+
+@np_dispatcher
+def full(): ...
 
 def gaussian_kernel(shape:tuple[int, ...], sigma=1.0, peak:float=1.0) -> ImgArray:
     """
@@ -257,6 +260,7 @@ def sample_image(name:str) -> ImgArray:
     ImgArray
         Sample image.
     """    
+    from skimage import data as skdata
     img = getattr(skdata, name)()
     out = array(img, name=name)
     if out.shape[-1] == 3:
