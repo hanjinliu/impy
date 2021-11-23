@@ -165,8 +165,8 @@ def _template(shape, dtype=np.uint16, *, name:str=None, axes:str=None) -> ImgArr
 def np_dispatcher(func):
     npfunc = getattr(np, func.__name__)
     @wraps(_template)
-    def _func(*args, name=None, axes=None):
-        return asarray(npfunc(*args), name=name, axes=axes)
+    def _func(*args, name=None, axes=None, **kwargs):
+        return asarray(npfunc(*args, **kwargs), name=name, axes=axes)
     _func.__name__ = npfunc.__name__
     _func.__doc__ = re.sub(r"{npfuncname}", npfunc.__name__, _func.__doc__)
     return _func
