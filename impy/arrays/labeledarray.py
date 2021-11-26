@@ -62,7 +62,7 @@ class LabeledArray(HistoryArray):
                 "   history    ": "->".join(self.history)}
     
     
-    def imsave(self, tifname:str, dtype=None):
+    def imsave(self, tifname: str, dtype=None):
         """
         Save image at the same directory as the original image by default. If the image contains
         wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.
@@ -170,7 +170,7 @@ class LabeledArray(HistoryArray):
         self._view_labels(other)
         return None
     
-    def _update(self, out):
+    def _update(self, out: LabeledArray):
         self.value[:] = out.as_img_type(self.dtype).value[:]
         self.history.append(out.history[-1])
         return None
@@ -218,6 +218,8 @@ class LabeledArray(HistoryArray):
         return out
     
     def as_float(self) -> LabeledArray:
+        if self.dtype == np.float32:
+            return self
         out = self.value.astype(np.float32).view(self.__class__)
         out._set_info(self)
         return out
@@ -286,7 +288,7 @@ class LabeledArray(HistoryArray):
 
         return self
 
-    def imshow_comparewith(self, other, **kwargs):
+    def imshow_comparewith(self, other: LabeledArray, **kwargs):
         from .utils import _plot as _plt
         fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
         _plt.plot_2d(self.value, ax=ax[0], **kwargs)

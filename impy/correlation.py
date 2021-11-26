@@ -337,8 +337,9 @@ def pcc_maximum(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None,
 def ft_pcc_maximum(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, 
                    upsample_factor: int = 10) -> np.ndarray:
     """
-    Calculate lateral shift between two images. This function takes Fourier transformed images
-    as input.
+    Calculate lateral shift between two images. 
+    This function takes Fourier transformed images as input. If you have to repetitively
+    use a same template image, this function is faster.
 
     Parameters
     ----------
