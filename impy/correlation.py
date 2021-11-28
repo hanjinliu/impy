@@ -150,7 +150,8 @@ def ncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: b
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate correlation.
+        If provided, True regions will be masked and will not be taken into account when calculate 
+        correlation.
     {squeeze}
     {dims}
 
@@ -178,7 +179,8 @@ def zncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: 
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate correlation.
+        If provided, True regions will be masked and will not be taken into account when calculate 
+        correlation.
     {squeeze}
     {dims}
 
@@ -202,8 +204,8 @@ pearson_coloc = zncc
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def nmi(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, bins: int = 100, squeeze: bool = True, *,
-        dims: Dims = None) -> PropArray | float:
+def nmi(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, bins: int = 100, 
+        squeeze: bool = True, *, dims: Dims = None) -> PropArray | float:
     r"""
     Normalized Mutual Information.
     
@@ -215,7 +217,8 @@ def nmi(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, bins: int 
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate correlation.
+        If provided, True regions will be masked and will not be taken into account when calculate 
+        correlation.
     bins : int, default is 100
         Number of bins to construct histograms.
     {squeeze}
@@ -254,7 +257,8 @@ def fourier_ncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, sq
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate correlation.
+        If provided, True regions will be masked and will not be taken into account when calculate
+        correlation.
     {squeeze}
     {dims}
 
@@ -275,8 +279,8 @@ def fourier_ncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, sq
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fourier_zncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: bool = True, *,
-                 dims: Dims = None) -> PropArray | float:
+def fourier_zncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, squeeze: bool = True, 
+                 *, dims: Dims = None) -> PropArray | float:
     """
     Zero-Normalized Cross Correlation in Fourier space.
     
@@ -284,7 +288,8 @@ def fourier_zncc(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None, s
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate correlation.
+        If provided, True regions will be masked and will not be taken into account when calculate 
+        correlation.
     {squeeze}
     {dims}
 
@@ -355,6 +360,7 @@ def ft_pcc_maximum(img0: ImgArray, img1: ImgArray, mask: ImgArray | None = None,
     with Progress("ft_pcc_maximum"):
         _check_dimensions(img0, img1)
         if mask is not None:
+            img0 = img0.copy()
             img0[mask] = 0
         shift = subpixel_pcc(xp.asarray(img0.value), xp.asarray(img1.value), upsample_factor)
     return asnumpy(shift)
