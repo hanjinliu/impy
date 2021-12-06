@@ -133,7 +133,7 @@ class LabeledArray(HistoryArray):
         super().__array_finalize__(obj)
         self._view_labels(obj)
     
-    def _view_labels(self, other):
+    def _view_labels(self, other: LabeledArray):
         """
         Make a view of label **if possible**.
         """
@@ -143,7 +143,7 @@ class LabeledArray(HistoryArray):
             else:
                 self.labels = other.labels
     
-    def _getitem_additional_set_info(self, other, **kwargs):
+    def _getitem_additional_set_info(self, other: LabeledArray, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
@@ -920,7 +920,7 @@ class LabeledArray(HistoryArray):
             
         return imgs
     
-    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None) -> LabeledArray:
+    def tile(self, shape: tuple[int, int] = None, along: str = None, order: str = None) -> LabeledArray:
         """
         Tile images in a certain order. Label is also tiled in the same manner.
 
@@ -971,7 +971,7 @@ class LabeledArray(HistoryArray):
         return tiled_img
     
     @record
-    def for_each_channel(self, func:str, along:str="c", **kwargs) -> LabeledArray:
+    def for_each_channel(self, func: str, along: str = "c", **kwargs) -> LabeledArray:
         """
         Apply same function with different parameters for each channel. This function will be useful
         when the parameters are dependent on channels, like wave length.
@@ -1002,7 +1002,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @record
-    def for_params(self, func: Callable|str, var:dict[str, Iterable]=None, **kwargs) -> DataList:
+    def for_params(self, func: Callable|str, var: dict[str, Iterable] = None, **kwargs) -> DataList:
         """
         Apply same function with different parameters with same input. This function will be useful
         when you want to try different conditions to the same image.
