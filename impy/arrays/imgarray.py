@@ -13,7 +13,7 @@ from .specials import PropArray
 from .utils._skimage import skexp, skfeat, skfil, skimage, skmes, skreg, skres, skseg, sktrans
 from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
-from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared, del_axis
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
@@ -748,7 +748,10 @@ class ImgArray(LabeledArray):
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
         input = xp.asarray(self)
-        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        if len(dims) < self.ndim:
+            weight = add_axes(self.axes, self.shape, weight, dims)
+        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), 
+                            s=spatial_shape, axes=spatial_axes)
         return asnumpy(out)
     
     @_docs.write_docs
@@ -872,7 +875,10 @@ class ImgArray(LabeledArray):
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
         input = xp.asarray(self)
-        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), s=spatial_shape, axes=spatial_axes)
+        if len(dims) < self.ndim:
+            weight = add_axes(self.axes, self.shape, weight, dims)
+        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), 
+                            s=spatial_shape, axes=spatial_axes)
         return asnumpy(out)
     
     
