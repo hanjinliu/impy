@@ -109,4 +109,4 @@ def func(gui): # the first argument will be ip.gui
     return
 ```
 
-![](Figs/bind.gif)
+![](https://github.com/hanjinliu/impy/Figs/bind.gif)

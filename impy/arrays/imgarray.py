@@ -2767,7 +2767,7 @@ class ImgArray(LabeledArray):
             key = key[1:]
         slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
         
-        def wave(sl: slice, s: int, uf: int) -> xp.ndarray:
+        def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
             """
             A function that makes wave number vertical vector. Returned vector will
             be [k/s, (k + 1/uf)/s, (k + 2/uf)/s, ...] (where k = sl.start)
@@ -2806,7 +2806,7 @@ class ImgArray(LabeledArray):
         # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of 
         # 0 <= A < 1.
         exps: list[xp.ndarray] = \
-            [xp.exp(-2j*np.pi * np.mod(wave(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
+            [xp.exp(-2j * np.pi * np.mod(wave_num(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
              for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
         
         # Calculate chunk size for proper output shapes
@@ -2816,12 +2816,12 @@ class ImgArray(LabeledArray):
             out_chunks[ind] = exps[i].shape[0]
         out_chunks = tuple(out_chunks)
         
-        return self.apply_dask(_misc.dft, 
-                               complement_axes(dims, self.axes),
-                               dtype=np.complex64, 
-                               out_chunks=out_chunks,
-                               kwargs=dict(exps=exps)
-                               )
+        return self.as_float().apply_dask(_misc.dft, 
+                                          complement_axes(dims, self.axes),
+                                          dtype=np.complex64, 
+                                          out_chunks=out_chunks,
+                                          kwargs=dict(exps=exps)
+                                          )
     
     @_docs.write_docs
     @dims_to_spatial_axes
