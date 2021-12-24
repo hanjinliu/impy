@@ -61,7 +61,6 @@ class ImgArray(LabeledArray):
         return super().__imul__(value)
     
     def __truediv__(self, value) -> ImgArray:
-        self = self.astype(np.float32)
         if isinstance(value, np.ndarray) and value.dtype.kind != "c":
             value = value.astype(np.float32)
             value[value==0] = np.inf
@@ -1263,6 +1262,9 @@ class ImgArray(LabeledArray):
             Contrast enhanced image.
         """        
         disk = _structures.ball_like(radius, len(dims))
+        if self.dtype == np.float32:
+            amp = max(np.abs(self.range))
+            self.value[:] /= amp
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             out = self.apply_dask(skfil.rank.enhance_contrast, 
@@ -1270,6 +1272,9 @@ class ImgArray(LabeledArray):
                                   dtype=self.dtype,
                                   args=(disk,)
                                   )
+        if self.dtype == np.float32:
+            self.value[:] *= amp
+        
         return out
     
     @_docs.write_docs
@@ -2299,8 +2304,9 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def centroid_sm(self, coords:Coords=None, radius: nDInt = 4, sigma: nDFloat = 1.5, 
-                    filt: Callable=None, percentile:float=95, *, dims: Dims = None) -> MarkerFrame:
+    def centroid_sm(self, coords: Coords = None, radius: nDInt = 4, sigma: nDFloat = 1.5, 
+                    filt: Callable[[ImgArray], bool] = None, percentile: float = 95, *,
+                    dims: Dims = None) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroid.
 
@@ -2469,7 +2475,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def edge_grad(self, sigma: nDFloat = 1.0, method:str="sobel", *, deg:bool=False, dims: Dims = 2) -> PhaseArray:
+    def edge_grad(self, sigma: nDFloat = 1.0, method: str = "sobel", *, deg: bool = False,
+                  dims: Dims = 2) -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
         is the direction with maximum gradient, i.e., intensity increase is largest. 
@@ -2666,7 +2673,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record
     def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
-            dims: Dims = None) -> ImgArray:
+            double_precision = False, dims: Dims = None) -> ImgArray:
         """
         Fast Fourier transformation. This function returns complex array, which is inconpatible with 
         some ImgArray functions.
@@ -2680,6 +2687,8 @@ class ImgArray(LabeledArray):
             - "same" (default): no padding or cropping.
         shift : bool, default is True
             If True, call ``np.fft.fftshift`` in the end.
+        double_precision : bool, default is False
+            If True, FFT will be calculated using 64-bit float and 128-bit complex.
         {dims}
             
         Returns
@@ -2699,15 +2708,17 @@ class ImgArray(LabeledArray):
             shape = None
         else:
             shape = check_nd(shape, len(dims))
-        freq = xp_fft.fftn(xp.asarray(self.value, dtype=np.float32), s=shape, axes=axes)
+        dtype = np.float64 if double_precision else np.float32
+        freq = xp_fft.fftn(xp.asarray(self.value, dtype=dtype), s=shape, axes=axes)
         if shift:
             freq[:] = np.fft.fftshift(freq)
-        return asnumpy(freq)
+        return asnumpy(freq, dtype=np.complex64)
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def local_dft(self, key: str = "", upsample_factor: nDInt = 1, *, dims: Dims = None) -> ImgArray:
+    def local_dft(self, key: str = "", upsample_factor: nDInt = 1, *, double_precision = False, 
+                  dims: Dims = None) -> ImgArray:
         """
         Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
         of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
@@ -2731,6 +2742,8 @@ class ImgArray(LabeledArray):
         upsample_factor : int or array of int, default is 1
             Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
             10 pixels.
+        double_precision : bool, default is False
+            If True, FFT will be calculated using 64-bit float and 128-bit complex.
         {dims}
 
         Returns
@@ -2753,8 +2766,20 @@ class ImgArray(LabeledArray):
             key = key[1:]
         slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
         
-        # a function that makes wave number vertical vector
-        def wave(sl: slice, s: int, uf: int):
+        def wave(sl: slice, s: int, uf: int) -> xp.ndarray:
+            """
+            A function that makes wave number vertical vector. Returned vector will
+            be [k/s, (k + 1/uf)/s, (k + 2/uf)/s, ...] (where k = sl.start)
+
+            Parameters
+            ----------
+            sl : slice
+                Slice that specify which part of the image will be transformed.
+            s : int
+                Size along certain dimension.
+            uf : int
+                Up-sampling factor of certain dimension.
+            """
             start = 0 if sl.start is None else sl.start
             stop = s if sl.stop is None else sl.stop
             
@@ -2768,14 +2793,20 @@ class ImgArray(LabeledArray):
                     raise ValueError(f"Invalid value encountered in key {key}.")
                 if -s < stop <= 0:
                     stop += s
-                elif not 0 <= stop <= s:
+                elif not 0 < stop <= s:
                     raise ValueError(f"Invalid value encountered in key {key}.")
+                
             n = stop - start
-            return xp.linspace(start/s, stop/s, n*uf, endpoint=False)[:, xp.newaxis]
+            return xp.linspace(start, stop, n*uf, endpoint=False)[:, xp.newaxis]
         
-        # exp(-ikx)
-        exps = [xp.exp(-2j*np.pi * xp.arange(s) * wave(sl, s, uf), dtype=np.complex64)
-                for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
+        dtype = np.complex128 if double_precision else np.complex64
+        
+        # Calculate exp(-ikx)
+        # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of 
+        # 0 <= A < 1.
+        exps: list[xp.ndarray] = \
+            [xp.exp(-2j*np.pi * np.mod(wave(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
+             for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
         
         # Calculate chunk size for proper output shapes
         out_chunks = np.ones(self.ndim, dtype=np.int64)
@@ -2794,8 +2825,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def local_power_spectra(self, key:str="", upsample_factor: nDInt = 1, norm:bool=False, *, 
-                            dims: Dims = None) -> ImgArray:
+    def local_power_spectra(self, key: str = "", upsample_factor: nDInt = 1, norm: bool = False, *, 
+                            double_precision = False, dims: Dims = None) -> ImgArray:
         """
         Return local n-D power spectra of images. See ``local_dft``.
 
@@ -2810,6 +2841,8 @@ class ImgArray(LabeledArray):
             10 pixels.
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
+        double_precision : bool, default is False
+            If True, FFT will be calculated using 64-bit float and 128-bit complex.
         {dims}
 
         Returns
@@ -2821,7 +2854,8 @@ class ImgArray(LabeledArray):
         --------
         power_spectra
         """        
-        freq = self.local_dft(key, upsample_factor=upsample_factor, dims=dims)
+        freq = self.local_dft(key, upsample_factor=upsample_factor, 
+                              double_precision=double_precision, dims=dims)
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()
@@ -2861,7 +2895,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @record
     def power_spectra(self, shape="same", norm: bool = False, zero_norm: bool = False, *,
-                      dims: Dims = None) -> ImgArray:
+                      double_precision = False, dims: Dims = None) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
         
@@ -2878,6 +2912,8 @@ class ImgArray(LabeledArray):
             - "same" (default): no padding or cropping.
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
+        double_precision : bool, default is False
+            If True, FFT will be calculated using 64-bit float and 128-bit complex.
         {dims}
 
         Returns
@@ -2889,7 +2925,7 @@ class ImgArray(LabeledArray):
         --------
         local_power_spectra
         """        
-        freq = self.fft(dims=dims, shape=shape)
+        freq = self.fft(dims=dims, shape=shape, double_precision=double_precision)
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()
