@@ -34,6 +34,7 @@ def test_filters():
     
     path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
     img = ip.imread(path)["c=1;z=2"]
+    assert img.axes == "tyx"
     for f in filters:
         try:
             getattr(img.as_uint8(), f)()
