@@ -1456,7 +1456,7 @@ class ImgArray(LabeledArray):
     @record
     def fill_hole(self, thr: float|str = "otsu", *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
-        Filling holes.　See skimage's documents 
+        Filling holes. See skimage's documents 
         `here <https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html>`_.
 
         Parameters
@@ -1774,7 +1774,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Axis "a" is added in the first dimension.　For example, If input is "tyx"-axes, then output
+            Axis "a" is added in the first dimension. For example, If input is "tyx"-axes, then output
             will be "atyx"-axes.
         
         Examples
@@ -2690,8 +2690,7 @@ class ImgArray(LabeledArray):
             - "same" (default): no padding or cropping.
         shift : bool, default is True
             If True, call ``np.fft.fftshift`` in the end.
-        double_precision : bool, default is False
-            If True, FFT will be calculated using 64-bit float and 128-bit complex.
+        {double_precision}
         {dims}
             
         Returns
@@ -2745,8 +2744,7 @@ class ImgArray(LabeledArray):
         upsample_factor : int or array of int, default is 1
             Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
             10 pixels.
-        double_precision : bool, default is False
-            If True, FFT will be calculated using 64-bit float and 128-bit complex.
+        {double_precision}
         {dims}
 
         Returns
@@ -2844,8 +2842,7 @@ class ImgArray(LabeledArray):
             10 pixels.
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
-        double_precision : bool, default is False
-            If True, FFT will be calculated using 64-bit float and 128-bit complex.
+        {double_precision}
         {dims}
 
         Returns
@@ -2878,8 +2875,7 @@ class ImgArray(LabeledArray):
             If True, only the real part is returned.
         shift : bool, default is True
             If True, call ``np.fft.ifftshift`` at the first.
-        double_precision : bool, default is False
-            If True, FFT will be calculated using 64-bit float and 128-bit complex.
+        {double_precision}
         {dims}
             
         Returns
@@ -2921,8 +2917,7 @@ class ImgArray(LabeledArray):
             - "same" (default): no padding or cropping.
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
-        double_precision : bool, default is False
-            If True, FFT will be calculated using 64-bit float and 128-bit complex.
+        {double_precision}
         {dims}
 
         Returns
@@ -3254,7 +3249,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         {connectivity}
-        mask : bool,　default is True
+        mask : bool, default is True
             If True, only neighbors of pixels that satisfy self==True is returned.
         {dims}
 

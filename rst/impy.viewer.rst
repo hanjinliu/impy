@@ -1,6 +1,14 @@
 impy.viewer package
 ===================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   impy.viewer.widgets
+
 Submodules
 ----------
 
@@ -8,6 +16,14 @@ impy.viewer.keybinds module
 ---------------------------
 
 .. automodule:: impy.viewer.keybinds
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+impy.viewer.menus module
+------------------------
+
+.. automodule:: impy.viewer.menus
    :members:
    :undoc-members:
    :show-inheritance:
@@ -32,14 +48,6 @@ impy.viewer.viewer module
 -------------------------
 
 .. automodule:: impy.viewer.viewer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-impy.viewer.widgets module
---------------------------
-
-.. automodule:: impy.viewer.widgets
    :members:
    :undoc-members:
    :show-inheritance:

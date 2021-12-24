@@ -127,7 +127,7 @@ class napariViewers:
         return "".join(self.viewer.dims.axis_labels)
     
     @property
-    def scale(self) -> dict[str: float]:
+    def scale(self) -> dict[str, float]:
         """
         Scale information of current viewer. Defined to make compatible with ``ImgArray``.
         """        

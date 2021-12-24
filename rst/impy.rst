@@ -1,46 +1,64 @@
 impy package
 ============
 
-axes
-----
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   impy.arrays
+   impy.frame
+   impy.utils
+   impy.viewer
+
+Submodules
+----------
+
+impy.axes module
+----------------
 
 .. automodule:: impy.axes
    :members:
    :undoc-members:
    :show-inheritance:
 
-binder
-------
+impy.binder module
+------------------
 
 .. automodule:: impy.binder
    :members:
    :undoc-members:
    :show-inheritance:
 
-collections
------------
+impy.collections module
+-----------------------
 
 .. automodule:: impy.collections
    :members:
    :undoc-members:
    :show-inheritance:
 
-core
-----
-
-imread, image creation functions.
+impy.core module
+----------------
 
 .. automodule:: impy.core
    :members:
    :undoc-members:
    :show-inheritance:
 
-correlation
------------
-
-Calculate correlation between images.
+impy.correlation module
+-----------------------
 
 .. automodule:: impy.correlation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: impy
    :members:
    :undoc-members:
    :show-inheritance:

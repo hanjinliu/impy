@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>impy.arrays.bases package &mdash; impy 1.24.3 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="impy.arrays.utils package" href="impy.arrays.utils.html" />
+    <link rel="prev" title="impy.arrays package" href="impy.arrays.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                1.24.3
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="api.html">API References</a> &raquo;</li>
+          <li><a href="impy.html">impy package</a> &raquo;</li>
+          <li><a href="impy.arrays.html">impy.arrays package</a> &raquo;</li>
+      <li>impy.arrays.bases package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/impy.arrays.bases.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="impy-arrays-bases-package">
+<h1>impy.arrays.bases package<a class="headerlink" href="#impy-arrays-bases-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-impy.arrays.bases.historyarray">
+<span id="impy-arrays-bases-historyarray-module"></span><h2>impy.arrays.bases.historyarray module<a class="headerlink" href="#module-impy.arrays.bases.historyarray" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.arrays.bases.historyarray.HistoryArray">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.arrays.bases.historyarray.</span></span><span class="sig-name descname"><span class="pre">HistoryArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dirpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/bases/historyarray.html#HistoryArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.historyarray.HistoryArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.arrays.bases.metaarray.MetaArray</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="impy.arrays.bases.historyarray.HistoryArray.dirpath">
+<span class="sig-name descname"><span class="pre">dirpath</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#impy.arrays.bases.historyarray.HistoryArray.dirpath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="impy.arrays.bases.historyarray.HistoryArray.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#impy.arrays.bases.historyarray.HistoryArray.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.historyarray.HistoryArray.split">
+<span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="impy.html#impy.collections.DataList" title="impy.collections.DataList"><span class="pre">impy.collections.DataList</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#impy.arrays.bases.historyarray.HistoryArray" title="impy.arrays.bases.historyarray.HistoryArray"><span class="pre">impy.arrays.bases.historyarray.HistoryArray</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/arrays/bases/historyarray.html#HistoryArray.split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.historyarray.HistoryArray.split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split n-dimensional image into (n-1)-dimensional images.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>axis</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Along which axis the original image will be split, by default “c”</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Separate images</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list of arrays</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.historyarray.HistoryArray.tile">
+<span class="sig-name descname"><span class="pre">tile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">along</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.bases.historyarray.HistoryArray" title="impy.arrays.bases.historyarray.HistoryArray"><span class="pre">HistoryArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/bases/historyarray.html#HistoryArray.tile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.historyarray.HistoryArray.tile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tile images in a certain order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shape</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Grid shape. This parameter must be specified unless the length of <cite>along</cite> is 2.</p></li>
+<li><p><strong>along</strong> (<em>str</em><em>, </em><em>optional</em>) – Axis (Axes) over which will be iterated.</p></li>
+<li><p><strong>order</strong> (<em>str</em><em>, </em><em>{&quot;r&quot;</em><em>, </em><em>&quot;c&quot;}</em><em>, </em><em>optional</em>) – <p>Order of iteration. “r” means row-wise and “c” means column-wise.</p>
+<dl>
+<dt>row-wise</dt><dd><p>—–&gt;
+—–&gt;
+—–&gt;</p>
+</dd>
+<dt>column-wise</dt><dd><div class="line-block">
+<div class="line">| |</div>
+<div class="line">| |</div>
+</div>
+<p>v v v</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Tiled array</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.bases.historyarray.HistoryArray" title="impy.arrays.bases.historyarray.HistoryArray">HistoryArray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-impy.arrays.bases.metaarray">
+<span id="impy-arrays-bases-metaarray-module"></span><h2>impy.arrays.bases.metaarray module<a class="headerlink" href="#module-impy.arrays.bases.metaarray" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.arrays.bases.metaarray.</span></span><span class="sig-name descname"><span class="pre">MetaArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dirpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin" title="impy.arrays.axesmixin.AxesMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.arrays.axesmixin.AxesMixin</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.NP_DISPATCH">
+<span class="sig-name descname"><span class="pre">NP_DISPATCH</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{&lt;function</span> <span class="pre">squeeze&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">take&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">stack&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">concatenate&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">block&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">zeros_like&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">empty_like&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">expand_dims&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">transpose&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">split&gt;:</span> <span class="pre">&lt;function</span> <span class="pre">_&gt;}</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.NP_DISPATCH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.additional_props">
+<span class="sig-name descname"><span class="pre">additional_props</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['dirpath',</span> <span class="pre">'metadata',</span> <span class="pre">'name']</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.additional_props" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.apply_dask">
+<span class="sig-name descname"><span class="pre">apply_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">func:</span> <span class="pre">Callable</span></em>, <em class="sig-param"><span class="pre">c_axes:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">drop_axis:</span> <span class="pre">Iterable[int]</span> <span class="pre">=</span> <span class="pre">[]</span></em>, <em class="sig-param"><span class="pre">new_axis:</span> <span class="pre">Iterable[int]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;</span></em>, <em class="sig-param"><span class="pre">out_chunks:</span> <span class="pre">tuple[int</span></em>, <em class="sig-param"><span class="pre">...]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">args:</span> <span class="pre">tuple[Any]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">kwargs:</span> <span class="pre">dict[str</span></em>, <em class="sig-param"><span class="pre">Any]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">MetaArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.apply_dask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.apply_dask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert array into dask array and run a batch process in parallel. In many cases batch process
+in this way is faster than <cite>multiprocess</cite> module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>callable</em>) – Function to apply.</p></li>
+<li><p><strong>c_axes</strong> (<em>str</em><em>, </em><em>optional</em>) – Axes to iterate.</p></li>
+<li><p><strong>drop_axis</strong> (<em>Iterable</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Passed to map_blocks.</p></li>
+<li><p><strong>new_axis</strong> (<em>Iterable</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Passed to map_blocks.</p></li>
+<li><p><strong>dtype</strong> (<em>any that can be converted to np.dtype object</em><em>, </em><em>default is np.float32</em>) – Output data type.</p></li>
+<li><p><strong>out_chunks</strong> (<em>tuple of int</em><em>, </em><em>optional</em>) – Output chunks. This argument is important when the output shape will change.</p></li>
+<li><p><strong>args</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Arguments that will passed to <cite>func</cite>.</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – Keyword arguments that will passed to <cite>func</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Processed array.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray">MetaArray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.dirpath">
+<span class="sig-name descname"><span class="pre">dirpath</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.dirpath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.implements">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">implements</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numpy_function</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.implements"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.implements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add functions to NP_DISPATCH so that numpy functions can be overloaded.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.iter">
+<span class="sig-name descname"><span class="pre">iter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">israw</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Slices</span><span class="p"><span class="pre">,</span> </span><span class="pre">np.ndarray</span> <span class="p"><span class="pre">|</span></span> <a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">MetaArray</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.iter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iteration along axes. If axes=”tzc”, then equivalent to following pseudo code:</p>
+<blockquote>
+<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">all_t</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">all_z</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">all_c</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<em>str</em><em> or </em><em>int</em>) – On which axes iteration is performed. Or the number of spatial dimension.</p></li>
+<li><p><strong>israw</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True, MetaArray will be returned. If False, np.ndarray will be returned.</p></li>
+<li><p><strong>exclude</strong> (<em>str</em><em>, </em><em>optional</em>) – Which axes will be excluded in output. For example, self.axes=”tcyx” and
+exclude=”c” then the axes of output will be “tyx” and slice is also correctly
+arranged.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields</dt>
+<dd class="field-even"><p><em>slice and (np.ndarray or MetaArray)</em> – slice and a subimage=self[sl]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.shape">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tuple of array dimensions.</p>
+<p>The shape property is usually used to get the current shape of an array,
+but may also be used to reshape the array in-place by assigning a tuple of
+array dimensions to it.  As with <cite>numpy.reshape</cite>, one of the new shape
+dimensions can be -1, in which case its value is inferred from the size of
+the array and the remaining dimensions. Reshaping an array in-place will
+fail if a copy is required.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(2, 3, 4)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span>
+<span class="go">array([[ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],</span>
+<span class="go">       [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],</span>
+<span class="go">       [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+  File <span class="nb">&quot;&lt;stdin&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
+<span class="gr">ValueError</span>: <span class="n">total size of new array must be unchanged</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">))[::</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,)</span>
+<span class="gt">Traceback (most recent call last):</span>
+  File <span class="nb">&quot;&lt;stdin&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
+<span class="gr">AttributeError</span>: <span class="n">Incompatible shape for in-place modification. Use</span>
+<span class="go">`.reshape()` to make a copy with the desired shape.</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.reshape</span></code></dt><dd><p>similar function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray.reshape</span></code></dt><dd><p>similar method</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.showinfo">
+<span class="sig-name descname"><span class="pre">showinfo</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.showinfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.showinfo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.sort_axes">
+<span class="sig-name descname"><span class="pre">sort_axes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">impy.arrays.bases.metaarray.MetaArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.sort_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.sort_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort image dimensions to ptzcyx-order</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Sorted image</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray">MetaArray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.transpose">
+<span class="sig-name descname"><span class="pre">transpose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.transpose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>change the order of image dimensions.
+‘axes’ will also be arranged.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.value">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">value</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-impy.arrays.bases.overload">
+<span id="impy-arrays-bases-overload-module"></span><h2>impy.arrays.bases.overload module<a class="headerlink" href="#module-impy.arrays.bases.overload" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.arrays.bases.overload.safe_set_info">
+<span class="sig-prename descclassname"><span class="pre">impy.arrays.bases.overload.</span></span><span class="sig-name descname"><span class="pre">safe_set_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_axes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/bases/overload.html#safe_set_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.overload.safe_set_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-impy.arrays.bases">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-impy.arrays.bases" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="impy.arrays.html" class="btn btn-neutral float-left" title="impy.arrays package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="impy.arrays.utils.html" class="btn btn-neutral float-right" title="impy.arrays.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

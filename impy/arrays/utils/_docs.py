@@ -72,6 +72,13 @@ shared_docs = dict(
             """
     ,
     
+    double_precision = \
+        """
+        double_precision : bool, default is False
+            If True, FFT will be calculated using 64-bit float and 128-bit complex.
+            """
+    ,
+    
     inputs_of_correlation = \
         """
         img0 : ImgArray
