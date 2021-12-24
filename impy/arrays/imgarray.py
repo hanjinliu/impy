@@ -78,6 +78,9 @@ class ImgArray(LabeledArray):
             raise ValueError("Cannot devide negative value.")
         return super().__itruediv__(value)
     
+    def __getitem__(self, key: int | str | slice | tuple) -> ImgArray:
+        return super().__getitem__(key)
+    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -1221,7 +1224,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def entropy_filter(self, radius:nDFloat=5, *, dims: Dims = None) -> ImgArray:
+    def entropy_filter(self, radius: nDFloat = 5, *, dims: Dims = None) -> ImgArray:
         """
         Running entropy filter. This filter is useful for detecting change in background distribution.
 
@@ -1240,7 +1243,7 @@ class ImgArray(LabeledArray):
         self = self.as_uint8()
         return self.apply_dask(skfil.rank.entropy, 
                                c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(selem=disk)
+                               kwargs=dict(footprint=disk)
                                ).as_float()
     
     @_docs.write_docs
@@ -2719,7 +2722,7 @@ class ImgArray(LabeledArray):
     @record
     def local_dft(self, key: str = "", upsample_factor: nDInt = 1, *, double_precision = False, 
                   dims: Dims = None) -> ImgArray:
-        """
+        r"""
         Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
         of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
         time, much faster compared to normal DFT (:math:`O(N^2)`). However, If you are interested in certain 
@@ -2864,7 +2867,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def ifft(self, real: bool = True, *, shift: bool = True, dims: Dims = None) -> ImgArray:
+    def ifft(self, real: bool = True, *, shift: bool = True, double_precision = False, 
+             dims: Dims = None) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
         
@@ -2874,6 +2878,8 @@ class ImgArray(LabeledArray):
             If True, only the real part is returned.
         shift : bool, default is True
             If True, call ``np.fft.ifftshift`` at the first.
+        double_precision : bool, default is False
+            If True, FFT will be calculated using 64-bit float and 128-bit complex.
         {dims}
             
         Returns
@@ -2885,7 +2891,10 @@ class ImgArray(LabeledArray):
             freq = np.fft.ifftshift(self.value)
         else:
             freq = self.value
-        out = xp_fft.ifftn(xp.asarray(freq, dtype=freq.dtype), axes=[self.axisof(a) for a in dims])
+        dtype = np.complex128 if double_precision else np.complex64
+        out = xp_fft.ifftn(xp.asarray(freq, dtype=dtype), 
+                           axes=[self.axisof(a) for a in dims]
+                           ).astype(np.complex64)
         
         if real:
             out = np.real(out)

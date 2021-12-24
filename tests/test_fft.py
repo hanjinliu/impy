@@ -18,7 +18,7 @@ def test_precision():
                     )
     
     assert_allclose(img.fft().ifft(), img, rtol=1e-6)
-    assert_allclose(img.fft(double_precision=True).ifft(), img)
+    assert_allclose(img.fft(double_precision=True).ifft(double_precision=True), img)
     
     assert_allclose(np.fft.fftshift(img.local_dft()).ifft(), img, rtol=1e-6)
-    assert_allclose(np.fft.fftshift(img.local_dft(double_precision=True)).ifft(), img)
+    assert_allclose(np.fft.fftshift(img.local_dft(double_precision=True)).ifft(double_precision=True), img)

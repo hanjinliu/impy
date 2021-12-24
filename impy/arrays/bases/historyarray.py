@@ -8,7 +8,7 @@ from ...collections import DataList
 
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None, dtype=None):
+                history=None, metadata=None, dtype=None) -> HistoryArray:
         
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype)
         self.history = [] if history is None else history

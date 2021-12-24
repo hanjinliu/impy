@@ -19,7 +19,7 @@ class MetaArray(AxesMixin, np.ndarray):
     dirpath: str
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None):
+                metadata=None, dtype=None) -> MetaArray:
         if isinstance(obj, cls):
             return obj
         
@@ -39,7 +39,7 @@ class MetaArray(AxesMixin, np.ndarray):
     def value(self) -> np.ndarray:
         return np.asarray(self)
     
-    def _repr_dict_(self):
+    def _repr_dict_(self) -> dict[str, Any]:
         return {"    shape     ": self.shape_info,
                 "    dtype     ": self.dtype,
                 "  directory   ": self.dirpath,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from functools import wraps
 import os
+from typing import Callable
 import numpy as np
 from dask import array as da
 from warnings import warn
@@ -30,6 +31,7 @@ from .._cupy import xp, xp_ndi, xp_fft, asnumpy
 
 class LazyImgArray(AxesMixin):
     additional_props = ["dirpath", "metadata", "name"]
+    
     def __init__(self, obj: da.core.Array, name:str=None, axes:str=None, dirpath:str=None, 
                  history:list[str]=None, metadata:dict=None):
         if not isinstance(obj, da.core.Array):
@@ -353,8 +355,14 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
         return out
     
-    def apply(self, func, c_axes: str = None, drop_axis: Iterable[int] = [], new_axis: Iterable[int] = None, 
-              dtype=np.float32, rechunk_to: tuple[int,...]|str = "none", dask_wrap: bool = False,
+    def apply(self, 
+              func: Callable,
+              c_axes: str = None,
+              drop_axis: Iterable[int] = [],
+              new_axis: Iterable[int] = None, 
+              dtype = np.float32,
+              rechunk_to: tuple[int, ...] | str = "none",
+              dask_wrap: bool = False,
               args: tuple = None, kwargs: dict[str] = None) -> LazyImgArray:
         """
         Rechunk array in a correct shape and apply function using `map_blocks`. This function is similar
@@ -407,7 +415,7 @@ class LazyImgArray(AxesMixin):
             args = tuple()
         if kwargs is None:
             kwargs = dict()
-            
+        
         if rechunk_to == "none":
             input_ = self.img
         else:
@@ -541,6 +549,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
     @record_lazy
     def gaussian_filter(self, sigma: nDFloat = 1.0, *, dims: Dims = None, update: bool = False
                         ) -> LazyImgArray:
@@ -997,7 +1006,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     def as_uint16(self) -> LazyImgArray:
-        img:da.core.Array = self.img
+        img = self.img
         if img.dtype == np.uint16:
             return img
         if img.dtype == np.uint8:
@@ -1015,6 +1024,8 @@ class LazyImgArray(AxesMixin):
         return out
     
     def as_float(self) -> LazyImgArray:
+        if self.dtype == np.float32:
+            return self
         out = self.img.astype(np.float32)
         out = self.__class__(out)
         out._set_info(self)
@@ -1033,7 +1044,24 @@ class LazyImgArray(AxesMixin):
         elif dtype == "float64":
             warn("Data type float64 is not valid for images. It was converted to float32 instead",
                  UserWarning)
-            return self.asfloat()
+            return self.as_float()
+        elif dtype == "complex64":
+            out = self.img.astype(np.complex64)
+            out = self.__class__(out)
+            out._set_info(self)
+            return out
+        elif dtype == "complex128":
+            warn("Data type complex128 is not valid for images. It was converted to complex64 instead",
+                 UserWarning)
+            out = self.img.astype(np.complex64)
+            out = self.__class__(out)
+            out._set_info(self)
+            return out
+        elif dtype == "int8":
+            out = self.img.astype(np.int8)
+            out = self.__class__(out)
+            out._set_info(self)
+            return out
         else:
             raise ValueError(f"dtype: {dtype}")
     
@@ -1051,7 +1079,7 @@ class LazyImgArray(AxesMixin):
         self._set_info(other, f"getitem[{keystr}]", kwargs["new_axes"])
         return None
     
-    def _set_info(self, other, next_history=None, new_axes:str="inherit"):
+    def _set_info(self, other, next_history = None, new_axes: str = "inherit"):
         self._set_additional_props(other)
         # set axes
         try:
