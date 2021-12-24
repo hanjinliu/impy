@@ -54,7 +54,7 @@ def key_repr(key):
     
     return ",".join(keylist)
 
-def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str) -> Slices:
+def axis_targeted_slicing(arr: np.ndarray, axes: str, string: str) -> Slices:
     """
     Make a conventional slices from an axis-targeted slicing string.
 

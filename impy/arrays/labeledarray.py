@@ -241,6 +241,12 @@ class LabeledArray(HistoryArray):
             warn("Data type float64 is not valid for images. It was converted to float32 instead",
                  UserWarning)
             return self.as_float()
+        elif dtype == "complex64":
+            return self.astype(np.complex64)
+        elif dtype == "complex128":
+            warn("Data type complex128 is not valid for images. It was converted to complex64 instead",
+                 UserWarning)
+            return self.astype(np.complex64)
         elif dtype == "int8":
             return self.astype("int8")
         else:

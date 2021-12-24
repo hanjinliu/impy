@@ -105,10 +105,10 @@ class AxesMixin:
             return self.axes.find(symbol)
     
     
-    def sizeof(self, axis:str):
+    def sizeof(self, axis: str) -> int:
         return getattr(self.shape, axis)
     
-    def sizesof(self, axes:str):
+    def sizesof(self, axes: str) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in axes)
     
 
