@@ -39,6 +39,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinxcontrib.blockdiag',
               ]
 
+blockdiag_html_image_format = 'SVG'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

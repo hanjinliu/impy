@@ -11,13 +11,18 @@ so on.
 
 `Source code <https://github.com/hanjinliu/impy>`_
 
+
 Highlights
 ----------
 
 - Automatic parallel batch processing using ``dask``.
+
 - You don't have to care about ``numpy`` / ``scipy`` on CPU, or ``cupy`` on GPU. Same code works for both processors.
+
 - n-D viewing, cropping, image annotation using ``napari``.
+
 - Easily integrate your custom functions with ``@ip.bind``.
+
 - Easily make a interactive GUI plugin from your custom functions with ``@ip.gui.bind``
 
 
@@ -44,6 +49,8 @@ Array
 .. blockdiag::
    
    blockdiag {
+      orientation = portrait
+      
       numpy.ndarray -> MetaArray -> HistoryArray -> LabeledArray -> ImgArray;
       AxesMixin -> MetaArray;
       MetaArray -> PropArray;
@@ -57,9 +64,13 @@ Array
    }
 
 - ``AxesMixin``: An abstract class that axes, scale and shape are defined.
+
 - ``PropArray``: Array object with properties stored in it. Always made from an ``ImgArray``.
+
 - ``Label``: Array object of image labels that is attached to ``ImgArray``.
+
 - ``ImgArray``: Array object with many image processing functions.
+
 - ``PhaseArray``: Array object with periodic values and specific processing functions.
 
 
@@ -69,9 +80,9 @@ Array-like
 .. blockdiag::
    
    blockdiag {
+      orientation = portrait
 
       AxesMixin -> LazyImgArray;
-      
       LazyImgArray [color = pink];
    }
 
@@ -84,6 +95,7 @@ Data Frame
 .. blockdiag::
    
    blockdiag {
+      orientation = portrait
 
       pandas.DataFrame -> AxesFrame -> MarkerFrame;
       AxesFrame -> TrackFrame;
@@ -95,8 +107,11 @@ Data Frame
    }
 
 - ``AxesFrame``: DataFrame with similar properties as ``AxesMixin``.
+
 - ``MarkerFrame``: ``AxesFrame`` for markers, such as coordinates.
+
 - ``TrackFrame``: ``AxesFrame`` for tracks.
+
 - ``PathFrame``: ``AxesFrame`` for paths.
 
 
