@@ -561,6 +561,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.median_filter)
     @dims_to_spatial_axes
+    @same_dtype
     @record_lazy
     def median_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False
                       ) -> LazyImgArray:
@@ -587,6 +588,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.convolve)
     @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
     @record_lazy
     def convolve(self, kernel, *, mode: str = "reflect", cval: float = 0, dims: Dims = None,
                  update: bool = False) -> LazyImgArray:
@@ -599,6 +601,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
+    @same_dtype
     @record_lazy
     def edge_filter(self, method: str = "sobel", *, dims: Dims = None, update: bool = False
                     ) -> LazyImgArray:
@@ -613,6 +616,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.laplacian_filter)
     @dims_to_spatial_axes
+    @same_dtype
     @record_lazy
     def laplacian_filter(self, radius: int = 1, *, dims: Dims = None, update: bool = False
                          ) -> LazyImgArray:  
@@ -627,6 +631,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.affine)
     @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
     @record_lazy
     def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None, *,
                mode="constant", cval=0, output_shape=None, order=1, dims=None) -> LazyImgArray:
