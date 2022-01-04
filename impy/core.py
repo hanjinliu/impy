@@ -54,7 +54,7 @@ def write_docs(func):
     return func
 
 @write_docs
-def array(arr, dtype=None, *, name:str=None, axes:str=None, copy:bool=True) -> ImgArray:
+def array(arr, dtype = None, *, name: str = None, axes: str = None, copy: bool = True) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
     
@@ -90,7 +90,7 @@ def array(arr, dtype=None, *, name:str=None, axes:str=None, copy:bool=True) -> I
     return self
 
 @write_docs
-def asarray(arr, dtype=None, *, name:str=None, axes:str=None) -> ImgArray:
+def asarray(arr, dtype = None, *, name: str=None, axes: str=None) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
     
