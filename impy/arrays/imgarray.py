@@ -2713,7 +2713,7 @@ class ImgArray(LabeledArray):
         dtype = np.float64 if double_precision else np.float32
         freq = xp_fft.fftn(xp.asarray(self.value, dtype=dtype), s=shape, axes=axes)
         if shift:
-            freq[:] = np.fft.fftshift(freq)
+            freq[:] = np.fft.fftshift(freq, axes=axes)
         return asnumpy(freq, dtype=np.complex64)
     
     @_docs.write_docs
@@ -2883,13 +2883,14 @@ class ImgArray(LabeledArray):
         ImgArray
             IFFT image.
         """
+        axes = [self.axisof(a) for a in dims]
         if shift:
-            freq = np.fft.ifftshift(self.value)
+            freq = np.fft.ifftshift(self.value, axes=axes)
         else:
             freq = self.value
         dtype = np.complex128 if double_precision else np.complex64
         out = xp_fft.ifftn(xp.asarray(freq, dtype=dtype), 
-                           axes=[self.axisof(a) for a in dims]
+                           axes=axes
                            ).astype(np.complex64)
         
         if real:
