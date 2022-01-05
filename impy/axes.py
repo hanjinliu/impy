@@ -1,12 +1,12 @@
 from __future__ import annotations
 from collections import defaultdict, Counter, OrderedDict
 import numpy as np
-from numbers import Number
+from numbers import Real
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
 class ImageAxesError(Exception):
-    pass
+    """This error is raised when axes is defined in a wrong way."""
 
 class NoneAxes:
     def __bool__(self):
@@ -21,7 +21,7 @@ class NoneAxes:
 NONE = NoneAxes()
 
 class ScaleDict(OrderedDict):
-    def __getattr__(self, key: str):
+    def __getattr__(self, key: str) -> float:
         """
         To enable such as scale.x or scale.y. Simply this can be achieved by
         
@@ -32,30 +32,37 @@ class ScaleDict(OrderedDict):
         However, we also want to convert it to np.ndarray for compatibility with napari's "scale" arguments.
         Because __getattr__ is called inside np.ndarray, it expected to raise AttributeError rather than
         KeyError.
-
         """        
         try:
             return self[key]
         except KeyError:
             raise AttributeError(key)
     
-    def __setattr__(self, key: str, value: Number) -> None:
+    def __getitem__(self, key: str) -> float:
+        return super().__getitem__(key)
+    
+    def __setattr__(self, key: str, value: Real) -> None:
         try:
             self[key] = value
         except KeyError:
             raise AttributeError(key)
     
-    def __setitem__(self, key: str, value: Number) -> None:
-        if not isinstance(value, Number):
+    def __setitem__(self, key: str, value: Real) -> None:
+        if not isinstance(value, Real):
             raise TypeError(f"Cannot set scale with type {type(value)}")
         return super().__setitem__(key, value)
     
-    def __list__(self) -> list[Number]:
+    def __list__(self) -> list[Real]:
         axes = sorted(self.keys(), key=lambda a: ORDER[a])
         return [self[a] for a in axes]
     
     def __array__(self, dtype=None):
         return np.array(self.__list__(), dtype=dtype)
+    
+    def __repr__(self) -> str:
+        kwargs = ", ".join(f"{k}={v}" for k, v in self.items())
+        return f"{self.__class__.__name__}({kwargs})"
+
 
 def check_none(func):
     def checked(self: Axes, *args, **kwargs):
@@ -63,6 +70,7 @@ def check_none(func):
             raise ImageAxesError("Axes not defined.")
         return func(self, *args, **kwargs)
     return checked
+
 
 class Axes:
     def __init__(self, value=None) -> None:
