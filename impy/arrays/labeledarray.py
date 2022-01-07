@@ -83,6 +83,13 @@ class LabeledArray(HistoryArray):
         if not tifname.endswith(".tif"):
             tifname += ".tif"
         if os.sep not in tifname:
+            if self.dirpath is None:
+                raise ValueError(
+                    "Image directory path is unknown. Set by "
+                    " >>> img.dirpath = \"...\""
+                    "or specify absolute path like"
+                    " >>> img.imsave(\"/path/to/XXX.tif\")"
+                    )
             tifname = os.path.join(self.dirpath, tifname)
         if self.metadata is None:
             self.metadata = {}

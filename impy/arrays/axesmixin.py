@@ -61,7 +61,9 @@ class AxesMixin:
     @scale_unit.setter
     def scale_unit(self, unit):
         if not isinstance(unit, str):
-            raise TypeError("Can only set str to scale unit.")
+            msg = "Can only set str to scale unit. 'px' is set instead."
+            warn(msg)
+            unit = "px"
         if isinstance(self.metadata, dict):
             self.metadata["unit"] = unit
         else:
