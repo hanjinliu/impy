@@ -1591,7 +1591,6 @@ class ImgArray(LabeledArray):
                                            args=(sigma,)
                                            )
     
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -1644,8 +1643,8 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def rof_filter(self, lmd:float=0.05, tol:float=1e-4, max_iter:int=50, *, dims: Dims = None, 
-                   update: bool = False) -> ImgArray:
+    def rof_filter(self, lmd: float = 0.05, tol: float = 1e-4, max_iter: int = 50, *, 
+                   dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Rudin-Osher-Fatemi's total variation denoising.
 
@@ -2765,41 +2764,8 @@ class ImgArray(LabeledArray):
                 key += f";{a}=0:{self.sizeof(a)}"
         if key.startswith(";"):
             key = key[1:]
-        slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
-        
-        def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
-            """
-            A function that makes wave number vertical vector. Returned vector will
-            be [k/s, (k + 1/uf)/s, (k + 2/uf)/s, ...] (where k = sl.start)
-
-            Parameters
-            ----------
-            sl : slice
-                Slice that specify which part of the image will be transformed.
-            s : int
-                Size along certain dimension.
-            uf : int
-                Up-sampling factor of certain dimension.
-            """
-            start = 0 if sl.start is None else sl.start
-            stop = s if sl.stop is None else sl.stop
             
-            if sl.start and sl.stop and start < 0 and stop > 0:
-                # like "x=-5:5"
-                pass
-            else:
-                if -s < start < 0:
-                    start += s
-                elif not 0 <= start < s:
-                    raise ValueError(f"Invalid value encountered in key {key}.")
-                if -s < stop <= 0:
-                    stop += s
-                elif not 0 < stop <= s:
-                    raise ValueError(f"Invalid value encountered in key {key}.")
-                
-            n = stop - start
-            return xp.linspace(start, stop, n*uf, endpoint=False)[:, xp.newaxis]
-        
+        slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
         dtype = np.complex128 if double_precision else np.complex64
         
         # Calculate exp(-ikx)
@@ -3242,7 +3208,8 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def count_neighbors(self, *, connectivity:int=None, mask:bool=True, dims: Dims = None) -> ImgArray:
+    def count_neighbors(self, *, connectivity: int = None, mask: bool = True,
+                        dims: Dims = None) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
         or branch detection. Only works for binary images.
@@ -3282,7 +3249,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(only_binary=True)
-    def remove_skeleton_structure(self, structure:str="tip", *, connectivity:int=None,
+    def remove_skeleton_structure(self, structure: str = "tip", *, connectivity: int = None,
                                   dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Remove certain structure from skeletonized images.
@@ -3412,8 +3379,8 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record(need_labels=True)
-    def watershed(self, coords:MarkerFrame=None, *, connectivity:int=1, input:str="distance", 
-                  min_distance:float=2, dims: Dims = None) -> Label:
+    def watershed(self, coords: MarkerFrame = None, *, connectivity: int = 1, input: str = "distance", 
+                  min_distance: float = 2, dims: Dims = None) -> Label:
         """
         Label segmentation using watershed algorithm.
 
@@ -3502,7 +3469,7 @@ class ImgArray(LabeledArray):
         self.labels._set_info(self, "random_walker")
         return self.labels
     
-    def label_threshold(self, thr: float|str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
+    def label_threshold(self, thr: float | str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
         """
         Make labels with threshold(). Be sure that keyword argument ``dims`` can be
         different (in most cases for >4D images) between threshold() and label().
@@ -3589,8 +3556,8 @@ class ImgArray(LabeledArray):
         return out
     
     @record(append_history=False, need_labels=True)
-    def regionprops(self, properties: tuple[str,...]|str = ("mean_intensity",), *, 
-                    extra_properties: Iterable[Callable]|None = None) -> DataDict[str, PropArray]:
+    def regionprops(self, properties: Iterable[str] | str = ("mean_intensity",), *, 
+                    extra_properties: Iterable[Callable] | None = None) -> DataDict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -3976,7 +3943,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record(append_history=False)
-    def estimate_sigma(self, *, squeeze: bool = True, dims: Dims = None) -> PropArray|float:
+    def estimate_sigma(self, *, squeeze: bool = True, dims: Dims = None) -> PropArray | float:
         """
         Wavelet-based estimation of Gaussian noise.
 
@@ -4378,3 +4345,37 @@ def check_filter_func(f):
     elif not callable(f):
         raise TypeError("`filt` must be callable.")
     return f
+
+
+def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
+    """
+    A function that makes wave number vertical vector. Returned vector will
+    be [k/s, (k + 1/uf)/s, (k + 2/uf)/s, ...] (where k = sl.start)
+
+    Parameters
+    ----------
+    sl : slice
+        Slice that specify which part of the image will be transformed.
+    s : int
+        Size along certain dimension.
+    uf : int
+        Up-sampling factor of certain dimension.
+    """
+    start = 0 if sl.start is None else sl.start
+    stop = s if sl.stop is None else sl.stop
+    
+    if sl.start and sl.stop and start < 0 and stop > 0:
+        # like "x=-5:5"
+        pass
+    else:
+        if -s < start < 0:
+            start += s
+        elif not 0 <= start < s:
+            raise ValueError(f"Invalid value encountered in slice {sl}.")
+        if -s < stop <= 0:
+            stop += s
+        elif not 0 < stop <= s:
+            raise ValueError(f"Invalid value encountered in slice {sl}.")
+        
+    n = stop - start
+    return xp.linspace(start, stop, n*uf, endpoint=False)[:, xp.newaxis]
