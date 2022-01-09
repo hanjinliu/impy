@@ -1,4 +1,4 @@
-__version__ = "1.24.4.dev0"
+__version__ = "1.24.4"
 
 import logging
 from functools import wraps
@@ -18,7 +18,7 @@ from .core import *
 from .binder import bind
 from .viewer import gui, GUIcanvas
 from .correlation import *
-from .arrays import ImgArray, LazyImgArray # for typing
+from .arrays import ImgArray, LazyImgArray  # for typing
 from . import random
 import numpy as np
 
