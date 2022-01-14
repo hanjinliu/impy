@@ -172,7 +172,7 @@ class napariViewers:
             
         return kwargs
     
-    def start(self, key:str="impy"):
+    def start(self, key: str = "impy"):
         """
         Create a napari window with name ``key``.
         """        
@@ -197,14 +197,17 @@ class napariViewers:
         # Add event
         viewer.layers.events.inserted.connect(upon_add_layer)
         
-        activity_dlg = viewer.window.qt_viewer.window()._activity_dialog
+        activity_dlg = viewer.window._qt_window._qt_viewer.window()._activity_dialog
         activity_dlg.resize(int(activity_dlg.width()*0.8), activity_dlg.height())
         
         self._viewers[key] = viewer
         self._front_viewer = key
         return None
 
-    def get(self, kind:str="image", layer_state:str="visible", returns:str="last") -> ImpyObject|list[ImpyObject]:
+    def get(self, 
+            kind: str = "image",
+            layer_state: str = "visible",
+            returns: str = "last") -> ImpyObject | list[ImpyObject]:
         """
         Simple way to get impy object from viewer.
 
@@ -447,7 +450,7 @@ class napariViewers:
         return None
             
         
-    def add_surface(self, image3d:LabeledArray, level:float=None, step_size:int=1, mask=None, **kwargs):
+    def add_surface(self, image3d: LabeledArray, level: float = None, step_size: int = 1, mask=None, **kwargs):
         """
         Add a surface layer from a 3D image.
 
@@ -469,8 +472,8 @@ class napariViewers:
             self.viewer.add_surface((verts, faces, values), **kw)
         return None
     
-    def bind(self, func=None, key:str="F1", use_logger:bool=False, use_plt:bool=True, 
-             allowed_dims:int|tuple[int, ...]=(1, 2, 3)):
+    def bind(self, func=None, key: str = "F1", use_logger: bool = False, use_plt: bool = True, 
+             allowed_dims: int | tuple[int, ...] = (1, 2, 3)):
         """
         Decorator that makes it easy to call custom function on the viewer. Every time "F1" is pushed, 
         ``func(self, ...)`` will be called. Returned values will be appeded to ``self.results`` if exists.
@@ -585,8 +588,14 @@ class napariViewers:
         return wrapper if func is None else wrapper(func)
 
     
-    def bind_protocol(self, func=None, key1:str="F1", key2:str="F2", use_logger:bool=False, use_plt:bool=True, 
-                      allowed_dims:int|tuple[int, ...]=(1, 2, 3), exit_with_error:bool=False):
+    def bind_protocol(self, 
+                      func: Callable = None,
+                      key1: str = "F1",
+                      key2: str = "F2",
+                      use_logger: bool = False,
+                      use_plt: bool = True, 
+                      allowed_dims: int | tuple[int, ...] = (1, 2, 3), 
+                      exit_with_error: bool = False):
         """
         Decorator that makes it easy to make protocol (series of function call) on the viewer. Unlike
         ``bind`` method, input function ``func`` must yield callable objects, from which parameter
@@ -797,7 +806,7 @@ class napariViewers:
         self.viewer.dims.current_step = step
         return step
     
-    def stepof(self, symbol:str) -> int:
+    def stepof(self, symbol: str) -> int:
         """
         Get the current step of certain axis.
 
@@ -812,8 +821,8 @@ class napariViewers:
     def axisof(self, symbol:str) -> int:
         return self.axes.find(symbol)
     
-    def register_point(self, data="cursor position", size:float=None, face_color=None, edge_color=None, 
-                       properties:dict=None, **kwargs):
+    def register_point(self, data="cursor position", size: float = None, face_color=None, edge_color=None, 
+                       properties: dict = None, **kwargs):
         """
         Register a point in a points layer, and link it to a table widget. Similar to "ROI Manager" in ImageJ.
         New points layer will be created when the first point is added.
