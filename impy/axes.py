@@ -21,6 +21,12 @@ class NoneAxes:
 NONE = NoneAxes()
 
 class ScaleDict(OrderedDict):
+    def __init__(self, d: dict = {}):
+        for k, v in d.items():
+            if v <= 0:
+                raise ValueError(f"Cannot set negative scale: {k}={v}.")
+            super().__setitem__(k, v)
+        
     def __getattr__(self, key: str) -> float:
         """
         To enable such as scale.x or scale.y. Simply this can be achieved by
@@ -29,28 +35,27 @@ class ScaleDict(OrderedDict):
                 
                 __getattr__ = dict.__getitem__
         
-        However, we also want to convert it to np.ndarray for compatibility with napari's "scale" arguments.
-        Because __getattr__ is called inside np.ndarray, it expected to raise AttributeError rather than
-        KeyError.
+        However, we also want to convert it to np.ndarray for compatibility with napari's 
+        "scale" arguments. Because __getattr__ is called inside np.ndarray, it expected to 
+        raise AttributeError rather than KeyError.
         """        
         try:
             return self[key]
         except KeyError:
-            raise AttributeError(key)
+            raise AttributeError(f"Image does not have {key} axes.")
     
     def __getitem__(self, key: str) -> float:
         return super().__getitem__(key)
     
-    def __setattr__(self, key: str, value: Real) -> None:
-        try:
-            self[key] = value
-        except KeyError:
-            raise AttributeError(key)
-    
     def __setitem__(self, key: str, value: Real) -> None:
-        if not isinstance(value, Real):
-            raise TypeError(f"Cannot set scale with type {type(value)}")
+        value = float(value)
+        if key not in self.keys():
+            raise ImageAxesError(f"Image does not have {key} axes.")
+        elif value <= 0:
+            raise ValueError(f"Cannot set negative scale: {key}={value}.")
         return super().__setitem__(key, value)
+    
+    __setattr__ = __setitem__
     
     def __list__(self) -> list[Real]:
         axes = sorted(self.keys(), key=lambda a: ORDER[a])
@@ -62,6 +67,17 @@ class ScaleDict(OrderedDict):
     def __repr__(self) -> str:
         kwargs = ", ".join(f"{k}={v}" for k, v in self.items())
         return f"{self.__class__.__name__}({kwargs})"
+    
+    def copy(self) -> ScaleDict:
+        return self.__class__(self)
+    
+    def replace(self, old: str, new: str):
+        d = {}
+        for k, v in self.items():
+            if k == old:
+                k = new
+            d[k] = v
+        return self.__class__(d)
 
 
 def check_none(func):
@@ -76,7 +92,7 @@ class Axes:
     def __init__(self, value=None) -> None:
         if value == NONE or value is None:
             self.axes:str = NONE
-            self.scale:dict[str, float] = None
+            self.scale: ScaleDict[str, float] = None
             
         elif isinstance(value, str):
             value = value.lower()
@@ -210,7 +226,6 @@ class Axes:
             raise ImageAxesError(f"Axes {new} already exists: {self.axes}")
         
         self.axes = self.axes.replace(old, new)
-        scale = self.scale.copy()
-        scale[new] = scale.pop(old)
+        scale = self.scale.replace(old, new)
         self.scale = scale
         return None

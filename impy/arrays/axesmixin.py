@@ -43,7 +43,7 @@ class AxesMixin:
         return self.axes._scale
     
     @scale.setter
-    def scale(self, value:dict):
+    def scale(self, value: dict):
         if not isinstance(value, dict):
             raise TypeError(f"Cannot set scale using {type(value)}.")
         return self.set_scale(value)
@@ -125,7 +125,6 @@ class AxesMixin:
             scales of common axes are copied.
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
-
         """        
         if self.axes.is_none():
             raise ImageAxesError("Image does not have axes.")

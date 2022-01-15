@@ -1,11 +1,17 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from tifffile import TiffFile, imwrite, memmap
 import json
 import re
 import os
 import numpy as np
 from dask import array as da
+
+from ..axes import ImageAxesError
 from ..utils.axesop import switch_slice
+
+if TYPE_CHECKING:
+    from ..arrays.bases import HistoryArray
 
 __all__ = ["imwrite", 
            "memmap",
@@ -16,10 +22,10 @@ __all__ = ["imwrite",
            "get_scale_from_meta", 
            "get_imsave_meta_from_img"]
 
-def load_json(s:str):
+def load_json(s: str):
     return json.loads(re.sub("'", '"', s))
 
-def open_tif(path:str, return_img:bool=False, memmap:bool=False):
+def open_tif(path: str, return_img: bool = False, memmap: bool = False):
     with TiffFile(path) as tif:
         ijmeta = tif.imagej_metadata
         series0 = tif.series[0]
@@ -56,7 +62,7 @@ def open_tif(path:str, return_img:bool=False, memmap:bool=False):
     return out
 
 
-def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
+def open_mrc(path: str, return_img: bool = False, memmap: bool = False):
     import mrcfile
     if memmap:
         open_func = mrcfile.mmap
@@ -87,6 +93,9 @@ def open_mrc(path:str, return_img:bool=False, memmap:bool=False):
     return out
 
 
+# def open_map(path: str, return_img: bool = False, memmap: bool = False):
+#     import gemmi
+
 def open_as_dask(path: str, chunks):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
@@ -113,14 +122,14 @@ def open_img(path, memmap: bool = False):
         from skimage import io
         img = io.imread(path)
         if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
-            meta = {"axes":"yxc", "ijmeta":{}, "history":[]}
+            meta = {"axes": "yxc", "ijmeta": {}, "history": []}
         else:
-            meta = {"axes":None, "ijmeta":{}, "history":[]}
+            meta = {"axes": None, "ijmeta": {}, "history": []}
     
     return meta, img
 
 
-def get_scale_from_meta(meta:dict):
+def get_scale_from_meta(meta: dict):
     scale = dict()
     dz = meta["ijmeta"].get("spacing", 1.0)
     try:
@@ -146,7 +155,7 @@ def get_scale_from_meta(meta:dict):
     return scale
 
 
-def get_imsave_meta_from_img(img, update_lut=True):
+def get_imsave_meta_from_img(img: HistoryArray, update_lut=True):
     metadata = img.metadata.copy()
     if update_lut:
         lut_min, lut_max = np.percentile(img, [1, 99])
@@ -176,3 +185,21 @@ def get_imsave_meta_from_img(img, update_lut=True):
         metadata["hyperstack"] = True
     
     return dict(imagej=True, resolution=res, metadata=metadata)
+
+def save_mrc(img: HistoryArray, path: str):
+    import mrcfile
+    
+    # get voxel_size
+    if img.axes not in ("zyx", "yx"):
+        raise ImageAxesError(
+            f"Can only save zyx- or yx- image as a mrc file, but image has {img.axes} axes."
+            )
+    if os.path.exists(path):
+        with mrcfile.open(path, mode="r+") as mrc:
+            mrc.set_data(img.value)
+            mrc.voxel_size = tuple(np.array(img.scale))
+            
+    else:
+        with mrcfile.new(path) as mrc:
+            mrc.set_data(img.value)
+            mrc.voxel_size = tuple(np.array(img.scale))
