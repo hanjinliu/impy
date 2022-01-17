@@ -63,7 +63,7 @@ def add_imread_menu(viewer:"napari.Viewer"):
         hist = history.get_open_history()
         dlg.setHistory(hist)
         filenames, _ = dlg.getOpenFileNames(
-            parent=viewer.window.qt_viewer,
+            parent=viewer.window._qt_window,
             caption="Select file ...",
             directory=hist[0],
         )
@@ -98,7 +98,7 @@ def add_imsave_menu(viewer:"napari.Viewer"):
         else:
             last_hist = hist[0]
         filename, _ = dlg.getSaveFileName(
-            parent=viewer.window.qt_viewer,
+            parent=viewer.window._qt_window,
             caption="Save image layer",
             directory=last_hist,
         )
@@ -120,7 +120,7 @@ def add_read_csv_menu(viewer:"napari.Viewer"):
         hist = history.get_open_history()
         dlg.setHistory(hist)
         filenames, _ = dlg.getOpenFileNames(
-            parent=viewer.window.qt_viewer,
+            parent=viewer.window._qt_window,
             caption="Select file ...",
             directory=hist[0],
         )

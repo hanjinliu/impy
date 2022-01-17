@@ -43,7 +43,7 @@ class AxesMixin:
         return self.axes._scale
     
     @scale.setter
-    def scale(self, value:dict):
+    def scale(self, value: dict):
         if not isinstance(value, dict):
             raise TypeError(f"Cannot set scale using {type(value)}.")
         return self.set_scale(value)
@@ -61,7 +61,9 @@ class AxesMixin:
     @scale_unit.setter
     def scale_unit(self, unit):
         if not isinstance(unit, str):
-            raise TypeError("Can only set str to scale unit.")
+            msg = "Can only set str to scale unit. 'px' is set instead."
+            warn(msg)
+            unit = "px"
         if isinstance(self.metadata, dict):
             self.metadata["unit"] = unit
         else:
@@ -105,10 +107,10 @@ class AxesMixin:
             return self.axes.find(symbol)
     
     
-    def sizeof(self, axis:str):
+    def sizeof(self, axis: str) -> int:
         return getattr(self.shape, axis)
     
-    def sizesof(self, axes:str):
+    def sizesof(self, axes: str) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in axes)
     
 
@@ -123,7 +125,6 @@ class AxesMixin:
             scales of common axes are copied.
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
-
         """        
         if self.axes.is_none():
             raise ImageAxesError("Image does not have axes.")

@@ -62,7 +62,7 @@ class LabeledArray(HistoryArray):
                 "   history    ": "->".join(self.history)}
     
     
-    def imsave(self, tifname:str, dtype=None):
+    def imsave(self, tifname: str, dtype=None):
         """
         Save image at the same directory as the original image by default. If the image contains
         wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.
@@ -83,6 +83,13 @@ class LabeledArray(HistoryArray):
         if not tifname.endswith(".tif"):
             tifname += ".tif"
         if os.sep not in tifname:
+            if self.dirpath is None:
+                raise ValueError(
+                    "Image directory path is unknown. Set by "
+                    " >>> img.dirpath = \"...\""
+                    "or specify absolute path like"
+                    " >>> img.imsave(\"/path/to/XXX.tif\")"
+                    )
             tifname = os.path.join(self.dirpath, tifname)
         if self.metadata is None:
             self.metadata = {}
@@ -133,7 +140,7 @@ class LabeledArray(HistoryArray):
         super().__array_finalize__(obj)
         self._view_labels(obj)
     
-    def _view_labels(self, other):
+    def _view_labels(self, other: LabeledArray):
         """
         Make a view of label **if possible**.
         """
@@ -143,7 +150,7 @@ class LabeledArray(HistoryArray):
             else:
                 self.labels = other.labels
     
-    def _getitem_additional_set_info(self, other, **kwargs):
+    def _getitem_additional_set_info(self, other: LabeledArray, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
@@ -170,7 +177,7 @@ class LabeledArray(HistoryArray):
         self._view_labels(other)
         return None
     
-    def _update(self, out):
+    def _update(self, out: LabeledArray):
         self.value[:] = out.as_img_type(self.dtype).value[:]
         self.history.append(out.history[-1])
         return None
@@ -218,6 +225,8 @@ class LabeledArray(HistoryArray):
         return out
     
     def as_float(self) -> LabeledArray:
+        if self.dtype == np.float32:
+            return self
         out = self.value.astype(np.float32).view(self.__class__)
         out._set_info(self)
         return out
@@ -239,6 +248,12 @@ class LabeledArray(HistoryArray):
             warn("Data type float64 is not valid for images. It was converted to float32 instead",
                  UserWarning)
             return self.as_float()
+        elif dtype == "complex64":
+            return self.astype(np.complex64)
+        elif dtype == "complex128":
+            warn("Data type complex128 is not valid for images. It was converted to complex64 instead",
+                 UserWarning)
+            return self.astype(np.complex64)
         elif dtype == "int8":
             return self.astype("int8")
         else:
@@ -286,7 +301,7 @@ class LabeledArray(HistoryArray):
 
         return self
 
-    def imshow_comparewith(self, other, **kwargs):
+    def imshow_comparewith(self, other: LabeledArray, **kwargs):
         from .utils import _plot as _plt
         fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
         _plt.plot_2d(self.value, ax=ax[0], **kwargs)
@@ -918,7 +933,7 @@ class LabeledArray(HistoryArray):
             
         return imgs
     
-    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None) -> LabeledArray:
+    def tile(self, shape: tuple[int, int] = None, along: str = None, order: str = None) -> LabeledArray:
         """
         Tile images in a certain order. Label is also tiled in the same manner.
 
@@ -969,7 +984,7 @@ class LabeledArray(HistoryArray):
         return tiled_img
     
     @record
-    def for_each_channel(self, func:str, along:str="c", **kwargs) -> LabeledArray:
+    def for_each_channel(self, func: str, along: str = "c", **kwargs) -> LabeledArray:
         """
         Apply same function with different parameters for each channel. This function will be useful
         when the parameters are dependent on channels, like wave length.
@@ -1000,7 +1015,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @record
-    def for_params(self, func: Callable|str, var:dict[str, Iterable]=None, **kwargs) -> DataList:
+    def for_params(self, func: Callable|str, var: dict[str, Iterable] = None, **kwargs) -> DataList:
         """
         Apply same function with different parameters with same input. This function will be useful
         when you want to try different conditions to the same image.

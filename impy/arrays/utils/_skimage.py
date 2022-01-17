@@ -1,6 +1,5 @@
 from __future__ import annotations
-# skimage.morphology takes very long time to import. Here it is not imported explicitly, and is always
-# accessed by `skimage.morphology.some_function`.
+# skimage.morphology takes very long time to import if <0.19.
 import skimage
 from skimage import transform as sktrans
 from skimage import filters as skfil

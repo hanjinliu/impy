@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to impy’s documentation! &mdash; impy 1.24.3 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                1.24.3
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>Welcome to impy’s documentation!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="welcome-to-impy-s-documentation">
+<h1>Welcome to impy’s documentation!<a class="headerlink" href="#welcome-to-impy-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and
+so on.</p>
+<p><a class="reference external" href="https://github.com/hanjinliu/impy">Source code</a></p>
+<section id="highlights">
+<h2>Highlights<a class="headerlink" href="#highlights" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Automatic parallel batch processing using <code class="docutils literal notranslate"><span class="pre">dask</span></code>.</p></li>
+<li><p>You don’t have to care about <code class="docutils literal notranslate"><span class="pre">numpy</span></code> / <code class="docutils literal notranslate"><span class="pre">scipy</span></code> on CPU, or <code class="docutils literal notranslate"><span class="pre">cupy</span></code> on GPU. Same code works for both processors.</p></li>
+<li><p>n-D viewing, cropping, image annotation using <code class="docutils literal notranslate"><span class="pre">napari</span></code>.</p></li>
+<li><p>Easily integrate your custom functions with <code class="docutils literal notranslate"><span class="pre">&#64;ip.bind</span></code>.</p></li>
+<li><p>Easily make a interactive GUI plugin from your custom functions with <code class="docutils literal notranslate"><span class="pre">&#64;ip.gui.bind</span></code></p></li>
+</ul>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/hanjinliu/impy
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/hanjinliu/impy
+</pre></div>
+</div>
+</section>
+<section id="major-classes">
+<h2>Major Classes<a class="headerlink" href="#major-classes" title="Permalink to this headline">¶</a></h2>
+<section id="array">
+<h3>Array<a class="headerlink" href="#array" title="Permalink to this headline">¶</a></h3>
+<div class="align-default"><svg height="440" viewBox="0 0 640 440" width="640" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="451" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="126" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="206" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="259" y="206" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="286" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="259" y="286" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="366" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="259" y="366" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="78" x="128.0" y="66">numpy.ndarray</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="448" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="512.0" y="66">AxesMixin</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="120" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="128.0" y="146">MetaArray</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="72" x="128.0" y="226">HistoryArray</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="256" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="320.0" y="226">PropArray</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="280" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="72" x="128.0" y="306">LabeledArray</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="256" y="280" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="30" x="320.0" y="306">Label</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="360" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="48" x="128.0" y="386">ImgArray</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="256" y="360" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="60" x="320.0" y="386">PhaseArray</text>
+  <path d="M 128 80 L 128 112" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,119 124,112 132,112 128,119" stroke="rgb(0,0,0)" />
+  <path d="M 128 160 L 128 192" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,199 124,192 132,192 128,199" stroke="rgb(0,0,0)" />
+  <path d="M 128 160 L 128 180" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 180 L 320 180" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 320 180 L 320 192" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="320,199 316,192 324,192 320,199" stroke="rgb(0,0,0)" />
+  <path d="M 128 240 L 128 272" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,279 124,272 132,272 128,279" stroke="rgb(0,0,0)" />
+  <path d="M 128 240 L 128 260" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 260 L 320 260" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 320 260 L 320 272" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="320,279 316,272 324,272 320,279" stroke="rgb(0,0,0)" />
+  <path d="M 128 320 L 128 352" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,359 124,352 132,352 128,359" stroke="rgb(0,0,0)" />
+  <path d="M 128 320 L 128 340" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 340 L 320 340" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 320 340 L 320 352" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="320,359 316,352 324,352 320,359" stroke="rgb(0,0,0)" />
+  <path d="M 512 80 L 512 100" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 100 L 512 100" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 100 L 128 112" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,119 124,112 132,112 128,119" stroke="rgb(0,0,0)" />
+</svg>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AxesMixin</span></code>: An abstract class that axes, scale and shape are defined.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PropArray</span></code>: Array object with properties stored in it. Always made from an <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Label</span></code>: Array object of image labels that is attached to <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>: Array object with many image processing functions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PhaseArray</span></code>: Array object with periodic values and specific processing functions.</p></li>
+</ul>
+</section>
+<section id="array-like">
+<h3>Array-like<a class="headerlink" href="#array-like" title="Permalink to this headline">¶</a></h3>
+<div class="align-default"><svg height="200" viewBox="0 0 256 200" width="256" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="126" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="128.0" y="66">AxesMixin</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="120" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="72" x="128.0" y="146">LazyImgArray</text>
+  <path d="M 128 80 L 128 112" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,119 124,112 132,112 128,119" stroke="rgb(0,0,0)" />
+</svg>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>: Array-like object with image processing functions like <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, but evaluated lazily.</p></li>
+</ul>
+</section>
+<section id="data-frame">
+<h3>Data Frame<a class="headerlink" href="#data-frame" title="Permalink to this headline">¶</a></h3>
+<div class="align-default"><svg height="280" viewBox="0 0 640 280" width="640" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="46" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="126" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="206" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="259" y="206" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="451" y="206" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="40" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="96" x="128.0" y="66">pandas.DataFrame</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="120" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="128.0" y="146">AxesFrame</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="66" x="128.0" y="226">MarkerFrame</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="256" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="60" x="320.0" y="226">TrackFrame</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="448" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="512.0" y="226">PathFrame</text>
+  <path d="M 128 80 L 128 112" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,119 124,112 132,112 128,119" stroke="rgb(0,0,0)" />
+  <path d="M 128 160 L 128 192" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,199 124,192 132,192 128,199" stroke="rgb(0,0,0)" />
+  <path d="M 128 160 L 128 180" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 180 L 320 180" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 320 180 L 320 192" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="320,199 316,192 324,192 320,199" stroke="rgb(0,0,0)" />
+  <path d="M 128 160 L 128 180" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 128 180 L 512 180" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 512 180 L 512 192" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="512,199 508,192 516,192 512,199" stroke="rgb(0,0,0)" />
+</svg>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code>: DataFrame with similar properties as <code class="docutils literal notranslate"><span class="pre">AxesMixin</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MarkerFrame</span></code>: <code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code> for markers, such as coordinates.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TrackFrame</span></code>: <code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code> for tracks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PathFrame</span></code>: <code class="docutils literal notranslate"><span class="pre">AxesFrame</span></code> for paths.</p></li>
+</ul>
+</section>
+</section>
+<section id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>impy.utils.axesop &mdash; impy 1.24.3dev0 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                1.24.3dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../impy.html">impy</a> &raquo;</li>
+      <li>impy.utils.axesop</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for impy.utils.axesop</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="axes_included"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.axesop.axes_included">[docs]</a><span class="k">def</span> <span class="nf">axes_included</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    e.g.)</span>
+<span class="sd">    img.axes = &quot;tyx&quot;, label.axes = &quot;yx&quot; -&gt; True</span>
+<span class="sd">    img.axes = &quot;tcyx&quot;, label.axes = &quot;zyx&quot; -&gt; False</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">label</span><span class="o">.</span><span class="n">axes</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="find_first_appeared"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.axesop.find_first_appeared">[docs]</a><span class="k">def</span> <span class="nf">find_first_appeared</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">include</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">a</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Inappropriate axes: </span><span class="si">{</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="del_axis"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.axesop.del_axis">[docs]</a><span class="k">def</span> <span class="nf">del_axis</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    axes: str or Axes object.</span>
+<span class="sd">    axis: int.</span>
+<span class="sd">    delete axis from axes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axes</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">:</span>
+                <span class="n">new_axes</span> <span class="o">+=</span> <span class="n">o</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">new_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
+        
+    <span class="k">return</span> <span class="n">new_axes</span></div>
+
+<div class="viewcode-block" id="add_axes"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.axesop.add_axes">[docs]</a><span class="k">def</span> <span class="nf">add_axes</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key_axes</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stack `key` to make its shape key_axes-&gt; axes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">if</span> <span class="n">shape</span> <span class="o">==</span> <span class="n">key</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">key</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">o</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">key_axes</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">key</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">key</span></div>
+
+<div class="viewcode-block" id="complement_axes"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.axesop.complement_axes">[docs]</a><span class="k">def</span> <span class="nf">complement_axes</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">all_axes</span><span class="o">=</span><span class="s2">&quot;ptzcyx&quot;</span><span class="p">):</span>
+    <span class="n">c_axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">all_axes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+            <span class="n">c_axes</span> <span class="o">+=</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">c_axes</span></div>
+
+
+<div class="viewcode-block" id="switch_slice"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.axesop.switch_slice">[docs]</a><span class="k">def</span> <span class="nf">switch_slice</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">all_axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">ifnot</span><span class="o">=</span><span class="s2">&quot;:&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ifnot</span> <span class="o">==</span> <span class="s2">&quot;:&quot;</span><span class="p">:</span>
+        <span class="n">ifnot</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">all_axes</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ifnot</span><span class="p">,</span> <span class="s2">&quot;__iter__&quot;</span><span class="p">):</span>
+        <span class="n">ifnot</span> <span class="o">=</span> <span class="p">[</span><span class="n">ifnot</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">all_axes</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ifin</span><span class="p">,</span> <span class="s2">&quot;__iter__&quot;</span><span class="p">):</span>
+        <span class="n">ifin</span> <span class="o">=</span> <span class="p">[</span><span class="n">ifin</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">all_axes</span><span class="p">)</span>
+        
+    <span class="n">sl</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">slin</span><span class="p">,</span> <span class="n">slout</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">all_axes</span><span class="p">,</span> <span class="n">ifin</span><span class="p">,</span> <span class="n">ifnot</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+            <span class="n">sl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slin</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slout</span><span class="p">)</span>
+    <span class="n">sl</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sl</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

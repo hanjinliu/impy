@@ -19,7 +19,7 @@ class MetaArray(AxesMixin, np.ndarray):
     dirpath: str
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None):
+                metadata=None, dtype=None) -> MetaArray:
         if isinstance(obj, cls):
             return obj
         
@@ -39,7 +39,7 @@ class MetaArray(AxesMixin, np.ndarray):
     def value(self) -> np.ndarray:
         return np.asarray(self)
     
-    def _repr_dict_(self):
+    def _repr_dict_(self) -> dict[str, Any]:
         return {"    shape     ": self.shape_info,
                 "    dtype     ": self.dtype,
                 "  directory   ": self.dirpath,
@@ -83,7 +83,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key: int|str|slice) -> MetaArray:
+    def __getitem__(self, key: int | str | slice | tuple) -> MetaArray:
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
             sl = self._str_to_slice(key)
@@ -115,11 +115,11 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return out
     
-    def _getitem_additional_set_info(self, other, **kwargs):
+    def _getitem_additional_set_info(self, other: MetaArray, **kwargs):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def __setitem__(self, key: int|str|slice, value):
+    def __setitem__(self, key: int | str | slice | tuple, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
             sl = self._str_to_slice(key)
@@ -306,8 +306,16 @@ class MetaArray(AxesMixin, np.ndarray):
             yield outsl, selfview
             
     
-    def apply_dask(self, func:Callable, c_axes:str=None, drop_axis=[], new_axis=None, dtype=np.float32, 
-                   out_chunks:tuple[int,...]=None, args:tuple=None, kwargs:dict=None) -> MetaArray:
+    def apply_dask(self, 
+                   func: Callable,
+                   c_axes: str | None = None,
+                   drop_axis: Iterable[int] = [], 
+                   new_axis: Iterable[int] = None, 
+                   dtype = np.float32, 
+                   out_chunks: tuple[int, ...] = None,
+                   args: tuple[Any] = None,
+                   kwargs: dict[str, Any] = None
+                   ) -> MetaArray:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
@@ -342,7 +350,8 @@ class MetaArray(AxesMixin, np.ndarray):
             kwargs = dict()
         
         if len(c_axes) == 0:
-            out = asnumpy(func(self.value, *args, **kwargs))
+            # Do not construct dask tasks if it is not needed.
+            out = asnumpy(func(self.value, *args, **kwargs), dtype=dtype)
         else:
             new_axis = _list_of_axes(self, new_axis)
             drop_axis = _list_of_axes(self, drop_axis)

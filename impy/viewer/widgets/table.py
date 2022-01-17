@@ -270,7 +270,7 @@ class TableWidget(QMainWindow):
         
         last_hist = hist[0]
         filename, _ = dlg.getSaveFileName(
-            parent=self.viewer.window.qt_viewer,
+            parent=self.viewer.window._qt_window,
             caption="Save table as csv",
             directory=last_hist,
         )

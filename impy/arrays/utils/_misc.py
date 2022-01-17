@@ -58,8 +58,8 @@ def make_pad(pad_width, dims, all_axes, **kwargs):
     
     return pad_width_
 
-def dft(img, exps=None):
+def dft(img: xp.ndarray, exps: list[xp.ndarray] = None):
     for ker in reversed(exps):
         # K_{kx} * I_{zyx}
-        img = xp.tensordot(ker, xp.asarray(img), axes=(1, -1))
+        img = xp.tensordot(ker, img, axes=(1, -1))
     return img

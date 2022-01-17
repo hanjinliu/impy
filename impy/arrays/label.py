@@ -20,13 +20,13 @@ def best_dtype(n:int):
 
 class Label(HistoryArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None, dtype=None):
+                history=None, metadata=None, dtype=None) -> Label:
         if dtype is None:
             dtype = best_dtype(np.max(obj))
         self = super().__new__(cls, obj, name, axes, dirpath, history, metadata, dtype)
         return self
     
-    def increment(self, n:int):
+    def increment(self, n: int) -> Label:
         # return view if possible
         if self.max() + n > np.iinfo(self.dtype).max:
             out = self.astype(best_dtype(self.max() + n))
@@ -36,7 +36,7 @@ class Label(HistoryArray):
             self[self>0] += n
             return self
     
-    def increment_iter(self, axes):
+    def increment_iter(self, axes) -> Label:
         min_nlabel = 0
         imax = np.iinfo(self.dtype).max
         for sl, _ in self.iter(axes):
@@ -56,7 +56,7 @@ class Label(HistoryArray):
         else:
             raise OverflowError
 
-    def optimize(self):
+    def optimize(self) -> Label:
         self.relabel()
         m = self.max()
         if m < 2**8 and np.iinfo(self.dtype).max >= 2**8:
@@ -68,7 +68,7 @@ class Label(HistoryArray):
         else:
             return self
     
-    def relabel(self):
+    def relabel(self) -> Label:
         self.value[:] = skseg.relabel_sequential(self.value)[0]
         return self
     

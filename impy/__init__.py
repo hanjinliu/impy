@@ -1,6 +1,8 @@
-__version__ = "1.24.1"
+__version__ = "1.24.5.dev0"
 
 import logging
+from functools import wraps
+
 from ._const import Const, SetConst
 
 from ._cupy import GPU_AVAILABLE
@@ -16,7 +18,8 @@ from .core import *
 from .binder import bind
 from .viewer import gui, GUIcanvas
 from .correlation import *
-from .arrays import ImgArray, LazyImgArray # for typing
+from .arrays import ImgArray, LazyImgArray  # for typing
+from . import random
 import numpy as np
 
 r"""
@@ -37,21 +40,5 @@ ImgArray PhaseArray
 logging.getLogger("skimage").setLevel(logging.ERROR)
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
-class Random:
-    """
-    This class enables practically any numpy.random functions to return ImgArray by such as the
-    `ip.random.normal(size=(10, 256, 256))`.
-    """
-    def __init__(self):
-        pass
-    
-    def __getattribute__(self, name: str):
-        npfunc = getattr(np.random, name)
-        def _func(*args, **kwargs):
-            out = npfunc(*args, **kwargs)
-            return array(out, name=npfunc.__name__)
-        return _func
 
-random = Random()
-
-del logging
+del logging, wraps

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>impy.viewer.widgets.gui &mdash; impy 1.24.3dev0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                1.24.3dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../../impy.html">impy</a> &raquo;</li>
+      <li>impy.viewer.widgets.gui</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for impy.viewer.widgets.gui</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">magicgui.widgets</span> <span class="kn">import</span> <span class="n">FunctionGui</span>
+<span class="kn">import</span> <span class="nn">napari</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">image_tuple</span><span class="p">,</span> <span class="n">label_tuple</span>
+
+<span class="kn">from</span> <span class="nn">..._const</span> <span class="kn">import</span> <span class="n">SetConst</span>
+
+<span class="c1"># TODO: add &quot;apply&quot; button to avoid filtering whole image stack.</span>
+
+<span class="n">RANGES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;None&quot;</span><span class="p">:</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> 
+          <span class="s2">&quot;gaussian_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;median_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;mean_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;lowpass_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+          <span class="s2">&quot;highpass_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+          <span class="s2">&quot;erosion&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;dilation&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;opening&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;closing&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;tophat&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;entropy_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;enhance_contrast&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;std_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;coef_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;dog_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;doh_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="s2">&quot;log_filter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span> 
+          <span class="s2">&quot;rolling_ball&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>
+          <span class="p">}</span>
+
+<div class="viewcode-block" id="FunctionCaller"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.gui.FunctionCaller">[docs]</a><span class="k">class</span> <span class="nc">FunctionCaller</span><span class="p">(</span><span class="n">FunctionGui</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span> <span class="o">=</span> <span class="n">viewer</span>            <span class="c1"># parent napari viewer object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_function</span> <span class="o">=</span> <span class="kc">None</span>    <span class="c1"># currently running function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_layer</span> <span class="o">=</span> <span class="kc">None</span>       <span class="c1"># currently selected layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_inputs</span> <span class="o">=</span> <span class="kc">None</span>         <span class="c1"># last inputs including function name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_outputs</span> <span class="o">=</span> <span class="kc">None</span>        <span class="c1"># last output from the function</span>
+        
+        <span class="n">opt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">funcname</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;choices&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">RANGES</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;function&quot;</span><span class="p">},</span>
+                   <span class="n">param</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;FloatSlider&quot;</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">:</span><span class="mf">0.01</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>
+                          <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;The first parameter.&quot;</span><span class="p">},</span>
+                   <span class="n">dims</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;choices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2D&quot;</span><span class="p">,</span> <span class="s2">&quot;3D&quot;</span><span class="p">],</span> <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;Spatial dimensions&quot;</span><span class="p">},</span>
+                   <span class="n">fix_clims</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;CheckBox&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;fix contrast limits&quot;</span><span class="p">,</span>
+                              <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;If you&#39;d like to fix the contrast limits</span><span class="se">\n</span><span class="s2">&quot;</span>
+                                         <span class="s2">&quot;while parameter sweeping, check here&quot;</span><span class="p">}</span>
+                   <span class="p">)</span>
+    
+        <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="n">funcname</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;2D&quot;</span><span class="p">,</span> 
+                  <span class="n">fix_clims</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">napari</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">LayerDataTuple</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_layer</span> <span class="o">=</span> <span class="n">layer</span>
+
+            <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">funcname</span> <span class="o">==</span> <span class="s2">&quot;None&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Result of </span><span class="si">{</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">inputs</span> <span class="o">=</span>  <span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">funcname</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+
+            <span class="c1"># run function if needed</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_inputs</span> <span class="o">==</span> <span class="n">inputs</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="n">SetConst</span><span class="p">(</span><span class="s2">&quot;SHOW_PROGRESS&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">last_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_function</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">funcname</span><span class="si">}</span><span class="s2"> finished with </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+            <span class="c1"># set the parameters for the output layer</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fix_clims</span><span class="p">:</span>
+                    <span class="n">props_to_inherit</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;colormap&quot;</span><span class="p">,</span> <span class="s2">&quot;blending&quot;</span><span class="p">,</span> <span class="s2">&quot;translate&quot;</span><span class="p">,</span> <span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="s2">&quot;contrast_limits&quot;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">props_to_inherit</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;colormap&quot;</span><span class="p">,</span> <span class="s2">&quot;blending&quot;</span><span class="p">,</span> <span class="s2">&quot;translate&quot;</span><span class="p">,</span> <span class="s2">&quot;scale&quot;</span><span class="p">]</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">props_to_inherit</span><span class="p">}</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">translate</span><span class="o">=</span><span class="s2">&quot;inherit&quot;</span><span class="p">)</span>
+                
+            <span class="k">return</span> <span class="n">image_tuple</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_func</span><span class="p">,</span> <span class="n">auto_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">param_options</span><span class="o">=</span><span class="n">opt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcname</span><span class="o">.</span><span class="n">changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_widget</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FunctionCaller.update_widget"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.gui.FunctionCaller.update_widget">[docs]</a>    <span class="k">def</span> <span class="nf">update_widget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the widget labels and sliders every time function is changed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcname</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_function</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_layer</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;None&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">pmin</span><span class="p">,</span> <span class="n">pmax</span> <span class="o">=</span> <span class="n">RANGES</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">running_function</span><span class="p">)</span>
+        <span class="n">first_param</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">first_param</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">pmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="n">pmax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">first_param</span><span class="p">]</span><span class="o">.</span><span class="n">default</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+    
+        
+<div class="viewcode-block" id="ThresholdAndLabel"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.gui.ThresholdAndLabel">[docs]</a><span class="k">class</span> <span class="nc">ThresholdAndLabel</span><span class="p">(</span><span class="n">FunctionGui</span><span class="p">):</span>
+    <span class="n">cache</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span> <span class="o">=</span> <span class="n">viewer</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">percentile</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;FloatSlider&quot;</span><span class="p">,</span> 
+                               <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+                               <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;Threshold percentile&quot;</span><span class="p">},</span>
+                   <span class="n">label</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;CheckBox&quot;</span><span class="p">}</span>
+                   <span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">napari</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">LayerDataTuple</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="c1"># define the name for the new layer</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[L]</span><span class="si">{</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Threshold of </span><span class="si">{</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                
+            <span class="k">with</span> <span class="n">SetConst</span><span class="p">(</span><span class="s2">&quot;SHOW_PROGRESS&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">thr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span> <span class="c1"># TODO: this is slow.</span>
+                <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">label_threshold</span><span class="p">(</span><span class="n">thr</span><span class="p">)</span>
+                    <span class="n">props_to_inherit</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;opacity&quot;</span><span class="p">,</span> <span class="s2">&quot;blending&quot;</span><span class="p">,</span> <span class="s2">&quot;translate&quot;</span><span class="p">,</span> <span class="s2">&quot;scale&quot;</span><span class="p">]</span>
+                    <span class="n">_as_layer_data_tuple</span> <span class="o">=</span> <span class="n">label_tuple</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">thr</span><span class="p">)</span>
+                    <span class="n">props_to_inherit</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;colormap&quot;</span><span class="p">,</span> <span class="s2">&quot;opacity&quot;</span><span class="p">,</span> <span class="s2">&quot;blending&quot;</span><span class="p">,</span> <span class="s2">&quot;translate&quot;</span><span class="p">,</span> <span class="s2">&quot;scale&quot;</span><span class="p">]</span>
+                    <span class="n">_as_layer_data_tuple</span> <span class="o">=</span> <span class="n">image_tuple</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">props_to_inherit</span><span class="p">}</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
+                    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">translate</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">translate</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">translate</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">translate</span><span class="p">,</span> <span class="n">colormap</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">blending</span><span class="o">=</span><span class="s2">&quot;additive&quot;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">_as_layer_data_tuple</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_func</span><span class="p">,</span> <span class="n">auto_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">param_options</span><span class="o">=</span><span class="n">opt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Rotator"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.gui.Rotator">[docs]</a><span class="k">class</span> <span class="nc">Rotator</span><span class="p">(</span><span class="n">FunctionGui</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span> <span class="o">=</span> <span class="n">viewer</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">rotate</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;FloatSlider&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">180</span><span class="p">,</span>
+                           <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                           <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;Rotation Angle&quot;</span><span class="p">},</span>
+                   <span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="n">rotate</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">napari</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">LayerDataTuple</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Rotation of </span><span class="si">{</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">with</span> <span class="n">SetConst</span><span class="p">(</span><span class="s2">&quot;SHOW_PROGRESS&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">rotate</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">image_tuple</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">contrast_limits</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">contrast_limits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_func</span><span class="p">,</span> <span class="n">auto_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">param_options</span><span class="o">=</span><span class="n">opt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RectangleEditor"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.gui.RectangleEditor">[docs]</a><span class="k">class</span> <span class="nc">RectangleEditor</span><span class="p">(</span><span class="n">FunctionGui</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span> <span class="o">=</span> <span class="n">viewer</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">len_v</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;SpinBox&quot;</span><span class="p">,</span> 
+                          <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span>
+                          <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;vertical length in pixel&quot;</span><span class="p">},</span>
+                   <span class="n">len_h</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;widget_type&quot;</span><span class="p">:</span> <span class="s2">&quot;SpinBox&quot;</span><span class="p">,</span> 
+                          <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>
+                          <span class="s2">&quot;tooltip&quot;</span><span class="p">:</span> <span class="s2">&quot;horizontal length in pixel&quot;</span><span class="p">})</span>
+
+        <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="n">len_v</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">len_h</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+            <span class="n">selected_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_selected_shapes_layer</span><span class="p">()</span>
+    
+            <span class="c1"># check if one shape/point is selected</span>
+            <span class="n">new_data</span> <span class="o">=</span> <span class="n">selected_layer</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">selected_data</span> <span class="o">=</span> <span class="n">selected_layer</span><span class="o">.</span><span class="n">selected_data</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_data</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">selected_layer</span><span class="o">.</span><span class="n">shape_type</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;rectangle&quot;</span> <span class="ow">and</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">selected_data</span><span class="p">:</span>
+                    <span class="n">dh</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+                    <span class="n">dv</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+                    <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">dh</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="o">*</span><span class="n">dh</span><span class="p">)</span> <span class="o">*</span> <span class="n">len_h</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+                    <span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">dv</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="o">*</span><span class="n">dv</span><span class="p">)</span> <span class="o">*</span> <span class="n">len_v</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+                    <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+                    
+                    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">selected_layer</span><span class="o">.</span><span class="n">nshapes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># TODO: https://github.com/napari/napari/pull/2961</span>
+                    <span class="c1"># May be solved in near future</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="n">selected_layer</span><span class="o">.</span><span class="n">ndim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">data</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">current_step</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>  <span class="mf">0.0</span><span class="p">,</span> <span class="n">len_h</span><span class="p">])</span>
+                <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">len_v</span><span class="p">,</span> <span class="n">len_h</span><span class="p">])</span>
+                <span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">len_v</span><span class="p">,</span>   <span class="mf">0.0</span><span class="p">])</span>
+                <span class="n">new_data</span> <span class="o">=</span> <span class="n">selected_layer</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span>
+                <span class="n">selected_data</span> <span class="o">=</span> <span class="p">{</span><span class="nb">len</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">}</span>
+                
+            <span class="n">selected_layer</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">new_data</span>       
+            <span class="n">selected_layer</span><span class="o">.</span><span class="n">selected_data</span> <span class="o">=</span> <span class="n">selected_data</span>
+            <span class="n">selected_layer</span><span class="o">.</span><span class="n">_set_highlight</span><span class="p">()</span>
+            
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_func</span><span class="p">,</span> <span class="n">auto_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">param_options</span><span class="o">=</span><span class="n">opt</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RectangleEditor.get_selected_shapes_layer"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.gui.RectangleEditor.get_selected_shapes_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_selected_shapes_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_layer</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_layer</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">selected_layer</span> <span class="o">=</span> <span class="n">selected_layer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selected_layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_layer</span><span class="o">.</span><span class="n">selected_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">selected_layer</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
