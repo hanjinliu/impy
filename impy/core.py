@@ -1,5 +1,7 @@
 from __future__ import annotations
 import numpy as np
+from numpy.typing import DTypeLike, _ShapeLike
+import inspect
 import os
 import re
 import glob
@@ -53,7 +55,7 @@ def write_docs(func):
     return func
 
 @write_docs
-def array(arr, dtype = None, *, name: str = None, axes: str = None, copy: bool = True) -> ImgArray:
+def array(arr, dtype: DTypeLike = None, *, name: str = None, axes: str = None, copy: bool = True) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
     
@@ -89,7 +91,7 @@ def array(arr, dtype = None, *, name: str = None, axes: str = None, copy: bool =
     return self
 
 @write_docs
-def asarray(arr, dtype = None, *, name: str=None, axes: str=None) -> ImgArray:
+def asarray(arr, dtype: DTypeLike = None, *, name: str = None, axes: str = None) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
     
@@ -149,40 +151,46 @@ def aslazy(arr, dtype=None, *, name:str=None, axes:str=None, chunks="auto") -> L
     
     return self
 
-@write_docs
-def _template(shape, dtype=np.uint16, *, name:str=None, axes:str=None) -> ImgArray:
-    r"""
-    Make an ImgArray object, like ``np.{npfuncname}``.
 
-    Parameters
-    ----------
-    shape : int or tuple of int
-        Shape of image.
-    {}
-    """    
-
-def np_dispatcher(func):
-    npfunc = getattr(np, func.__name__)
-    @wraps(_template)
-    def _func(*args, name=None, axes=None, **kwargs):
+def inject_numpy_function(func: Callable):
+    npfunc: Callable = getattr(np, func.__name__)
+    @wraps(func)
+    def _func(*args, **kwargs):
+        axes = kwargs.pop("axes", None)
+        name = kwargs.pop("name", None)
         return asarray(npfunc(*args, **kwargs), name=name, axes=axes)
-    _func.__name__ = npfunc.__name__
-    _func.__doc__ = re.sub(r"{npfuncname}", npfunc.__name__, _func.__doc__)
+    _func.__doc__ = (
+        f"""
+        impy version of numpy.{func.__name__}. This function has additional parameters ``axes``
+        and ``name``. Original docstring follows.
+        
+        Additional Parameters
+        ---------------------
+        axes : str, optional
+            Image axes. Must be same length as image dimension.
+        name: str, optional
+            Image name.
+        
+        {npfunc.__doc__}
+        """
+        )
+    _func.__annotations__.update({"return": ImgArray})
     return _func
 
-@np_dispatcher
-def zeros(): ...
+@inject_numpy_function
+def zeros(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
     
-@np_dispatcher
-def empty(): ...
+@inject_numpy_function
+def empty(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-@np_dispatcher
-def ones(): ...
+@inject_numpy_function
+def ones(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-@np_dispatcher
-def full(): ...
+@inject_numpy_function
+def full(shape: _ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-def gaussian_kernel(shape:tuple[int, ...], sigma=1.0, peak:float=1.0) -> ImgArray:
+
+def gaussian_kernel(shape: _ShapeLike, sigma=1.0, peak:float=1.0) -> ImgArray:
     """
     Make an Gaussian kernel or Gaussian image.
 
@@ -271,8 +279,8 @@ def sample_image(name:str) -> ImgArray:
 #   Imread functions
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> ImgArray:
-    """
+def imread(path: str, dtype: str=None, key: str=None, *, squeeze: bool = False) -> ImgArray:
+    r"""
     Load image(s) from a path. You can read list of images from directories with wildcards or ``"$"``
     in ``path``.
 
