@@ -213,6 +213,11 @@ def save_tif(path: str, img: HistoryArray):
 
 
 def save_mrc(path: str, img: HistoryArray):
+    if img.scale_unit and img.scale_unit != "nm":
+        raise ValueError(
+            f"Scale unit {img.scale_unit} is not supported. Convert to nm instead."
+            )
+        
     import mrcfile
     
     # get voxel_size
@@ -223,9 +228,9 @@ def save_mrc(path: str, img: HistoryArray):
     if os.path.exists(path):
         with mrcfile.open(path, mode="r+") as mrc:
             mrc.set_data(img.value)
-            mrc.voxel_size = tuple(np.array(img.scale) * 10)
+            mrc.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
             
     else:
         with mrcfile.new(path) as mrc:
             mrc.set_data(img.value)
-            mrc.voxel_size = tuple(np.array(img.scale) * 10)
+            mrc.voxel_size = tuple(np.array(img.scale)[::-1] * 10)

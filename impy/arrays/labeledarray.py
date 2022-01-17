@@ -80,7 +80,7 @@ class LabeledArray(HistoryArray):
         -------
         None
         """        
-        # set default values
+        save_path = str(save_path)
         _, ext = os.path.splitext(save_path)
         
         if ext == "":
@@ -913,7 +913,7 @@ class LabeledArray(HistoryArray):
         return imgs
     
     def tile(self, shape: tuple[int, int] = None, along: str = None, order: str = None) -> LabeledArray:
-        """
+        r"""
         Tile images in a certain order. Label is also tiled in the same manner.
 
         Parameters

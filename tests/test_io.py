@@ -20,6 +20,7 @@ def test_tif():
 def test_mrc():
     img = ip.random.random_uint16((8, 8, 8), axes="zyx")
     img.set_scale(z=0.4, xy=0.3)
+    img.scale_unit = "nm"
     with tempfile.TemporaryDirectory() as path:
         file_path = Path(path)/"test.mrc" 
         img.imsave(file_path)
