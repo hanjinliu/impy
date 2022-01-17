@@ -32,8 +32,8 @@ from .._cupy import xp, xp_ndi, xp_fft, asnumpy
 class LazyImgArray(AxesMixin):
     additional_props = ["dirpath", "metadata", "name"]
     
-    def __init__(self, obj: da.core.Array, name:str=None, axes:str=None, dirpath:str=None, 
-                 history:list[str]=None, metadata:dict=None):
+    def __init__(self, obj: da.core.Array, name: str = None, axes: str = None, dirpath: str = None, 
+                 history: list[str] = None, metadata: dict = None):
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
         self.img = obj
@@ -796,16 +796,10 @@ class LazyImgArray(AxesMixin):
             raise TypeError("`axis` must be str.")
         axisint = [self.axisof(a) for a in axis]
         
-        # rechunk if array is split into too many chunks along `axis`
-        if chunks is None:
-            chunks = switch_slice(axis, self.axes, ifin=np.minimum(self.shape, 2048), ifnot=["auto"]*self.ndim)
-        if any(c != "auto" for c in chunks):
-            input_img = self.img.rechunk(chunks=chunks)
-        
         if method == "mean":
-            projection = getattr(da, method)(input_img, axis=tuple(axisint), dtype=np.float32)
+            projection = getattr(da, method)(self.img, axis=tuple(axisint), dtype=np.float32)
         else:
-            projection = getattr(da, method)(input_img, axis=tuple(axisint))
+            projection = getattr(da, method)(self.img, axis=tuple(axisint))
         
         out = self.__class__(projection)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
