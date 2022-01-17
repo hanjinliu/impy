@@ -1,7 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from numpy.typing import DTypeLike, _ShapeLike
-import inspect
+from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
 import os
 import re
 import glob
@@ -55,7 +54,12 @@ def write_docs(func):
     return func
 
 @write_docs
-def array(arr, dtype: DTypeLike = None, *, name: str = None, axes: str = None, copy: bool = True) -> ImgArray:
+def array(arr: ArrayLike,
+          dtype: DTypeLike = None, 
+          *,
+          name: str = None,
+          axes: str = None,
+          copy: bool = True) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
     
@@ -91,7 +95,11 @@ def array(arr, dtype: DTypeLike = None, *, name: str = None, axes: str = None, c
     return self
 
 @write_docs
-def asarray(arr, dtype: DTypeLike = None, *, name: str = None, axes: str = None) -> ImgArray:
+def asarray(arr: ArrayLike,
+            dtype: DTypeLike = None,
+            *, 
+            name: str = None,
+            axes: str = None) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
     
@@ -111,7 +119,12 @@ def asarray(arr, dtype: DTypeLike = None, *, name: str = None, axes: str = None)
     return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
 
 @write_docs
-def aslazy(arr, dtype=None, *, name:str=None, axes:str=None, chunks="auto") -> LazyImgArray:
+def aslazy(arr: ArrayLike, 
+           dtype: DTypeLike = None,
+           *, 
+           name: str = None,
+           axes: str = None,
+           chunks="auto") -> LazyImgArray:
     """
     Make an LazyImgArray object from other types of array.
     
@@ -190,7 +203,9 @@ def ones(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, a
 def full(shape: _ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
 
-def gaussian_kernel(shape: _ShapeLike, sigma=1.0, peak:float=1.0) -> ImgArray:
+def gaussian_kernel(shape: _ShapeLike, 
+                    sigma: nDFloat = 1.0,
+                    peak: float = 1.0) -> ImgArray:
     """
     Make an Gaussian kernel or Gaussian image.
 
@@ -218,7 +233,9 @@ def gaussian_kernel(shape: _ShapeLike, sigma=1.0, peak:float=1.0) -> ImgArray:
     return ker
 
 
-def circular_mask(radius:nDFloat, shape:tuple[int,...], center:str|tuple[float,...]="center") -> ImgArray:
+def circular_mask(radius: nDFloat, 
+                  shape: _ShapeLike,
+                  center: str | tuple[float, ...] = "center") -> ImgArray:
     """
     Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``. 
 
@@ -253,7 +270,7 @@ def circular_mask(radius:nDFloat, shape:tuple[int,...], center:str|tuple[float,.
     return array(s > 1.0, dtype=bool, axes=axes)
 
 
-def sample_image(name:str) -> ImgArray:
+def sample_image(name: str) -> ImgArray:
     """
     Get sample images from ``skimage`` and convert it into ImgArray.
 
@@ -279,7 +296,11 @@ def sample_image(name:str) -> ImgArray:
 #   Imread functions
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-def imread(path: str, dtype: str=None, key: str=None, *, squeeze: bool = False) -> ImgArray:
+def imread(path: str,
+           dtype: DTypeLike = None,
+           key: str = None,
+           *, 
+           squeeze: bool = False) -> ImgArray:
     r"""
     Load image(s) from a path. You can read list of images from directories with wildcards or ``"$"``
     in ``path``.
@@ -382,7 +403,7 @@ def imread(path: str, dtype: str=None, key: str=None, *, squeeze: bool = False) 
         
         return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
-def _imread_glob(path:str, squeeze:bool=False, **kwargs) -> ImgArray:
+def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     """
     Read images recursively from a directory, and stack them into one ImgArray.
 
@@ -416,7 +437,10 @@ def _imread_glob(path:str, squeeze:bool=False, **kwargs) -> ImgArray:
     out.temp = paths
     return out
 
-def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
+def _imread_stack(path: str, 
+                  dtype: DTypeLike = None,
+                  key: str = None,
+                  squeeze: bool = False):
     r"""
     Read separate image files using formated string. This function is useful when files/folders
     are named in a certain rule, such as ".../pos_0/img_0.tif", ".../pos_0/img_1.tif".
@@ -536,7 +560,7 @@ def _imread_stack(path:str, dtype=None, key:str=None, squeeze=False):
         self = np.squeeze(self)
     return self.sort_axes()
 
-def imread_collection(path:str|list[str], filt=None) -> DataList:
+def imread_collection(path: str | list[str], filt: Callable[[np.ndarray], bool] = None) -> DataList:
     """
     Open images as ImgArray and store them in DataList.
 
@@ -661,7 +685,7 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     
     return out
 
-def read_meta(path:str) -> dict[str]:
+def read_meta(path: str) -> dict[str]:
     """
     Read the metadata of an image file. 
 
@@ -680,11 +704,12 @@ def read_meta(path:str) -> dict[str]:
         - "tags": tiff tags
         
     """    
-    fname, fext = os.path.splitext(os.path.basename(path))
-    
+    path = str(path)
+    _, fext = os.path.splitext(path)
+    meta, _ = open_as_dask(path, chunks="default")
     if fext in (".tif", ".tiff"):
         meta = open_tif(path)
-    elif fext in (".mrc", ".rec"):
+    elif fext in (".mrc", ".rec", ".map"):
         meta = open_mrc(path)
     else:
         raise ValueError("Unsupported file extension.")
