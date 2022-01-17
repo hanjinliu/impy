@@ -17,7 +17,7 @@ from functools import reduce, lru_cache
 from ..._cupy import xp
 
 # same as the function in skimage.filters._fft_based (available in scikit-image >= 0.19)
-@lru_cache
+@lru_cache(maxsize=4)
 def _get_ND_butterworth_filter(shape: tuple[int, ...], cutoff: float, order: int, 
                                high_pass: bool, real: bool):
     ranges = []

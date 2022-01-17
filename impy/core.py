@@ -337,7 +337,7 @@ def imread(path:str, dtype:str=None, key:str=None, *, squeeze:bool=False) -> Img
         history = []
         
     if is_memmap:
-        sl = axis_targeted_slicing(img, axes, key)
+        sl = axis_targeted_slicing(img.ndim, axes, key)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
     

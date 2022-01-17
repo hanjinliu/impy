@@ -240,12 +240,12 @@ class MetaArray(AxesMixin, np.ndarray):
             return func
         return decorator
     
-    def _str_to_slice(self, string:str):
+    def _str_to_slice(self, string: str):
         """
         get subslices using ImageJ-like format.
         e.g. 't=3:, z=1:5', 't=1, z=:7'
         """
-        return axis_targeted_slicing(self, str(self.axes), string)
+        return axis_targeted_slicing(self.ndim, str(self.axes), string)
     
     def sort_axes(self) -> MetaArray:
         """

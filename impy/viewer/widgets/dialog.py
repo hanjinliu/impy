@@ -136,7 +136,7 @@ class DuplicateDialog(QDialog):
         
     def duplicate_sliced_layer(self, layer):
         key = self.line.text().strip("'").strip('"')
-        sl = axis_targeted_slicing(layer.data, layer.data.axes, key)
+        sl = axis_targeted_slicing(layer.data.ndim, layer.data.axes, key)
         
         data, kwargs, *_ = layer.as_layer_data_tuple()
         try:

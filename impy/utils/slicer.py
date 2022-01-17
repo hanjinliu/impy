@@ -1,11 +1,12 @@
 from __future__ import annotations
 import numpy as np
 import re
+from functools import lru_cache
 from .._types import Slices
 
 __all__ = ["str_to_slice", "key_repr", "axis_targeted_slicing"]
 
-def _range_to_list(v:str) -> list[int]:
+def _range_to_list(v: str) -> list[int]:
     """
     "1,3,5" -> [1,3,5]
     "2,4:6,9" -> [2,4,5,6,9]
@@ -16,13 +17,13 @@ def _range_to_list(v:str) -> list[int]:
     else:
         return [int(v)]
 
-def int_or_None(v:str) -> int|None:
+def int_or_None(v: str) -> int | None:
     if v:
         return int(v)
     else:
         return None
     
-def str_to_slice(v:str) -> list[int]|slice|int:
+def str_to_slice(v: str) -> list[int] | slice | int:
     v = re.sub(" ", "", v)
     if "," in v:
         sl = sum((_range_to_list(v) for v in v.split(",")), [])
@@ -54,14 +55,15 @@ def key_repr(key):
     
     return ",".join(keylist)
 
-def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str) -> Slices:
+@lru_cache
+def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
     """
     Make a conventional slices from an axis-targeted slicing string.
 
     Parameters
     ----------
-    arr : np.ndarray
-        Array to be sliced.
+    ndim : int
+        Number of dimension of the array which will be sliced.
     axes : str
         Axes of input ndarray.
     string : str
@@ -73,7 +75,7 @@ def axis_targeted_slicing(arr:np.ndarray, axes:str, string:str) -> Slices:
     slices
     """    
     keylist = re.sub(" ", "", string).split(";")
-    sl_list = [slice(None)]*arr.ndim
+    sl_list = [slice(None)]*ndim
     
     for k in keylist:
         axis, sl_str = k.split("=")

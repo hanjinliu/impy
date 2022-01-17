@@ -2745,7 +2745,7 @@ class ImgArray(LabeledArray):
                 key += f";{a}=0:{self.sizeof(a)}"
         if key.startswith(";"):
             key = key[1:]
-        slices = axis_targeted_slicing(np.empty((1,)*ndim), dims, key)
+        slices = axis_targeted_slicing(ndim, dims, key)
         
         # a function that makes wave number vertical vector
         def wave(sl: slice, s: int, uf: int):

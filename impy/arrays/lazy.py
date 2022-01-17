@@ -89,7 +89,7 @@ class LazyImgArray(AxesMixin):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            key = axis_targeted_slicing(self.img, self.axes, key)
+            key = axis_targeted_slicing(self.img.ndim, self.axes, key)
         keystr = key_repr(key) # write down key like "0,*,*"
         
         if hasattr(key, "__array__"):
