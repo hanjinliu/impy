@@ -130,10 +130,14 @@ def dims_to_spatial_axes(func):
     def _dims_to_spatial_axes(self, *args, **kwargs):
         dims = kwargs.get("dims", 
                           inspect.signature(func).parameters["dims"].default)
-        if dims is None or dims=="":
+        if dims is None or dims == "":
             dims = len([a for a in "zyx" if a in self._axes])
             if dims not in (2, 3):
-                raise ValueError("Image must be 2 or 3 dimensional.")
+                raise ValueError(
+                    f"Image spatial dimension must be 2 or 3, but {dims} was detected. If "
+                    "image axes is not a standard one, such as 'tx' in kymograph, specify "
+                    "the spatial axes by dims='tx' or dims='x'."
+                    )
             
         if isinstance(dims, int):
             s_axes = "".join([a for a in "zyx" if a in self._axes])[-dims:]

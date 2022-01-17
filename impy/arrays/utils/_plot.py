@@ -128,7 +128,12 @@ def hist(img, contrast):
     x0, x1 = contrast
     
     plt.xlim(x0, x1)
-    plt.ylim(0, y[(x0<x)&(x<x1)].max())
+    yref = y[(x0 < x) & (x < x1)]
+    if yref.size == 0:
+        ymax = y.max()
+    else:
+        ymax = yref.max()
+    plt.ylim(0, ymax)
     plt.yticks([])
 
 

@@ -928,6 +928,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         {radius}
+        {cval}
         {dims}
         {update}
 
@@ -939,7 +940,7 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_erosion
-            kwargs = dict(structure=disk)
+            kwargs = dict(structure=disk, border_value=1)
         else:
             f = _filters.erosion
             kwargs = dict(footprint=disk)
@@ -1070,6 +1071,40 @@ class ImgArray(LabeledArray):
                                dtype=self.dtype,
                                kwargs=dict(footprint=disk)
                                )
+    
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @record(only_binary=True)
+    def smooth_mask(self, sigma: float = 2.0, dilate_radius: float = 2.0, mask_light: bool = False, *, dims: Dims = None) -> ImgArray:
+        """
+        Smoothen binary mask image at its edges. This is useful to make a "soft mask".
+
+        Parameters
+        ----------
+        sigma : float, default is 2.0
+            Standard deviation of Gaussian blur.
+        dilate_radius : float, default is 2.0
+            Radius in pixel that will be used to dilate mask before blurred.
+        mask_light : bool, default is False
+            If true, mask array is considered to mask other image at its True values. Otherwise mask array plays more like
+            a weight array, that is, False region will be zero.
+        {dims}
+            
+        Returns
+        -------
+        ImgArray
+            Smoothened mask image.
+        """
+        if not mask_light:
+            self = ~self
+        if dilate_radius > 0:
+            self = self.erosion(dilate_radius, dims=dims)
+        dist = self.distance_map(dims=dims)
+        blurred_mask = np.exp(-dist**2/2/sigma**2)
+        if mask_light:
+            blurred_mask = -blurred_mask
+        return blurred_mask
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1595,7 +1630,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def rolling_ball(self, radius: float = 30, prefilter:str="mean", *, return_bg:bool=False,
+    def rolling_ball(self, radius: float = 30, prefilter: str = "mean", *, return_bg: bool = False,
                      dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Subtract Background using rolling-ball algorithm.
@@ -2983,6 +3018,8 @@ class ImgArray(LabeledArray):
     def distance_map(self, *, dims: Dims = None) -> ImgArray:
         """
         Calculate distance map from binary images.
+        For instance, ``[1, 1, 1, 0, 0, 0, 1, 1, 1]`` will be converted to ``[3, 2, 1, 0, 0, 0, 1, 2, 3]``.
+        Note that returned array will be float in n-D images.
 
         Parameters
         ----------
@@ -2999,7 +3036,7 @@ class ImgArray(LabeledArray):
         
     @dims_to_spatial_axes
     @record
-    def ncc_filter(self, template: np.ndarray, mode: str="constant", cval: float=None, 
+    def ncc_filter(self, template: np.ndarray, mode: str = "constant", cval: float = None, 
                    *, dims: Dims = None) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
