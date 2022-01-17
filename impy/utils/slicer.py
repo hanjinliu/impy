@@ -17,7 +17,7 @@ def _range_to_list(v: str) -> list[int]:
     else:
         return [int(v)]
 
-def int_or_None(v: str) -> int | None:
+def _int_or_none(v: str) -> int | None:
     if v:
         return int(v)
     else:
@@ -28,7 +28,7 @@ def str_to_slice(v: str) -> list[int] | slice | int:
     if "," in v:
         sl = sum((_range_to_list(v) for v in v.split(",")), [])
     elif ":" in v:
-        sl = slice(*map(int_or_None, v.split(":")))
+        sl = slice(*map(_int_or_none, v.split(":")))
     else:
         sl = int(v)
     return sl
@@ -78,10 +78,12 @@ def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
     sl_list = [slice(None)]*ndim
     
     for k in keylist:
+        if k.count("=") != 1:
+            raise ValueError(f"Informal axis-targeted slicing: {k}")
         axis, sl_str = k.split("=")
         i = axes.find(axis)
         if i < 0:
-            raise ValueError(f"Axis '{axis}' does not exist: {axes}.")
+            raise ValueError(f"Axis '{axis}' does not exist ({axes}).")
         try:
             sl_list[i] = str_to_slice(sl_str)
         except ValueError:

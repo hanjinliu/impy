@@ -4,11 +4,10 @@ import os
 import re
 import glob
 import itertools
-import inspect
 from functools import wraps
 from dask import array as da
 
-from .utils.io import *
+from .utils.io import open_img, open_as_dask, get_scale_from_meta, open_mrc, open_tif
 from .utils import gauss
 from .utils.slicer import *
 from .utils.utilcls import Progress

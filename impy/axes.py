@@ -91,7 +91,7 @@ def check_none(func):
 class Axes:
     def __init__(self, value=None) -> None:
         if value == NONE or value is None:
-            self.axes:str = NONE
+            self.axes: str = NONE
             self.scale: ScaleDict[str, float] = None
             
         elif isinstance(value, str):
@@ -170,6 +170,9 @@ class Axes:
         else:
             return self.axes
 
+    def __hash__(self) -> int:
+        return hash(self.axes)
+    
     def is_none(self):
         return isinstance(self.axes, NoneAxes)
     
