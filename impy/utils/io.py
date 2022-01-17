@@ -3,11 +3,13 @@ from typing import TYPE_CHECKING
 from tifffile import TiffFile, imwrite, memmap
 import json
 import re
+import warnings
 import os
 import numpy as np
 from dask import array as da
 
 from ..axes import ImageAxesError
+from .axesop import complement_axes
 from ..utils.axesop import switch_slice
 
 if TYPE_CHECKING:
@@ -93,9 +95,6 @@ def open_mrc(path: str, return_img: bool = False, memmap: bool = False):
     return out
 
 
-# def open_map(path: str, return_img: bool = False, memmap: bool = False):
-#     import gemmi
-
 def open_as_dask(path: str, chunks):
     meta, img = open_img(path, memmap=True)
     axes = meta["axes"]
@@ -115,7 +114,7 @@ def open_img(path, memmap: bool = False):
     if fext in (".tif", ".tiff"):
         meta = open_tif(path, True, memmap=memmap)
         img = meta.pop("image")
-    elif fext in (".mrc", ".rec"):
+    elif fext in (".mrc", ".rec", ".map"):
         meta = open_mrc(path, True, memmap=memmap)
         img = meta.pop("image")
     else:
@@ -186,7 +185,34 @@ def get_imsave_meta_from_img(img: HistoryArray, update_lut=True):
     
     return dict(imagej=True, resolution=res, metadata=metadata)
 
-def save_mrc(img: HistoryArray, path: str):
+
+def save_tif(path: str, img: HistoryArray):
+    rest_axes = complement_axes(img.axes, "tzcyx")
+    new_axes = ""
+    for a in img.axes:
+        if a in "tzcyx":
+            new_axes += a
+        else:
+            if len(rest_axes) == 0:
+                raise ImageAxesError(f"Cannot save image with axes {img.axes}")
+            new_axes += rest_axes[0]
+            rest_axes = rest_axes[1:]
+    
+    # make a copy of the image for saving
+    if new_axes != img.axes:
+        img_new = img.copy()
+        img_new.axes = new_axes
+        img_new.set_scale(img)
+        img = img_new
+        
+        warnings.warn("Image axes changed", UserWarning)
+    
+    img = img.sort_axes()
+    imsave_kwargs = get_imsave_meta_from_img(img, update_lut=True)
+    imwrite(path, img, **imsave_kwargs)
+
+
+def save_mrc(path: str, img: HistoryArray):
     import mrcfile
     
     # get voxel_size
@@ -197,9 +223,9 @@ def save_mrc(img: HistoryArray, path: str):
     if os.path.exists(path):
         with mrcfile.open(path, mode="r+") as mrc:
             mrc.set_data(img.value)
-            mrc.voxel_size = tuple(np.array(img.scale))
+            mrc.voxel_size = tuple(np.array(img.scale) * 10)
             
     else:
         with mrcfile.new(path) as mrc:
             mrc.set_data(img.value)
-            mrc.voxel_size = tuple(np.array(img.scale))
+            mrc.voxel_size = tuple(np.array(img.scale) * 10)

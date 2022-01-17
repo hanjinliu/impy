@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from numpy.typing import DTypeLike
 import pandas as pd
 import os
 from functools import partial
@@ -17,7 +18,7 @@ from ..utils.misc import check_nd, largest_zeros
 from ..utils.utilcls import Progress
 from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
 from ..utils.deco import record, dims_to_spatial_axes
-from ..utils.io import imwrite, get_imsave_meta_from_img
+from ..utils.io import save_mrc, save_tif
 
 from ..collections import DataList
 from ..axes import ImageAxesError
@@ -62,17 +63,17 @@ class LabeledArray(HistoryArray):
                 "   history    ": "->".join(self.history)}
     
     
-    def imsave(self, tifname: str, dtype=None):
+    def imsave(self, save_path: str, dtype: DTypeLike = None):
         """
-        Save image at the same directory as the original image by default. If the image contains
-        wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.
-        zyx-scale is also saved.
+        Save image at the same directory as the original image by default. For tif file format, if the
+        image contains wrong axes for ImageJ (= except for tzcyx), then it will converted automatically 
+        if possible. For mrc file format, only zyx and yx is allowed. zyx-scale is also saved.
 
         Parameters
         ----------
-        tifname : str
+        save_path : str
             File name.
-        dtype : Any that can be interpreted as numpy.dtype, optional
+        dtype : dtype-like, optional
             In what data type img will be saved.
         
         Returns
@@ -80,56 +81,34 @@ class LabeledArray(HistoryArray):
         None
         """        
         # set default values
-        if not tifname.endswith(".tif"):
-            tifname += ".tif"
-        if os.sep not in tifname:
+        _, ext = os.path.splitext(save_path)
+        
+        if ext == "":
+            save_path += ".tif"
+            ext = ".tif"
+    
+        if os.sep not in save_path:
             if self.dirpath is None:
                 raise ValueError(
-                    "Image directory path is unknown. Set by "
-                    " >>> img.dirpath = \"...\""
-                    "or specify absolute path like"
+                    "Image directory path is unknown. Set by \n"
+                    " >>> img.dirpath = \"...\"\n"
+                    "or specify absolute path like\n"
                     " >>> img.imsave(\"/path/to/XXX.tif\")"
                     )
-            tifname = os.path.join(self.dirpath, tifname)
+            save_path = os.path.join(self.dirpath, save_path)
         if self.metadata is None:
             self.metadata = {}
         if dtype is None:
             dtype = self.dtype
             
-        # change axes if needed
-        rest_axes = complement_axes(self.axes, "tzcyx")
-        new_axes = ""
-        axes_changed = False
-        for a in self.axes:
-            if a in "tzcyx":
-                new_axes += a
-            else:
-                if len(rest_axes) == 0:
-                    raise ImageAxesError(f"Cannot save image with axes {self.axes}")
-                new_axes += rest_axes[0]
-                rest_axes = rest_axes[1:]
-                axes_changed = True
-        
-        # make a copy of the image for saving
-        if new_axes != self.axes:
-            img = self.copy()
-            img.axes = new_axes
-            img.set_scale(self)
-        else:
-            img = self
-        img = img.as_img_type(dtype).sort_axes()
-        imsave_kwargs = get_imsave_meta_from_img(img, update_lut=True)
-
         # save image
-        imwrite(tifname, img, **imsave_kwargs)
+        if ext == ".tif":
+            save_tif(save_path, self)
+        elif ext == ".mrc":
+            save_mrc(save_path, self)
 
-        # notifications
-        if axes_changed:
-            if new_axes == str(img.axes):
-                print(f"Image axes changed: {self.axes} -> {new_axes}")
-            else:
-                print(f"Image axes changed and sorted: {self.axes} -> {new_axes} -> {img.axes}")
-        print(f"Succesfully saved: {tifname}")
+        # notification
+        print(f"Succesfully saved: {save_path}")
         return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
