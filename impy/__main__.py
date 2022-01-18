@@ -12,7 +12,7 @@ import impy as ip
 def _open_ipython(path, unknown):
     import IPython as ipy
     user_ns = {"ip": ip}
-    if path is None:
+    if path is None and unknown:
         # the first argument is --input
         path, *unknown = unknown
         
@@ -28,7 +28,7 @@ def _open_ipython(path, unknown):
 def _open_napari(path, unknown):
     import napari
     
-    if path is None:
+    if path is None and unknown:
         # the first argument is --input
         path, *unknown = unknown
     sys.argv = sys.argv[:1]
@@ -117,28 +117,6 @@ def _apply_function(path: str = None,
     out: ip.ImgArray = getattr(img, fname)(*args, **kwargs)
     out.imsave(save_path)
 
-
-def _process_unknown_args(unknown: list[str]):
-    args: list[Any] = []
-    kwargs: dict[str, Any] = {}
-    
-    if unknown is None:
-        return args, kwargs
-    
-    i = 0
-    length = len(unknown)
-    while i < length:
-        a = unknown[i]
-        if not a.startswith("-"):
-            if kwargs:
-                raise TypeError("keyword arguments came after positional arguments.")
-            args.append(ast.literal_eval(a))
-        else:
-            i += 1
-            v = ast.literal_eval(unknown[i])
-            kwargs[a.lstrip("-")] = v
-        i += 1
-    return args, kwargs
 
 def main():
     parser = argparse.ArgumentParser(description="Command line interface of impy.")
