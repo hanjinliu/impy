@@ -27,5 +27,5 @@ setup(name="impy-array",
             "qtpy>=1.10.0",
       ],
       python_requires=">=3.8",
-      console_scripts="impy.__main__.main",
+      entry_points={"console_scripts": ["impy=impy.__main__:main",],}
       )
