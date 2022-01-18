@@ -1,10 +1,13 @@
 from __future__ import annotations
 import argparse
+import inspect
 from typing import Any
 from pathlib import Path
-import impy as ip
 import ast
 import sys
+
+import impy as ip
+
 
 def _open_ipython(path, unknown):
     import IPython as ipy
@@ -24,23 +27,46 @@ def _open_ipython(path, unknown):
 
 def _open_napari(path, unknown):
     import napari
+    
     if path is None:
         # the first argument is --input
         path, *unknown = unknown
     sys.argv = sys.argv[:1]
-    ip.gui.start()
-    ip.gui.viewer.update_console({"ip": ip})
+    user_ns = {"ip": ip}
     if path is not None:
         img = ip.imread(path)
+        user_ns["img"] = img
+        
+    ip.gui.start()
+    if path is not None:
         ip.gui.add(img)
-        ip.gui.viewer.update_console({"img": img})
+    ip.gui.viewer.window._qt_viewer.console.push(user_ns)
     sys.exit(napari.run(gui_exceptions=True))
+
+
+def _eval_arg(key: str, value: str, sig: inspect.Signature):
+    try:
+        annot = sig.parameters[key].annotation
+    except KeyError:
+        _args = [f"--{k}" for k in sig.parameters.keys()]
+        raise TypeError(
+            f"Method got an unexpected keyword argument {key}. Allowed arguments are:\n"
+            f"{', '.join(_args)}"
+            )
+    if annot in (str, "str"):
+        return value
+    else:
+        return ast.literal_eval(value)
 
 
 def _apply_function(path: str = None, 
                     save_path: str = None, 
                     fname: str = None, 
-                    unknown: list[str] = None):
+                    unknown: list[str] = []):
+    unknown = unknown.copy()
+    cls_method = getattr(ip.ImgArray, fname)
+    sig = inspect.signature(cls_method)
+    
     if unknown and path is None:
         # the first argument is --input
         path, *unknown = unknown
@@ -59,7 +85,26 @@ def _apply_function(path: str = None,
             " $ impy --input some/input/path.tif --output some/output/path.tif --method method_name\n"
             " $ impy some/input/path.tif some/output/path.tif --method gaussian_filter --sigma 2.0\n"
             )
-    args, kwargs = _process_unknown_args(unknown)
+    
+    # process unknown arguments
+    args: list[Any] = []
+    kwargs: dict[str, Any] = {}
+        
+    i = 0
+    length = len(unknown)
+    while i < length:
+        a = unknown[i]
+        if not a.startswith("-"):
+            if kwargs:
+                raise TypeError("keyword arguments came after positional arguments.")
+            args.append(ast.literal_eval(a))
+        else:
+            i += 1
+            key = a.lstrip("-")
+            v = _eval_arg(key, unknown[i], sig)
+            kwargs[key] = v
+        i += 1
+    
     s = ", ".join([f"{a!r}" for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()])
     expr = (
         " >>> import impy as ip\n"
