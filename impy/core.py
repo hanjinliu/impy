@@ -560,7 +560,9 @@ def _imread_stack(path: str,
         self = np.squeeze(self)
     return self.sort_axes()
 
-def imread_collection(path: str | list[str], filt: Callable[[np.ndarray], bool] = None) -> DataList:
+
+def imread_collection(path: str | list[str], 
+                      filt: Callable[[np.ndarray], bool] = None) -> DataList:
     """
     Open images as ImgArray and store them in DataList.
 
@@ -596,7 +598,11 @@ def imread_collection(path: str | list[str], filt: Callable[[np.ndarray], bool] 
             arrlist.append(img)
     return arrlist
 
-def lazy_imread(path, chunks="default", *, squeeze:bool=False) -> LazyImgArray:
+
+def lazy_imread(path: str, 
+                chunks="default",
+                *, 
+                squeeze: bool = False) -> LazyImgArray:
     """
     Read an image lazily. Image file is first opened as an memory map, and subsequently converted
     to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.
@@ -647,6 +653,7 @@ def lazy_imread(path, chunks="default", *, squeeze:bool=False) -> LazyImgArray:
         self.set_scale(**scale)
         return self.sort_axes()
 
+
 def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     """
     Read images recursively from a directory, and stack them into one LazyImgArray.
@@ -684,6 +691,7 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
         pass
     
     return out
+
 
 def read_meta(path: str) -> dict[str]:
     """

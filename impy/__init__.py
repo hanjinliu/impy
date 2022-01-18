@@ -1,4 +1,6 @@
 __version__ = "1.24.5.dev0"
+__author__ = "Hanjin Liu",
+__email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
 import logging
 from functools import wraps
