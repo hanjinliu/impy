@@ -3,6 +3,7 @@
 `impy` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and so on.
 
 The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with information such as 
+
 - image axes
 - scale of each axis
 - directory of the original image
@@ -61,7 +62,7 @@ ip.gui.add(img)
 
 ### Extend your function for batch processing
 
-Already have a function for `numpy`? Decorate it with `@ip.bind` 
+Already have a function for `numpy` and `scipy`? Decorate it with `@ip.bind`
 
 ```python
 @ip.bind
@@ -70,43 +71,42 @@ def imfilter(img, param=None):
     # Do something on a 2D or 3D image and return image, scalar or labels
     return out
 ```
+
 and it's ready for batch processing!
 
 ```python
 img.imfilter(param=1.0)
 ```
 
-### Making plugin is easy
+### Commaind line usage
 
-Image analysis usually relies on manual handling, which has been discoraging people from programatic analysis on their data. But now, with `@ip.gui.bind` decorator, make plugin by yourself!
+`impy` also supports command line based image analysis. All method of `ImgArray` is available
+from commad line, such as
 
-```python
-import matplotlib.pyplot as plt
-from skimage.measure import moments
-
-@ip.gui.bind
-def func(gui): # the first argument will be ip.gui
-    img = gui.get("image") # Get the front image
-    y, x = gui.viewer.cursor.position # Get cursor position
-    y0 = int(y-5)
-    x0 = int(x-5)
-    img0 = img[y0:y0+11, x0:x0+11] # Get 11x11 region around cursor
-
-    # Calculate centroid.
-    M = moments(img0.value)
-    cy, cx = M[1, 0]/M[0, 0], M[0, 1]/M[0, 0]
-
-    # Plot centroid.
-    plt.figure()
-    plt.imshow(img0, cmap="gray")
-    plt.scatter([cx], [cy], s=360, color="crimson", marker="+")
-    plt.text(cx+0.5, cy+0.5, f"({cx+x0:.1f}, {cy+y0:.1f})", size="x-large", color="crimson")
-    plt.title("Centroid")
-    plt.show()
-    
-    # Append centroid to table widget.
-    gui.table.append([cy+y0, cx+x0])
-    return
+```powershell
+impy path/to/image.tif ./output.tif --method gaussian_filter --sigma 2.0
 ```
 
-![](https://github.com/hanjinliu/impy/Figs/bind.gif)
+which is equivalent to
+
+```python
+import impy as ip
+img = ip.imread("path/to/image.tif")
+out = img.gaussian_filter(sigma=2.0)
+out.imsave("./output.tif")
+```
+
+For more complex procedure, it is possible to send image directly to `IPython`
+
+```
+impy path/to/image.tif -i
+```
+```python
+thr = img.gaussian_filter().threshold()
+```
+
+or to `napari`
+
+```
+impy path/to/image.tif -n
+```
