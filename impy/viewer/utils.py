@@ -269,7 +269,7 @@ def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
     if "contrast_limits" not in kwargs.keys():
         # contrast limits should be determined quickly.
         leny, lenx = img.shape[-2:]
-        sample = img.img[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
+        sample = img.value[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
         kwargs["contrast_limits"] = [float(sample.min().compute()), 
                                         float(sample.max().compute())]
 

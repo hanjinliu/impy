@@ -667,7 +667,7 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     path = str(path)
     paths = glob.glob(path, recursive=True)
         
-    imgs = []
+    imgs: list[LazyImgArray] = []
     for path in paths:
         imgl = lazy_imread(path, **kwargs)
         imgs.append(imgl)
@@ -675,13 +675,13 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     if len(imgs) == 0:
         raise RuntimeError("Could not read any images.")
     
-    out = da.stack([i.img for i in imgs], axis=0)
+    out = da.stack([i.value for i in imgs], axis=0)
     out = LazyImgArray(out)
     out._set_info(imgs[0], new_axes="p"+str(imgs[0].axes))
     
     if squeeze:
         axes = "".join(a for i, a in enumerate(out.axes) if out.shape[i] > 1)
-        img = da.squeeze(out.img)
+        img = da.squeeze(out.value)
         out = LazyImgArray(img)
         out._set_info(imgs[0], new_axes=axes)
     try:

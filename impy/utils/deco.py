@@ -86,7 +86,7 @@ def record_lazy(func=None, *, append_history=True, only_binary=False):
                     pass
                     
             if ifupdate:
-                self.img = out.img
+                self.value = out.value
                 self.history = out.history
             
             return out
