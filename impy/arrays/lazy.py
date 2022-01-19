@@ -1,6 +1,7 @@
 from __future__ import annotations
 from functools import wraps
 import os
+import itertools
 from typing import Callable
 import numpy as np
 from dask import array as da
@@ -23,7 +24,7 @@ from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.utilcls import Progress
 from ..utils.io import get_imsave_meta_from_img, memmap
 
-from .._types import nDFloat, Coords, Iterable, Dims
+from .._types import nDFloat, Coords, Iterable, Dims, Slices
 from ..axes import ImageAxesError
 from .._const import Const
 from .._cupy import xp, xp_ndi, xp_fft, asnumpy
@@ -36,7 +37,7 @@ class LazyImgArray(AxesMixin):
                  history: list[str] = None, metadata: dict = None):
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
-        self.img = obj
+        self.value = obj
         self.dirpath = dirpath
         self.name = name
         
@@ -50,48 +51,48 @@ class LazyImgArray(AxesMixin):
         
     @property
     def ndim(self):
-        return self.img.ndim
+        return self.value.ndim
     
     @property
     def shape(self):
         try:
             tup = namedtuple("AxesShape", list(self.axes))
-            return tup(*self.img.shape)
+            return tup(*self.value.shape)
         except ImageAxesError:
-            return self.img.shape
+            return self.value.shape
     
     @property
     def dtype(self):
-        return self.img.dtype
+        return self.value.dtype
     
     @property
     def size(self):
-        return self.img.size
+        return self.value.size
     
     @property
     def itemsize(self):
-        return self.img.itemsize
+        return self.value.itemsize
     
     @property
     def chunksize(self):
         try:
             tup = namedtuple("AxesShape", list(self.axes))
-            return tup(*self.img.chunksize)
+            return tup(*self.value.chunksize)
         except ImageAxesError:
-            return self.img.chunksize
+            return self.value.chunksize
         
     @property
     def gb(self):
-        return self.img.nbytes / 1e9
+        return self.value.nbytes / 1e9
     
     def __array__(self):
-        # Should not be `self.data` because in napari Viewer this function is called every time
+        # Should not be `self.as_imgarray` because in napari Viewer this function is called every time
         # sliders are moved.
-        return asnumpy(self.img.compute())
+        return asnumpy(self.value.compute())
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            key = axis_targeted_slicing(self.img.ndim, self.axes, key)
+            key = axis_targeted_slicing(self.value.ndim, self.axes, key)
         keystr = key_repr(key) # write down key like "0,*,*"
         
         if hasattr(key, "__array__"):
@@ -107,7 +108,7 @@ class LazyImgArray(AxesMixin):
             new_axes = del_axis(self.axes, del_list)
         else:
             new_axes = None
-        out = self.__class__(self.img[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
+        out = self.__class__(self.value[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
                              metadata=self.metadata, history=self.history)
         
         out._getitem_additional_set_info(self, keystr=keystr,
@@ -116,116 +117,116 @@ class LazyImgArray(AxesMixin):
         return out
     
     def __neg__(self) -> LazyImgArray:
-        out = self.__class__(-self.img)
+        out = self.__class__(-self.value)
         out._set_info(self, next_history="neg")
         return out
     
     @same_dtype(asfloat=True)
-    def __add__(self, value) -> LazyImgArray:
-        if isinstance(value, self.__class__):
-            out = self.img + value.img
+    def __add__(self, other) -> LazyImgArray:
+        if isinstance(other, self.__class__):
+            out = self.value + other.value
         else:
-            out = self.img + value
+            out = self.value + other
         out = self.__class__(out)
         out._set_info(self, next_history="add")
         return out
     
     @same_dtype(asfloat=True)
-    def __iadd__(self, value) -> LazyImgArray:
-        if isinstance(value, self.__class__):
-            self.img += value.img
+    def __iadd__(self, other) -> LazyImgArray:
+        if isinstance(other, self.__class__):
+            self.value += other.value
         else:
-            self.img += value
+            self.value += other
         self.history.append("add")
         return self
     
     @same_dtype(asfloat=True)
-    def __sub__(self, value) -> LazyImgArray:
-        if isinstance(value, self.__class__):
-            out = self.img - value.img
+    def __sub__(self, other) -> LazyImgArray:
+        if isinstance(other, self.__class__):
+            out = self.value - other.value
         else:
-            out = self.img - value
+            out = self.value - other
         out = self.__class__(out)
         out._set_info(self, next_history="subtract")
         return out
     
     @same_dtype(asfloat=True)
-    def __isub__(self, value) -> LazyImgArray:
-        if isinstance(value, self.__class__):
-            self.img -= value.img
+    def __isub__(self, other) -> LazyImgArray:
+        if isinstance(other, self.__class__):
+            self.value -= other.value
         else:
-            self.img -= value
+            self.value -= other
         self.history.append("subtract")
         return self
     
     @same_dtype(asfloat=True)
-    def __mul__(self, value) -> LazyImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            other = value
-        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
-            value = value.as_float()
-            other = value.img
-        elif np.isscalar(value) and value < 0:
+    def __mul__(self, other) -> LazyImgArray:
+        if isinstance(other, np.ndarray) and other.dtype.kind != "c":
+            other = other.astype(np.float32)
+            other = other
+        elif isinstance(other, self.__class__) and other.dtype.kind != "c":
+            other = other.as_float()
+            other = other.value
+        elif np.isscalar(other) and other < 0:
             raise ValueError("Cannot multiply negative value.")
         else:
-            other = value
-        out = self.img * other
+            other = other
+        out = self.value * other
         out = self.__class__(out)
         out._set_info(self, next_history="multiply")
         return out
     
     @same_dtype(asfloat=True)
-    def __imul__(self, value) -> LazyImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            other = value
-        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
-            value = value.as_float()
-            other = value.img
-        elif np.isscalar(value) and value < 0:
+    def __imul__(self, other) -> LazyImgArray:
+        if isinstance(other, np.ndarray) and other.dtype.kind != "c":
+            other = other.astype(np.float32)
+            other = other
+        elif isinstance(other, self.__class__) and other.dtype.kind != "c":
+            other = other.as_float()
+            other = other.value
+        elif np.isscalar(other) and other < 0:
             raise ValueError("Cannot multiply negative value.")
         else:
-            other = value
-        self.img *= other
+            other = other
+        self.value *= other
         self.history.append("multiply")
         return self
     
-    def __truediv__(self, value) -> LazyImgArray:        
+    def __truediv__(self, other) -> LazyImgArray:        
         self = self.as_float()
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            value[value==0] = np.inf
-            other = value
-        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
-            value = value.as_float()
-            value[value==0] = np.inf
-            other = value.img
-        elif np.isscalar(value) and value <= 0:
+        if isinstance(other, np.ndarray) and other.dtype.kind != "c":
+            other = other.astype(np.float32)
+            other[other==0] = np.inf
+            other = other
+        elif isinstance(other, self.__class__) and other.dtype.kind != "c":
+            other = other.as_float()
+            other[other==0] = np.inf
+            other = other.value
+        elif np.isscalar(other) and other <= 0:
             raise ValueError("Cannot multiply negative value.")
         else:
-            other = value
-        out = self.img / other
+            other = other
+        out = self.value / other
         out = self.__class__(out)
         out._set_info(self, next_history="divide")
         return out
     
-    def __itruediv__(self, value) -> LazyImgArray:
+    def __itruediv__(self, other) -> LazyImgArray:
         if self.dtype.kind in "ui":
             raise ValueError("Cannot divide integer inplace.")
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            value[value==0] = np.inf
-            other = value
-        elif isinstance(value, self.__class__) and value.dtype.kind != "c":
-            value = value.as_float()
-            value[value==0] = np.inf
-            other = value.img
-        elif np.isscalar(value) and value < 0:
+        if isinstance(other, np.ndarray) and other.dtype.kind != "c":
+            other = other.astype(np.float32)
+            other[other==0] = np.inf
+            other = other
+        elif isinstance(other, self.__class__) and other.dtype.kind != "c":
+            other = other.as_float()
+            other[other==0] = np.inf
+            other = other.value
+        elif np.isscalar(other) and other < 0:
             raise ValueError("Cannot multiply negative value.")
         else:
-            other = value
-        self.img /= other
+            other = other
+        self.value /= other
         self.history.append("divide")
         return self
     
@@ -248,20 +249,32 @@ class LazyImgArray(AxesMixin):
     def __repr__(self):
         return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
     
-    @property
-    def data(self) -> ImgArray:
+    
+    def as_imgarray(self, ignore_limit: bool = False) -> ImgArray:
         """
         Compute all the task and convert the result into ImgArray. If image size overwhelms MAX_GB
         then MemoryError is raised.
         """        
-        if self.gb > Const["MAX_GB"]:
+        if self.gb > Const["MAX_GB"] and not ignore_limit:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Converting to ImgArray"):
-            arr = self.img.compute()
+            arr = self.value.compute()
             img = asnumpy(arr).view(ImgArray)
             for attr in ["name", "dirpath", "axes", "metadata", "history"]:
                 setattr(img, attr, getattr(self, attr, None))
         return img
+    
+    @property
+    def data(self):
+        warn("'data' should no longer be used and will be removed soon. Use 'img.as_imgarra()' instead.", 
+             DeprecationWarning)
+        return self.as_imgarray()
+    
+    @property
+    def img(self):
+        warn("'img' is renamed to 'value' for compatibility with ImgArray and will be removed soon.", 
+             DeprecationWarning)
+        return self.value
     
     def release(self, update: bool = True) -> LazyImgArray:
         """
@@ -271,13 +284,13 @@ class LazyImgArray(AxesMixin):
         with Progress("Releasing jobs"):
             with tempfile.NamedTemporaryFile() as ntf:
                 mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
-                mmap[:] = self.img[:]
+                mmap[:] = self.value[:]
             
             img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
                 np.array, meta=np.array([], dtype=self.dtype)
                 )
             if update:
-                self.img = img
+                self.value = img
                 out = self
             else:
                 out = self.__class__(img)
@@ -302,7 +315,7 @@ class LazyImgArray(AxesMixin):
         memmap_image = memmap(tifname, shape=self.shape, dtype=self.dtype, **imsave_kwargs)
         
         with Progress("Saving"):
-            memmap_image[:] = self.img[:]
+            memmap_image[:] = self.value[:]
             memmap_image.flush()
             
         return None
@@ -322,10 +335,10 @@ class LazyImgArray(AxesMixin):
         LazyImgArray
             Rechunked dask array is bound. History will not be updated.
         """        
-        rechunked = self.img.rechunk(chunks=chunks, threshold=threshold, 
+        rechunked = self.value.rechunk(chunks=chunks, threshold=threshold, 
                                      block_size_limit=block_size_limit, balance=balance)
         if update:
-            self.img = rechunked
+            self.value = rechunked
             return self
         else:
             out = self.__class__(rechunked)
@@ -349,7 +362,7 @@ class LazyImgArray(AxesMixin):
             Updated one
         """        
         
-        out = getattr(self.img, funcname)(*args, **kwargs)
+        out = getattr(self.value, funcname)(*args, **kwargs)
         out = self.__class__(out)
         new_axes = "inherit" if out.shape == self.shape else None
         out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
@@ -417,7 +430,7 @@ class LazyImgArray(AxesMixin):
             kwargs = dict()
         
         if rechunk_to == "none":
-            input_ = self.img
+            input_ = self.value
         else:
             if rechunk_to == "default":
                 rechunk_to = switch_slice(c_axes, self.axes, ifin=1, ifnot="auto")
@@ -425,7 +438,7 @@ class LazyImgArray(AxesMixin):
             elif rechunk_to == "max":
                 rechunk_to = switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
                 
-            input_ = self.img.rechunk(rechunk_to)
+            input_ = self.value.rechunk(rechunk_to)
         
         if dask_wrap:
             @wraps(func)
@@ -436,11 +449,10 @@ class LazyImgArray(AxesMixin):
             @wraps(func)
             def _func(arr, *args, **kwargs):
                 out = func(arr[slice_in], *args, **kwargs)
-                return asnumpy(out[slice_out])
+                return out[slice_out]
         
-        out = da.map_blocks(_func, input_, *args, drop_axis=drop_axis, new_axis=new_axis, 
-                            meta=xp.array([], dtype=dtype), **kwargs)
-
+        out = input_.map_blocks(_func, *args, drop_axis=drop_axis, new_axis=new_axis, 
+                                meta=xp.array([], dtype=dtype), **kwargs)
         return out
     
     @_docs.copy_docs(LabeledArray.rotated_crop)
@@ -675,20 +687,21 @@ class LazyImgArray(AxesMixin):
             shape = None
         else:
             shape = check_nd(shape, len(dims))
-        freq = da.fft.fftn(self.img.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
+        freq = da.fft.fftn(self.value.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
         if shift:
-            freq[:] = da.fft.fftshift(freq)
+            freq[:] = da.fft.fftshift(freq, axes=axes)
         return freq
 
     @_docs.copy_docs(ImgArray.ifft)
     @dims_to_spatial_axes
     @record_lazy
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
+        axes = [self.axisof(a) for a in dims]
         if shift:
-            freq = da.fft.ifftshift(self.img)
+            freq = da.fft.ifftshift(self.value, axes=axes)
         else:
-            freq = self.img
-        out = da.fft.ifftn(freq, axes=[self.axisof(a) for a in dims]).astype(np.complex64)
+            freq = self.value
+        out = da.fft.ifftn(freq, axes=axes).astype(np.complex64)
         
         if real:
             out = da.real(out)
@@ -701,7 +714,7 @@ class LazyImgArray(AxesMixin):
     def power_spectra(self, shape = "same", norm: bool = False, zero_norm: bool = False, *,
                       dims: Dims = None) -> LazyImgArray:
         freq = self.fft(dims=dims, shape=shape)
-        pw = freq.img.real**2 + freq.img.imag**2
+        pw = freq.value.real**2 + freq.value.imag**2
         if norm:
             pw /= pw.max()
         if zero_norm:
@@ -710,7 +723,7 @@ class LazyImgArray(AxesMixin):
         return pw
     
     def chunksizeof(self, axis:str):
-        return self.img.chunksize[self.axes.find(axis)]
+        return self.value.chunksize[self.axes.find(axis)]
     
     def chunksizesof(self, axes:str):
         return tuple(self.chunksizeof(a) for a in axes)
@@ -729,7 +742,7 @@ class LazyImgArray(AxesMixin):
             new_axes = None
         else:
             new_axes = "".join([self.axes[i] for i in list(axes)])
-        out = self.__class__(self.img.transpose(axes))
+        out = self.__class__(self.value.transpose(axes))
         out._set_info(self, new_axes=new_axes)
         return out
     
@@ -783,7 +796,7 @@ class LazyImgArray(AxesMixin):
             ift = xp_fft.irfftn(ft, s=shape)
             return asnumpy(ift)
         
-        out = da.map_overlap(func, self.img, depth=depth, boundary="reflect", dtype=self.dtype)
+        out = da.map_overlap(func, self.value, depth=depth, boundary="reflect", dtype=self.dtype)
         
         return out
     
@@ -797,9 +810,9 @@ class LazyImgArray(AxesMixin):
         axisint = [self.axisof(a) for a in axis]
         
         if method == "mean":
-            projection = getattr(da, method)(self.img, axis=tuple(axisint), dtype=np.float32)
+            projection = getattr(da, method)(self.value, axis=tuple(axisint), dtype=np.float32)
         else:
-            projection = getattr(da, method)(self.img, axis=tuple(axisint))
+            projection = getattr(da, method)(self.value, axis=tuple(axisint))
         
         out = self.__class__(projection)
         out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
@@ -820,7 +833,7 @@ class LazyImgArray(AxesMixin):
         else:
             raise TypeError("`method` must be a numpy function or callable object.")
         
-        img_to_reshape, shape, scale_ = _misc.adjust_bin(self.img, binsize, check_edges, dims, self.axes)
+        img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
         # rechunk to optimize for bin width
         if chunks is None:
             chunks = []
@@ -851,7 +864,7 @@ class LazyImgArray(AxesMixin):
                     
         dims = complement_axes(along, self.axes)
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
-        img_fft = self.fft(shift=False, dims=dims).img.rechunk(chunks)
+        img_fft = self.fft(shift=False, dims=dims).value.rechunk(chunks)
         ndim = len(dims)
         slice_out = (np.newaxis, slice(None)) + (np.newaxis,)*(ndim-1)
         each_shape = (1, ndim) + (1,)*(ndim-1)
@@ -937,7 +950,7 @@ class LazyImgArray(AxesMixin):
         
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
         
-        out = da.map_blocks(warp, self.img.rechunk(chunks), shift, meta=np.array([], dtype=self.dtype))
+        out = da.map_blocks(warp, self.value.rechunk(chunks), shift, meta=np.array([], dtype=self.dtype))
         
         return out
     
@@ -946,7 +959,7 @@ class LazyImgArray(AxesMixin):
     @record_lazy
     def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> LazyImgArray:
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
-        padimg = da.pad(self.img, pad_width, mode, **kwargs)
+        padimg = da.pad(self.value, pad_width, mode, **kwargs)
         return padimg
     
     @_docs.copy_docs(ImgArray.wiener)
@@ -984,11 +997,11 @@ class LazyImgArray(AxesMixin):
         Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
         function can be overloaded with this method.
         """
-        img = da.core.Array.__array_function__(self.img, func, types, args, kwargs)
+        img = da.core.Array.__array_function__(self.value, func, types, args, kwargs)
         
 
     def as_uint8(self) -> LazyImgArray:
-        img = self.img
+        img = self.value
         if img.dtype == np.uint8:
             return img
         
@@ -1005,7 +1018,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     def as_uint16(self) -> LazyImgArray:
-        img = self.img
+        img = self.value
         if img.dtype == np.uint16:
             return img
         if img.dtype == np.uint8:
@@ -1025,7 +1038,7 @@ class LazyImgArray(AxesMixin):
     def as_float(self) -> LazyImgArray:
         if self.dtype == np.float32:
             return self
-        out = self.img.astype(np.float32)
+        out = self.value.astype(np.float32)
         out = self.__class__(out)
         out._set_info(self)
         return out
@@ -1045,24 +1058,25 @@ class LazyImgArray(AxesMixin):
                  UserWarning)
             return self.as_float()
         elif dtype == "complex64":
-            out = self.img.astype(np.complex64)
+            out = self.value.astype(np.complex64)
             out = self.__class__(out)
             out._set_info(self)
             return out
         elif dtype == "complex128":
             warn("Data type complex128 is not valid for images. It was converted to complex64 instead",
                  UserWarning)
-            out = self.img.astype(np.complex64)
+            out = self.value.astype(np.complex64)
             out = self.__class__(out)
             out._set_info(self)
             return out
         elif dtype == "int8":
-            out = self.img.astype(np.int8)
+            out = self.value.astype(np.int8)
             out = self.__class__(out)
             out._set_info(self)
             return out
         else:
             raise ValueError(f"dtype: {dtype}")
+    
     
     def _set_additional_props(self, other):
         # set additional properties

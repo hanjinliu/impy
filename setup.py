@@ -19,6 +19,7 @@ setup(name="impy-array",
       download_url="https://github.com/hanjinliu/impy",
       packages=find_packages(exclude=["docs", "tests"]),
       install_requires=[
+            "numpy>=1.21",
             "scikit-image>=0.18.2",
             "pandas>=1.3",
             "dask>=2021.6.0",

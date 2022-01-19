@@ -575,7 +575,7 @@ def layer_template_matcher(viewer:"napari.Viewer"):
                            template={"label": "temp",
                                      "tooltip": "Template image. This image will move."},
                            ndim={"choices": [2, 3]})
-        def template_matcher(img:Image, template:Image, ndim=2):
+        def template_matcher(img: Image, template: Image, ndim=2):
             step = viewer.dims.current_step[:-min(ndim, img.ndim)]
             img_ = img.data[step]
             template_ = template.data[step]

@@ -258,53 +258,7 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         order = self.axes.argsort()
         return self.transpose(order)
-    
-    
-    def iter(self, axes:str, israw:bool=False, exclude:str="") -> tuple[Slices, np.ndarray|MetaArray]:
-        """
-        Iteration along axes. If axes="tzc", then equivalent to following pseudo code:
-        
-            .. code-block::
-            
-                for t in all_t:
-                    for z in all_z:
-                        for c in all_c:
-                            yield self[t, z, c, ...]
 
-        Parameters
-        ----------
-        axes : str or int
-            On which axes iteration is performed. Or the number of spatial dimension.
-        israw : bool, default is False
-            If True, MetaArray will be returned. If False, np.ndarray will be returned.
-        exclude : str, optional
-            Which axes will be excluded in output. For example, self.axes="tcyx" and 
-            exclude="c" then the axes of output will be "tyx" and slice is also correctly 
-            arranged.
-            
-        Yields
-        -------
-        slice and (np.ndarray or MetaArray)
-            slice and a subimage=self[sl]
-        """     
-        iterlist = switch_slice(axes, self.axes, ifin=[range(s) for s in self.shape], ifnot=[(slice(None),)]*self.ndim)
-        selfview = self if israw else self.value
-        it = itertools.product(*iterlist)
-        c = 0 # counter
-        for sl in it:
-            if len(exclude) == 0:
-                outsl = sl
-            else:
-                outsl = tuple(s for i, s in enumerate(sl) 
-                              if self.axes[i] not in exclude)
-            yield outsl, selfview[sl]
-            c += 1
-            
-        # if iterlist = []
-        if c == 0:
-            outsl = (slice(None),) * (self.ndim - len(exclude))
-            yield outsl, selfview
-            
     
     def apply_dask(self, 
                    func: Callable,

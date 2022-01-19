@@ -116,7 +116,7 @@ def upon_add_layer(event):
     return None
 
 
-def image_tuple(input:"napari.layers.Image", out:ImgArray, translate="inherit", **kwargs):
+def image_tuple(input: "napari.layers.Image", out: ImgArray, translate="inherit", **kwargs):
     data = input.data
     scale = make_world_scale(data)
     if out.dtype.kind == "c":
@@ -139,7 +139,7 @@ def image_tuple(input:"napari.layers.Image", out:ImgArray, translate="inherit", 
     return (out, kw, "image")
 
 
-def label_tuple(input:"napari.layers.Labels", out:Label, translate="inherit", **kwargs):
+def label_tuple(input: "napari.layers.Labels", out: Label, translate="inherit", **kwargs):
     data = input.data
     scale = make_world_scale(data)
     if isinstance(translate, str) and translate == "inherit":
