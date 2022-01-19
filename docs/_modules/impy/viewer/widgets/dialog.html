@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer.widgets.dialog &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.viewer.widgets.dialog &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../../impy.html">impy</a> &raquo;</li>
       <li>impy.viewer.widgets.dialog</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -207,7 +207,7 @@
         
 <div class="viewcode-block" id="DuplicateDialog.duplicate_sliced_layer"><a class="viewcode-back" href="../../../../impy.viewer.widgets.html#impy.viewer.widgets.dialog.DuplicateDialog.duplicate_sliced_layer">[docs]</a>    <span class="k">def</span> <span class="nf">duplicate_sliced_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
         <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
-        <span class="n">sl</span> <span class="o">=</span> <span class="n">axis_targeted_slicing</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">sl</span> <span class="o">=</span> <span class="n">axis_targeted_slicing</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
         
         <span class="n">data</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">as_layer_data_tuple</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>

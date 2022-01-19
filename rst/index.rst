@@ -25,6 +25,8 @@ Highlights
 
 - Easily make a interactive GUI plugin from your custom functions with ``@ip.gui.bind``
 
+- Command line usage.
+
 
 Installation
 ------------
@@ -124,6 +126,7 @@ Contents
 
    tutorial
    tutorial_viewer
+   tutorial_cmd
    api
    
 

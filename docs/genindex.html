@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; impy 1.24.3 documentation</title>
+  <title>Index &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
 </ul>
 
@@ -371,10 +372,10 @@
 </li>
       <li><a href="impy.frame.html#impy.frame.frames.AxesFrame.col_axes">col_axes (impy.frame.frames.AxesFrame property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.viewer.html#impy.viewer.utils.ColorCycle">ColorCycle (class in impy.viewer.utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.utils.html#impy.utils.axesop.complement_axes">complement_axes() (in module impy.utils.axesop)</a>
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.plane_clip.PlaneClipRange.connectLayer">connectLayer() (impy.viewer.widgets.plane_clip.PlaneClipRange method)</a>
@@ -388,7 +389,11 @@
 </li>
       </ul></li>
       <li><a href="impy.html#impy.axes.Axes.copy">copy() (impy.axes.Axes method)</a>
+
+      <ul>
+        <li><a href="impy.html#impy.axes.ScaleDict.copy">(impy.axes.ScaleDict method)</a>
 </li>
+      </ul></li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.table.TableWidget.copy_as_dataframe">copy_as_dataframe() (impy.viewer.widgets.table.TableWidget method)</a>
 </li>
       <li><a href="impy.viewer.html#impy.viewer.utils.copy_layer">copy_layer() (in module impy.viewer.utils)</a>
@@ -885,6 +890,13 @@
 </li>
       </ul></li>
       <li>
+    impy.random
+
+      <ul>
+        <li><a href="impy.html#module-impy.random">module</a>
+</li>
+      </ul></li>
+      <li>
     impy.utils
 
       <ul>
@@ -1267,6 +1279,8 @@
 </li>
         <li><a href="impy.frame.html#module-impy.frame.frames">impy.frame.frames</a>
 </li>
+        <li><a href="impy.html#module-impy.random">impy.random</a>
+</li>
         <li><a href="impy.utils.html#module-impy.utils">impy.utils</a>
 </li>
         <li><a href="impy.utils.html#module-impy.utils.axesop">impy.utils.axesop</a>
@@ -1350,10 +1364,10 @@
       </ul></li>
       <li><a href="impy.viewer.html#impy.viewer.viewer.napariViewers">napariViewers (class in impy.viewer.viewer)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.html#impy.correlation.ncc">ncc() (in module impy.correlation)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.ncc_filter">ncc_filter() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin.ndim">ndim (impy.arrays.axesmixin.AxesMixin attribute)</a>
@@ -1369,6 +1383,8 @@
       <li><a href="impy.html#impy.correlation.nmi">nmi() (in module impy.correlation)</a>
 </li>
       <li><a href="impy.html#impy.axes.NoneAxes">NoneAxes (class in impy.axes)</a>
+</li>
+      <li><a href="impy.html#impy.random.normal">normal() (in module impy.random)</a>
 </li>
       <li><a href="impy.utils.html#impy.utils.utilcls.Timer.now">now (impy.utils.utilcls.Timer property)</a>
 </li>
@@ -1498,7 +1514,11 @@
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.radial_profile">radial_profile() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
-      <li><a href="impy.html#impy.Random">Random (class in impy)</a>
+      <li><a href="impy.html#impy.random.random">random() (in module impy.random)</a>
+</li>
+      <li><a href="impy.html#impy.random.random_uint16">random_uint16() (in module impy.random)</a>
+</li>
+      <li><a href="impy.html#impy.random.random_uint8">random_uint8() (in module impy.random)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.random_walker">random_walker() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
@@ -1549,7 +1569,11 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.html#impy.axes.Axes.replace">replace() (impy.axes.Axes method)</a>
+
+      <ul>
+        <li><a href="impy.html#impy.axes.ScaleDict.replace">(impy.axes.ScaleDict method)</a>
 </li>
+      </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.rescale">rescale() (impy.arrays.imgarray.ImgArray method)</a>
 
       <ul>
@@ -1674,10 +1698,10 @@
       </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin.shape_info">shape_info (impy.arrays.axesmixin.AxesMixin property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.utils.html#impy.utils.gauss.DiagonalGaussian.shift">shift() (impy.utils.gauss.DiagonalGaussian method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray.showinfo">showinfo() (impy.arrays.bases.metaarray.MetaArray method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.size">size (impy.arrays.lazy.LazyImgArray property)</a>
@@ -1687,6 +1711,8 @@
       <li><a href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin.sizesof">sizesof() (impy.arrays.axesmixin.AxesMixin method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.skeletonize">skeletonize() (impy.arrays.imgarray.ImgArray method)</a>
+</li>
+      <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.smooth_mask">smooth_mask() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="impy.html#impy.axes.Axes.sort">sort() (impy.axes.Axes method)</a>
 
@@ -1856,16 +1882,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.watershed">watershed() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
+      <li><a href="impy.arrays.html#impy.arrays.imgarray.wave_num">wave_num() (in module impy.arrays.imgarray)</a>
+</li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.wavelet_denoising">wavelet_denoising() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.wiener">wiener() (impy.arrays.imgarray.ImgArray method)</a>
 
       <ul>
         <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.wiener">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.textedit.WordHighlighter">WordHighlighter (class in impy.viewer.widgets.textedit)</a>
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.log.LoggerWidget.write">write() (impy.viewer.widgets.log.LoggerWidget method)</a>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../impy.html">impy</a> &raquo;</li>
       <li>impy.arrays.labeledarray</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -71,6 +71,7 @@
   <h1>Source code for impy.arrays.labeledarray</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">DTypeLike</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
@@ -88,7 +89,7 @@
 <span class="kn">from</span> <span class="nn">..utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span>
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span><span class="p">,</span> <span class="n">del_axis</span><span class="p">,</span> <span class="n">axes_included</span>
 <span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">record</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span>
-<span class="kn">from</span> <span class="nn">..utils.io</span> <span class="kn">import</span> <span class="n">imwrite</span><span class="p">,</span> <span class="n">get_imsave_meta_from_img</span>
+<span class="kn">from</span> <span class="nn">..utils.io</span> <span class="kn">import</span> <span class="n">save_mrc</span><span class="p">,</span> <span class="n">save_tif</span>
 
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataList</span>
 <span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span>
@@ -133,67 +134,52 @@
                 <span class="s2">&quot;   history    &quot;</span><span class="p">:</span> <span class="s2">&quot;-&gt;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">)}</span>
     
     
-<div class="viewcode-block" id="LabeledArray.imsave"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imsave">[docs]</a>    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tifname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LabeledArray.imsave"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imsave">[docs]</a>    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save image at the same directory as the original image by default. If the image contains</span>
-<span class="sd">        wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.</span>
-<span class="sd">        zyx-scale is also saved.</span>
+<span class="sd">        Save image at the same directory as the original image by default. For tif file format, if the</span>
+<span class="sd">        image contains wrong axes for ImageJ (= except for tzcyx), then it will converted automatically </span>
+<span class="sd">        if possible. For mrc file format, only zyx and yx is allowed. zyx-scale is also saved.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        tifname : str</span>
+<span class="sd">        save_path : str</span>
 <span class="sd">            File name.</span>
-<span class="sd">        dtype : Any that can be interpreted as numpy.dtype, optional</span>
+<span class="sd">        dtype : dtype-like, optional</span>
 <span class="sd">            In what data type img will be saved.</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        None</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="c1"># set default values</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tifname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.tif&quot;</span><span class="p">):</span>
-            <span class="n">tifname</span> <span class="o">+=</span> <span class="s2">&quot;.tif&quot;</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tifname</span><span class="p">:</span>
-            <span class="n">tifname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">tifname</span><span class="p">)</span>
+        <span class="n">save_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">save_path</span> <span class="o">+=</span> <span class="s2">&quot;.tif&quot;</span>
+            <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;.tif&quot;</span>
+    
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">save_path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Image directory path is unknown. Set by </span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot; &gt;&gt;&gt; img.dirpath = </span><span class="se">\&quot;</span><span class="s2">...</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;or specify absolute path like</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot; &gt;&gt;&gt; img.imsave(</span><span class="se">\&quot;</span><span class="s2">/path/to/XXX.tif</span><span class="se">\&quot;</span><span class="s2">)&quot;</span>
+                    <span class="p">)</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
             
-        <span class="c1"># change axes if needed</span>
-        <span class="n">rest_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">)</span>
-        <span class="n">new_axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-        <span class="n">axes_changed</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">:</span>
-                <span class="n">new_axes</span> <span class="o">+=</span> <span class="n">a</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest_axes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot save image with axes </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">new_axes</span> <span class="o">+=</span> <span class="n">rest_axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">rest_axes</span> <span class="o">=</span> <span class="n">rest_axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-                <span class="n">axes_changed</span> <span class="o">=</span> <span class="kc">True</span>
-        
-        <span class="c1"># make a copy of the image for saving</span>
-        <span class="k">if</span> <span class="n">new_axes</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
-            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">new_axes</span>
-            <span class="n">img</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">as_img_type</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">sort_axes</span><span class="p">()</span>
-        <span class="n">imsave_kwargs</span> <span class="o">=</span> <span class="n">get_imsave_meta_from_img</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">update_lut</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
         <span class="c1"># save image</span>
-        <span class="n">imwrite</span><span class="p">(</span><span class="n">tifname</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="o">**</span><span class="n">imsave_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;.tif&quot;</span><span class="p">:</span>
+            <span class="n">save_tif</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;.mrc&quot;</span><span class="p">:</span>
+            <span class="n">save_mrc</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
 
-        <span class="c1"># notifications</span>
-        <span class="k">if</span> <span class="n">axes_changed</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">new_axes</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image axes changed: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">new_axes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image axes changed and sorted: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">new_axes</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Succesfully saved: </span><span class="si">{</span><span class="n">tifname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># notification</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Succesfully saved: </span><span class="si">{</span><span class="n">save_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span></div>
     
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #</span>
@@ -998,7 +984,7 @@
         <span class="k">return</span> <span class="n">imgs</span></div>
     
 <div class="viewcode-block" id="LabeledArray.tile"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.tile">[docs]</a>    <span class="k">def</span> <span class="nf">tile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">along</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LabeledArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tile images in a certain order. Label is also tiled in the same manner.</span>
 
 <span class="sd">        Parameters</span>

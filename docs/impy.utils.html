@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.utils package &mdash; impy 1.24.3 documentation</title>
+  <title>impy.utils package &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -40,31 +40,11 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="api.html">API References</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="impy.html">impy package</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="impy.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="impy.arrays.html">impy.arrays package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.frame.html">impy.frame package</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">impy.utils package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.axes">impy.axes module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.binder">impy.binder module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.collections">impy.collections module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.core">impy.core module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.correlation">impy.correlation module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy">Module contents</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="impy.arrays.html">impy.arrays package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
 </ul>
 
         </div>
@@ -273,7 +253,7 @@ where x and y are determine by z.shape</p>
 <span id="impy-utils-io-module"></span><h2>impy.utils.io module<a class="headerlink" href="#module-impy.utils.io" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.io.get_imsave_meta_from_img">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">get_imsave_meta_from_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_lut</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/utils/io.html#get_imsave_meta_from_img"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.get_imsave_meta_from_img" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">get_imsave_meta_from_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">HistoryArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_lut</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/utils/io.html#get_imsave_meta_from_img"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.get_imsave_meta_from_img" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -392,12 +372,12 @@ writing (‘r+’).</p></li>
 <span id="impy-utils-slicer-module"></span><h2>impy.utils.slicer module<a class="headerlink" href="#module-impy.utils.slicer" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.slicer.axis_targeted_slicing">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.slicer.</span></span><span class="sig-name descname"><span class="pre">axis_targeted_slicing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">slice</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/utils/slicer.html#axis_targeted_slicing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.slicer.axis_targeted_slicing" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.utils.slicer.</span></span><span class="sig-name descname"><span class="pre">axis_targeted_slicing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ndim</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">slice</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/utils/slicer.html#axis_targeted_slicing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.slicer.axis_targeted_slicing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a conventional slices from an axis-targeted slicing string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>arr</strong> (<em>np.ndarray</em>) – Array to be sliced.</p></li>
+<li><p><strong>ndim</strong> (<em>int</em>) – Number of dimension of the array which will be sliced.</p></li>
 <li><p><strong>axes</strong> (<em>str</em>) – Axes of input ndarray.</p></li>
 <li><p><strong>string</strong> (<em>str</em>) – Axis-targeted slicing string. If an axis that does not exist in <cite>axes</cite> is contained,
 this function will raise ValueError.</p></li>

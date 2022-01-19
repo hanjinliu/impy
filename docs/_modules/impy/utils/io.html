@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.utils.io &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.utils.io &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../impy.html">impy</a> &raquo;</li>
       <li>impy.utils.io</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -70,14 +70,22 @@
              
   <h1>Source code for impy.utils.io</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">from</span> <span class="nn">tifffile</span> <span class="kn">import</span> <span class="n">TiffFile</span><span class="p">,</span> <span class="n">imwrite</span><span class="p">,</span> <span class="n">memmap</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
 <span class="kn">from</span> <span class="nn">.._cupy</span> <span class="kn">import</span> <span class="n">xp</span>
+<span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
+
+<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span>
+<span class="kn">from</span> <span class="nn">.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span>
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">switch_slice</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">..arrays.bases</span> <span class="kn">import</span> <span class="n">HistoryArray</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;imwrite&quot;</span><span class="p">,</span> 
            <span class="s2">&quot;memmap&quot;</span><span class="p">,</span>
@@ -88,10 +96,10 @@
            <span class="s2">&quot;get_scale_from_meta&quot;</span><span class="p">,</span> 
            <span class="s2">&quot;get_imsave_meta_from_img&quot;</span><span class="p">]</span>
 
-<span class="k">def</span> <span class="nf">load_json</span><span class="p">(</span><span class="n">s</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">load_json</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
 
-<div class="viewcode-block" id="open_tif"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.open_tif">[docs]</a><span class="k">def</span> <span class="nf">open_tif</span><span class="p">(</span><span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">return_img</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">memmap</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="open_tif"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.open_tif">[docs]</a><span class="k">def</span> <span class="nf">open_tif</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_img</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">memmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">TiffFile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">tif</span><span class="p">:</span>
         <span class="n">ijmeta</span> <span class="o">=</span> <span class="n">tif</span><span class="o">.</span><span class="n">imagej_metadata</span>
         <span class="n">series0</span> <span class="o">=</span> <span class="n">tif</span><span class="o">.</span><span class="n">series</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -128,16 +136,14 @@
     <span class="k">return</span> <span class="n">out</span></div>
 
 
-<div class="viewcode-block" id="open_mrc"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.open_mrc">[docs]</a><span class="k">def</span> <span class="nf">open_mrc</span><span class="p">(</span><span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">return_img</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">memmap</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="open_mrc"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.open_mrc">[docs]</a><span class="k">def</span> <span class="nf">open_mrc</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_img</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">memmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
     <span class="kn">import</span> <span class="nn">mrcfile</span>
     <span class="k">if</span> <span class="n">memmap</span><span class="p">:</span>
         <span class="n">open_func</span> <span class="o">=</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">mmap</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">open_func</span> <span class="o">=</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">open</span>
     
-    <span class="c1"># By default mrcfile functions returns non-writeable array, which is incompatible</span>
-    <span class="c1"># with some functions in ImgArray. We need to specify mode=&quot;r+&quot;.</span>
-    <span class="k">with</span> <span class="n">open_func</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mrc</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">open_func</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mrc</span><span class="p">:</span>
         <span class="n">ijmeta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="s2">&quot;nm&quot;</span><span class="p">}</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mrc</span><span class="o">.</span><span class="n">voxel_size</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
@@ -167,9 +173,8 @@
     <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;&gt;u2&quot;</span><span class="p">:</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
     
-    <span class="n">img</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">)</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="p">)</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">([]))</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span>
+        <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">meta</span><span class="p">,</span> <span class="n">img</span></div>
 
 
@@ -178,21 +183,21 @@
     <span class="k">if</span> <span class="n">fext</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.tif&quot;</span><span class="p">,</span> <span class="s2">&quot;.tiff&quot;</span><span class="p">):</span>
         <span class="n">meta</span> <span class="o">=</span> <span class="n">open_tif</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">memmap</span><span class="p">)</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">fext</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.mrc&quot;</span><span class="p">,</span> <span class="s2">&quot;.rec&quot;</span><span class="p">):</span>
+    <span class="k">elif</span> <span class="n">fext</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.mrc&quot;</span><span class="p">,</span> <span class="s2">&quot;.rec&quot;</span><span class="p">,</span> <span class="s2">&quot;.map&quot;</span><span class="p">):</span>
         <span class="n">meta</span> <span class="o">=</span> <span class="n">open_mrc</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">memmap</span><span class="p">)</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">skimage</span> <span class="kn">import</span> <span class="n">io</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">fext</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.png&quot;</span><span class="p">,</span> <span class="s2">&quot;.jpg&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">img</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>
-            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;axes&quot;</span><span class="p">:</span><span class="s2">&quot;yxc&quot;</span><span class="p">,</span> <span class="s2">&quot;ijmeta&quot;</span><span class="p">:{},</span> <span class="s2">&quot;history&quot;</span><span class="p">:[]}</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;axes&quot;</span><span class="p">:</span> <span class="s2">&quot;yxc&quot;</span><span class="p">,</span> <span class="s2">&quot;ijmeta&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;history&quot;</span><span class="p">:</span> <span class="p">[]}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;axes&quot;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;ijmeta&quot;</span><span class="p">:{},</span> <span class="s2">&quot;history&quot;</span><span class="p">:[]}</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;axes&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;ijmeta&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;history&quot;</span><span class="p">:</span> <span class="p">[]}</span>
     
     <span class="k">return</span> <span class="n">meta</span><span class="p">,</span> <span class="n">img</span></div>
 
 
-<div class="viewcode-block" id="get_scale_from_meta"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.get_scale_from_meta">[docs]</a><span class="k">def</span> <span class="nf">get_scale_from_meta</span><span class="p">(</span><span class="n">meta</span><span class="p">:</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="get_scale_from_meta"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.get_scale_from_meta">[docs]</a><span class="k">def</span> <span class="nf">get_scale_from_meta</span><span class="p">(</span><span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="n">scale</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
     <span class="n">dz</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;ijmeta&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;spacing&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
@@ -218,7 +223,7 @@
     <span class="k">return</span> <span class="n">scale</span></div>
 
 
-<div class="viewcode-block" id="get_imsave_meta_from_img"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.get_imsave_meta_from_img">[docs]</a><span class="k">def</span> <span class="nf">get_imsave_meta_from_img</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">update_lut</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="get_imsave_meta_from_img"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.io.get_imsave_meta_from_img">[docs]</a><span class="k">def</span> <span class="nf">get_imsave_meta_from_img</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">HistoryArray</span><span class="p">,</span> <span class="n">update_lut</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">update_lut</span><span class="p">:</span>
         <span class="n">lut_min</span><span class="p">,</span> <span class="n">lut_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">99</span><span class="p">])</span>
@@ -248,6 +253,56 @@
         <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;hyperstack&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">imagej</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">res</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">save_tif</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span> <span class="n">HistoryArray</span><span class="p">):</span>
+    <span class="n">rest_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">)</span>
+    <span class="n">new_axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">:</span>
+            <span class="n">new_axes</span> <span class="o">+=</span> <span class="n">a</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest_axes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot save image with axes </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">new_axes</span> <span class="o">+=</span> <span class="n">rest_axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">rest_axes</span> <span class="o">=</span> <span class="n">rest_axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    
+    <span class="c1"># make a copy of the image for saving</span>
+    <span class="k">if</span> <span class="n">new_axes</span> <span class="o">!=</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
+        <span class="n">img_new</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">img_new</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">new_axes</span>
+        <span class="n">img_new</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">img_new</span>
+        
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Image axes changed&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
+    
+    <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">sort_axes</span><span class="p">()</span>
+    <span class="n">imsave_kwargs</span> <span class="o">=</span> <span class="n">get_imsave_meta_from_img</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">update_lut</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">imwrite</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="o">**</span><span class="n">imsave_kwargs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">save_mrc</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span> <span class="n">HistoryArray</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">scale_unit</span> <span class="ow">and</span> <span class="n">img</span><span class="o">.</span><span class="n">scale_unit</span> <span class="o">!=</span> <span class="s2">&quot;nm&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Scale unit </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">scale_unit</span><span class="si">}</span><span class="s2"> is not supported. Convert to nm instead.&quot;</span>
+            <span class="p">)</span>
+        
+    <span class="kn">import</span> <span class="nn">mrcfile</span>
+    
+    <span class="c1"># get voxel_size</span>
+    <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;zyx&quot;</span><span class="p">,</span> <span class="s2">&quot;yx&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Can only save zyx- or yx- image as a mrc file, but image has </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> axes.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mrc</span><span class="p">:</span>
+            <span class="n">mrc</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">mrc</span><span class="o">.</span><span class="n">voxel_size</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">scale</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+            
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">mrc</span><span class="p">:</span>
+            <span class="n">mrc</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">mrc</span><span class="o">.</span><span class="n">voxel_size</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">scale</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
            </div>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays package &mdash; impy 1.24.3 documentation</title>
+  <title>impy.arrays package &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -41,31 +41,11 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="api.html">API References</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="impy.html">impy package</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">impy.arrays package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="impy.arrays.bases.html">impy.arrays.bases package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.arrays.utils.html">impy.arrays.utils package</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.axesmixin">impy.arrays.axesmixin module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.imgarray">impy.arrays.imgarray module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.label">impy.arrays.label module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.labeledarray">impy.arrays.labeledarray module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.lazy">impy.arrays.lazy module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.phasearray">impy.arrays.phasearray module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.specials">impy.arrays.specials module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays">Module contents</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
 </ul>
 
         </div>
@@ -615,7 +595,9 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.imgarray.ImgArray.distance_map">
 <span class="sig-name descname"><span class="pre">distance_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.distance_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.distance_map" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate distance map from binary images.</p>
+<dd><p>Calculate distance map from binary images.
+For instance, <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">1,</span> <span class="pre">1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">1,</span> <span class="pre">1]</span></code> will be converted to <code class="docutils literal notranslate"><span class="pre">[3,</span> <span class="pre">2,</span> <span class="pre">1,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3]</span></code>.
+Note that returned array will be float in n-D images.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
@@ -880,6 +862,7 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 </div>
 </div></blockquote>
 </p></li>
+<li><p><strong>{cval}</strong> – </p></li>
 <li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
 For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
 <li><p><strong>update</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True, input itself is updated to the output.</p></li>
@@ -2252,7 +2235,7 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.imgarray.ImgArray.regionprops">
-<span class="sig-name descname"><span class="pre">regionprops</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">properties</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">('mean_intensity',)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_properties</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataDict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">PropArray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.regionprops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.regionprops" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">regionprops</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">properties</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">('mean_intensity',)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_properties</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataDict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">PropArray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.regionprops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.regionprops" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run skimage’s regionprops() function and return the results as PropArray, so
 that you can access using flexible slicing. For example, if a tcyx-image is
 analyzed with <code class="docutils literal notranslate"><span class="pre">properties=(&quot;X&quot;,</span> <span class="pre">&quot;Y&quot;)</span></code>, then you can get X’s time-course profile
@@ -2509,6 +2492,30 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Skeletonized image.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray">ImgArray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.arrays.imgarray.ImgArray.smooth_mask">
+<span class="sig-name descname"><span class="pre">smooth_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dilate_radius</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_light</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#ImgArray.smooth_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.ImgArray.smooth_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Smoothen binary mask image at its edges. This is useful to make a “soft mask”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sigma</strong> (<em>float</em><em>, </em><em>default is 2.0</em>) – Standard deviation of Gaussian blur.</p></li>
+<li><p><strong>dilate_radius</strong> (<em>float</em><em>, </em><em>default is 2.0</em>) – Radius in pixel that will be used to dilate mask before blurred.</p></li>
+<li><p><strong>mask_light</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If true, mask array is considered to mask other image at its True values. Otherwise mask array plays more like
+a weight array, that is, False region will be zero.</p></li>
+<li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
+For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Smoothened mask image.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray">ImgArray</a></p>
@@ -3075,6 +3082,22 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 <span class="sig-prename descclassname"><span class="pre">impy.arrays.imgarray.</span></span><span class="sig-name descname"><span class="pre">check_filter_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#check_filter_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.check_filter_func" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.arrays.imgarray.wave_num">
+<span class="sig-prename descclassname"><span class="pre">impy.arrays.imgarray.</span></span><span class="sig-name descname"><span class="pre">wave_num</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sl</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">slice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uf</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="reference internal" href="_modules/impy/arrays/imgarray.html#wave_num"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.imgarray.wave_num" title="Permalink to this definition">¶</a></dt>
+<dd><p>A function that makes wave number vertical vector. Returned vector will
+be [k/s, (k + 1/uf)/s, (k + 2/uf)/s, …] (where k = sl.start)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sl</strong> (<em>slice</em>) – Slice that specify which part of the image will be transformed.</p></li>
+<li><p><strong>s</strong> (<em>int</em>) – Size along certain dimension.</p></li>
+<li><p><strong>uf</strong> (<em>int</em>) – Up-sampling factor of certain dimension.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-impy.arrays.label">
 <span id="impy-arrays-label-module"></span><h2>impy.arrays.label module<a class="headerlink" href="#module-impy.arrays.label" title="Permalink to this headline">¶</a></h2>
@@ -3430,15 +3453,15 @@ is provided in <cite>kwargs</cite>, then kwargs will be <cite>var</cite>.</p></l
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.labeledarray.LabeledArray.imsave">
-<span class="sig-name descname"><span class="pre">imsave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tifname</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/labeledarray.html#LabeledArray.imsave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.imsave" title="Permalink to this definition">¶</a></dt>
-<dd><p>Save image at the same directory as the original image by default. If the image contains
-wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.
-zyx-scale is also saved.</p>
+<span class="sig-name descname"><span class="pre">imsave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">DTypeLike</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/labeledarray.html#LabeledArray.imsave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.imsave" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save image at the same directory as the original image by default. For tif file format, if the
+image contains wrong axes for ImageJ (= except for tzcyx), then it will converted automatically
+if possible. For mrc file format, only zyx and yx is allowed. zyx-scale is also saved.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tifname</strong> (<em>str</em>) – File name.</p></li>
-<li><p><strong>dtype</strong> (<em>Any that can be interpreted as numpy.dtype</em><em>, </em><em>optional</em>) – In what data type img will be saved.</p></li>
+<li><p><strong>save_path</strong> (<em>str</em>) – File name.</p></li>
+<li><p><strong>dtype</strong> (<em>dtype-like</em><em>, </em><em>optional</em>) – In what data type img will be saved.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -3769,7 +3792,7 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 </dl>
 <p class="rubric">Examples</p>
 <ol class="arabic">
-<li><p>Read images as stack and tile them in grid shape <span class="math notranslate nohighlight">\(5    imes 4\)</span>.</p>
+<li><p>Read images as stack and tile them in grid shape <span class="math notranslate nohighlight">\(5 \times 4\)</span>.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread_collection</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;C:\...&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">tiled_img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">tile</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 </pre></div>
@@ -4202,6 +4225,7 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 </div>
 </div></blockquote>
 </p></li>
+<li><p><strong>{cval}</strong> – </p></li>
 <li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
 For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
 <li><p><strong>update</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True, input itself is updated to the output.</p></li>
@@ -4305,14 +4329,14 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 <dt class="sig sig-object py" id="impy.arrays.lazy.LazyImgArray.imsave">
 <span class="sig-name descname"><span class="pre">imsave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tifname</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/impy/arrays/lazy.html#LazyImgArray.imsave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.lazy.LazyImgArray.imsave" title="Permalink to this definition">¶</a></dt>
 <dd><p>Copy of LabeledArray.imsave. This function returns the same result but the value is evaluated lazily as an dask array.</p>
-<p>Save image at the same directory as the original image by default. If the image contains
-wrong axes for ImageJ (= except for tzcyx), then it will converted automatically if possible.
-zyx-scale is also saved.</p>
+<p>Save image at the same directory as the original image by default. For tif file format, if the
+image contains wrong axes for ImageJ (= except for tzcyx), then it will converted automatically
+if possible. For mrc file format, only zyx and yx is allowed. zyx-scale is also saved.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tifname</strong> (<em>str</em>) – File name.</p></li>
-<li><p><strong>dtype</strong> (<em>Any that can be interpreted as numpy.dtype</em><em>, </em><em>optional</em>) – In what data type img will be saved.</p></li>
+<li><p><strong>save_path</strong> (<em>str</em>) – File name.</p></li>
+<li><p><strong>dtype</strong> (<em>dtype-like</em><em>, </em><em>optional</em>) – In what data type img will be saved.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

@@ -55,6 +55,14 @@ impy.correlation module
    :undoc-members:
    :show-inheritance:
 
+impy.random module
+------------------
+
+.. automodule:: impy.random
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

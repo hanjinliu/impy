@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.bases.metaarray &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.arrays.bases.metaarray &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../../impy.html">impy</a> &raquo;</li>
       <li>impy.arrays.bases.metaarray</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -311,12 +311,12 @@
             <span class="k">return</span> <span class="n">func</span>
         <span class="k">return</span> <span class="n">decorator</span></div>
     
-    <span class="k">def</span> <span class="nf">_str_to_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_str_to_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        get subslices using ImageJ-like format.</span>
 <span class="sd">        e.g. &#39;t=3:, z=1:5&#39;, &#39;t=1, z=:7&#39;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">axis_targeted_slicing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> <span class="n">string</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">axis_targeted_slicing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> <span class="n">string</span><span class="p">)</span>
     
 <div class="viewcode-block" id="MetaArray.sort_axes"><a class="viewcode-back" href="../../../../impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray.sort_axes">[docs]</a>    <span class="k">def</span> <span class="nf">sort_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MetaArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>

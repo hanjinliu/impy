@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Line Usage &mdash; impy 1.24.5.dev0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API References" href="api.html" />
+    <link rel="prev" title="Viewer Tutorial" href="tutorial_viewer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                1.24.5.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Line Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-usage">Advanced Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Command Line Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial_cmd.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="command-line-usage">
+<h1>Command Line Usage<a class="headerlink" href="#command-line-usage" title="Permalink to this headline">¶</a></h1>
+<p>Image analysis usually relies on different softwares in different platform.
+The traditional command line based interface is still useful in this purpose.</p>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> also supports command line usage.</p>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>The most basic one is:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy --input path/to/image.tif --output path/to/output.tif --method gaussian_filter --sigma <span class="m">2</span>
+</pre></div>
+</div>
+<p>or <code class="docutils literal notranslate"><span class="pre">--input</span></code> and <code class="docutils literal notranslate"><span class="pre">--output</span></code> can be omitted like:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy path/to/image.tif path/to/output.tif --method gaussian_filter --sigma <span class="m">2</span>
+</pre></div>
+</div>
+<p>You have to specify <code class="docutils literal notranslate"><span class="pre">--method</span></code> or <code class="docutils literal notranslate"><span class="pre">-m</span></code> to let <code class="docutils literal notranslate"><span class="pre">impy</span></code> know what method you’d like to run.
+Method names should match those in <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>. The last <code class="docutils literal notranslate"><span class="pre">--sigma</span></code> option is characteristic
+to <code class="docutils literal notranslate"><span class="pre">gaussian_filter</span></code> so that it may differ with other method.
+Those commands above are equivalent to following Python code.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">impy</span> <span class="k">as</span> <span class="nn">ip</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;path/to/image.tif&quot;</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">out</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="s2">&quot;path/to/output.tif&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="advanced-usage">
+<h2>Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes you may want to apply multiple filters in tandem to an image. Classically it was
+usually done by saving intermediate files, but here we should take advantage of IPython.</p>
+<p>Instead of parsing <code class="docutils literal notranslate"><span class="pre">--output</span></code>, you can use <code class="docutils literal notranslate"><span class="pre">-i</span></code> flag to launch IPython interpreter with
+namespace <code class="docutils literal notranslate"><span class="pre">ip</span></code> and <code class="docutils literal notranslate"><span class="pre">img</span></code>. <code class="docutils literal notranslate"><span class="pre">ip</span></code> is an alias of <code class="docutils literal notranslate"><span class="pre">impy</span></code> as usual, and <code class="docutils literal notranslate"><span class="pre">img</span></code> is an
+<code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> object that is created by reading the <code class="docutils literal notranslate"><span class="pre">--input</span></code> argument.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy path/to/image.tif -i
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span> <span class="mi">120</span><span class="p">))</span>  <span class="c1"># &quot;ip&quot; is already available</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span> <span class="o">=</span> <span class="n">img</span> <span class="o">+</span> <span class="n">arr</span>  <span class="c1"># img = ip.imread(&quot;path/to/image.tif&quot;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="s2">&quot;path/to/output.tif&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Another option is <code class="docutils literal notranslate"><span class="pre">-n</span></code>, which send namespace including input image to <code class="docutils literal notranslate"><span class="pre">napari</span></code> viewer
+and console.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy path/to/image.tif -n
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorial_viewer.html" class="btn btn-neutral float-left" title="Viewer Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

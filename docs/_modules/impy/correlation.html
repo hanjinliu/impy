@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.correlation &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.correlation &mdash; impy 1.24.5.dev0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.24.5.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../index.html">Module code</a> &raquo;</li>
-          <li><a href="../impy.html">impy</a> &raquo;</li>
       <li>impy.correlation</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -70,13 +70,12 @@
              
   <h1>Source code for impy.correlation</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">import</span> <span class="nn">scipy</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 <span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">PropArray</span>
 <span class="kn">from</span> <span class="nn">.arrays.utils</span> <span class="kn">import</span> <span class="n">_docs</span>
 <span class="kn">from</span> <span class="nn">.arrays.utils._corr</span> <span class="kn">import</span> <span class="n">subpixel_pcc</span>
-<span class="kn">from</span> <span class="nn">.utils.axesop</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">add_axes</span>
 <span class="kn">from</span> <span class="nn">.utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span>
 <span class="kn">from</span> <span class="nn">.utils.deco</span> <span class="kn">import</span> <span class="n">dims_to_spatial_axes</span>
 <span class="kn">from</span> <span class="nn">._cupy</span> <span class="kn">import</span> <span class="n">xp</span><span class="p">,</span> <span class="n">asnumpy</span><span class="p">,</span> <span class="n">xp_ndi</span>
@@ -87,8 +86,13 @@
 
 <div class="viewcode-block" id="fsc"><a class="viewcode-back" href="../../impy.html#impy.correlation.fsc">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">fsc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">nbin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> <span class="n">r_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
-        <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">fsc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+        <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+        <span class="n">nbin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> 
+        <span class="n">r_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) </span>
 <span class="sd">    between two images. FSC is defined as:</span>
@@ -180,6 +184,7 @@
         <span class="n">xp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">img0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span><span class="o">*</span><span class="n">xp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">img1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dims</span><span class="p">))</span> <span class="o">/</span> <span class="n">n</span>
     <span class="k">return</span> <span class="n">asnumpy</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span>
 
+
 <span class="k">def</span> <span class="nf">_masked_ncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="n">img0</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">add_axes</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">img0</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
@@ -189,6 +194,7 @@
     <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">img0ma</span> <span class="o">*</span> <span class="n">img1ma</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
         <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">img0ma</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">img1ma</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span> <span class="o">/</span> <span class="n">n</span>
+
 
 <span class="k">def</span> <span class="nf">_zncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span><span class="p">):</span>
     <span class="c1"># Basic Zero-Normalized Cross Correlation with batch processing.</span>
@@ -201,6 +207,7 @@
         <span class="n">xp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">img0</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span><span class="o">*</span><span class="n">xp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">img1</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dims</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">asnumpy</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span>
 
+
 <span class="k">def</span> <span class="nf">_masked_zncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="n">img0</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">add_axes</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">img0</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
@@ -212,7 +219,11 @@
 
 <div class="viewcode-block" id="ncc"><a class="viewcode-back" href="../../impy.html#impy.correlation.ncc">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">ncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> 
+<span class="k">def</span> <span class="nf">ncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+        <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+        <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+        <span class="o">*</span><span class="p">,</span> 
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalized Cross Correlation.</span>
@@ -241,7 +252,11 @@
 
 <div class="viewcode-block" id="zncc"><a class="viewcode-back" href="../../impy.html#impy.correlation.zncc">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">zncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">zncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+         <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+         <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+         <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+         <span class="o">*</span><span class="p">,</span>
          <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Zero-Normalized Cross Correlation.</span>
@@ -275,8 +290,13 @@
 
 <div class="viewcode-block" id="nmi"><a class="viewcode-back" href="../../impy.html#impy.correlation.nmi">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">nmi</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> 
-        <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">nmi</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+        <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> 
+        <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span> 
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalized Mutual Information.</span>
 <span class="sd">    </span>
@@ -300,7 +320,8 @@
 <span class="sd">    PropArray or float</span>
 <span class="sd">        Correlation value(s).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">entropy</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">entropy</span>
+    <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">entropy</span>
+
     <span class="n">img0</span><span class="p">,</span> <span class="n">img1</span> <span class="o">=</span> <span class="n">_check_inputs</span><span class="p">(</span><span class="n">img0</span><span class="p">,</span> <span class="n">img1</span><span class="p">)</span>
     <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">img0</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">sizesof</span><span class="p">(</span><span class="n">c_axes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -319,7 +340,11 @@
 
 <div class="viewcode-block" id="fourier_ncc"><a class="viewcode-back" href="../../impy.html#impy.correlation.fourier_ncc">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">fourier_ncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> 
+<span class="k">def</span> <span class="nf">fourier_ncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                <span class="o">*</span><span class="p">,</span> 
                 <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalized Cross Correlation in Fourier space.</span>
@@ -350,8 +375,12 @@
 
 <div class="viewcode-block" id="fourier_zncc"><a class="viewcode-back" href="../../impy.html#impy.correlation.fourier_zncc">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">fourier_zncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
-                 <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">fourier_zncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                 <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+                 <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                 <span class="o">*</span><span class="p">,</span> 
+                 <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Zero-Normalized Cross Correlation in Fourier space.</span>
 <span class="sd">    </span>
@@ -382,7 +411,9 @@
     <span class="k">return</span> <span class="n">_make_corr_output</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">img0</span><span class="p">,</span> <span class="s2">&quot;fourier_zncc&quot;</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="pcc_maximum"><a class="viewcode-back" href="../../impy.html#impy.correlation.pcc_maximum">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-<span class="k">def</span> <span class="nf">pcc_maximum</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+<span class="k">def</span> <span class="nf">pcc_maximum</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
                 <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images. Same as ``skimage.registration.phase_cross_correlation``.</span>
@@ -410,7 +441,9 @@
     <span class="k">return</span> <span class="n">asnumpy</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ft_pcc_maximum"><a class="viewcode-back" href="../../impy.html#impy.correlation.ft_pcc_maximum">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-<span class="k">def</span> <span class="nf">ft_pcc_maximum</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+<span class="k">def</span> <span class="nf">ft_pcc_maximum</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+                   <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                   <span class="n">mask</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
                    <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images. </span>
@@ -438,7 +471,11 @@
 
 <div class="viewcode-block" id="manders_coloc"><a class="viewcode-back" href="../../impy.html#impy.correlation.manders_coloc">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="nd">@dims_to_spatial_axes</span>
-<span class="k">def</span> <span class="nf">manders_coloc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="o">|</span><span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">manders_coloc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
+                  <span class="n">img1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                  <span class="o">*</span><span class="p">,</span>
+                  <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                  <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manders&#39; correlation coefficient. This is defined as following:</span>
 <span class="sd">    </span>
@@ -475,12 +512,12 @@
     <span class="k">return</span> <span class="n">_make_corr_output</span><span class="p">(</span><span class="n">coeff</span><span class="p">,</span> <span class="n">img0</span><span class="p">,</span> <span class="s2">&quot;manders_coloc&quot;</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span></div>
     
 
-<span class="k">def</span> <span class="nf">iter2</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span><span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span><span class="n">ImgArray</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">israw</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">iter2</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">israw</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">i0</span><span class="p">),</span> <span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">i1</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="n">israw</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">exclude</span><span class="p">),</span>
                                   <span class="n">img1</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="n">israw</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">exclude</span><span class="p">)):</span>
         <span class="k">yield</span> <span class="n">sl</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span>
         
-<span class="k">def</span> <span class="nf">_check_inputs</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span><span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span><span class="n">ImgArray</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_check_inputs</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">):</span>
     <span class="n">_check_dimensions</span><span class="p">(</span><span class="n">img0</span><span class="p">,</span> <span class="n">img1</span><span class="p">)</span>
 
     <span class="n">img0</span> <span class="o">=</span> <span class="n">img0</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span>
