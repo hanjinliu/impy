@@ -2,7 +2,6 @@ from functools import wraps
 import numpy as np
 import inspect
 import re
-from dask import array as da
 from .utilcls import Progress
 from .._cupy import xp_ndarray, asnumpy
 
@@ -72,6 +71,7 @@ def record_lazy(func=None, *, append_history=True, only_binary=False):
             
             out = func(self, *args, **kwargs)
             
+            from dask import array as da
             if isinstance(out, da.core.Array):
                 out = self.__class__(out)
             

@@ -1,10 +1,8 @@
 from __future__ import annotations
 from functools import wraps
 import os
-import itertools
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import numpy as np
-from dask import array as da
 from warnings import warn
 from collections import namedtuple
 import tempfile
@@ -16,7 +14,6 @@ from .utils._dask_image import dafil, dames, daintr, damorph
 from .utils._skimage import skres
 from .utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
-from ..frame import MarkerFrame
 from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
 from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype, make_history
 from ..utils.misc import check_nd
@@ -24,17 +21,20 @@ from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.utilcls import Progress
 from ..utils.io import get_imsave_meta_from_img, memmap
 
-from .._types import nDFloat, Coords, Iterable, Dims, Slices
+from .._types import nDFloat, Coords, Iterable, Dims
 from ..axes import ImageAxesError
 from .._const import Const
 from .._cupy import xp, xp_ndi, xp_fft, asnumpy
 
+if TYPE_CHECKING:
+    from dask import array as da
+
 
 class LazyImgArray(AxesMixin):
     additional_props = ["dirpath", "metadata", "name"]
-    
-    def __init__(self, obj: da.core.Array, name: str = None, axes: str = None, dirpath: str = None, 
+    def __init__(self, obj: "da.core.Array", name: str = None, axes: str = None, dirpath: str = None, 
                  history: list[str] = None, metadata: dict = None):
+        from dask import array as da
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
         self.value = obj
@@ -281,6 +281,7 @@ class LazyImgArray(AxesMixin):
         Compute all the tasks and store the data in memory map, and read it as a dask array
         again.
         """
+        from dask import array as da
         with Progress("Releasing jobs"):
             with tempfile.NamedTemporaryFile() as ntf:
                 mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
@@ -441,6 +442,7 @@ class LazyImgArray(AxesMixin):
             input_ = self.value.rechunk(rechunk_to)
         
         if dask_wrap:
+            from dask import array as da
             @wraps(func)
             def _func(arr, *args, **kwargs):
                 out = func(da.from_array(arr[slice_in]), *args, **kwargs)
@@ -450,6 +452,10 @@ class LazyImgArray(AxesMixin):
             def _func(arr, *args, **kwargs):
                 out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
+        
+        # out = da.empty(self.shape, dtype=self.dtype)
+        # for sl, img in self.iter(c_axes):
+        #     out[sl] = img.map_blocks(_func)
         
         out = input_.map_blocks(_func, *args, drop_axis=drop_axis, new_axis=new_axis, 
                                 meta=xp.array([], dtype=dtype), **kwargs)
@@ -679,6 +685,7 @@ class LazyImgArray(AxesMixin):
     @record_lazy
     def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
             dims: Dims = None) -> LazyImgArray:
+        from dask import array as da
         axes = [self.axisof(a) for a in dims]
         if shape == "square":
             s = 2**int(np.ceil(np.max(self.sizesof(dims))))
@@ -696,6 +703,7 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     @record_lazy
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
+        from dask import array as da
         axes = [self.axisof(a) for a in dims]
         if shift:
             freq = da.fft.ifftshift(self.value, axes=axes)
@@ -795,7 +803,7 @@ class LazyImgArray(AxesMixin):
             ft = weight * xp_fft.rfftn(arr)
             ift = xp_fft.irfftn(ft, s=shape)
             return asnumpy(ift)
-        
+        from dask import array as da
         out = da.map_overlap(func, self.value, depth=depth, boundary="reflect", dtype=self.dtype)
         
         return out
@@ -856,7 +864,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(ImgArray.track_drift)
-    def track_drift(self, along: str = None, upsample_factor: int = 10) -> da.core.Array:
+    def track_drift(self, along: str = None, upsample_factor: int = 10) -> "da.core.Array":
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
@@ -876,6 +884,8 @@ class LazyImgArray(AxesMixin):
             x = xp.asarray(x)
             result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)
             return asnumpy(result[slice_out])
+        
+        from dask import array as da
 
         # I don't know the reason why but output dask array's chunk size along t-axis should be 
         # specified to be 1, and rechunk it map_overlap. 
@@ -907,6 +917,8 @@ class LazyImgArray(AxesMixin):
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         
+        from ..frame import MarkerFrame
+        
         if shift is None:
             # determine 'ref'
             if ref is None:
@@ -928,7 +940,7 @@ class LazyImgArray(AxesMixin):
             if len(shift) != self.sizeof(along):
                 raise ValueError("Wrong shape of 'shift'.")
             shift = shift.values
-
+        from dask import array as da
         if zero_ave:
             shift = shift - da.mean(shift, axis=0)
             
@@ -959,7 +971,7 @@ class LazyImgArray(AxesMixin):
     @record_lazy
     def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> LazyImgArray:
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
-        padimg = da.pad(self.value, pad_width, mode, **kwargs)
+        padimg = np.pad(self.value, pad_width, mode, **kwargs)
         return padimg
     
     @_docs.copy_docs(ImgArray.wiener)
@@ -997,8 +1009,9 @@ class LazyImgArray(AxesMixin):
         Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
         function can be overloaded with this method.
         """
+        from dask import array as da
         img = da.core.Array.__array_function__(self.value, func, types, args, kwargs)
-        
+        raise NotImplementedError()
 
     def as_uint8(self) -> LazyImgArray:
         img = self.value
@@ -1009,7 +1022,7 @@ class LazyImgArray(AxesMixin):
             out = img / 256
         elif img.dtype.kind == "f":
             out = img + 0.5
-            out = da.clip(out, 0, 255)
+            out = np.clip(out, 0, 255)
         else:
             raise TypeError(f"invalid data type: {img.dtype}")
         out = out.astype(np.uint8)
@@ -1027,7 +1040,7 @@ class LazyImgArray(AxesMixin):
             out = img
         elif img.dtype.kind == "f":
             out = img + 0.5
-            out = da.clip(out, 0, 65535)
+            out = np.clip(out, 0, 65535)
         else:
             raise TypeError(f"invalid data type: {img.dtype}")
         out = out.astype(np.uint16)

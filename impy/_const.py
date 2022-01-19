@@ -1,19 +1,13 @@
 import dask
 import psutil
-from dask.cache import Cache
 
 memory = psutil.virtual_memory()
 
 MAX_GB_LIMIT = memory.total / 2 * 1e-9
-DASK_CACHE_GB_LIMIT = memory.total / 4 * 1e-9
 
 class GlobalConstant(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        try:
-            super().__setattr__("_cache", Cache(1.0))
-        except (ModuleNotFoundError, ImportError):
-            super().__setattr__("_cache", None)
 
     def __getitem__(self, k):
         try:
@@ -42,12 +36,6 @@ class GlobalConstant(dict):
                 raise TypeError("MAX_GB must be float.")
         elif k == "RESOURCE":
             raise RuntimeError("Cannot set RESOURCE.")
-        elif k == "DASK_CACHE_GB":
-            if not isinstance(v, (int, float)):
-                raise TypeError("DASK_CACHE_GB must be float.")
-            elif v > DASK_CACHE_GB_LIMIT:
-                raise ValueError(f"Cannot exceed {DASK_CACHE_GB_LIMIT} GB.")
-            self._cache.cache.available_bytes = v
         elif k == "SCHEDULER":
             dask.config.set(scheduler=v)
         else:
@@ -82,7 +70,6 @@ Const = GlobalConstant(
     ID_AXIS = "p",
     FONT_SIZE_FACTOR = 1.0,
     RESOURCE = "numpy",
-    DASK_CACHE_GB = DASK_CACHE_GB_LIMIT/2,
     SCHEDULER = "threads",
 )
 

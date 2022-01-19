@@ -11,8 +11,18 @@ from qtpy.QtGui import QCursor
 
 from .widgets import *
 from .widgets.table import read_csv
-from .utils import *
-from .._const import SetConst
+from .utils import (
+    get_a_selected_layer, 
+    iter_selected_layer, 
+    crop_rectangle,
+    crop_rotated_rectangle,
+    get_viewer_scale, 
+    make_world_scale,
+    to_labels
+    )
+from .._const import Const, SetConst
+from ..arrays import ImgArray, Label, PhaseArray, LabeledArray, LazyImgArray
+
 
 __all__ = ["add_imread_menu",
            "add_imsave_menu",
@@ -618,6 +628,7 @@ def function_handler(viewer:"napari.Viewer"):
             napari.types.LayerDataTuple
                 This is passed to napari and is directly visualized.
             """
+            from ..frame import MarkerFrame, TrackFrame, PathFrame
             outlist = []
             for input in viewer.layers.selection:
                 data = layer_to_impy_object(viewer, input)

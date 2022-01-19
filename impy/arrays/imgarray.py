@@ -1,9 +1,9 @@
 from __future__ import annotations
 import warnings
 import numpy as np
-import pandas as pd
 from functools import partial
 from scipy import ndimage as ndi
+from typing import TYPE_CHECKING
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -22,9 +22,11 @@ from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import DataDict
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
-from ..frame import MarkerFrame, PathFrame
 from .._const import Const
 from .._cupy import xp, xp_ndi, xp_fft, asnumpy, cupy_dispatcher
+
+if TYPE_CHECKING:
+    from ..frame import MarkerFrame, PathFrame
 
 
 class ImgArray(LabeledArray):
@@ -1948,7 +1950,11 @@ class ImgArray(LabeledArray):
             exclude_border = int(min_distance) if exclude_border else False
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
-        df_all = []
+        
+        import pandas as pd
+        from ..frame import MarkerFrame
+
+        df_all: list[pd.DataFrame] = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -2016,7 +2022,10 @@ class ImgArray(LabeledArray):
         
         thr = None if percentile is None else np.percentile(self.value, percentile)
         
-        df_all = []
+        import pandas as pd
+        from ..frame import MarkerFrame
+
+        df_all: list[pd.DataFrame] = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
@@ -2184,8 +2193,8 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def refine_sm(self, coords:Coords=None, radius: float = 4, *, percentile:float=95, n_iter:int=10, 
-                  sigma:float=1.5, dims: Dims = None):
+    def refine_sm(self, coords: Coords = None, radius: float = 4, *, percentile: float = 95, 
+                  n_iter: int = 10, sigma: float = 1.5, dims: Dims = None):
         """
         Refine coordinates of peaks and calculate positional errors using `trackpy`'s functions. Mean
         and noise level are determined using original method.
@@ -2216,6 +2225,9 @@ class ImgArray(LabeledArray):
         centroid_sm
         """        
         import trackpy as tp
+        import pandas as pd
+        from ..frame import MarkerFrame
+
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile, exclude_border=radius)
         else:
@@ -2371,6 +2383,8 @@ class ImgArray(LabeledArray):
         find_sm
         refine_sm
         """     
+        import pandas as pd
+        from ..frame import MarkerFrame
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
         else:
@@ -2447,6 +2461,8 @@ class ImgArray(LabeledArray):
         # like centroid_sm because currently does not work for zcyx-image
         
         from scipy.linalg import pinv as pseudo_inverse
+        from ..frame import MarkerFrame
+        
         if coords is None:
             coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
         else:
@@ -3122,7 +3138,8 @@ class ImgArray(LabeledArray):
             template_new = img[tuple(sl)]
             shift = skreg.phase_cross_correlation(template_old, template_new, 
                                                   return_error=False, upsample_factor=10)
-            
+        
+        from ..frame import MarkerFrame
         pos = np.array(pos)
         pos = np.hstack([np.arange(self.sizeof(along), dtype=np.uint16).reshape(-1,1), pos])
         pos = MarkerFrame(pos, columns=along+dims)
@@ -3556,6 +3573,8 @@ class ImgArray(LabeledArray):
             >>> img.pathprops([[2,3], [102, 301], [200,400]])
         """        
         id_axis = Const["ID_AXIS"]
+        from ..frame import PathFrame
+        
         # check path
         if not isinstance(paths, PathFrame):
             paths = np.asarray(paths)
@@ -3872,6 +3891,8 @@ class ImgArray(LabeledArray):
         MarkerFrame
             DataFrame structure with x,y columns
         """        
+        from ..frame import MarkerFrame
+        
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
@@ -4288,6 +4309,7 @@ class ImgArray(LabeledArray):
                                )
 
 def _check_coordinates(coords, img, dims: Dims = None):
+    from ..frame import MarkerFrame
     if not isinstance(coords, MarkerFrame):
         coords = np.asarray(coords)
         if coords.ndim == 1:

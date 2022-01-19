@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import warnings
 from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDialog, QComboBox, QLabel, QCheckBox,
                             QMainWindow, QAction, QHeaderView, QTableWidget, QTableWidgetItem, QStyledItemDelegate,
@@ -7,9 +7,13 @@ from qtpy.QtWidgets import (QPushButton, QGridLayout, QHBoxLayout, QWidget, QDia
 import napari
 import os
 import numpy as np
-import pandas as pd
+
+if TYPE_CHECKING:
+    import pandas as pd
+        
 
 def read_csv(viewer:"napari.Viewer", path):
+    import pandas as pd
     df = pd.read_csv(path)
     name = os.path.splitext(os.path.basename(path))[0]
     table = TableWidget(viewer, df, name=name)
@@ -41,6 +45,7 @@ class TableWidget(QMainWindow):
                                   logx=False, logy=False, bins=10)
         self.last_plot = "plot"
         
+        import pandas as pd
         if df is None or (isinstance(df, dict) and df == {}):
             if columns is None:
                 df = np.atleast_2d([])

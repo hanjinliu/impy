@@ -1,7 +1,6 @@
 from __future__ import annotations
 import numpy as np
 from numpy.typing import DTypeLike
-import pandas as pd
 import os
 from functools import partial
 import inspect
@@ -22,7 +21,6 @@ from ..utils.io import save_mrc, save_tif
 
 from ..collections import DataList
 from ..axes import ImageAxesError
-from ..frame import MarkerFrame
 from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable
 
 class LabeledArray(HistoryArray):
@@ -518,6 +516,7 @@ class LabeledArray(HistoryArray):
             >>> img.specify(coords, 3.5, filt=filter_func, labeltype="circle")
             >>> ip.gui.add(img)
         """
+        from ..frame import MarkerFrame
         if isinstance(center, MarkerFrame):
             from .utils._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
             ndim = len(dims)
@@ -749,6 +748,7 @@ class LabeledArray(HistoryArray):
             >>>     return lbl[yc, xc] > 0
             >>> img.label_if(lbl, filt)
         """        
+        import pandas as pd
         # check the shape of label_image
         if label_image is None:
             label_image = self

@@ -7,7 +7,6 @@ import warnings
 import os
 import numpy as np
 from .._cupy import xp
-from dask import array as da
 
 from ..axes import ImageAxesError
 from .axesop import complement_axes
@@ -102,6 +101,7 @@ def open_as_dask(path: str, chunks):
     if img.dtype == ">u2":
         img = img.astype(np.uint16)
     
+    from dask import array as da
     img = da.from_array(img, chunks=chunks, meta=xp.array([])).map_blocks(
         xp.asarray, dtype=img.dtype)
     return meta, img

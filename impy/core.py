@@ -6,7 +6,6 @@ import re
 import glob
 import itertools
 from functools import wraps
-from dask import array as da
 
 from .utils.io import open_img, open_as_dask, get_scale_from_meta, open_mrc, open_tif
 from .utils import gauss
@@ -141,6 +140,7 @@ def aslazy(arr: ArrayLike,
     LazyImgArray
     
     """
+    from dask import array as da
     if isinstance(arr, MetaArray):
         arr = da.from_array(arr.value, chunks=chunks)
     if isinstance(arr, (np.ndarray, np.memmap)):
@@ -640,7 +640,7 @@ def lazy_imread(path: str,
         
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
-        img = da.squeeze(img)
+        img = np.squeeze(img)
         
     self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, 
                         history=history, metadata=metadata)
@@ -675,6 +675,7 @@ def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
     if len(imgs) == 0:
         raise RuntimeError("Could not read any images.")
     
+    from dask import array as da
     out = da.stack([i.value for i in imgs], axis=0)
     out = LazyImgArray(out)
     out._set_info(imgs[0], new_axes="p"+str(imgs[0].axes))

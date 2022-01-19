@@ -1,13 +1,16 @@
 from __future__ import annotations
 import warnings
+from typing import TYPE_CHECKING
 import numpy as np
 import napari
 import os
 
 from ..arrays import *
-from ..frame import *
 from .._const import Const
 from ..core import imread, lazy_imread
+
+if TYPE_CHECKING:
+    from ..frame import TrackFrame, PathFrame
 
 def copy_layer(layer):
     args, kwargs, *_ = layer.as_layer_data_tuple()
@@ -290,6 +293,7 @@ def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
     return layer
 
 def add_points(viewer:"napari.Viewer", points, **kwargs):
+    from ..frame import MarkerFrame
     if isinstance(points, MarkerFrame):
         scale = make_world_scale(points)
         points = points.get_coords()
@@ -381,6 +385,7 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
     elif isinstance(layer, napari.layers.Shapes):
         return data
     elif isinstance(layer, napari.layers.Points):
+        from ..frame import MarkerFrame
         ndim = data.shape[1]
         axes = axes[-ndim:]
         df = MarkerFrame(data, columns=layer.metadata.get("axes", axes))
@@ -388,6 +393,7 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
                                         {k: v for k, v in scale.items() if k in axes}))
         return df.as_standard_type()
     elif isinstance(layer, napari.layers.Tracks):
+        from ..frame import TrackFrame
         ndim = data.shape[1]
         axes = axes[-ndim:]
         df = TrackFrame(data, columns=layer.metadata.get("axes", axes))

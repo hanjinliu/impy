@@ -1,24 +1,32 @@
 from __future__ import annotations
-import os
-from typing import Any, Callable, NewType
+from typing import Any, Callable, NewType, TYPE_CHECKING
 import types
 import napari
 import sys
 import warnings
 import inspect
-import pandas as pd
 import numpy as np
-from dask import array as da
-from skimage.measure import marching_cubes
 
-from .utils import *
+from .utils import (
+    layer_to_impy_object,
+    add_dask, 
+    add_labeledarray,
+    add_labels,
+    add_paths,
+    add_points,
+    add_table,
+    add_tracks,
+    upon_add_layer,
+    viewer_imread,
+    ColorCycle, 
+    make_world_scale,
+    )
 from .mouse import *
 from .widgets import TableWidget, LoggerWidget, ResultStackView
 
 from ..utils.axesop import switch_slice
 from ..collections import *
 from ..arrays import *
-from ..frame import *
 from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, read_meta
 from ..utils.utilcls import Progress
 from ..axes import ScaleDict
@@ -370,6 +378,9 @@ class napariViewers:
         obj : ImpyObject
             Object to add.
         """        
+        import pandas as pd
+        from dask import array as da
+        from ..frame import MarkerFrame, TrackFrame, PathFrame
         # Add image and its labels
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
@@ -461,6 +472,7 @@ class napariViewers:
         level, step_size, mask : 
             Passed to ``skimage.measure.marching_cubes``
         """        
+        from skimage.measure import marching_cubes
         verts, faces, _, values = marching_cubes(image3d, level=level, 
                                                  step_size=step_size, mask=mask)
         scale = make_world_scale(image3d)

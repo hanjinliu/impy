@@ -1,7 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from dask import array as da
-import itertools
 from collections import namedtuple
 from ..axesmixin import AxesMixin
 from ..._types import *
@@ -307,6 +305,7 @@ class MetaArray(AxesMixin, np.ndarray):
             # Do not construct dask tasks if it is not needed.
             out = asnumpy(func(self.value, *args, **kwargs), dtype=dtype)
         else:
+            from dask import array as da
             new_axis = _list_of_axes(self, new_axis)
             drop_axis = _list_of_axes(self, drop_axis)
                 

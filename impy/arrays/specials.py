@@ -1,13 +1,15 @@
 from __future__ import annotations
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import numpy as np
 from inspect import signature
 from scipy import optimize as opt
 from .bases import MetaArray
 from ..axes import ImageAxesError
-from ..frame import AxesFrame
-from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import complement_axes, find_first_appeared, del_axis
 from ..collections import DataDict
+
+if TYPE_CHECKING:
+    from ..frame import AxesFrame
 
 SCALAR_PROP = (
     "area", "bbox_area", "convex_area", "eccentricity", "equivalent_diameter", "euler_number",
@@ -198,6 +200,7 @@ class PropArray(MetaArray):
         AxesFrame
             DataFrame with PropArray data.
         """        
+        from ..frame import AxesFrame
         if colname in self.axes:
             raise ImageAxesError(f"Axis {colname} already exists.")
         if self.dtype == object:
