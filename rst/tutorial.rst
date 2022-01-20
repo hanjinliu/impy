@@ -238,6 +238,6 @@ When you have to convert it to ``ImgArray``, use ``data`` property:
 
 .. code-block:: python
 
-    img.as_imgarray() # dask's compute() function will be called inside
+    img.compute() # dask's compute() function will be called inside
 
 
