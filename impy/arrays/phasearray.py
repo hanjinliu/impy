@@ -1,15 +1,15 @@
 from __future__ import annotations
 import numpy as np
 
-from .utils import _filters, _structures
-from .utils._skimage import skmes
+from ._utils import _filters, _structures
+from ._utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
 
 from ..utils.axesop import complement_axes
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
 from ..utils.utilcls import Progress
-from .utils import _misc
+from ._utils import _misc
 from ..collections import DataDict
 from .._types import Dims
 

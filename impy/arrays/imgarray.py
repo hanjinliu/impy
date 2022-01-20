@@ -10,8 +10,8 @@ from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
 
-from .utils._skimage import skexp, skfeat, skfil, skimage, skmes, skreg, skres, skseg, sktrans
-from .utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
+from ._utils._skimage import skexp, skfeat, skfil, skimage, skmes, skreg, skres, skseg, sktrans
+from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
 from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared, del_axis
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
@@ -414,7 +414,7 @@ class ImgArray(LabeledArray):
         
         # show fitting result
         if show_result:
-            from .utils import _plot as _plt
+            from ._utils import _plot as _plt
             _plt.plot_gaussfit_result(self, fit)
         return fit
     
@@ -744,7 +744,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """         
-        from .utils._skimage import _get_ND_butterworth_filter
+        from ._utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
         if all((c >= 0.5 or c <= 0) for c in cutoff):
             return self
@@ -782,7 +782,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """       
-        from .utils._skimage import _get_ND_butterworth_filter
+        from ._utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
         if _ft_not_needed(cutoff):
             return self
@@ -827,7 +827,7 @@ class ImgArray(LabeledArray):
         """        
         if dims != self.axes:
             raise NotImplementedError("batch processing not implemented yet.")
-        from .utils._skimage import _get_ND_butterworth_filter
+        from ._utils._skimage import _get_ND_butterworth_filter
         from dask import array as da
 
         cutoff = check_nd(cutoff, len(dims))
@@ -873,7 +873,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """         
-        from .utils._skimage import _get_ND_butterworth_filter
+        from ._utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
@@ -3914,7 +3914,7 @@ class ImgArray(LabeledArray):
         
         result = MarkerFrame(np.cumsum(result, axis=0), columns=c_axes)
         if show_drift:
-            from .utils import _plot as _plt
+            from ._utils import _plot as _plt
             _plt.plot_drift(result)
         
         result.index.name = along

@@ -8,7 +8,7 @@ from .utils.utilcls import Progress
 from .utils.deco import *
 
 # Extend ImgArray with custom functions.
-
+# TODO: use annotation to determine "kind"
 class bind:
     """
     Dynamically define ImgArray function that can iterate over axes. You can integrate your own

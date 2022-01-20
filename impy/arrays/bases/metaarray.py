@@ -416,7 +416,7 @@ def _list_of_axes(img, axis):
         axis = [axis]
     return axis
         
-def _replace_inputs(img:MetaArray, args, kwargs):
+def _replace_inputs(img: MetaArray, args, kwargs):
     _as_np_ndarray = lambda a: a.value if isinstance(a, MetaArray) else a
     # convert arguments
     args = tuple(_as_np_ndarray(a) for a in args)

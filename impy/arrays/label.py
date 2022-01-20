@@ -1,8 +1,8 @@
 from __future__ import annotations
 import numpy as np
 
-from .utils._skimage import skimage, skseg
-from .utils import _filters, _structures, _docs
+from ._utils._skimage import skimage, skseg
+from ._utils import _filters, _structures, _docs
 from .bases import HistoryArray
 
 from ..utils.axesop import complement_axes

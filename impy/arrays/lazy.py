@@ -10,8 +10,8 @@ import tempfile
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
 from .axesmixin import AxesMixin
-from .utils._skimage import skres
-from .utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
+from ._utils._skimage import skres
+from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
 from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
 from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype, make_history
@@ -19,6 +19,7 @@ from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.utilcls import Progress
 from ..utils.io import get_imsave_meta_from_img, memmap
+from ..collections import DataList
 
 from .._types import nDFloat, Coords, Iterable, Dims
 from ..axes import ImageAxesError
@@ -258,9 +259,12 @@ class LazyImgArray(AxesMixin):
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
         with Progress("Converting to ImgArray"):
             arr = self.value.compute()
-            img = asnumpy(arr).view(ImgArray)
-            for attr in ["name", "dirpath", "axes", "metadata", "history"]:
-                setattr(img, attr, getattr(self, attr, None))
+            if arr.ndim > 0:
+                img = asnumpy(arr).view(ImgArray)
+                for attr in ["name", "dirpath", "axes", "metadata", "history"]:
+                    setattr(img, attr, getattr(self, attr, None))
+            else:
+                img = arr
         return img
     
     @property
@@ -460,17 +464,46 @@ class LazyImgArray(AxesMixin):
                                 meta=xp.array([], dtype=dtype), **kwargs)
         return out
     
+    def _apply_map_blocks(self, func: Callable, c_axes: str = None, 
+                          args: tuple = None, kwargs: dict[str, Any] = None):
+        from dask import array as da
+        out = da.empty_like(self.value)
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        dtype = self.dtype
+        for sl, img in self.iter(c_axes, israw=False):
+            out[sl] = da.map_blocks(func, img, dtype=dtype, *args, **kwargs)
+        
+        return out
+    
+    def _apply_map_overlap(self, func: Callable, c_axes: str = None, depth = 16, boundary="reflect",
+                           args: tuple = None, kwargs: dict[str, Any] = None):
+        from dask import array as da
+        out = da.empty_like(self.value)
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        dtype = self.dtype
+        for sl, img in self.iter(c_axes, israw=False):
+            out[sl] = da.map_overlap(func, img, depth=depth, boundary=boundary, dtype=dtype,
+                                     *args, **kwargs)
+        
+        return out
+    
     def _apply_dask_filter(self,
                           func: Callable,
                           c_axes: str = None,
                           args: tuple = None, kwargs: dict[str, Any] = None) -> LazyImgArray:
         from dask import array as da
-        out = da.empty(self.shape, dtype=self.dtype)
+        out = da.empty_like(self.value)
         if args is None:
             args = ()
         if kwargs is None:
             kwargs = {}
-        for sl, img in self.iter(c_axes):
+        for sl, img in self.iter(c_axes, israw=False):
             out[sl] = func(img, *args, **kwargs)
         return out
     
@@ -506,58 +539,66 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.erosion)
     @dims_to_spatial_axes
     @record_lazy
-    def erosion(self, radius: float=1, *, dims: Dims = None, update: bool = False
+    def erosion(self, radius: float = 1, *, dims: Dims = None, update: bool = False
                 ) -> LazyImgArray:
-        from dask_image.ndmorph import binary_erosion
-        if self.dtype != bool:
-            raise NotImplementedError("'erosion' of non-binary image is not implemented in dask-image yet.")
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask_filter(binary_erosion, 
-                                       c_axes=complement_axes(dims, self.axes), 
-                                       kwargs=dict(footprint=disk)
-                                       )
+        c_axes = complement_axes(dims, self.axes)
+        filter_func = xp_ndi.grey_erosion if self.dtype != bool else xp_ndi.binary_erosion
+        
+        return self._apply_map_overlap(
+            filter_func, 
+            c_axes=c_axes,
+            depth=_ceilint(radius),
+            kwargs=dict(footprint=disk)
+            )
         
     @_docs.copy_docs(ImgArray.dilation)
     @dims_to_spatial_axes
     @record_lazy
     def dilation(self, radius: float = 1, *, dims: Dims = None, update: bool = False
                  ) -> LazyImgArray:
-        from dask_image.ndmorph import binary_dilation
-        if self.dtype != bool:
-            raise NotImplementedError("'dilation' of non-binary image is not implemented in dask-image yet.")
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask_filter(binary_dilation, 
-                                       c_axes=complement_axes(dims, self.axes), 
-                                       kwargs=dict(footprint=disk)
-                                       )
+        c_axes = complement_axes(dims, self.axes)
+        filter_func = xp_ndi.grey_dilation if self.dtype != bool else xp_ndi.binary_dilation
+        
+        return self._apply_map_overlap(
+            filter_func, 
+            c_axes=c_axes,
+            depth=_ceilint(radius),
+            kwargs=dict(footprint=disk)
+            )
     
     @_docs.copy_docs(ImgArray.opening)
     @dims_to_spatial_axes
     @record_lazy
     def opening(self, radius: float = 1, *, dims: Dims = None, update: bool = False
                 ) -> LazyImgArray:
-        from dask_image.ndmorph import binary_opening
-        if self.dtype != bool:
-            raise NotImplementedError("'opening' of non-binary image is not implemented in dask-image yet.")
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask_filter(binary_opening, 
-                                       c_axes=complement_axes(dims, self.axes), 
-                                       kwargs=dict(footprint=disk)
-                                       )
+        c_axes = complement_axes(dims, self.axes)
+        filter_func = xp_ndi.grey_opening if self.dtype != bool else xp_ndi.binary_opening
+        
+        return self._apply_map_overlap(
+            filter_func, 
+            c_axes=c_axes,
+            depth=_ceilint(radius),
+            kwargs=dict(footprint=disk)
+            )
     
     @_docs.copy_docs(ImgArray.closing)
     @dims_to_spatial_axes
     @record_lazy
     def closing(self, radius: float = 1, *, dims: Dims = None, update: bool = False
                 ) -> LazyImgArray:
-        from dask_image.ndmorph import binary_closing
-        if self.dtype != bool:
-            raise NotImplementedError("'closing' of non-binary image is not implemented in dask-image yet.")
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask_filter(binary_closing, 
-                                       c_axes=complement_axes(dims, self.axes), 
-                                       kwargs=dict(footprint=disk)
-                                       )
+        c_axes = complement_axes(dims, self.axes)
+        filter_func = xp_ndi.grey_closing if self.dtype != bool else xp_ndi.binary_closing
+        
+        return self._apply_map_overlap(
+            filter_func, 
+            c_axes=c_axes,
+            depth=_ceilint(radius),
+            kwargs=dict(footprint=disk)
+            )
     
     @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
@@ -566,10 +607,11 @@ class LazyImgArray(AxesMixin):
     def gaussian_filter(self, sigma: nDFloat = 1.0, *, dims: Dims = None, update: bool = False
                         ) -> LazyImgArray:
         from dask_image.ndfilters import gaussian_filter
-        return self._apply_dask_filter(gaussian_filter,
-                                       c_axes=complement_axes(dims, self.axes),
-                                       args=(sigma,)
-                                       )
+        return self._apply_dask_filter(
+            gaussian_filter,
+            c_axes=complement_axes(dims, self.axes),
+            args=(sigma,)
+            )
     
     @_docs.copy_docs(ImgArray.median_filter)
     @dims_to_spatial_axes
@@ -579,10 +621,12 @@ class LazyImgArray(AxesMixin):
                       ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         from dask_image.ndfilters import median_filter
-        return self._apply_dask_filter(median_filter,
-                                       c_axes=complement_axes(dims, self.axes),
-                                       kwargs=dict(footprint=disk)
-                                       )
+        return self._apply_map_overlap(
+            xp_ndi.median_filter,
+            depth=_ceilint(radius),
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(footprint=disk)
+            )
         
     @_docs.copy_docs(ImgArray.mean_filter)
     @same_dtype(asfloat=True)
@@ -593,10 +637,11 @@ class LazyImgArray(AxesMixin):
         disk = _structures.ball_like(radius, len(dims))
         kernel = (disk/np.sum(disk)).astype(np.float32)
         from dask_image.ndfilters import convolve
-        return self._apply_dask_filter(convolve,
-                                       c_axes=complement_axes(dims, self.axes),
-                                       args=(kernel,),
-                                       )
+        return self._apply_dask_filter(
+            convolve,
+            c_axes=complement_axes(dims, self.axes),
+            args=(kernel,),
+            )
     
     @_docs.copy_docs(ImgArray.convolve)
     @dims_to_spatial_axes
@@ -605,11 +650,12 @@ class LazyImgArray(AxesMixin):
     def convolve(self, kernel, *, mode: str = "reflect", cval: float = 0, dims: Dims = None,
                  update: bool = False) -> LazyImgArray:
         from dask_image.ndfilters import convolve
-        return self._apply_dask_filter(convolve,
-                                       c_axes=complement_axes(dims, self.axes),
-                                       args=(kernel,),
-                                       kwargs=dict(mode=mode, cval=cval)
-                                       )
+        return self._apply_dask_filter(
+            convolve,
+            c_axes=complement_axes(dims, self.axes),
+            args=(kernel,),
+            kwargs=dict(mode=mode, cval=cval)
+            )
     
     @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
@@ -620,12 +666,13 @@ class LazyImgArray(AxesMixin):
         from dask_image.ndfilters import sobel, prewitt
         f = {"sobel": sobel,
              "prewitt": prewitt}[method]
-        return self._apply_function(f, 
-                          c_axes=complement_axes(dims, self.axes), 
-                          dtype=self.dtype,
-                          rechunk_to="max",
-                          dask_wrap=True
-                          )
+        return self._apply_dask_filter(
+            f, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            rechunk_to="max",
+            dask_wrap=True
+            )
     
     @_docs.copy_docs(ImgArray.laplacian_filter)
     @dims_to_spatial_axes
@@ -667,13 +714,12 @@ class LazyImgArray(AxesMixin):
                       dims: Dims = None, update: bool = False) -> LazyImgArray:
         if self.axisof(along) != 0:
             raise ValueError("Currently kalman_filter does not support t-axis != 0.")
-
-        out = self._apply_function(_filters.kalman_filter, 
-                                   c_axes=complement_axes(along + dims, self.axes), 
-                                   args=(gain, noise_var)
-                                   )
         
-        return out
+        return self._apply_map_blocks(
+            _filters.kalman_filter, 
+            c_axes=complement_axes(along + dims, self.axes), 
+            args=(gain, noise_var)
+            )
     
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
@@ -772,11 +818,12 @@ class LazyImgArray(AxesMixin):
     @record_lazy
     def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
                              dims: Dims = None, update: bool = False) -> LazyImgArray:
-        if dims != self.axes:
-            raise NotImplementedError("batch processing not implemented yet.")
-        from .utils._skimage import _get_ND_butterworth_filter
+        # if dims != self.axes:
+        #     raise NotImplementedError("batch processing not implemented yet.")
+        from ._utils._skimage import _get_ND_butterworth_filter
         self = self.as_float()
         cutoff = check_nd(cutoff, len(dims))
+        c_axes = complement_axes(dims, self.axes)
         if all((c >= 0.5 or c <= 0) for c in cutoff):
             return self
         
@@ -788,10 +835,10 @@ class LazyImgArray(AxesMixin):
             weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
             ft = weight * xp_fft.rfftn(arr)
             ift = xp_fft.irfftn(ft, s=shape)
-            return asnumpy(ift)
+            return ift
         from dask import array as da
-        out = da.map_overlap(func, self.value, depth=depth, boundary="reflect", dtype=self.dtype)
-        
+        # out = da.map_overlap(func, self.value, depth=depth, boundary="reflect", dtype=self.dtype)
+        out = self._apply_map_overlap(func, c_axes=c_axes, depth=depth, boundary="reflect")
         return out
     
     @_docs.copy_docs(ImgArray.proj)
@@ -949,35 +996,39 @@ class LazyImgArray(AxesMixin):
         padimg = np.pad(self.value, pad_width, mode, **kwargs)
         return padimg
     
-    @_docs.copy_docs(ImgArray.wiener)
-    @dims_to_spatial_axes
-    @same_dtype(asfloat=True)
-    @record_lazy
-    def wiener(self, psf: np.ndarray, lmd: float = 0.1, *, dims: Dims = None, update: bool = False) -> LazyImgArray:
-        if lmd <= 0:
-            raise ValueError(f"lmd must be positive, but got: {lmd}")
+    # @_docs.copy_docs(ImgArray.wiener)
+    # @dims_to_spatial_axes
+    # @same_dtype(asfloat=True)
+    # @record_lazy
+    # def wiener(self, psf: np.ndarray, lmd: float = 0.1, *, depth="auto", dims: Dims = None, update: bool = False) -> LazyImgArray:
+    #     if lmd <= 0:
+    #         raise ValueError(f"lmd must be positive, but got: {lmd}")
         
-        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+    #     if depth == "auto":
+    #         depth = 32  # TODO: any better way?
         
-        return self._apply_function(_deconv.wiener, 
-                          c_axes=complement_axes(dims, self.axes),
-                          rechunk_to="max",
-                          args=(psf_ft, psf_ft_conj, lmd)
-                          )
+    #     psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+        
+    #     return self._apply_map_overlap
+    #     return self._apply_function(_deconv.wiener, 
+    #                       c_axes=complement_axes(dims, self.axes),
+    #                       rechunk_to="max",
+    #                       args=(psf_ft, psf_ft_conj, lmd)
+    #                       )
     
-    @_docs.copy_docs(ImgArray.lucy)
-    @dims_to_spatial_axes
-    @same_dtype(asfloat=True)
-    @record_lazy
-    def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
-             update: bool = False) -> LazyImgArray:
-        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+    # @_docs.copy_docs(ImgArray.lucy)
+    # @dims_to_spatial_axes
+    # @same_dtype(asfloat=True)
+    # @record_lazy
+    # def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
+    #          update: bool = False) -> LazyImgArray:
+    #     psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-        return self._apply_function(_deconv.richardson_lucy, 
-                          c_axes=complement_axes(dims, self.axes),
-                          rechunk_to="max",
-                          args=(psf_ft, psf_ft_conj, niter, eps)
-                          )
+    #     return self._apply_function(_deconv.richardson_lucy, 
+    #                       c_axes=complement_axes(dims, self.axes),
+    #                       rechunk_to="max",
+    #                       args=(psf_ft, psf_ft_conj, niter, eps)
+    #                       )
     
     def __array_function__(self, func, types, args, kwargs):
         """
@@ -985,9 +1036,46 @@ class LazyImgArray(AxesMixin):
         function can be overloaded with this method.
         """
         from dask import array as da
-        img = da.core.Array.__array_function__(self.value, func, types, args, kwargs)
-        raise NotImplementedError()
-
+        args, kwargs = _replace_inputs(self, args, kwargs)
+        
+        _types = []
+        for t in types:
+            if t is self.__class__:
+                _types.append(da.core.Array)
+            else:
+                _types.append(t)
+        
+        result = self.value.__array_function__(func, _types, args, kwargs)
+        
+        if result is NotImplemented:
+            return NotImplemented
+                
+        if isinstance(result, (tuple, list)):
+            out = []
+            for r in result:
+                if isinstance(r, da.core.Array):
+                    out.append(
+                        self.__class__(r)._process_output(self, args, kwargs)
+                    )
+                else:
+                    out.append(r)
+            out = DataList(out)
+            
+        elif isinstance(result, da.core.Array):
+            out = self.__class__(result)
+            out._process_output(self, args, kwargs)
+            
+        return out
+    
+    def _process_output(self, input: LazyImgArray, args: tuple, kwargs: dict):
+        if "axis" in kwargs.keys() and not input.axes.is_none():
+            new_axes = del_axis(input.axes, kwargs["axis"])
+        else:
+            new_axes = "inherit"
+        self._set_info(input, new_axes=new_axes)
+        return None
+        
+        
     def as_uint8(self) -> LazyImgArray:
         img = self.value
         if img.dtype == np.uint8:
@@ -1080,7 +1168,7 @@ class LazyImgArray(AxesMixin):
         self._set_info(other, f"getitem[{keystr}]", kwargs["new_axes"])
         return None
     
-    def _set_info(self, other, next_history = None, new_axes: str = "inherit"):
+    def _set_info(self, other: LazyImgArray, next_history = None, new_axes: str = "inherit"):
         self._set_additional_props(other)
         # set axes
         try:
@@ -1099,3 +1187,24 @@ class LazyImgArray(AxesMixin):
             self.history = other.history.copy()
         
         return None
+    
+
+def _replace_inputs(img: LazyImgArray, args, kwargs):
+    _as_dask_array = lambda a: a.value if isinstance(a, LazyImgArray) else a
+    # convert arguments
+    args = tuple(_as_dask_array(a) for a in args)
+    if "axis" in kwargs:
+        axis = kwargs["axis"]
+        if isinstance(axis, str):
+            _axis = tuple(map(img.axisof, axis))
+            if len(_axis) == 1:
+                _axis = _axis[0]
+            kwargs["axis"] = _axis
+    
+    if "out" in kwargs:
+        kwargs["out"] = tuple(_as_dask_array(a) for a in kwargs["out"])
+    
+    return args, kwargs
+
+def _ceilint(a: float):
+    return int(np.ceil(a))

@@ -2,8 +2,8 @@ from __future__ import annotations
 import numpy as np
 from warnings import warn
 from .arrays import ImgArray, PropArray
-from .arrays.utils import _docs
-from .arrays.utils._corr import subpixel_pcc
+from .arrays._utils import _docs
+from .arrays._utils._corr import subpixel_pcc
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes

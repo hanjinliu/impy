@@ -1,5 +1,4 @@
-from . import (_dask_image,
-               _deconv,
+from . import (_deconv,
                _filters, 
                _glcm,
                _linalg, 

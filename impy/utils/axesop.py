@@ -1,3 +1,4 @@
+from functools import lru_cache
 import numpy as np
 
 def axes_included(img, label):
@@ -51,6 +52,7 @@ def add_axes(axes, shape, key, key_axes="yx"):
             key = np.stack([key]*(shape[i]), axis=i)
     return key
 
+@lru_cache
 def complement_axes(axes, all_axes="ptzcyx"):
     c_axes = ""
     for a in all_axes:

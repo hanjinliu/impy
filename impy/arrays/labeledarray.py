@@ -8,8 +8,8 @@ from warnings import warn
 from scipy import ndimage as ndi
 
 from .specials import PropArray
-from .utils._skimage import skmes, skseg
-from .utils import _misc, _docs
+from ._utils._skimage import skmes, skseg
+from ._utils import _misc, _docs
 from .bases import HistoryArray
 from .label import Label
 
@@ -244,14 +244,14 @@ class LabeledArray(HistoryArray):
         """
         Show intensity profile.
         """
-        from .utils import _plot as _plt
+        from ._utils import _plot as _plt
         _plt.hist(self.value, contrast)
 
         return None
 
     @dims_to_spatial_axes
     def imshow(self, dims=2, **kwargs):
-        from .utils import _plot as _plt
+        from ._utils import _plot as _plt
         if self.ndim == 1:
             _plt.plot_1d(self.value, **kwargs)
         elif self.ndim == 2:
@@ -279,7 +279,7 @@ class LabeledArray(HistoryArray):
         return self
 
     def imshow_comparewith(self, other: LabeledArray, **kwargs):
-        from .utils import _plot as _plt
+        from ._utils import _plot as _plt
         fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
         _plt.plot_2d(self.value, ax=ax[0], **kwargs)
         _plt.plot_2d(other.value, ax=ax[1], **kwargs)        
@@ -288,7 +288,7 @@ class LabeledArray(HistoryArray):
     
     @dims_to_spatial_axes
     def imshow_label(self, alpha=0.3, dims=2, **kwargs):
-        from .utils import _plot as _plt
+        from ._utils import _plot as _plt
         if not hasattr(self, "labels"):
             raise AttributeError("No label to show.")
         if self.ndim == 2:
@@ -518,7 +518,7 @@ class LabeledArray(HistoryArray):
         """
         from ..frame import MarkerFrame
         if isinstance(center, MarkerFrame):
-            from .utils._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
+            from ._utils._process_numba import _specify_circ_2d, _specify_circ_3d, _specify_square_2d, _specify_square_3d
             ndim = len(dims)
             radius = np.asarray(check_nd(radius, ndim), dtype=np.float32)
             
@@ -610,7 +610,7 @@ class LabeledArray(HistoryArray):
             length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
             coords = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
         else:    
-            from .utils._process_numba import _get_coordinate
+            from ._utils._process_numba import _get_coordinate
             
             each_length = np.sqrt(np.sum(np.diff(a, axis=0)**2, axis=1))
             total_length = np.sum(each_length)

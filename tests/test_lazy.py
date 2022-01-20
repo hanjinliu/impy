@@ -1,5 +1,7 @@
 import impy as ip
 from pathlib import Path
+import numpy as np
+from dask import array as da
 from numpy.testing import assert_allclose
 ip.Const["SHOW_PROGRESS"] = False
 
@@ -24,3 +26,13 @@ def test_filters_and_slicing():
     assert_allclose(img.affine(translation=[1, 50, 50]).as_imgarray(),
                     img.as_imgarray().affine(translation=[1, 50, 50])
                     )
+
+def test_numpy_function():
+    img = ip.aslazy(ip.random.random_uint16((10, 100, 100)))
+    assert img.axes == "tyx"
+    assert isinstance(np.mean(img).as_imgarray(), float)
+    proj = np.mean(img, axis="y")
+    assert isinstance(proj.value, da.core.Array)
+    assert proj.axes == "tx"
+    assert isinstance(proj.as_imgarray(), ip.ImgArray)
+    
