@@ -1,7 +1,7 @@
 import impy as ip
 from pathlib import Path
 import numpy as np
-from scipy.fft import fftn
+from impy._cupy import xp, xp_fft
 from numpy.testing import assert_allclose
 ip.Const["SHOW_PROGRESS"] = False
 
@@ -10,11 +10,11 @@ def test_precision():
     img = ip.imread(path)["c=1;t=0"].as_float()
     
     assert_allclose(img.fft(shift=False),
-                    fftn(img.value)
+                    xp_fft.fftn(xp.asarray(img.value))
                     )
     
     assert_allclose(img.fft(shift=False, double_precision=True),
-                    fftn(img.value.astype(np.float64)).astype(np.complex64)
+                    xp_fft.fftn(xp.asarray(img.value.astype(np.float64))).astype(np.complex64)
                     )
     
     assert_allclose(img.fft().ifft(), img, rtol=1e-6)

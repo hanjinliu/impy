@@ -1958,12 +1958,12 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
-                labels = np.array(img.labels)
+                labels = asnumpy(img.labels)
             else:
                 labels = None
             
-            indices = skfeat.peak_local_max(np.array(img),
-                                            footprint=_structures.ball_like(min_distance, ndim),
+            indices = skfeat.peak_local_max(asnumpy(img),
+                                            footprint=asnumpy(_structures.ball_like(min_distance, ndim)),
                                             threshold_abs=thr,
                                             num_peaks=topn,
                                             num_peaks_per_label=topn_per_label,
@@ -2029,12 +2029,12 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
-                labels = np.array(img.labels)
+                labels = asnumpy(img.labels)
             else:
                 labels = None
             
-            indices = skfeat.corner_peaks(np.array(img),
-                                          footprint=_structures.ball_like(min_distance, ndim),
+            indices = skfeat.corner_peaks(asnumpy(img),
+                                          footprint=asnumpy(_structures.ball_like(min_distance, ndim)),
                                           threshold_abs=thr,
                                           num_peaks=topn,
                                           num_peaks_per_label=topn_per_label,
@@ -3249,7 +3249,7 @@ class ImgArray(LabeledArray):
             Skeletonized image.
         """        
         if radius >= 1:
-            selem = _structures.ball_like(radius, len(dims))
+            selem = asnumpy(_structures.ball_like(radius, len(dims)))
         else:
             selem = None
         

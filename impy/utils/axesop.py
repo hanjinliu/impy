@@ -46,7 +46,7 @@ def add_axes(axes, shape, key, key_axes="yx"):
     """    
     if shape == key.shape:
         return key
-    key = np.asarray(key)
+    # key = np.asarray(key)
     for i, o in enumerate(axes):
         if o not in key_axes:
             key = np.stack([key]*(shape[i]), axis=i)

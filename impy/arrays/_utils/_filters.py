@@ -97,7 +97,7 @@ def coef_filter(data, selem):
     selem = selem / np.sum(selem)
     x1 = convolve(data, selem)
     x2 = convolve(data**2, selem)
-    out = _safe_sqrt(asnumpy(x2 - x1**2), fill=0)/x1
+    out = _safe_sqrt(asnumpy(x2 - x1**2), fill=0)/asnumpy(x1)
     return out
     
 def dog_filter(img, low_sigma, high_sigma):
