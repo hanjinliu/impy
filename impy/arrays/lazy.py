@@ -456,10 +456,6 @@ class LazyImgArray(AxesMixin):
                 out = func(arr[slice_in], *args, **kwargs)
                 return out[slice_out]
         
-        # out = da.empty(self.shape, dtype=self.dtype)
-        # for sl, img in self.iter(c_axes):
-        #     out[sl] = img.map_blocks(_func)
-        
         out = input_.map_blocks(_func, *args, drop_axis=drop_axis, new_axis=new_axis, 
                                 meta=xp.array([], dtype=dtype), **kwargs)
         return out
@@ -580,7 +576,7 @@ class LazyImgArray(AxesMixin):
         return self._apply_map_overlap(
             filter_func, 
             c_axes=c_axes,
-            depth=_ceilint(radius),
+            depth=_ceilint(radius)*2,
             kwargs=dict(footprint=disk)
             )
     
@@ -596,7 +592,7 @@ class LazyImgArray(AxesMixin):
         return self._apply_map_overlap(
             filter_func, 
             c_axes=c_axes,
-            depth=_ceilint(radius),
+            depth=_ceilint(radius)*2,
             kwargs=dict(footprint=disk)
             )
     
@@ -620,7 +616,6 @@ class LazyImgArray(AxesMixin):
     def median_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False
                       ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
-        from dask_image.ndfilters import median_filter
         return self._apply_map_overlap(
             xp_ndi.median_filter,
             depth=_ceilint(radius),
@@ -663,15 +658,19 @@ class LazyImgArray(AxesMixin):
     @record_lazy
     def edge_filter(self, method: str = "sobel", *, dims: Dims = None, update: bool = False
                     ) -> LazyImgArray:
-        from dask_image.ndfilters import sobel, prewitt
-        f = {"sobel": sobel,
-             "prewitt": prewitt}[method]
+        from ._utils._skimage import skfil
+        method_dict = {"sobel": (skfil.sobel, 1),
+                       "farid": (skfil.farid, 2),
+                       "scharr": (skfil.scharr, 1),
+                       "prewitt": (skfil.prewitt, 1)}
+        try:
+            f, depth = method_dict[method]
+        except KeyError:
+            raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
         return self._apply_dask_filter(
-            f, 
-            c_axes=complement_axes(dims, self.axes), 
-            dtype=self.dtype,
-            rechunk_to="max",
-            dask_wrap=True
+            f,
+            c_axes=complement_axes(dims, self.axes),
+            depth=depth,
             )
     
     @_docs.copy_docs(ImgArray.laplacian_filter)
