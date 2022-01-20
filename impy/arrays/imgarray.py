@@ -2823,7 +2823,7 @@ class ImgArray(LabeledArray):
         # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of 
         # 0 <= A < 1.
         exps: list[xp.ndarray] = \
-            [xp.exp(-2j * np.pi * np.mod(wave_num(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
+            [xp.exp(-2j * np.pi * xp.mod(wave_num(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
              for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
         
         # Calculate chunk size for proper output shapes
