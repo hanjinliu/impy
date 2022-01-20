@@ -60,7 +60,6 @@ class GlobalConstant(dict):
              ID_AXIS    : {self.ID_AXIS}
         FONT_SIZE_FACTOR: {self.FONT_SIZE_FACTOR}
              RESOURCE   : {self.RESOURCE}
-          DASK_CACHE_GB : {self.DASK_CACHE_GB:.2f} GB
             SCHEDULER   : {self.SCHEDULER}
         """
 

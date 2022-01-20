@@ -501,6 +501,7 @@ class LazyImgArray(AxesMixin):
                            func: Callable,
                            c_axes: str = None,
                            args: tuple = None, kwargs: dict[str, Any] = None) -> LazyImgArray:
+        # TODO: This is not efficient.
         from dask import array as da
         out = da.empty_like(self.value)
         if args is None:

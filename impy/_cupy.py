@@ -6,7 +6,11 @@ except ImportError:
     GPU_AVAILABLE = False
 
 if GPU_AVAILABLE:
-    asnumpy = xp.asnumpy
+    def asnumpy(arr, dtype=None):
+        out = xp.asnumpy(arr)
+        if dtype is None:
+            return out
+        return out.astype(dtype)
     from cupyx.scipy import fft as xp_fft
     from cupyx.scipy import ndimage as xp_ndi
     from cupy import linalg as xp_linalg
