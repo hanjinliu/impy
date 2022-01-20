@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.bases package &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>impy.arrays.bases package &mdash; impy 1.25.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -18,7 +18,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="impy.arrays.utils package" href="impy.arrays.utils.html" />
+    <link rel="next" title="impy.frame package" href="impy.frame.html" />
     <link rel="prev" title="impy.arrays package" href="impy.arrays.html" /> 
 </head>
 
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                1.25.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -203,34 +203,6 @@ in this way is faster than <cite>multiprocess</cite> module.</p>
 <dd><p>Add functions to NP_DISPATCH so that numpy functions can be overloaded.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.iter">
-<span class="sig-name descname"><span class="pre">iter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">israw</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Slices</span><span class="p"><span class="pre">,</span> </span><span class="pre">np.ndarray</span> <span class="p"><span class="pre">|</span></span> <a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">MetaArray</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/impy/arrays/bases/metaarray.html#MetaArray.iter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.iter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iteration along axes. If axes=”tzc”, then equivalent to following pseudo code:</p>
-<blockquote>
-<div><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">all_t</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">all_z</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">all_c</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-</pre></div>
-</div>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>axes</strong> (<em>str</em><em> or </em><em>int</em>) – On which axes iteration is performed. Or the number of spatial dimension.</p></li>
-<li><p><strong>israw</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True, MetaArray will be returned. If False, np.ndarray will be returned.</p></li>
-<li><p><strong>exclude</strong> (<em>str</em><em>, </em><em>optional</em>) – Which axes will be excluded in output. For example, self.axes=”tcyx” and
-exclude=”c” then the axes of output will be “tyx” and slice is also correctly
-arranged.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Yields</dt>
-<dd class="field-even"><p><em>slice and (np.ndarray or MetaArray)</em> – slice and a subimage=self[sl]</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py attribute">
 <dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.name">
 <span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.name" title="Permalink to this definition">¶</a></dt>
@@ -332,7 +304,7 @@ fail if a copy is required.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="impy.arrays.html" class="btn btn-neutral float-left" title="impy.arrays package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="impy.arrays.utils.html" class="btn btn-neutral float-right" title="impy.arrays.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="impy.frame.html" class="btn btn-neutral float-right" title="impy.frame package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

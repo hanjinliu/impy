@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.specials &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.arrays.specials &mdash; impy 1.25.0.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.25.0.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../impy.html">impy</a> &raquo;</li>
       <li>impy.arrays.specials</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -70,15 +70,17 @@
              
   <h1>Source code for impy.arrays.specials</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">optimize</span> <span class="k">as</span> <span class="n">opt</span>
 <span class="kn">from</span> <span class="nn">.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
 <span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span>
-<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">AxesFrame</span>
-<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">switch_slice</span><span class="p">,</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span><span class="p">,</span> <span class="n">del_axis</span>
+<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span><span class="p">,</span> <span class="n">del_axis</span>
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataDict</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">AxesFrame</span>
 
 <span class="n">SCALAR_PROP</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s2">&quot;area&quot;</span><span class="p">,</span> <span class="s2">&quot;bbox_area&quot;</span><span class="p">,</span> <span class="s2">&quot;convex_area&quot;</span><span class="p">,</span> <span class="s2">&quot;eccentricity&quot;</span><span class="p">,</span> <span class="s2">&quot;equivalent_diameter&quot;</span><span class="p">,</span> <span class="s2">&quot;euler_number&quot;</span><span class="p">,</span>
@@ -269,6 +271,7 @@
 <span class="sd">        AxesFrame</span>
 <span class="sd">            DataFrame with PropArray data.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">AxesFrame</span>
         <span class="k">if</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Axis </span><span class="si">{</span><span class="n">colname</span><span class="si">}</span><span class="s2"> already exists.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">object</span><span class="p">:</span>

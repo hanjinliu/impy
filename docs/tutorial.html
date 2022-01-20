@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorial &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>Tutorial &mdash; impy 1.25.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                1.25.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -294,7 +294,7 @@ are also implemented in <code class="docutils literal notranslate"><span class="
 </pre></div>
 </div>
 <p>When you have to convert it to <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, use <code class="docutils literal notranslate"><span class="pre">data</span></code> property:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">data</span> <span class="c1"># dask&#39;s compute() function will be called inside</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span> <span class="c1"># dask&#39;s compute() function will be called inside</span>
 </pre></div>
 </div>
 </section>

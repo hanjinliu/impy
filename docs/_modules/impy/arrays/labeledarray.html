@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 1.25.0.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                1.25.0.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -72,7 +72,6 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">DTypeLike</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
@@ -80,8 +79,8 @@
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
 
 <span class="kn">from</span> <span class="nn">.specials</span> <span class="kn">import</span> <span class="n">PropArray</span>
-<span class="kn">from</span> <span class="nn">.utils._skimage</span> <span class="kn">import</span> <span class="n">skmes</span><span class="p">,</span> <span class="n">skseg</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_docs</span>
+<span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">skmes</span><span class="p">,</span> <span class="n">skseg</span>
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_docs</span>
 <span class="kn">from</span> <span class="nn">.bases</span> <span class="kn">import</span> <span class="n">HistoryArray</span>
 <span class="kn">from</span> <span class="nn">.label</span> <span class="kn">import</span> <span class="n">Label</span>
 
@@ -93,7 +92,6 @@
 
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataList</span>
 <span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span>
-<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">nDInt</span><span class="p">,</span> <span class="n">nDFloat</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Coords</span><span class="p">,</span> <span class="n">Iterable</span>
 
 <div class="viewcode-block" id="LabeledArray"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray">[docs]</a><span class="k">class</span> <span class="nc">LabeledArray</span><span class="p">(</span><span class="n">HistoryArray</span><span class="p">):</span>
@@ -317,14 +315,14 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Show intensity profile.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
+        <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
         <span class="n">_plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">contrast</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="LabeledArray.imshow"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imshow">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
+        <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">_plt</span><span class="o">.</span><span class="n">plot_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -352,7 +350,7 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 <div class="viewcode-block" id="LabeledArray.imshow_comparewith"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imshow_comparewith">[docs]</a>    <span class="k">def</span> <span class="nf">imshow_comparewith</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">LabeledArray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
+        <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
         <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
         <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>        
@@ -361,7 +359,7 @@
     
 <div class="viewcode-block" id="LabeledArray.imshow_label"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imshow_label">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">imshow_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
+        <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No label to show.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -589,8 +587,9 @@
 <span class="sd">            &gt;&gt;&gt; img.specify(coords, 3.5, filt=filter_func, labeltype=&quot;circle&quot;)</span>
 <span class="sd">            &gt;&gt;&gt; ip.gui.add(img)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">MarkerFrame</span><span class="p">):</span>
-            <span class="kn">from</span> <span class="nn">.utils._process_numba</span> <span class="kn">import</span> <span class="n">_specify_circ_2d</span><span class="p">,</span> <span class="n">_specify_circ_3d</span><span class="p">,</span> <span class="n">_specify_square_2d</span><span class="p">,</span> <span class="n">_specify_square_3d</span>
+            <span class="kn">from</span> <span class="nn">._utils._process_numba</span> <span class="kn">import</span> <span class="n">_specify_circ_2d</span><span class="p">,</span> <span class="n">_specify_circ_3d</span><span class="p">,</span> <span class="n">_specify_square_2d</span><span class="p">,</span> <span class="n">_specify_square_3d</span>
             <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
             <span class="n">radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">check_nd</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">ndim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
             
@@ -682,7 +681,7 @@
             <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">src_</span><span class="p">,</span> <span class="n">dst_</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span> <span class="k">for</span> <span class="n">src_</span><span class="p">,</span> <span class="n">dst_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)])</span>
         <span class="k">else</span><span class="p">:</span>    
-            <span class="kn">from</span> <span class="nn">.utils._process_numba</span> <span class="kn">import</span> <span class="n">_get_coordinate</span>
+            <span class="kn">from</span> <span class="nn">._utils._process_numba</span> <span class="kn">import</span> <span class="n">_get_coordinate</span>
             
             <span class="n">each_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
             <span class="n">total_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">each_length</span><span class="p">)</span>
@@ -820,6 +819,7 @@
 <span class="sd">            &gt;&gt;&gt;     return lbl[yc, xc] &gt; 0</span>
 <span class="sd">            &gt;&gt;&gt; img.label_if(lbl, filt)</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
         <span class="c1"># check the shape of label_image</span>
         <span class="k">if</span> <span class="n">label_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">label_image</span> <span class="o">=</span> <span class="bp">self</span>

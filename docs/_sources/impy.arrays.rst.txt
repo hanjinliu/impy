@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    impy.arrays.bases
-   impy.arrays.utils
 
 Submodules
 ----------
