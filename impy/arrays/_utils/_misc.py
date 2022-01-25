@@ -1,7 +1,7 @@
 import numpy as np
 from ..._cupy import xp
 
-def adjust_bin(img, binsize, check_edges, dims, all_axes):
+def adjust_bin(img, binsize: int, check_edges: bool, dims: str, all_axes: str):
     shape = []
     scale = []
     sl = []

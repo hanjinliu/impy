@@ -500,7 +500,8 @@ class LazyImgArray(AxesMixin):
     def _apply_dask_filter(self,
                            func: Callable,
                            c_axes: str = None,
-                           args: tuple = None, kwargs: dict[str, Any] = None) -> LazyImgArray:
+                           args: tuple = None, 
+                           kwargs: dict[str, Any] = None) -> LazyImgArray:
         # TODO: This is not efficient. Maybe using da.stack is better?
         from dask import array as da
         out = da.empty_like(self.value)
@@ -1034,13 +1035,14 @@ class LazyImgArray(AxesMixin):
     # @dims_to_spatial_axes
     # @same_dtype(asfloat=True)
     # @record_lazy
-    # def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
+    # def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, depth: int = 32, *, dims: Dims = None, 
     #          update: bool = False) -> LazyImgArray:
     #     psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-    #     return self._apply_function(_deconv.richardson_lucy, 
+    #     return self._apply_map_overlap(_deconv.richardson_lucy, 
     #                       c_axes=complement_axes(dims, self.axes),
-    #                       rechunk_to="max",
+    #                       depth=depth,
+    #                       boundary="nearest",
     #                       args=(psf_ft, psf_ft_conj, niter, eps)
     #                       )
     
