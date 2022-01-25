@@ -493,7 +493,7 @@ class LazyImgArray(AxesMixin):
             for sl in iter_slice(input.shape, c_axes, all_axes):
                 out[sl] = func(input[sl], *args, **kwargs)
             return out
-        
+        depth = switch_slice(c_axes, self.axes, 0, depth)
         return da.map_overlap(_func, self.value, depth=depth, boundary=boundary, dtype=dtype,
                               *args, **kwargs)
     
@@ -611,7 +611,6 @@ class LazyImgArray(AxesMixin):
     @record_lazy
     def gaussian_filter(self, sigma: nDFloat = 1.0, *, dims: Dims = None, update: bool = False
                         ) -> LazyImgArray:
-        from dask_image.ndfilters import gaussian_filter
         c_axes = complement_axes(dims, self.axes)
         depth = _ceilint(sigma*4)
         return self._apply_map_overlap(
