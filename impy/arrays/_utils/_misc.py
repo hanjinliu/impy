@@ -4,6 +4,7 @@ from ..._cupy import xp
 def adjust_bin(img, binsize, check_edges, dims, all_axes):
     shape = []
     scale = []
+    sl = []
     for i, a in enumerate(all_axes):
         s = img.shape[i]
         if a in dims:
@@ -12,14 +13,17 @@ def adjust_bin(img, binsize, check_edges, dims, all_axes):
                 if check_edges:
                     raise ValueError(f"Cannot bin axis {a} with length {s} by bin size {binsize}")
                 else:
-                    img = img[(slice(None),)*i + (slice(None, s//b*b),)]
+                    sl.append(slice(None, s//b*b))
+            else:
+                sl.append(slice(None))
         else:
             b = 1
+            sl.append(slice(None))
         shape += [s//b, b]
         scale.append(1/b)
-    
+    sl = tuple(sl)
     shape = tuple(shape)
-    return img, shape, scale
+    return img[sl], shape, scale
 
 
 def make_rotated_axis(src, dst):

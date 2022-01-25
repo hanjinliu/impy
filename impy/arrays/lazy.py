@@ -874,7 +874,7 @@ class LazyImgArray(AxesMixin):
             return self
         
         if isinstance(method, str):
-            binfunc = getattr(np, method)
+            binfunc = getattr(xp, method)
         elif callable(method):
             binfunc = method
         else:
