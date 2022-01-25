@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays package &mdash; impy 1.25.0 documentation</title>
+  <title>impy.arrays package &mdash; impy 1.25.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.0
+                1.25.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -4668,34 +4668,6 @@ as an masked functio if possible.</p></li>
 <span class="sig-name descname"><span class="pre">release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray"><span class="pre">impy.arrays.lazy.LazyImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/lazy.html#LazyImgArray.release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.lazy.LazyImgArray.release" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute all the tasks and store the data in memory map, and read it as a dask array
 again.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.arrays.lazy.LazyImgArray.rotated_crop">
-<span class="sig-name descname"><span class="pre">rotated_crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">origin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray"><span class="pre">impy.arrays.lazy.LazyImgArray</span></a></span></span><a class="reference internal" href="_modules/impy/arrays/lazy.html#LazyImgArray.rotated_crop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.lazy.LazyImgArray.rotated_crop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Copy of LabeledArray.rotated_crop. This function returns the same result but the value is evaluated lazily as an dask array.</p>
-<p>Crop the image at four courners of an rotated rectangle. Currently only supports rotation within
-yx-plane. An rotated rectangle is specified with positions of a origin and two destinations <cite>dst1</cite>
-and <cite>dst2</cite>, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle. Let
-origin be the origin of a xy-plane, the rotation direction from dst1 to dst2 must be counter-
-clockwise, or the cropped image will be reversed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>origin</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – </p></li>
-<li><p><strong>dst1</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – </p></li>
-<li><p><strong>dst2</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em>) – </p></li>
-<li><p><strong>dims</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Spatial dimensions. If string is given, each symbol is interpeted as an axis name of spatial dimensions. If an integer is given, it is interpreted as the number of spatial dimensions.
-For instance, <code class="docutils literal notranslate"><span class="pre">dims=&quot;yx&quot;</span></code> means axes <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> are spatial dimensions and function is applied to other axes, say, <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&quot;c&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">dims=3</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">dims=&quot;zyx&quot;</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Cropped array.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray">LazyImgArray</a></p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py property">

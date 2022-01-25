@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.lazy &mdash; impy 1.25.0 documentation</title>
+  <title>impy.arrays.lazy &mdash; impy 1.25.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.0
+                1.25.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -564,15 +564,16 @@
             <span class="k">for</span> <span class="n">sl</span> <span class="ow">in</span> <span class="n">iter_slice</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">c_axes</span><span class="p">,</span> <span class="n">all_axes</span><span class="p">):</span>
                 <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="n">sl</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">out</span>
-        
+        <span class="n">depth</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">c_axes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">depth</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">da</span><span class="o">.</span><span class="n">map_overlap</span><span class="p">(</span><span class="n">_func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
                               <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     
     <span class="k">def</span> <span class="nf">_apply_dask_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                            <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
                            <span class="n">c_axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                           <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="c1"># TODO: This is not efficient.</span>
+                           <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                           <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
+        <span class="c1"># TODO: This is not efficient. Maybe using da.stack is better?</span>
         <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -583,34 +584,34 @@
             <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span>
     
-<div class="viewcode-block" id="LazyImgArray.rotated_crop"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.rotated_crop">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">LabeledArray</span><span class="o">.</span><span class="n">rotated_crop</span><span class="p">)</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@record_lazy</span>
-    <span class="k">def</span> <span class="nf">rotated_crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">dst1</span><span class="p">,</span> <span class="n">dst2</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span>
-        <span class="n">dst1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">dst1</span><span class="p">)</span>
-        <span class="n">dst2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">dst2</span><span class="p">)</span>
-        <span class="n">ax0</span> <span class="o">=</span> <span class="n">_misc</span><span class="o">.</span><span class="n">make_rotated_axis</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">dst2</span><span class="p">)</span>
-        <span class="n">ax1</span> <span class="o">=</span> <span class="n">_misc</span><span class="o">.</span><span class="n">make_rotated_axis</span><span class="p">(</span><span class="n">dst1</span><span class="p">,</span> <span class="n">origin</span><span class="p">)</span>
-        <span class="n">all_coords</span> <span class="o">=</span> <span class="n">ax0</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">ax1</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="n">origin</span>
-        <span class="n">all_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">all_coords</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># TODO: This should wait for dask-image implement map_coordinates</span>
+    <span class="c1"># @_docs.copy_docs(LabeledArray.rotated_crop)</span>
+    <span class="c1"># @dims_to_spatial_axes</span>
+    <span class="c1"># @record_lazy</span>
+    <span class="c1"># def rotated_crop(self, origin, dst1, dst2, dims=2) -&gt; LazyImgArray:</span>
+    <span class="c1">#     origin = np.asarray(origin)</span>
+    <span class="c1">#     dst1 = np.asarray(dst1)</span>
+    <span class="c1">#     dst2 = np.asarray(dst2)</span>
+    <span class="c1">#     ax0 = _misc.make_rotated_axis(origin, dst2)</span>
+    <span class="c1">#     ax1 = _misc.make_rotated_axis(dst1, origin)</span>
+    <span class="c1">#     all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin</span>
+    <span class="c1">#     all_coords = np.moveaxis(all_coords, -1, 0)</span>
         
         <span class="c1"># Because output shape changes, we have to tell dask what chunk size it would be, otherwise output</span>
         <span class="c1"># shape is estimated in a wrong way. </span>
-        <span class="n">output_chunks</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dims</span><span class="p">):</span>
-            <span class="n">it</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-            <span class="n">output_chunks</span><span class="p">[</span><span class="n">it</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
-        <span class="c1"># TODO: need re-implementation</span>
-        <span class="n">cropped_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_function</span><span class="p">(</span><span class="n">xp_ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">,</span> 
-                                 <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                                 <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                 <span class="n">rechunk_to</span><span class="o">=</span><span class="s2">&quot;max&quot;</span><span class="p">,</span>
-                                 <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">all_coords</span><span class="p">),),</span>
-                                 <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">prefilter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">output_chunks</span><span class="p">)</span>
-                                 <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cropped_img</span></div>
+        <span class="c1"># output_chunks = [1] * self.ndim</span>
+        <span class="c1"># for i, a in enumerate(dims):</span>
+        <span class="c1">#     it = self.axisof(a)</span>
+        <span class="c1">#     output_chunks[it] = all_coords.shape[i+1]</span>
+        <span class="c1">#</span>
+        <span class="c1"># cropped_img = self._apply_function(xp_ndi.map_coordinates, </span>
+        <span class="c1">#                          c_axes=complement_axes(dims, self.axes), </span>
+        <span class="c1">#                          dtype=self.dtype,</span>
+        <span class="c1">#                          rechunk_to=&quot;max&quot;,</span>
+        <span class="c1">#                          args=(xp.asarray(all_coords),),</span>
+        <span class="c1">#                          kwargs=dict(prefilter=False, order=1, chunks=output_chunks)</span>
+        <span class="c1">#                          )</span>
+        
     
 <div class="viewcode-block" id="LazyImgArray.erosion"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.erosion">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">erosion</span><span class="p">)</span>
     <span class="nd">@dims_to_spatial_axes</span>
@@ -682,11 +683,13 @@
     <span class="nd">@record_lazy</span>
     <span class="k">def</span> <span class="nf">gaussian_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="n">nDFloat</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">dask_image.ndfilters</span> <span class="kn">import</span> <span class="n">gaussian_filter</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask_filter</span><span class="p">(</span>
-            <span class="n">gaussian_filter</span><span class="p">,</span>
-            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span>
-            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sigma</span><span class="p">,)</span>
+        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="n">_ceilint</span><span class="p">(</span><span class="n">sigma</span><span class="o">*</span><span class="mi">4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_map_overlap</span><span class="p">(</span>
+            <span class="n">xp_ndi</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">,</span>
+            <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">),</span>
             <span class="p">)</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.median_filter"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.median_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">median_filter</span><span class="p">)</span>
@@ -725,10 +728,16 @@
     <span class="k">def</span> <span class="nf">convolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;reflect&quot;</span><span class="p">,</span> <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">dask_image.ndfilters</span> <span class="kn">import</span> <span class="n">convolve</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask_filter</span><span class="p">(</span>
-            <span class="n">convolve</span><span class="p">,</span>
-            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span>
-            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">weights</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">kernel</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">half_size</span> <span class="o">=</span> <span class="n">shape</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">half_size</span><span class="p">)</span>
+        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_map_overlap</span><span class="p">(</span>
+            <span class="n">xp_ndi</span><span class="o">.</span><span class="n">convolve</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">,</span>
+            <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">weights</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">),</span>
             <span class="p">)</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.edge_filter"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.edge_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">edge_filter</span><span class="p">)</span>
@@ -919,7 +928,7 @@
         <span class="k">return</span> <span class="n">out</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.proj"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.proj">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">proj</span><span class="p">)</span>
-    <span class="nd">@same_dtype</span><span class="p">()</span>
+    <span class="nd">@same_dtype</span>
     <span class="k">def</span> <span class="nf">proj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
         <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -939,13 +948,13 @@
     
 <div class="viewcode-block" id="LazyImgArray.binning"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.lazy.LazyImgArray.binning">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">binning</span><span class="p">)</span>
     <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@same_dtype</span><span class="p">()</span>
+    <span class="nd">@same_dtype</span>
     <span class="k">def</span> <span class="nf">binning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">check_edges</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">binsize</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span>
         
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">binfunc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+            <span class="n">binfunc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">xp</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
             <span class="n">binfunc</span> <span class="o">=</span> <span class="n">method</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1097,13 +1106,14 @@
     <span class="c1"># @dims_to_spatial_axes</span>
     <span class="c1"># @same_dtype(asfloat=True)</span>
     <span class="c1"># @record_lazy</span>
-    <span class="c1"># def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, </span>
+    <span class="c1"># def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, depth: int = 32, *, dims: Dims = None, </span>
     <span class="c1">#          update: bool = False) -&gt; LazyImgArray:</span>
     <span class="c1">#     psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)</span>
 
-    <span class="c1">#     return self._apply_function(_deconv.richardson_lucy, </span>
+    <span class="c1">#     return self._apply_map_overlap(_deconv.richardson_lucy, </span>
     <span class="c1">#                       c_axes=complement_axes(dims, self.axes),</span>
-    <span class="c1">#                       rechunk_to=&quot;max&quot;,</span>
+    <span class="c1">#                       depth=depth,</span>
+    <span class="c1">#                       boundary=&quot;nearest&quot;,</span>
     <span class="c1">#                       args=(psf_ft, psf_ft_conj, niter, eps)</span>
     <span class="c1">#                       )</span>
     
