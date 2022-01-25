@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer.utils &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.viewer.utils &mdash; impy 1.25.0.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                1.25.0.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -40,6 +40,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +59,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../impy.html">impy</a> &raquo;</li>
       <li>impy.viewer.utils</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -71,14 +71,17 @@
   <h1>Source code for impy.viewer.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">napari</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">from</span> <span class="nn">..arrays</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
 <span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">imread</span><span class="p">,</span> <span class="n">lazy_imread</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">TrackFrame</span><span class="p">,</span> <span class="n">PathFrame</span>
 
 <div class="viewcode-block" id="copy_layer"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.copy_layer">[docs]</a><span class="k">def</span> <span class="nf">copy_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
     <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">as_layer_data_tuple</span><span class="p">()</span>
@@ -187,7 +190,7 @@
     <span class="k">return</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="image_tuple"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.image_tuple">[docs]</a><span class="k">def</span> <span class="nf">image_tuple</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span><span class="s2">&quot;napari.layers.Image&quot;</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span><span class="n">ImgArray</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="s2">&quot;inherit&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="image_tuple"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.image_tuple">[docs]</a><span class="k">def</span> <span class="nf">image_tuple</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span> <span class="s2">&quot;napari.layers.Image&quot;</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="s2">&quot;inherit&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">data</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">data</span>
     <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
@@ -210,7 +213,7 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">kw</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="label_tuple"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.label_tuple">[docs]</a><span class="k">def</span> <span class="nf">label_tuple</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span><span class="s2">&quot;napari.layers.Labels&quot;</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span><span class="n">Label</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="s2">&quot;inherit&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="label_tuple"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.label_tuple">[docs]</a><span class="k">def</span> <span class="nf">label_tuple</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span> <span class="s2">&quot;napari.layers.Labels&quot;</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">Label</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="s2">&quot;inherit&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">data</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">data</span>
     <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">translate</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">translate</span> <span class="o">==</span> <span class="s2">&quot;inherit&quot;</span><span class="p">:</span>
@@ -340,7 +343,7 @@
     <span class="k">if</span> <span class="s2">&quot;contrast_limits&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="c1"># contrast limits should be determined quickly.</span>
         <span class="n">leny</span><span class="p">,</span> <span class="n">lenx</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">img</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">::</span><span class="n">leny</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">leny</span><span class="p">),</span> <span class="p">::</span><span class="n">lenx</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">lenx</span><span class="p">)]</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">::</span><span class="n">leny</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">leny</span><span class="p">),</span> <span class="p">::</span><span class="n">lenx</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">lenx</span><span class="p">)]</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;contrast_limits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">()),</span> 
                                         <span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">())]</span>
 
@@ -361,6 +364,7 @@
     <span class="k">return</span> <span class="n">layer</span></div>
 
 <div class="viewcode-block" id="add_points"><a class="viewcode-back" href="../../../impy.viewer.html#impy.viewer.utils.add_points">[docs]</a><span class="k">def</span> <span class="nf">add_points</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">MarkerFrame</span><span class="p">):</span>
         <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
         <span class="n">points</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">get_coords</span><span class="p">()</span>
@@ -452,6 +456,7 @@
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Shapes</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">data</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Points</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:]</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="n">axes</span><span class="p">))</span>
@@ -459,6 +464,7 @@
                                         <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">scale</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">}))</span>
         <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">()</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Tracks</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">TrackFrame</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:]</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">TrackFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;axes&quot;</span><span class="p">,</span> <span class="n">axes</span><span class="p">))</span>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.axesmixin &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>impy.arrays.axesmixin &mdash; impy 1.25.0.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                1.25.0.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -70,10 +70,14 @@
              
   <h1>Source code for impy.arrays.axesmixin</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">ScaleDict</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">switch_slice</span>
+<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">ScaleDict</span>
+<span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Slices</span>
 
 <div class="viewcode-block" id="AxesMixin"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.axesmixin.AxesMixin">[docs]</a><span class="k">class</span> <span class="nc">AxesMixin</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -232,7 +236,56 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;other&#39; must be str or LazyImgArray, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
-        <span class="k">return</span> <span class="kc">None</span></div></div>
+        <span class="k">return</span> <span class="kc">None</span></div>
+    
+    
+<div class="viewcode-block" id="AxesMixin.iter"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.axesmixin.AxesMixin.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">israw</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Slices</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">AxesMixin</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iteration along axes. If axes=&quot;tzc&quot;, then equivalent to following pseudo code:</span>
+<span class="sd">        </span>
+<span class="sd">            .. code-block::</span>
+<span class="sd">            </span>
+<span class="sd">                for t in all_t:</span>
+<span class="sd">                    for z in all_z:</span>
+<span class="sd">                        for c in all_c:</span>
+<span class="sd">                            yield self[t, z, c, ...]</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axes : str or int</span>
+<span class="sd">            On which axes iteration is performed. Or the number of spatial dimension.</span>
+<span class="sd">        israw : bool, default is False</span>
+<span class="sd">            If True, MetaArray will be returned. If False, np.ndarray will be returned.</span>
+<span class="sd">        exclude : str, optional</span>
+<span class="sd">            Which axes will be excluded in output. For example, self.axes=&quot;tcyx&quot; and </span>
+<span class="sd">            exclude=&quot;c&quot; then the axes of output will be &quot;tyx&quot; and slice is also correctly </span>
+<span class="sd">            arranged.</span>
+<span class="sd">            </span>
+<span class="sd">        Yields</span>
+<span class="sd">        -------</span>
+<span class="sd">        slice and (np.ndarray or AxesMixin)</span>
+<span class="sd">            slice and a subimage=self[sl]</span>
+<span class="sd">        &quot;&quot;&quot;</span>     
+        <span class="n">iterlist</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> 
+                                <span class="n">all_axes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span>
+                                <span class="n">ifin</span><span class="o">=</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">],</span> 
+                                <span class="n">ifnot</span><span class="o">=</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="n">selfview</span> <span class="o">=</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">israw</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">iterlist</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># counter</span>
+        <span class="k">for</span> <span class="n">sl</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">outsl</span> <span class="o">=</span> <span class="n">sl</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">outsl</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span> 
+                              <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">outsl</span><span class="p">,</span> <span class="n">selfview</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span>
+            <span class="n">c</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+        <span class="c1"># if iterlist = []</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">outsl</span> <span class="o">=</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude</span><span class="p">))</span>
+            <span class="k">yield</span> <span class="n">outsl</span><span class="p">,</span> <span class="n">selfview</span></div></div>
 </pre></div>
 
            </div>

@@ -501,7 +501,7 @@ class LazyImgArray(AxesMixin):
                            func: Callable,
                            c_axes: str = None,
                            args: tuple = None, kwargs: dict[str, Any] = None) -> LazyImgArray:
-        # TODO: This is not efficient.
+        # TODO: This is not efficient. Maybe using da.stack is better?
         from dask import array as da
         out = da.empty_like(self.value)
         if args is None:
@@ -512,34 +512,34 @@ class LazyImgArray(AxesMixin):
             out[sl] = func(img, *args, **kwargs)
         return out
     
-    @_docs.copy_docs(LabeledArray.rotated_crop)
-    @dims_to_spatial_axes
-    @record_lazy
-    def rotated_crop(self, origin, dst1, dst2, dims=2) -> LazyImgArray:
-        origin = np.asarray(origin)
-        dst1 = np.asarray(dst1)
-        dst2 = np.asarray(dst2)
-        ax0 = _misc.make_rotated_axis(origin, dst2)
-        ax1 = _misc.make_rotated_axis(dst1, origin)
-        all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
-        all_coords = np.moveaxis(all_coords, -1, 0)
+    # TODO: This should wait for dask-image implement map_coordinates
+    # @_docs.copy_docs(LabeledArray.rotated_crop)
+    # @dims_to_spatial_axes
+    # @record_lazy
+    # def rotated_crop(self, origin, dst1, dst2, dims=2) -> LazyImgArray:
+    #     origin = np.asarray(origin)
+    #     dst1 = np.asarray(dst1)
+    #     dst2 = np.asarray(dst2)
+    #     ax0 = _misc.make_rotated_axis(origin, dst2)
+    #     ax1 = _misc.make_rotated_axis(dst1, origin)
+    #     all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
+    #     all_coords = np.moveaxis(all_coords, -1, 0)
         
         # Because output shape changes, we have to tell dask what chunk size it would be, otherwise output
         # shape is estimated in a wrong way. 
-        output_chunks = [1] * self.ndim
-        for i, a in enumerate(dims):
-            it = self.axisof(a)
-            output_chunks[it] = all_coords.shape[i+1]
-        # TODO: need re-implementation
-        cropped_img = self._apply_function(xp_ndi.map_coordinates, 
-                                 c_axes=complement_axes(dims, self.axes), 
-                                 dtype=self.dtype,
-                                 rechunk_to="max",
-                                 args=(xp.asarray(all_coords),),
-                                 kwargs=dict(prefilter=False, order=1, chunks=output_chunks)
-                                 )
-
-        return cropped_img
+        # output_chunks = [1] * self.ndim
+        # for i, a in enumerate(dims):
+        #     it = self.axisof(a)
+        #     output_chunks[it] = all_coords.shape[i+1]
+        #
+        # cropped_img = self._apply_function(xp_ndi.map_coordinates, 
+        #                          c_axes=complement_axes(dims, self.axes), 
+        #                          dtype=self.dtype,
+        #                          rechunk_to="max",
+        #                          args=(xp.asarray(all_coords),),
+        #                          kwargs=dict(prefilter=False, order=1, chunks=output_chunks)
+        #                          )
+        
     
     @_docs.copy_docs(ImgArray.erosion)
     @dims_to_spatial_axes
@@ -612,10 +612,13 @@ class LazyImgArray(AxesMixin):
     def gaussian_filter(self, sigma: nDFloat = 1.0, *, dims: Dims = None, update: bool = False
                         ) -> LazyImgArray:
         from dask_image.ndfilters import gaussian_filter
-        return self._apply_dask_filter(
-            gaussian_filter,
-            c_axes=complement_axes(dims, self.axes),
-            args=(sigma,)
+        c_axes = complement_axes(dims, self.axes)
+        depth = _ceilint(sigma*4)
+        return self._apply_map_overlap(
+            xp_ndi.gaussian_filter, 
+            c_axes=c_axes,
+            depth=depth,
+            kwargs=dict(sigma=sigma),
             )
     
     @_docs.copy_docs(ImgArray.median_filter)
@@ -654,10 +657,16 @@ class LazyImgArray(AxesMixin):
     def convolve(self, kernel, *, mode: str = "reflect", cval: float = 0, dims: Dims = None,
                  update: bool = False) -> LazyImgArray:
         from dask_image.ndfilters import convolve
-        return self._apply_dask_filter(
-            convolve,
-            c_axes=complement_axes(dims, self.axes),
-            kwargs=dict(weights=kernel, mode=mode, cval=cval)
+        kernel = np.asarray(kernel)
+        shape = np.array(kernel.shape)
+        half_size = shape // 2
+        depth = tuple(half_size)
+        c_axes = complement_axes(dims, self.axes)
+        return self._apply_map_overlap(
+            xp_ndi.convolve, 
+            c_axes=c_axes,
+            depth=depth,
+            kwargs=dict(weights=kernel, mode=mode, cval=cval),
             )
     
     @_docs.copy_docs(ImgArray.edge_filter)
@@ -848,7 +857,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(ImgArray.proj)
-    @same_dtype()
+    @same_dtype
     def proj(self, axis: str = None, method: str = "mean") -> LazyImgArray:
         from dask import array as da
         if axis is None:
@@ -868,7 +877,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.binning)
     @dims_to_spatial_axes
-    @same_dtype()
+    @same_dtype
     def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, dims: Dims = None) -> LazyImgArray:
         if binsize == 1:
             return self

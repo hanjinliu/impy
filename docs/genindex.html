@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>Index &mdash; impy 1.25.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                1.25.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -216,11 +216,9 @@
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.textedit.WordHighlighter.appendRule">appendRule() (impy.viewer.widgets.textedit.WordHighlighter method)</a>
 </li>
-      <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.apply">apply() (impy.arrays.lazy.LazyImgArray method)</a>
+      <li><a href="impy.html#impy.collections.DataDict.apply">apply() (impy.collections.DataDict method)</a>
 
       <ul>
-        <li><a href="impy.html#impy.collections.DataDict.apply">(impy.collections.DataDict method)</a>
-</li>
         <li><a href="impy.html#impy.collections.DataList.apply">(impy.collections.DataList method)</a>
 </li>
         <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.table.PlotSetting.apply">(impy.viewer.widgets.table.PlotSetting method)</a>
@@ -377,6 +375,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.utils.html#impy.utils.axesop.complement_axes">complement_axes() (in module impy.utils.axesop)</a>
+</li>
+      <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.compute">compute() (impy.arrays.lazy.LazyImgArray method)</a>
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.plane_clip.PlaneClipRange.connectLayer">connectLayer() (impy.viewer.widgets.plane_clip.PlaneClipRange method)</a>
 </li>
@@ -736,6 +736,8 @@
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.dialog.ImageProjectionDialog">ImageProjectionDialog (class in impy.viewer.widgets.dialog)</a>
 </li>
+      <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.img">img (impy.arrays.lazy.LazyImgArray property)</a>
+</li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray">ImgArray (class in impy.arrays.imgarray)</a>
 </li>
       <li><a href="impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray.implements">implements() (impy.arrays.bases.metaarray.MetaArray class method)</a>
@@ -831,13 +833,6 @@
 
       <ul>
         <li><a href="impy.arrays.html#module-impy.arrays.specials">module</a>
-</li>
-      </ul></li>
-      <li>
-    impy.arrays.utils
-
-      <ul>
-        <li><a href="impy.arrays.utils.html#module-impy.arrays.utils">module</a>
 </li>
       </ul></li>
       <li>
@@ -1097,7 +1092,7 @@
 </li>
       <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.itemsize">itemsize (impy.arrays.lazy.LazyImgArray property)</a>
 </li>
-      <li><a href="impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray.iter">iter() (impy.arrays.bases.metaarray.MetaArray method)</a>
+      <li><a href="impy.arrays.html#impy.arrays.axesmixin.AxesMixin.iter">iter() (impy.arrays.axesmixin.AxesMixin method)</a>
 
       <ul>
         <li><a href="impy.frame.html#impy.frame.frames.AxesFrame.iter">(impy.frame.frames.AxesFrame method)</a>
@@ -1106,6 +1101,8 @@
       <li><a href="impy.viewer.html#impy.viewer.utils.iter_layer">iter_layer() (in module impy.viewer.utils)</a>
 </li>
       <li><a href="impy.viewer.html#impy.viewer.utils.iter_selected_layer">iter_selected_layer() (in module impy.viewer.utils)</a>
+</li>
+      <li><a href="impy.arrays.html#impy.arrays.lazy.iter_slice">iter_slice() (in module impy.arrays.lazy)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1192,11 +1189,7 @@
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.lowpass_filter">lowpass_filter() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.lucy">lucy() (impy.arrays.imgarray.ImgArray method)</a>
-
-      <ul>
-        <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.lucy">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
-      </ul></li>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.lucy_tv">lucy_tv() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
   </ul></td>
@@ -1262,8 +1255,6 @@
         <li><a href="impy.arrays.html#module-impy.arrays.phasearray">impy.arrays.phasearray</a>
 </li>
         <li><a href="impy.arrays.html#module-impy.arrays.specials">impy.arrays.specials</a>
-</li>
-        <li><a href="impy.arrays.utils.html#module-impy.arrays.utils">impy.arrays.utils</a>
 </li>
         <li><a href="impy.html#module-impy.axes">impy.axes</a>
 </li>
@@ -1828,8 +1819,6 @@
         <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.transpose">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
       </ul></li>
-      <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.try_max_chunk">try_max_chunk() (impy.arrays.lazy.LazyImgArray method)</a>
-</li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.textedit.TxtFileWidget">TxtFileWidget (class in impy.viewer.widgets.textedit)</a>
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.textedit.TxtViewer">TxtViewer (class in impy.viewer.widgets.textedit)</a>
@@ -1889,11 +1878,7 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="impy.arrays.html#impy.arrays.imgarray.ImgArray.wiener">wiener() (impy.arrays.imgarray.ImgArray method)</a>
-
-      <ul>
-        <li><a href="impy.arrays.html#impy.arrays.lazy.LazyImgArray.wiener">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
-      </ul></li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.textedit.WordHighlighter">WordHighlighter (class in impy.viewer.widgets.textedit)</a>
 </li>
       <li><a href="impy.viewer.widgets.html#impy.viewer.widgets.log.LoggerWidget.write">write() (impy.viewer.widgets.log.LoggerWidget method)</a>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.imgarray &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>impy.arrays.imgarray &mdash; impy 1.25.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                1.25.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -72,17 +72,17 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
 <span class="kn">from</span> <span class="nn">.labeledarray</span> <span class="kn">import</span> <span class="n">LabeledArray</span>
 <span class="kn">from</span> <span class="nn">.label</span> <span class="kn">import</span> <span class="n">Label</span>
 <span class="kn">from</span> <span class="nn">.phasearray</span> <span class="kn">import</span> <span class="n">PhaseArray</span>
 <span class="kn">from</span> <span class="nn">.specials</span> <span class="kn">import</span> <span class="n">PropArray</span>
 
-<span class="kn">from</span> <span class="nn">.utils._skimage</span> <span class="kn">import</span> <span class="n">skexp</span><span class="p">,</span> <span class="n">skfeat</span><span class="p">,</span> <span class="n">skfil</span><span class="p">,</span> <span class="n">skimage</span><span class="p">,</span> <span class="n">skmes</span><span class="p">,</span> <span class="n">skreg</span><span class="p">,</span> <span class="n">skres</span><span class="p">,</span> <span class="n">skseg</span><span class="p">,</span> <span class="n">sktrans</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_filters</span><span class="p">,</span> <span class="n">_linalg</span><span class="p">,</span> <span class="n">_deconv</span><span class="p">,</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_glcm</span><span class="p">,</span> <span class="n">_docs</span><span class="p">,</span> <span class="n">_transform</span><span class="p">,</span> <span class="n">_structures</span><span class="p">,</span> <span class="n">_corr</span>
+<span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">skexp</span><span class="p">,</span> <span class="n">skfeat</span><span class="p">,</span> <span class="n">skfil</span><span class="p">,</span> <span class="n">skimage</span><span class="p">,</span> <span class="n">skmes</span><span class="p">,</span> <span class="n">skreg</span><span class="p">,</span> <span class="n">skres</span><span class="p">,</span> <span class="n">skseg</span><span class="p">,</span> <span class="n">sktrans</span>
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_filters</span><span class="p">,</span> <span class="n">_linalg</span><span class="p">,</span> <span class="n">_deconv</span><span class="p">,</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_glcm</span><span class="p">,</span> <span class="n">_docs</span><span class="p">,</span> <span class="n">_transform</span><span class="p">,</span> <span class="n">_structures</span><span class="p">,</span> <span class="n">_corr</span>
 
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">add_axes</span><span class="p">,</span> <span class="n">switch_slice</span><span class="p">,</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span><span class="p">,</span> <span class="n">del_axis</span>
 <span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">record</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span><span class="p">,</span> <span class="n">same_dtype</span>
@@ -93,9 +93,11 @@
 
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataDict</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">nDInt</span><span class="p">,</span> <span class="n">nDFloat</span><span class="p">,</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">Coords</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Callable</span>
-<span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span><span class="p">,</span> <span class="n">PathFrame</span>
 <span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
 <span class="kn">from</span> <span class="nn">.._cupy</span> <span class="kn">import</span> <span class="n">xp</span><span class="p">,</span> <span class="n">xp_ndi</span><span class="p">,</span> <span class="n">xp_fft</span><span class="p">,</span> <span class="n">asnumpy</span><span class="p">,</span> <span class="n">cupy_dispatcher</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span><span class="p">,</span> <span class="n">PathFrame</span>
 
 
 <div class="viewcode-block" id="ImgArray"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.imgarray.ImgArray">[docs]</a><span class="k">class</span> <span class="nc">ImgArray</span><span class="p">(</span><span class="n">LabeledArray</span><span class="p">):</span>
@@ -483,7 +485,7 @@
         
         <span class="c1"># show fitting result</span>
         <span class="k">if</span> <span class="n">show_result</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
+            <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
             <span class="n">_plt</span><span class="o">.</span><span class="n">plot_gaussfit_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fit</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">fit</span></div>
     
@@ -813,7 +815,7 @@
 <span class="sd">        ImgArray</span>
 <span class="sd">            Filtered image</span>
 <span class="sd">        &quot;&quot;&quot;</span>         
-        <span class="kn">from</span> <span class="nn">.utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
+        <span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="n">check_nd</span><span class="p">(</span><span class="n">cutoff</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">all</span><span class="p">((</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="mf">0.5</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cutoff</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span>
@@ -851,7 +853,7 @@
 <span class="sd">        ImgArray</span>
 <span class="sd">            Filtered image</span>
 <span class="sd">        &quot;&quot;&quot;</span>       
-        <span class="kn">from</span> <span class="nn">.utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
+        <span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="n">check_nd</span><span class="p">(</span><span class="n">cutoff</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">_ft_not_needed</span><span class="p">(</span><span class="n">cutoff</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span>
@@ -896,7 +898,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">if</span> <span class="n">dims</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;batch processing not implemented yet.&quot;</span><span class="p">)</span>
-        <span class="kn">from</span> <span class="nn">.utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
+        <span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
         <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
 
         <span class="n">cutoff</span> <span class="o">=</span> <span class="n">check_nd</span><span class="p">(</span><span class="n">cutoff</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
@@ -942,7 +944,7 @@
 <span class="sd">        ImgArray</span>
 <span class="sd">            Filtered image</span>
 <span class="sd">        &quot;&quot;&quot;</span>         
-        <span class="kn">from</span> <span class="nn">.utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
+        <span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
         <span class="n">cutoff</span> <span class="o">=</span> <span class="n">check_nd</span><span class="p">(</span><span class="n">cutoff</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="n">spatial_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sizesof</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
         <span class="n">spatial_axes</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">]</span>
@@ -2019,16 +2021,20 @@
             <span class="n">exclude_border</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_distance</span><span class="p">)</span> <span class="k">if</span> <span class="n">exclude_border</span> <span class="k">else</span> <span class="kc">False</span>
         
         <span class="n">thr</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">percentile</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span>
-        <span class="n">df_all</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
+
+        <span class="n">df_all</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">dims</span><span class="p">):</span>
             <span class="c1"># skfeat.peak_local_max overwrite something so we need to give copy of img.</span>
             <span class="k">if</span> <span class="n">use_labels</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">):</span>
-                <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="n">asnumpy</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">labels</span> <span class="o">=</span> <span class="kc">None</span>
             
-            <span class="n">indices</span> <span class="o">=</span> <span class="n">skfeat</span><span class="o">.</span><span class="n">peak_local_max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">),</span>
-                                            <span class="n">footprint</span><span class="o">=</span><span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">min_distance</span><span class="p">,</span> <span class="n">ndim</span><span class="p">),</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">skfeat</span><span class="o">.</span><span class="n">peak_local_max</span><span class="p">(</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">img</span><span class="p">),</span>
+                                            <span class="n">footprint</span><span class="o">=</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">min_distance</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)),</span>
                                             <span class="n">threshold_abs</span><span class="o">=</span><span class="n">thr</span><span class="p">,</span>
                                             <span class="n">num_peaks</span><span class="o">=</span><span class="n">topn</span><span class="p">,</span>
                                             <span class="n">num_peaks_per_label</span><span class="o">=</span><span class="n">topn_per_label</span><span class="p">,</span>
@@ -2087,16 +2093,19 @@
         
         <span class="n">thr</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">percentile</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span>
         
-        <span class="n">df_all</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
+
+        <span class="n">df_all</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">dims</span><span class="p">):</span>
             <span class="c1"># skfeat.corner_peaks overwrite something so we need to give copy of img.</span>
             <span class="k">if</span> <span class="n">use_labels</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">):</span>
-                <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="n">asnumpy</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">labels</span> <span class="o">=</span> <span class="kc">None</span>
             
-            <span class="n">indices</span> <span class="o">=</span> <span class="n">skfeat</span><span class="o">.</span><span class="n">corner_peaks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">),</span>
-                                          <span class="n">footprint</span><span class="o">=</span><span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">min_distance</span><span class="p">,</span> <span class="n">ndim</span><span class="p">),</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">skfeat</span><span class="o">.</span><span class="n">corner_peaks</span><span class="p">(</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">img</span><span class="p">),</span>
+                                          <span class="n">footprint</span><span class="o">=</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">min_distance</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)),</span>
                                           <span class="n">threshold_abs</span><span class="o">=</span><span class="n">thr</span><span class="p">,</span>
                                           <span class="n">num_peaks</span><span class="o">=</span><span class="n">topn</span><span class="p">,</span>
                                           <span class="n">num_peaks_per_label</span><span class="o">=</span><span class="n">topn_per_label</span><span class="p">,</span>
@@ -2255,8 +2264,8 @@
     
 <div class="viewcode-block" id="ImgArray.refine_sm"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.imgarray.ImgArray.refine_sm">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
-    <span class="k">def</span> <span class="nf">refine_sm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span><span class="n">Coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">95</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
-                  <span class="n">sigma</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">refine_sm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">Coords</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">95</span><span class="p">,</span> 
+                  <span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Refine coordinates of peaks and calculate positional errors using `trackpy`&#39;s functions. Mean</span>
 <span class="sd">        and noise level are determined using original method.</span>
@@ -2287,6 +2296,9 @@
 <span class="sd">        centroid_sm</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="kn">import</span> <span class="nn">trackpy</span> <span class="k">as</span> <span class="nn">tp</span>
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
+
         <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sm</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span><span class="p">,</span> <span class="n">exclude_border</span><span class="o">=</span><span class="n">radius</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2442,6 +2454,8 @@
 <span class="sd">        find_sm</span>
 <span class="sd">        refine_sm</span>
 <span class="sd">        &quot;&quot;&quot;</span>     
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
         <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sm</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2518,6 +2532,8 @@
         <span class="c1"># like centroid_sm because currently does not work for zcyx-image</span>
         
         <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">pinv</span> <span class="k">as</span> <span class="n">pseudo_inverse</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
+        
         <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sm</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2878,7 +2894,7 @@
         <span class="c1"># To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of </span>
         <span class="c1"># 0 &lt;= A &lt; 1.</span>
         <span class="n">exps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">xp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> \
-            <span class="p">[</span><span class="n">xp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">wave_num</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">uf</span><span class="p">)</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">/</span><span class="n">s</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">[</span><span class="n">xp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">wave_num</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">uf</span><span class="p">)</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">/</span><span class="n">s</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
              <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">uf</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sizesof</span><span class="p">(</span><span class="n">dims</span><span class="p">),</span> <span class="n">upsample_factor</span><span class="p">)]</span>
         
         <span class="c1"># Calculate chunk size for proper output shapes</span>
@@ -3193,7 +3209,8 @@
             <span class="n">template_new</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">sl</span><span class="p">)]</span>
             <span class="n">shift</span> <span class="o">=</span> <span class="n">skreg</span><span class="o">.</span><span class="n">phase_cross_correlation</span><span class="p">(</span><span class="n">template_old</span><span class="p">,</span> <span class="n">template_new</span><span class="p">,</span> 
                                                   <span class="n">return_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">upsample_factor</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-            
+        
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">along</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">pos</span><span class="p">])</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">along</span><span class="o">+</span><span class="n">dims</span><span class="p">)</span>
@@ -3303,7 +3320,7 @@
 <span class="sd">            Skeletonized image.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">if</span> <span class="n">radius</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">selem</span> <span class="o">=</span> <span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
+            <span class="n">selem</span> <span class="o">=</span> <span class="n">asnumpy</span><span class="p">(</span><span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">selem</span> <span class="o">=</span> <span class="kc">None</span>
         
@@ -3627,6 +3644,8 @@
 <span class="sd">            &gt;&gt;&gt; img.pathprops([[2,3], [102, 301], [200,400]])</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="n">id_axis</span> <span class="o">=</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]</span>
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">PathFrame</span>
+        
         <span class="c1"># check path</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">PathFrame</span><span class="p">):</span>
             <span class="n">paths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
@@ -3943,6 +3962,8 @@
 <span class="sd">        MarkerFrame</span>
 <span class="sd">            DataFrame structure with x,y columns</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
+        
         <span class="k">if</span> <span class="n">along</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">along</span> <span class="o">=</span> <span class="n">find_first_appeared</span><span class="p">(</span><span class="s2">&quot;tpzc&lt;i&quot;</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">along</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -3964,7 +3985,7 @@
         
         <span class="n">result</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">columns</span><span class="o">=</span><span class="n">c_axes</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">show_drift</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
+            <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
             <span class="n">_plt</span><span class="o">.</span><span class="n">plot_drift</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
         
         <span class="n">result</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">along</span>
@@ -4359,6 +4380,7 @@
                                <span class="p">)</span></div></div>
 
 <span class="k">def</span> <span class="nf">_check_coordinates</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">MarkerFrame</span><span class="p">):</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
