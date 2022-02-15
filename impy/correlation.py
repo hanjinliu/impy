@@ -353,7 +353,10 @@ def pcc_maximum(img0: ImgArray,
     {inputs_of_correlation}
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
-
+    max_shifts : int, tuple of int, optional
+        Maximum shifts in each dimension. If a single integer is given, it is interpreted as maximum shifts
+        in all dimensions. No upper bound of shifts if not given.
+    
     Returns
     -------
     np.ndarray
@@ -381,7 +384,8 @@ def pcc_maximum(img0: ImgArray,
 def ft_pcc_maximum(img0: ImgArray,
                    img1: ImgArray, 
                    mask: ImgArray | None = None, 
-                   upsample_factor: int = 10) -> np.ndarray:
+                   upsample_factor: int = 10,
+                   max_shifts: int | tuple[int, ...] | None = None) -> np.ndarray:
     """
     Calculate lateral shift between two images. 
     This function takes Fourier transformed images as input. If you have to repetitively
@@ -392,6 +396,9 @@ def ft_pcc_maximum(img0: ImgArray,
     {inputs_of_correlation}
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
+    max_shifts : int, tuple of int, optional
+        Maximum shifts in each dimension. If a single integer is given, it is interpreted as maximum shifts
+        in all dimensions. No upper bound of shifts if not given.
 
     Returns
     -------
@@ -403,7 +410,14 @@ def ft_pcc_maximum(img0: ImgArray,
         if mask is not None:
             img0 = img0.copy()
             img0[mask] = 0
-        shift = subpixel_pcc(xp.asarray(img0.value), xp.asarray(img1.value), upsample_factor)
+        if isinstance(max_shifts, int):
+            max_shifts = (max_shifts,) * img0.ndim
+        shift = subpixel_pcc(
+            xp.asarray(img0.value), 
+            xp.asarray(img1.value),
+            upsample_factor,
+            max_shifts=max_shifts,
+        )
     return asnumpy(shift)
 
 @_docs.write_docs

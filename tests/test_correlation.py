@@ -34,3 +34,27 @@ def test_max_shift():
         img = ref.affine(translation=[30, -44])
         shift = ip.pcc_maximum(img, ref, max_shifts=20)
         assert all(shift < 20)
+    
+    reference_image = ip.sample_image("camera")
+    shift = (-7, 12)
+    shifted_image = reference_image.affine(translation=shift)
+
+    shift = ip.pcc_maximum(shifted_image, reference_image, max_shifts=15)
+    assert_allclose(shift, (7, -12))
+    
+    ref = ip.zeros((128, 128))
+    ref[10, 10] = 1
+    ref[10, 20] = 1
+    ref0 = ip.zeros((128, 128))
+    ref0[10, 20] = 1
+    img = ip.zeros((128, 128))
+    img[12, 25] = 1
+    img[12, 35] = 1
+    
+    shift = ip.pcc_maximum(img, ref)
+    assert_allclose(shift, (2, 15))
+    shift0 = ip.pcc_maximum(img, ref0)
+    shift = ip.pcc_maximum(img, ref, max_shifts=[5, 10], upsample_factor=2)
+    assert_allclose(shift, shift0)
+    
+    

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from re import S
 import numpy as np
 from ..._cupy import xp, xp_fft, xp_ndarray
 
@@ -20,7 +21,7 @@ def subpixel_pcc(
         slices = tuple(
             slice(c-shift, c+shift + 1, None) for c, shift in zip(centers, max_shifts)
         )
-        power = xp_fft.fftshift(shifted_power[slices])
+        power = xp_fft.ifftshift(shifted_power[slices])
         
     maxima = xp.unravel_index(xp.argmax(power), power.shape)
     midpoints = xp.array([np.fix(axis_size / 2) for axis_size in power.shape])
@@ -43,7 +44,7 @@ def subpixel_pcc(
                                            ).conj()
         # Locate maximum and map back to original pixel grid
         maxima = xp.unravel_index(xp.argmax(abs2(cross_correlation)),
-                                    cross_correlation.shape)
+                                  cross_correlation.shape)
 
         maxima = xp.asarray(maxima, dtype=xp.float32) - dftshift
 
