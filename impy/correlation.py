@@ -343,7 +343,8 @@ def fourier_zncc(img0: ImgArray,
 def pcc_maximum(img0: ImgArray, 
                 img1: ImgArray, 
                 mask: ImgArray | None = None, 
-                upsample_factor: int = 10) -> np.ndarray:
+                upsample_factor: int = 10,
+                max_shifts: int | tuple[int, ...] | None = None) -> np.ndarray:
     """
     Calculate lateral shift between two images. Same as ``skimage.registration.phase_cross_correlation``.
 
@@ -366,7 +367,14 @@ def pcc_maximum(img0: ImgArray,
         ft1 = img1.fft(dims=img1.axes)
         if mask is not None:
             ft0[mask] = 0
-        shift = subpixel_pcc(xp.asarray(ft0.value), xp.asarray(ft1.value), upsample_factor)
+        if isinstance(max_shifts, int):
+            max_shifts = (max_shifts,) * img0.ndim
+        shift = subpixel_pcc(
+            xp.asarray(ft0.value), 
+            xp.asarray(ft1.value),
+            upsample_factor, 
+            max_shifts=max_shifts
+        )
     return asnumpy(shift)
 
 @_docs.write_docs
