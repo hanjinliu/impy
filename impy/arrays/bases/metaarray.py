@@ -1,7 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from collections import namedtuple
-from ..axesmixin import AxesMixin
+from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError
 from ..._cupy import xp, xp_ndarray, asnumpy
@@ -49,7 +48,7 @@ class MetaArray(AxesMixin, np.ndarray):
     @property
     def shape(self):
         try:
-            tup = namedtuple("AxesShape", list(self.axes))
+            tup = get_axes_tuple(self)
             return tup(*super().shape)
         except ImageAxesError:
             return super().shape

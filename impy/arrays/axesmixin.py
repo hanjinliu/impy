@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 import re
 from warnings import warn
+from collections import namedtuple
 
 from ..utils.axesop import switch_slice
 from ..axes import Axes, ImageAxesError, ScaleDict
@@ -215,3 +216,14 @@ class AxesMixin:
         if c == 0:
             outsl = (slice(None),) * (self.ndim - len(exclude))
             yield outsl, selfview
+
+_AxesShapes: dict[str, tuple] = {}
+
+def get_axes_tuple(self: AxesMixin):
+    axes = str(self.axes)
+    try:
+        return _AxesShapes[axes]
+    except KeyError:
+        tup = namedtuple("AxesShape", list(self.axes))
+        _AxesShapes[axes] = tup
+        return tup

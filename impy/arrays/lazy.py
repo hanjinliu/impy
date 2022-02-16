@@ -6,12 +6,11 @@ from typing import Any, Callable, TYPE_CHECKING
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from warnings import warn
-from collections import namedtuple
 import tempfile
 
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
-from .axesmixin import AxesMixin
+from .axesmixin import AxesMixin, get_axes_tuple
 from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
@@ -58,7 +57,7 @@ class LazyImgArray(AxesMixin):
     @property
     def shape(self):
         try:
-            tup = namedtuple("AxesShape", list(self.axes))
+            tup = get_axes_tuple(self)
             return tup(*self.value.shape)
         except ImageAxesError:
             return self.value.shape
