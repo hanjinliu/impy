@@ -428,6 +428,13 @@ def _replace_inputs(img: MetaArray, args, kwargs):
                 _axis = _axis[0]
             kwargs["axis"] = _axis
     
+    if "axes" in kwargs:
+        # used in such as np.rot90
+        axes = kwargs["axes"]
+        if isinstance(axes, str):
+            _axes = tuple(map(img.axisof, axes))
+            kwargs["axes"] = _axes
+                
     if "out" in kwargs:
         kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
     
