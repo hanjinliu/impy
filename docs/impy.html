@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy package &mdash; impy 1.25.1 documentation</title>
+  <title>impy package &mdash; impy 1.25.2 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.1
+                1.25.2
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -1169,7 +1169,7 @@ are Fourier transformed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.correlation.ft_pcc_maximum">
-<span class="sig-prename descclassname"><span class="pre">impy.correlation.</span></span><span class="sig-name descname"><span class="pre">ft_pcc_maximum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample_factor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="reference internal" href="_modules/impy/correlation.html#ft_pcc_maximum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.correlation.ft_pcc_maximum" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.correlation.</span></span><span class="sig-name descname"><span class="pre">ft_pcc_maximum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample_factor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_shifts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span> <span class="p"><span class="pre">|</span></span> <span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="reference internal" href="_modules/impy/correlation.html#ft_pcc_maximum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.correlation.ft_pcc_maximum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate lateral shift between two images.
 This function takes Fourier transformed images as input. If you have to repetitively
 use a same template image, this function is faster.</p>
@@ -1183,6 +1183,9 @@ use a same template image, this function is faster.</p>
 </dl>
 <dl class="simple">
 <dt>upsample_factor<span class="classifier">int, default is 10</span></dt><dd><p>Up-sampling factor when calculating phase cross correlation.</p>
+</dd>
+<dt>max_shifts<span class="classifier">int, tuple of int, optional</span></dt><dd><p>Maximum shifts in each dimension. If a single integer is given, it is interpreted as maximum shifts
+in all dimensions. No upper bound of shifts if not given.</p>
 </dd>
 </dl>
 <dl class="field-list simple">
@@ -1298,7 +1301,7 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.correlation.pcc_maximum">
-<span class="sig-prename descclassname"><span class="pre">impy.correlation.</span></span><span class="sig-name descname"><span class="pre">pcc_maximum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample_factor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="reference internal" href="_modules/impy/correlation.html#pcc_maximum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.correlation.pcc_maximum" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.correlation.</span></span><span class="sig-name descname"><span class="pre">pcc_maximum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img0</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img1</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImgArray</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upsample_factor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_shifts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span> <span class="p"><span class="pre">|</span></span> <span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="reference internal" href="_modules/impy/correlation.html#pcc_maximum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.correlation.pcc_maximum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate lateral shift between two images. Same as <code class="docutils literal notranslate"><span class="pre">skimage.registration.phase_cross_correlation</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1310,6 +1313,9 @@ For instance, <code class="docutils literal notranslate"><span class="pre">dims=
 </dl>
 <dl class="simple">
 <dt>upsample_factor<span class="classifier">int, default is 10</span></dt><dd><p>Up-sampling factor when calculating phase cross correlation.</p>
+</dd>
+<dt>max_shifts<span class="classifier">int, tuple of int, optional</span></dt><dd><p>Maximum shifts in each dimension. If a single integer is given, it is interpreted as maximum shifts
+in all dimensions. No upper bound of shifts if not given.</p>
 </dd>
 </dl>
 <dl class="field-list simple">
