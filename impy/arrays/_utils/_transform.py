@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 from collections import namedtuple
 from ._skimage import sktrans
-from ..._cupy import xp, xp_ndi
+from ..._cupy import xp, xp_ndi, xp_ndarray
 
 __all__ = ["compose_affine_matrix", 
            "decompose_affine_matrix",
@@ -15,14 +15,14 @@ AffineTransformationParameters = namedtuple(typename="AffineTransformationParame
                                             field_names=["translation", "rotation", "scale", "shear"]
                                             )
 
-def warp(img, matrix, cval=0, mode="constant", output_shape=None, order=1):
+def warp(img: xp_ndarray, matrix: xp_ndarray, cval=0, mode="constant", output_shape=None, order=1):
     img = xp.asarray(img, dtype=img.dtype)
     matrix = xp.asarray(matrix)
     out = xp_ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
                                   order=order, prefilter=order>1)
     return out
 
-def shift(img, shift, cval=0, mode="constant", order=1):
+def shift(img: xp_ndarray, shift: xp_ndarray, cval=0, mode="constant", order=1):
     img = xp.asarray(img, dtype=img.dtype)
     out = xp_ndi.shift(img, shift, cval=cval, mode=mode, 
                        order=order, prefilter=order>1)
@@ -121,3 +121,17 @@ def check_matrix(matrices):
         else:
             mtx.append(m)
     return mtx
+
+def polar3d(img: xp_ndarray, shape: tuple[int, int, int], order=1, mode="constant", cval=0):
+    r = xp.arange(shape[0]) + 0.5
+    theta = xp.linspace(0, 2*np.pi, shape[1])
+    phi = xp.linspace(0, np.pi, shape[2])
+    rmax = shape[0] + 0.5
+    r, theta, phi = xp.meshgrid(r, theta, phi)
+    z = r * xp.sin(theta) + rmax
+    y = r * xp.cos(theta)*xp.cos(phi) + rmax
+    x = r * xp.cos(theta)*xp.sin(phi) + rmax
+    coords = xp.stack([z, y, x], axis=0)
+    img = xp.asarray(img, dtype=img.dtype)
+    out = xp_ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
+    return out
