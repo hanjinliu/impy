@@ -77,7 +77,7 @@ class LazyImgArray(AxesMixin):
     @property
     def chunksize(self):
         try:
-            tup = namedtuple("AxesShape", list(self.axes))
+            tup = get_axes_tuple(self)
             return tup(*self.value.chunksize)
         except ImageAxesError:
             return self.value.chunksize
