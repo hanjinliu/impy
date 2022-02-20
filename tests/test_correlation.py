@@ -57,4 +57,11 @@ def test_max_shift():
     shift = ip.pcc_maximum(img, ref, max_shifts=[5, 10], upsample_factor=2)
     assert_allclose(shift, shift0)
     
+def test_polar_pcc():
+    reference_image = ip.sample_image("camera")
+    deg = 21
+    rotated_image = reference_image.rotate(deg)
+
+    rot = ip.polar_pcc_maximum(rotated_image, reference_image)
+    assert rot == deg
     

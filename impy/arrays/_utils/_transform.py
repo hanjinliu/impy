@@ -122,16 +122,43 @@ def check_matrix(matrices):
             mtx.append(m)
     return mtx
 
-def polar3d(img: xp_ndarray, shape: tuple[int, int, int], order=1, mode="constant", cval=0):
-    r = xp.arange(shape[0]) + 0.5
-    theta = xp.linspace(0, 2*np.pi, shape[1])
-    phi = xp.linspace(0, np.pi, shape[2])
-    rmax = shape[0] + 0.5
-    r, theta, phi = xp.meshgrid(r, theta, phi)
-    z = r * xp.sin(theta) + rmax
-    y = r * xp.cos(theta)*xp.cos(phi) + rmax
-    x = r * xp.cos(theta)*xp.sin(phi) + rmax
-    coords = xp.stack([z, y, x], axis=0)
+def polar2d(
+    img: xp_ndarray,
+    rmax: int,
+    dtheta: float = 0.1,
+    order=1,
+    mode="constant",
+    cval=0
+) -> np.ndarray:
+    centers = np.array(img.shape)/2 - 0.5
+    r = xp.arange(rmax) + 0.5
+    theta = xp.arange(0, 2*np.pi, dtheta)
+    r, theta = xp.meshgrid(r, theta)
+    y = r * xp.sin(theta) + centers[0]
+    x = r * xp.cos(theta) + centers[1]
+    coords = xp.stack([y, x], axis=0)
     img = xp.asarray(img, dtype=img.dtype)
     out = xp_ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
+
+# def polar3d(
+#     img: xp_ndarray, 
+#     rmax: int,
+#     dtheta: float = 0.1,
+#     order=1,
+#     mode="constant", 
+#     cval=0
+# ) -> np.ndarray:
+#     centers = np.array(img.shape)/2 - 0.5
+#     r = xp.arange(rmax) + 0.5
+#     theta = xp.arange(0, 2*np.pi, dtheta)
+#     phi = xp.arange(-np.pi/2, np.pi/2, dtheta)
+#     r, theta, phi = xp.meshgrid(r, theta, phi)
+#     z = r * xp.sin(phi) + centers[0]
+#     _yx = r * xp.cos(phi)
+#     y = _yx * xp.sin(theta) + centers[1]
+#     x = _yx * xp.cos(theta) + centers[2]
+#     coords = xp.stack([z, y, x], axis=0)
+#     img = xp.asarray(img, dtype=img.dtype)
+#     out = xp_ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
+#     return out

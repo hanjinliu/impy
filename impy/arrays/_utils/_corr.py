@@ -19,7 +19,8 @@ def subpixel_pcc(
         shifted_power = xp_fft.fftshift(power)
         centers = tuple(s//2 for s in power.shape)
         slices = tuple(
-            slice(c-shift, c+shift + 1, None) for c, shift in zip(centers, max_shifts)
+            slice(max(c-shift, 0), min(c+shift + 1, s), None) 
+            for c, shift, s in zip(centers, max_shifts, power.shape)
         )
         power = xp_fft.ifftshift(shifted_power[slices])
         

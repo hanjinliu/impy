@@ -1,8 +1,10 @@
 from __future__ import annotations
 import numpy as np
 from warnings import warn
+from .core import asarray as ip_asarray
 from .arrays import ImgArray, PropArray
 from .arrays._utils import _docs
+from .arrays._utils._transform import polar2d
 from .arrays._utils._corr import subpixel_pcc
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
@@ -11,17 +13,20 @@ from ._cupy import xp, asnumpy, xp_ndi
 from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
-           "nmi", "pcc_maximum", "ft_pcc_maximum", "pearson_coloc", "manders_coloc"]
+           "nmi", "pcc_maximum", "ft_pcc_maximum", "polar_pcc_maximum",
+           "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fsc(img0: ImgArray, 
-        img1: ImgArray, 
-        nbin: int = 32, 
-        r_max: float = None,
-        *,
-        squeeze: bool = True, 
-        dims: Dims = None) -> PropArray:
+def fsc(
+    img0: ImgArray, 
+    img1: ImgArray, 
+    nbin: int = 32, 
+    r_max: float = None,
+    *,
+    squeeze: bool = True, 
+    dims: Dims = None
+) -> PropArray:
     r"""
     Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
     between two images. FSC is defined as:
@@ -148,12 +153,14 @@ def _masked_zncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def ncc(img0: ImgArray, 
-        img1: ImgArray, 
-        mask: ImgArray | None = None, 
-        squeeze: bool = True, 
-        *, 
-        dims: Dims = None) -> PropArray | float:
+def ncc(
+    img0: ImgArray, 
+    img1: ImgArray, 
+    mask: ImgArray | None = None, 
+    squeeze: bool = True, 
+    *, 
+    dims: Dims = None
+) -> PropArray | float:
     """
     Normalized Cross Correlation.
     
@@ -181,12 +188,14 @@ def ncc(img0: ImgArray,
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def zncc(img0: ImgArray, 
-         img1: ImgArray, 
-         mask: ImgArray | None = None,
-         squeeze: bool = True,
-         *,
-         dims: Dims = None) -> PropArray | float:
+def zncc(
+    img0: ImgArray, 
+    img1: ImgArray, 
+    mask: ImgArray | None = None,
+    squeeze: bool = True,
+    *,
+    dims: Dims = None
+) -> PropArray | float:
     """
     Zero-Normalized Cross Correlation.
     
@@ -219,13 +228,15 @@ pearson_coloc = zncc
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def nmi(img0: ImgArray, 
-        img1: ImgArray,
-        mask: ImgArray | None = None,
-        bins: int = 100, 
-        squeeze: bool = True,
-        *, 
-        dims: Dims = None) -> PropArray | float:
+def nmi(
+    img0: ImgArray, 
+    img1: ImgArray,
+    mask: ImgArray | None = None,
+    bins: int = 100, 
+    squeeze: bool = True,
+    *, 
+    dims: Dims = None
+) -> PropArray | float:
     r"""
     Normalized Mutual Information.
     
@@ -269,12 +280,14 @@ def nmi(img0: ImgArray,
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fourier_ncc(img0: ImgArray, 
-                img1: ImgArray, 
-                mask: ImgArray | None = None, 
-                squeeze: bool = True, 
-                *, 
-                dims: Dims = None) -> PropArray | float:
+def fourier_ncc(
+    img0: ImgArray, 
+    img1: ImgArray, 
+    mask: ImgArray | None = None, 
+    squeeze: bool = True, 
+    *, 
+    dims: Dims = None
+) -> PropArray | float:
     """
     Normalized Cross Correlation in Fourier space.
     
@@ -304,12 +317,14 @@ def fourier_ncc(img0: ImgArray,
 
 @_docs.write_docs
 @dims_to_spatial_axes
-def fourier_zncc(img0: ImgArray, 
-                 img1: ImgArray,
-                 mask: ImgArray | None = None, 
-                 squeeze: bool = True, 
-                 *, 
-                 dims: Dims = None) -> PropArray | float:
+def fourier_zncc(
+    img0: ImgArray, 
+    img1: ImgArray,
+    mask: ImgArray | None = None, 
+    squeeze: bool = True, 
+    *, 
+    dims: Dims = None
+) -> PropArray | float:
     """
     Zero-Normalized Cross Correlation in Fourier space.
     
@@ -340,13 +355,18 @@ def fourier_zncc(img0: ImgArray,
     return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
 
 @_docs.write_docs
-def pcc_maximum(img0: ImgArray, 
-                img1: ImgArray, 
-                mask: ImgArray | None = None, 
-                upsample_factor: int = 10,
-                max_shifts: int | tuple[int, ...] | None = None) -> np.ndarray:
+def pcc_maximum(
+    img0: ImgArray, 
+    img1: ImgArray, 
+    mask: ImgArray | None = None, 
+    upsample_factor: int = 10,
+    max_shifts: int | tuple[int, ...] | None = None
+) -> np.ndarray:
     """
-    Calculate lateral shift between two images. Same as ``skimage.registration.phase_cross_correlation``.
+    Calculate lateral shift between two images. 
+    
+    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters 
+    are supported.
 
     Parameters
     ----------
@@ -354,8 +374,8 @@ def pcc_maximum(img0: ImgArray,
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
     max_shifts : int, tuple of int, optional
-        Maximum shifts in each dimension. If a single integer is given, it is interpreted as maximum shifts
-        in all dimensions. No upper bound of shifts if not given.
+        Maximum shifts in each dimension. If a single integer is given, it is interpreted 
+        as maximum shifts in all dimensions. No upper bound of shifts if not given.
     
     Returns
     -------
@@ -381,13 +401,16 @@ def pcc_maximum(img0: ImgArray,
     return asnumpy(shift)
 
 @_docs.write_docs
-def ft_pcc_maximum(img0: ImgArray,
-                   img1: ImgArray, 
-                   mask: ImgArray | None = None, 
-                   upsample_factor: int = 10,
-                   max_shifts: int | tuple[int, ...] | None = None) -> np.ndarray:
+def ft_pcc_maximum(
+    img0: ImgArray,
+    img1: ImgArray, 
+    mask: ImgArray | None = None, 
+    upsample_factor: int = 10,
+    max_shifts: int | tuple[int, ...] | None = None
+) -> np.ndarray:
     """
-    Calculate lateral shift between two images. 
+    Calculate lateral shift between two images.
+    
     This function takes Fourier transformed images as input. If you have to repetitively
     use a same template image, this function is faster.
 
@@ -421,12 +444,80 @@ def ft_pcc_maximum(img0: ImgArray,
     return asnumpy(shift)
 
 @_docs.write_docs
+def polar_pcc_maximum(
+    img0: ImgArray,
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_degree: int = None,
+) -> float:
+    """
+    Calculate rotational shift between two images using polar Fourier transformation.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating phase cross correlation.
+    max_degree : int, tuple of int, optional
+        Maximum rotation in degree.
+
+    Returns
+    -------
+    float
+        Rotation in degree
+    """    
+    img0, img1 = _check_inputs(img0, img1)
+    if img0.ndim != 2:
+        raise TypeError("Only 2D image is supported.")
+    if max_degree is None:
+        max_degree = 180
+    rmax = min(img0.shape)
+    with Progress("polar_pcc_maximum_2d"):
+        imgp = ip_asarray(polar2d(img0, rmax, np.pi/180))
+        imgrotp = ip_asarray(polar2d(img1, rmax, np.pi/180))
+        max_shifts = (max_degree, 1)
+        shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
+                            max_shifts=max_shifts)
+    # img0.rotate(-shift[0]) == img1
+    return shift[0]
+
+# @_docs.write_docs
+# def polar_pcc_maximum_3d(
+#     img0: ImgArray,
+#     img1: ImgArray,
+#     max_degrees: int = None,
+#     upsample_factor: int = 10,
+# ) -> float:
+#     img0, img1 = _check_inputs(img0, img1)
+#     if img0.ndim != 3:
+#         raise TypeError("Only 3D image is supported.")
+#     if max_degrees is None:
+#         max_shifts = (90, 180, 1)
+#     elif isinstance(max_degrees, int):
+#         max_shifts = (max_degrees, max_degrees, 1)
+#     else:
+#         if len(max_degrees) != 2:
+#             raise ValueError("max_degrees must be two integers.")
+#         max_shifts = tuple(max_degrees) + (1,)
+#     rmax = min(img0.shape)
+#     with Progress("polar_pcc_maximum_3d"):
+#         imgp = ip_asarray(polar3d(img0, rmax, np.pi/180))
+#         imgrotp = ip_asarray(polar3d(img1, rmax, np.pi/180))
+#         shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
+#                             max_shifts=max_shifts)
+#     return shift[:2]
+
+
+
+@_docs.write_docs
 @dims_to_spatial_axes
-def manders_coloc(img0: ImgArray, 
-                  img1: np.ndarray,
-                  *,
-                  squeeze: bool = True,
-                  dims: Dims = None) -> PropArray | float:
+def manders_coloc(
+    img0: ImgArray, 
+    img1: np.ndarray,
+    *,
+    squeeze: bool = True,
+    dims: Dims = None
+) -> PropArray | float:
     r"""
     Manders' correlation coefficient. This is defined as following:
     
