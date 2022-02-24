@@ -1,4 +1,3 @@
-import dask
 import psutil
 from typing import Any, MutableMapping
 
@@ -7,22 +6,19 @@ memory = psutil.virtual_memory()
 MAX_GB_LIMIT = memory.total / 2 * 1e-9
 
 class GlobalConstant(MutableMapping[str, Any]):
-    __const: dict[str, Any]
+    _const: dict[str, Any]
     
     def __init__(self, **kwargs):
-        object.__setattr__(self, "__const", dict(**kwargs))
+        object.__setattr__(self, "_const", dict(**kwargs))
     
     def __len__(self) -> int:
-        return len(self.__const)
+        return len(self._const)
     
     def __iter__(self):
         raise StopIteration
 
     def __getitem__(self, k):
-        try:
-            return self.__const[k]
-        except KeyError:
-            raise KeyError(f"Global constants: {', '.join(self.keys())}")
+        return self._const[k]
 
     def __setitem__(self, k, v):
         if k == "MAX_GB":
@@ -52,11 +48,12 @@ class GlobalConstant(MutableMapping[str, Any]):
             else:
                 raise ValueError("RESOURCES must be either 'numpy' or 'cupy'.")
         elif k == "SCHEDULER":
+            import dask
             dask.config.set(scheduler=v)
         else:
             raise RuntimeError("Cannot set new keys.")
         
-        self.__const[k] = v
+        self._const[k] = v
     
     __getattr__ = __getitem__
     __setattr__ = __setitem__
@@ -67,12 +64,12 @@ class GlobalConstant(MutableMapping[str, Any]):
     def __repr__(self):
         return (
             f"""
-                MAX_GB    : {self.MAX_GB:.2f} GB
-            SHOW_PROGRESS : {self.SHOW_PROGRESS}
-                ID_AXIS    : {self.ID_AXIS}
-            FONT_SIZE_FACTOR: {self.FONT_SIZE_FACTOR}
-                RESOURCE   : {self.RESOURCE}
-                SCHEDULER   : {self.SCHEDULER}
+                  MAX_GB    : {self['MAX_GB']:.2f} GB
+              SHOW_PROGRESS : {self['SHOW_PROGRESS']}
+                 ID_AXIS    : {self['ID_AXIS']}
+            FONT_SIZE_FACTOR: {self['FONT_SIZE_FACTOR']}
+                 RESOURCE   : {self['RESOURCE']}
+                SCHEDULER   : {self['SCHEDULER']}
             """
         )
 
