@@ -23,6 +23,9 @@ def test_axes():
     assert str(img2.axes) == "zx"
     assert "".join(img2.scale.keys()) == "zx"
     assert img2.scale.z == 0.3
+    
+    img3 = img[:, :, 0]
+    assert str(img3.axes) == "zy"
 
     
 def test_set_scale():

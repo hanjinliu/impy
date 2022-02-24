@@ -94,8 +94,12 @@ class MetaArray(AxesMixin, np.ndarray):
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             if hasattr(key, "__array__") and key.size > 1:
-                # fancy indexing will lose axes information
-                new_axes = None
+                # fancy indexing will lose axes information, except for 1D array
+                key = np.asarray(key)
+                if key.ndim == 1:
+                    new_axes = self.axes
+                else:
+                    new_axes = None
                 
             elif "new" in keystr:
                 # np.newaxis or None will add dimension
