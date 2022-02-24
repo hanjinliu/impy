@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from scipy import ndimage as ndi
 from collections import namedtuple
 from ._skimage import sktrans
 from ..._cupy import xp, xp_ndi, xp_ndarray
@@ -123,7 +124,7 @@ def check_matrix(matrices):
     return mtx
 
 def polar2d(
-    img: xp_ndarray,
+    img: np.ndarray,
     rmax: int,
     dtheta: float = 0.1,
     order=1,
@@ -131,14 +132,14 @@ def polar2d(
     cval=0
 ) -> np.ndarray:
     centers = np.array(img.shape)/2 - 0.5
-    r = xp.arange(rmax) + 0.5
-    theta = xp.arange(0, 2*np.pi, dtheta)
-    r, theta = xp.meshgrid(r, theta)
-    y = r * xp.sin(theta) + centers[0]
-    x = r * xp.cos(theta) + centers[1]
-    coords = xp.stack([y, x], axis=0)
-    img = xp.asarray(img, dtype=img.dtype)
-    out = xp_ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
+    r = np.arange(rmax) + 0.5
+    theta = np.arange(0, 2*np.pi, dtheta)
+    r, theta = np.meshgrid(r, theta)
+    y = r * np.sin(theta) + centers[0]
+    x = r * np.cos(theta) + centers[1]
+    coords = np.stack([y, x], axis=0)
+    img = np.asarray(img, dtype=img.dtype)
+    out = ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
 
 # def polar3d(

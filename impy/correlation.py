@@ -78,7 +78,7 @@ def fsc(
     
         out = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
     freq = (np.arange(len(out)) + 0.5) * dfreq
-    return freq, out
+    return freq, asnumpy(out)
 
 # alias
 fourier_shell_correlation = fsc
