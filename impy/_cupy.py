@@ -42,6 +42,8 @@ class XP:
         self.asarray = np.asarray
         self.ndarray = np.ndarray
         self.state = "numpy"
+        from ._const import Const
+        Const["SCHEDULER"] = "threads"
     
     def setCupy(self) -> None:
         import cupy as cp
@@ -64,6 +66,9 @@ class XP:
         self.asarray = cp.asarray
         self.ndarray = cp_ndarray
         self.state = "cupy"
+        
+        from ._const import Const
+        Const["SCHEDULER"] = "single-threaded"
 
 xp = XP()
     
