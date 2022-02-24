@@ -30,12 +30,12 @@ __all__ = ["binary_erosion",
            ]
 
 
-from ..._cupy import xp_ndi, xp, asnumpy, cupy_dispatcher
+from ..._cupy import xp, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
 
 def get_func(function_name):
-    if hasattr(xp_ndi, function_name):
-        _func = getattr(xp_ndi, function_name)    
+    if hasattr(xp.ndi, function_name):
+        _func = getattr(xp.ndi, function_name)    
         func = cupy_dispatcher(_func)
     else:
         func = getattr(scipy_ndi, function_name)
@@ -90,14 +90,14 @@ def std_filter(data, selem):
     selem = selem / np.sum(selem)
     x1 = convolve(data, selem)
     x2 = convolve(data**2, selem)
-    std_img = _safe_sqrt(asnumpy(x2 - x1**2), fill=0)
+    std_img = _safe_sqrt(xp.asnumpy(x2 - x1**2), fill=0)
     return std_img
 
 def coef_filter(data, selem):
     selem = selem / np.sum(selem)
     x1 = convolve(data, selem)
     x2 = convolve(data**2, selem)
-    out = _safe_sqrt(asnumpy(x2 - x1**2), fill=0)/asnumpy(x1)
+    out = _safe_sqrt(xp.asnumpy(x2 - x1**2), fill=0)/xp.asnumpy(x1)
     return out
     
 def dog_filter(img, low_sigma, high_sigma):

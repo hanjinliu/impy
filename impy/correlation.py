@@ -9,7 +9,7 @@ from .arrays._utils._corr import subpixel_pcc
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
-from ._cupy import xp, asnumpy, xp_ndi
+from ._cupy import xp
 from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
@@ -62,12 +62,12 @@ def fsc(
     with Progress("fsc"):
         # make radially separated labels
         labels = (r/dfreq).astype(np.uint16)
-        nlabels = int(asnumpy(labels.max()))
+        nlabels = int(xp.asnumpy(labels.max()))
         
         out = xp.empty(nlabels, dtype=xp.float32)
         def radial_sum(arr):
             arr = xp.asarray(arr)
-            return xp_ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
+            return xp.ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
 
         f0 = img0.fft(dims=dims)
         f1 = img1.fft(dims=dims)
@@ -93,7 +93,7 @@ def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     img1 = xp.asarray(img1)
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.std(img0, axis=dims)*xp.std(img1, axis=dims)) / n
-    return asnumpy(corr)
+    return xp.asnumpy(corr)
 
 
 def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
@@ -116,7 +116,7 @@ def _zncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     img1 = xp.asarray(img1)
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
-    return asnumpy(corr)
+    return xp.asnumpy(corr)
 
 
 def _masked_zncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
@@ -375,7 +375,7 @@ def pcc_maximum(
             upsample_factor, 
             max_shifts=max_shifts
         )
-    return asnumpy(shift)
+    return xp.asnumpy(shift)
 
 @_docs.write_docs
 def ft_pcc_maximum(
@@ -418,7 +418,7 @@ def ft_pcc_maximum(
             upsample_factor,
             max_shifts=max_shifts,
         )
-    return asnumpy(shift)
+    return xp.asnumpy(shift)
 
 @_docs.write_docs
 def polar_pcc_maximum(

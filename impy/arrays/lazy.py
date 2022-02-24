@@ -25,7 +25,7 @@ from ..collections import DataList
 from .._types import nDFloat, Coords, Iterable, Dims
 from ..axes import ImageAxesError
 from .._const import Const
-from .._cupy import xp, xp_ndi, xp_fft, asnumpy
+from .._cupy import xp
 
 if TYPE_CHECKING:
     from dask import array as da
@@ -89,7 +89,7 @@ class LazyImgArray(AxesMixin):
     def __array__(self):
         # Should not be `self.compute` because in napari Viewer this function is called every time
         # sliders are moved.
-        return asnumpy(self.value.compute())
+        return xp.asnumpy(self.value.compute())
     
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -261,7 +261,7 @@ class LazyImgArray(AxesMixin):
         with Progress("Converting to ImgArray"):
             arr = self.value.compute()
             if arr.ndim > 0:
-                img = asnumpy(arr).view(ImgArray)
+                img = xp.asnumpy(arr).view(ImgArray)
                 for attr in ["name", "dirpath", "axes", "metadata", "history"]:
                     setattr(img, attr, getattr(self, attr, None))
             else:
@@ -534,7 +534,7 @@ class LazyImgArray(AxesMixin):
         #     it = self.axisof(a)
         #     output_chunks[it] = all_coords.shape[i+1]
         #
-        # cropped_img = self._apply_function(xp_ndi.map_coordinates, 
+        # cropped_img = self._apply_function(xp.ndi.map_coordinates, 
         #                          c_axes=complement_axes(dims, self.axes), 
         #                          dtype=self.dtype,
         #                          rechunk_to="max",
@@ -550,7 +550,7 @@ class LazyImgArray(AxesMixin):
                 ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         c_axes = complement_axes(dims, self.axes)
-        filter_func = xp_ndi.grey_erosion if self.dtype != bool else xp_ndi.binary_erosion
+        filter_func = xp.ndi.grey_erosion if self.dtype != bool else xp.ndi.binary_erosion
         
         return self._apply_map_overlap(
             filter_func, 
@@ -566,7 +566,7 @@ class LazyImgArray(AxesMixin):
                  ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         c_axes = complement_axes(dims, self.axes)
-        filter_func = xp_ndi.grey_dilation if self.dtype != bool else xp_ndi.binary_dilation
+        filter_func = xp.ndi.grey_dilation if self.dtype != bool else xp.ndi.binary_dilation
         
         return self._apply_map_overlap(
             filter_func, 
@@ -582,7 +582,7 @@ class LazyImgArray(AxesMixin):
                 ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         c_axes = complement_axes(dims, self.axes)
-        filter_func = xp_ndi.grey_opening if self.dtype != bool else xp_ndi.binary_opening
+        filter_func = xp.ndi.grey_opening if self.dtype != bool else xp.ndi.binary_opening
         
         return self._apply_map_overlap(
             filter_func, 
@@ -598,7 +598,7 @@ class LazyImgArray(AxesMixin):
                 ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         c_axes = complement_axes(dims, self.axes)
-        filter_func = xp_ndi.grey_closing if self.dtype != bool else xp_ndi.binary_closing
+        filter_func = xp.ndi.grey_closing if self.dtype != bool else xp.ndi.binary_closing
         
         return self._apply_map_overlap(
             filter_func, 
@@ -616,7 +616,7 @@ class LazyImgArray(AxesMixin):
         c_axes = complement_axes(dims, self.axes)
         depth = _ceilint(sigma*4)
         return self._apply_map_overlap(
-            xp_ndi.gaussian_filter, 
+            xp.ndi.gaussian_filter, 
             c_axes=c_axes,
             depth=depth,
             kwargs=dict(sigma=sigma),
@@ -630,7 +630,7 @@ class LazyImgArray(AxesMixin):
                       ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         return self._apply_map_overlap(
-            xp_ndi.median_filter,
+            xp.ndi.median_filter,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(footprint=disk)
@@ -645,7 +645,7 @@ class LazyImgArray(AxesMixin):
         disk = _structures.ball_like(radius, len(dims))
         kernel = (disk/np.sum(disk)).astype(np.float32)
         return self._apply_map_overlap(
-            xp_ndi.convolve,
+            xp.ndi.convolve,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(weights=kernel),
@@ -664,7 +664,7 @@ class LazyImgArray(AxesMixin):
         depth = tuple(half_size)
         c_axes = complement_axes(dims, self.axes)
         return self._apply_map_overlap(
-            xp_ndi.convolve, 
+            xp.ndi.convolve, 
             c_axes=c_axes,
             depth=depth,
             kwargs=dict(weights=kernel, mode=mode, cval=cval),
@@ -701,7 +701,7 @@ class LazyImgArray(AxesMixin):
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
         return self._apply_map_overlap(
-            xp_ndi.convolve,
+            xp.ndi.convolve,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
             args=(laplace_op,),
@@ -850,8 +850,8 @@ class LazyImgArray(AxesMixin):
             arr = xp.asarray(arr)
             shape = arr.shape
             weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = weight * xp_fft.rfftn(arr)
-            ift = xp_fft.irfftn(ft, s=shape)
+            ft = weight * xp.fft.rfftn(arr)
+            ift = xp.fft.irfftn(ft, s=shape)
             return ift
         
         out = self._apply_map_overlap(func, c_axes=c_axes, depth=depth, boundary="reflect")
@@ -921,7 +921,7 @@ class LazyImgArray(AxesMixin):
                 return np.array([0]*ndim, dtype=np.float32).reshape(*each_shape)
             x = xp.asarray(x)
             result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)
-            return asnumpy(result[slice_out])
+            return xp.asnumpy(result[slice_out])
         
         from dask import array as da
 
@@ -994,7 +994,7 @@ class LazyImgArray(AxesMixin):
             mx = xp.eye(ndim+1, dtype=np.float32)
             loc = block_info[None]["array-location"][0]
             mx[:-1, -1] = -xp.asarray(shift[loc[t_index]])
-            return asnumpy(
+            return xp.asnumpy(
                 _transform.warp(arr[slice_in], mx, **affine_kwargs)[slice_out]
                 )
         

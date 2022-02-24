@@ -1,18 +1,18 @@
 from __future__ import annotations
 import numpy as np
-from ..._cupy import xp, xp_fft, xp_ndarray
+from ..._cupy import xp
 
 # Modified from skimage/registration/_phase_cross_correlation.py
 # Compatible between numpy/cupy and supports maximum shifts.
 
 def subpixel_pcc(
-    f0: xp_ndarray, 
-    f1: xp_ndarray, 
+    f0: xp.ndarray, 
+    f1: xp.ndarray, 
     upsample_factor: int,
     max_shifts: tuple[float, ...] | None = None,
-) -> xp_ndarray:
+) -> xp.ndarray:
     product = f0 * f1.conj()
-    cross_correlation = xp_fft.ifftn(product)
+    cross_correlation = xp.fft.ifftn(product)
     power = abs2(cross_correlation)
     if max_shifts is not None:
         max_shifts = np.asarray(max_shifts)
@@ -52,11 +52,11 @@ def subpixel_pcc(
     return shifts
 
 def _upsampled_dft(
-    data: xp_ndarray, 
+    data: xp.ndarray, 
     upsampled_region_size: np.ndarray, 
     upsample_factor: int, 
-    axis_offsets: xp_ndarray
-) -> xp_ndarray:
+    axis_offsets: xp.ndarray
+) -> xp.ndarray:
     # if people pass in an integer, expand it to a list of equal-sized sections
     upsampled_region_size = [upsampled_region_size,] * data.ndim
 
@@ -70,14 +70,14 @@ def _upsampled_dft(
         data = xp.tensordot(kernel, data, axes=(1, -1))
     return data
 
-def abs2(a: xp_ndarray) -> xp_ndarray:
+def abs2(a: xp.ndarray) -> xp.ndarray:
     return a.real**2 + a.imag**2
 
-def crop_by_max_shifts(power: xp_ndarray, left, right):
-    shifted_power = xp_fft.fftshift(power)
+def crop_by_max_shifts(power: xp.ndarray, left, right):
+    shifted_power = xp.fft.fftshift(power)
     centers = tuple(s//2 for s in power.shape)
     slices = tuple(
         slice(max(c - int(shiftl), 0), min(c + int(shiftr) + 1, s), None) 
         for c, shiftl, shiftr, s in zip(centers, left, right, power.shape)
     )
-    return xp_fft.ifftshift(shifted_power[slices])
+    return xp.fft.ifftshift(shifted_power[slices])

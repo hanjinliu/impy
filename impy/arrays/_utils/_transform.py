@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 from collections import namedtuple
 from ._skimage import sktrans
-from ..._cupy import xp, xp_ndi, xp_ndarray
+from ..._cupy import xp
 
 __all__ = ["compose_affine_matrix", 
            "decompose_affine_matrix",
@@ -15,16 +15,16 @@ AffineTransformationParameters = namedtuple(typename="AffineTransformationParame
                                             field_names=["translation", "rotation", "scale", "shear"]
                                             )
 
-def warp(img: xp_ndarray, matrix: xp_ndarray, cval=0, mode="constant", output_shape=None, order=1):
+def warp(img: xp.ndarray, matrix: xp.ndarray, cval=0, mode="constant", output_shape=None, order=1):
     img = xp.asarray(img, dtype=img.dtype)
     matrix = xp.asarray(matrix)
-    out = xp_ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
+    out = xp.ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
                                   order=order, prefilter=order>1)
     return out
 
-def shift(img: xp_ndarray, shift: xp_ndarray, cval=0, mode="constant", order=1):
+def shift(img: xp.ndarray, shift: xp.ndarray, cval=0, mode="constant", order=1):
     img = xp.asarray(img, dtype=img.dtype)
-    out = xp_ndi.shift(img, shift, cval=cval, mode=mode, 
+    out = xp.ndi.shift(img, shift, cval=cval, mode=mode, 
                        order=order, prefilter=order>1)
     return out
 
@@ -123,7 +123,7 @@ def check_matrix(matrices):
     return mtx
 
 def polar2d(
-    img: xp_ndarray,
+    img: xp.ndarray,
     rmax: int,
     dtheta: float = 0.1,
     order=1,
@@ -138,11 +138,11 @@ def polar2d(
     x = r * xp.cos(theta) + centers[1]
     coords = xp.stack([y, x], axis=0)
     img = xp.asarray(img, dtype=img.dtype)
-    out = xp_ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
+    out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
 
 # def polar3d(
-#     img: xp_ndarray, 
+#     img: xp.ndarray, 
 #     rmax: int,
 #     dtheta: float = 0.1,
 #     order=1,
@@ -160,5 +160,5 @@ def polar2d(
 #     x = _yx * xp.cos(theta) + centers[2]
 #     coords = xp.stack([z, y, x], axis=0)
 #     img = xp.asarray(img, dtype=img.dtype)
-#     out = xp_ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
+#     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
 #     return out

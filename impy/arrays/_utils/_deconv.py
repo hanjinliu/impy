@@ -1,5 +1,5 @@
 from functools import partial
-from ..._cupy import xp, xp_fft
+from ..._cupy import xp
 
 try:
     gradient = xp.gradient
@@ -18,19 +18,19 @@ __all__ = ["wiener",
 
 def wiener(obs, psf_ft, psf_ft_conj, lmd):
     obs = xp.asarray(obs)
-    fft = xp_fft.rfftn
-    ifft = partial(xp_fft.irfftn, s=obs.shape)
+    fft = xp.fft.rfftn
+    ifft = partial(xp.fft.irfftn, s=obs.shape)
     
     img_ft = fft(obs)
     
     estimated = xp.real(ifft(img_ft*psf_ft_conj / (psf_ft*psf_ft_conj + lmd)))
-    return xp_fft.fftshift(estimated)
+    return xp.fft.fftshift(estimated)
     
 def richardson_lucy(obs, psf_ft, psf_ft_conj, niter, eps):
     # Identical to the algorithm in Deconvolution.jl of Julia.
     obs = xp.asarray(obs)
-    fft = xp_fft.rfftn
-    ifft = partial(xp_fft.irfftn, s=obs.shape)
+    fft = xp.fft.rfftn
+    ifft = partial(xp.fft.irfftn, s=obs.shape)
     conv = factor = xp.empty(obs.shape, dtype=xp.float32) # placeholder
     estimated = xp.real(ifft(fft(obs) * psf_ft))   # initialization
     
@@ -39,12 +39,12 @@ def richardson_lucy(obs, psf_ft, psf_ft_conj, niter, eps):
         factor[:] = ifft(fft(_safe_div(obs, conv, eps=eps)) * psf_ft_conj).real
         estimated *= factor
         
-    return xp_fft.fftshift(estimated)
+    return xp.fft.fftshift(estimated)
 
 def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
     obs = xp.asarray(obs)
-    fft = xp_fft.rfftn
-    ifft = partial(xp_fft.irfftn, s=obs.shape)
+    fft = xp.fft.rfftn
+    ifft = partial(xp.fft.irfftn, s=obs.shape)
     est_old = ifft(fft(obs) * psf_ft).real
     est_new = xp.empty(obs.shape, dtype=xp.float32)
     conv = factor = norm = gg = xp.empty(obs.shape, dtype=xp.float32) # placeholder
@@ -63,7 +63,7 @@ def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
             break
         est_old[:] = est_new
         
-    return xp_fft.fftshift(est_new)
+    return xp.fft.fftshift(est_new)
 
 
 def _safe_div(a, b, eps=1e-8):
@@ -80,6 +80,6 @@ def check_psf(img, psf, dims):
     if img.sizesof(dims) != psf.shape:
         raise ValueError("observation and PSF have different shape: "
                         f"{img.sizesof(dims)} and {psf.shape}")
-    psf_ft = xp_fft.rfftn(psf)
+    psf_ft = xp.fft.rfftn(psf)
     psf_ft_conj = xp.conjugate(psf_ft)
     return psf_ft, psf_ft_conj

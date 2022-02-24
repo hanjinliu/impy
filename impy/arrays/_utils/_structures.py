@@ -1,4 +1,3 @@
-import numpy as np
 from ..._cupy import xp
 
 def circle(radius, shape, dtype="bool"):
