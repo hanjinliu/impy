@@ -9,19 +9,14 @@ def subpixel_pcc(
     f0: xp_ndarray, 
     f1: xp_ndarray, 
     upsample_factor: int,
-    max_shifts: tuple[int, ...] | None = None,
+    max_shifts: tuple[float, ...] | None = None,
 ) -> xp_ndarray:
     product = f0 * f1.conj()
     cross_correlation = xp_fft.ifftn(product)
     power = abs2(cross_correlation)
     if max_shifts is not None:
-        shifted_power = xp_fft.fftshift(power)
-        centers = tuple(s//2 for s in power.shape)
-        slices = tuple(
-            slice(max(c-shift, 0), min(c+shift + 1, s), None) 
-            for c, shift, s in zip(centers, max_shifts, power.shape)
-        )
-        power = xp_fft.ifftshift(shifted_power[slices])
+        max_shifts = np.asarray(max_shifts)
+        power = crop_by_max_shifts(power, max_shifts, max_shifts)
         
     maxima = xp.unravel_index(xp.argmax(power), power.shape)
     midpoints = xp.array([np.fix(axis_size / 2) for axis_size in power.shape])
@@ -43,9 +38,14 @@ def subpixel_pcc(
                                            sample_region_offset
                                            ).conj()
         # Locate maximum and map back to original pixel grid
-        maxima = xp.unravel_index(xp.argmax(abs2(cross_correlation)),
-                                  cross_correlation.shape)
-
+        power = abs2(cross_correlation)
+        
+        if max_shifts is not None:
+            _upsampled_left_shifts = (shifts + max_shifts) * upsample_factor
+            _upsampled_right_shifts = (max_shifts - shifts) * upsample_factor
+            power = crop_by_max_shifts(power, _upsampled_left_shifts, _upsampled_right_shifts)
+            
+        maxima = xp.unravel_index(xp.argmax(power), power.shape)
         maxima = xp.asarray(maxima, dtype=xp.float32) - dftshift
 
         shifts = shifts + maxima / upsample_factor
@@ -72,3 +72,12 @@ def _upsampled_dft(
 
 def abs2(a: xp_ndarray) -> xp_ndarray:
     return a.real**2 + a.imag**2
+
+def crop_by_max_shifts(power: xp_ndarray, left, right):
+    shifted_power = xp_fft.fftshift(power)
+    centers = tuple(s//2 for s in power.shape)
+    slices = tuple(
+        slice(max(c - int(shiftl), 0), min(c + int(shiftr) + 1, s), None) 
+        for c, shiftl, shiftr, s in zip(centers, left, right, power.shape)
+    )
+    return xp_fft.ifftshift(shifted_power[slices])

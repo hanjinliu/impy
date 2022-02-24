@@ -394,7 +394,7 @@ def pcc_maximum(
         ft1 = img1.fft(dims=img1.axes)
         if mask is not None:
             ft0[mask] = 0
-        if isinstance(max_shifts, int):
+        if isinstance(max_shifts, (int, float)):
             max_shifts = (max_shifts,) * img0.ndim
         shift = subpixel_pcc(
             xp.asarray(ft0.value), 
@@ -410,7 +410,7 @@ def ft_pcc_maximum(
     img1: ImgArray, 
     mask: ImgArray | None = None, 
     upsample_factor: int = 10,
-    max_shifts: int | tuple[int, ...] | None = None
+    max_shifts: float | tuple[float, ...] | None = None
 ) -> np.ndarray:
     """
     Calculate lateral shift between two images.
@@ -423,8 +423,8 @@ def ft_pcc_maximum(
     {inputs_of_correlation}
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
-    max_shifts : int, tuple of int, optional
-        Maximum shifts in each dimension. If a single integer is given, it is interpreted as maximum shifts
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as maximum shifts
         in all dimensions. No upper bound of shifts if not given.
 
     Returns
@@ -437,7 +437,7 @@ def ft_pcc_maximum(
         if mask is not None:
             img0 = img0.copy()
             img0[mask] = 0
-        if isinstance(max_shifts, int):
+        if isinstance(max_shifts, (int, float)):
             max_shifts = (max_shifts,) * img0.ndim
         shift = subpixel_pcc(
             xp.asarray(img0.value), 
@@ -510,7 +510,6 @@ def polar_pcc_maximum(
 #         shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
 #                             max_shifts=max_shifts)
 #     return shift[:2]
-
 
 
 @_docs.write_docs

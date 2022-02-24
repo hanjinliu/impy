@@ -373,15 +373,17 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
         return out
     
-    def _apply_function(self, 
-              func: Callable,
-              c_axes: str = None,
-              drop_axis: Iterable[int] = [],
-              new_axis: Iterable[int] = None, 
-              dtype = np.float32,
-              rechunk_to: tuple[int, ...] | str = "none",
-              dask_wrap: bool = False,
-              args: tuple = None, kwargs: dict[str] = None) -> LazyImgArray:
+    def _apply_function(
+        self, 
+        func: Callable,
+        c_axes: str = None,
+        drop_axis: Iterable[int] = [],
+        new_axis: Iterable[int] = None, 
+        dtype = np.float32,
+        rechunk_to: tuple[int, ...] | str = "none",
+        dask_wrap: bool = False,
+        args: tuple = None, kwargs: dict[str] = None
+    ) -> LazyImgArray:
         """
         Rechunk array in a correct shape and apply function using `map_blocks`. This function is similar
         to the `apply_dask` function in `MetaArray` while returns dask array bound LazyImgArray.

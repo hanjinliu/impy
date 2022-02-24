@@ -231,8 +231,8 @@ class LabeledArray(HistoryArray):
             warn("Data type complex128 is not valid for images. It was converted to complex64 instead",
                  UserWarning)
             return self.astype(np.complex64)
-        elif dtype == "int8":
-            return self.astype("int8")
+        elif dtype in ("int8", "int16"):
+            return self.astype(dtype)
         else:
             raise ValueError(f"dtype: {dtype}")
     

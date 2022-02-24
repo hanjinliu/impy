@@ -28,20 +28,33 @@ def test_fourier():
     assert_allclose(shift_sk, (7, -12))
 
 def test_max_shift():
+    # check shifts don't exceed max_shifts
     for i in range(10):
         np.random.seed(i)
         ref = ip.random.random_uint16((128, 129))
         img = ref.affine(translation=[30, -44])
         shift = ip.pcc_maximum(img, ref, max_shifts=20)
-        assert all(shift < 20)
+        assert all(shift <= 20)
+        shift = ip.pcc_maximum(img, ref, max_shifts=14.6)
+        assert all(shift <= 14.6)
     
+    # check shifts are correct if max_shifts is large enough
     reference_image = ip.sample_image("camera")
     shift = (-7, 12)
     shifted_image = reference_image.affine(translation=shift)
 
-    shift = ip.pcc_maximum(shifted_image, reference_image, max_shifts=15)
-    assert_allclose(shift, (7, -12))
+    shift = ip.pcc_maximum(shifted_image, reference_image, max_shifts=15.7)
+    assert_allclose(shift, shift)
     
+    # check shifts are correct even if at the edge of max_shifts
+    reference_image = ip.sample_image("camera")
+    shift = (-7.8, 6.6)
+    shifted_image = reference_image.affine(translation=shift)
+
+    shift = ip.pcc_maximum(shifted_image, reference_image, max_shifts=[7.9, 6.7])
+    assert_allclose(shift, shift)
+    
+    # check sub-optimal shifts will be returned
     ref = ip.zeros((128, 128))
     ref[10, 10] = 1
     ref[10, 20] = 1
@@ -54,7 +67,7 @@ def test_max_shift():
     shift = ip.pcc_maximum(img, ref)
     assert_allclose(shift, (2, 15))
     shift0 = ip.pcc_maximum(img, ref0)
-    shift = ip.pcc_maximum(img, ref, max_shifts=[5, 10], upsample_factor=2)
+    shift = ip.pcc_maximum(img, ref, max_shifts=[5.7, 10], upsample_factor=2)
     assert_allclose(shift, shift0)
     
 def test_polar_pcc():
