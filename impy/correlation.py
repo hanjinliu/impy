@@ -62,8 +62,12 @@ def fsc(
     
     center = [s/2 for s in spatial_shape]
     
-    r = xp.sqrt(sum(((x - c)/img0.scale[a])**2 for x, c, a in zip(inds, center, dims)))
-    r_lim = r.max()
+    if len(set(spatial_shape)) == 1:
+        r = xp.sqrt(sum(((x - c)*img0.scale[a])**2 for x, c, a in zip(inds, center, dims)))
+        r_lim = r.max()
+    else:
+        freqs = xp.meshgrid(*[xp.fft.fftfreq(s) for s in spatial_shape])
+        
         
     # check r_max
     if r_max is None:
@@ -94,7 +98,7 @@ def fsc(
             pw0 = f0_.real**2 + f0_.imag**2
             pw1 = f1_.real**2 + f1_.imag**2
         
-            out[sl] = radial_sum(cov)/xp.sqrt(radial_sum(pw0)*radial_sum(pw1))
+            out[sl] = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
         
     if out.ndim == 0 and squeeze:
         out = out[()]

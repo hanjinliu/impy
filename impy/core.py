@@ -296,11 +296,13 @@ def sample_image(name: str) -> ImgArray:
 #   Imread functions
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-def imread(path: str,
-           dtype: DTypeLike = None,
-           key: str = None,
-           *, 
-           squeeze: bool = False) -> ImgArray:
+def imread(
+    path: str,
+    dtype: DTypeLike = None,
+    key: str = None,
+    *, 
+    squeeze: bool = False
+) -> ImgArray:
     r"""
     Load image(s) from a path. You can read list of images from directories with wildcards or ``"$"``
     in ``path``.
@@ -335,6 +337,8 @@ def imread(path: str,
         
     """    
     path = str(path)
+    if not os.path.exists(path):
+        raise ValueError(f"Path does not exist: {path}.")
     is_memmap = (key is not None)
     
     if "$" in path:
@@ -437,10 +441,12 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     out.temp = paths
     return out
 
-def _imread_stack(path: str, 
-                  dtype: DTypeLike = None,
-                  key: str = None,
-                  squeeze: bool = False):
+def _imread_stack(
+    path: str, 
+    dtype: DTypeLike = None,
+    key: str = None,
+    squeeze: bool = False
+):
     r"""
     Read separate image files using formated string. This function is useful when files/folders
     are named in a certain rule, such as ".../pos_0/img_0.tif", ".../pos_0/img_1.tif".
@@ -561,8 +567,10 @@ def _imread_stack(path: str,
     return self.sort_axes()
 
 
-def imread_collection(path: str | list[str], 
-                      filt: Callable[[np.ndarray], bool] = None) -> DataList:
+def imread_collection(
+    path: str | list[str], 
+    filt: Callable[[np.ndarray], bool] | None = None,
+) -> DataList:
     """
     Open images as ImgArray and store them in DataList.
 
@@ -599,10 +607,12 @@ def imread_collection(path: str | list[str],
     return arrlist
 
 
-def lazy_imread(path: str, 
-                chunks="default",
-                *, 
-                squeeze: bool = False) -> LazyImgArray:
+def lazy_imread(
+    path: str, 
+    chunks="auto",
+    *, 
+    squeeze: bool = False
+) -> LazyImgArray:
     """
     Read an image lazily. Image file is first opened as an memory map, and subsequently converted
     to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.
@@ -622,6 +632,9 @@ def lazy_imread(path: str,
     LazyImgArray
     """    
     path = str(path)
+    if not os.path.exists(path):
+        raise ValueError(f"Path does not exist: {path}.")
+    
     if "*" in path:
         return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
     fname, fext = os.path.splitext(os.path.basename(path))
@@ -654,7 +667,7 @@ def lazy_imread(path: str,
         return self.sort_axes()
 
 
-def _lazy_imread_glob(path:str, squeeze=False, **kwargs) -> LazyImgArray:
+def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArray:
     """
     Read images recursively from a directory, and stack them into one LazyImgArray.
 

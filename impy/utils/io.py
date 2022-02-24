@@ -95,9 +95,7 @@ def open_mrc(path: str, return_img: bool = False, memmap: bool = False):
 
 def open_as_dask(path: str, chunks):
     meta, img = open_img(path, memmap=True)
-    axes = meta["axes"]
-    if chunks == "default":
-        chunks = switch_slice("yx", axes, ifin=img.shape, ifnot=("auto",)*img.ndim)
+    
     if img.dtype == ">u2":
         img = img.astype(np.uint16)
     

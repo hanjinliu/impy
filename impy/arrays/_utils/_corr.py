@@ -1,5 +1,4 @@
 from __future__ import annotations
-from re import S
 import numpy as np
 from ..._cupy import xp, xp_fft, xp_ndarray
 
