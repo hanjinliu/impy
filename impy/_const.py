@@ -1,17 +1,26 @@
 import dask
 import psutil
+from typing import Any, MutableMapping
 
 memory = psutil.virtual_memory()
 
 MAX_GB_LIMIT = memory.total / 2 * 1e-9
 
-class GlobalConstant(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class GlobalConstant(MutableMapping[str, Any]):
+    __const: dict[str, Any]
+    
+    def __init__(self, **kwargs):
+        object.__setattr__(self, "__const", dict(**kwargs))
+    
+    def __len__(self) -> int:
+        return len(self.__const)
+    
+    def __iter__(self):
+        raise StopIteration
 
     def __getitem__(self, k):
         try:
-            return super().__getitem__(k)
+            return self.__const[k]
         except KeyError:
             raise KeyError(f"Global constants: {', '.join(self.keys())}")
 
@@ -33,18 +42,21 @@ class GlobalConstant(dict):
                 raise ValueError("ID_AXIS must be single character.")
         elif k == "FONT_SIZE_FACTOR":
             if not isinstance(v, (int, float)):
-                raise TypeError("MAX_GB must be float.")
+                raise TypeError("FONT_SIZE_FACTOR must be float.")
         elif k == "RESOURCE":
-            raise RuntimeError("Cannot set RESOURCE.")
+            from ._cupy import xp
+            if v == "numpy":
+                xp.setNumpy()
+            elif v == "cupy":
+                xp.setCupy()
+            else:
+                raise ValueError("RESOURCES must be either 'numpy' or 'cupy'.")
         elif k == "SCHEDULER":
             dask.config.set(scheduler=v)
         else:
             raise RuntimeError("Cannot set new keys.")
         
-        super().__setitem__(k, v)
-
-    def _setitem_(self, k, v):
-        super().__setitem__(k, v)
+        self.__const[k] = v
     
     __getattr__ = __getitem__
     __setattr__ = __setitem__
@@ -53,15 +65,16 @@ class GlobalConstant(dict):
         raise RuntimeError("Cannot delete any items.")
     
     def __repr__(self):
-        return \
-        f"""
-              MAX_GB    : {self.MAX_GB:.2f} GB
-          SHOW_PROGRESS : {self.SHOW_PROGRESS}
-             ID_AXIS    : {self.ID_AXIS}
-        FONT_SIZE_FACTOR: {self.FONT_SIZE_FACTOR}
-             RESOURCE   : {self.RESOURCE}
-            SCHEDULER   : {self.SCHEDULER}
-        """
+        return (
+            f"""
+                MAX_GB    : {self.MAX_GB:.2f} GB
+            SHOW_PROGRESS : {self.SHOW_PROGRESS}
+                ID_AXIS    : {self.ID_AXIS}
+            FONT_SIZE_FACTOR: {self.FONT_SIZE_FACTOR}
+                RESOURCE   : {self.RESOURCE}
+                SCHEDULER   : {self.SCHEDULER}
+            """
+        )
 
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,

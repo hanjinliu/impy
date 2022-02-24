@@ -3,7 +3,7 @@ import numpy as np
 import inspect
 import re
 from .utilcls import Progress
-from .._cupy import xp_ndarray, asnumpy
+from .._cupy import xp
 
 __all__ = ["record",
            "record_lazy",
@@ -37,8 +37,8 @@ def record(func=None, *, append_history=True, record_label=False, only_binary=Fa
             
             temp = getattr(out, "temp", None)
             
-            if type(out) in (np.ndarray, xp_ndarray):
-                out = asnumpy(out).view(self.__class__)
+            if type(out) in (np.ndarray, xp.ndarray):
+                out = xp.asnumpy(out).view(self.__class__)
             
             # record history and update if needed
             ifupdate = kwargs.pop("update", False)

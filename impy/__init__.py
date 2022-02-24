@@ -7,14 +7,6 @@ from functools import wraps
 
 from ._const import Const, SetConst
 
-from ._cupy import GPU_AVAILABLE
-if GPU_AVAILABLE:
-    Const._setitem_("RESOURCE", "cupy")
-    Const["SCHEDULER"] = "single-threaded"
-else:
-    Const._setitem_("RESOURCE", "numpy")
-del GPU_AVAILABLE
-
 from .collections import *
 from .core import *
 from .binder import bind
