@@ -17,75 +17,54 @@ __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fo
            "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
-@dims_to_spatial_axes
 def fsc(
     img0: ImgArray, 
     img1: ImgArray, 
-    nbin: int = 32, 
-    r_max: float = None,
-    *,
-    squeeze: bool = True, 
-    dims: Dims = None
-) -> PropArray:
+    dfreq: float = 0.02,
+) -> tuple[np.ndarray, np.ndarray]:
     r"""
     Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
     between two images. FSC is defined as:
     
-        .. math::
-        
-            FSC(r) = \frac{Re(\sum_{r<r'<r+dr}[F_0(r') \cdot \bar{F_1}(r)])}
-            {\sqrt{\sum_{r<r'<r+dr}|F_0(r')|^2 \cdot \sum_{r<r'<r+dr}|F_1(r')|^2}}
+    .. math::
     
-                  
+        FSC(r) = \frac{Re(\sum_{r<r'<r+dr}[F_0(r') \cdot \bar{F_1}(r)])}
+        {\sqrt{\sum_{r<r'<r+dr}|F_0(r')|^2 \cdot \sum_{r<r'<r+dr}|F_1(r')|^2}}
+    
+    In this function, frequency domain will be binned like this:
+    
+    .. code-block::
+
+        |---|---|---|---|---|
+        0  0.1 0.2 0.3 0.4 0.5
+    
+    and frequencies calculated in each bin will be 0.05, 0.15, ..., 0.45.
+    
     Parameters
     ----------
     {inputs_of_correlation}
-    nbin : int, default is 32
-        Number of bins.
-    r_max : float, optional
-        Maximum radius to make profile. Region 0 <= r < r_max will be split into `nbin` rings
-        (or shells). **Scale must be considered** because scales of each axis may vary.
-    {squeeze}
-    {dims}
+    dfreq : float, default is 0.02
+        Difference of frequencies. This value will be the width of bins.
                 
     Returns
     -------
-    PropArray
-        FSC stored in x-axis by default. If input images have tzcyx-axes, then an array with 
-        tcx-axes will be returned. Make sure x-axis no longer means length in x because images
-        are Fourier transformed.
+    Two np.ndarray
+        The first array is frequency, and the second array is FSC.
     """    
     img0, img1 = _check_inputs(img0, img1)
     
-    spatial_shape = img0.sizesof(dims)
-    inds = xp.indices(spatial_shape)
+    shape = img0.shape
+    dims = img0.axes
     
-    center = [s/2 for s in spatial_shape]
-    
-    if len(set(spatial_shape)) == 1:
-        r = xp.sqrt(sum(((x - c)*img0.scale[a])**2 for x, c, a in zip(inds, center, dims)))
-        r_lim = r.max()
-    else:
-        freqs = xp.meshgrid(*[xp.fft.fftfreq(s) for s in spatial_shape])
-        
-        
-    # check r_max
-    if r_max is None:
-        r_max = r_lim
-    elif r_max > r_lim or r_max <= 0:
-        raise ValueError(f"`r_max` must be in range of 0 < r_max <= {r_lim} with this image.")
+    freqs = xp.meshgrid(*[xp.fft.fftshift(xp.fft.fftfreq(s)) for s in shape])
+    r = xp.sqrt(sum(f**2 for f in freqs))
     
     with Progress("fsc"):
         # make radially separated labels
-        r_rel = r/r_max
-        labels = (nbin * r_rel).astype(np.uint16)
-        labels[r_rel >= 1] = 0
-        
-        c_axes = complement_axes(dims, img0.axes)
-
+        labels = (r/dfreq).astype(np.uint16)
         nlabels = int(asnumpy(labels.max()))
         
-        out = xp.empty(img0.sizesof(c_axes)+(nlabels,), dtype=xp.float32)
+        out = xp.empty(nlabels, dtype=xp.float32)
         def radial_sum(arr):
             arr = xp.asarray(arr)
             return xp_ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
@@ -93,19 +72,13 @@ def fsc(
         f0 = img0.fft(dims=dims)
         f1 = img1.fft(dims=dims)
         
-        for sl, f0_, f1_ in iter2(f0, f1, c_axes, exclude=dims):
-            cov = f0_.real*f1_.real + f0_.imag*f1_.imag
-            pw0 = f0_.real**2 + f0_.imag**2
-            pw1 = f1_.real**2 + f1_.imag**2
-        
-            out[sl] = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
-        
-    if out.ndim == 0 and squeeze:
-        out = out[()]
+        cov = f0.real*f1.real + f0.imag*f1.imag
+        pw0 = f0.real**2 + f0.imag**2
+        pw1 = f1.real**2 + f1.imag**2
     
-    out = PropArray(asnumpy(out), dtype=np.float32, axes=c_axes+dims[-1], 
-                    dirpath=img0.dirpath, metadata=img0.metadata, propname="fsc")
-    return out
+        out = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
+    freq = (np.arange(len(out)) + 0.5) * dfreq
+    return freq, out
 
 # alias
 fourier_shell_correlation = fsc
@@ -472,7 +445,7 @@ def polar_pcc_maximum(
     """    
     img0, img1 = _check_inputs(img0, img1)
     if img0.ndim != 2:
-        raise TypeError("Only 2D image is supported.")
+        raise TypeError("Currently only 2D image is supported.")
     if max_degree is None:
         max_degree = 180
     rmax = min(img0.shape)
@@ -482,34 +455,8 @@ def polar_pcc_maximum(
         max_shifts = (max_degree, 1)
         shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
                             max_shifts=max_shifts)
-    # img0.rotate(-shift[0]) == img1
+    # Here, `shift` satisfies `img0.rotate(-shift[0]) == img1`
     return shift[0]
-
-# @_docs.write_docs
-# def polar_pcc_maximum_3d(
-#     img0: ImgArray,
-#     img1: ImgArray,
-#     max_degrees: int = None,
-#     upsample_factor: int = 10,
-# ) -> float:
-#     img0, img1 = _check_inputs(img0, img1)
-#     if img0.ndim != 3:
-#         raise TypeError("Only 3D image is supported.")
-#     if max_degrees is None:
-#         max_shifts = (90, 180, 1)
-#     elif isinstance(max_degrees, int):
-#         max_shifts = (max_degrees, max_degrees, 1)
-#     else:
-#         if len(max_degrees) != 2:
-#             raise ValueError("max_degrees must be two integers.")
-#         max_shifts = tuple(max_degrees) + (1,)
-#     rmax = min(img0.shape)
-#     with Progress("polar_pcc_maximum_3d"):
-#         imgp = ip_asarray(polar3d(img0, rmax, np.pi/180))
-#         imgrotp = ip_asarray(polar3d(img1, rmax, np.pi/180))
-#         shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
-#                             max_shifts=max_shifts)
-#     return shift[:2]
 
 
 @_docs.write_docs

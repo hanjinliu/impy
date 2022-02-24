@@ -3,7 +3,7 @@ import numpy as np
 from ..._cupy import xp, xp_fft, xp_ndarray
 
 # Modified from skimage/registration/_phase_cross_correlation.py
-# Compatible between numpy/cupy.
+# Compatible between numpy/cupy and supports maximum shifts.
 
 def subpixel_pcc(
     f0: xp_ndarray, 
