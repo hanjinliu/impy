@@ -1,6 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
+from typing import TYPE_CHECKING
 import os
 import re
 import glob
@@ -18,6 +19,9 @@ from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
 from ._const import Const
+
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
 
 __all__ = ["array", 
            "asarray", 
@@ -164,8 +168,9 @@ def aslazy(arr: ArrayLike,
     
     return self
 
+_P = ParamSpec("_P")
 
-def inject_numpy_function(func: Callable):
+def inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArray]:
     npfunc: Callable = getattr(np, func.__name__)
     @wraps(func)
     def _func(*args, **kwargs):
@@ -233,9 +238,11 @@ def gaussian_kernel(shape: _ShapeLike,
     return ker
 
 
-def circular_mask(radius: nDFloat, 
-                  shape: _ShapeLike,
-                  center: str | tuple[float, ...] = "center") -> ImgArray:
+def circular_mask(
+    radius: nDFloat, 
+    shape: _ShapeLike,
+    center: str | tuple[float, ...] = "center"
+) -> ImgArray:
     """
     Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``. 
 
