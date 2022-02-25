@@ -411,10 +411,6 @@ class MetaArray(AxesMixin, np.ndarray):
         value = self._broadcast(value)
         return super().__mul__(value)
     
-    def __matmul__(self, value) -> Self:
-        value = self._broadcast(value)
-        return super().__matmul__(value)
-    
     def __truediv__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__truediv__(value)
@@ -474,10 +470,6 @@ class MetaArray(AxesMixin, np.ndarray):
     def __imul__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__imul__(value)
-    
-    def __imatmul__(self, value) -> Self:
-        value = self._broadcast(value)
-        return super().__imatmul__(value)
     
     def __itruediv__(self, value) -> Self:
         value = self._broadcast(value)
