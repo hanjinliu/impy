@@ -411,11 +411,88 @@ class MetaArray(AxesMixin, np.ndarray):
         value = self._broadcast(value)
         return super().__mul__(value)
     
+    def __matmul__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__matmul__(value)
+    
     def __truediv__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__truediv__(value)
+    
+    def __mod__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__mod__(value)
+    
+    def __floordiv__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__floordiv__(value)
+    
+    def __gt__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__gt__(value)
+    
+    def __ge__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ge__(value)
+    
+    def __lt__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__lt__(value)
+    
+    def __le__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__le__(value)
+    
+    def __eq__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__eq__(value)
+    
+    def __ne__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ne__(value)
+    
+    def __and__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__and__(value)
+    
+    def __or__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__or__(value)
+    
+    def __ne__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ne__(value)
+    
+    def __iadd__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__iadd__(value)
+    
+    def __isub__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__isub__(value)
+    
+    def __imul__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__imul__(value)
+    
+    def __imatmul__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__imatmul__(value)
+    
+    def __itruediv__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__itruediv__(value)
+    
+    def __imod__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__imod__(value)
+    
+    def __ifloordiv__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ifloordiv__(value)
 
-def _list_of_axes(img, axis):
+
+def _list_of_axes(img: MetaArray, axis):
     if axis is None:
         axis = []
     elif isinstance(axis, str):
