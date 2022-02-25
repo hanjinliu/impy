@@ -80,9 +80,6 @@ class ImgArray(LabeledArray):
             raise ValueError("Cannot devide negative value.")
         return super().__itruediv__(value)
     
-    def __getitem__(self, key: int | str | slice | tuple) -> ImgArray:
-        return super().__getitem__(key)
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)

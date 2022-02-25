@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
@@ -8,6 +9,9 @@ from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
@@ -16,7 +20,7 @@ class MetaArray(AxesMixin, np.ndarray):
     dirpath: str
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None) -> MetaArray:
+                metadata=None, dtype=None) -> Self:
         if isinstance(obj, cls):
             return obj
         
@@ -80,7 +84,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key: int | str | slice | tuple) -> MetaArray:
+    def __getitem__(self, key: int | str | slice | tuple) -> Self:
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
             sl = self._str_to_slice(key)
@@ -116,7 +120,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return out
     
-    def _getitem_additional_set_info(self, other: MetaArray, **kwargs):
+    def _getitem_additional_set_info(self, other: Self, **kwargs):
         self._set_info(other, kwargs["new_axes"])
         return None
     
@@ -248,7 +252,7 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         return axis_targeted_slicing(self.ndim, str(self.axes), string)
     
-    def sort_axes(self) -> MetaArray:
+    def sort_axes(self) -> Self:
         """
         Sort image dimensions to ptzcyx-order
 
@@ -261,16 +265,17 @@ class MetaArray(AxesMixin, np.ndarray):
         return self.transpose(order)
 
     
-    def apply_dask(self, 
-                   func: Callable,
-                   c_axes: str | None = None,
-                   drop_axis: Iterable[int] = [], 
-                   new_axis: Iterable[int] = None, 
-                   dtype = np.float32, 
-                   out_chunks: tuple[int, ...] = None,
-                   args: tuple[Any] = None,
-                   kwargs: dict[str, Any] = None
-                   ) -> MetaArray:
+    def apply_dask(
+        self, 
+        func: Callable,
+        c_axes: str | None = None,
+        drop_axis: Iterable[int] = [], 
+        new_axis: Iterable[int] = None, 
+        dtype = np.float32, 
+        out_chunks: tuple[int, ...] = None,
+        args: tuple[Any] = None,
+        kwargs: dict[str, Any] = None
+    ) -> Self:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
@@ -366,7 +371,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return out
     
-    def transpose(self, axes):
+    def transpose(self, axes) -> Self:
         """
         change the order of image dimensions.
         'axes' will also be arranged.
@@ -394,19 +399,19 @@ class MetaArray(AxesMixin, np.ndarray):
                 pass
         return value
     
-    def __add__(self, value):
+    def __add__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__add__(value)
     
-    def __sub__(self, value):
+    def __sub__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__sub__(value)
     
-    def __mul__(self, value):
+    def __mul__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__mul__(value)
     
-    def __truediv__(self, value):
+    def __truediv__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__truediv__(value)
 

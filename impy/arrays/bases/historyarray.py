@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 import itertools
 from .metaarray import MetaArray
@@ -6,9 +7,13 @@ from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
+
 class HistoryArray(MetaArray):
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None, dtype=None) -> HistoryArray:
+                history=None, metadata=None, dtype=None) -> Self:
         
         self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype)
         self.history = [] if history is None else history
@@ -61,7 +66,7 @@ class HistoryArray(MetaArray):
         
         return None
     
-    def split(self, axis=None) -> DataList[HistoryArray]:
+    def split(self, axis=None) -> DataList[Self]:
         """
         Split n-dimensional image into (n-1)-dimensional images.
 
@@ -88,7 +93,12 @@ class HistoryArray(MetaArray):
             
         return imgs
 
-    def tile(self, shape:tuple[int, int]|None=None, along:str|None=None, order:str|None=None) -> HistoryArray:
+    def tile(
+        self,
+        shape: tuple[int, int] | None = None,
+        along: str | None = None,
+        order: str | None = None,
+    ) -> Self:
         """
         Tile images in a certain order.
 
