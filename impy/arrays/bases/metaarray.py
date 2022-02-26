@@ -47,7 +47,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 "original image": self.name}
     
     def __str__(self):
-        return self.name
+        return self.name or "None"
     
     @property
     def shape(self):
