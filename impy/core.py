@@ -1,11 +1,15 @@
 from __future__ import annotations
-import numpy as np
-from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
-from typing import TYPE_CHECKING
 import os
+import sys
 import re
 import glob
 import itertools
+if sys.version_info < (3, 10):
+    from typing_extensions import ParamSpec
+else:
+    from typing import ParamSpec
+import numpy as np
+from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
 from functools import wraps
 
 from .utils.io import open_img, open_as_dask, get_scale_from_meta, open_mrc, open_tif
@@ -19,9 +23,6 @@ from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
 from ._const import Const
-
-if TYPE_CHECKING:
-    from typing_extensions import ParamSpec
 
 __all__ = ["array", 
            "asarray", 
