@@ -3,7 +3,7 @@ import numpy as np
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError
-from ..._cupy import xp
+from ...array_api import xp
 from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList

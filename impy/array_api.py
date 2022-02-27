@@ -16,6 +16,11 @@ from types import ModuleType
 from scipy import ndimage as scipy_ndi
 from typing import Callable
 
+# CUDA <= ver.8 does not have gradient    
+def _gradient(a, axis=None):
+    out = np.gradient(a.get(), axis=axis)
+    return xp.asarray(out)
+
 class XP:
     fft: ModuleType
     linalg: ModuleType
@@ -41,6 +46,37 @@ class XP:
         self.asnumpy = np.asarray
         self.asarray = np.asarray
         self.ndarray = np.ndarray
+        self.empty = np.empty
+        self.zeros = np.zeros
+        self.ones = np.ones
+        self.array = np.array
+        self.exp = np.exp
+        self.sin = np.sin
+        self.cos = np.cos
+        self.tan = np.tan
+        self.sqrt = np.sqrt
+        self.mean = np.mean
+        self.max = np.max
+        self.min = np.min
+        self.median = np.median
+        self.sum = np.sum
+        self.prod = np.prod
+        self.std = np.std
+        self.meshgrid = np.meshgrid
+        self.indices = np.indices
+        self.arange = np.arange
+        self.linspace = np.linspace
+        self.real = np.real
+        self.imag = np.imag
+        self.conjugate = np.conjugate
+        self.angle = np.angle
+        self.abs = np.abs
+        self.mod = np.mod
+        self.fix = np.fix
+        self.gradient = np.gradient
+        self.tensordot = np.tensordot
+        self.stack = np.stack
+        
         self.state = "numpy"
         from ._const import Const
         Const["SCHEDULER"] = "threads"
@@ -65,6 +101,39 @@ class XP:
         self.asnumpy = cp_asnumpy
         self.asarray = cp.asarray
         self.ndarray = cp_ndarray
+        self.empty = cp.empty
+        self.zeros = cp.zeros
+        self.ones = cp.ones
+        self.array = cp.array
+        self.exp = cp.exp
+        self.sin = cp.sin
+        self.cos = cp.cos
+        self.tan = cp.tan
+        self.sqrt = cp.sqrt
+        self.mean = cp.mean
+        self.max = cp.max
+        self.min = cp.min
+        self.median = cp.median
+        self.sum = cp.sum
+        self.prod = cp.prod
+        self.std = cp.std
+        self.meshgrid = cp.meshgrid
+        self.indices = cp.indices
+        self.arange = cp.arange
+        self.linspace = cp.linspace
+        self.real = cp.real
+        self.imag = cp.imag
+        self.conjugate = cp.conjugate
+        self.angle = cp.angle
+        self.abs = cp.abs
+        self.mod = cp.mod
+        self.fix = cp.fix
+        try:
+            self.gradient = cp.gradient
+        except AttributeError:
+            self.gradient = _gradient
+        self.tensordot = cp.tensordot
+        self.stack = cp.stack
         self.state = "cupy"
         
         from ._const import Const

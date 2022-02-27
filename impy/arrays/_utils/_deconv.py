@@ -1,5 +1,6 @@
 from functools import partial
-from ..._cupy import xp
+import numpy as np
+from ...array_api import xp
 
 try:
     gradient = xp.gradient
@@ -47,7 +48,7 @@ def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
     ifft = partial(xp.fft.irfftn, s=obs.shape)
     est_old = ifft(fft(obs) * psf_ft).real
     est_new = xp.empty(obs.shape, dtype=xp.float32)
-    conv = factor = norm = gg = xp.empty(obs.shape, dtype=xp.float32) # placeholder
+    conv = factor = norm = gg = xp.empty(obs.shape, dtype=np.float32) # placeholder
     
     for _ in range(max_iter):
         conv[:] = ifft(fft(est_old) * psf_ft).real
@@ -67,14 +68,14 @@ def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
 
 
 def _safe_div(a, b, eps=1e-8):
-    out = xp.zeros(a.shape, dtype=xp.float32)
+    out = xp.zeros(a.shape, dtype=np.float32)
     mask = b > eps
     out[mask] = a[mask]/b[mask]
     return out
 
 
 def check_psf(img, psf, dims):
-    psf = xp.asarray(psf, dtype=xp.float32)
+    psf = xp.asarray(psf, dtype=np.float32)
     psf /= xp.sum(psf)
     
     if img.sizesof(dims) != psf.shape:

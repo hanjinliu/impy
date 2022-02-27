@@ -1,7 +1,7 @@
 import impy as ip
 from pathlib import Path
 import numpy as np
-from impy._cupy import xp
+from impy.array_api import xp
 from numpy.testing import assert_allclose
 ip.Const["SHOW_PROGRESS"] = False
 

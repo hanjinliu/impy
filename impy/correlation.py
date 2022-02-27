@@ -9,7 +9,7 @@ from .arrays._utils._corr import subpixel_pcc
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
-from ._cupy import xp
+from .array_api import xp
 from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
@@ -64,7 +64,7 @@ def fsc(
         labels = (r/dfreq).astype(np.uint16)
         nlabels = int(xp.asnumpy(labels.max()))
         
-        out = xp.empty(nlabels, dtype=xp.float32)
+        out = xp.empty(nlabels, dtype=np.float32)
         def radial_sum(arr):
             arr = xp.asarray(arr)
             return xp.ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))

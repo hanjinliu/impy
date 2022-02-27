@@ -1,4 +1,5 @@
-from ..._cupy import xp
+import numpy as np
+from ...array_api import xp
 
 def circle(radius, shape, dtype="bool"):
     x = xp.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
@@ -11,15 +12,15 @@ def ball_like(radius, ndim:int):
     L = xp.arange(-half_int, half_int + 1)
     
     if ndim == 1:
-        return xp.ones(int(radius)*2+1, dtype=xp.uint8)
+        return xp.ones(int(radius)*2+1, dtype=np.uint8)
     elif ndim == 2:
         X, Y = xp.meshgrid(L, L)
         s = X**2 + Y**2
-        return xp.array(s <= radius**2, dtype=xp.uint8)
+        return xp.array(s <= radius**2, dtype=np.uint8)
     elif ndim == 3:
         Z, Y, X = xp.meshgrid(L, L, L)
         s = X**2 + Y**2 + Z**2
-        return xp.array(s <= radius**2, dtype=xp.uint8)
+        return xp.array(s <= radius**2, dtype=np.uint8)
     else:
         raise ValueError(f"dims must be 1 - 3, but got {ndim}")
 
