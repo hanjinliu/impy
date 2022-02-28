@@ -1,5 +1,5 @@
 import numpy as np
-from ..._cupy import xp
+from ...array_api import xp
 
 def adjust_bin(img, binsize: int, check_edges: bool, dims: str, all_axes: str):
     shape = []
