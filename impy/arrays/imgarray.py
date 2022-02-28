@@ -827,7 +827,7 @@ class ImgArray(LabeledArray):
             return self
         spatial_shape = self.sizesof(dims)
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        ker_all = xp.asnumpy(xp.fft.irfftn(weight, s=spatial_shape))
+        ker_all = xp.asnumpy(xp.fft.irfftn(xp.asarray(weight), s=spatial_shape))
         ker_all = np.fft.fftshift(ker_all)
         sl = []
         for s, c in zip(spatial_shape, cutoff):
@@ -880,7 +880,7 @@ class ImgArray(LabeledArray):
             arr = xp.asarray(arr)
             shape = arr.shape
             weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = weight * xp.fft.rfftn(arr)
+            ft = xp.asarray(weight) * xp.fft.rfftn(arr)
             ift = xp.fft.irfftn(ft, s=shape)
             return xp.asnumpy(ift)
         
