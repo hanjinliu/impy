@@ -14,7 +14,7 @@ def test_pcc(resource):
         assert_allclose(shift_sk, shift_ip)
         assert_allclose(shift_sk, (7, -12))
 
-def test_ncc(resource):
+def test_cc(resource):
     with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         img0 = ip.random.random((10, 10, 10), axes="zyx")
         img1 = ip.random.random((10, 10, 10), axes="zyx")
@@ -38,6 +38,9 @@ def test_ncc(resource):
         ip.zncc(img0, img1, mask, dims="yx")
         ip.fourier_ncc(img0, img1, dims="yx")
         ip.fourier_zncc(img0, img1, dims="yx")
+        
+        assert abs(ip.zncc(img0, img0) - 1) < 1e-6
+        assert abs(ip.fourier_zncc(img0, img0) - 1) < 1e-6
         
 
 def test_fourier(resource):
