@@ -80,9 +80,6 @@ class ImgArray(LabeledArray):
             raise ValueError("Cannot devide negative value.")
         return super().__itruediv__(value)
     
-    def __getitem__(self, key: int | str | slice | tuple) -> ImgArray:
-        return super().__getitem__(key)
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -785,8 +782,9 @@ class ImgArray(LabeledArray):
             Filtered image
         """         
         from ._utils._skimage import _get_ND_butterworth_filter
-        cutoff = check_nd(cutoff, len(dims))
-        if all((c >= 0.5 or c <= 0) for c in cutoff):
+        ndims = len(dims)
+        cutoff = check_nd(cutoff, ndims)
+        if all((c >= 0.5*np.sqrt(ndims) or c <= 0) for c in cutoff):
             return self
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
@@ -823,8 +821,9 @@ class ImgArray(LabeledArray):
             Filtered image
         """       
         from ._utils._skimage import _get_ND_butterworth_filter
-        cutoff = check_nd(cutoff, len(dims))
-        if _ft_not_needed(cutoff):
+        ndims = len(dims)
+        cutoff = check_nd(cutoff, ndims)
+        if all((c >= 0.5*np.sqrt(ndims) or c <= 0) for c in cutoff):
             return self
         spatial_shape = self.sizesof(dims)
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
@@ -870,8 +869,9 @@ class ImgArray(LabeledArray):
         from ._utils._skimage import _get_ND_butterworth_filter
         from dask import array as da
 
-        cutoff = check_nd(cutoff, len(dims))
-        if _ft_not_needed(cutoff):
+        ndims = len(dims)
+        cutoff = check_nd(cutoff, ndims)
+        if all((c >= 0.5*np.sqrt(ndims) or c <= 0) for c in cutoff):
             return self
         
         depth = switch_slice(dims, self.axes, overlap, 0)
@@ -4375,9 +4375,6 @@ def _check_function(func):
         return func
     else:
         raise TypeError("Must be one of numpy methods or callable object.")
-
-def _ft_not_needed(cutoff):
-    return all((c >= 0.5 or c <= 0) for c in cutoff)
     
 def _check_bg(img, bg):
     # determine bg

@@ -839,9 +839,10 @@ class LazyImgArray(AxesMixin):
                              dims: Dims = None, update: bool = False) -> LazyImgArray:
         from ._utils._skimage import _get_ND_butterworth_filter
         self = self.as_float()
-        cutoff = check_nd(cutoff, len(dims))
         c_axes = complement_axes(dims, self.axes)
-        if all((c >= 0.5 or c <= 0) for c in cutoff):
+        ndims = len(dims)
+        cutoff = check_nd(cutoff, ndims)
+        if all((c >= 0.5*np.sqrt(ndims) or c <= 0) for c in cutoff):
             return self
         
         depth = switch_slice(dims, self.axes, overlap, 0)

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 import itertools
 import re
@@ -8,6 +9,10 @@ from collections import namedtuple
 from ..utils.axesop import switch_slice
 from ..axes import Axes, ImageAxesError, ScaleDict
 from .._types import Slices
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 class AxesMixin:
     """
@@ -169,7 +174,12 @@ class AxesMixin:
         return None
     
     
-    def iter(self, axes: str, israw: bool = False, exclude: str = "") -> tuple[Slices, np.ndarray | AxesMixin]:
+    def iter(
+        self,
+        axes: str,
+        israw: bool = False,
+        exclude: str = ""
+    ) -> tuple[Slices, np.ndarray | Self]:
         """
         Iteration along axes. If axes="tzc", then equivalent to following pseudo code:
         
