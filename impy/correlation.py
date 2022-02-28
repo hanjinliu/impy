@@ -96,7 +96,7 @@ def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     return xp.asnumpy(corr)
 
 
-def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
+def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: xp.ndarray):
     n = np.prod(img0.sizesof(dims))
     img0ma = np.ma.array(img0.value, mask=mask)
     img1ma = np.ma.array(img1.value, mask=mask)
@@ -114,10 +114,18 @@ def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
 
 
 def _masked_zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...], mask: ImgArray):
-    img0ma = np.ma.array(img0, mask=mask)
-    img1ma = np.ma.array(img1, mask=mask)
-    return np.sum(img0ma * img1ma, axis=dims) / (
-        np.sqrt(np.sum(img0ma**2, axis=dims)*np.sum(img1ma**2, axis=dims)))
+    if xp.state == "cupy":
+        img0 = img0*mask
+        img1 = img1*mask
+        out = xp.sum(img0*img1, axis=dims) / (
+            xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
+    else:
+        img0ma = np.ma.array(img0, mask=mask)
+        img1ma = np.ma.array(img1, mask=mask)
+        out = np.ma.sum(img0ma * img1ma, axis=dims) / (
+            np.sqrt(np.ma.sum(img0ma**2, axis=dims)*np.ma.sum(img1ma**2, axis=dims)))
+    return out
+
 @_docs.write_docs
 @dims_to_spatial_axes
 def ncc(
@@ -152,7 +160,7 @@ def ncc(
         else:
             if img0.ndim > mask.ndim:
                 mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-            corr = _masked_ncc(img0, img1, dims, mask)
+            corr = _masked_ncc(img0, img1, dims, np.asarray(mask))
     return _make_corr_output(corr, img0, "ncc", squeeze, dims)
 
 @_docs.write_docs
@@ -194,7 +202,7 @@ def zncc(
         else:
             if img0.ndim > mask.ndim:
                 mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-            corr = _masked_zncc(img0zn, img1zn, _dims, mask)
+            corr = _masked_zncc(img0zn, img1zn, _dims, xp.asarray(np.asarray(mask)))
     return _make_corr_output(xp.asnumpy(corr), img0, "zncc", squeeze, dims)
 
 # alias
@@ -286,7 +294,9 @@ def fourier_ncc(
         if mask is None:
             corr = _ncc(f0, f1, dims)
         else:
-            corr = _masked_ncc(f0, f1, dims, mask)
+            if img0.ndim > mask.ndim:
+                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+            corr = _masked_ncc(f0, f1, dims, xp.asarray(np.asarray(mask)))
     return _make_corr_output(corr, img0, "fourier_ncc", squeeze, dims)
 
 @_docs.write_docs
@@ -329,8 +339,10 @@ def fourier_zncc(
         if mask is None:
             corr = _zncc(f0, f1, _dims)
         else:
-            corr = _masked_zncc(f0, f1, _dims, mask)
-    return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
+            if img0.ndim > mask.ndim:
+                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+            corr = _masked_zncc(f0, f1, _dims, xp.asarray(np.asarray(mask)))
+    return _make_corr_output(xp.asnumpy(corr), img0, "fourier_zncc", squeeze, dims)
 
 @_docs.write_docs
 def pcc_maximum(
