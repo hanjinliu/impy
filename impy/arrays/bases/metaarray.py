@@ -4,7 +4,7 @@ import numpy as np
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError
-from ..._cupy import xp, xp_ndarray, asnumpy
+from ...array_api import xp
 from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList
@@ -311,7 +311,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         if len(c_axes) == 0:
             # Do not construct dask tasks if it is not needed.
-            out = asnumpy(func(self.value, *args, **kwargs), dtype=dtype)
+            out = xp.asnumpy(func(self.value, *args, **kwargs), dtype=dtype)
         else:
             from dask import array as da
             new_axis = _list_of_axes(self, new_axis)
@@ -341,7 +341,7 @@ class MetaArray(AxesMixin, np.ndarray):
             img_idx = []
             args = []
             for i, arg in enumerate(all_args):
-                if isinstance(arg, (np.ndarray, xp_ndarray)) and arg.shape == self.shape:
+                if isinstance(arg, (np.ndarray, xp.ndarray)) and arg.shape == self.shape:
                     args.append(da.from_array(arg, chunks=chunks))
                     img_idx.append(i)
                 else:
@@ -354,7 +354,7 @@ class MetaArray(AxesMixin, np.ndarray):
                         continue
                     args[i] = args[i][slice_in]
                 out = func(*args, **kwargs)
-                return asnumpy(out[slice_out])
+                return xp.asnumpy(out[slice_out])
             
             out = da.map_blocks(_func, 
                                 *args, 

@@ -31,18 +31,18 @@ filters = ["median_filter",
            "doh_filter",
            "log_filter",
            "rolling_ball",
-           "rof_filter",
            ]
 
 dtypes = [np.uint8, np.uint16, np.float32]
 
 @pytest.mark.parametrize("f", filters)
 @pytest.mark.parametrize("dtype", dtypes)
-def test_filters(f, dtype):
-    path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-    img = ip.imread(path, dtype=dtype)["c=1;z=2"]
-    assert img.axes == "tyx"
-    getattr(img, f)()
+def test_filters(f, dtype, resource):
+    with ip.SetConst(RESOURCE=resource):
+        path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
+        img = ip.imread(path, dtype=dtype)["c=1;z=2"]
+        assert img.axes == "tyx"
+        getattr(img, f)()
 
 def test_sm():
     path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"

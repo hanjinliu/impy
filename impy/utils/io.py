@@ -6,7 +6,7 @@ import re
 import warnings
 import os
 import numpy as np
-from .._cupy import xp
+from ..array_api import xp
 
 from ..axes import ImageAxesError
 from .axesop import complement_axes

@@ -1,19 +1,11 @@
-__version__ = "1.25.3.dev0"
+__version__ = "1.26.0"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
 import logging
 from functools import wraps
 
-from ._const import Const, SetConst
-
-from ._cupy import GPU_AVAILABLE
-if GPU_AVAILABLE:
-    Const._setitem_("RESOURCE", "cupy")
-    Const["SCHEDULER"] = "single-threaded"
-else:
-    Const._setitem_("RESOURCE", "numpy")
-del GPU_AVAILABLE
+from ._const import Const, SetConst, silent, use
 
 from .collections import *
 from .core import *
@@ -22,7 +14,6 @@ from .viewer import gui, GUIcanvas
 from .correlation import *
 from .arrays import ImgArray, LazyImgArray  # for typing
 from . import random
-import numpy as np
 
 r"""
 Inheritance

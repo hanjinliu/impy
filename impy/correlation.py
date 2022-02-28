@@ -9,7 +9,7 @@ from .arrays._utils._corr import subpixel_pcc
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
-from ._cupy import xp, asnumpy, xp_ndi
+from .array_api import xp
 from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
@@ -62,12 +62,12 @@ def fsc(
     with Progress("fsc"):
         # make radially separated labels
         labels = (r/dfreq).astype(np.uint16)
-        nlabels = int(asnumpy(labels.max()))
+        nlabels = int(xp.asnumpy(labels.max()))
         
-        out = xp.empty(nlabels, dtype=xp.float32)
+        out = xp.empty(nlabels, dtype=np.float32)
         def radial_sum(arr):
             arr = xp.asarray(arr)
-            return xp_ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
+            return xp.ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
 
         f0 = img0.fft(dims=dims)
         f1 = img1.fft(dims=dims)
@@ -78,7 +78,7 @@ def fsc(
     
         out = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
     freq = (np.arange(len(out)) + 0.5) * dfreq
-    return freq, asnumpy(out)
+    return freq, xp.asnumpy(out)
 
 # alias
 fourier_shell_correlation = fsc
@@ -93,7 +93,7 @@ def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     img1 = xp.asarray(img1)
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.std(img0, axis=dims)*xp.std(img1, axis=dims)) / n
-    return asnumpy(corr)
+    return xp.asnumpy(corr)
 
 
 def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
@@ -107,16 +107,12 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
         np.ma.std(img0ma, axis=axis)*np.ma.std(img1ma, axis=axis)) / n
 
 
-def _zncc(img0: ImgArray, img1: ImgArray, dims: Dims):
+def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: Dims):
     # Basic Zero-Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
-    if isinstance(dims, str):
-        dims = tuple(img0.axisof(a) for a in dims)
-    img0 = xp.asarray(img0)
-    img1 = xp.asarray(img1)
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
-    return asnumpy(corr)
+    return corr
 
 
 def _masked_zncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
@@ -192,13 +188,16 @@ def zncc(
     """    
     with Progress("zncc"):
         img0, img1 = _check_inputs(img0, img1)
-        img0zn = img0 - np.mean(img0, axis=dims, keepdims=True)
-        img1zn = img1 - np.mean(img1, axis=dims, keepdims=True)
+        dims = tuple(img0.axisof(a) for a in dims)
+        img0 = xp.asarray(img0.value)
+        img1 = xp.asarray(img1.value)
+        img0zn = img0 - xp.mean(img0, axis=dims, keepdims=True)
+        img1zn = img1 - xp.mean(img1, axis=dims, keepdims=True)
         if mask is None:
             corr = _zncc(img0zn, img1zn, dims)
         else:
             corr = _masked_zncc(img0zn, img1zn, dims, mask)
-    return _make_corr_output(corr, img0, "zncc", squeeze, dims)
+    return _make_corr_output(xp.asnumpy(corr), img0, "zncc", squeeze, dims)
 
 # alias
 pearson_coloc = zncc
@@ -321,10 +320,14 @@ def fourier_zncc(
     """    
     with Progress("fourier_zncc"):
         img0, img1 = _check_inputs(img0, img1)
-        f0 = np.sqrt(img0.power_spectra(dims=dims, zero_norm=True))
-        f1 = np.sqrt(img1.power_spectra(dims=dims, zero_norm=True))
-        f0 -= np.mean(f0, axis=dims, keepdims=True)
-        f1 -= np.mean(f1, axis=dims, keepdims=True)
+        dims = tuple(img0.axisof(a) for a in dims)
+        pw0 = xp.asarray(img0.power_spectra(dims=dims, zero_norm=True).value)
+        pw1 = xp.asarray(img1.power_spectra(dims=dims, zero_norm=True).value)
+        
+        f0 = xp.sqrt(pw0)
+        f1 = xp.sqrt(pw1)
+        f0 -= xp.mean(f0, axis=dims, keepdims=True)
+        f1 -= xp.mean(f1, axis=dims, keepdims=True)
         if mask is None:
             corr = _zncc(f0, f1, dims)
         else:
@@ -375,7 +378,7 @@ def pcc_maximum(
             upsample_factor, 
             max_shifts=max_shifts
         )
-    return asnumpy(shift)
+    return xp.asnumpy(shift)
 
 @_docs.write_docs
 def ft_pcc_maximum(
@@ -418,7 +421,7 @@ def ft_pcc_maximum(
             upsample_factor,
             max_shifts=max_shifts,
         )
-    return asnumpy(shift)
+    return xp.asnumpy(shift)
 
 @_docs.write_docs
 def polar_pcc_maximum(
@@ -450,8 +453,8 @@ def polar_pcc_maximum(
         max_degree = 180
     rmax = min(img0.shape)
     with Progress("polar_pcc_maximum_2d"):
-        imgp = ip_asarray(polar2d(img0, rmax, np.pi/180))
-        imgrotp = ip_asarray(polar2d(img1, rmax, np.pi/180))
+        imgp = ip_asarray(xp.asnumpy(polar2d(img0, rmax, np.pi/180)))
+        imgrotp = ip_asarray(xp.asnumpy(polar2d(img1, rmax, np.pi/180)))
         max_shifts = (max_degree, 1)
         shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
                             max_shifts=max_shifts)
