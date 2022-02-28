@@ -1,5 +1,5 @@
-__version__ = "1.25.2"
-__author__ = "Hanjin Liu",
+__version__ = "1.25.3.dev0"
+__author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
 import logging

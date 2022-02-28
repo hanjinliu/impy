@@ -4,6 +4,7 @@ from numpy.typing import DTypeLike
 import os
 from functools import partial
 import inspect
+from typing import TYPE_CHECKING
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -23,9 +24,13 @@ from ..collections import DataList
 from ..axes import ImageAxesError
 from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
+
 class LabeledArray(HistoryArray):
     @property
-    def range(self):
+    def range(self) -> tuple[float, float]:
         return self.min(), self.max()
     
     def set_scale(self, other=None, **kwargs) -> None:
@@ -117,7 +122,7 @@ class LabeledArray(HistoryArray):
         super().__array_finalize__(obj)
         self._view_labels(obj)
     
-    def _view_labels(self, other: LabeledArray):
+    def _view_labels(self, other: Self):
         """
         Make a view of label **if possible**.
         """
@@ -127,7 +132,7 @@ class LabeledArray(HistoryArray):
             else:
                 self.labels = other.labels
     
-    def _getitem_additional_set_info(self, other: LabeledArray, **kwargs):
+    def _getitem_additional_set_info(self, other: Self, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
         key = kwargs["key"]
         if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
@@ -154,7 +159,7 @@ class LabeledArray(HistoryArray):
         self._view_labels(other)
         return None
     
-    def _update(self, out: LabeledArray):
+    def _update(self, out: Self):
         self.value[:] = out.as_img_type(self.dtype).value[:]
         self.history.append(out.history[-1])
         return None
@@ -163,7 +168,7 @@ class LabeledArray(HistoryArray):
     #   Type Conversions
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    def as_uint8(self) -> LabeledArray:
+    def as_uint8(self) -> Self:
         if self.dtype == np.uint8:
             return self
         
@@ -183,7 +188,7 @@ class LabeledArray(HistoryArray):
         return out
 
 
-    def as_uint16(self) -> LabeledArray:
+    def as_uint16(self) -> Self:
         if self.dtype == np.uint16:
             return self
         if self.dtype == np.uint8:
@@ -201,7 +206,7 @@ class LabeledArray(HistoryArray):
         out._set_info(self)
         return out
     
-    def as_float(self) -> LabeledArray:
+    def as_float(self) -> Self:
         if self.dtype == np.float32:
             return self
         out = self.value.astype(np.float32).view(self.__class__)
@@ -209,7 +214,7 @@ class LabeledArray(HistoryArray):
         return out
         
     
-    def as_img_type(self, dtype=np.uint16) -> LabeledArray:
+    def as_img_type(self, dtype=np.uint16) -> Self:
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -278,7 +283,7 @@ class LabeledArray(HistoryArray):
 
         return self
 
-    def imshow_comparewith(self, other: LabeledArray, **kwargs):
+    def imshow_comparewith(self, other: Self, **kwargs):
         from ._utils import _plot as _plt
         fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
         _plt.plot_2d(self.value, ax=ax[0], **kwargs)
@@ -324,7 +329,7 @@ class LabeledArray(HistoryArray):
     @_docs.write_docs
     @record
     @dims_to_spatial_axes
-    def crop_center(self, scale: nDFloat = 0.5, *, dims=2) -> LabeledArray:
+    def crop_center(self, scale: nDFloat = 0.5, *, dims=2) -> Self:
         r"""
         Crop out the center of an image. 
         
@@ -337,7 +342,7 @@ class LabeledArray(HistoryArray):
         
         Returns
         -------
-        LabeledArray
+        Self
             CroppedImage
             
         Examples
@@ -371,7 +376,7 @@ class LabeledArray(HistoryArray):
         return out
     
     @record
-    def crop_kernel(self, radius:nDInt=2) -> LabeledArray:
+    def crop_kernel(self, radius:nDInt=2) -> Self:
         r"""
         Make a kernel from an image by cropping out the center region. This function is useful especially
         in `ImgArray.defocus()`.
@@ -403,7 +408,7 @@ class LabeledArray(HistoryArray):
     @_docs.write_docs
     @record
     @dims_to_spatial_axes
-    def remove_edges(self, pixel:nDInt=1, *, dims=2) -> LabeledArray:
+    def remove_edges(self, pixel:nDInt=1, *, dims=2) -> Self:
         """
         Remove pixels from the edges.
 
@@ -435,7 +440,7 @@ class LabeledArray(HistoryArray):
     @_docs.write_docs
     @record
     @dims_to_spatial_axes
-    def rotated_crop(self, origin, dst1, dst2, dims=2) -> LabeledArray:
+    def rotated_crop(self, origin, dst1, dst2, dims=2) -> Self:
         """
         Crop the image at four courners of an rotated rectangle. Currently only supports rotation within 
         yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
@@ -882,7 +887,7 @@ class LabeledArray(HistoryArray):
         self.labels = self.labels.proj(axis=axis, forbid_overlap=forbid_overlap)
         return self.labels
     
-    def split(self, axis=None) -> DataList[LabeledArray]:
+    def split(self, axis=None) -> DataList[Self]:
         """
         Split n-dimensional image into (n-1)-dimensional images. This function is different from
         `np.split`, which split an array into smaller pieces (n-D to n-D).
@@ -912,7 +917,7 @@ class LabeledArray(HistoryArray):
             
         return imgs
     
-    def tile(self, shape: tuple[int, int] = None, along: str = None, order: str = None) -> LabeledArray:
+    def tile(self, shape: tuple[int, int] = None, along: str = None, order: str = None) -> Self:
         r"""
         Tile images in a certain order. Label is also tiled in the same manner.
 
@@ -963,7 +968,7 @@ class LabeledArray(HistoryArray):
         return tiled_img
     
     @record
-    def for_each_channel(self, func: str, along: str = "c", **kwargs) -> LabeledArray:
+    def for_each_channel(self, func: str, along: str = "c", **kwargs) -> Self:
         """
         Apply same function with different parameters for each channel. This function will be useful
         when the parameters are dependent on channels, like wave length.
@@ -1052,7 +1057,7 @@ class LabeledArray(HistoryArray):
         
     
     @record(need_labels=True)
-    def extract(self, label_ids=None, filt=None, cval:float=0) -> DataList[LabeledArray]:
+    def extract(self, label_ids=None, filt=None, cval:float=0) -> DataList[Self]:
         """
         Extract certain regions of the image and substitute others to `cval`.
 

@@ -77,4 +77,9 @@ def test_polar_pcc():
 
     rot = ip.polar_pcc_maximum(rotated_image, reference_image)
     assert rot == deg
-    
+
+def test_fsc():
+    img0 = ip.random.random_uint16((80, 80))
+    img1 = ip.random.random_uint16((80, 80))
+    a, b = ip.fsc(img0, img1)
+    assert a.size == b.size

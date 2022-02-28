@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
@@ -8,6 +9,9 @@ from ...utils.axesop import *
 from ...utils.slicer import *
 from ...collections import DataList
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["dirpath", "metadata", "name"]
@@ -16,7 +20,7 @@ class MetaArray(AxesMixin, np.ndarray):
     dirpath: str
     
     def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None) -> MetaArray:
+                metadata=None, dtype=None) -> Self:
         if isinstance(obj, cls):
             return obj
         
@@ -43,7 +47,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 "original image": self.name}
     
     def __str__(self):
-        return self.name
+        return self.name or "None"
     
     @property
     def shape(self):
@@ -80,7 +84,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key: int | str | slice | tuple) -> MetaArray:
+    def __getitem__(self, key: int | str | slice | tuple) -> Self:
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
             sl = self._str_to_slice(key)
@@ -94,8 +98,12 @@ class MetaArray(AxesMixin, np.ndarray):
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
             if hasattr(key, "__array__") and key.size > 1:
-                # fancy indexing will lose axes information
-                new_axes = None
+                # fancy indexing will lose axes information, except for 1D array
+                key = np.asarray(key)
+                if key.ndim == 1:
+                    new_axes = self.axes
+                else:
+                    new_axes = None
                 
             elif "new" in keystr:
                 # np.newaxis or None will add dimension
@@ -112,7 +120,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return out
     
-    def _getitem_additional_set_info(self, other: MetaArray, **kwargs):
+    def _getitem_additional_set_info(self, other: Self, **kwargs):
         self._set_info(other, kwargs["new_axes"])
         return None
     
@@ -244,7 +252,7 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         return axis_targeted_slicing(self.ndim, str(self.axes), string)
     
-    def sort_axes(self) -> MetaArray:
+    def sort_axes(self) -> Self:
         """
         Sort image dimensions to ptzcyx-order
 
@@ -257,16 +265,17 @@ class MetaArray(AxesMixin, np.ndarray):
         return self.transpose(order)
 
     
-    def apply_dask(self, 
-                   func: Callable,
-                   c_axes: str | None = None,
-                   drop_axis: Iterable[int] = [], 
-                   new_axis: Iterable[int] = None, 
-                   dtype = np.float32, 
-                   out_chunks: tuple[int, ...] = None,
-                   args: tuple[Any] = None,
-                   kwargs: dict[str, Any] = None
-                   ) -> MetaArray:
+    def apply_dask(
+        self, 
+        func: Callable,
+        c_axes: str | None = None,
+        drop_axis: Iterable[int] = [], 
+        new_axis: Iterable[int] = None, 
+        dtype = np.float32, 
+        out_chunks: tuple[int, ...] = None,
+        args: tuple[Any] = None,
+        kwargs: dict[str, Any] = None
+    ) -> Self:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.
@@ -362,7 +371,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return out
     
-    def transpose(self, axes):
+    def transpose(self, axes) -> Self:
         """
         change the order of image dimensions.
         'axes' will also be arranged.
@@ -390,23 +399,92 @@ class MetaArray(AxesMixin, np.ndarray):
                 pass
         return value
     
-    def __add__(self, value):
+    def __add__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__add__(value)
     
-    def __sub__(self, value):
+    def __sub__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__sub__(value)
     
-    def __mul__(self, value):
+    def __mul__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__mul__(value)
     
-    def __truediv__(self, value):
+    def __truediv__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__truediv__(value)
+    
+    def __mod__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__mod__(value)
+    
+    def __floordiv__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__floordiv__(value)
+    
+    def __gt__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__gt__(value)
+    
+    def __ge__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ge__(value)
+    
+    def __lt__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__lt__(value)
+    
+    def __le__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__le__(value)
+    
+    def __eq__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__eq__(value)
+    
+    def __ne__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ne__(value)
+    
+    def __and__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__and__(value)
+    
+    def __or__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__or__(value)
+    
+    def __ne__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ne__(value)
+    
+    def __iadd__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__iadd__(value)
+    
+    def __isub__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__isub__(value)
+    
+    def __imul__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__imul__(value)
+    
+    def __itruediv__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__itruediv__(value)
+    
+    def __imod__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__imod__(value)
+    
+    def __ifloordiv__(self, value) -> Self:
+        value = self._broadcast(value)
+        return super().__ifloordiv__(value)
 
-def _list_of_axes(img, axis):
+
+def _list_of_axes(img: MetaArray, axis):
     if axis is None:
         axis = []
     elif isinstance(axis, str):
