@@ -143,11 +143,36 @@ class ImgArray(LabeledArray):
                                            output_shape=output_shape)
                                )
     
+    @_docs.write_docs
+    @same_dtype(asfloat=True)
     @record
-    def map_coordinates(self, coords, *, mode="constant", cval: float = 0, order: int = 1):
-        ...
+    def map_coordinates(self, coordinates, *, mode="constant", cval: float = 0, order: int = 1):
+        r"""
+        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
+
+        Parameters
+        ----------
+        coordinates, mode, cval
+            Padding mode, constant value and the shape of output. See ``scipy.ndimage.map_coordinates``.
+            for details.
+        {order}
+
+        Returns
+        -------
+        ImgArray
+            Transformed image.
+        """
         # TODO: Support multi-dimension
-        return xp.ndi.map_coordinates(self.values, coords, mode=mode, cval=cval, order=order, prefilter=order>1)
+        return xp.asnumpy(
+            xp.ndi.map_coordinates(
+                xp.asarray(self.value), 
+                xp.asarray(coordinates), 
+                mode=mode,
+                cval=cval,
+                order=order,
+                prefilter=order>1
+            )
+        )
         
     
     @_docs.write_docs
