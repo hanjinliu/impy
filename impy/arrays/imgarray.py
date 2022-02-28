@@ -143,11 +143,18 @@ class ImgArray(LabeledArray):
                                            output_shape=output_shape)
                                )
     
+    @record
+    def map_coordinates(self, coords, *, mode="constant", cval: float = 0, order: int = 1):
+        ...
+        # TODO: Support multi-dimension
+        return xp.ndi.map_coordinates(self.values, coords, mode=mode, cval=cval, order=order, prefilter=order>1)
+        
+    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def rotate(self, degree:float, center="center", *, mode="constant", cval: float=0, dims: Dims = 2,
+    def rotate(self, degree:float, center="center", *, mode="constant", cval: float = 0, dims: Dims = 2,
                order: int = 1, update: bool = False) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
