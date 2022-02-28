@@ -98,3 +98,30 @@ class SetConst:
     def __exit__(self, exc_type, exc_value, traceback):
         for k, v in self._old_value:
             Const[k] = v
+
+def silent():
+    """
+    Do not show progress in this context.
+    
+    An alias of ``ip.SetConst(SHOW_PROGRESS=False)``
+    """
+    return SetConst(SHOW_PROGRESS=False)
+
+def use(resource, import_error: bool = False):
+    """
+    Use a resource (numpy or cupy) in this context.
+
+    Parameters
+    ----------
+    resource : str
+        Resource to use.
+    import_error : bool, default is False
+        If false, resource will not be switched to cupy if not available.
+        Raise ImportError if true.
+    """
+    if not import_error:
+        try:
+            import cupy
+        except ImportError:
+            resource = "numpy"
+    return SetConst(RESOURCE=resource)

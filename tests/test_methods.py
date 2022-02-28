@@ -31,7 +31,6 @@ filters = ["median_filter",
            "doh_filter",
            "log_filter",
            "rolling_ball",
-           "rof_filter",
            ]
 
 dtypes = [np.uint8, np.uint16, np.float32]

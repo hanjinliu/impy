@@ -1740,7 +1740,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """        
+        """     
         return self.apply_dask(
             skres._denoise._denoise_tv_chambolle_nd, 
             c_axes=complement_axes(dims, self.axes),
