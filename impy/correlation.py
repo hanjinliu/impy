@@ -97,8 +97,6 @@ def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
 
 
 def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
-    if mask.ndim < img0.ndim:
-        mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
     n = np.prod(img0.sizesof(dims))
     img0ma = np.ma.array(img0.value, mask=mask)
     img1ma = np.ma.array(img1.value, mask=mask)
@@ -107,7 +105,7 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
         np.ma.std(img0ma, axis=axis)*np.ma.std(img1ma, axis=axis)) / n
 
 
-def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: Dims):
+def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
     # Basic Zero-Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
     corr = xp.sum(img0 * img1, axis=dims) / (
@@ -115,15 +113,11 @@ def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: Dims):
     return corr
 
 
-def _masked_zncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: ImgArray):
-    if mask.ndim < img0.ndim:
-        mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-    img0ma = np.ma.array(img0.value, mask=mask)
-    img1ma = np.ma.array(img1.value, mask=mask)
-    axis = tuple(img0.axisof(a) for a in dims)
-    return np.sum(img0ma * img1ma, axis=axis) / (
-        np.sqrt(np.sum(img0ma**2, axis=axis)*np.sum(img1ma**2, axis=axis)))
-
+def _masked_zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...], mask: ImgArray):
+    img0ma = np.ma.array(img0, mask=mask)
+    img1ma = np.ma.array(img1, mask=mask)
+    return np.sum(img0ma * img1ma, axis=dims) / (
+        np.sqrt(np.sum(img0ma**2, axis=dims)*np.sum(img1ma**2, axis=dims)))
 @_docs.write_docs
 @dims_to_spatial_axes
 def ncc(
@@ -156,6 +150,8 @@ def ncc(
         if mask is None:
             corr = _ncc(img0, img1, dims)
         else:
+            if img0.ndim > mask.ndim:
+                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
             corr = _masked_ncc(img0, img1, dims, mask)
     return _make_corr_output(corr, img0, "ncc", squeeze, dims)
 
@@ -188,15 +184,17 @@ def zncc(
     """    
     with Progress("zncc"):
         img0, img1 = _check_inputs(img0, img1)
-        dims = tuple(img0.axisof(a) for a in dims)
-        img0 = xp.asarray(img0.value)
-        img1 = xp.asarray(img1.value)
-        img0zn = img0 - xp.mean(img0, axis=dims, keepdims=True)
-        img1zn = img1 - xp.mean(img1, axis=dims, keepdims=True)
+        _dims = tuple(img0.axisof(a) for a in dims)
+        _img0 = xp.asarray(img0.value)
+        _img1 = xp.asarray(img1.value)
+        img0zn = _img0 - xp.mean(_img0, axis=_dims, keepdims=True)
+        img1zn = _img1 - xp.mean(_img1, axis=_dims, keepdims=True)
         if mask is None:
-            corr = _zncc(img0zn, img1zn, dims)
+            corr = _zncc(img0zn, img1zn, _dims)
         else:
-            corr = _masked_zncc(img0zn, img1zn, dims, mask)
+            if img0.ndim > mask.ndim:
+                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+            corr = _masked_zncc(img0zn, img1zn, _dims, mask)
     return _make_corr_output(xp.asnumpy(corr), img0, "zncc", squeeze, dims)
 
 # alias
@@ -320,18 +318,18 @@ def fourier_zncc(
     """    
     with Progress("fourier_zncc"):
         img0, img1 = _check_inputs(img0, img1)
-        dims = tuple(img0.axisof(a) for a in dims)
         pw0 = xp.asarray(img0.power_spectra(dims=dims, zero_norm=True).value)
         pw1 = xp.asarray(img1.power_spectra(dims=dims, zero_norm=True).value)
         
+        _dims = tuple(img0.axisof(a) for a in dims)
         f0 = xp.sqrt(pw0)
         f1 = xp.sqrt(pw1)
-        f0 -= xp.mean(f0, axis=dims, keepdims=True)
-        f1 -= xp.mean(f1, axis=dims, keepdims=True)
+        f0 -= xp.mean(f0, axis=_dims, keepdims=True)
+        f1 -= xp.mean(f1, axis=_dims, keepdims=True)
         if mask is None:
-            corr = _zncc(f0, f1, dims)
+            corr = _zncc(f0, f1, _dims)
         else:
-            corr = _masked_zncc(f0, f1, dims, mask)
+            corr = _masked_zncc(f0, f1, _dims, mask)
     return _make_corr_output(corr, img0, "fourier_zncc", squeeze, dims)
 
 @_docs.write_docs
