@@ -792,7 +792,7 @@ class ImgArray(LabeledArray):
         input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes), 
                             s=spatial_shape, axes=spatial_axes)
         return xp.asnumpy(out)
     
@@ -921,7 +921,7 @@ class ImgArray(LabeledArray):
         input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes), 
                             s=spatial_shape, axes=spatial_axes)
         return xp.asnumpy(out)
     
