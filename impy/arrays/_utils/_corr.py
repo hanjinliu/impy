@@ -15,7 +15,7 @@ def subpixel_pcc(
     cross_correlation = xp.fft.ifftn(product)
     power = abs2(cross_correlation)
     if max_shifts is not None:
-        max_shifts = np.asarray(max_shifts)
+        max_shifts = xp.asarray(max_shifts)
         power = crop_by_max_shifts(power, max_shifts, max_shifts)
         
     maxima = xp.unravel_index(xp.argmax(power), power.shape)

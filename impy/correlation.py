@@ -453,8 +453,8 @@ def polar_pcc_maximum(
         max_degree = 180
     rmax = min(img0.shape)
     with Progress("polar_pcc_maximum_2d"):
-        imgp = ip_asarray(polar2d(img0, rmax, np.pi/180))
-        imgrotp = ip_asarray(polar2d(img1, rmax, np.pi/180))
+        imgp = ip_asarray(xp.asnumpy(polar2d(img0, rmax, np.pi/180)))
+        imgrotp = ip_asarray(xp.asnumpy(polar2d(img1, rmax, np.pi/180)))
         max_shifts = (max_degree, 1)
         shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
                             max_shifts=max_shifts)
