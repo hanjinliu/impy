@@ -1,4 +1,5 @@
 from __future__ import annotations
+from matplotlib import pyplot as plt
 import numpy as np
 from warnings import warn
 from .core import asarray as ip_asarray
@@ -67,7 +68,7 @@ def fsc(
         out = xp.empty(nlabels, dtype=xp.float32)
         def radial_sum(arr):
             arr = xp.asarray(arr)
-            return xp_ndi.sum_labels(arr, labels=labels, index=xp.arange(1, nlabels+1))
+            return xp_ndi.sum_labels(arr, labels=labels, index=xp.arange(0, nlabels))
 
         f0 = img0.fft(dims=dims)
         f1 = img1.fft(dims=dims)
