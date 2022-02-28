@@ -9,7 +9,7 @@ def cupy_dispatcher(function):
         if xp.state == "cupy":
             args = (xp.asarray(a) if isinstance(a, np.ndarray) else a for a in args)
         out = function(*args, **kwargs)
-        return out
+        return xp.asnumpy(out)
     return func
 
 from types import ModuleType
@@ -76,6 +76,9 @@ class XP:
         self.gradient = np.gradient
         self.tensordot = np.tensordot
         self.stack = np.stack
+        self.unravel_index = np.unravel_index
+        self.argmax = np.argmax
+        self.argmin = np.argmin
         
         self.state = "numpy"
         from ._const import Const
@@ -91,7 +94,6 @@ class XP:
         from cupyx.scipy import fft as cp_fft
         from cupyx.scipy import ndimage as cp_ndi
         from cupy import linalg as cp_linalg
-        from cupy import ndarray as cp_ndarray
         
         self._module = cp
         self.fft = cp_fft
@@ -100,7 +102,7 @@ class XP:
         self.ndi = cp_ndi
         self.asnumpy = cp_asnumpy
         self.asarray = cp.asarray
-        self.ndarray = cp_ndarray
+        self.ndarray = cp.ndarray
         self.empty = cp.empty
         self.zeros = cp.zeros
         self.ones = cp.ones
@@ -134,6 +136,9 @@ class XP:
             self.gradient = _gradient
         self.tensordot = cp.tensordot
         self.stack = cp.stack
+        self.unravel_index = cp.unravel_index
+        self.argmax = cp.argmax
+        self.argmin = cp.argmin
         self.state = "cupy"
         
         from ._const import Const

@@ -34,11 +34,10 @@ from ...array_api import xp, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
 
 def get_func(function_name):
-    if hasattr(xp.ndi, function_name):
-        _func = getattr(xp.ndi, function_name)    
-        func = cupy_dispatcher(_func)
-    else:
-        func = getattr(scipy_ndi, function_name)
+    def func(*args, **kwargs):
+        _f = getattr(xp.ndi, function_name, getattr(scipy_ndi, function_name))
+        return cupy_dispatcher(_f)(*args, **kwargs)
+    func.__name__ = function_name
     return func
 
 binary_erosion = get_func("binary_erosion")

@@ -261,16 +261,17 @@ class MetaArray(AxesMixin, np.ndarray):
         return self.transpose(order)
 
     
-    def apply_dask(self, 
-                   func: Callable,
-                   c_axes: str | None = None,
-                   drop_axis: Iterable[int] = [], 
-                   new_axis: Iterable[int] = None, 
-                   dtype = np.float32, 
-                   out_chunks: tuple[int, ...] = None,
-                   args: tuple[Any] = None,
-                   kwargs: dict[str, Any] = None
-                   ) -> MetaArray:
+    def apply_dask(
+        self, 
+        func: Callable,
+        c_axes: str | None = None,
+        drop_axis: Iterable[int] = [], 
+        new_axis: Iterable[int] = None, 
+        dtype = np.float32, 
+        out_chunks: tuple[int, ...] = None,
+        args: tuple[Any] = None,
+        kwargs: dict[str, Any] = None
+    ) -> MetaArray:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process 
         in this way is faster than `multiprocess` module.

@@ -147,7 +147,7 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     @record
     def map_coordinates(self, coordinates, *, mode="constant", cval: float = 0, order: int = 1):
-        r"""
+        """
         Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
 
         Parameters
@@ -1741,10 +1741,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image
         """        
-        return self.apply_dask(skres._denoise._denoise_tv_chambolle_nd, 
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter)
-                               )
+        return self.apply_dask(
+            skres._denoise._denoise_tv_chambolle_nd, 
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(weight=lmd, eps=tol, max_num_iter=max_iter)
+        )
         
     @_docs.write_docs
     @dims_to_spatial_axes
