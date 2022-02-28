@@ -789,7 +789,7 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        input = xp.asarray(self)
+        input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
         out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
@@ -918,7 +918,7 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
-        input = xp.asarray(self)
+        input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
         out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
