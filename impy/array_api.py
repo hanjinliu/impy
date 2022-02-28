@@ -32,6 +32,7 @@ class XP:
     state: str
     
     def __init__(self):
+        self.state = ""
         self.setNumpy()
     
     def __getattr__(self, key: str):
