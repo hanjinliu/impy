@@ -23,7 +23,7 @@ from ..utils.slicer import axis_targeted_slicing
 from ..collections import DataDict
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
 from .._const import Const
-from .._cupy import xp, xp_ndi, xp_fft, asnumpy, cupy_dispatcher
+from ..array_api import xp, cupy_dispatcher
 
 if TYPE_CHECKING:
     from ..frame import MarkerFrame, PathFrame
@@ -141,10 +141,42 @@ class ImgArray(LabeledArray):
                                )
     
     @_docs.write_docs
+    @same_dtype(asfloat=True)
+    @record
+    def map_coordinates(self, coordinates, *, mode="constant", cval: float = 0, order: int = 1):
+        """
+        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
+
+        Parameters
+        ----------
+        coordinates, mode, cval
+            Padding mode, constant value and the shape of output. See ``scipy.ndimage.map_coordinates``.
+            for details.
+        {order}
+
+        Returns
+        -------
+        ImgArray
+            Transformed image.
+        """
+        # TODO: Support multi-dimension
+        return xp.asnumpy(
+            xp.ndi.map_coordinates(
+                xp.asarray(self.value), 
+                xp.asarray(coordinates), 
+                mode=mode,
+                cval=cval,
+                order=order,
+                prefilter=order>1
+            )
+        )
+        
+    
+    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def rotate(self, degree:float, center="center", *, mode="constant", cval: float=0, dims: Dims = 2,
+    def rotate(self, degree:float, center="center", *, mode="constant", cval: float = 0, dims: Dims = 2,
                order: int = 1, update: bool = False) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
@@ -298,7 +330,9 @@ class ImgArray(LabeledArray):
         if binsize == 1:
             return self
         with Progress("binning"):
-            img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
+            img_to_reshape, shape, scale_ = _misc.adjust_bin(
+                self.value, binsize, check_edges, dims, self.axes
+            )
             
             reshaped_img = img_to_reshape.reshape(shape)
             axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
@@ -337,13 +371,13 @@ class ImgArray(LabeledArray):
             Radial profile stored in x-axis by default. If input image has tzcyx-axes, then an array 
             with tcx-axes will be returned.
         """        
-        func = {"mean": xp_ndi.mean,
-                "sum": xp_ndi.sum_labels,
-                "median": xp_ndi.median,
-                "max": xp_ndi.maximum,
-                "min": xp_ndi.minimum,
-                "std": xp_ndi.standard_deviation,
-                "var": xp_ndi.variance}[method]
+        func = {"mean": xp.ndi.mean,
+                "sum": xp.ndi.sum_labels,
+                "median": xp.ndi.median,
+                "max": xp.ndi.maximum,
+                "min": xp.ndi.minimum,
+                "std": xp.ndi.standard_deviation,
+                "var": xp.ndi.variance}[method]
         
         spatial_shape = self.sizesof(dims)
         inds = xp.indices(spatial_shape)
@@ -370,11 +404,17 @@ class ImgArray(LabeledArray):
         
         c_axes = complement_axes(dims, self.axes)
         
-        out = PropArray(np.empty(self.sizesof(c_axes)+(int(labels.max()),)), dtype=np.float32, axes=c_axes+dims[-1], 
-                        dirpath=self.dirpath, metadata=self.metadata, propname="radial_profile")
+        out = PropArray(
+            np.empty(self.sizesof(c_axes)+(int(labels.max()),)),
+            dtype=np.float32,
+            axes=c_axes+dims[-1], 
+            dirpath=self.dirpath, 
+            metadata=self.metadata, 
+            propname="radial_profile"
+        )
         radial_func = partial(cupy_dispatcher(func), labels=labels, index=xp.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
-            out[sl] = asnumpy(radial_func(img))
+            out[sl] = xp.asnumpy(radial_func(img))
         return out
     
     @record
@@ -752,9 +792,9 @@ class ImgArray(LabeledArray):
         input = xp.asarray(self)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
                             s=spatial_shape, axes=spatial_axes)
-        return asnumpy(out)
+        return xp.asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -787,7 +827,7 @@ class ImgArray(LabeledArray):
             return self
         spatial_shape = self.sizesof(dims)
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        ker_all = asnumpy(xp_fft.irfftn(weight, s=spatial_shape))
+        ker_all = xp.asnumpy(xp.fft.irfftn(weight, s=spatial_shape))
         ker_all = np.fft.fftshift(ker_all)
         sl = []
         for s, c in zip(spatial_shape, cutoff):
@@ -840,9 +880,9 @@ class ImgArray(LabeledArray):
             arr = xp.asarray(arr)
             shape = arr.shape
             weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = weight * xp_fft.rfftn(arr)
-            ift = xp_fft.irfftn(ft, s=shape)
-            return asnumpy(ift)
+            ft = weight * xp.fft.rfftn(arr)
+            ift = xp.fft.irfftn(ft, s=shape)
+            return xp.asnumpy(ift)
         
         input = da.from_array(self.value, chunks=chunks)
         out = da.map_overlap(func, input, depth=depth, boundary="reflect", dtype=self.dtype
@@ -881,9 +921,9 @@ class ImgArray(LabeledArray):
         input = xp.asarray(self)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp_fft.irfftn(weight*xp_fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
                             s=spatial_shape, axes=spatial_axes)
-        return asnumpy(out)
+        return xp.asnumpy(out)
     
     
     @_docs.write_docs
@@ -1700,11 +1740,12 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """        
-        return self.apply_dask(skres._denoise._denoise_tv_chambolle_nd, 
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(weight=lmd, eps=tol, n_iter_max=max_iter)
-                               )
+        """     
+        return self.apply_dask(
+            skres._denoise._denoise_tv_chambolle_nd, 
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(weight=lmd, eps=tol, max_num_iter=max_iter)
+        )
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1958,12 +1999,12 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
-                labels = asnumpy(img.labels)
+                labels = xp.asnumpy(img.labels)
             else:
                 labels = None
             
-            indices = skfeat.peak_local_max(asnumpy(img),
-                                            footprint=asnumpy(_structures.ball_like(min_distance, ndim)),
+            indices = skfeat.peak_local_max(xp.asnumpy(img),
+                                            footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
                                             threshold_abs=thr,
                                             num_peaks=topn,
                                             num_peaks_per_label=topn_per_label,
@@ -2029,12 +2070,12 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
             if use_labels and hasattr(img, "labels"):
-                labels = asnumpy(img.labels)
+                labels = xp.asnumpy(img.labels)
             else:
                 labels = None
             
-            indices = skfeat.corner_peaks(asnumpy(img),
-                                          footprint=asnumpy(_structures.ball_like(min_distance, ndim)),
+            indices = skfeat.corner_peaks(xp.asnumpy(img),
+                                          footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
                                           threshold_abs=thr,
                                           num_peaks=topn,
                                           num_peaks_per_label=topn_per_label,
@@ -2761,10 +2802,10 @@ class ImgArray(LabeledArray):
         else:
             shape = check_nd(shape, len(dims))
         dtype = np.float64 if double_precision else np.float32
-        freq = xp_fft.fftn(xp.asarray(self.value, dtype=dtype), s=shape, axes=axes)
+        freq = xp.fft.fftn(xp.asarray(self.value, dtype=dtype), s=shape, axes=axes)
         if shift:
             freq[:] = np.fft.fftshift(freq, axes=axes)
-        return asnumpy(freq, dtype=np.complex64)
+        return xp.asnumpy(freq, dtype=np.complex64)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -2906,13 +2947,13 @@ class ImgArray(LabeledArray):
         else:
             freq = self.value
         dtype = np.complex128 if double_precision else np.complex64
-        out = xp_fft.ifftn(xp.asarray(freq, dtype=dtype), 
+        out = xp.fft.ifftn(xp.asarray(freq, dtype=dtype), 
                            axes=axes
                            ).astype(np.complex64)
         
         if real:
             out = np.real(out)
-        return asnumpy(out)
+        return xp.asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3249,7 +3290,7 @@ class ImgArray(LabeledArray):
             Skeletonized image.
         """        
         if radius >= 1:
-            selem = asnumpy(_structures.ball_like(radius, len(dims)))
+            selem = xp.asnumpy(_structures.ball_like(radius, len(dims)))
         else:
             selem = None
         
@@ -3907,7 +3948,7 @@ class ImgArray(LabeledArray):
         for i, (_, img) in enumerate(img_fft.iter(along)):
             img = xp.asarray(img)
             if last_img is not None:
-                result[i] = asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor))
+                result[i] = xp.asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor))
                 last_img = img
             else:
                 last_img = img
@@ -4116,14 +4157,14 @@ class ImgArray(LabeledArray):
         
         if kernel.ndim <= 1:
             def filter_func(img):
-                return asnumpy(_filters.gaussian_filter(img, kernel, mode="constant", cval=bg))
+                return xp.asnumpy(_filters.gaussian_filter(img, kernel, mode="constant", cval=bg))
             dz, dy, dx = kernel*3 # 3-sigma
             
         elif kernel.ndim == 3:
             kernel = kernel.astype(np.float32)
             kernel = kernel / np.sum(kernel)
             def filter_func(img):
-                return asnumpy(_filters.convolve(img, kernel, mode="constant", cval=bg))
+                return xp.asnumpy(_filters.convolve(img, kernel, mode="constant", cval=bg))
             dz, dy, dx = np.array(kernel.shape)//2
         else:
             raise ValueError("`kernel` only take 0, 1, 3 dimensional array as an input.")
@@ -4434,4 +4475,4 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
             raise ValueError(f"Invalid value encountered in slice {sl}.")
         
     n = stop - start
-    return xp.linspace(start, stop, n*uf, endpoint=False)[:, xp.newaxis]
+    return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]
