@@ -1,3 +1,4 @@
+from __future__ import annotations
 import psutil
 from typing import Any, MutableMapping
 
@@ -84,19 +85,16 @@ Const = GlobalConstant(
 
 class SetConst:
     n_ongoing = 0
-    def __init__(self, name=None, value=None, **kwargs):
-        if name is None and value is None and len(kwargs) == 1:
-            name, value = list(kwargs.items())[0]
-        elif name in Const.keys() and value is not None:
-            pass
-        else:
-            raise TypeError("Invalid input for SetConst")
-        self.name = name
-        self.value = value
+    def __init__(self, dict_: dict[str, Any] | None =None, **kwargs):
+        dict_ = dict_ or {}
+        dict_.update(kwargs)
+        self._kwargs = dict_
     
     def __enter__(self):
-        self.old_value = Const[self.name]
-        Const[self.name] = self.value
+        self._old_value = [(k, Const[k]) for k in self._kwargs.keys()]
+        for k, v in self._kwargs.items():
+            Const[k] = v
 
     def __exit__(self, exc_type, exc_value, traceback):
-        Const[self.name] = self.old_value
+        for k, v in self._old_value:
+            Const[k] = v
