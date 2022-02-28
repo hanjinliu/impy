@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.feature.corner import _symmetric_image
 from ._skimage import skfeat
-from ..._cupy import xp
+from ...array_api import xp
 
 def eigh(a):
     a = xp.asarray(a, dtype=a.dtype)

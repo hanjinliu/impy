@@ -23,7 +23,7 @@ from ..utils.slicer import axis_targeted_slicing
 from ..collections import DataDict
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
 from .._const import Const
-from .._cupy import xp, cupy_dispatcher
+from ..array_api import xp, cupy_dispatcher
 
 if TYPE_CHECKING:
     from ..frame import MarkerFrame, PathFrame
@@ -4445,4 +4445,4 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
             raise ValueError(f"Invalid value encountered in slice {sl}.")
         
     n = stop - start
-    return xp.linspace(start, stop, n*uf, endpoint=False)[:, xp.newaxis]
+    return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]

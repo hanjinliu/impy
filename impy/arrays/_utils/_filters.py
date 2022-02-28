@@ -30,7 +30,7 @@ __all__ = ["binary_erosion",
            ]
 
 
-from ..._cupy import xp, cupy_dispatcher
+from ...array_api import xp, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
 
 def get_func(function_name):
@@ -81,7 +81,7 @@ def mean_filter(img, selem):
     return convolve(img, selem/np.sum(selem))
 
 def phase_mean_filter(img, selem, a):
-    out = xp.empty(img.shape, dtype=xp.complex64)
+    out = xp.empty(img.shape, dtype=np.complex64)
     xp.exp(1j*a*img, out=out)
     convolve(out, selem, output=out)
     return xp.angle(out)/a

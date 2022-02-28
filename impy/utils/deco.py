@@ -3,7 +3,7 @@ import numpy as np
 import inspect
 import re
 from .utilcls import Progress
-from .._cupy import xp
+from ..array_api import xp
 
 __all__ = ["record",
            "record_lazy",

@@ -25,7 +25,7 @@ from ..collections import DataList
 from .._types import nDFloat, Coords, Iterable, Dims
 from ..axes import ImageAxesError
 from .._const import Const
-from .._cupy import xp
+from ..array_api import xp
 
 if TYPE_CHECKING:
     from dask import array as da

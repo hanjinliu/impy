@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from ..._cupy import xp
+from ...array_api import xp
 
 # Modified from skimage/registration/_phase_cross_correlation.py
 # Compatible between numpy/cupy and supports maximum shifts.

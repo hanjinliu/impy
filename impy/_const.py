@@ -41,7 +41,7 @@ class GlobalConstant(MutableMapping[str, Any]):
             if not isinstance(v, (int, float)):
                 raise TypeError("FONT_SIZE_FACTOR must be float.")
         elif k == "RESOURCE":
-            from ._cupy import xp
+            from .array_api import xp
             if v == "numpy":
                 xp.setNumpy()
             elif v == "cupy":

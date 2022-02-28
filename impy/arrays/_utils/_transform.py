@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 from collections import namedtuple
 from ._skimage import sktrans
-from ..._cupy import xp
+from ...array_api import xp
 
 __all__ = ["compose_affine_matrix", 
            "decompose_affine_matrix",

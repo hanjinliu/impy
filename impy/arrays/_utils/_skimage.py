@@ -13,7 +13,7 @@ from skimage import graph as skgraph
 from skimage import util as skutil
 
 from functools import reduce, lru_cache
-from ..._cupy import xp
+from ...array_api import xp
 
 # same as the function in skimage.filters._fft_based (available in scikit-image >= 0.19)
 @lru_cache(maxsize=4)
