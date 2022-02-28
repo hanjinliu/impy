@@ -38,6 +38,8 @@ class XP:
         return getattr(self._module, key)
     
     def setNumpy(self) -> None:
+        if self.state == "numpy":
+            return
         self._module = np
         self.fft = np.fft
         self.linalg = np.linalg
@@ -85,6 +87,8 @@ class XP:
         Const["SCHEDULER"] = "threads"
     
     def setCupy(self) -> None:
+        if self.state == "cupy":
+            return
         import cupy as cp
         def cp_asnumpy(arr, dtype=None):
             out = cp.asnumpy(arr)
