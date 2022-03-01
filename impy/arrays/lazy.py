@@ -851,7 +851,7 @@ class LazyImgArray(AxesMixin):
             arr = xp.asarray(arr)
             shape = arr.shape
             weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = weight * xp.fft.rfftn(arr)
+            ft = xp.asarray(weight) * xp.fft.rfftn(arr)
             ift = xp.fft.irfftn(ft, s=shape)
             return ift
         
