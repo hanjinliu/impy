@@ -1,9 +1,14 @@
 from __future__ import annotations
-from functools import wraps
 import numpy as np
 from .arrays import ImgArray
 from .array_api import xp
 from .core import asarray
+
+def wraps(npfunc):
+    def _wraps(ipfunc):
+        ipfunc.__doc__ = npfunc.__doc__
+        return ipfunc
+    return _wraps
 
 def __getattr__(name: str):
     xpfunc = getattr(xp.random, name)
@@ -83,3 +88,4 @@ def random_uint16(size,
     name = name or "random_uint16"
     return asarray(xp.asnumpy(arr), name=name, axes=axes)
 
+del wraps

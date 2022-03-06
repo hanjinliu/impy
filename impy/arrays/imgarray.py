@@ -789,10 +789,10 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        input = xp.asarray(self)
+        input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes), 
                             s=spatial_shape, axes=spatial_axes)
         return xp.asnumpy(out)
     
@@ -827,7 +827,7 @@ class ImgArray(LabeledArray):
             return self
         spatial_shape = self.sizesof(dims)
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
-        ker_all = xp.asnumpy(xp.fft.irfftn(weight, s=spatial_shape))
+        ker_all = xp.asnumpy(xp.fft.irfftn(xp.asarray(weight), s=spatial_shape))
         ker_all = np.fft.fftshift(ker_all)
         sl = []
         for s, c in zip(spatial_shape, cutoff):
@@ -880,7 +880,7 @@ class ImgArray(LabeledArray):
             arr = xp.asarray(arr)
             shape = arr.shape
             weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = weight * xp.fft.rfftn(arr)
+            ft = xp.asarray(weight) * xp.fft.rfftn(arr)
             ift = xp.fft.irfftn(ft, s=shape)
             return xp.asnumpy(ift)
         
@@ -918,10 +918,10 @@ class ImgArray(LabeledArray):
         spatial_shape = self.sizesof(dims)
         spatial_axes = [self.axisof(a) for a in dims]
         weight = _get_ND_butterworth_filter(spatial_shape, cutoff, order, True, True)
-        input = xp.asarray(self)
+        input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp.fft.irfftn(weight*xp.fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes), 
                             s=spatial_shape, axes=spatial_axes)
         return xp.asnumpy(out)
     

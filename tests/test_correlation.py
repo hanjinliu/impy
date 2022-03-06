@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 def test_pcc(resource):
-    with ip.SetConst(RESOURCE=resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         reference_image = ip.sample_image("camera")
         shift = (-7, 12)
         shifted_image = reference_image.affine(translation=shift)
@@ -14,9 +14,37 @@ def test_pcc(resource):
         assert_allclose(shift_sk, shift_ip)
         assert_allclose(shift_sk, (7, -12))
 
+def test_cc(resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+        img0 = ip.random.random((10, 10, 10), axes="zyx")
+        img1 = ip.random.random((10, 10, 10), axes="zyx")
+        ip.ncc(img0, img1)
+        ip.zncc(img0, img1)
+        ip.fourier_ncc(img0, img1)
+        ip.fourier_zncc(img0, img1)
+        ip.ncc(img0, img1, dims="yx")
+        ip.zncc(img0, img1, dims="yx")
+        ip.fourier_ncc(img0, img1, dims="yx")
+        ip.fourier_zncc(img0, img1, dims="yx")
+        
+        mask = ip.circular_mask(2, shape=img0.shape)
+        ip.ncc(img0, img1, mask)
+        ip.zncc(img0, img1, mask)
+        ip.fourier_ncc(img0, img1)
+        ip.fourier_zncc(img0, img1)
+        
+        mask = ip.circular_mask(2, shape=img0.shape[1:])
+        ip.ncc(img0, img1, mask, dims="yx")
+        ip.zncc(img0, img1, mask, dims="yx")
+        ip.fourier_ncc(img0, img1, dims="yx")
+        ip.fourier_zncc(img0, img1, dims="yx")
+        
+        assert abs(ip.zncc(img0, img0) - 1) < 1e-6
+        assert abs(ip.fourier_zncc(img0, img0) - 1) < 1e-6
+        
 
 def test_fourier(resource):
-    with ip.SetConst(RESOURCE=resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         reference_image = ip.sample_image("camera")
         shift = (-7, 12)
         shifted_image = reference_image.affine(translation=shift)
@@ -30,7 +58,7 @@ def test_fourier(resource):
         assert_allclose(shift_sk, (7, -12))
 
 def test_max_shift(resource):
-    with ip.SetConst(RESOURCE=resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         # check shifts don't exceed max_shifts
         for i in range(10):
             np.random.seed(i)
@@ -71,7 +99,7 @@ def test_max_shift(resource):
         assert_allclose(shift, [2, 5])
     
 def test_polar_pcc(resource):
-    with ip.SetConst(RESOURCE=resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         reference_image = ip.sample_image("camera")
         deg = 21
         rotated_image = reference_image.rotate(deg)
@@ -80,7 +108,7 @@ def test_polar_pcc(resource):
         assert rot == deg
 
 def test_fsc(resource):
-    with ip.SetConst(RESOURCE=resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         img0 = ip.random.random_uint16((80, 80))
         img1 = ip.random.random_uint16((80, 80))
         a, b = ip.fsc(img0, img1)

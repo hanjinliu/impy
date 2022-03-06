@@ -71,3 +71,9 @@ def test_binning():
     assert_allclose(imgb, img[:120, :120, :120].binning(4))
     
     np.random.seed()
+
+def test_tiled():
+    np.random.seed(1111)
+    
+    img = ip.random.normal(size=(120, 120, 120), axes="zyx")
+    img.tiled_lowpass_filter(chunks=(40,50,50))

@@ -67,5 +67,5 @@ def dft(img: xp.ndarray, exps: list[xp.ndarray] = None):
     img = xp.asarray(img)
     for ker in reversed(exps):
         # K_{kx} * I_{zyx}
-        img = xp.tensordot(ker, img, axes=(1, -1))
+        img = xp.tensordot(xp.asarray(ker), img, axes=(1, -1))
     return img
