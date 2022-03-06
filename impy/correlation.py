@@ -57,7 +57,7 @@ def fsc(
     shape = img0.shape
     dims = img0.axes
     
-    freqs = xp.meshgrid(*[xp.fft.fftshift(xp.fft.fftfreq(s)) for s in shape])
+    freqs = xp.meshgrid(*[xp.fft.fftshift(xp.fft.fftfreq(s)) for s in shape], indexing="ij")
     r = xp.sqrt(sum(f**2 for f in freqs))
     
     with Progress("fsc"):

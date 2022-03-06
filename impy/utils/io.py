@@ -10,7 +10,6 @@ from ..array_api import xp
 
 from ..axes import ImageAxesError
 from .axesop import complement_axes
-from ..utils.axesop import switch_slice
 
 if TYPE_CHECKING:
     from ..arrays.bases import HistoryArray
@@ -172,7 +171,8 @@ def get_imsave_meta_from_img(img: HistoryArray, update_lut=True):
         info = load_json(metadata["Info"])
     except:
         info = {}
-    info["impyhist"] = "->".join([img.name] + img.history)
+    name = img.name or "original-image"
+    info["impyhist"] = "->".join([name] + img.history)
     metadata["Info"] = str(info)
     # set axes in tiff metadata
     metadata["axes"] = str(img.axes).upper()
