@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from ...array_api import xp
 
+# Phase Cross Correlation
 # Modified from skimage/registration/_phase_cross_correlation.py
 # Compatible between numpy/cupy and supports maximum shifts.
 
@@ -82,3 +83,84 @@ def crop_by_max_shifts(power: xp.ndarray, left, right):
         for c, shiftl, shiftr, s in zip(centers, left, right, power.shape)
     )
     return xp.fft.ifftshift(shifted_power[slices])
+
+
+def subpixel_ncc(
+    img0: xp.ndarray, 
+    img1: xp.ndarray, 
+    upsample_factor: int,
+    max_shifts: tuple[float, ...] | None = None,
+):
+    ndim = img1.ndim
+    _win_sum = _window_sum_2d if ndim == 2 else _window_sum_3d
+    if max_shifts is None:
+        pad_width = [(w, w) for w in img1.shape]
+    else:
+        pad_width = [(int(w)+1, int(w)+1) for w in max_shifts]
+    padimg = xp.pad(img0, pad_width=pad_width, mode="constant", constant_values=0)
+    
+    corr = xp.signal.fftconvolve(padimg, img1[(slice(None, None, -1),)*ndim], mode="valid")[(slice(1, -1, None),)*ndim]
+    
+    win_sum1 = _win_sum(padimg, img1.shape)
+    win_sum2 = _win_sum(padimg**2, img1.shape)
+    
+    template_mean = xp.mean(img1)
+    template_volume = xp.prod(img1.shape)
+    template_ssd = xp.sum((img1 - template_mean)**2)
+    
+    var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
+    
+    # zero division happens when perfectly matched
+    response = xp.zeros_like(corr)
+    mask = var > 0
+    response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
+    shifts = xp.array(xp.unravel_index(xp.argmax(response), response.shape), dtype=np.float32)
+    midpoints = xp.asarray(response.shape) // 2
+    
+    if upsample_factor > 1:
+        mesh = xp.meshgrid(
+            *[xp.linspace(s-1, s+1, 2*upsample_factor + 1, endpoint=True) 
+              for s in shifts], 
+            indexing="ij",
+        )
+        coords = xp.stack(mesh, axis=0)
+        local_response = xp.ndi.map_coordinates(
+            response, coords, order=3, mode="constant", cval=0, prefilter=True
+        )
+        local_shifts = xp.array(
+            xp.unravel_index(
+                xp.argmax(local_response), local_response.shape
+            ),
+            dtype=np.float32,
+        ) / upsample_factor - 1
+        shifts += local_shifts
+    
+    shifts -= midpoints
+    return shifts
+
+# Identical to skimage.feature.template, but compatible between numpy and cupy.
+def _window_sum_2d(image, window_shape):
+    window_sum = xp.cumsum(image, axis=0)
+    window_sum = (window_sum[window_shape[0]:-1]
+                  - window_sum[:-window_shape[0] - 1])
+    window_sum = xp.cumsum(window_sum, axis=1)
+    window_sum = (window_sum[:, window_shape[1]:-1]
+                  - window_sum[:, :-window_shape[1] - 1])
+
+    return window_sum
+
+
+def _window_sum_3d(image, window_shape):
+    window_sum = _window_sum_2d(image, window_shape)
+    window_sum = xp.cumsum(window_sum, axis=2)
+    window_sum = (window_sum[:, :, window_shape[2]:-1]
+                  - window_sum[:, :, :-window_shape[2] - 1])
+
+    return window_sum
+
+def _safe_sqrt(a: xp.ndarray, fill=0):
+    out = xp.full(a.shape, fill, dtype=np.float32)
+    out = xp.zeros_like(a)
+    mask = a > 0
+    out[mask] = xp.sqrt(a[mask])
+    return out

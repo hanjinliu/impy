@@ -1,6 +1,9 @@
 import numpy as np
 from ._skimage import *
 from ._linalg import hessian_eigval
+from ...array_api import xp, cupy_dispatcher
+from scipy import ndimage as scipy_ndi
+
                
 __all__ = ["binary_erosion",
            "erosion"
@@ -28,10 +31,6 @@ __all__ = ["binary_erosion",
            "population",
            "ncc_filter",
            ]
-
-
-from ...array_api import xp, cupy_dispatcher
-from scipy import ndimage as scipy_ndi
 
 def get_func(function_name):
     def func(*args, **kwargs):
@@ -126,7 +125,7 @@ def skeletonize(img, selem):
 def population(img, selem):
     return skfil.rank.pop(img, selem, mask=img)
     
-def ncc_filter(img, template, bg, mode="constant"):
+def ncc_filter(img, template, bg=0, mode="constant"):
     from scipy.signal import fftconvolve
     ndim = template.ndim
     _win_sum = skfeat.template._window_sum_2d if ndim == 2 else skfeat.template._window_sum_3d
@@ -146,7 +145,7 @@ def ncc_filter(img, template, bg, mode="constant"):
     
     # zero division happens when perfectly matched
     response = np.ones_like(corr)
-    mask = var > 0
+    mask = var > np.finfo(np.float32).eps
     response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
     slices = []
     for i in range(ndim):

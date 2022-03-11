@@ -107,8 +107,9 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: xp.ndarray):
 
 
 def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
-    # Basic Zero-Normalized Cross Correlation with batch processing.
+    # Basic Zero-mean Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
+    # TODO: This is not efficient. Use E[x^2] - E[x]^2.
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
     return corr
@@ -175,7 +176,7 @@ def zncc(
     dims: Dims = None
 ) -> PropArray | float:
     """
-    Zero-Normalized Cross Correlation.
+    Zero-mean Normalized Cross Correlation.
     
     Parameters
     ----------
@@ -311,7 +312,7 @@ def fourier_zncc(
     dims: Dims = None
 ) -> PropArray | float:
     """
-    Zero-Normalized Cross Correlation in Fourier space.
+    Zero-mean Normalized Cross Correlation in Fourier space.
     
     Parameters
     ----------
@@ -472,6 +473,28 @@ def polar_pcc_maximum(
     # Here, `shift` satisfies `img0.rotate(-shift[0]) == img1`
     return shift[0]
 
+@_docs.write_docs
+def zncc_maximum(
+    img0: ImgArray, 
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_shifts: int | tuple[int, ...] | None = None
+):
+    if img0 is img1:
+        return np.zeros(img0.ndim)
+    with Progress("zncc_maximum"):
+        img0, img1 = _check_inputs(img0, img1)
+        img0z = img0 - img0.mean()
+        img1z = img1 - img1.mean()
+        if isinstance(max_shifts, (int, float)):
+            max_shifts = (max_shifts,) * img0.ndim
+        shift = subpixel_pcc(
+            xp.asarray(img0z.value), 
+            xp.asarray(img1z.value),
+            upsample_factor, 
+            max_shifts=max_shifts
+        )
+    return xp.asnumpy(shift)
 
 @_docs.write_docs
 @dims_to_spatial_axes

@@ -13,7 +13,7 @@ def cupy_dispatcher(function):
     return func
 
 from types import ModuleType
-from scipy import ndimage as scipy_ndi
+from scipy import ndimage as scipy_ndi, signal as scipy_sig
 from typing import Callable
 
 # CUDA <= ver.8 does not have gradient    
@@ -46,12 +46,16 @@ class XP:
         self.linalg = np.linalg
         self.random = np.random
         self.ndi = scipy_ndi
+        self.signal = scipy_sig
         self.asnumpy = np.asarray
         self.asarray = np.asarray
         self.ndarray = np.ndarray
         self.empty = np.empty
         self.zeros = np.zeros
+        self.empty_like = np.empty_like
+        self.zeros_like = np.zeros_like
         self.ones = np.ones
+        self.full = np.full
         self.array = np.array
         self.exp = np.exp
         self.sin = np.sin
@@ -67,6 +71,7 @@ class XP:
         self.std = np.std
         self.meshgrid = np.meshgrid
         self.indices = np.indices
+        self.cumsum = np.cumsum
         self.arange = np.arange
         self.linspace = np.linspace
         self.real = np.real
@@ -97,7 +102,7 @@ class XP:
                 return out
             return out.astype(dtype)
         from cupyx.scipy import fft as cp_fft
-        from cupyx.scipy import ndimage as cp_ndi
+        from cupyx.scipy import ndimage as cp_ndi, signal as cp_sig
         from cupy import linalg as cp_linalg
         
         self._module = cp
@@ -105,12 +110,16 @@ class XP:
         self.linalg = cp_linalg
         self.random = cp.random
         self.ndi = cp_ndi
+        self.signal = cp_sig
         self.asnumpy = cp_asnumpy
         self.asarray = cp.asarray
         self.ndarray = cp.ndarray
         self.empty = cp.empty
         self.zeros = cp.zeros
         self.ones = cp.ones
+        self.empty_like = cp.empty_like
+        self.zeros_like = cp.zeros_like
+        self.full = cp.full
         self.array = cp.array
         self.exp = cp.exp
         self.sin = cp.sin
@@ -126,6 +135,7 @@ class XP:
         self.std = cp.std
         self.meshgrid = cp.meshgrid
         self.indices = cp.indices
+        self.cumsum = cp.cumsum
         self.arange = cp.arange
         self.linspace = cp.linspace
         self.real = cp.real
