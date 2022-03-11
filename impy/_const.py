@@ -85,17 +85,27 @@ Const = GlobalConstant(
 
 class SetConst:
     n_ongoing = 0
+    _lock = False
+    
     def __init__(self, dict_: dict[str, Any] | None =None, **kwargs):
         dict_ = dict_ or {}
         dict_.update(kwargs)
         self._kwargs = dict_
+        self._locked = False
     
     def __enter__(self):
+        if self._lock:
+            self._locked = True
+            return
+        self.__class__._lock = True
         self._old_value = [(k, Const[k]) for k in self._kwargs.keys()]
         for k, v in self._kwargs.items():
             Const[k] = v
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if self._locked:
+            return
+        self.__class__._lock = False        
         for k, v in self._old_value:
             Const[k] = v
 

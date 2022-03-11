@@ -5,6 +5,8 @@ from ...array_api import xp
 # Modified from skimage/registration/_phase_cross_correlation.py
 # Compatible between numpy/cupy and supports maximum shifts.
 
+# TODO: if max_shifts is small, DFT should be used in place of FFT
+
 def subpixel_pcc(
     f0: xp.ndarray, 
     f1: xp.ndarray, 
