@@ -6,7 +6,7 @@ from .core import asarray as ip_asarray
 from .arrays import ImgArray, PropArray
 from .arrays._utils import _docs
 from .arrays._utils._transform import polar2d
-from .arrays._utils._corr import subpixel_pcc
+from .arrays._utils._corr import subpixel_pcc, subpixel_ncc
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
@@ -14,7 +14,7 @@ from .array_api import xp
 from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
-           "nmi", "pcc_maximum", "ft_pcc_maximum", "polar_pcc_maximum",
+           "nmi", "pcc_maximum", "ft_pcc_maximum", "polar_pcc_maximum", "zncc_maximum",
            "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
@@ -318,8 +318,8 @@ def fourier_zncc(
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate 
-        correlation.
+        If provided, True regions will be masked and will not be taken into account 
+        when calculate correlation.
     {squeeze}
     {dims}
 
@@ -355,7 +355,7 @@ def pcc_maximum(
     max_shifts: int | tuple[int, ...] | None = None
 ) -> np.ndarray:
     """
-    Calculate lateral shift between two images. 
+    Calculate lateral shift between two images using phase cross correlation.
     
     Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters 
     are supported.
@@ -401,7 +401,7 @@ def ft_pcc_maximum(
     max_shifts: float | tuple[float, ...] | None = None
 ) -> np.ndarray:
     """
-    Calculate lateral shift between two images.
+    Calculate lateral shift between two images using phase cross correlation.
     
     This function takes Fourier transformed images as input. If you have to repetitively
     use a same template image, this function is faster.
@@ -412,8 +412,8 @@ def ft_pcc_maximum(
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
     max_shifts : float, tuple of float, optional
-        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as maximum shifts
-        in all dimensions. No upper bound of shifts if not given.
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
 
     Returns
     -------
@@ -480,6 +480,27 @@ def zncc_maximum(
     upsample_factor: int = 10,
     max_shifts: int | tuple[int, ...] | None = None
 ):
+    """
+    Calculate lateral shift between two images using zero-mean normalized cross correlation.
+    
+    Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.
+    Since ZNCC uses real space, this function performs better than PCC when the input images
+    have frequency loss.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating cross correlation.
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
+
+    Returns
+    -------
+    np.ndarray
+        Shift in pixel.
+    """    
     if img0 is img1:
         return np.zeros(img0.ndim)
     with Progress("zncc_maximum"):
@@ -488,7 +509,7 @@ def zncc_maximum(
         img1z = img1 - img1.mean()
         if isinstance(max_shifts, (int, float)):
             max_shifts = (max_shifts,) * img0.ndim
-        shift = subpixel_pcc(
+        shift = subpixel_ncc(
             xp.asarray(img0z.value), 
             xp.asarray(img1z.value),
             upsample_factor, 

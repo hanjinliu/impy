@@ -3093,8 +3093,14 @@ class ImgArray(LabeledArray):
         
     @dims_to_spatial_axes
     @record
-    def ncc_filter(self, template: np.ndarray, mode: str = "constant", cval: float = None, 
-                   *, dims: Dims = None) -> ImgArray:
+    def ncc_filter(
+        self,
+        template: np.ndarray,
+        mode: str = "constant", 
+        cval: float | str | Callable[[np.ndarray], float] = np.mean, 
+        *, 
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
         identical to that in `skimage.feature`, but is optimized for batch processing and improved 
@@ -3106,7 +3112,7 @@ class ImgArray(LabeledArray):
             Template image. Must be 2 or 3 dimensional. 
         {mode}
         cval : float, optional
-            Background intensity. If not given, it will calculated as the minimum value of 
+            Background intensity. If not given, it will calculated as the mean value of 
             the original image.
         {dims}
 
@@ -3116,14 +3122,17 @@ class ImgArray(LabeledArray):
             Response image with values between -1 and 1.
         """        
         template = _check_template(template)
+        if callable(cval):
+            cval = cval(self)
         cval = _check_bg(self, cval)
         if len(dims) != template.ndim:
             raise ValueError("dims and the number of template dimension don't match.")
         
-        return self.as_float().apply_dask(_filters.ncc_filter,
-                                          c_axes=complement_axes(dims, self.axes), 
-                                          args=(template, cval, mode)
-                                          )
+        return self.as_float().apply_dask(
+            _filters.ncc_filter,
+            c_axes=complement_axes(dims, self.axes), 
+            args=(template, cval, mode)
+        )
     
     @record(append_history=False)
     def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:

@@ -124,7 +124,9 @@ def skeletonize(img, selem):
 
 def population(img, selem):
     return skfil.rank.pop(img, selem, mask=img)
-    
+
+# Essentially identical to skimage.feature.match_template
+# See skimage/feature/template.py
 def ncc_filter(img, template, bg=0, mode="constant"):
     from scipy.signal import fftconvolve
     ndim = template.ndim
