@@ -13,7 +13,7 @@ def subpixel_pcc(
     f1: xp.ndarray, 
     upsample_factor: int,
     max_shifts: tuple[float, ...] | None = None,
-) -> xp.ndarray:
+):
     product = f0 * f1.conj()
     cross_correlation = xp.fft.ifftn(product)
     power = abs2(cross_correlation)
@@ -99,7 +99,9 @@ def subpixel_ncc(
         pad_width = [(int(w)+1, int(w)+1) for w in max_shifts]
     padimg = xp.pad(img0, pad_width=pad_width, mode="constant", constant_values=0)
     
-    corr = xp.signal.fftconvolve(padimg, img1[(slice(None, None, -1),)*ndim], mode="valid")[(slice(1, -1, None),)*ndim]
+    corr = xp.signal.fftconvolve(
+        padimg, img1[(slice(None, None, -1),)*ndim], mode="valid"
+    )[(slice(1, -1, None),)*ndim]
     
     win_sum1 = _win_sum(padimg, img1.shape)
     win_sum2 = _win_sum(padimg**2, img1.shape)
@@ -108,18 +110,18 @@ def subpixel_ncc(
     template_volume = xp.prod(xp.array(img1.shape))
     template_ssd = xp.sum((img1 - template_mean)**2)
     
-    var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
+    var = (win_sum2 - win_sum1**2 / template_volume) * template_ssd
     
     # zero division happens when perfectly matched
     response = xp.zeros_like(corr)
     mask = var > 0
     response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
-    shifts = xp.array(xp.unravel_index(xp.argmax(response), response.shape), dtype=np.float32)
+    shifts = xp.unravel_index(xp.argmax(response), response.shape)
     midpoints = xp.asarray(response.shape) // 2
     
     if upsample_factor > 1:
         mesh = xp.meshgrid(
-            *[xp.linspace(s-1, s+1, 2*upsample_factor + 1, endpoint=True) 
+            *[xp.linspace(s - 1, s + 1, 2*upsample_factor + 1, endpoint=True) 
               for s in shifts], 
             indexing="ij",
         )
@@ -127,16 +129,15 @@ def subpixel_ncc(
         local_response = xp.ndi.map_coordinates(
             response, coords, order=3, mode="constant", cval=0, prefilter=True
         )
-        local_shifts = xp.array(
-            xp.unravel_index(
-                xp.argmax(local_response), local_response.shape
-            ),
-            dtype=np.float32,
-        ) / upsample_factor - 1
-        shifts += local_shifts
-    
+        local_shifts = xp.unravel_index(xp.argmax(local_response), local_response.shape)
+        
+        zncc = local_response[local_shifts]
+        shifts = xp.array(shifts) + xp.array(local_shifts) / upsample_factor - 1
+    else:
+        zncc = response[shifts]
+        shifts = xp.array(shifts)
     shifts -= midpoints
-    return shifts
+    return xp.asarray(shifts, dtype=np.float32), zncc
 
 # Identical to skimage.feature.template, but compatible between numpy and cupy.
 def _window_sum_2d(image, window_shape):

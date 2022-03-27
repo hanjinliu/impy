@@ -15,7 +15,7 @@ from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
            "nmi", "pcc_maximum", "ft_pcc_maximum", "polar_pcc_maximum", "zncc_maximum",
-           "pearson_coloc", "manders_coloc"]
+           "zncc_maximum_with_corr", "pearson_coloc", "manders_coloc"]
 
 @_docs.write_docs
 def fsc(
@@ -474,12 +474,12 @@ def polar_pcc_maximum(
     return shift[0]
 
 @_docs.write_docs
-def zncc_maximum(
+def zncc_maximum_with_corr(
     img0: ImgArray, 
     img1: ImgArray,
     upsample_factor: int = 10,
     max_shifts: int | tuple[int, ...] | None = None
-):
+) -> tuple[np.ndarray, float]:
     """
     Calculate lateral shift between two images using zero-mean normalized cross correlation.
     
@@ -491,15 +491,16 @@ def zncc_maximum(
     ----------
     {inputs_of_correlation}
     upsample_factor : int, default is 10
-        Up-sampling factor when calculating cross correlation.
+        Up-sampling factor when calculating cross correlation. Convolution image will be
+        up-sampled by third-order interpolation.
     max_shifts : float, tuple of float, optional
         Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
         maximum shifts in all dimensions. No upper bound of shifts if not given.
 
     Returns
     -------
-    np.ndarray
-        Shift in pixel.
+    np.ndarray and float
+        Shift in pixel and ZNCC value.
     """    
     if img0 is img1:
         return np.zeros(img0.ndim)
@@ -509,14 +510,47 @@ def zncc_maximum(
         img1z = img1 - img1.mean()
         if isinstance(max_shifts, (int, float)):
             max_shifts = (max_shifts,) * img0.ndim
-        shift = subpixel_ncc(
+        shift, zncc = subpixel_ncc(
             xp.asarray(img0z.value), 
             xp.asarray(img1z.value),
             upsample_factor, 
             max_shifts=max_shifts
         )
-    return xp.asnumpy(shift)
+    return xp.asnumpy(shift), zncc
 
+
+@_docs.write_docs
+def zncc_maximum(
+    img0: ImgArray, 
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_shifts: int | tuple[int, ...] | None = None
+) -> np.ndarray:
+    """
+    Calculate lateral shift between two images using zero-mean normalized cross correlation.
+    
+    Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.
+    Since ZNCC uses real space, this function performs better than PCC when the input images
+    have frequency loss.
+    Unlike :func:`zncc_maximum_with_corr`, this function only returns the optimal shift.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating cross correlation. Convolution image will be
+        up-sampled by third-order interpolation.
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
+
+    Returns
+    -------
+    np.ndarray
+        Shift in pixel .
+    """    
+    return zncc_maximum_with_corr(img0, img1, upsample_factor, max_shifts)[0]
+    
 @_docs.write_docs
 @dims_to_spatial_axes
 def manders_coloc(
