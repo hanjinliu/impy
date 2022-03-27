@@ -21,16 +21,7 @@ def _gradient(a, axis=None):
     out = np.gradient(a.get(), axis=axis)
     return xp.asarray(out)
 
-class XP:
-    fft: ModuleType
-    linalg: ModuleType
-    random: ModuleType
-    ndi: ModuleType
-    asnumpy: Callable[[ArrayLike, DTypeLike], np.ndarray]
-    asarray: Callable[[ArrayLike], ArrayLike]
-    ndarray: type
-    state: str
-    
+class XP:    
     def __init__(self):
         self.state = ""
         self.setNumpy()
@@ -87,6 +78,7 @@ class XP:
         self.unravel_index = np.unravel_index
         self.argmax = np.argmax
         self.argmin = np.argmin
+        self.pad = np.pad
         
         self.state = "numpy"
         from ._const import Const
@@ -154,6 +146,7 @@ class XP:
         self.unravel_index = cp.unravel_index
         self.argmax = cp.argmax
         self.argmin = cp.argmin
+        self.pad = cp.pad
         self.state = "cupy"
         
         from ._const import Const
