@@ -701,7 +701,7 @@ class LazyImgArray(AxesMixin):
             filter_func,
             depth=depth,
             c_axes=complement_axes(dims, self.axes)
-            )
+        )
     
     @_docs.copy_docs(ImgArray.laplacian_filter)
     @dims_to_spatial_axes

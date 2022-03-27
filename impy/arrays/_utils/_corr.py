@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from functools import lru_cache
 from ...array_api import xp
 
 # Phase Cross Correlation
@@ -92,17 +93,14 @@ def subpixel_ncc(
     max_shifts: tuple[float, ...] | None = None,
 ):
     ndim = img1.ndim
-    _win_sum = _window_sum_2d if ndim == 2 else _window_sum_3d
-    if max_shifts is None:
-        pad_width = [(w, w) for w in img1.shape]
-    else:
-        pad_width = [(int(w)+1, int(w)+1) for w in max_shifts]
-    padimg = xp.pad(img0, pad_width=pad_width, mode="constant", constant_values=0)
+    pad_width, sl = _get_padding_params(img0.shape, img1.shape, max_shifts)
+    padimg = xp.pad(img0[sl], pad_width=pad_width, mode="constant", constant_values=0)
     
     corr = xp.signal.fftconvolve(
         padimg, img1[(slice(None, None, -1),)*ndim], mode="valid"
     )[(slice(1, -1, None),)*ndim]
     
+    _win_sum = _window_sum_2d if ndim == 2 else _window_sum_3d
     win_sum1 = _win_sum(padimg, img1.shape)
     win_sum2 = _win_sum(padimg**2, img1.shape)
     
@@ -121,7 +119,7 @@ def subpixel_ncc(
     
     if upsample_factor > 1:
         mesh = xp.meshgrid(
-            *[xp.linspace(s - 1, s + 1, 2*upsample_factor + 1, endpoint=True) 
+            *[xp.linspace(s - 3, s + 3, 2*upsample_factor + 1, endpoint=True) 
               for s in shifts], 
             indexing="ij",
         )
@@ -165,3 +163,28 @@ def _safe_sqrt(a: xp.ndarray, fill=0):
     mask = a > 0
     out[mask] = xp.sqrt(a[mask])
     return out
+
+@lru_cache(maxsize=12)
+def _get_padding_params(
+    shape0: tuple[int, ...], 
+    shape1: tuple[int, ...],
+    max_shifts: tuple[int, ...] | None,
+) -> tuple[list[tuple[int, ...]], list[slice] | slice]:
+    if max_shifts is None:
+        pad_width = [(w, w) for w in shape1]
+        sl = slice(None)
+    else:
+        ds = (s0 - s1 for s0, s1 in zip(shape0, shape1))
+        pad_width: list[tuple[int, ...]] = []
+        sl: list[slice] = []
+        for w, dw in zip(max_shifts, ds):
+            w_int = int(np.ceil(w - dw/2))
+            if w_int >= 0:
+                pad_width.append((w_int,) * 2)
+                sl.append(slice(None))
+            else:
+                pad_width.append((0,) * 2)
+                sl.append(slice(-w_int, w_int, None))
+        sl = tuple(sl)
+    
+    return pad_width, sl

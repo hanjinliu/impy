@@ -22,7 +22,11 @@ def test_zncc_shift(resource):
 
         shift_ip = ip.zncc_maximum(shifted_image, reference_image)
         assert_allclose(shift_ip, (7, -12))
-
+        
+        # test different size
+        shift_ip = ip.zncc_maximum(shifted_image, reference_image[20:-20, 14:-14])
+        assert_allclose(shift_ip, (7, -12))
+        
 
 def test_cc(resource):
     with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
