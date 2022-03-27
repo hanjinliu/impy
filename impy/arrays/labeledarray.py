@@ -105,13 +105,14 @@ class LabeledArray(HistoryArray):
             dtype = self.dtype
             
         # save image
-        if ext == ".tif":
-            save_tif(save_path, self)
-        elif ext == ".mrc":
-            save_mrc(save_path, self)
+        with Progress("Saving"):
+            if ext in (".tif", ".tiff"):
+                save_tif(save_path, self)
+            elif ext in (".mrc", ".map"):
+                save_mrc(save_path, self)
+            else:
+                raise ValueError(f"Unsupported extension {ext}")
 
-        # notification
-        print(f"Succesfully saved: {save_path}")
         return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

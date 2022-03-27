@@ -230,3 +230,30 @@ def save_mrc(path: str, img: HistoryArray):
         with mrcfile.new(path) as mrc:
             mrc.set_data(img.value)
             mrc.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
+
+def memmap_tif(data, path: str, shape: tuple[int, ...], dtype, **kwargs):
+    mmap = memmap(str(path), shape=shape, dtype=dtype, **kwargs)
+    mmap[:] = data
+    mmap.flush()
+    return None
+
+def memmap_mrc(data, path: str, shape: tuple[int, ...], dtype, **kwargs):
+    import mrcfile
+    if dtype == "int8":
+        mode = 0
+    elif dtype == "int16":
+        mode = 1
+    elif dtype == "float32":
+        mode = 2
+    elif dtype == "complex64":
+        mode = 4
+    elif dtype == "uint16":
+        mode = 6
+    else:
+        raise TypeError(f"Unsupported dtype {dtype}.")
+    mrc_mmap = mrcfile.new_mmap(path, shape, mrc_mode=mode, overwrite=True)
+    mrc_mmap.voxel_size = kwargs["metadata"]["spacing"] * 10  # nm -> ang
+    mrc_mmap.data[:] = data
+    mrc_mmap.flush()
+    return None
+    

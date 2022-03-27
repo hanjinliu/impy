@@ -19,7 +19,7 @@ from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype, make_his
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.utilcls import Progress
-from ..utils.io import get_imsave_meta_from_img, memmap
+from ..utils.io import get_imsave_meta_from_img, memmap_tif, memmap_mrc
 from ..collections import DataList
 
 from .._types import nDFloat, Coords, Iterable, Dims
@@ -306,8 +306,19 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(LabeledArray.imsave)
     def imsave(self, save_path: str, dtype = None):
         save_path = str(save_path)
-        if not save_path.endswith(".tif"):
+        _, ext = os.path.splitext(save_path)
+        
+        if ext == "":
             save_path += ".tif"
+            ext = ".tif"
+        
+        if ext in (".tif", ".tiff"):
+            mmap_func = memmap_tif
+        elif ext in (".mrc", ".map"):
+            mmap_func = memmap_mrc
+        else:
+            raise ValueError(f"Unsupported file type '{ext}'.")
+    
         if os.sep not in save_path:
             save_path = os.path.join(self.dirpath, save_path)
         if self.metadata is None:
@@ -318,11 +329,10 @@ class LazyImgArray(AxesMixin):
         self = self.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
         
-        memmap_image = memmap(save_path, shape=self.shape, dtype=self.dtype, **imsave_kwargs)
-        
         with Progress("Saving"):
-            memmap_image[:] = self.value[:]
-            memmap_image.flush()
+            mmap_func(
+                self.value, save_path, shape=self.shape, dtype=self.dtype, **imsave_kwargs
+            )
             
         return None
     
