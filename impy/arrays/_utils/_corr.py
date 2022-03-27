@@ -105,7 +105,7 @@ def subpixel_ncc(
     win_sum2 = _win_sum(padimg**2, img1.shape)
     
     template_mean = xp.mean(img1)
-    template_volume = xp.prod(img1.shape)
+    template_volume = xp.prod(xp.array(img1.shape))
     template_ssd = xp.sum((img1 - template_mean)**2)
     
     var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
