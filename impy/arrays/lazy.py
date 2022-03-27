@@ -304,11 +304,12 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(LabeledArray.imsave)
-    def imsave(self, tifname: str, dtype = None):
-        if not tifname.endswith(".tif"):
-            tifname += ".tif"
-        if os.sep not in tifname:
-            tifname = os.path.join(self.dirpath, tifname)
+    def imsave(self, save_path: str, dtype = None):
+        save_path = str(save_path)
+        if not save_path.endswith(".tif"):
+            save_path += ".tif"
+        if os.sep not in save_path:
+            save_path = os.path.join(self.dirpath, save_path)
         if self.metadata is None:
             self.metadata = {}
         if dtype is None:
@@ -317,7 +318,7 @@ class LazyImgArray(AxesMixin):
         self = self.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
         
-        memmap_image = memmap(tifname, shape=self.shape, dtype=self.dtype, **imsave_kwargs)
+        memmap_image = memmap(save_path, shape=self.shape, dtype=self.dtype, **imsave_kwargs)
         
         with Progress("Saving"):
             memmap_image[:] = self.value[:]

@@ -14,6 +14,16 @@ def test_pcc(resource):
         assert_allclose(shift_sk, shift_ip)
         assert_allclose(shift_sk, (7, -12))
 
+def test_zncc_shift(resource):
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+        reference_image = ip.sample_image("camera")
+        shift = (-7, 12)
+        shifted_image = reference_image.affine(translation=shift)
+
+        shift_ip = ip.zncc_maximum(shifted_image, reference_image)
+        assert_allclose(shift_ip, (7, -12))
+
+
 def test_cc(resource):
     with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
         img0 = ip.random.random((10, 10, 10), axes="zyx")
