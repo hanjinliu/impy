@@ -505,14 +505,14 @@ def zncc_maximum_with_corr(
     if img0 is img1:
         return np.zeros(img0.ndim), 1.
     with Progress("zncc_maximum"):
-        img0, img1 = img0.as_float(), img1.as_float()
+        img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
         img0z = img0 - img0.mean()
         img1z = img1 - img1.mean()
         if isinstance(max_shifts, (int, float)):
             max_shifts = (max_shifts,) * img0.ndim
         shift, zncc = subpixel_ncc(
-            xp.asarray(img0z.value), 
-            xp.asarray(img1z.value),
+            xp.asarray(np.asarray(img0z)), 
+            xp.asarray(np.asarray(img1z)),
             upsample_factor, 
             max_shifts=max_shifts
         )
