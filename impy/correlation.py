@@ -503,9 +503,9 @@ def zncc_maximum_with_corr(
         Shift in pixel and ZNCC value.
     """    
     if img0 is img1:
-        return np.zeros(img0.ndim)
+        return np.zeros(img0.ndim), 1.
     with Progress("zncc_maximum"):
-        img0, img1 = _check_inputs(img0, img1)
+        img0, img1 = img0.as_float(), img1.as_float()
         img0z = img0 - img0.mean()
         img1z = img1 - img1.mean()
         if isinstance(max_shifts, (int, float)):

@@ -93,6 +93,8 @@ def subpixel_ncc(
     max_shifts: tuple[float, ...] | None = None,
 ):
     ndim = img1.ndim
+    if max_shifts is not None:
+        max_shifts = tuple(max_shifts)
     pad_width, sl = _get_padding_params(img0.shape, img1.shape, max_shifts)
     padimg = xp.pad(img0[sl], pad_width=pad_width, mode="constant", constant_values=0)
     
@@ -114,27 +116,21 @@ def subpixel_ncc(
     response = xp.zeros_like(corr)
     mask = var > 0
     response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
-    shifts = xp.unravel_index(xp.argmax(response), response.shape)
+    maxima = xp.unravel_index(xp.argmax(response), response.shape)
     midpoints = xp.asarray(response.shape) // 2
     
     if upsample_factor > 1:
-        mesh = xp.meshgrid(
-            *[xp.linspace(s - 3, s + 3, 2*upsample_factor + 1, endpoint=True) 
-              for s in shifts], 
-            indexing="ij",
-        )
-        coords = xp.stack(mesh, axis=0)
+        coords = _create_mesh(upsample_factor, maxima, max_shifts, midpoints, xp.state)
         local_response = xp.ndi.map_coordinates(
             response, coords, order=3, mode="constant", cval=0, prefilter=True
         )
-        local_shifts = xp.unravel_index(xp.argmax(local_response), local_response.shape)
-        
-        zncc = local_response[local_shifts]
-        shifts = xp.array(shifts) + xp.array(local_shifts) / upsample_factor - 1
+        local_maxima = xp.unravel_index(xp.argmax(local_response), local_response.shape)
+        zncc = local_response[local_maxima]
+        shifts = xp.array(maxima) - midpoints + xp.array(local_maxima) / upsample_factor - 1
     else:
-        zncc = response[shifts]
-        shifts = xp.array(shifts)
-    shifts -= midpoints
+        zncc = response[maxima]
+        shifts = xp.array(maxima) - midpoints
+        
     return xp.asarray(shifts, dtype=np.float32), zncc
 
 # Identical to skimage.feature.template, but compatible between numpy and cupy.
@@ -178,7 +174,7 @@ def _get_padding_params(
         pad_width: list[tuple[int, ...]] = []
         sl: list[slice] = []
         for w, dw in zip(max_shifts, ds):
-            w_int = int(np.ceil(w - dw/2))
+            w_int = int(w - dw/2)
             if w_int >= 0:
                 pad_width.append((w_int,) * 2)
                 sl.append(slice(None))
@@ -188,3 +184,28 @@ def _get_padding_params(
         sl = tuple(sl)
     
     return pad_width, sl
+
+
+def _create_mesh(
+    upsample_factor: int,
+    maxima: tuple[int, ...], 
+    max_shifts: tuple[int, ...] | None,
+    midpoints: tuple[int, ...],
+    state: str = "numpy",  # just for caching
+):
+    if max_shifts is not None:
+        shifts = np.array(maxima, dtype=np.int32) - np.array(midpoints, dtype=np.int32)
+        max_shifts = np.array(max_shifts, dtype=np.int32)
+        left = -shifts - max_shifts
+        right = -shifts + max_shifts
+        local_shifts = tuple(
+            [max(shiftl, -1) * upsample_factor, min(shiftr, 1) * upsample_factor]
+            for shiftl, shiftr in zip(left, right)
+        )
+    else:
+        local_shifts = ([-upsample_factor, upsample_factor],) * len(maxima)
+    mesh = xp.meshgrid(
+        *[xp.arange(s0, s1 + 1)/upsample_factor + m for (s0, s1), m in zip(local_shifts, maxima)], 
+        indexing="ij",
+    )
+    return xp.stack(mesh, axis=0)
