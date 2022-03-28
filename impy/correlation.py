@@ -13,9 +13,25 @@ from .utils.deco import dims_to_spatial_axes
 from .array_api import xp
 from ._types import Dims
 
-__all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
-           "nmi", "pcc_maximum", "ft_pcc_maximum", "polar_pcc_maximum", "zncc_maximum",
-           "zncc_maximum_with_corr", "pearson_coloc", "manders_coloc"]
+__all__ = [
+    "fsc",
+    "fourier_shell_correlation",
+    "ncc",
+    "zncc",
+    "fourier_ncc",
+    "fourier_zncc",
+    "nmi",
+    "pcc_maximum",
+    "pcc_maximum_with_corr",
+    "ft_pcc_maximum",
+    "ft_pcc_maximum_with_corr", 
+    "polar_pcc_maximum",
+    "polar_pcc_maximum_with_corr",
+    "zncc_maximum",
+    "zncc_maximum_with_corr",
+    "pearson_coloc",
+    "manders_coloc",
+]
 
 @_docs.write_docs
 def fsc(
@@ -518,6 +534,31 @@ def polar_pcc_maximum(
     float
         Rotation in degree
     """    
+    return polar_pcc_maximum_with_corr(img0, img1, upsample_factor, max_degree)[0]
+
+@_docs.write_docs
+def polar_pcc_maximum_with_corr(
+    img0: ImgArray,
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_degree: int = None,
+) -> float:
+    """
+    Calculate rotational shift between two images using polar Fourier transformation.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating phase cross correlation.
+    max_degree : int, tuple of int, optional
+        Maximum rotation in degree.
+
+    Returns
+    -------
+    float and float
+        Rotation in degree and phase cross correlation
+    """    
     img0, img1 = _check_inputs(img0, img1)
     if img0.ndim != 2:
         raise TypeError("Currently only 2D image is supported.")
@@ -528,10 +569,43 @@ def polar_pcc_maximum(
         imgp = ip_asarray(xp.asnumpy(polar2d(img0, rmax, np.pi/180)))
         imgrotp = ip_asarray(xp.asnumpy(polar2d(img1, rmax, np.pi/180)))
         max_shifts = (max_degree, 1)
-        shift = pcc_maximum(imgp, imgrotp, upsample_factor=upsample_factor,
-                            max_shifts=max_shifts)
+        shift, pcc = pcc_maximum_with_corr(
+            imgp, imgrotp, upsample_factor=upsample_factor, max_shifts=max_shifts
+        )
     # Here, `shift` satisfies `img0.rotate(-shift[0]) == img1`
-    return shift[0]
+    return shift[0], pcc
+
+@_docs.write_docs
+def zncc_maximum(
+    img0: ImgArray, 
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_shifts: int | tuple[int, ...] | None = None
+) -> np.ndarray:
+    """
+    Calculate lateral shift between two images using zero-mean normalized cross correlation.
+    
+    Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.
+    Since ZNCC uses real space, this function performs better than PCC when the input images
+    have frequency loss.
+    Unlike :func:`zncc_maximum_with_corr`, this function only returns the optimal shift.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating cross correlation. Convolution image will be
+        up-sampled by third-order interpolation.
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
+
+    Returns
+    -------
+    np.ndarray
+        Shift in pixel .
+    """    
+    return zncc_maximum_with_corr(img0, img1, upsample_factor, max_shifts)[0]
 
 @_docs.write_docs
 def zncc_maximum_with_corr(
@@ -578,39 +652,6 @@ def zncc_maximum_with_corr(
         )
     return xp.asnumpy(shift), float(zncc)
 
-
-@_docs.write_docs
-def zncc_maximum(
-    img0: ImgArray, 
-    img1: ImgArray,
-    upsample_factor: int = 10,
-    max_shifts: int | tuple[int, ...] | None = None
-) -> np.ndarray:
-    """
-    Calculate lateral shift between two images using zero-mean normalized cross correlation.
-    
-    Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.
-    Since ZNCC uses real space, this function performs better than PCC when the input images
-    have frequency loss.
-    Unlike :func:`zncc_maximum_with_corr`, this function only returns the optimal shift.
-
-    Parameters
-    ----------
-    {inputs_of_correlation}
-    upsample_factor : int, default is 10
-        Up-sampling factor when calculating cross correlation. Convolution image will be
-        up-sampled by third-order interpolation.
-    max_shifts : float, tuple of float, optional
-        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
-        maximum shifts in all dimensions. No upper bound of shifts if not given.
-
-    Returns
-    -------
-    np.ndarray
-        Shift in pixel .
-    """    
-    return zncc_maximum_with_corr(img0, img1, upsample_factor, max_shifts)[0]
-    
 @_docs.write_docs
 @dims_to_spatial_axes
 def manders_coloc(
