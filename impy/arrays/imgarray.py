@@ -3957,7 +3957,7 @@ class ImgArray(LabeledArray):
         for i, (_, img) in enumerate(img_fft.iter(along)):
             img = xp.asarray(img)
             if last_img is not None:
-                result[i] = xp.asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor))
+                result[i] = xp.asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)[0])
                 last_img = img
             else:
                 last_img = img

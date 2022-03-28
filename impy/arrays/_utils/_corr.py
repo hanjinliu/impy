@@ -52,7 +52,10 @@ def subpixel_pcc(
         maxima = xp.unravel_index(xp.argmax(power), power.shape)
         maxima = xp.asarray(maxima, dtype=np.float32) - dftshift
         shifts = shifts + maxima / upsample_factor
-    return shifts
+        pcc = xp.sqrt(power[tuple(int(xp.round(m)) for m in maxima)])
+    else:
+        pcc = xp.sqrt(power[maxima])
+    return shifts, pcc
 
 def _upsampled_dft(
     data: xp.ndarray, 
