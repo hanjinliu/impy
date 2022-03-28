@@ -201,13 +201,13 @@ def _create_mesh(
     state: str = "numpy",  # just for caching
 ):
     if max_shifts is not None:
-        shifts = np.array(maxima, dtype=np.float32) - np.array(midpoints, dtype=np.float32)
-        max_shifts = np.array(max_shifts, dtype=np.float32)
+        shifts = xp.array(maxima, dtype=np.float32) - xp.array(midpoints, dtype=np.float32)
+        max_shifts = xp.array(max_shifts, dtype=np.float32)
         left = -shifts - max_shifts
         right = -shifts + max_shifts
         local_shifts = tuple(
-            [int(round(max(shiftl, -1) * upsample_factor)),
-             int(round(min(shiftr, 1) * upsample_factor))]
+            [int(xp.round(max(shiftl, -1) * upsample_factor)),
+             int(xp.round(min(shiftr, 1) * upsample_factor))]
             for shiftl, shiftr in zip(left, right)
         )
     else:
