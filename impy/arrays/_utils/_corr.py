@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+from numpy.typing import ArrayLike
 from functools import lru_cache
 from ...array_api import xp
 
@@ -8,6 +9,19 @@ from ...array_api import xp
 # Compatible between numpy/cupy and supports maximum shifts.
 
 # TODO: if max_shifts is small, DFT should be used in place of FFT
+
+def draw_pcc_landscape(
+    f0: xp.ndarray, 
+    f1: xp.ndarray, 
+    max_shifts: tuple[float, ...] | None = None,
+):
+    product = f0 * f1.conj()
+    cross_correlation = xp.fft.ifftn(product)
+    power = abs2(cross_correlation)
+    if max_shifts is not None:
+        max_shifts = xp.asarray(max_shifts)
+        power = crop_by_max_shifts(power, max_shifts, max_shifts)
+    return power
 
 def subpixel_pcc(
     f0: xp.ndarray, 
@@ -85,11 +99,11 @@ def crop_by_max_shifts(power: xp.ndarray, left, right):
     )
     return xp.fft.ifftshift(shifted_power[slices])
 
+# Normalized cross correlation
 
-def subpixel_ncc(
+def draw_ncc_landscape(
     img0: xp.ndarray, 
     img1: xp.ndarray, 
-    upsample_factor: int,
     max_shifts: tuple[float, ...] | None = None,
 ):
     ndim = img1.ndim
@@ -116,9 +130,17 @@ def subpixel_ncc(
     response = xp.zeros_like(corr)
     mask = var > 0
     response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
-    
+    return response
+
+def subpixel_ncc(
+    img0: xp.ndarray, 
+    img1: xp.ndarray, 
+    upsample_factor: int,
+    max_shifts: tuple[float, ...] | None = None,
+):
+    response = draw_ncc_landscape(img0, img1, max_shifts)
     if max_shifts is None:
-        pad_width_eff = (3,) * ndim
+        pad_width_eff = (3,) * img1.ndim
     else:
         pad_width_eff = tuple((s - int(m) * 2 - 1)//2 for m, s in zip(max_shifts, response.shape))
     sl_res = tuple(slice(w, -w, None) for w in pad_width_eff)

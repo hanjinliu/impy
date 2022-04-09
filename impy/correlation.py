@@ -1,12 +1,11 @@
 from __future__ import annotations
-from matplotlib import pyplot as plt
 import numpy as np
 from warnings import warn
 from .core import asarray as ip_asarray
 from .arrays import ImgArray, PropArray
 from .arrays._utils import _docs
 from .arrays._utils._transform import polar2d
-from .arrays._utils._corr import subpixel_pcc, subpixel_ncc
+from .arrays._utils._corr import subpixel_pcc, subpixel_ncc, draw_pcc_landscape, draw_ncc_landscape
 from .utils.axesop import complement_axes, add_axes
 from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
@@ -15,7 +14,8 @@ from ._types import Dims
 
 __all__ = ["fsc", "fourier_shell_correlation", "ncc", "zncc", "fourier_ncc", "fourier_zncc",
            "nmi", "pcc_maximum", "ft_pcc_maximum", "polar_pcc_maximum", "zncc_maximum",
-           "zncc_maximum_with_corr", "pearson_coloc", "manders_coloc"]
+           "zncc_maximum_with_corr", "pearson_coloc", "manders_coloc",
+           "pcc_landscape", "ft_pcc_landscape", "zncc_landscape"]
 
 @_docs.write_docs
 def fsc(
@@ -436,6 +436,77 @@ def ft_pcc_maximum(
     return xp.asnumpy(shift)
 
 @_docs.write_docs
+def pcc_landscape(
+    img0: ImgArray, 
+    img1: ImgArray,
+    max_shifts: int | tuple[int, ...] | None = None,
+):
+    """
+    Create landscape of phase cross correlation.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
+
+    Returns
+    -------
+    ImgArray
+        Landscape image.
+    """    
+    with Progress("pcc_landscape"):
+        _check_dimensions(img0, img1)
+        if isinstance(max_shifts, (int, float)):
+            max_shifts = (max_shifts,) * img0.ndim
+        
+        ft0 = img0.fft(dims=img0.axes)
+        ft1 = img1.fft(dims=img1.axes)
+        landscape = draw_pcc_landscape(
+            xp.asarray(ft0.value), 
+            xp.asarray(ft1.value),
+            max_shifts=max_shifts
+        )
+    return ip_asarray(xp.asnumpy(landscape), axes=img1.axes)
+
+@_docs.write_docs
+def ft_pcc_landscape(
+    img0: ImgArray, 
+    img1: ImgArray,
+    max_shifts: int | tuple[int, ...] | None = None,
+):
+    """
+    Create landscape of phase cross correlation.
+
+    This function takes Fourier transformed images as input. If you have to repetitively
+    use a same template image, this function is faster.
+    
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
+
+    Returns
+    -------
+    ImgArray
+        Landscape image.
+    """    
+    with Progress("ft_pcc_landscape"):
+        _check_dimensions(img0, img1)
+        if isinstance(max_shifts, (int, float)):
+            max_shifts = (max_shifts,) * img0.ndim
+    
+        landscape = draw_pcc_landscape(
+            xp.asarray(img0.value), 
+            xp.asarray(img1.value),
+            max_shifts=max_shifts
+        )
+    return ip_asarray(xp.asnumpy(landscape), axes=img1.axes)
+
+@_docs.write_docs
 def polar_pcc_maximum(
     img0: ImgArray,
     img1: ImgArray,
@@ -550,7 +621,41 @@ def zncc_maximum(
         Shift in pixel .
     """    
     return zncc_maximum_with_corr(img0, img1, upsample_factor, max_shifts)[0]
-    
+
+@_docs.write_docs
+def zncc_landscape(
+    img0: ImgArray, 
+    img1: ImgArray,
+    max_shifts: int | tuple[int, ...] | None = None,
+):
+    """
+    Create landscape of zero-mean normalized cross correlation.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    max_shifts : float, tuple of float, optional
+        Maximum shifts in each dimension. If a single scalar is given, it is interpreted as
+        maximum shifts in all dimensions. No upper bound of shifts if not given.
+
+    Returns
+    -------
+    ImgArray
+        Landscape image.
+    """    
+    with Progress("zncc_maximum"):
+        img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
+        img0z = img0 - img0.mean()
+        img1z = img1 - img1.mean()
+        if isinstance(max_shifts, (int, float)):
+            max_shifts = (max_shifts,) * img0.ndim
+        landscape = draw_ncc_landscape(
+            xp.asarray(np.asarray(img0z)), 
+            xp.asarray(np.asarray(img1z)),
+            max_shifts=max_shifts
+        )
+    return ip_asarray(xp.asnumpy(landscape), axes=img1.axes)
+
 @_docs.write_docs
 @dims_to_spatial_axes
 def manders_coloc(
