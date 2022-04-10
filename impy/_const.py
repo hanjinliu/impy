@@ -73,6 +73,9 @@ class GlobalConstant(MutableMapping[str, Any]):
                 SCHEDULER   : {self['SCHEDULER']}
             """
         )
+    
+    def asdict(self) -> dict[str, Any]:
+        return self._const.copy()
 
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,
@@ -85,29 +88,29 @@ Const = GlobalConstant(
 
 class SetConst:
     n_ongoing = 0
-    _lock = False
+    _locked_keys: set[str] = set()
+    _old_dict: dict[str, Any] = dict()
     
     def __init__(self, dict_: dict[str, Any] | None =None, **kwargs):
         dict_ = dict_ or {}
         dict_.update(kwargs)
         self._kwargs = dict_
-        self._locked = False
     
     def __enter__(self):
-        if self._lock:
-            self._locked = True
-            return
-        self.__class__._lock = True
-        self._old_value = [(k, Const[k]) for k in self._kwargs.keys()]
+        self.__class__.n_ongoing += 1
+        if self.__class__.n_ongoing == 1:
+            self.__class__._old_dict = Const.asdict()
         for k, v in self._kwargs.items():
-            Const[k] = v
+            if k not in self.__class__._locked_keys:
+                self.__class__._locked_keys.add(k)
+                Const[k] = v
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self._locked:
-            return
-        self.__class__._lock = False        
-        for k, v in self._old_value:
-            Const[k] = v
+        self.__class__.n_ongoing -= 1
+        if self.__class__.n_ongoing == 0:
+            for k, v in self.__class__._old_dict.items():
+                Const[k] = v
+            self._locked_keys.clear()
 
 def silent():
     """
