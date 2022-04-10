@@ -932,7 +932,7 @@ class LazyImgArray(AxesMixin):
             if x.shape[0] < 2:
                 return np.array([0]*ndim, dtype=np.float32).reshape(*each_shape)
             x = xp.asarray(x)
-            result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)
+            result = _corr.subpixel_pcc(x[0], x[1], upsample_factor=upsample_factor)[0]
             return xp.asnumpy(result[slice_out])
         
         from dask import array as da

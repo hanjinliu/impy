@@ -72,6 +72,7 @@ class XP:
         self.abs = np.abs
         self.mod = np.mod
         self.fix = np.fix
+        self.round = np.round
         self.gradient = np.gradient
         self.tensordot = np.tensordot
         self.stack = np.stack
@@ -137,6 +138,7 @@ class XP:
         self.abs = cp.abs
         self.mod = cp.mod
         self.fix = cp.fix
+        self.round = cp.round
         try:
             self.gradient = cp.gradient
         except AttributeError:
