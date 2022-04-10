@@ -175,3 +175,16 @@ def test_fsc(resource):
         img1 = ip.random.random_uint16((80, 80))
         a, b = ip.fsc(img0, img1)
         assert a.size == b.size
+
+def test_landscale(resource):
+    img0 = ip.sample_image("camera")[100:180, 100:180]
+    shift = (-2, 3)
+    img1 = img0.affine(translation=shift)
+    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+        lds = ip.pcc_landscape(img0, img1, 5)
+        assert lds.shape == (11, 11)
+        assert np.unravel_index(np.argmax(lds), lds.shape) == (3, 8)
+        lds = ip.zncc_landscape(img0, img1, 5)
+        assert lds.shape == (11, 11)
+        assert np.unravel_index(np.argmax(lds), lds.shape) == (3, 8)
+        

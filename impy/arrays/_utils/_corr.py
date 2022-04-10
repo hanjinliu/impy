@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from numpy.typing import ArrayLike
 from functools import lru_cache
 from ...array_api import xp
 
@@ -10,7 +9,7 @@ from ...array_api import xp
 
 # TODO: if max_shifts is small, DFT should be used in place of FFT
 
-def draw_pcc_landscape(
+def _pcc_and_power_spec(
     f0: xp.ndarray, 
     f1: xp.ndarray, 
     max_shifts: tuple[float, ...] | None = None,
@@ -21,7 +20,15 @@ def draw_pcc_landscape(
     if max_shifts is not None:
         max_shifts = xp.asarray(max_shifts)
         power = crop_by_max_shifts(power, max_shifts, max_shifts)
-    return power
+    return power, product
+
+def draw_pcc_landscape(
+    f0: xp.ndarray, 
+    f1: xp.ndarray, 
+    max_shifts: tuple[float, ...] | None = None,
+):
+    power = _pcc_and_power_spec(f0, f1, max_shifts)[0]
+    return xp.fft.fftshift(power)
 
 def subpixel_pcc(
     f0: xp.ndarray, 
@@ -29,13 +36,7 @@ def subpixel_pcc(
     upsample_factor: int,
     max_shifts: tuple[float, ...] | None = None,
 ):
-    product = f0 * f1.conj()
-    cross_correlation = xp.fft.ifftn(product)
-    power = abs2(cross_correlation)
-    if max_shifts is not None:
-        max_shifts = xp.asarray(max_shifts)
-        power = crop_by_max_shifts(power, max_shifts, max_shifts)
-        
+    power, product = _pcc_and_power_spec(f0, f1, max_shifts)    
     maxima = xp.unravel_index(xp.argmax(power), power.shape)
     midpoints = xp.array([np.fix(axis_size / 2) for axis_size in power.shape])
 
@@ -104,7 +105,7 @@ def crop_by_max_shifts(power: xp.ndarray, left, right):
 
 # Normalized cross correlation
 
-def draw_ncc_landscape(
+def _draw_ncc_landscape_no_crop(
     img0: xp.ndarray, 
     img1: xp.ndarray, 
     max_shifts: tuple[float, ...] | None = None,
@@ -134,6 +135,21 @@ def draw_ncc_landscape(
     mask = var > 0
     response[mask] = (corr - win_sum1 * template_mean)[mask] / _safe_sqrt(var, fill=np.inf)[mask]
     return response
+    
+def draw_ncc_landscape(
+    img0: xp.ndarray, 
+    img1: xp.ndarray, 
+    max_shifts: tuple[float, ...] | None = None,
+):
+    response = _draw_ncc_landscape_no_crop(img0, img1, max_shifts)
+    if max_shifts is None:
+        pad_width_eff = (3,) * img1.ndim
+    else:
+        pad_width_eff = tuple((s - int(m) * 2 - 1)//2 for m, s in zip(max_shifts, response.shape))
+    sl_res = tuple(slice(w, -w, None) for w in pad_width_eff)
+    response_center = response[sl_res]
+    
+    return response_center
 
 def subpixel_ncc(
     img0: xp.ndarray, 
@@ -141,7 +157,7 @@ def subpixel_ncc(
     upsample_factor: int,
     max_shifts: tuple[float, ...] | None = None,
 ):
-    response = draw_ncc_landscape(img0, img1, max_shifts)
+    response = _draw_ncc_landscape_no_crop(img0, img1, max_shifts)
     if max_shifts is None:
         pad_width_eff = (3,) * img1.ndim
     else:

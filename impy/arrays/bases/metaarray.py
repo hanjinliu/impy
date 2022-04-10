@@ -264,6 +264,24 @@ class MetaArray(AxesMixin, np.ndarray):
         order = self.axes.argsort()
         return self.transpose(order)
 
+    def argmax_nd(self) -> tuple[int, ...]:
+        """
+        N-dimensional version of argmax.
+        
+        For instance, if yx-array takes its maximum at (5, 8), this function returns
+        ``AxesShape(y=5, x=8)``.
+
+        Returns
+        -------
+        AxesShape
+            Argmax of the array.
+        """
+        argmax = np.unravel_index(np.argmax(self), self.shape)
+        try:
+            tup = get_axes_tuple(self)
+            return tup(*argmax)
+        except ImageAxesError:
+            return argmax
     
     def apply_dask(
         self, 
