@@ -1,4 +1,4 @@
-# `impy` is All You Need in Image Analysis
+# A numpy extension for efficient and powerful image analysis workflow
 
 `impy` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and so on.
 
@@ -7,14 +7,11 @@ The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with inform
 - image axes
 - scale of each axis
 - directory of the original image
-- history of image processing 
 - and other image metadata
 
-By making full use of them, `impy` provides super efficient tools of image analysis for you. 
+## Documentation
 
-I'm also working on [documentation](https://hanjinliu.github.io/impy/) for tutorials and API. Please take a look if you're interested in.
-
-:warning: Image processing algorithms in `ImgArray` are almost stable so that their behavior will not change a lot. However, since `napari` is under development and I'm groping for better UI right now, any functions that currently implemented in `impy` viewer may change or no longer work in the future. Make sure keeping `napari` and `impy` updated when you use.
+Documentation is available [here](https://hanjinliu.github.io/impy/).
 
 ## Installation
 
@@ -45,6 +42,18 @@ img_prj = np.max(img_fil, axis="z")    # Z-projection (numpy is aware of image a
 img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend time on searching for the directory!
 ```
 
+### Switch between CPU and GPU
+
+`impy` can internally switches the functions between `numpy` and `cupy`.
+You can use GPU for calculation very easily.
+
+```python
+img.gaussian_filter()  # <- CPU
+with ip.use("cupy"):
+    img.gaussian_filter()  # <- GPU
+ip.Const["resource"] = "cupy"  # <- globally use GPU
+```
+
 ### Seamless interface between `napari`
 
 [napari](https://github.com/napari/napari) is an interactive viewer for multi-dimensional images. `impy` has a **simple and efficient interface** with it, via the object `ip.gui`. Since `ImgArray` is tagged with image metadata, you don't have to care about axes or scales. Just run 
@@ -52,13 +61,6 @@ img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend tim
 ```python
 ip.gui.add(img)
 ```
-
-`impy`'s viewer also provides **many useful widgets and functions** such as 
-
-- Excel-like table for data analysis, layer property editing etc.
-- Compact file explorer
-- interactive `matplotlib` figure canvas
-- cropping, duplication, measurement, filtering tools
 
 ### Extend your function for batch processing
 

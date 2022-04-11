@@ -21,7 +21,8 @@ class GlobalConstant(MutableMapping[str, Any]):
     def __getitem__(self, k):
         return self._const[k]
 
-    def __setitem__(self, k, v):
+    def __setitem__(self, k: str, v):
+        k = k.upper()
         if k == "MAX_GB":
             if not isinstance(v, (int, float)):
                 raise TypeError("MAX_GB must be float.")
@@ -132,7 +133,7 @@ def use(resource, import_error: bool = False):
         If false, resource will not be switched to cupy if not available.
         Raise ImportError if true.
     """
-    if not import_error:
+    if not import_error and resource=="cupy":
         try:
             import cupy
         except ImportError:

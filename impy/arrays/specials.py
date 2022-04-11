@@ -37,21 +37,13 @@ class PropArray(MetaArray):
         
         return self
     
-    def __repr__(self):
-        return f"\n"\
-               f"    shape     : {self.shape_info}\n"\
-               f"    dtype     : {self.dtype}\n"\
-               f"    source    : {self.source}\n"\
-               f"original image: {self.name}\n"\
-               f"property name : {self.propname}\n"
-    
-    
     def _repr_dict_(self):
-        return {"    shape     ": self.shape_info,
-                "    dtype     ": self.dtype,
-                "    source    ": self.source,
-                "original image": self.name,
-                "property name ": self.propname}
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "property name": self.propname}
     
     def plot(self, along=None, cmap="jet", cmap_range=(0, 1)):
         """

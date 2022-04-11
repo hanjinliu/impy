@@ -126,7 +126,7 @@ def _(img: MetaArray, name: str = None):
     return out
 
 @MetaArray.implements(np.empty_like)
-def _(img: MetaArray, name:str = None):
+def _(img: MetaArray, name: str = None):
     out = np.empty_like(img.value).view(img.__class__)
     out._set_info(img, new_axes=img.axes)
     if isinstance(name, str):
@@ -159,7 +159,7 @@ def _(img: MetaArray, indices_or_sections, axis=0):
     
     imgs = np.split(img.value, indices_or_sections, axis=axis)
     out = []
-    for i, each in enumerate(imgs):
+    for each in imgs:
         each = each.view(img.__class__)
         each._set_info(img, new_axes="inherit")
         out.append(each)

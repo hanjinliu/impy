@@ -15,9 +15,8 @@ if TYPE_CHECKING:
 
 
 class AxesMixin:
-    """
-    Abstract class with shape, ndim and axes are defined.
-    """    
+    """Abstract class with shape, ndim and axes are defined."""
+    
     _axes: Axes
     ndim: int
     shape: tuple[int, ...]

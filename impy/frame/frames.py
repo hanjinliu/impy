@@ -13,7 +13,8 @@ from ..axes import Axes, ImageAxesError, ORDER
 tp = ImportOnRequest("trackpy")
 
 class AxesFrame(pd.DataFrame):
-    _metadata=["_axes"]
+    _metadata = ["_axes"]
+    
     @property
     def _constructor(self):
         return self.__class__
