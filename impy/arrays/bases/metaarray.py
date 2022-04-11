@@ -36,13 +36,14 @@ class MetaArray(AxesMixin, np.ndarray):
         
         self = np.asarray(obj, dtype=dtype).view(cls)
         self.source = source
-        self.name = name or source
+        self.name = name
         self.axes = axes
         self._metadata = metadata or {}
         return self
     
     @property
     def source(self):
+        """The source file path."""
         return self._source
     
     @source.setter
@@ -54,6 +55,7 @@ class MetaArray(AxesMixin, np.ndarray):
     
     @property
     def name(self) -> str:
+        """Name of the array."""
         if self._name is None:
             source = self.source
             if source is None:
@@ -69,17 +71,22 @@ class MetaArray(AxesMixin, np.ndarray):
     
     @property
     def metadata(self) -> dict[str, Any]:
+        """Metadata dictionary of the array."""
         return self._metadata
     
     @property
     def value(self) -> np.ndarray:
+        """Numpy view of the array."""
         return np.asarray(self)
     
     def _repr_dict_(self) -> dict[str, Any]:
-        return {"    shape     ": self.shape_info,
-                "    dtype     ": self.dtype,
-                "  source   ": self.source,
-                "original image": self.name}
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "scale": self.scale,
+        }
     
     def __str__(self):
         return self.name or "None"
@@ -117,8 +124,8 @@ class MetaArray(AxesMixin, np.ndarray):
     
     def __getitem__(self, key: int | str | slice | tuple) -> Self:
         if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
-            sl = self._str_to_slice(key)
+            # img["t=2;z=4"] ... axis-targeted slicing
+            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
             return self.__getitem__(sl)
 
         if isinstance(key, np.ndarray):
@@ -146,8 +153,9 @@ class MetaArray(AxesMixin, np.ndarray):
             else:
                 new_axes = None
                 
-            out._getitem_additional_set_info(self, keystr=keystr,
-                                             new_axes=new_axes, key=key)
+            out._getitem_additional_set_info(
+                self, keystr=keystr, new_axes=new_axes, key=key
+            )
         
         return out
     
@@ -158,7 +166,7 @@ class MetaArray(AxesMixin, np.ndarray):
     def __setitem__(self, key: int | str | slice | tuple, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
-            sl = self._str_to_slice(key)
+            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
             return self.__setitem__(sl, value)
         
         if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
@@ -275,13 +283,6 @@ class MetaArray(AxesMixin, np.ndarray):
             func.__name__ = numpy_function.__name__
             return func
         return decorator
-    
-    def _str_to_slice(self, string: str):
-        """
-        get subslices using ImageJ-like format.
-        e.g. 't=3:, z=1:5', 't=1, z=:7'
-        """
-        return axis_targeted_slicing(self.ndim, str(self.axes), string)
     
     def sort_axes(self) -> Self:
         """

@@ -40,30 +40,20 @@ class LabeledArray(MetaArray):
             self.labels.set_scale(other, **kwargs)
         return None
         
-    def __repr__(self):
-        if hasattr(self, "labels"):
-            labels_shape_info = self.labels.shape_info
-        else:
-            labels_shape_info = "No label"
-            
-        return f"\n"\
-               f"    shape     : {self.shape_info}\n"\
-               f"  label shape : {labels_shape_info}\n"\
-               f"    dtype     : {self.dtype}\n"\
-               f"    source    : {self.source}\n"\
-               f"original image: {self.name}\n"
-    
+        
     def _repr_dict_(self):
         if hasattr(self, "labels"):
             labels_shape_info = self.labels.shape_info
         else:
             labels_shape_info = "No label"
-        return {"    shape     ": self.shape_info,
-                "  label shape ": labels_shape_info,
-                "    dtype     ": self.dtype,
-                "    source    ": self.source,
-                "original image": self.name,
-                }
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "label shape ": labels_shape_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "scale": self.scale,
+        }
     
     
     def imsave(self, save_path: str, dtype: DTypeLike = None):

@@ -83,7 +83,7 @@ class AxesMixin:
         raise NotImplementedError()
         
     def __repr__(self) -> str:
-        return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
+        return "\n" + "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items()) + "\n"
     
     def _repr_html_(self) -> str:
         strs = []

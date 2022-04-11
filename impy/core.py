@@ -24,20 +24,22 @@ from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
 from ._const import Const
 
-__all__ = ["array", 
-           "asarray", 
-           "aslazy", 
-           "zeros", 
-           "empty", 
-           "ones", 
-           "full",
-           "gaussian_kernel", 
-           "circular_mask", 
-           "imread", 
-           "imread_collection", 
-           "lazy_imread", 
-           "read_meta", 
-           "sample_image"]
+__all__ = [
+    "array", 
+    "asarray", 
+    "aslazy", 
+    "zeros", 
+    "empty", 
+    "ones", 
+    "full",
+    "gaussian_kernel", 
+    "circular_mask", 
+    "imread", 
+    "imread_collection", 
+    "lazy_imread", 
+    "read_meta", 
+    "sample_image"
+]
 
 # TODO: 
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
@@ -58,12 +60,14 @@ def write_docs(func):
     return func
 
 @write_docs
-def array(arr: ArrayLike,
-          dtype: DTypeLike = None, 
-          *,
-          name: str = None,
-          axes: str = None,
-          copy: bool = True) -> ImgArray:
+def array(
+    arr: ArrayLike,
+    dtype: DTypeLike = None, 
+    *,
+    name: str = None,
+    axes: str = None,
+    copy: bool = True
+) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
     
@@ -99,11 +103,13 @@ def array(arr: ArrayLike,
     return self
 
 @write_docs
-def asarray(arr: ArrayLike,
-            dtype: DTypeLike = None,
-            *, 
-            name: str = None,
-            axes: str = None) -> ImgArray:
+def asarray(
+    arr: ArrayLike,
+    dtype: DTypeLike = None,
+    *, 
+    name: str = None,
+    axes: str = None
+) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
     
@@ -123,12 +129,14 @@ def asarray(arr: ArrayLike,
     return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
 
 @write_docs
-def aslazy(arr: ArrayLike, 
-           dtype: DTypeLike = None,
-           *, 
-           name: str = None,
-           axes: str = None,
-           chunks="auto") -> LazyImgArray:
+def aslazy(
+    arr: ArrayLike, 
+    dtype: DTypeLike = None,
+    *, 
+    name: str = None,
+    axes: str = None,
+    chunks="auto"
+) -> LazyImgArray:
     """
     Make an LazyImgArray object from other types of array.
     
@@ -610,7 +618,8 @@ def lazy_imread(
     path: str, 
     chunks="auto",
     *, 
-    squeeze: bool = False
+    name: str | None = None,
+    squeeze: bool = False,
 ) -> LazyImgArray:
     """
     Read an image lazily. Image file is first opened as an memory map, and subsequently converted
@@ -623,6 +632,8 @@ def lazy_imread(
     chunks : optional
         Specify chunk sizes. By default, yx-axes are assigned to the same chunk for every slice of
         image, whild chunk sizes of the rest of axes are automatically set with "auto" option.
+    name : str, optional
+        Name of array.
     squeeze : bool, default is False
         If True and there is one-sized axis, then call `np.squeeze`.
         
@@ -646,7 +657,7 @@ def lazy_imread(
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
         img = np.squeeze(img)
         
-    self = LazyImgArray(img, axes=axes, source=path, metadata=metadata)
+    self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
     
     if self.axes.is_none():
         return self

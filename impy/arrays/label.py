@@ -57,6 +57,7 @@ class Label(MetaArray):
             raise OverflowError
 
     def optimize(self) -> Label:
+        """Optimize labeling."""
         self.relabel()
         m = self.max()
         if m < 2**8 and np.iinfo(self.dtype).max >= 2**8:

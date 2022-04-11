@@ -271,15 +271,14 @@ class LazyImgArray(AxesMixin):
         return chunk_info
     
     def _repr_dict_(self):
-        return {"    shape     ": self.shape_info,
-                " chunk sizes  ": self.chunk_info,
-                "    dtype     ": self.dtype,
-                "    source    ": self.source,
-                "original image": self.name,
-                }
-    
-    def __repr__(self):
-        return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "chunk sizes": self.chunk_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "scale": self.scale,
+        }
     
     
     def compute(self, ignore_limit: bool = False) -> ImgArray:
