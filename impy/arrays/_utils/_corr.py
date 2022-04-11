@@ -60,6 +60,7 @@ def subpixel_pcc(
         power = abs2(cross_correlation)
         
         if max_shifts is not None:
+            max_shifts = xp.asarray(max_shifts)
             _upsampled_left_shifts = (shifts + max_shifts) * upsample_factor
             _upsampled_right_shifts = (max_shifts - shifts) * upsample_factor
             power = crop_by_max_shifts(power, _upsampled_left_shifts, _upsampled_right_shifts)
