@@ -28,7 +28,6 @@ from ..utils.axesop import switch_slice
 from ..collections import *
 from ..arrays import *
 from ..core import array as ip_array, aslazy as ip_aslazy, imread as ip_imread, read_meta
-from ..utils.utilcls import Progress
 from ..axes import ScaleDict
 from .._const import Const
 
@@ -568,7 +567,7 @@ class napariViewers:
                 std_ = self if use_logger else None
                 backend = mpl.get_backend()
                 mpl.use(GUIcanvas)
-                with Progress(f.__name__, out=None), setLogger(std_), mpl.style.context("night"):
+                with setLogger(std_), mpl.style.context("night"):
                     try:
                         out = f(self, **self.params)
                     except Exception as e:
@@ -754,7 +753,7 @@ class napariViewers:
                     return None
                 backend = mpl.get_backend()
                 mpl.use(GUIcanvas)
-                with Progress(protocol.__name__, out=None), setLogger(std_), mpl.style.context("night"):
+                with setLogger(std_), mpl.style.context("night"):
                     try:
                         self.proceed = proceed
                         out = self._yielded_func(self, **self.params)

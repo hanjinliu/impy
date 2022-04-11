@@ -3,8 +3,6 @@ import numpy as np
 from numpy.testing import assert_allclose
 from pathlib import Path
 import pytest
-ip.Const["SHOW_PROGRESS"] = False
-
 
 filters = ["median_filter", 
            "gaussian_filter", 

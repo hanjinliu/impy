@@ -4,7 +4,6 @@ from typing import Callable
 from functools import wraps
 from .arrays import *
 from .utils.axesop import *
-from .utils.utilcls import Progress
 from .utils.deco import *
 
 # Extend ImgArray with custom functions.
@@ -205,14 +204,14 @@ class bind:
             if indtype is not None:
                 img = img.as_img_type(indtype)
                 
-            with Progress(fn):
-                out = img.apply_dask(func,
-                                     c_axes=complement_axes(dims, img.axes),
-                                     drop_axis=_drop_axis(dims),
-                                     args=args,
-                                     kwargs=kwargs
-                                     )
-                out = _exit(out, img, func, *args, dims=dims, **kwargs)
+            out = img.apply_dask(
+                func,
+                c_axes=complement_axes(dims, img.axes),
+                drop_axis=_drop_axis(dims),
+                args=args,
+                kwargs=kwargs
+            )
+            out = _exit(out, img, func, *args, dims=dims, **kwargs)
                 
             return out
         

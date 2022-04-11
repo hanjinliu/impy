@@ -5,8 +5,6 @@ from dask import array as da
 from numpy.testing import assert_allclose
 import pytest
 
-ip.Const["SHOW_PROGRESS"] = False
-
 filters = ["median_filter", "mean_filter", "erosion", "dilation", "opening", "closing",
            "kalman_filter", "gaussian_filter"]
 

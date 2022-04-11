@@ -16,7 +16,6 @@ from .bases import MetaArray
 from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.utilcls import Progress
 from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
 from ..utils.deco import record, dims_to_spatial_axes
 from ..utils.io import save_mrc, save_tif
@@ -95,13 +94,12 @@ class LabeledArray(MetaArray):
             dtype = self.dtype
             
         # save image
-        with Progress("Saving"):
-            if ext in (".tif", ".tiff"):
-                save_tif(save_path, self)
-            elif ext in (".mrc", ".map"):
-                save_mrc(save_path, self)
-            else:
-                raise ValueError(f"Unsupported extension {ext}")
+        if ext in (".tif", ".tiff"):
+            save_tif(save_path, self)
+        elif ext in (".mrc", ".map"):
+            save_mrc(save_path, self)
+        else:
+            raise ValueError(f"Unsupported extension {ext}")
 
         return None
     
@@ -536,12 +534,11 @@ class LabeledArray(MetaArray):
             label_shape = self.sizesof(label_axes)
             labels = largest_zeros(label_shape)
             
-            with Progress("specify"):
-                n_label = 1
-                for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
-                    _specify(labels[sl], crds.values, radius, n_label)
-                    n_label += len(crds)
-            
+            n_label = 1
+            for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
+                _specify(labels[sl], crds.values, radius, n_label)
+                n_label += len(crds)
+        
             if hasattr(self, "labels"):
                 print("Existing labels are updated.")
             self.labels = Label(labels, axes=label_axes).optimize()

@@ -2,7 +2,6 @@ from functools import wraps
 import numpy as np
 import inspect
 import re
-from .utilcls import Progress
 from ..array_api import xp
 
 __all__ = [
@@ -24,18 +23,7 @@ def record(func=None, *, inherit_label_info=False, only_binary=False, need_label
                 raise AttributeError(f"Function {func.__name__} needs labels."
                                     " Add labels to the image first.")
             
-            # show the dimensionality of for-loop
-            if "dims" in kwargs.keys():
-                ndim = len(kwargs["dims"])
-                suffix = f" ({ndim}D)"
-            else:
-                suffix = ""
-
-            # start process
-            with Progress(func.__name__ + suffix):
-                out = func(self, *args, **kwargs)
-            
-            temp = getattr(out, "temp", None)
+            out = func(self, *args, **kwargs)
             
             if type(out) in (np.ndarray, xp.ndarray):
                 out = xp.asnumpy(out).view(self.__class__)
@@ -50,9 +38,6 @@ def record(func=None, *, inherit_label_info=False, only_binary=False, need_label
                     
             ifupdate and self._update(out)
             
-            # if temporary item exists
-            if temp is not None:
-                out.temp = temp
             return out
         return _record
     return f if func is None else f(func)

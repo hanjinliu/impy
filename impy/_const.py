@@ -28,11 +28,6 @@ class GlobalConstant(MutableMapping[str, Any]):
                 raise TypeError("MAX_GB must be float.")
             elif v > MAX_GB_LIMIT:
                 raise ValueError(f"Cannot exceed {MAX_GB_LIMIT} GB.")
-        elif k == "SHOW_PROGRESS":
-            if v in (0, 1):
-                v = bool(v)
-            elif not isinstance(v, bool):
-                raise TypeError("SHOW_PROGRESS must be bool.")
         elif k == "ID_AXIS":
             if not isinstance(v, str):
                 raise TypeError("ID_AXIS must be str.")
@@ -67,7 +62,6 @@ class GlobalConstant(MutableMapping[str, Any]):
         return (
             f"""
                   MAX_GB    : {self['MAX_GB']:.2f} GB
-              SHOW_PROGRESS : {self['SHOW_PROGRESS']}
                  ID_AXIS    : {self['ID_AXIS']}
             FONT_SIZE_FACTOR: {self['FONT_SIZE_FACTOR']}
                  RESOURCE   : {self['RESOURCE']}
@@ -80,7 +74,6 @@ class GlobalConstant(MutableMapping[str, Any]):
 
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,
-    SHOW_PROGRESS = True,
     ID_AXIS = "p",
     FONT_SIZE_FACTOR = 1.0,
     RESOURCE = "numpy",
@@ -112,14 +105,6 @@ class SetConst:
             for k, v in self.__class__._old_dict.items():
                 Const[k] = v
             self._locked_keys.clear()
-
-def silent():
-    """
-    Do not show progress in this context.
-    
-    An alias of ``ip.SetConst(SHOW_PROGRESS=False)``
-    """
-    return SetConst(SHOW_PROGRESS=False)
 
 def use(resource, import_error: bool = False):
     """

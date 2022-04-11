@@ -8,7 +8,6 @@ from .labeledarray import LabeledArray
 
 from ..utils.axesop import complement_axes
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
-from ..utils.utilcls import Progress
 from ._utils import _misc
 from ..collections import DataDict
 from .._types import Dims
@@ -132,17 +131,16 @@ class PhaseArray(LabeledArray):
     def binning(self, binsize: int = 2, *, check_edges: bool = True, dims: Dims = None):
         if binsize == 1:
             return self
-        with Progress("binning"):
-            img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
-            
-            reshaped_img = img_to_reshape.reshape(shape)
-            axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
-            a = 2 * np.pi / self.periodicity
-            out = np.sum(np.exp(1j*a*reshaped_img), axis=axes_to_reduce)
-            out = np.angle(out)/a
-            out: PhaseArray = out.view(self.__class__)
-            out._set_info(self)
-            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        img_to_reshape, shape, scale_ = _misc.adjust_bin(self.value, binsize, check_edges, dims, self.axes)
+        
+        reshaped_img = img_to_reshape.reshape(shape)
+        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+        a = 2 * np.pi / self.periodicity
+        out = np.sum(np.exp(1j*a*reshaped_img), axis=axes_to_reduce)
+        out = np.angle(out)/a
+        out: PhaseArray = out.view(self.__class__)
+        out._set_info(self)
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
@@ -206,9 +204,8 @@ class PhaseArray(LabeledArray):
         a = 2*np.pi/self.periodicity
         vec_re = np.cos(a*self).view(LabeledArray)
         vec_im = np.sin(a*self).view(LabeledArray)
-        with Progress("reslice"):
-            out_re = vec_re.reslice(src, dst, order=order)
-            out_im = vec_im.reslice(src, dst, order=order)
+        out_re = vec_re.reslice(src, dst, order=order)
+        out_im = vec_im.reslice(src, dst, order=order)
         out = np.arctan2(out_im, out_re)/a
         return out
     

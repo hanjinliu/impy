@@ -15,7 +15,6 @@ from functools import wraps
 from .utils.io import open_img, open_as_dask, get_scale_from_meta, open_mrc, open_tif
 from .utils import gauss
 from .utils.slicer import *
-from .utils.utilcls import Progress
 from ._types import *
 
 from .axes import ImageAxesError
@@ -376,8 +375,7 @@ def imread(
         elif size > Const["MAX_GB"]/2:
             out = "stdout"
 
-    with Progress("Reading image", out=out):
-        meta, img = open_img(path, memmap=is_memmap)
+    meta, img = open_img(path, memmap=is_memmap)
 
     axes = meta["axes"]
     metadata = meta["ijmeta"]

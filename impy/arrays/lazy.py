@@ -19,7 +19,6 @@ from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, d
 from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing, key_repr
-from ..utils.utilcls import Progress
 from ..utils.io import get_imsave_meta_from_img, memmap_tif, memmap_mrc
 from ..collections import DataList
 
@@ -288,14 +287,13 @@ class LazyImgArray(AxesMixin):
         """        
         if self.gb > Const["MAX_GB"] and not ignore_limit:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
-        with Progress("Converting to ImgArray"):
-            arr = self.value.compute()
-            if arr.ndim > 0:
-                img = xp.asnumpy(arr).view(ImgArray)
-                for attr in ["_name", "_source", "axes", "_metadata"]:
-                    setattr(img, attr, getattr(self, attr, None))
-            else:
-                img = arr
+        arr = self.value.compute()
+        if arr.ndim > 0:
+            img = xp.asnumpy(arr).view(ImgArray)
+            for attr in ["_name", "_source", "axes", "_metadata"]:
+                setattr(img, attr, getattr(self, attr, None))
+        else:
+            img = arr
         return img
     
     @property
@@ -316,20 +314,19 @@ class LazyImgArray(AxesMixin):
         again.
         """
         from dask import array as da
-        with Progress("Releasing jobs"):
-            with tempfile.NamedTemporaryFile() as ntf:
-                mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
-                mmap[:] = self.value[:]
-            
-            img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
-                np.array, meta=np.array([], dtype=self.dtype)
-                )
-            if update:
-                self.value = img
-                out = self
-            else:
-                out = self.__class__(img)
-                out._set_info(self)
+        with tempfile.NamedTemporaryFile() as ntf:
+            mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
+            mmap[:] = self.value[:]
+        
+        img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
+            np.array, meta=np.array([], dtype=self.dtype)
+            )
+        if update:
+            self.value = img
+            out = self
+        else:
+            out = self.__class__(img)
+            out._set_info(self)
                 
         return out
     
@@ -357,11 +354,10 @@ class LazyImgArray(AxesMixin):
         self = self.as_img_type(dtype).sort_axes()
         imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
         
-        with Progress("Saving"):
-            mmap_func(
-                self.value, save_path, shape=self.shape, dtype=self.dtype, **imsave_kwargs
-            )
-            
+        mmap_func(
+            self.value, save_path, shape=self.shape, dtype=self.dtype, **imsave_kwargs
+        )
+        
         return None
     
     def rechunk(self, chunks="auto", *, threshold=None, block_size_limit=None, balance=False, 

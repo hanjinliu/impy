@@ -5,7 +5,7 @@ __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 import logging
 from functools import wraps
 
-from ._const import Const, SetConst, silent, use
+from ._const import Const, SetConst, use
 
 from .collections import *
 from .core import *
@@ -20,11 +20,9 @@ Inheritance
 -----------
         np.ndarray _    _ AxesMixin _
                     \  /             \
-              __ MetaArray _     LazyImgArray
-             /              \ 
-            PropArray
-       /         \    
-  LabeledArray   Label  
+            ____ MetaArray _     LazyImgArray
+          /        /        \ 
+  LabeledArray  Label    PropArray
     /     \
 ImgArray PhaseArray
 

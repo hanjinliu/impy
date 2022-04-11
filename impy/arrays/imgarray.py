@@ -17,7 +17,6 @@ from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_a
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.utilcls import Progress
 from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import DataDict
@@ -286,12 +285,11 @@ class ImgArray(LabeledArray):
         gb = np.prod(outshape) * 4/1e9
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {gb} GB")
-        with Progress("rescale"):
-            scale_ = [scale if a in dims else 1 for a in self.axes]
-            out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
-            out: ImgArray = out.view(self.__class__)
-            out._set_info(self)
-            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        scale_ = [scale if a in dims else 1 for a in self.axes]
+        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
+        out: ImgArray = out.view(self.__class__)
+        out._set_info(self)
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
@@ -329,17 +327,16 @@ class ImgArray(LabeledArray):
         
         if binsize == 1:
             return self
-        with Progress("binning"):
-            img_to_reshape, shape, scale_ = _misc.adjust_bin(
-                self.value, binsize, check_edges, dims, self.axes
-            )
-            
-            reshaped_img = img_to_reshape.reshape(shape)
-            axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
-            out = binfunc(reshaped_img, axis=axes_to_reduce)
-            out:ImgArray = out.view(self.__class__)
-            out._set_info(self)
-            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        img_to_reshape, shape, scale_ = _misc.adjust_bin(
+            self.value, binsize, check_edges, dims, self.axes
+        )
+        
+        reshaped_img = img_to_reshape.reshape(shape)
+        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+        out = binfunc(reshaped_img, axis=axes_to_reduce)
+        out:ImgArray = out.view(self.__class__)
+        out._set_info(self)
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
@@ -2295,27 +2292,26 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         c_axes_list = list(c_axes)
         dims_list = list(dims)
-        with Progress("refine_sm"):
-            for sl, crds in coords.iter(c_axes):
-                img = self[sl]
-                refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
-                                                      max_iterations=n_iter, pos_columns=dims_list)
-                bg = img.value[img.labels==0]
-                black_level = np.mean(bg)
-                noise = np.std(bg)
-                area = np.sum(_structures.ball_like_odd(radius[0], len(dims)))
-                mass = refined_coords["raw_mass"].values - area * black_level
-                ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
-                
-                if ep.ndim == 1:
-                    refined_coords["ep"] = ep
-                else:
-                    ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in dims_list])
-                    refined_coords = pd.concat([refined_coords, ep], axis=1)
-                
-                refined_coords[c_axes_list] = [s for s, a in zip(sl, coords.col_axes) if a not in dims]
-                df_all.append(refined_coords)
-            df_all = pd.concat(df_all, axis=0)
+        for sl, crds in coords.iter(c_axes):
+            img = self[sl]
+            refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
+                                                    max_iterations=n_iter, pos_columns=dims_list)
+            bg = img.value[img.labels==0]
+            black_level = np.mean(bg)
+            noise = np.std(bg)
+            area = np.sum(_structures.ball_like_odd(radius[0], len(dims)))
+            mass = refined_coords["raw_mass"].values - area * black_level
+            ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
+            
+            if ep.ndim == 1:
+                refined_coords["ep"] = ep
+            else:
+                ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in dims_list])
+                refined_coords = pd.concat([refined_coords, ep], axis=1)
+            
+            refined_coords[c_axes_list] = [s for s, a in zip(sl, coords.col_axes) if a not in dims]
+            df_all.append(refined_coords)
+        df_all = pd.concat(df_all, axis=0)
                 
         mf = MarkerFrame(df_all.reindex(columns=list(self.axes)), 
                          columns=str(self.axes), dtype=np.float32).as_standard_type()
@@ -2439,32 +2435,31 @@ class ImgArray(LabeledArray):
         filt = check_filter_func(filt)
         radius = np.array(check_nd(radius, ndim))
         shape = self.sizesof(dims)
-        with Progress("centroid_sm"):
-            out = []
-            columns = list(dims)
-            c_axes = complement_axes(dims, coords._axes)
-            for sl, crds in coords.iter(c_axes):
-                centroids = []
-                for center in crds.values:
-                    bbox = _specify_one(center, radius, shape)
-                    input_img = self.value[sl][bbox]
-                    if input_img.size == 0 or not filt(input_img):
-                        continue
-                    
-                    shift = center - radius
-                    centroid = _calc_centroid(input_img, ndim) + shift
-                    
-                    centroids.append(centroid.tolist())
-                df = pd.DataFrame(centroids, columns=columns)
-                df[list(c_axes)] = sl[:-ndim]
-                out.append(df)
-            if len(out) == 0:
-                raise ValueError("No molecule found.")
-            out = pd.concat(out, axis=0)
-            
-            out = MarkerFrame(out.reindex(columns=list(coords._axes)),
-                              columns=str(coords._axes), dtype=np.float32).as_standard_type()
-            out.set_scale(coords.scale)
+        out = []
+        columns = list(dims)
+        c_axes = complement_axes(dims, coords._axes)
+        for sl, crds in coords.iter(c_axes):
+            centroids = []
+            for center in crds.values:
+                bbox = _specify_one(center, radius, shape)
+                input_img = self.value[sl][bbox]
+                if input_img.size == 0 or not filt(input_img):
+                    continue
+                
+                shift = center - radius
+                centroid = _calc_centroid(input_img, ndim) + shift
+                
+                centroids.append(centroid.tolist())
+            df = pd.DataFrame(centroids, columns=columns)
+            df[list(c_axes)] = sl[:-ndim]
+            out.append(df)
+        if len(out) == 0:
+            raise ValueError("No molecule found.")
+        out = pd.concat(out, axis=0)
+        
+        out = MarkerFrame(out.reindex(columns=list(coords._axes)),
+                            columns=str(coords._axes), dtype=np.float32).as_standard_type()
+        out.set_scale(coords.scale)
 
         return out
     
@@ -2523,33 +2518,32 @@ class ImgArray(LabeledArray):
         sigmas = [] # fitting results of sigmas
         errs = []   # fitting errors of means
         ab = []
-        with Progress("gauss_sm"):
-            for crd in coords.values:
-                center = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = _specify_one(center, radius, shape) # sl = (..., z,y,x)
-                input_img = self.value[label_sl][sl]
-                if input_img.size == 0 or not filt(input_img):
-                    continue
+        for crd in coords.values:
+            center = tuple(crd[-ndim:])
+            label_sl = tuple(crd[:-ndim])
+            sl = _specify_one(center, radius, shape) # sl = (..., z,y,x)
+            input_img = self.value[label_sl][sl]
+            if input_img.size == 0 or not filt(input_img):
+                continue
+            
+            gaussian = GaussianParticle(initial_sg=sigma)
+            res = gaussian.fit(input_img, method="BFGS")
+            
+            if (gaussian.mu_inrange(0, radius*2) and 
+                gaussian.sg_inrange(sigma/3, sigma*3) and
+                gaussian.a > 0):
+                gaussian.shift(center - radius)
+                # calculate fitting error with Jacobian
+                if return_all:
+                    jac = res.jac[:2].reshape(1,-1)
+                    cov = pseudo_inverse(jac.T @ jac)
+                    err = np.sqrt(np.diag(cov))
+                    sigmas.append(label_sl + tuple(gaussian.sg))
+                    errs.append(label_sl + tuple(err))
+                    ab.append(label_sl + (gaussian.a, gaussian.b))
                 
-                gaussian = GaussianParticle(initial_sg=sigma)
-                res = gaussian.fit(input_img, method="BFGS")
+                means.append(label_sl + tuple(gaussian.mu))
                 
-                if (gaussian.mu_inrange(0, radius*2) and 
-                    gaussian.sg_inrange(sigma/3, sigma*3) and
-                    gaussian.a > 0):
-                    gaussian.shift(center - radius)
-                    # calculate fitting error with Jacobian
-                    if return_all:
-                        jac = res.jac[:2].reshape(1,-1)
-                        cov = pseudo_inverse(jac.T @ jac)
-                        err = np.sqrt(np.diag(cov))
-                        sigmas.append(label_sl + tuple(gaussian.sg))
-                        errs.append(label_sl + tuple(err))
-                        ab.append(label_sl + (gaussian.a, gaussian.b))
-                    
-                    means.append(label_sl + tuple(gaussian.mu))
-                    
         kw = dict(columns=coords.col_axes, dtype=np.float32)
         
         if return_all:

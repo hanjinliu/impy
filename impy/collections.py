@@ -1,5 +1,4 @@
 from __future__ import annotations
-from .utils.utilcls import Progress
 from collections import UserList, UserDict
 from typing import Any, Callable, TypeVar
 
@@ -114,9 +113,7 @@ class DataList(CollectionBase, UserList[_T]):
             return self.__class__(getattr(a, name) for a in self)
         
         def _run(*args, **kwargs):
-            out = None if name.startswith("_") else "stdout"
-            with Progress(name):
-                out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
+            out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
             return out
         return _run
     
@@ -201,11 +198,8 @@ class DataDict(CollectionBase, UserDict):
             return self.__class__({k: getattr(a, name) for k, a in self.items()})
         
         def _run(*args, **kwargs):
-            
-            out = None if name.startswith("_") else "stdout"
-            with Progress(name):
-                out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
-                                      for k, a in self.items()})
+            out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
+                                for k, a in self.items()})
             return out
         return _run
     

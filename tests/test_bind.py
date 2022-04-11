@@ -2,8 +2,6 @@ import impy as ip
 from pathlib import Path
 import numpy as np
 
-ip.Const["SHOW_PROGRESS"] = False
-
 def test_bind_unbind():
     path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
     img = ip.imread(path)
