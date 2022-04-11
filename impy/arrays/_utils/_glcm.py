@@ -125,11 +125,9 @@ def check_glcm(self, bins, rescale_max):
     if rescale_max:
         scale = int(imax/self.max())
         self *= scale
-        self.history.pop()
     
     if (imax+1) % bins != 0 or bins > imax+1:
         raise ValueError(f"`bins` must be a divisor of {imax+1} (max value of {self.dtype}).")
     self = self // ((imax+1) // bins)
-    self.history.pop()
     
     return self, bins, rescale_max

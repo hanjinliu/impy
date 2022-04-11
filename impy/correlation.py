@@ -127,7 +127,6 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: xp.ndarray):
 def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
     # Basic Zero-mean Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
-    # TODO: This is not efficient. Use E[x^2] - E[x]^2.
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
     return corr

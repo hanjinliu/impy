@@ -12,8 +12,7 @@ from .utils.deco import *
 class bind:
     """
     Dynamically define ImgArray function that can iterate over axes. You can integrate your own
-    function, or useful functions from `skimage` or `opencv`. History of function call will be 
-    similarly recorded in `self.history`.
+    function, or useful functions from `skimage` or `opencv`.
     This class is designed as a kind of decorator class so that it can be used as decorator of
     any function or directly takes a function as the first argument.
 
@@ -169,8 +168,7 @@ class bind:
             _drop_axis = lambda dims: None
             def _exit(out, img, func, *args, **kwargs):
                 out = out.view(ImgArray).as_img_type(outdtype)
-                history = make_history(func.__name__, args, kwargs)
-                out._set_info(img, history)
+                out._set_info(img)
                 return out
             
         elif kind == "property":
@@ -184,7 +182,6 @@ class bind:
             _drop_axis = lambda dims: None
             def _exit(out, img, func, *args, dims=None, **kwargs):
                 img.labels = Label(out, name=img.name, axes=img.axes, dirpath=img.dirpath).optimize()
-                img.labels.history.append(fn)
                 img.labels.set_scale(img)
                 return img.labels
             
@@ -195,7 +192,6 @@ class bind:
                 arr._set_info(img)
                 lbl = arr.label(dims=dims)
                 img.labels = lbl
-                img.labels.history.append(fn)
                 img.labels.set_scale(img)
                 return img.labels
                         

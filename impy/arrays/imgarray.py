@@ -290,7 +290,7 @@ class ImgArray(LabeledArray):
             scale_ = [scale if a in dims else 1 for a in self.axes]
             out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
             out: ImgArray = out.view(self.__class__)
-            out._set_info(self, f"rescale(scale={scale})")
+            out._set_info(self)
             out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
@@ -338,7 +338,7 @@ class ImgArray(LabeledArray):
             axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
             out = binfunc(reshaped_img, axis=axes_to_reduce)
             out:ImgArray = out.view(self.__class__)
-            out._set_info(self, f"binning(binsize={binsize})")
+            out._set_info(self)
             out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
@@ -586,7 +586,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def hessian_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. 
@@ -620,13 +620,13 @@ class ImgArray(LabeledArray):
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
-        eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
         
         return eigval
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def hessian_eig(self, sigma: nDFloat = 1, *, dims: Dims = None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
@@ -654,13 +654,13 @@ class ImgArray(LabeledArray):
                                           )
         
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
-        eigvec._set_info(self, f"hessian_eigvec", new_axes=eigvec.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
+        eigvec._set_info(self, new_axes=eigvec.axes)
         return eigval, eigvec
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def structure_tensor_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -688,12 +688,12 @@ class ImgArray(LabeledArray):
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
-        eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
         return eigval
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def structure_tensor_eig(self, sigma: nDFloat = 1, *, dims: Dims = None)-> tuple[ImgArray, ImgArray]:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -721,8 +721,8 @@ class ImgArray(LabeledArray):
                                           )
         
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
-        eigvec._set_info(self, f"structure_tensor_eigvec", new_axes=eigvec.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
+        eigvec._set_info(self, new_axes=eigvec.axes)
         
         return eigval, eigvec
     
@@ -1426,7 +1426,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def focus_map(self, radius: int = 1, *, dims: Dims = 2) -> PropArray:
         """
         Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
@@ -1793,7 +1793,7 @@ class ImgArray(LabeledArray):
                                )
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def split_pixel_unit(self, center: tuple[float, float] = (0.5, 0.5), *, order: int = 1,
                          angle_order: list[int] = None, newaxis: str = "a") -> ImgArray:
         r"""
@@ -1872,9 +1872,9 @@ class ImgArray(LabeledArray):
         for y, x in [(0,0), (0,1), (1,1), (1,0)]:
             dr = [(yc-y)/2, (xc-x)/2]
             imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order, dims="yx"))
-        imgs = np.stack(imgs, axis=newaxis)
+        imgs: ImgArray = np.stack(imgs, axis=newaxis)
         imgs = imgs[f"{newaxis}={str(angle_order)[1:-1]}"]
-        imgs._set_info(self, "split_pixel_unit", new_axes=imgs.axes)
+        imgs._set_info(self, new_axes=imgs.axes)
         imgs.set_scale(y=self.scale.y*2, x=self.scale.x*2)
         return imgs
         
@@ -1925,9 +1925,9 @@ class ImgArray(LabeledArray):
         # DoLP is defined as:
         # DoLP = sqrt(s1^2 + s2^2)/s0
         s0[s0==0] = np.inf
-        dolp = np.sqrt(s1**2 + s2**2)/s0
+        dolp: ImgArray = np.sqrt(s1**2 + s2**2) / s0
         dolp = dolp.view(self.__class__)
-        dolp._set_info(self, "dolp", new_axes=new_axes)
+        dolp._set_info(self, new_axes=new_axes)
         dolp.set_scale(self)
         
         # Angle of Polarization (AoP)
@@ -1937,9 +1937,9 @@ class ImgArray(LabeledArray):
         # AoP = { 1/2argtan(s2/s1) + pi/2   (s1<0)
         #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
         # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns correct values.
-        aop = np.arctan2(s2, s1)/2
+        aop: ImgArray = np.arctan2(s2, s1)/2
         aop = aop.view(PhaseArray)
-        aop._set_info(self, "aop", new_axes=new_axes)
+        aop._set_info(self, new_axes=new_axes)
         aop.unit = "rad"
         aop.border = (-np.pi/2, np.pi/2)
         aop.fix_border()
@@ -1950,7 +1950,7 @@ class ImgArray(LabeledArray):
         
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def peak_local_max(self, *, min_distance: float = 1.0, percentile: float = None, 
                        topn: int = np.inf, topn_per_label: int = np.inf, exclude_border: bool =True,
                        use_labels: bool = True, dims: Dims = None) -> MarkerFrame:
@@ -2021,7 +2021,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
                      use_labels:bool=True, dims: Dims = None) -> MarkerFrame:
@@ -2117,7 +2117,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def find_corners(self, sigma: nDFloat = 1, k:float=0.05, *, dims: Dims = None) -> ImgArray:
         """
         Corner detection using Harris response.
@@ -2141,7 +2141,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def voronoi(self, coords: Coords, *, inf: nDInt = None, dims: Dims = 2) -> ImgArray:
         """
         Voronoi segmentation of an image. Image region labeled with $i$ means that all
@@ -2193,7 +2193,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims: Dims = None):
         """
         Flood filling with a list of seed points. By repeating skimage's ``flood`` function,
@@ -3134,7 +3134,7 @@ class ImgArray(LabeledArray):
             args=(template, cval, mode)
         )
     
-    @record(append_history=False)
+    @record
     def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
         """
         Tracking using template matching. For every time frame, matched region is interpreted as a
@@ -3385,7 +3385,7 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def pointprops(self, coords: Coords, *, order: int = 1, squeeze: bool = True) -> PropArray:
         """
         Measure interpolated intensity at points with float coordinates.
@@ -3427,7 +3427,7 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def lineprops(self, src: Coords, dst: Coords, func: str|Callable = "mean", *, 
                   order: int = 1, squeeze: bool = True) -> PropArray:
         """
@@ -3547,7 +3547,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False, need_labels=True)
+    @record(need_labels=True)
     def random_walker(self, beta: float = 130, mode: str = "cg_j", tol: float = 1e-3, *,
                       dims: Dims = None) -> Label:
         """
@@ -3570,7 +3570,7 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = skseg.random_walker(img.value, img.labels.value, beta=beta, mode=mode, tol=tol)
             
-        self.labels._set_info(self, "random_walker")
+        self.labels._set_info(self)
         return self.labels
     
     def label_threshold(self, thr: float | str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
@@ -3598,7 +3598,7 @@ class ImgArray(LabeledArray):
     
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def pathprops(self, paths: PathFrame, properties: str|Callable|Iterable[str|Callable] = "mean", *, 
                   order: int = 1) -> DataDict:
         """
@@ -3661,7 +3661,7 @@ class ImgArray(LabeledArray):
                 
         return out
     
-    @record(append_history=False, need_labels=True)
+    @record(need_labels=True)
     def regionprops(self, properties: Iterable[str] | str = ("mean_intensity",), *, 
                     extra_properties: Iterable[Callable] | None = None) -> DataDict[str, PropArray]:
         """
@@ -3756,7 +3756,7 @@ class ImgArray(LabeledArray):
         
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
                    *, bins:int=None, rescale_max:bool=False, dims: Dims = None) -> ImgArray:
         """
@@ -3810,19 +3810,17 @@ class ImgArray(LabeledArray):
                 raise TypeError("properties must be str or callable.")
         out = DataDict(out)
         self = self.pad(radius, mode="reflect", dims=dims)
-        self.history.pop()
         for sl, img in self.iter(c_axes):
             propout = _glcm.glcm_props_(img, distances, angles, bins, radius, properties)
             for prop in properties:
                 out[prop].value[sl] = propout[prop]
             
         for k, v in out.items():
-            v._set_info(self, f"glcm_props-{k}", new_axes=c_axes+"da"+dims)
+            v._set_info(self, new_axes=c_axes+"da"+dims)
         return out
     
     
     @same_dtype
-    @record(append_history=False)
     def proj(self, axis: str = None, method: str|Callable = "mean", mask = None, **kwargs) -> ImgArray:
         """
         Z-projection along any axis.
@@ -3870,7 +3868,7 @@ class ImgArray(LabeledArray):
             out = func(self.value, axis=axisint, **kwargs)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
+        out._set_info(self, del_axis(self.axes, axisint))
         return out
 
     @record
@@ -3921,7 +3919,7 @@ class ImgArray(LabeledArray):
         out.temp = [lowerlim, upperlim]
         return out
     
-    @record(append_history=False)
+    @record
     def track_drift(self, along: str = None, show_drift: bool = False, 
                     upsample_factor: int = 10) -> MarkerFrame:
         """
@@ -4050,7 +4048,7 @@ class ImgArray(LabeledArray):
 
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def estimate_sigma(self, *, squeeze: bool = True, dims: Dims = None) -> PropArray | float:
         """
         Wavelet-based estimation of Gaussian noise.

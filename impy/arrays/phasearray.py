@@ -25,7 +25,7 @@ def _calc_phase_std(sl, img, periodicity):
 class PhaseArray(LabeledArray):
     additional_props = ["dirpath", "metadata", "name", "unit", "border"]
     
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, history=None, 
+    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
                 metadata=None, dtype=None, unit="rad", border=None):
         if dtype is None:
             dtype = np.float32
@@ -33,7 +33,7 @@ class PhaseArray(LabeledArray):
             border = {"rad": (0, 2*np.pi), "deg": (0, 360.0)}[unit]
             
         self = super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath, 
-                               history=history, metadata=metadata, dtype=dtype)
+                               metadata=metadata, dtype=dtype)
         self.unit = unit
         self.border = border
         return self
@@ -88,7 +88,6 @@ class PhaseArray(LabeledArray):
         Considering periodic boundary condition, fix the values by `__mod__` method.
         """        
         self[:] = (self.value - self.border[0]) % self.periodicity + self.border[0]
-        self.history.pop(-1) # delete "setitem" history
         return None
     
     def set_border(self, a: float, b: float) -> None:
@@ -142,7 +141,7 @@ class PhaseArray(LabeledArray):
             out = np.sum(np.exp(1j*a*reshaped_img), axis=axes_to_reduce)
             out = np.angle(out)/a
             out: PhaseArray = out.view(self.__class__)
-            out._set_info(self, f"binning(binsize={binsize})")
+            out._set_info(self)
             out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
@@ -213,7 +212,7 @@ class PhaseArray(LabeledArray):
         out = np.arctan2(out_im, out_re)/a
         return out
     
-    @record(append_history=False, need_labels=True)
+    @record(need_labels=True)
     def regionprops(self, properties: tuple[str,...]|str = ("phase_mean",), *, 
                     extra_properties = None) -> DataDict[str, PropArray]:
         """

@@ -179,7 +179,7 @@ class MetaArray(AxesMixin, np.ndarray):
     
     def _inherit_meta(self, obj, ufunc, **kwargs):
         """
-        Copy axis, history etc. from obj.
+        Copy axis etc. from obj.
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
         considered because it changes `ndim`.
         """
@@ -282,6 +282,32 @@ class MetaArray(AxesMixin, np.ndarray):
             return tup(*argmax)
         except ImageAxesError:
             return argmax
+    
+    def split(self, axis=None) -> DataList[Self]:
+        """
+        Split n-dimensional image into (n-1)-dimensional images.
+
+        Parameters
+        ----------
+        axis : str or int, optional
+            Along which axis the original image will be split, by default "c"
+
+        Returns
+        -------
+        list of arrays
+            Separate images
+        """
+        # determine axis in int.
+        if axis is None:
+            axis = find_first_appeared(self.axes, include="cztp")
+        axisint = self.axisof(axis)
+            
+        imgs: DataList[MetaArray] = DataList(np.moveaxis(self, axisint, 0))
+        for img in imgs:
+            img.axes = del_axis(self.axes, axisint)
+            img.set_scale(self)
+            
+        return imgs
     
     def apply_dask(
         self, 

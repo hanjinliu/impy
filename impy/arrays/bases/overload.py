@@ -1,21 +1,9 @@
 from __future__ import annotations
 import numpy as np
 from .metaarray import MetaArray
-from .historyarray import HistoryArray
 from ...axes import Axes
 from ...utils.axesop import del_axis
 from ...collections import DataList
-
-def safe_set_info(out: MetaArray, img: MetaArray, history, new_axes):
-    if isinstance(img, HistoryArray):
-        out._set_info(img, history, new_axes=new_axes)
-    else:
-        try:
-            out._set_info(img, new_axes=new_axes)
-        except Exception:
-            pass
-    return None
-
 
 # Overloading numpy functions using __array_function__.
 # https://numpy.org/devdocs/reference/arrays.classes.html
@@ -25,7 +13,7 @@ def safe_set_info(out: MetaArray, img: MetaArray, history, new_axes):
 def _(img: MetaArray):
     out = np.squeeze(img.value).view(img.__class__)
     new_axes = "".join(a for a in img.axes if img.sizeof(a) > 1)
-    safe_set_info(out, img, "squeeze", new_axes)
+    out._set_info(img, np.newaxis)
     return out
 
 @MetaArray.implements(np.take)
@@ -93,7 +81,7 @@ def _(imgs: list[MetaArray], axis="c", dtype=None):
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
     out = out.view(imgs[0].__class__)
-    safe_set_info(out, imgs[0], f"stack(axis={axis})", new_axes)
+    out._set_info(imgs[0], new_axes)
     return out
 
 @MetaArray.implements(np.concatenate)
@@ -103,7 +91,7 @@ def _(imgs: list[MetaArray], axis="c", dtype=None, casting="same_kind"):
     axis = imgs[0].axisof(axis)
     out = np.concatenate([img.value for img in imgs], axis=axis, dtype=dtype, casting=casting)
     out = out.view(imgs[0].__class__)
-    safe_set_info(out, imgs[0], f"concatenate(axis={axis})", imgs[0].axes)
+    out._set_info(imgs[0], imgs[0].axes)
     return out
 
 @MetaArray.implements(np.block)
@@ -125,7 +113,7 @@ def _(imgs: list[MetaArray]):
     
     imgs = _recursive_view(imgs)
     out = np.block(imgs).view(img0.__class__)
-    safe_set_info(out, img0, "block", img0.axes)
+    out._set_info(img0, img0.axes)
     return out
 
 
@@ -156,7 +144,7 @@ def _(img: MetaArray, axis):
         new_axes = img.axes
     
     out = np.expand_dims(img.value, axisint).view(img.__class__)
-    safe_set_info(out, img, f"expand_dims({axis})", new_axes)
+    out._set_info(img, new_axes)
     return out
 
 @MetaArray.implements(np.transpose)
@@ -173,6 +161,6 @@ def _(img: MetaArray, indices_or_sections, axis=0):
     out = []
     for i, each in enumerate(imgs):
         each = each.view(img.__class__)
-        safe_set_info(each, img, f"np.split[{i}]", new_axes="inherit")
+        each._set_info(img, new_axes="inherit")
         out.append(each)
     return DataList(out)

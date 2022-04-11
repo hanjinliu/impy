@@ -373,20 +373,14 @@ def imread(
 
     axes = meta["axes"]
     metadata = meta["ijmeta"]
-    if meta["history"]:
-        name = meta["history"].pop(0)
-        history = meta["history"]
-    else:
-        name = fname
-        history = []
+    name = fname
         
     if is_memmap:
         sl = axis_targeted_slicing(img.ndim, axes, key)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
     
-    self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, 
-                    history=history, metadata=metadata)
+    self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, metadata=metadata)
         
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.shape.c > self.shape.x:
@@ -652,19 +646,13 @@ def lazy_imread(
     meta, img = open_as_dask(path, chunks)
     axes = meta["axes"]
     metadata = meta["ijmeta"]
-    if meta["history"]:
-        name = meta["history"].pop(0)
-        history = meta["history"]
-    else:
-        name = fname
-        history = []
+    name = fname
         
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
         img = np.squeeze(img)
         
-    self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, 
-                        history=history, metadata=metadata)
+    self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, metadata=metadata)
     
     if self.axes.is_none():
         return self
@@ -730,7 +718,6 @@ def read_meta(path: str) -> dict[str]:
         Dictionary of metadata with following keys.
         - "axes": axes information
         - "ijmeta": ImageJ metadata
-        - "history": impy history
         - "tags": tiff tags
         
     """    

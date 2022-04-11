@@ -1,4 +1,4 @@
-__version__ = "1.26.2.dev1"
+__version__ = "2.0.0.alpha"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
@@ -22,7 +22,7 @@ Inheritance
                     \  /             \
               __ MetaArray _     LazyImgArray
              /              \ 
-       HistoryArray     PropArray
+            PropArray
        /         \    
   LabeledArray   Label  
     /     \

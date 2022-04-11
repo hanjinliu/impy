@@ -38,7 +38,7 @@ class CollectionBase:
         return self._repr_("_repr_latex_")
         
     
-class DataList(CollectionBase, UserList):
+class DataList(CollectionBase, UserList[_T]):
     """
     List-like class that can call same method for every object containded in it. Accordingly, DataList
     cannot have objects with different types. It is checked every time constructor or `append` method is

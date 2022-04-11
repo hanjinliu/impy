@@ -15,7 +15,7 @@ from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
 from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
-from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype, make_history
+from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.utilcls import Progress
@@ -33,8 +33,14 @@ if TYPE_CHECKING:
 
 class LazyImgArray(AxesMixin):
     additional_props = ["dirpath", "metadata", "name"]
-    def __init__(self, obj: "da.core.Array", name: str = None, axes: str = None, dirpath: str = None, 
-                 history: list[str] = None, metadata: dict = None):
+    def __init__(
+        self,
+        obj: "da.core.Array",
+        name: str = None,
+        axes: str = None,
+        dirpath: str = None, 
+        metadata: dict = None
+    ):
         from dask import array as da
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
@@ -48,7 +54,6 @@ class LazyImgArray(AxesMixin):
         
         self.axes = axes
         self.metadata = metadata
-        self.history = [] if history is None else history
         
     @property
     def ndim(self):
@@ -110,7 +115,7 @@ class LazyImgArray(AxesMixin):
         else:
             new_axes = None
         out = self.__class__(self.value[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
-                             metadata=self.metadata, history=self.history)
+                             metadata=self.metadata)
         
         out._getitem_additional_set_info(self, keystr=keystr,
                                          new_axes=new_axes, key=key)
@@ -119,7 +124,7 @@ class LazyImgArray(AxesMixin):
     
     def __neg__(self) -> LazyImgArray:
         out = self.__class__(-self.value)
-        out._set_info(self, next_history="neg")
+        out._set_info(self)
         return out
     
     @same_dtype(asfloat=True)
@@ -129,7 +134,7 @@ class LazyImgArray(AxesMixin):
         else:
             out = self.value + other
         out = self.__class__(out)
-        out._set_info(self, next_history="add")
+        out._set_info(self)
         return out
     
     @same_dtype(asfloat=True)
@@ -138,7 +143,6 @@ class LazyImgArray(AxesMixin):
             self.value += other.value
         else:
             self.value += other
-        self.history.append("add")
         return self
     
     @same_dtype(asfloat=True)
@@ -148,7 +152,7 @@ class LazyImgArray(AxesMixin):
         else:
             out = self.value - other
         out = self.__class__(out)
-        out._set_info(self, next_history="subtract")
+        out._set_info(self)
         return out
     
     @same_dtype(asfloat=True)
@@ -157,7 +161,6 @@ class LazyImgArray(AxesMixin):
             self.value -= other.value
         else:
             self.value -= other
-        self.history.append("subtract")
         return self
     
     @same_dtype(asfloat=True)
@@ -174,7 +177,6 @@ class LazyImgArray(AxesMixin):
             other = other
         out = self.value * other
         out = self.__class__(out)
-        out._set_info(self, next_history="multiply")
         return out
     
     @same_dtype(asfloat=True)
@@ -190,7 +192,6 @@ class LazyImgArray(AxesMixin):
         else:
             other = other
         self.value *= other
-        self.history.append("multiply")
         return self
     
     def __truediv__(self, other) -> LazyImgArray:        
@@ -209,7 +210,7 @@ class LazyImgArray(AxesMixin):
             other = other
         out = self.value / other
         out = self.__class__(out)
-        out._set_info(self, next_history="divide")
+        out._set_info(self)
         return out
     
     def __itruediv__(self, other) -> LazyImgArray:
@@ -228,7 +229,6 @@ class LazyImgArray(AxesMixin):
         else:
             other = other
         self.value /= other
-        self.history.append("divide")
         return self
     
     @property
@@ -245,7 +245,7 @@ class LazyImgArray(AxesMixin):
                 "    dtype     ": self.dtype,
                 "  directory   ": self.dirpath,
                 "original image": self.name,
-                "   history    ": "->".join(self.history)}
+                }
     
     def __repr__(self):
         return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
@@ -262,7 +262,7 @@ class LazyImgArray(AxesMixin):
             arr = self.value.compute()
             if arr.ndim > 0:
                 img = xp.asnumpy(arr).view(ImgArray)
-                for attr in ["name", "dirpath", "axes", "metadata", "history"]:
+                for attr in ["name", "dirpath", "axes", "metadata"]:
                     setattr(img, attr, getattr(self, attr, None))
             else:
                 img = arr
@@ -349,7 +349,7 @@ class LazyImgArray(AxesMixin):
         Returns
         -------
         LazyImgArray
-            Rechunked dask array is bound. History will not be updated.
+            Rechunked dask array is bound.
         """        
         rechunked = self.value.rechunk(chunks=chunks, threshold=threshold, 
                                      block_size_limit=block_size_limit, balance=balance)
@@ -381,7 +381,7 @@ class LazyImgArray(AxesMixin):
         out = getattr(self.value, funcname)(*args, **kwargs)
         out = self.__class__(out)
         new_axes = "inherit" if out.shape == self.shape else None
-        out._set_info(self, make_history(funcname, args, kwargs), new_axes=new_axes)
+        out._set_info(self, new_axes=new_axes)
         return out
     
     def _apply_function(
@@ -870,7 +870,6 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(ImgArray.proj)
-    @same_dtype
     def proj(self, axis: str = None, method: str = "mean") -> LazyImgArray:
         from dask import array as da
         if axis is None:
@@ -885,7 +884,7 @@ class LazyImgArray(AxesMixin):
             projection = getattr(da, method)(self.value, axis=tuple(axisint))
         
         out = self.__class__(projection)
-        out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
+        out._set_info(self, del_axis(self.axes, axisint))
         return out
     
     @_docs.copy_docs(ImgArray.binning)
@@ -908,7 +907,7 @@ class LazyImgArray(AxesMixin):
         axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
         out = binfunc(reshaped_img, axis=axes_to_reduce)
         out = self.__class__(out)
-        out._set_info(self, f"binning(binsize={binsize})")
+        out._set_info(self)
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
@@ -1193,11 +1192,10 @@ class LazyImgArray(AxesMixin):
     
     
     def _getitem_additional_set_info(self, other, **kwargs):
-        keystr = kwargs["keystr"]
-        self._set_info(other, f"getitem[{keystr}]", kwargs["new_axes"])
+        self._set_info(other, kwargs["new_axes"])
         return None
     
-    def _set_info(self, other: LazyImgArray, next_history = None, new_axes: str = "inherit"):
+    def _set_info(self, other: LazyImgArray, new_axes: str = "inherit"):
         self._set_additional_props(other)
         # set axes
         try:
@@ -1208,12 +1206,6 @@ class LazyImgArray(AxesMixin):
                 self.axes = other.axes.copy()
         except ImageAxesError:
             self.axes = None
-        
-        # set history
-        if next_history is not None:
-            self.history = other.history + [next_history]
-        else:
-            self.history = other.history.copy()
         
         return None
     
