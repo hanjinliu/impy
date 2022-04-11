@@ -9,8 +9,7 @@ with open("README.md", "r") as f:
     
 setup(name="impy-array",
       version=VERSION,
-      description="Speed up image analysis in Python with efficient reading, batch-processing, " \
-                  "viewing functions and easily extend your own function for batch processing.",
+      description="Speed up coding/extending image analysis in Python.",
       author="Hanjin Liu",
       author_email="liuhanjin-sc@g.ecc.u-tokyo.ac.jp",
       long_description=readme,

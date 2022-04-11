@@ -444,7 +444,7 @@ class ImgArray(LabeledArray):
         result = gaussian.fit(rough, method=method)
         gaussian.rescale(1/scale)
         fit = gaussian.generate(self.shape).view(self.__class__)
-        fit.temp = dict(params=gaussian.params, result=result)
+        fit.metadata["Gaussian-params"] = dict(params=gaussian.params, result=result)
         
         # show fitting result
         if show_result:
@@ -454,7 +454,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype(asfloat=True)
     @record
-    def gauss_correction(self, ref:ImgArray=None, scale:float=1/16, median_radius: float = 15):
+    def gauss_correction(self, ref: ImgArray=None, scale: float = 1/16, median_radius: float = 15):
         """
         Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
         background intensity at the same time. If input image is uint, then output value under 0 will
@@ -578,7 +578,7 @@ class ImgArray(LabeledArray):
 
         out = np.stack(corrected, axis=self.axisof(along)).astype(self.dtype)
         out = out.view(self.__class__)
-        out.temp = matrices
+        out.metadata["Affine-matrices"] = matrices
         return out
     
     @_docs.write_docs
@@ -3878,7 +3878,7 @@ class ImgArray(LabeledArray):
         return out
 
     @record
-    def clip(self, in_range: tuple[int|str, int|str] = ("0%", "100%")) -> ImgArray:
+    def clip(self, in_range: tuple[int | str, int | str] = ("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip().
 
@@ -3895,7 +3895,6 @@ class ImgArray(LabeledArray):
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
-        out.temp = [lowerlim, upperlim]
         return out
     
     @record
@@ -3922,12 +3921,15 @@ class ImgArray(LabeledArray):
         out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         
         out = out.view(self.__class__)
-        out.temp = [lowerlim, upperlim]
         return out
     
     @record
-    def track_drift(self, along: str = None, show_drift: bool = False, 
-                    upsample_factor: int = 10) -> MarkerFrame:
+    def track_drift(
+        self,
+        along: str = None,
+        show_drift: bool = False, 
+        upsample_factor: int = 10,
+    ) -> MarkerFrame:
         """
         Calculate yx-directional drift using the method of `skimage.registration.phase_cross_correlation`.
 
@@ -3939,7 +3941,7 @@ class ImgArray(LabeledArray):
             If True, plot the result.
         upsample_factor : int, default is 10
             Up-sampling factor when calculating phase cross correlation.
-
+            
         Returns
         -------
         MarkerFrame
@@ -3961,7 +3963,9 @@ class ImgArray(LabeledArray):
         for i, (_, img) in enumerate(img_fft.iter(along)):
             img = xp.asarray(img)
             if last_img is not None:
-                result[i] = xp.asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)[0])
+                result[i] = xp.asnumpy(
+                    _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)[0]
+                )
                 last_img = img
             else:
                 last_img = img
@@ -3978,8 +3982,17 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, zero_ave: bool = True,
-                         along: str = None, dims: Dims = 2, update: bool = False, **affine_kwargs) -> ImgArray:
+    def drift_correction(
+        self,
+        shift: Coords = None,
+        ref: ImgArray = None,
+        *,
+        zero_ave: bool = True,
+        along: str = None,
+        dims: Dims = 2,
+        update: bool = False,
+        **affine_kwargs
+    ) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors ``shift``
         is not given, then it will be determined using ``track_drift`` method of ImgArray.
@@ -4088,7 +4101,14 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record
-    def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> ImgArray:
+    def pad(
+        self, 
+        pad_width, 
+        mode: str = "constant", 
+        *, 
+        dims: Dims = None, 
+        **kwargs
+    ) -> ImgArray:
         """
         Pad image only for spatial dimensions.
 
@@ -4209,8 +4229,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def wiener(self, psf: np.ndarray, lmd: float = 0.1, *, dims: Dims = None, 
-               update: bool = False) -> ImgArray:
+    def wiener(
+        self,
+        psf: np.ndarray,
+        lmd: float = 0.1,
+        *, 
+        dims: Dims = None, 
+        update: bool = False
+    ) -> ImgArray:
         r"""
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
@@ -4246,18 +4272,26 @@ class ImgArray(LabeledArray):
         
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
         
-        return self.apply_dask(_deconv.wiener, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(psf_ft, psf_ft_conj, lmd)
-                               )
+        return self.apply_dask(
+            _deconv.wiener, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, lmd)
+        )
         
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
-             update: bool = False) -> ImgArray:
+    def lucy(
+        self,
+        psf: np.ndarray,
+        niter: int = 50,
+        eps: float = 1e-5,
+        *, 
+        dims: Dims = None, 
+        update: bool = False
+    ) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
         
@@ -4287,19 +4321,27 @@ class ImgArray(LabeledArray):
         
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-        out = self.apply_dask(_deconv.richardson_lucy, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(psf_ft, psf_ft_conj, niter, eps)
-                               )
+        return self.apply_dask(
+            _deconv.richardson_lucy, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, niter, eps)
+        )
         
-        return out
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def lucy_tv(self, psf: np.ndarray, max_iter: int = 50, lmd: float = 1e-3, tol: float = 1e-3,
-                eps: float = 1e-5, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def lucy_tv(
+        self,
+        psf: np.ndarray,
+        max_iter: int = 50,
+        lmd: float = 1e-3,
+        tol: float = 1e-3,
+        eps: float = 1e-5,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> ImgArray:
         r"""
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position :math:`x`,
@@ -4357,10 +4399,11 @@ class ImgArray(LabeledArray):
                              "must be positive.")
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-        return self.apply_dask(_deconv.richardson_lucy_tv, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
-                               )
+        return self.apply_dask(
+            _deconv.richardson_lucy_tv, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
+        )
 
 def _check_coordinates(coords, img, dims: Dims = None):
     from ..frame import MarkerFrame
