@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from pathlib import Path
 import numpy as np
+from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError
@@ -14,27 +16,60 @@ if TYPE_CHECKING:
 
 
 class MetaArray(AxesMixin, np.ndarray):
-    additional_props = ["dirpath", "metadata", "name"]
+    additional_props = ["_source", "_metadata", "_name"]
     NP_DISPATCH = {}
-    name: str
-    dirpath: str
+    _name: str
+    _source: Path | None
+    _metadata: dict[str, Any]
     
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None) -> Self:
+    def __new__(
+        cls: type[MetaArray], 
+        obj,
+        name: str | None = None,
+        axes: str | None = None,
+        source: str | Path | None = None, 
+        metadata: dict[str, Any] | None = None,
+        dtype: DTypeLike = None,
+    ) -> Self:
         if isinstance(obj, cls):
             return obj
         
         self = np.asarray(obj, dtype=dtype).view(cls)
-        self.dirpath = dirpath
-        self.name = name
-        
-        # MicroManager
-        if isinstance(self.name, str) and self.name.endswith(".ome") and "_MMStack" in self.name:
-            self.name = self.name.split("_MMStack")[0]
-        
+        self.source = source
+        self.name = name or source
         self.axes = axes
-        self.metadata = metadata
+        self._metadata = metadata or {}
         return self
+    
+    @property
+    def source(self):
+        return self._source
+    
+    @source.setter
+    def source(self, val):
+        if val is None:
+            self._source = None
+        else:
+            self._source = Path(val)
+    
+    @property
+    def name(self) -> str:
+        if self._name is None:
+            source = self.source
+            if source is None:
+                return "No name"
+            else:
+                return source.name
+        else:
+            return self._name
+    
+    @name.setter
+    def name(self, val):
+        self._name = str(val)
+    
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return self._metadata
     
     @property
     def value(self) -> np.ndarray:
@@ -43,7 +78,7 @@ class MetaArray(AxesMixin, np.ndarray):
     def _repr_dict_(self) -> dict[str, Any]:
         return {"    shape     ": self.shape_info,
                 "    dtype     ": self.dtype,
-                "  directory   ": self.dirpath,
+                "  source   ": self.source,
                 "original image": self.name}
     
     def __str__(self):
@@ -57,10 +92,6 @@ class MetaArray(AxesMixin, np.ndarray):
         except ImageAxesError:
             return super().shape
     
-
-    def showinfo(self):
-        print(repr(self))
-        return None
     
     def _set_additional_props(self, other):
         # set additional properties
@@ -70,7 +101,7 @@ class MetaArray(AxesMixin, np.ndarray):
                                      getattr(self, p, 
                                              None)))
     
-    def _set_info(self, other, new_axes:str="inherit"):
+    def _set_info(self, other, new_axes: str = "inherit"):
         self._set_additional_props(other)
         # set axes
         try:

@@ -50,7 +50,7 @@ class LabeledArray(MetaArray):
                f"    shape     : {self.shape_info}\n"\
                f"  label shape : {labels_shape_info}\n"\
                f"    dtype     : {self.dtype}\n"\
-               f"  directory   : {self.dirpath}\n"\
+               f"    source    : {self.source}\n"\
                f"original image: {self.name}\n"
     
     def _repr_dict_(self):
@@ -61,7 +61,7 @@ class LabeledArray(MetaArray):
         return {"    shape     ": self.shape_info,
                 "  label shape ": labels_shape_info,
                 "    dtype     ": self.dtype,
-                "  directory   ": self.dirpath,
+                "    source    ": self.source,
                 "original image": self.name,
                 }
     
@@ -91,14 +91,14 @@ class LabeledArray(MetaArray):
             ext = ".tif"
     
         if os.sep not in save_path:
-            if self.dirpath is None:
+            if self.source is None:
                 raise ValueError(
                     "Image directory path is unknown. Set by \n"
-                    " >>> img.dirpath = \"...\"\n"
+                    " >>> img.source = \"...\"\n"
                     "or specify absolute path like\n"
                     " >>> img.imsave(\"/path/to/XXX.tif\")"
                     )
-            save_path = os.path.join(self.dirpath, save_path)
+            save_path = os.path.join(self.source.parent, save_path)
         if self.metadata is None:
             self.metadata = {}
         if dtype is None:
@@ -867,7 +867,7 @@ class LabeledArray(MetaArray):
                 if not axes_included(self, label_image):
                     raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
                 
-            self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
+            self.labels = Label(label_image, axes=axes, source=self.source)
         return self.labels
     
     @record(need_labels=True)

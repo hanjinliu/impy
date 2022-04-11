@@ -408,7 +408,7 @@ class ImgArray(LabeledArray):
             np.empty(self.sizesof(c_axes)+(int(labels.max()),)),
             dtype=np.float32,
             axes=c_axes+dims[-1], 
-            dirpath=self.dirpath, 
+            source=self.source, 
             metadata=self.metadata, 
             propname="radial_profile"
         )
@@ -2186,7 +2186,9 @@ class ImgArray(LabeledArray):
                     grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
                     labels[sl][grids] = n_label
                     n_label += 1
-        self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+        self.labels = Label(
+            labels, name=self.name+"-label", axes=self.axes, source=self.source
+        ).optimize()
         self.labels.set_scale(self)
 
         return self
@@ -2228,7 +2230,9 @@ class ImgArray(LabeledArray):
                                                      tolerance=tolerance)
                 labels[sl][fill_area] = n_label
         
-        self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+        self.labels = Label(
+            labels, name=self.name+"-label", axes=self.axes, source=self.source
+        ).optimize()
         self.labels.set_scale(self)
         return self
     
@@ -3415,8 +3419,8 @@ class ImgArray(LabeledArray):
         coords = np.asarray(coords, dtype=np.float32).T
         shape = self.sizesof(prop_axes)
         l = coords.shape[1] # Number of points
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes=Const["ID_AXIS"]+prop_axes, dirpath=self.dirpath,
+        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
+                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
                         propname = f"pointprops", dtype=np.float32)
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
@@ -3467,8 +3471,8 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(src.col_axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes=Const["ID_AXIS"]+prop_axes, dirpath=self.dirpath,
+        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
+                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
                         propname = f"lineprops<{func.__name__}>", dtype=np.float32)
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
@@ -3648,11 +3652,16 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(paths._axes, id_axis + str(self.axes))
         shape = self.sizesof(prop_axes)
         
-        out = DataDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                                     axes=id_axis+prop_axes, dirpath=self.dirpath,
-                                     propname = f"lineprops<{k}>", dtype=np.float32)
-                        for k in funcdict.keys()}
-                       )
+        out = DataDict({k: PropArray(
+                    np.empty((l,)+shape, dtype=np.float32), 
+                    name=self.name+"-prop", 
+                    axes=id_axis+prop_axes,
+                    source=self.source,
+                    propname = f"lineprops<{k}>", dtype=np.float32
+                )
+                for k in funcdict.keys()
+            }
+        )
         
         for i, path in enumerate(paths.split(id_axis)):
             resliced = self.reslice(path, order=order)
@@ -3704,12 +3713,15 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = DataDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
-                                     name=self.name, 
-                                     axes=id_axis+prop_axes,
-                                     dirpath=self.dirpath,
-                                     propname=p)
-                        for p in properties})
+        out = DataDict({p: PropArray(
+                np.empty((self.labels.max(),) + shape, dtype=np.float32),
+                name=self.name+"-prop", 
+                axes=id_axis+prop_axes,
+                source=self.source,
+                propname=p
+            )
+            for p in properties
+            })
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):

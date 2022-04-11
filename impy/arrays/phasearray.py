@@ -23,16 +23,16 @@ def _calc_phase_std(sl, img, periodicity):
     return np.sqrt(-2*np.log(np.abs(np.mean(np.exp(1j*a*img[sl])))))/a
 
 class PhaseArray(LabeledArray):
-    additional_props = ["dirpath", "metadata", "name", "unit", "border"]
+    additional_props = ["_source", "_metadata", "_name", "unit", "border"]
     
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+    def __new__(cls, obj, name=None, axes=None, source=None, 
                 metadata=None, dtype=None, unit="rad", border=None):
         if dtype is None:
             dtype = np.float32
         if border is None:
             border = {"rad": (0, 2*np.pi), "deg": (0, 360.0)}[unit]
             
-        self = super().__new__(cls, obj, name=name, axes=axes, dirpath=dirpath, 
+        self = super().__new__(cls, obj, name=name, axes=axes, source=source, 
                                metadata=metadata, dtype=dtype)
         self.unit = unit
         self.border = border
@@ -268,9 +268,9 @@ class PhaseArray(LabeledArray):
         shape = self.sizesof(prop_axes)
         
         out = DataDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
-                                      name=self.name, 
+                                      name=self.name+"-prop", 
                                       axes="p"+prop_axes,
-                                      dirpath=self.dirpath,
+                                      source=self.source,
                                       propname=p)
                          for p in properties})
         

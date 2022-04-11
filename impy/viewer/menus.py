@@ -103,8 +103,8 @@ def add_imsave_menu(viewer:"napari.Viewer"):
         hist = history.get_save_history()
         dlg.setHistory(hist)
         
-        if img.dirpath:
-            last_hist = img.dirpath
+        if img.source:
+            last_hist = img.source.parent
         else:
             last_hist = hist[0]
         filename, _ = dlg.getSaveFileName(
@@ -308,7 +308,7 @@ def add_crop_menu(viewer:"napari.Viewer"):
                     newdata = ip_array(newdata, axes=axes)
                     newdata.set_scale(**scale)
                     
-                newdata.dirpath = layer.data.dirpath
+                newdata.source = layer.data.source
                 newdata.metadata = layer.data.metadata
                 newdata.name = layer.data.name
                     

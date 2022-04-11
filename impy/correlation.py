@@ -826,6 +826,6 @@ def _make_corr_output(corr: np.ndarray, refimg: ImgArray, propname: str, squeeze
         corr = corr[()]
     else:
         corr = PropArray(corr, name=refimg.name, axes=complement_axes(dims, refimg.axes), 
-                        dirpath=refimg.dirpath, metadata=refimg.metadata, 
+                        source=refimg.source, metadata=refimg.metadata, 
                         propname=propname, dtype=np.float32)
     return corr

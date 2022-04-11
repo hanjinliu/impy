@@ -2,6 +2,7 @@ from __future__ import annotations
 from functools import wraps
 import os
 import itertools
+from pathlib import Path
 from typing import Any, Callable, TYPE_CHECKING
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
@@ -32,29 +33,54 @@ if TYPE_CHECKING:
 
 
 class LazyImgArray(AxesMixin):
-    additional_props = ["dirpath", "metadata", "name"]
+    additional_props = ["_source", "_metadata", "_name"]
     def __init__(
         self,
         obj: "da.core.Array",
         name: str = None,
         axes: str = None,
-        dirpath: str = None, 
+        source: str = None, 
         metadata: dict = None
     ):
         from dask import array as da
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
         self.value = obj
-        self.dirpath = dirpath
+        self.source = source
         self.name = name
-        
-        # MicroManager
-        if isinstance(self.name, str) and self.name.endswith("_MMStack_Pos0.ome"):
-            self.name = self.name[:-17]
-        
         self.axes = axes
-        self.metadata = metadata
+        self._metadata = metadata or {}
         
+    @property
+    def source(self):
+        return self._source
+    
+    @source.setter
+    def source(self, val):
+        if val is None:
+            self._source = None
+        else:
+            self._source = Path(val)
+    
+    @property
+    def name(self) -> str:
+        if self._name is None:
+            source = self.source
+            if source is None:
+                return "No name"
+            else:
+                return source.name
+        else:
+            return self._name
+    
+    @name.setter
+    def name(self, val):
+        self._name = str(val)
+    
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return self._metadata
+
     @property
     def ndim(self):
         return self.value.ndim
@@ -114,8 +140,13 @@ class LazyImgArray(AxesMixin):
             new_axes = del_axis(self.axes, del_list)
         else:
             new_axes = None
-        out = self.__class__(self.value[key], name=self.name, dirpath=self.dirpath, axes=new_axes, 
-                             metadata=self.metadata)
+        out = self.__class__(
+            self.value[key], 
+            name=self.name,
+            source=self.source, 
+            axes=new_axes, 
+            metadata=self.metadata
+        )
         
         out._getitem_additional_set_info(self, keystr=keystr,
                                          new_axes=new_axes, key=key)
@@ -243,7 +274,7 @@ class LazyImgArray(AxesMixin):
         return {"    shape     ": self.shape_info,
                 " chunk sizes  ": self.chunk_info,
                 "    dtype     ": self.dtype,
-                "  directory   ": self.dirpath,
+                "    source    ": self.source,
                 "original image": self.name,
                 }
     
@@ -262,7 +293,7 @@ class LazyImgArray(AxesMixin):
             arr = self.value.compute()
             if arr.ndim > 0:
                 img = xp.asnumpy(arr).view(ImgArray)
-                for attr in ["name", "dirpath", "axes", "metadata"]:
+                for attr in ["_name", "_source", "axes", "_metadata"]:
                     setattr(img, attr, getattr(self, attr, None))
             else:
                 img = arr
@@ -320,9 +351,7 @@ class LazyImgArray(AxesMixin):
             raise ValueError(f"Unsupported file type '{ext}'.")
     
         if os.sep not in save_path:
-            save_path = os.path.join(self.dirpath, save_path)
-        if self.metadata is None:
-            self.metadata = {}
+            save_path = os.path.join(self.source.parent, save_path)
         if dtype is None:
             dtype = self.dtype
         

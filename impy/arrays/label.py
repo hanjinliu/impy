@@ -19,11 +19,11 @@ def best_dtype(n:int):
         return np.uint64
 
 class Label(MetaArray):
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
+    def __new__(cls, obj, name=None, axes=None, source=None, 
                 metadata=None, dtype=None) -> Label:
         if dtype is None:
             dtype = best_dtype(np.max(obj))
-        self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype)
+        self = super().__new__(cls, obj, name, axes, source, metadata, dtype)
         return self
     
     def increment(self, n: int) -> Label:

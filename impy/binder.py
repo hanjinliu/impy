@@ -181,7 +181,7 @@ class bind:
         elif kind == "label":
             _drop_axis = lambda dims: None
             def _exit(out, img, func, *args, dims=None, **kwargs):
-                img.labels = Label(out, name=img.name, axes=img.axes, dirpath=img.dirpath).optimize()
+                img.labels = Label(out, name=img.name, axes=img.axes, source=img.source).optimize()
                 img.labels.set_scale(img)
                 return img.labels
             

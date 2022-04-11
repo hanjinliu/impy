@@ -309,7 +309,8 @@ def imread(
     dtype: DTypeLike = None,
     key: str = None,
     *, 
-    squeeze: bool = False
+    name: str | None = None,
+    squeeze: bool = False,
 ) -> ImgArray:
     r"""
     Load image(s) from a path. You can read list of images from directories with wildcards or ``"$"``
@@ -325,6 +326,8 @@ def imread(
         If not None, image is read in a memory-mapped array first, and only ``img[key]`` is returned.
         Only axis-targeted slicing is supported. This argument is important when reading a large
         file.
+    name : str, optional
+        Name of array.
     squeeze : bool, default is False
         If True, redundant dimensions will be squeezed.
 
@@ -356,9 +359,6 @@ def imread(
     elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
     
-    fname, fext = os.path.splitext(os.path.basename(path))
-    dirpath = os.path.dirname(path)
-    
     # read tif metadata
     out = None
     if not is_memmap:
@@ -373,14 +373,13 @@ def imread(
 
     axes = meta["axes"]
     metadata = meta["ijmeta"]
-    name = fname
         
     if is_memmap:
         sl = axis_targeted_slicing(img.ndim, axes, key)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
     
-    self = ImgArray(img, name=name, axes=axes, dirpath=dirpath, metadata=metadata)
+    self = ImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
         
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.shape.c > self.shape.x:
@@ -437,7 +436,7 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
         out = np.squeeze(out)
     try:
         base = os.path.split(path.split("*")[0])[0]
-        out.dirpath, out.name = os.path.split(base)
+        out.source = base
     except Exception:
         pass
     out.temp = paths
@@ -550,7 +549,7 @@ def _imread_stack(
     self._set_info(imgs[0])
     self.axes = "".join(new_axes) + str(img.axes)
     self.set_scale(imgs[0])
-    # determine dirpath and name
+    # determine source
     name_list = []
     for p in path.split(os.sep):
         if "$" in p or "*" in p:
@@ -558,11 +557,9 @@ def _imread_stack(
         else:
             name_list.append(p)
     if len(name_list) > 0:
-        self.dirpath = os.path.join(*name_list[:-1])
-        self.name = name_list[-1]
+        self.source = os.path.join(*name_list)
     else:
-        self.dirpath = None
-        self.name = None
+        self.source = None
         
     if squeeze:
         self = np.squeeze(self)
@@ -639,20 +636,17 @@ def lazy_imread(
     
     if "*" in path:
         return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
-    fname, fext = os.path.splitext(os.path.basename(path))
-    dirpath = os.path.dirname(path)
     
     # read tif metadata
     meta, img = open_as_dask(path, chunks)
     axes = meta["axes"]
     metadata = meta["ijmeta"]
-    name = fname
         
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
         img = np.squeeze(img)
         
-    self = LazyImgArray(img, name=name, axes=axes, dirpath=dirpath, metadata=metadata)
+    self = LazyImgArray(img, axes=axes, source=path, metadata=metadata)
     
     if self.axes.is_none():
         return self
@@ -695,8 +689,7 @@ def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArra
         out = LazyImgArray(img)
         out._set_info(imgs[0], new_axes=axes)
     try:
-        base = os.path.split(path.split("*")[0])[0]
-        out.dirpath, out.name = os.path.split(base)
+        out.source = os.path.split(path.split("*")[0])[0]
     except Exception:
         pass
     
