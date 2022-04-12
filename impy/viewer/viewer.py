@@ -29,10 +29,6 @@ from .._const import Const
 # - channel axis will be dropped in the future: https://github.com/napari/napari/issues/3019
 
 ImpyObject = NewType("ImpyObject", Any)
-GUIcanvas = "module://impy.viewer._plt"
-ResultsWidgetName = "Results"
-MainPlotName = "Main Plot"
-
 
 class napariViewers:
     """

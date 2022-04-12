@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import numpy as np
 import itertools
 import re
@@ -47,7 +47,11 @@ class AxesMixin:
             if self.ndim != len(self._axes):
                 raise ImageAxesError("Inconpatible dimensions: "
                                     f"array (ndim={self.ndim}) and axes ({value})")
-        
+    
+    @property
+    def metadata(self) -> dict[str, Any]:
+        raise NotImplementedError()
+    
     @property
     def scale(self) -> ScaleDict:
         return self.axes._scale
@@ -63,7 +67,7 @@ class AxesMixin:
         try:
             unit = self.metadata["unit"]
             if unit.startswith(r"\u"):
-                unit = "u" + unit[6:]
+                unit = "μ" + unit[6:]
         except Exception:
             unit = None
         return unit
@@ -81,7 +85,7 @@ class AxesMixin:
         
     def __repr__(self) -> str:
         info = "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items())
-        return f"\n{self.__class__}\n{info}\n"
+        return f"\n{self.__class__.__name__} of\n{info}\n"
     
     def _repr_html_(self) -> str:
         strs = []
