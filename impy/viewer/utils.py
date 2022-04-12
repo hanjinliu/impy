@@ -213,7 +213,7 @@ def add_points(viewer:"napari.Viewer", points, **kwargs):
         
     return None
 
-def add_tracks(viewer:"napari.Viewer", track:TrackFrame, **kwargs):
+def add_tracks(viewer:"napari.Viewer", track: "TrackFrame", **kwargs):
     if "c" in track._axes:
         track_list = track.split("c")
     else:

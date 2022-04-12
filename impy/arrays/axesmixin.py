@@ -35,6 +35,7 @@ class AxesMixin:
     
     @property
     def axes(self) -> Axes:
+        """Axes of the array."""
         return self._axes
     
     @axes.setter
@@ -73,16 +74,14 @@ class AxesMixin:
             msg = "Can only set str to scale unit. 'px' is set instead."
             warn(msg)
             unit = "px"
-        if isinstance(self.metadata, dict):
-            self.metadata["unit"] = unit
-        else:
-            self.metadata = {"unit": unit}
+        self.metadata["unit"] = unit
     
     def _repr_dict_(self) -> dict[str]:
         raise NotImplementedError()
         
     def __repr__(self) -> str:
-        return "\n" + "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items()) + "\n"
+        info = "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items())
+        return f"\n{self.__class__}\n{info}\n"
     
     def _repr_html_(self) -> str:
         strs = []
