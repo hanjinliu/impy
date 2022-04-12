@@ -117,7 +117,7 @@ class DataList(CollectionBase, UserList[_T]):
             return out
         return _run
     
-    def apply(self, func: Callable|str, *args, **kwargs) -> DataList:
+    def apply(self, func: Callable | str, *args, **kwargs) -> DataList:
         """
         Apply same function to each components. It can be any callable objects or any method of the components.
 
@@ -203,7 +203,7 @@ class DataDict(CollectionBase, UserDict):
             return out
         return _run
     
-    def apply(self, func: Callable|str, *args, **kwargs):
+    def apply(self, func: Callable | str, *args, **kwargs):
         """
         Apply same function to each components. It can be any callable objects or any method of the components.
 

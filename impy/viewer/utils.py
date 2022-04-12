@@ -84,115 +84,12 @@ def make_world_scale(obj):
             scale.append(1)
     return scale
 
-def upon_add_layer(event):
-    try:
-        new_layer = event.sources[0][-1]
-    except IndexError:
-        return None
-    new_layer.translate = new_layer.translate.astype(np.float64)
-            
-    if isinstance(new_layer, napari.layers.Shapes):
-        _text_bound_init(new_layer)
-        new_layer._rotation_handle_length = 20/np.mean(new_layer.scale[-2:])
-        @new_layer.bind_key("Left", overwrite=True)
-        def left(layer):
-            _translate_shape(layer, -1, -1)
-            
-        @new_layer.bind_key("Right", overwrite=True)
-        def right(layer):
-            _translate_shape(layer, -1, 1)
-            
-        @new_layer.bind_key("Up", overwrite=True)
-        def up(layer):
-            _translate_shape(layer, -2, -1)
-            
-        @new_layer.bind_key("Down", overwrite=True)
-        def down(layer):
-            _translate_shape(layer, -2, 1)
-            
-    elif isinstance(new_layer, napari.layers.Points):
-        _text_bound_init(new_layer)
-                
-    new_layer.metadata["init_translate"] = new_layer.translate.copy()
-    new_layer.metadata["init_scale"] = new_layer.scale.copy()
-        
-    return None
-
-
-def image_tuple(input: "napari.layers.Image", out: ImgArray, translate="inherit", **kwargs):
-    data = input.data
-    scale = make_world_scale(data)
-    if out.dtype.kind == "c":
-        out = np.abs(out)
-    contrast_limits = [float(x) for x in out.range]
-    if data.ndim == out.ndim:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = input.translate
-    elif data.ndim > out.ndim:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = [input.translate[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-        scale = [scale[i] for i in range(data.ndim) if data.axes[i] in out.axes]
-    else:
-        if isinstance(translate, str) and translate == "inherit":
-            translate = [0.0] + list(input.translate)
-        scale = [1.0] + list(scale)
-    kw = dict(scale=scale, colormap=input.colormap, translate=translate,
-              blending=input.blending, contrast_limits=contrast_limits)
-    kw.update(kwargs)
-    return (out, kw, "image")
-
-
-def label_tuple(input: "napari.layers.Labels", out: Label, translate="inherit", **kwargs):
-    data = input.data
-    scale = make_world_scale(data)
-    if isinstance(translate, str) and translate == "inherit":
-            translate = input.translate
-    kw = dict(opacity=0.3, scale=scale, translate=translate)
-    kw.update(kwargs)
-    return (out, kw, "labels")
-
-def _translate_shape(layer, ind, direction):
-    data = layer.data
-    selected = layer.selected_data
-    for i in selected:
-        data[i][:, ind] += direction
-    layer.data = data
-    layer.selected_data = selected
-    layer._set_highlight()
-    return None
-
-def _text_bound_init(new_layer):
-    @new_layer.bind_key("Alt-A", overwrite=True)
-    def select_all(layer):
-        layer.selected_data = set(np.arange(len(layer.data)))
-        layer._set_highlight()
-    
-    @new_layer.bind_key("Control-Shift-<", overwrite=True)
-    def size_down(layer):
-        if layer.text.size > 4:
-            layer.text.size -= 1.0
-        else:
-            layer.text.size *= 0.8
-    
-    @new_layer.bind_key("Control-Shift->", overwrite=True)
-    def size_up(layer):
-        if layer.text.size < 4:
-            layer.text.size += 1.0
-        else:
-            layer.text.size /= 0.8
-    
-    return None
-
-def viewer_imread(viewer:"napari.Viewer", path:str):    
+def viewer_imread(viewer: "napari.Viewer", path: str):    
     if "*" in path or os.path.getsize(path)/1e9 < Const["MAX_GB"]:
         img = imread(path)
     else:
         img = lazy_imread(path)
     layer = add_labeledarray(viewer, img)
-    viewer.text_overlay.font_size = 4 * Const["FONT_SIZE_FACTOR"]
-    viewer.text_overlay.visible = True
-    viewer.text_overlay.color = "white"
-    viewer.text_overlay.text = repr(img)
     return layer
 
 def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
@@ -343,12 +240,6 @@ def add_paths(viewer:"napari.Viewer", paths:PathFrame, **kwargs):
     
     return None
 
-def add_table(viewer:"napari.Viewer", data=None, columns=None, name=None):
-    from .widgets import TableWidget
-    table = TableWidget(viewer, data, columns=columns, name=name)
-    viewer.window.add_dock_widget(table, area="right", name=table.name)
-    return table
-
 def get_viewer_scale(viewer:"napari.Viewer"):
     return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
 
@@ -410,47 +301,4 @@ def get_a_selected_layer(viewer:"napari.Viewer"):
     elif len(selected) > 1:
         raise ValueError("More than one layers are selected.")
     return selected[0]
-
-
-def crop_rotated_rectangle(img:LabeledArray, crds:np.ndarray, dims="yx"):
-    translate = np.min(crds, axis=0)
-    
-    # check is sorted
-    ids = [img.axisof(a) for a in dims]
-    if sorted(ids) == ids:
-        cropped_img = img.rotated_crop(crds[1], crds[0], crds[2], dims=dims)
-    else:
-        crds = np.fliplr(crds)
-        cropped_img = img.rotated_crop(crds[3], crds[0], crds[2], dims=dims)
-    
-    return cropped_img, translate
-
-def crop_rectangle(img:LabeledArray, crds:np.ndarray, dims="yx") -> tuple[LabeledArray, np.ndarray]:
-    start = crds[0]
-    end = crds[2]
-    sl = []
-    translate = np.empty(2)
-    for i in [0, 1]:
-        sl0 = sorted([start[i], end[i]])
-        x0 = max(int(sl0[0]), 0)
-        x1 = min(int(sl0[1]), img.sizeof(dims[i]))
-        sl.append(f"{dims[i]}={x0}:{x1}")
-        translate[i] = x0
-    
-    area_to_crop = ";".join(sl)
-    
-    cropped_img = img[area_to_crop]
-    return cropped_img, translate
-
-
-class ColorCycle:
-    def __init__(self, cmap="rainbow") -> None:
-        import matplotlib.pyplot as plt
-        self.cmap = plt.get_cmap(cmap, 16)
-        self.color_id = 0
-    
-    def __call__(self):
-        """return next colormap"""
-        self.color_id += 1
-        return list(self.cmap(self.color_id * (self.cmap.N//2+1) % self.cmap.N))
 

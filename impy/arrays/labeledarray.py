@@ -117,8 +117,8 @@ class LabeledArray(MetaArray):
         """
         if (
             hasattr(other, "labels") and
-            axes_included(self, other.labels)
-            and _shape_match(self, other.labels)
+            axes_included(self, other.labels) and
+            _shape_match(self, other.labels)
         ):
             if self is not other:
                 self.labels = other.labels.copy()
@@ -236,9 +236,7 @@ class LabeledArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def hist(self, contrast=None):
-        """
-        Show intensity profile.
-        """
+        """Show intensity profile."""
         from ._utils import _plot as _plt
         _plt.hist(self.value, contrast)
 
@@ -558,7 +556,7 @@ class LabeledArray(MetaArray):
        
     @_docs.write_docs
     @record
-    def reslice(self, a, b=None, *, order:int=1) -> PropArray:
+    def reslice(self, a, b=None, *, order: int = 1) -> PropArray:
         """
         Measure line profile (kymograph) iteratively for every slice of image. This function is almost 
         same as `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is 

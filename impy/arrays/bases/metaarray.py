@@ -108,7 +108,7 @@ class MetaArray(AxesMixin, np.ndarray):
                                      getattr(self, p, 
                                              None)))
     
-    def _set_info(self, other, new_axes: str = "inherit"):
+    def _set_info(self, other: Self, new_axes: str = "inherit"):
         self._set_additional_props(other)
         # set axes
         try:
