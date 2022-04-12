@@ -36,7 +36,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         self = np.asarray(obj, dtype=dtype).view(cls)
         self.source = source
-        self.name = name
+        self._name = name
         self.axes = axes
         self._metadata = metadata or {}
         return self

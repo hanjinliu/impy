@@ -3,7 +3,6 @@ __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
 import logging
-from functools import wraps
 
 from ._const import Const, SetConst, use
 
@@ -32,4 +31,4 @@ logging.getLogger("skimage").setLevel(logging.ERROR)
 logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
-del logging, wraps
+del logging

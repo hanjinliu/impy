@@ -367,13 +367,10 @@ def imread(
         raise FileNotFoundError(f"No such file or directory: {path}")
     
     # read tif metadata
-    out = None
     if not is_memmap:
         size = os.path.getsize(path)/1e9
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
-        elif size > Const["MAX_GB"]/2:
-            out = "stdout"
 
     meta, img = open_img(path, memmap=is_memmap)
 
@@ -389,7 +386,7 @@ def imread(
         
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.shape.c > self.shape.x:
-        self = np.moveaxis(self, -1, -3)
+        self: ImgArray = np.moveaxis(self, -1, -3)
         _axes = self.axes.axes
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
@@ -654,7 +651,7 @@ def lazy_imread(
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
         img = np.squeeze(img)
-        
+    
     self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
     
     if self.axes.is_none():

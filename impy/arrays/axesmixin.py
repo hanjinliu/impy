@@ -85,7 +85,7 @@ class AxesMixin:
         
     def __repr__(self) -> str:
         info = "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items())
-        return f"\n{self.__class__.__name__} of\n{info}\n"
+        return f"{self.__class__.__name__} of\n{info}\n"
     
     def _repr_html_(self) -> str:
         strs = []
