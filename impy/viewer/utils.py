@@ -11,23 +11,10 @@ from ..core import imread, lazy_imread
 
 if TYPE_CHECKING:
     from ..frame import TrackFrame, PathFrame
+    from napari.layers import Shapes
 
-def copy_layer(layer):
-    args, kwargs, *_ = layer.as_layer_data_tuple()
-    # linear interpolation is valid only in 3D mode.
-    if kwargs.get("interpolation", None) == "linear":
-        kwargs = kwargs.copy()
-        kwargs["interpolation"] = "nearest"
-    
-    # This is necessarry for text bound layers.
-    kwargs.pop("properties", None)
-    kwargs.pop("property_choices", None)
-    
-    copy = layer.__class__(args, **kwargs)
-    
-    return copy
 
-def iter_layer(viewer:"napari.Viewer", layer_type:str):
+def iter_layer(viewer:"napari.Viewer", layer_type: str):
     """
     Iterate over layers and yield only certain type of layers.
 
@@ -49,7 +36,7 @@ def iter_layer(viewer:"napari.Viewer", layer_type:str):
         if isinstance(layer, layer_type):
             yield layer
 
-def iter_selected_layer(viewer:"napari.Viewer", layer_type:str|list[str]):
+def iter_selected_layer(viewer: "napari.Viewer", layer_type:str | list[str]):
     if isinstance(layer_type, str):
         layer_type = [layer_type]
     layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
@@ -70,8 +57,10 @@ def front_image(viewer:"napari.Viewer"):
         raise ValueError("There is no visible image layer.")
     return front
 
-def to_labels(layer:napari.layers.Shapes, labels_shape, zoom_factor=1):
-    return layer._data_view.to_labels(labels_shape=labels_shape, zoom_factor=zoom_factor)
+def to_labels(layer: "Shapes", labels_shape, zoom_factor=1):
+    return layer._data_view.to_labels(
+        labels_shape=labels_shape, zoom_factor=zoom_factor
+    )
 
 def make_world_scale(obj):
     scale = []
@@ -92,10 +81,12 @@ def viewer_imread(viewer: "napari.Viewer", path: str):
     layer = add_labeledarray(viewer, img)
     return layer
 
-def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
+def add_labeledarray(viewer: "napari.Viewer", img: LabeledArray, **kwargs):
     if not img.axes.is_sorted() and img.ndim > 2:
-        msg = f"Input image has axes that are not correctly sorted: {img.axes}. "\
+        msg = (
+            f"Input image has axes that are not correctly sorted: {img.axes}. "
             "This may cause unexpected results."
+        )
         warnings.warn(msg, UserWarning)
     chn_ax = img.axisof("c") if "c" in img.axes else None
         
@@ -110,7 +101,7 @@ def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     if "name" in kwargs:
         name = kwargs.pop("name")
     else:
-        name = "No-Name" if img.name is None else img.name
+        name = img.name
         if chn_ax is not None:
             name = [f"[C{i}]{name}" for i in range(img.shape.c)]
         else:
@@ -124,7 +115,10 @@ def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
     
     if viewer.scale_bar.unit:
         if viewer.scale_bar.unit != img.scale_unit:
-            msg = f"Incompatible scales. Viewer is {viewer.scale_bar.unit} while image is {img.scale_unit}."
+            msg = (
+                f"Incompatible scales. Viewer is {viewer.scale_bar.unit} while "
+                f"image is {img.scale_unit}."
+            )
             warnings.warn(msg)
     else:
         viewer.scale_bar.unit = img.scale_unit
@@ -135,8 +129,13 @@ def add_labeledarray(viewer:"napari.Viewer", img:LabeledArray, **kwargs):
         viewer.dims.axis_labels = new_axes
     return layer
 
-def add_labels(viewer:"napari.Viewer", labels:Label, opacity:float=0.3, name:str|list[str]=None, 
-               **kwargs):
+def add_labels(
+    viewer: "napari.Viewer",
+    labels: Label,
+    opacity: float = 0.3,
+    name: str | list[str] | None = None, 
+    **kwargs
+):
     scale = make_world_scale(labels)
     # prepare label list
     if "c" in labels.axes:
@@ -161,7 +160,7 @@ def add_labels(viewer:"napari.Viewer", labels:Label, opacity:float=0.3, name:str
         out_layers.append(layer)
     return out_layers
 
-def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
+def add_dask(viewer: "napari.Viewer", img: LazyImgArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
                 
     scale = make_world_scale(img)
@@ -171,9 +170,9 @@ def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
         leny, lenx = img.shape[-2:]
         sample = img.value[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
         kwargs["contrast_limits"] = [float(sample.min().compute()), 
-                                        float(sample.max().compute())]
+                                     float(sample.max().compute())]
 
-    name = "No-Name" if img.name is None else img.name
+    name = img.name
 
     if chn_ax is not None:
         name = [f"[Lazy][C{i}]{name}" for i in range(img.shape.c)]
@@ -181,7 +180,7 @@ def add_dask(viewer:"napari.Viewer", img:LazyImgArray, **kwargs):
         name = ["[Lazy]" + name]
 
     layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
-                                    name=name if len(name)>1 else name[0], **kwargs)
+                             name=name if len(name)>1 else name[0], **kwargs)
     viewer.scale_bar.unit = img.scale_unit
     new_axes = [a for a in img.axes if a != "c"]
     # add axis labels to slide bars and image orientation.
@@ -204,7 +203,11 @@ def add_points(viewer:"napari.Viewer", points, **kwargs):
         
     for each in pnts:
         metadata = {"axes": str(each._axes), "scale": each.scale}
-        kw = dict(size=3.2, face_color=[0,0,0,0], metadata=metadata, edge_color=viewer.window.cmap())
+        kw = dict(
+            size=3.2,
+            face_color=[0,0,0,0],
+            metadata=metadata,
+        )
         kw.update(kwargs)
         viewer.add_points(each.values, scale=scale, **kw)
         
@@ -216,20 +219,24 @@ def add_tracks(viewer:"napari.Viewer", track:TrackFrame, **kwargs):
     else:
         track_list = [track]
         
-    scale = make_world_scale(track[[a for a in track._axes if a != Const["ID_AXIS"]]])
+    scale = make_world_scale(
+        track[[a for a in track._axes if a != Const["ID_AXIS"]]]
+    )
     for tr in track_list:
         metadata = {"axes": str(tr._axes), "scale": tr.scale}
         viewer.add_tracks(tr, scale=scale, metadata=metadata, **kwargs)
     
     return None
 
-def add_paths(viewer:"napari.Viewer", paths:PathFrame, **kwargs):
+def add_paths(viewer: "napari.Viewer", paths: PathFrame, **kwargs):
     if "c" in paths._axes:
         path_list = paths.split("c")
     else:
         path_list = [paths]
         
-    scale = make_world_scale(paths[[a for a in paths._axes if a != Const["ID_AXIS"]]])
+    scale = make_world_scale(
+        paths[[a for a in paths._axes if a != Const["ID_AXIS"]]]
+    )
     kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
     kw.update(kwargs)
 
@@ -240,10 +247,10 @@ def add_paths(viewer:"napari.Viewer", paths:PathFrame, **kwargs):
     
     return None
 
-def get_viewer_scale(viewer:"napari.Viewer"):
+def get_viewer_scale(viewer: "napari.Viewer"):
     return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
 
-def layer_to_impy_object(viewer:"napari.Viewer", layer):
+def layer_to_impy_object(viewer: "napari.Viewer", layer):
     """
     Convert layer to real data.
 
@@ -259,12 +266,13 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
     data = layer.data
     axes = "".join(viewer.dims.axis_labels)
     scale = get_viewer_scale(viewer)
-    if isinstance(layer, (napari.layers.Image, napari.layers.Labels)):
+    from napari.layers import Image, Labels, Shapes, Points, Tracks
+    if isinstance(layer, (Image, Labels)):
         # manually drawn ones are np.ndarray, need conversion
         if type(data) is np.ndarray:
             ndim = data.ndim
             axes = axes[-ndim:]
-            if isinstance(layer, napari.layers.Image):
+            if isinstance(layer, Image):
                 data = ImgArray(data, name=layer.name, axes=axes, dtype=layer.data.dtype)
             else:
                 try:
@@ -273,9 +281,9 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
                     data = Label(data, name=layer.name, axes=axes)
             data.set_scale({k: v for k, v in scale.items() if k in axes})
         return data
-    elif isinstance(layer, napari.layers.Shapes):
+    elif isinstance(layer, Shapes):
         return data
-    elif isinstance(layer, napari.layers.Points):
+    elif isinstance(layer, Points):
         from ..frame import MarkerFrame
         ndim = data.shape[1]
         axes = axes[-ndim:]
@@ -283,7 +291,7 @@ def layer_to_impy_object(viewer:"napari.Viewer", layer):
         df.set_scale(layer.metadata.get("scale", 
                                         {k: v for k, v in scale.items() if k in axes}))
         return df.as_standard_type()
-    elif isinstance(layer, napari.layers.Tracks):
+    elif isinstance(layer, Tracks):
         from ..frame import TrackFrame
         ndim = data.shape[1]
         axes = axes[-ndim:]
