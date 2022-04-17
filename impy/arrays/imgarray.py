@@ -29,63 +29,30 @@ if TYPE_CHECKING:
 
 
 class ImgArray(LabeledArray):
-    @same_dtype(asfloat=True)
-    def __add__(self, value) -> ImgArray:
-        return super().__add__(value)
+    """
+    An n-D array for image analysis.
     
-    @same_dtype(asfloat=True)
-    def __iadd__(self, value) -> ImgArray:
-        return super().__iadd__(value)
-    
-    @same_dtype(asfloat=True)
-    def __sub__(self, value) -> ImgArray:
-        return super().__sub__(value)
-    
-    @same_dtype(asfloat=True)
-    def __isub__(self, value) -> ImgArray:
-        return super().__isub__(value)
-    
-    @same_dtype(asfloat=True)
-    def __mul__(self, value) -> ImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot multiply negative value.")
-        return super().__mul__(value)
-    
-    @same_dtype(asfloat=True)
-    def __imul__(self, value) -> ImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot multiply negative value.")
-        return super().__imul__(value)
-    
-    def __truediv__(self, value) -> ImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            value[value==0] = np.inf
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot devide negative value.")
-        return super().__truediv__(value)
-    
-    def __itruediv__(self, value) -> ImgArray:
-        if self.dtype.kind in "ui":
-            raise ValueError("Cannot divide integer inplace.")
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            value[value==0] = np.inf
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot devide negative value.")
-        return super().__itruediv__(value)
-    
+    Attributes
+    ----------
+    axes : str
+        Image axes, such as "zyx" or "tcyx".
+    scale : ScaleDict
+        Physical scale along each axis. For instance, scale of x-axis can be referred 
+        to by ``img.scale["x"]`` or ``img.scale.x
+    metadata : dict
+        Metadata tagged to the image.
+    source : Path
+        Source file of the image.
+    """
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
-               mode: str = "constant", cval: float = 0, output_shape = None, order: int = 1,
-               *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def affine(
+        self, matrix=None, *, scale=None, rotation=None, shear=None, translation=None,
+        mode: str = "constant", cval: float = 0, output_shape = None, order: int = 1,
+        dims: Dims = None, update: bool = False
+    ) -> ImgArray:
         r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
@@ -296,8 +263,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype
-    def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, dims: Dims = None
-                ) -> ImgArray:
+    def binning(
+        self,
+        binsize: int = 2,
+        method = "mean", 
+        *, 
+        check_edges: bool = True,
+        dims: Dims = None
+    ) -> ImgArray:
         r"""
         Binning of images. This function is similar to ``rescale`` but is strictly binned by :math:`N \times N` 
         blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.

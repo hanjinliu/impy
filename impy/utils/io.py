@@ -33,17 +33,10 @@ def open_tif(path: str, return_img: bool = False, memmap: bool = False):
     
         pagetag = series0.pages[0].tags
         
-        hist = []
         if ijmeta is None:
             ijmeta = {}
         
         ijmeta.pop("ROI", None)
-        
-        if "Info" in ijmeta.keys():
-            try:
-                infodict = load_json(ijmeta["Info"])
-            except:
-                infodict = {}
         
         try:
             axes = series0.axes.lower()

@@ -24,7 +24,7 @@ class AxesMixin:
     @property
     def shape_info(self) -> str:
         if self.axes.is_none():
-            shape_info = self.shape
+            shape_info = str(self.shape)
         else:
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
         return shape_info
@@ -53,7 +53,7 @@ class AxesMixin:
         raise NotImplementedError()
     
     @property
-    def scale(self) -> ScaleDict:
+    def scale(self) -> ScaleDict | None:
         return self.axes._scale
     
     @scale.setter
@@ -80,7 +80,7 @@ class AxesMixin:
             unit = "px"
         self.metadata["unit"] = unit
     
-    def _repr_dict_(self) -> dict[str]:
+    def _repr_dict_(self) -> dict[str, Any]:
         raise NotImplementedError()
         
     def __repr__(self) -> str:
@@ -168,7 +168,7 @@ class AxesMixin:
             self.set_scale(dict(kwargs))
         
         elif hasattr(other, "scale"):
-            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})
+            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})  # type: ignore
         
         else:
             raise TypeError(f"'other' must be str or LazyImgArray, but got {type(other)}")
