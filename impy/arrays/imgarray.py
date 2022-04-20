@@ -3871,8 +3871,11 @@ class ImgArray(LabeledArray):
         return out
     
     @record
-    def rescale_intensity(self, in_range: tuple[int|str, int|str] = ("0%", "100%"), 
-                          dtype = np.uint16) -> ImgArray:
+    def rescale_intensity(
+        self,
+        in_range: tuple[int | str, int | str] = ("0%", "100%"), 
+        dtype = np.uint16
+    ) -> ImgArray:
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity().
 
@@ -3891,7 +3894,7 @@ class ImgArray(LabeledArray):
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
             
-        out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
+        out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
         
         out = out.view(self.__class__)
         return out
