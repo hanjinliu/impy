@@ -5,7 +5,7 @@ API References
    :maxdepth: 2
    :caption: Contents:
 
-   impy
-   impy.arrays
-   impy.frames
-   impy.viewer
+   ./apidoc/impy
+   ./apidoc/impy.arrays
+   ./apidoc/impy.frames
+   ./apidoc/impy.viewer

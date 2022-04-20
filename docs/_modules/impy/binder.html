@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.binder &mdash; impy 1.25.0.dev0 documentation</title>
+  <title>impy.binder &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.0.dev0
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -39,7 +39,6 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../tutorial_viewer.html">Viewer Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
 </ul>
@@ -75,16 +74,14 @@
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 <span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">.utils.axesop</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">.utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span>
 <span class="kn">from</span> <span class="nn">.utils.deco</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="c1"># Extend ImgArray with custom functions.</span>
 <span class="c1"># TODO: use annotation to determine &quot;kind&quot;</span>
-<div class="viewcode-block" id="bind"><a class="viewcode-back" href="../../impy.html#impy.binder.bind">[docs]</a><span class="k">class</span> <span class="nc">bind</span><span class="p">:</span>
+<div class="viewcode-block" id="bind"><a class="viewcode-back" href="../../apidoc/impy.html#impy.binder.bind">[docs]</a><span class="k">class</span> <span class="nc">bind</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Dynamically define ImgArray function that can iterate over axes. You can integrate your own</span>
-<span class="sd">    function, or useful functions from `skimage` or `opencv`. History of function call will be </span>
-<span class="sd">    similarly recorded in `self.history`.</span>
+<span class="sd">    function, or useful functions from `skimage` or `opencv`.</span>
 <span class="sd">    This class is designed as a kind of decorator class so that it can be used as decorator of</span>
 <span class="sd">    any function or directly takes a function as the first argument.</span>
 
@@ -240,8 +237,7 @@
             <span class="n">_drop_axis</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dims</span><span class="p">:</span> <span class="kc">None</span>
             <span class="k">def</span> <span class="nf">_exit</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">ImgArray</span><span class="p">)</span><span class="o">.</span><span class="n">as_img_type</span><span class="p">(</span><span class="n">outdtype</span><span class="p">)</span>
-                <span class="n">history</span> <span class="o">=</span> <span class="n">make_history</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
-                <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">history</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">out</span>
             
         <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;property&quot;</span><span class="p">:</span>
@@ -254,8 +250,7 @@
         <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span>
             <span class="n">_drop_axis</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dims</span><span class="p">:</span> <span class="kc">None</span>
             <span class="k">def</span> <span class="nf">_exit</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-                <span class="n">img</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">dirpath</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dirpath</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
-                <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+                <span class="n">img</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
                 <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">img</span><span class="o">.</span><span class="n">labels</span>
             
@@ -266,7 +261,6 @@
                 <span class="n">arr</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
                 <span class="n">lbl</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
                 <span class="n">img</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">lbl</span>
-                <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
                 <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">img</span><span class="o">.</span><span class="n">labels</span>
                         
@@ -280,14 +274,14 @@
             <span class="k">if</span> <span class="n">indtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">as_img_type</span><span class="p">(</span><span class="n">indtype</span><span class="p">)</span>
                 
-            <span class="k">with</span> <span class="n">Progress</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">apply_dask</span><span class="p">(</span><span class="n">func</span><span class="p">,</span>
-                                     <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span>
-                                     <span class="n">drop_axis</span><span class="o">=</span><span class="n">_drop_axis</span><span class="p">(</span><span class="n">dims</span><span class="p">),</span>
-                                     <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
-                                     <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span>
-                                     <span class="p">)</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">_exit</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">apply_dask</span><span class="p">(</span>
+                <span class="n">func</span><span class="p">,</span>
+                <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span>
+                <span class="n">drop_axis</span><span class="o">=</span><span class="n">_drop_axis</span><span class="p">(</span><span class="n">dims</span><span class="p">),</span>
+                <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+                <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">_exit</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 
             <span class="k">return</span> <span class="n">out</span>
         

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.specials &mdash; impy 1.25.0.dev0 documentation</title>
+  <title>impy.arrays.specials &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.0.dev0
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,7 +39,6 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
@@ -89,9 +88,9 @@
     <span class="s2">&quot;perimeter_crofton&quot;</span><span class="p">,</span> <span class="s2">&quot;solidity&quot;</span><span class="p">,</span> <span class="s2">&quot;phase_mean&quot;</span><span class="p">,</span> <span class="s2">&quot;phase_std&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="PropArray"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.specials.PropArray">[docs]</a><span class="k">class</span> <span class="nc">PropArray</span><span class="p">(</span><span class="n">MetaArray</span><span class="p">):</span>
-    <span class="n">additional_props</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;dirpath&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;propname&quot;</span><span class="p">]</span>
-    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dirpath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+<div class="viewcode-block" id="PropArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.specials.PropArray">[docs]</a><span class="k">class</span> <span class="nc">PropArray</span><span class="p">(</span><span class="n">MetaArray</span><span class="p">):</span>
+    <span class="n">additional_props</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;_source&quot;</span><span class="p">,</span> <span class="s2">&quot;_metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;_name&quot;</span><span class="p">,</span> <span class="s2">&quot;propname&quot;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
                 <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">propname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">propname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">propname</span> <span class="o">=</span> <span class="s2">&quot;User_Defined&quot;</span>
@@ -103,28 +102,20 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
             
-        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">dirpath</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">propname</span> <span class="o">=</span> <span class="n">propname</span>
         
         <span class="k">return</span> <span class="bp">self</span>
     
-    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>\
-               <span class="sa">f</span><span class="s2">&quot;    shape     : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">shape_info</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
-               <span class="sa">f</span><span class="s2">&quot;    dtype     : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
-               <span class="sa">f</span><span class="s2">&quot;  directory   : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
-               <span class="sa">f</span><span class="s2">&quot;original image: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>\
-               <span class="sa">f</span><span class="s2">&quot;property name : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">propname</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-    
-    
     <span class="k">def</span> <span class="nf">_repr_dict_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;    shape     &quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape_info</span><span class="p">,</span>
-                <span class="s2">&quot;    dtype     &quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="s2">&quot;  directory   &quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span><span class="p">,</span>
-                <span class="s2">&quot;original image&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="s2">&quot;property name &quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">propname</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;shape&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape_info</span><span class="p">,</span>
+            <span class="s2">&quot;dtype&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="s2">&quot;property name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">propname</span><span class="p">}</span>
     
-<div class="viewcode-block" id="PropArray.plot"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.specials.PropArray.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">along</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;jet&quot;</span><span class="p">,</span> <span class="n">cmap_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+<div class="viewcode-block" id="PropArray.plot"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.specials.PropArray.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">along</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;jet&quot;</span><span class="p">,</span> <span class="n">cmap_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Plot all the results with x-axis defined by `along`.</span>
 
@@ -157,7 +148,7 @@
         
         <span class="k">return</span> <span class="bp">self</span></div>
     
-<div class="viewcode-block" id="PropArray.hist"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.specials.PropArray.hist">[docs]</a>    <span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">along</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="n">bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;jet&quot;</span><span class="p">,</span> 
+<div class="viewcode-block" id="PropArray.hist"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.specials.PropArray.hist">[docs]</a>    <span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">along</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="n">bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cmap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;jet&quot;</span><span class="p">,</span> 
              <span class="n">cmap_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Plot histogram.</span>
@@ -197,7 +188,7 @@
         
         <span class="k">return</span> <span class="bp">self</span></div>
     
-<div class="viewcode-block" id="PropArray.curve_fit"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.specials.PropArray.curve_fit">[docs]</a>    <span class="k">def</span> <span class="nf">curve_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">p0</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="n">return_fit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">]:</span>
+<div class="viewcode-block" id="PropArray.curve_fit"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.specials.PropArray.curve_fit">[docs]</a>    <span class="k">def</span> <span class="nf">curve_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">p0</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="n">return_fit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run scipy.optimize.curve_fit for each dimesion.</span>
 
@@ -257,7 +248,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">DataDict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">errs</span><span class="o">=</span><span class="n">errs</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="PropArray.as_frame"><a class="viewcode-back" href="../../../impy.arrays.html#impy.arrays.specials.PropArray.as_frame">[docs]</a>    <span class="k">def</span> <span class="nf">as_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;f&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesFrame</span><span class="p">:</span>
+<div class="viewcode-block" id="PropArray.as_frame"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.specials.PropArray.as_frame">[docs]</a>    <span class="k">def</span> <span class="nf">as_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;f&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesFrame</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        N-dimensional data to DataFrame. The intensity data is stored in the `colname` column.</span>
 

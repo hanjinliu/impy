@@ -9,7 +9,7 @@ Basics
 ------
 
 ``impy``'s concept is to make image analysis on Python much more user friendly. The core array object, 
-``ImgArray``, retains all the features of ``numpy.ndaaray`` while implemented with variety of function
+``ImgArray``, retains all the features of ``numpy.ndarray`` while implemented with variety of function
 that minimize your effort of image processing.
 
 Let's start with a simple example.
@@ -23,31 +23,31 @@ Let's start with a simple example.
 
 .. code-block::
 
-        shape     : 10(t), 20(z), 256(y), 256(x)
-      label shape : No label
-        dtype     : uint16
-      directory   : path/to
-    original image: image
-        history   : gaussian_filter(sigma=1)
+    ImgArray of
+         name      : image.tif
+        shape      : 10(t), 20(z), 256(y), 256(x)
+     label shape   : No label
+        dtype      : uint16
+        source     : path/to/image.tif
+        scale      : ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)
 
 Here, you can see 
 
-- each dimension is labeled with a symbol (t, z, y and x)
-- the source directory and file names are recorded
-- history of image analysis is recorded
+- each dimension is labeled with a symbol (t, z, y and x).
+- Physical scale is tagged to the object as a ``ScaleDict``, a subclass of Python ``dict``.
+- the source file is recorded.
 
 ``impy``'s ``imread`` function can extract metadata (such as axes) from image files and "memorize" them 
-as additional properties of array objects. Most of array objects in ``impy`` can record history, which
-makes it much easier to review what changes were applied to the images.
+as additional properties of array objects.
 
 You can refer to the properties by:
 
 .. code-block::
 
-    img.axes        # Out: "tzyx"
-    img.dirpath     # Out: "path/to"
-    img.name        # Out: "image"
-    img.history     # Out: ["gaussian_filter(sigma=1)"]
+    img.axes       # Out: "tzyx"
+    img.source     # Out: such as WindowsPath("path/to/image.tif")
+    img.name       # Out: "image.tif"
+    img.scale      # Out: ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)
 
 After you finished all the process you want, you can view the results in ``napari`` viewer. Just pass the
 image object to GUI handler object ``gui`` in ``impy``.
@@ -70,6 +70,17 @@ care about which is t-axis. Most arrays in ``impy`` have extended ``numpy.ndarra
 - String that follows Python slicing rules, such as ``img["t=5:10"]`` or ``img["t=-1"]``
 - Fancy slicing, like ``img["t=1,3,5"]``
 - Conbination of them with splitter ";", like ``img["t=3;z=5:7"]``
+
+Similarly, image shape is also extended to support axis-based access. In the example above, the image of
+interest has (t, z, y, x) axes and the shape is (10, 20, 256, 256). Similar to ``numpy.ndarray``, you can
+know its shape using ``img.shape`` but in ``impy`` an object of ``AxesShape`` will be returned instead of
+Python ``tuple``, as long as axes are well-defined.
+
+.. code-block:: python
+
+    img.shape       # Out: AxesShape(t=10, z=20, y=256, z=256)
+
+Here, you can get the size of z-axis by ``img.shape.z`` instead of ``img.shape[1]``.
 
 
 Batch Processing
@@ -101,7 +112,8 @@ keyword argument:
 .. code-block:: python
 
     out = img.gaussian_filter(sigma=1, dims="yx")
-    out = img.gaussian_filter(sigma=1, dims=2) # this is fine
+    out = img.gaussian_filter(sigma=1, dims=2)  # this is fine
+
 
 Running Function with Different Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,7 +122,7 @@ Running Function with Different Parameters
 
 .. code-block:: python
 
-    out = img.for_params("log_filter", var={"sigma":[1, 2, 3, 4]})
+    out = img.for_params("log_filter", var={"sigma": [1, 2, 3, 4]})
     out = img.for_params("log_filter", sigma=[1, 2, 3, 4]) # This is also supported.
 
 2. Apply a function along an axis with different parameters
@@ -179,6 +191,25 @@ You can also make an `ImgArray` in a way similar to ``numpy``:
     ip.random.normal(size=(100, 100))
 
 
+Use GPU
+-------
+
+``impy`` can automatically switch between ``numpy`` and ``cupy``. Using GPU can largely boost
+your image analysis especially when it relies on Fourier transformation or linear algebra.
+You can setup GPU calculation within a context using
+
+.. code-block:: python
+    
+    with ip.use("cupy"):
+        img_deconv = img.lucy(psf_image)
+
+or globally
+
+.. code-block:: python
+    
+    ip.Const["RESOURCE"] = "cupy"
+
+
 Advanced Reading Options
 ------------------------
 
@@ -208,11 +239,12 @@ memory map of the image file that is split into smaller chunks, and passes it to
 read" state. The image data is therefore loaded only when it is needed. Many useful functions in ``ImgArray`` 
 are also implemented in ``LazyImgArray`` so that you can easily handle large datasets.
 
-To read large images as ``LazyImgArray``, call ``lazy_imread`` instead.
+To read large images as ``LazyImgArray``, call ``lazy_imread`` instead. You can specify its chunk size using
+``chunks`` parameter.
 
 .. code-block:: python
 
-    img = ip.lazy_imread("path/to/image/*.tif")
+    img = ip.lazy_imread("path/to/image/*.tif", chunks=(1, "auto", "auto", "auto"))
     img
 
 .. code-block::
@@ -238,6 +270,4 @@ When you have to convert it to ``ImgArray``, use ``data`` property:
 
 .. code-block:: python
 
-    img.compute() # dask's compute() function will be called inside
-
-
+    img.compute()  # dask's compute() function will be called inside

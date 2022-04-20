@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.core &mdash; impy 1.25.0.dev0 documentation</title>
+  <title>impy.core &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.0.dev0
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -39,7 +39,6 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../tutorial_viewer.html">Viewer Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
 </ul>
@@ -70,18 +69,22 @@
              
   <h1>Source code for impy.core</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span><span class="p">,</span> <span class="n">_ShapeLike</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">ParamSpec</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">ParamSpec</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span><span class="p">,</span> <span class="n">_ShapeLike</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 
 <span class="kn">from</span> <span class="nn">.utils.io</span> <span class="kn">import</span> <span class="n">open_img</span><span class="p">,</span> <span class="n">open_as_dask</span><span class="p">,</span> <span class="n">get_scale_from_meta</span><span class="p">,</span> <span class="n">open_mrc</span><span class="p">,</span> <span class="n">open_tif</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">gauss</span>
 <span class="kn">from</span> <span class="nn">.utils.slicer</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">.utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span>
 <span class="kn">from</span> <span class="nn">._types</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="kn">from</span> <span class="nn">.axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span>
@@ -90,20 +93,22 @@
 <span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">LazyImgArray</span>
 <span class="kn">from</span> <span class="nn">._const</span> <span class="kn">import</span> <span class="n">Const</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;array&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;asarray&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;aslazy&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;zeros&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;empty&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;ones&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;full&quot;</span><span class="p">,</span>
-           <span class="s2">&quot;gaussian_kernel&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;circular_mask&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;imread&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;imread_collection&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;lazy_imread&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;read_meta&quot;</span><span class="p">,</span> 
-           <span class="s2">&quot;sample_image&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;array&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;asarray&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;aslazy&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;zeros&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;empty&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;ones&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;full&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;gaussian_kernel&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;circular_mask&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;imread&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;imread_collection&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;lazy_imread&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;read_meta&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;sample_image&quot;</span>
+<span class="p">]</span>
 
 <span class="c1"># TODO: </span>
 <span class="c1"># - ip.imread(&quot;...\$i$j.tif&quot;, key=&quot;i=2:&quot;), ip.imread(&quot;...\*.tif&quot;, key=&quot;p=0&quot;) will raise error.</span>
@@ -123,13 +128,15 @@
     <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">shared_docs</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">func</span>
 
-<div class="viewcode-block" id="array"><a class="viewcode-back" href="../../impy.html#impy.core.array">[docs]</a><span class="nd">@write_docs</span>
-<span class="k">def</span> <span class="nf">array</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
-          <span class="o">*</span><span class="p">,</span>
-          <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-          <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-          <span class="n">copy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="array"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.array">[docs]</a><span class="nd">@write_docs</span>
+<span class="k">def</span> <span class="nf">array</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">copy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    make an ImgArray object, like ``np.array(x)``</span>
 <span class="sd">    </span>
@@ -164,12 +171,14 @@
     
     <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="asarray"><a class="viewcode-back" href="../../impy.html#impy.core.asarray">[docs]</a><span class="nd">@write_docs</span>
-<span class="k">def</span> <span class="nf">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="o">*</span><span class="p">,</span> 
-            <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="asarray"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.asarray">[docs]</a><span class="nd">@write_docs</span>
+<span class="k">def</span> <span class="nf">asarray</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span> 
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    make an ImgArray object, like ``np.asarray(x)``</span>
 <span class="sd">    </span>
@@ -188,13 +197,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">array</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="aslazy"><a class="viewcode-back" href="../../impy.html#impy.core.aslazy">[docs]</a><span class="nd">@write_docs</span>
-<span class="k">def</span> <span class="nf">aslazy</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> 
-           <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-           <span class="o">*</span><span class="p">,</span> 
-           <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-           <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-           <span class="n">chunks</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="aslazy"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.aslazy">[docs]</a><span class="nd">@write_docs</span>
+<span class="k">def</span> <span class="nf">aslazy</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> 
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span> 
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chunks</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Make an LazyImgArray object from other types of array.</span>
 <span class="sd">    </span>
@@ -235,8 +246,9 @@
     
     <span class="k">return</span> <span class="bp">self</span></div>
 
+<span class="n">_P</span> <span class="o">=</span> <span class="n">ParamSpec</span><span class="p">(</span><span class="s2">&quot;_P&quot;</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">inject_numpy_function</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">inject_numpy_function</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">_P</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">_P</span><span class="p">,</span> <span class="n">ImgArray</span><span class="p">]:</span>
     <span class="n">npfunc</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
     <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -261,20 +273,20 @@
     <span class="n">_func</span><span class="o">.</span><span class="vm">__annotations__</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;return&quot;</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">})</span>
     <span class="k">return</span> <span class="n">_func</span>
 
-<div class="viewcode-block" id="zeros"><a class="viewcode-back" href="../../impy.html#impy.core.zeros">[docs]</a><span class="nd">@inject_numpy_function</span>
+<div class="viewcode-block" id="zeros"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.zeros">[docs]</a><span class="nd">@inject_numpy_function</span>
 <span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
     
-<div class="viewcode-block" id="empty"><a class="viewcode-back" href="../../impy.html#impy.core.empty">[docs]</a><span class="nd">@inject_numpy_function</span>
+<div class="viewcode-block" id="empty"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.empty">[docs]</a><span class="nd">@inject_numpy_function</span>
 <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
 
-<div class="viewcode-block" id="ones"><a class="viewcode-back" href="../../impy.html#impy.core.ones">[docs]</a><span class="nd">@inject_numpy_function</span>
+<div class="viewcode-block" id="ones"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.ones">[docs]</a><span class="nd">@inject_numpy_function</span>
 <span class="k">def</span> <span class="nf">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
 
-<div class="viewcode-block" id="full"><a class="viewcode-back" href="../../impy.html#impy.core.full">[docs]</a><span class="nd">@inject_numpy_function</span>
+<div class="viewcode-block" id="full"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.full">[docs]</a><span class="nd">@inject_numpy_function</span>
 <span class="k">def</span> <span class="nf">full</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
 
 
-<div class="viewcode-block" id="gaussian_kernel"><a class="viewcode-back" href="../../impy.html#impy.core.gaussian_kernel">[docs]</a><span class="k">def</span> <span class="nf">gaussian_kernel</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> 
+<div class="viewcode-block" id="gaussian_kernel"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.gaussian_kernel">[docs]</a><span class="k">def</span> <span class="nf">gaussian_kernel</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> 
                     <span class="n">sigma</span><span class="p">:</span> <span class="n">nDFloat</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
                     <span class="n">peak</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -304,9 +316,11 @@
     <span class="k">return</span> <span class="n">ker</span></div>
 
 
-<div class="viewcode-block" id="circular_mask"><a class="viewcode-back" href="../../impy.html#impy.core.circular_mask">[docs]</a><span class="k">def</span> <span class="nf">circular_mask</span><span class="p">(</span><span class="n">radius</span><span class="p">:</span> <span class="n">nDFloat</span><span class="p">,</span> 
-                  <span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span>
-                  <span class="n">center</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;center&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="circular_mask"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.circular_mask">[docs]</a><span class="k">def</span> <span class="nf">circular_mask</span><span class="p">(</span>
+    <span class="n">radius</span><span class="p">:</span> <span class="n">nDFloat</span><span class="p">,</span> 
+    <span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;center&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``. </span>
 
@@ -341,7 +355,7 @@
     <span class="k">return</span> <span class="n">array</span><span class="p">(</span><span class="n">s</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="sample_image"><a class="viewcode-back" href="../../impy.html#impy.core.sample_image">[docs]</a><span class="k">def</span> <span class="nf">sample_image</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="sample_image"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.sample_image">[docs]</a><span class="k">def</span> <span class="nf">sample_image</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get sample images from ``skimage`` and convert it into ImgArray.</span>
 
@@ -367,11 +381,14 @@
 <span class="c1">#   Imread functions</span>
 <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # </span>
 
-<div class="viewcode-block" id="imread"><a class="viewcode-back" href="../../impy.html#impy.core.imread">[docs]</a><span class="k">def</span> <span class="nf">imread</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-           <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-           <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-           <span class="o">*</span><span class="p">,</span> 
-           <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="imread"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.imread">[docs]</a><span class="k">def</span> <span class="nf">imread</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span> 
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load image(s) from a path. You can read list of images from directories with wildcards or ``&quot;$&quot;``</span>
 <span class="sd">    in ``path``.</span>
@@ -386,6 +403,8 @@
 <span class="sd">        If not None, image is read in a memory-mapped array first, and only ``img[key]`` is returned.</span>
 <span class="sd">        Only axis-targeted slicing is supported. This argument is important when reading a large</span>
 <span class="sd">        file.</span>
+<span class="sd">    name : str, optional</span>
+<span class="sd">        Name of array.</span>
 <span class="sd">    squeeze : bool, default is False</span>
 <span class="sd">        If True, redundant dimensions will be squeezed.</span>
 
@@ -406,6 +425,8 @@
 <span class="sd">        </span>
 <span class="sd">    &quot;&quot;&quot;</span>    
     <span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path does not exist: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
     <span class="n">is_memmap</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
     
     <span class="k">if</span> <span class="s2">&quot;$&quot;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
@@ -415,41 +436,27 @@
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No such file or directory: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     
-    <span class="n">fname</span><span class="p">,</span> <span class="n">fext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
-    <span class="n">dirpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    
     <span class="c1"># read tif metadata</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_memmap</span><span class="p">:</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">/</span><span class="mf">1e9</span>
         <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;MAX_GB&quot;</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">MemoryError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Too large </span><span class="si">{</span><span class="n">size</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;MAX_GB&quot;</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">:</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="s2">&quot;stdout&quot;</span>
 
-    <span class="k">with</span> <span class="n">Progress</span><span class="p">(</span><span class="s2">&quot;Reading image&quot;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">):</span>
-        <span class="n">meta</span><span class="p">,</span> <span class="n">img</span> <span class="o">=</span> <span class="n">open_img</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">is_memmap</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">,</span> <span class="n">img</span> <span class="o">=</span> <span class="n">open_img</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">is_memmap</span><span class="p">)</span>
 
     <span class="n">axes</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;axes&quot;</span><span class="p">]</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;ijmeta&quot;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">history</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">fname</span>
-        <span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
         
     <span class="k">if</span> <span class="n">is_memmap</span><span class="p">:</span>
         <span class="n">sl</span> <span class="o">=</span> <span class="n">axis_targeted_slicing</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
         <span class="n">axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">sl</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
     
-    <span class="bp">self</span> <span class="o">=</span> <span class="n">ImgArray</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">dirpath</span><span class="o">=</span><span class="n">dirpath</span><span class="p">,</span> 
-                    <span class="n">history</span><span class="o">=</span><span class="n">history</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+    <span class="bp">self</span> <span class="o">=</span> <span class="n">ImgArray</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
         
     <span class="c1"># In case the image is in yxc-order. This sometimes happens.</span>
     <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">c</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">x</span><span class="p">:</span>
-        <span class="bp">self</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">_axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">axes</span>
         <span class="n">_axes</span> <span class="o">=</span> <span class="n">_axes</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;cyx&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">_axes</span>
@@ -502,16 +509,18 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">base</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">pass</span>
     <span class="n">out</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="n">paths</span>
     <span class="k">return</span> <span class="n">out</span>
 
-<span class="k">def</span> <span class="nf">_imread_stack</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
-                  <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                  <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                  <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_imread_stack</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read separate image files using formated string. This function is useful when files/folders</span>
 <span class="sd">    are named in a certain rule, such as &quot;.../pos_0/img_0.tif&quot;, &quot;.../pos_0/img_1.tif&quot;.</span>
@@ -613,7 +622,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">imgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_axes</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">imgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="c1"># determine dirpath and name</span>
+    <span class="c1"># determine source</span>
     <span class="n">name_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">):</span>
         <span class="k">if</span> <span class="s2">&quot;$&quot;</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">or</span> <span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
@@ -621,19 +630,19 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">name_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="o">*</span><span class="n">name_list</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="o">*</span><span class="n">name_list</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dirpath</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="kc">None</span>
         
     <span class="k">if</span> <span class="n">squeeze</span><span class="p">:</span>
         <span class="bp">self</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_axes</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="imread_collection"><a class="viewcode-back" href="../../impy.html#impy.core.imread_collection">[docs]</a><span class="k">def</span> <span class="nf">imread_collection</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
-                      <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataList</span><span class="p">:</span>
+<div class="viewcode-block" id="imread_collection"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.imread_collection">[docs]</a><span class="k">def</span> <span class="nf">imread_collection</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
+    <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataList</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Open images as ImgArray and store them in DataList.</span>
 
@@ -670,10 +679,13 @@
     <span class="k">return</span> <span class="n">arrlist</span></div>
 
 
-<div class="viewcode-block" id="lazy_imread"><a class="viewcode-back" href="../../impy.html#impy.core.lazy_imread">[docs]</a><span class="k">def</span> <span class="nf">lazy_imread</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
-                <span class="n">chunks</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
-                <span class="o">*</span><span class="p">,</span> 
-                <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
+<div class="viewcode-block" id="lazy_imread"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.lazy_imread">[docs]</a><span class="k">def</span> <span class="nf">lazy_imread</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+    <span class="n">chunks</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span> 
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read an image lazily. Image file is first opened as an memory map, and subsequently converted</span>
 <span class="sd">    to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.</span>
@@ -685,6 +697,8 @@
 <span class="sd">    chunks : optional</span>
 <span class="sd">        Specify chunk sizes. By default, yx-axes are assigned to the same chunk for every slice of</span>
 <span class="sd">        image, whild chunk sizes of the rest of axes are automatically set with &quot;auto&quot; option.</span>
+<span class="sd">    name : str, optional</span>
+<span class="sd">        Name of array.</span>
 <span class="sd">    squeeze : bool, default is False</span>
 <span class="sd">        If True and there is one-sized axis, then call `np.squeeze`.</span>
 <span class="sd">        </span>
@@ -693,28 +707,22 @@
 <span class="sd">    LazyImgArray</span>
 <span class="sd">    &quot;&quot;&quot;</span>    
     <span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path does not exist: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    
     <span class="k">if</span> <span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_lazy_imread_glob</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">chunks</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="n">squeeze</span><span class="p">)</span>
-    <span class="n">fname</span><span class="p">,</span> <span class="n">fext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
-    <span class="n">dirpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     
     <span class="c1"># read tif metadata</span>
     <span class="n">meta</span><span class="p">,</span> <span class="n">img</span> <span class="o">=</span> <span class="n">open_as_dask</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">chunks</span><span class="p">)</span>
     <span class="n">axes</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;axes&quot;</span><span class="p">]</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;ijmeta&quot;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">history</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">fname</span>
-        <span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
         
     <span class="k">if</span> <span class="n">squeeze</span><span class="p">:</span>
         <span class="n">axes</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span> <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
-        
-    <span class="bp">self</span> <span class="o">=</span> <span class="n">LazyImgArray</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">dirpath</span><span class="o">=</span><span class="n">dirpath</span><span class="p">,</span> 
-                        <span class="n">history</span><span class="o">=</span><span class="n">history</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+    
+    <span class="bp">self</span> <span class="o">=</span> <span class="n">LazyImgArray</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
     
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">is_none</span><span class="p">():</span>
         <span class="k">return</span> <span class="bp">self</span>
@@ -725,7 +733,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_axes</span><span class="p">()</span></div>
 
 
-<span class="k">def</span> <span class="nf">_lazy_imread_glob</span><span class="p">(</span><span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">_lazy_imread_glob</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read images recursively from a directory, and stack them into one LazyImgArray.</span>
 
@@ -757,15 +765,14 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">LazyImgArray</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">imgs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">new_axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">pass</span>
     
     <span class="k">return</span> <span class="n">out</span>
 
 
-<div class="viewcode-block" id="read_meta"><a class="viewcode-back" href="../../impy.html#impy.core.read_meta">[docs]</a><span class="k">def</span> <span class="nf">read_meta</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="read_meta"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.read_meta">[docs]</a><span class="k">def</span> <span class="nf">read_meta</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read the metadata of an image file. </span>
 
@@ -780,7 +787,6 @@
 <span class="sd">        Dictionary of metadata with following keys.</span>
 <span class="sd">        - &quot;axes&quot;: axes information</span>
 <span class="sd">        - &quot;ijmeta&quot;: ImageJ metadata</span>
-<span class="sd">        - &quot;history&quot;: impy history</span>
 <span class="sd">        - &quot;tags&quot;: tiff tags</span>
 <span class="sd">        </span>
 <span class="sd">    &quot;&quot;&quot;</span>    

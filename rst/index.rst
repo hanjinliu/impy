@@ -23,8 +23,6 @@ Highlights
 
 - Easily integrate your custom functions with ``@ip.bind``.
 
-- Easily make a interactive GUI plugin from your custom functions with ``@ip.gui.bind``
-
 - Command line usage.
 
 
@@ -53,10 +51,10 @@ Array
    blockdiag {
       orientation = portrait
       
-      numpy.ndarray -> MetaArray -> HistoryArray -> LabeledArray -> ImgArray;
+      numpy.ndarray -> MetaArray -> LabeledArray -> ImgArray;
       AxesMixin -> MetaArray;
       MetaArray -> PropArray;
-      HistoryArray -> Label;
+      MetaArray -> Label;
       LabeledArray -> PhaseArray;
       
       PropArray [color = pink];
@@ -125,7 +123,6 @@ Contents
    :maxdepth: 1
 
    tutorial
-   tutorial_viewer
    tutorial_cmd
    api
    

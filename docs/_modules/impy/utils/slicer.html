@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.utils.slicer &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>impy.utils.slicer &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,7 +39,6 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
@@ -94,7 +93,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     
-<div class="viewcode-block" id="str_to_slice"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.slicer.str_to_slice">[docs]</a><span class="k">def</span> <span class="nf">str_to_slice</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="nb">int</span><span class="p">:</span>
+<div class="viewcode-block" id="str_to_slice"><a class="viewcode-back" href="../../../apidoc/impy.utils.html#impy.utils.slicer.str_to_slice">[docs]</a><span class="k">def</span> <span class="nf">str_to_slice</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="nb">int</span><span class="p">:</span>
     <span class="n">v</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">&quot;,&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
         <span class="n">sl</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">_range_to_list</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)),</span> <span class="p">[])</span>
@@ -104,7 +103,7 @@
         <span class="n">sl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sl</span></div>
 
-<div class="viewcode-block" id="key_repr"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.slicer.key_repr">[docs]</a><span class="k">def</span> <span class="nf">key_repr</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+<div class="viewcode-block" id="key_repr"><a class="viewcode-back" href="../../../apidoc/impy.utils.html#impy.utils.slicer.key_repr">[docs]</a><span class="k">def</span> <span class="nf">key_repr</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="n">keylist</span> <span class="o">=</span> <span class="p">[]</span>
         
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
@@ -126,7 +125,7 @@
     
     <span class="k">return</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">keylist</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="axis_targeted_slicing"><a class="viewcode-back" href="../../../impy.utils.html#impy.utils.slicer.axis_targeted_slicing">[docs]</a><span class="nd">@lru_cache</span>
+<div class="viewcode-block" id="axis_targeted_slicing"><a class="viewcode-back" href="../../../apidoc/impy.utils.html#impy.utils.slicer.axis_targeted_slicing">[docs]</a><span class="nd">@lru_cache</span>
 <span class="k">def</span> <span class="nf">axis_targeted_slicing</span><span class="p">(</span><span class="n">ndim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Slices</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Make a conventional slices from an axis-targeted slicing string.</span>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.frame.frames &mdash; impy 1.24.3dev0 documentation</title>
+  <title>impy.frame.frames &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.3dev0
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,7 +39,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_viewer.html">Viewer Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -58,7 +58,6 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
-          <li><a href="../../impy.html">impy</a> &raquo;</li>
       <li>impy.frame.frames</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -77,14 +76,15 @@
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span>
 <span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">dims_to_spatial_axes</span>
 <span class="kn">from</span> <span class="nn">..utils.slicer</span> <span class="kn">import</span> <span class="n">str_to_slice</span>
-<span class="kn">from</span> <span class="nn">..utils.utilcls</span> <span class="kn">import</span> <span class="n">Progress</span><span class="p">,</span> <span class="n">ImportOnRequest</span>
+<span class="kn">from</span> <span class="nn">..utils.utilcls</span> <span class="kn">import</span> <span class="n">ImportOnRequest</span>
 <span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
 <span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">ORDER</span>
 
 <span class="n">tp</span> <span class="o">=</span> <span class="n">ImportOnRequest</span><span class="p">(</span><span class="s2">&quot;trackpy&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AxesFrame"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame">[docs]</a><span class="k">class</span> <span class="nc">AxesFrame</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-    <span class="n">_metadata</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;_axes&quot;</span><span class="p">]</span>
+<div class="viewcode-block" id="AxesFrame"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame">[docs]</a><span class="k">class</span> <span class="nc">AxesFrame</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+    <span class="n">_metadata</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;_axes&quot;</span><span class="p">]</span>
+    
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_constructor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span>
@@ -108,7 +108,7 @@
     <span class="k">def</span> <span class="nf">_get_coords_cols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
     
-<div class="viewcode-block" id="AxesFrame.get_coords"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.get_coords">[docs]</a>    <span class="k">def</span> <span class="nf">get_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="AxesFrame.get_coords"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.get_coords">[docs]</a>    <span class="k">def</span> <span class="nf">get_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])]]</span></div>
     
     
@@ -159,7 +159,7 @@
     <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="o">.</span><span class="n">scale</span>
     
-<div class="viewcode-block" id="AxesFrame.set_scale"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="AxesFrame.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set scales of each axis.</span>
 
@@ -202,7 +202,7 @@
         
         <span class="k">return</span> <span class="kc">None</span></div>
     
-<div class="viewcode-block" id="AxesFrame.as_standard_type"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.as_standard_type">[docs]</a>    <span class="k">def</span> <span class="nf">as_standard_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesFrame</span><span class="p">:</span>
+<div class="viewcode-block" id="AxesFrame.as_standard_type"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.as_standard_type">[docs]</a>    <span class="k">def</span> <span class="nf">as_standard_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesFrame</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        t or c -&gt; uint16</span>
 <span class="sd">        p -&gt; uint32</span>
@@ -214,7 +214,7 @@
         <span class="k">return</span> <span class="n">out</span></div>
         
     
-<div class="viewcode-block" id="AxesFrame.split"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.split">[docs]</a>    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;c&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AxesFrame</span><span class="p">]:</span>
+<div class="viewcode-block" id="AxesFrame.split"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.split">[docs]</a>    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;c&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AxesFrame</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Split DataFrame according to its indices. For example, if self is an DataFrame with columns</span>
 <span class="sd">        &quot;t&quot;, &quot;c&quot;, &quot;y&quot;, &quot;x&quot; and it is split along &quot;c&quot; axis, then output is a list of DataFrame with </span>
@@ -237,7 +237,7 @@
             <span class="n">out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out_list</span></div>
 
-<div class="viewcode-block" id="AxesFrame.iter"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="AxesFrame.iter"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iteration along any axes. This method is almost doing the same thing as `groupby`, but sub-</span>
 <span class="sd">        DataFrames without axes in columns are yielded.</span>
@@ -268,17 +268,17 @@
                 <span class="p">[</span><span class="n">outsl</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">sl</span><span class="p">)]</span>
                 <span class="k">yield</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">outsl</span><span class="p">),</span> <span class="n">af</span></div>
     
-<div class="viewcode-block" id="AxesFrame.sort"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="AxesFrame.sort"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">([</span><span class="n">ORDER</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]]</span></div>
     
-<div class="viewcode-block" id="AxesFrame.proj"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.AxesFrame.proj">[docs]</a>    <span class="k">def</span> <span class="nf">proj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AxesFrame.proj"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.AxesFrame.proj">[docs]</a>    <span class="k">def</span> <span class="nf">proj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">axis</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="s2">&quot;yx&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">)</span>
         <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_axes</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span></div></div>
         
-<div class="viewcode-block" id="tp_no_verbose"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.tp_no_verbose">[docs]</a><span class="k">def</span> <span class="nf">tp_no_verbose</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<div class="viewcode-block" id="tp_no_verbose"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.tp_no_verbose">[docs]</a><span class="k">def</span> <span class="nf">tp_no_verbose</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Temporary suppress logging in trackpy.</span>
 <span class="sd">    &quot;&quot;&quot;</span>    
@@ -290,8 +290,8 @@
         <span class="k">return</span> <span class="n">out</span>
     <span class="k">return</span> <span class="n">wrapper</span></div>
 
-<div class="viewcode-block" id="MarkerFrame"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.MarkerFrame">[docs]</a><span class="k">class</span> <span class="nc">MarkerFrame</span><span class="p">(</span><span class="n">AxesFrame</span><span class="p">):</span>
-<div class="viewcode-block" id="MarkerFrame.link"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.MarkerFrame.link">[docs]</a>    <span class="nd">@tp_no_verbose</span>
+<div class="viewcode-block" id="MarkerFrame"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.MarkerFrame">[docs]</a><span class="k">class</span> <span class="nc">MarkerFrame</span><span class="p">(</span><span class="n">AxesFrame</span><span class="p">):</span>
+<div class="viewcode-block" id="MarkerFrame.link"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.MarkerFrame.link">[docs]</a>    <span class="nd">@tp_no_verbose</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">link</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">search_range</span><span class="p">:</span><span class="nb">float</span><span class="o">|</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">memory</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">min_dwell</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TrackFrame</span><span class="p">:</span>
@@ -315,28 +315,27 @@
 <span class="sd">            Result of particle tracking.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
             
-        <span class="k">with</span> <span class="n">Progress</span><span class="p">(</span><span class="s2">&quot;link&quot;</span><span class="p">):</span>
-            <span class="n">linked</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">search_range</span><span class="o">=</span><span class="n">search_range</span><span class="p">,</span> <span class="n">t_column</span><span class="o">=</span><span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            
-            <span class="n">linked</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;particle&quot;</span><span class="p">:</span><span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">linked</span> <span class="o">=</span> <span class="n">linked</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col_axes</span><span class="p">)])</span>
-            
-            <span class="n">track</span> <span class="o">=</span> <span class="n">TrackFrame</span><span class="p">(</span><span class="n">linked</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">linked</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
-            <span class="n">track</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">min_dwell</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">filter_stubs</span><span class="p">(</span><span class="n">min_dwell</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">()</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
+        <span class="n">linked</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">search_range</span><span class="o">=</span><span class="n">search_range</span><span class="p">,</span> <span class="n">t_column</span><span class="o">=</span><span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="n">memory</span><span class="o">=</span><span class="n">memory</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="n">linked</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;particle&quot;</span><span class="p">:</span><span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">linked</span> <span class="o">=</span> <span class="n">linked</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col_axes</span><span class="p">)])</span>
+        
+        <span class="n">track</span> <span class="o">=</span> <span class="n">TrackFrame</span><span class="p">(</span><span class="n">linked</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">linked</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+        <span class="n">track</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">min_dwell</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">filter_stubs</span><span class="p">(</span><span class="n">min_dwell</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">out</span></div></div>
 
-<div class="viewcode-block" id="TrackFrame"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame">[docs]</a><span class="k">class</span> <span class="nc">TrackFrame</span><span class="p">(</span><span class="n">AxesFrame</span><span class="p">):</span>
+<div class="viewcode-block" id="TrackFrame"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame">[docs]</a><span class="k">class</span> <span class="nc">TrackFrame</span><span class="p">(</span><span class="n">AxesFrame</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">_renamed_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;t&quot;</span><span class="p">:</span><span class="s2">&quot;frame&quot;</span><span class="p">,</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]:</span><span class="s2">&quot;particle&quot;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">df</span>
         
-<div class="viewcode-block" id="TrackFrame.track_drift"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame.track_drift">[docs]</a>    <span class="nd">@tp_no_verbose</span>
+<div class="viewcode-block" id="TrackFrame.track_drift"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame.track_drift">[docs]</a>    <span class="nd">@tp_no_verbose</span>
     <span class="k">def</span> <span class="nf">track_drift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smoothing</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renamed_df</span><span class="p">()</span>
         <span class="n">shift</span> <span class="o">=</span> <span class="o">-</span><span class="n">tp</span><span class="o">.</span><span class="n">compute_drift</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">smoothing</span><span class="o">=</span><span class="n">smoothing</span><span class="p">)</span>
@@ -345,25 +344,25 @@
         <span class="n">shift</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ori</span><span class="p">,</span> <span class="n">shift</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="TrackFrame.msd"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame.msd">[docs]</a>    <span class="nd">@tp_no_verbose</span>
+<div class="viewcode-block" id="TrackFrame.msd"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame.msd">[docs]</a>    <span class="nd">@tp_no_verbose</span>
     <span class="k">def</span> <span class="nf">msd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_lagt</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">detail</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renamed_df</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">tp</span><span class="o">.</span><span class="n">motion</span><span class="o">.</span><span class="n">msd</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">],</span> 
                              <span class="n">max_lagtime</span><span class="o">=</span><span class="n">max_lagt</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">detail</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="TrackFrame.imsd"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame.imsd">[docs]</a>    <span class="nd">@tp_no_verbose</span>
+<div class="viewcode-block" id="TrackFrame.imsd"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame.imsd">[docs]</a>    <span class="nd">@tp_no_verbose</span>
     <span class="k">def</span> <span class="nf">imsd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_lagt</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renamed_df</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">tp</span><span class="o">.</span><span class="n">motion</span><span class="o">.</span><span class="n">imsd</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">],</span> 
                              <span class="n">max_lagtime</span><span class="o">=</span><span class="n">max_lagt</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="TrackFrame.emsd"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame.emsd">[docs]</a>    <span class="nd">@tp_no_verbose</span>
+<div class="viewcode-block" id="TrackFrame.emsd"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame.emsd">[docs]</a>    <span class="nd">@tp_no_verbose</span>
     <span class="k">def</span> <span class="nf">emsd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_lagt</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renamed_df</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">tp</span><span class="o">.</span><span class="n">motion</span><span class="o">.</span><span class="n">emsd</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">],</span> 
                              <span class="n">max_lagtime</span><span class="o">=</span><span class="n">max_lagt</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">detail</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="TrackFrame.filter_stubs"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame.filter_stubs">[docs]</a>    <span class="nd">@tp_no_verbose</span>
+<div class="viewcode-block" id="TrackFrame.filter_stubs"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame.filter_stubs">[docs]</a>    <span class="nd">@tp_no_verbose</span>
     <span class="k">def</span> <span class="nf">filter_stubs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_dwell</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_renamed_df</span><span class="p">()</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">filtering</span><span class="o">.</span><span class="n">filter_stubs</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">min_dwell</span><span class="p">)</span>
@@ -373,12 +372,12 @@
         <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">()</span></div>
     
-<div class="viewcode-block" id="TrackFrame.as_path"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.TrackFrame.as_path">[docs]</a>    <span class="k">def</span> <span class="nf">as_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TrackFrame.as_path"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.TrackFrame.as_path">[docs]</a>    <span class="k">def</span> <span class="nf">as_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;t&quot;</span><span class="p">]]</span>
         <span class="k">return</span> <span class="n">PathFrame</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">_axes</span><span class="p">)</span></div></div>
 
-<div class="viewcode-block" id="PathFrame"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.PathFrame">[docs]</a><span class="k">class</span> <span class="nc">PathFrame</span><span class="p">(</span><span class="n">AxesFrame</span><span class="p">):</span>
-<div class="viewcode-block" id="PathFrame.length"><a class="viewcode-back" href="../../../impy.frame.html#impy.frame.frames.PathFrame.length">[docs]</a>    <span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="PathFrame"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.PathFrame">[docs]</a><span class="k">class</span> <span class="nc">PathFrame</span><span class="p">(</span><span class="n">AxesFrame</span><span class="p">):</span>
+<div class="viewcode-block" id="PathFrame.length"><a class="viewcode-back" href="../../../apidoc/impy.frame.html#impy.frame.frames.PathFrame.length">[docs]</a>    <span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="s2">&quot;zyx&quot;</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">]</span>
         <span class="n">path_len</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">a</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">)))</span>
