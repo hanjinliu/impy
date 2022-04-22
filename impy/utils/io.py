@@ -12,7 +12,7 @@ from ..axes import ImageAxesError
 from .axesop import complement_axes
 
 if TYPE_CHECKING:
-    from ..arrays.bases import HistoryArray
+    from ..arrays.bases import MetaArray
 
 __all__ = ["imwrite", 
            "memmap",
@@ -33,19 +33,10 @@ def open_tif(path: str, return_img: bool = False, memmap: bool = False):
     
         pagetag = series0.pages[0].tags
         
-        hist = []
         if ijmeta is None:
             ijmeta = {}
         
         ijmeta.pop("ROI", None)
-        
-        if "Info" in ijmeta.keys():
-            try:
-                infodict = load_json(ijmeta["Info"])
-            except:
-                infodict = {}
-            if "impyhist" in infodict.keys():
-                hist = infodict["impyhist"].split("->")
         
         try:
             axes = series0.axes.lower()
@@ -53,7 +44,7 @@ def open_tif(path: str, return_img: bool = False, memmap: bool = False):
             axes = None
         
         tags = {v.name: v.value for v in pagetag.values()}
-        out = {"axes": axes, "ijmeta": ijmeta, "history": hist, "tags": tags}
+        out = {"axes": axes, "ijmeta": ijmeta, "tags": tags}
         if return_img:
             if memmap:
                 out["image"] = tif.asarray(out="memmap")
@@ -85,7 +76,7 @@ def open_mrc(path: str, return_img: bool = False, memmap: bool = False):
         tags["XResolution"] = [1, mrc.voxel_size.x/10]
         tags["YResolution"] = [1, mrc.voxel_size.y/10]
         
-        out = {"axes": axes, "ijmeta": ijmeta, "history": [], "tags": tags}
+        out = {"axes": axes, "ijmeta": ijmeta, "tags": tags}
         if return_img:
             out["image"] = mrc.data
     
@@ -116,9 +107,9 @@ def open_img(path, memmap: bool = False):
         from skimage import io
         img = io.imread(path)
         if fext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
-            meta = {"axes": "yxc", "ijmeta": {}, "history": []}
+            meta = {"axes": "yxc", "ijmeta": {}}
         else:
-            meta = {"axes": None, "ijmeta": {}, "history": []}
+            meta = {"axes": None, "ijmeta": {}}
     
     return meta, img
 
@@ -149,7 +140,7 @@ def get_scale_from_meta(meta: dict):
     return scale
 
 
-def get_imsave_meta_from_img(img: HistoryArray, update_lut=True):
+def get_imsave_meta_from_img(img: MetaArray, update_lut=True):
     metadata = img.metadata.copy()
     if update_lut:
         lut_min, lut_max = np.percentile(img, [1, 99])
@@ -166,13 +157,10 @@ def get_imsave_meta_from_img(img: HistoryArray, update_lut=True):
     else:
         metadata["spacing"] = img.scale["x"]
         
-    # add history to Info
     try:
         info = load_json(metadata["Info"])
     except:
         info = {}
-    name = img.name or "original-image"
-    info["impyhist"] = "->".join([name] + img.history)
     metadata["Info"] = str(info)
     # set axes in tiff metadata
     metadata["axes"] = str(img.axes).upper()
@@ -182,7 +170,7 @@ def get_imsave_meta_from_img(img: HistoryArray, update_lut=True):
     return dict(imagej=True, resolution=res, metadata=metadata)
 
 
-def save_tif(path: str, img: HistoryArray):
+def save_tif(path: str, img: MetaArray):
     rest_axes = complement_axes(img.axes, "tzcyx")
     new_axes = ""
     for a in img.axes:
@@ -208,7 +196,7 @@ def save_tif(path: str, img: HistoryArray):
     imwrite(path, img, **imsave_kwargs)
 
 
-def save_mrc(path: str, img: HistoryArray):
+def save_mrc(path: str, img: MetaArray):
     if img.scale_unit and img.scale_unit != "nm":
         raise ValueError(
             f"Scale unit {img.scale_unit} is not supported. Convert to nm instead."

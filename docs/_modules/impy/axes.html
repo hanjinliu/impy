@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.axes &mdash; impy 1.24.5.dev0 documentation</title>
+  <title>impy.axes &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.24.5.dev0
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -39,7 +39,6 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../tutorial_viewer.html">Viewer Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
 </ul>
@@ -76,10 +75,10 @@
 
 <span class="n">ORDER</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;t&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">})</span>
 
-<div class="viewcode-block" id="ImageAxesError"><a class="viewcode-back" href="../../impy.html#impy.axes.ImageAxesError">[docs]</a><span class="k">class</span> <span class="nc">ImageAxesError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="ImageAxesError"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.ImageAxesError">[docs]</a><span class="k">class</span> <span class="nc">ImageAxesError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;This error is raised when axes is defined in a wrong way.&quot;&quot;&quot;</span></div>
 
-<div class="viewcode-block" id="NoneAxes"><a class="viewcode-back" href="../../impy.html#impy.axes.NoneAxes">[docs]</a><span class="k">class</span> <span class="nc">NoneAxes</span><span class="p">:</span>
+<div class="viewcode-block" id="NoneAxes"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.NoneAxes">[docs]</a><span class="k">class</span> <span class="nc">NoneAxes</span><span class="p">:</span>
     <span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">False</span>
 
@@ -91,7 +90,7 @@
 
 <span class="n">NONE</span> <span class="o">=</span> <span class="n">NoneAxes</span><span class="p">()</span>
 
-<div class="viewcode-block" id="ScaleDict"><a class="viewcode-back" href="../../impy.html#impy.axes.ScaleDict">[docs]</a><span class="k">class</span> <span class="nc">ScaleDict</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">):</span>
+<div class="viewcode-block" id="ScaleDict"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.ScaleDict">[docs]</a><span class="k">class</span> <span class="nc">ScaleDict</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}):</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
@@ -139,10 +138,10 @@
         <span class="n">kwargs</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">)&quot;</span>
     
-<div class="viewcode-block" id="ScaleDict.copy"><a class="viewcode-back" href="../../impy.html#impy.axes.ScaleDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScaleDict</span><span class="p">:</span>
+<div class="viewcode-block" id="ScaleDict.copy"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.ScaleDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScaleDict</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="ScaleDict.replace"><a class="viewcode-back" href="../../impy.html#impy.axes.ScaleDict.replace">[docs]</a>    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="ScaleDict.replace"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.ScaleDict.replace">[docs]</a>    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">old</span><span class="p">:</span>
@@ -151,7 +150,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="check_none"><a class="viewcode-back" href="../../impy.html#impy.axes.check_none">[docs]</a><span class="k">def</span> <span class="nf">check_none</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<div class="viewcode-block" id="check_none"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.check_none">[docs]</a><span class="k">def</span> <span class="nf">check_none</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">checked</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Axes</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_none</span><span class="p">():</span>
             <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="s2">&quot;Axes not defined.&quot;</span><span class="p">)</span>
@@ -159,7 +158,7 @@
     <span class="k">return</span> <span class="n">checked</span></div>
 
 
-<div class="viewcode-block" id="Axes"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes">[docs]</a><span class="k">class</span> <span class="nc">Axes</span><span class="p">:</span>
+<div class="viewcode-block" id="Axes"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes">[docs]</a><span class="k">class</span> <span class="nc">Axes</span><span class="p">:</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">NONE</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">NONE</span>
@@ -244,20 +243,20 @@
     <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
     
-<div class="viewcode-block" id="Axes.is_none"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.is_none">[docs]</a>    <span class="k">def</span> <span class="nf">is_none</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Axes.is_none"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.is_none">[docs]</a>    <span class="k">def</span> <span class="nf">is_none</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">NoneAxes</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="Axes.is_sorted"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.is_sorted">[docs]</a>    <span class="nd">@check_none</span>
+<div class="viewcode-block" id="Axes.is_sorted"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.is_sorted">[docs]</a>    <span class="nd">@check_none</span>
     <span class="k">def</span> <span class="nf">is_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span><span class="p">()</span></div>
     
-<div class="viewcode-block" id="Axes.check_is_sorted"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.check_is_sorted">[docs]</a>    <span class="k">def</span> <span class="nf">check_is_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Axes.check_is_sorted"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.check_is_sorted">[docs]</a>    <span class="k">def</span> <span class="nf">check_is_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_sorted</span><span class="p">():</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Axes must in tzcxy order, but got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="Axes.find"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.find">[docs]</a>    <span class="nd">@check_none</span>
+<div class="viewcode-block" id="Axes.find"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.find">[docs]</a>    <span class="nd">@check_none</span>
     <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -265,22 +264,22 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">i</span></div>
     
-<div class="viewcode-block" id="Axes.sort"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.sort">[docs]</a>    <span class="nd">@check_none</span>
+<div class="viewcode-block" id="Axes.sort"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.sort">[docs]</a>    <span class="nd">@check_none</span>
     <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">None</span></div>
     
-<div class="viewcode-block" id="Axes.sorted"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.sorted">[docs]</a>    <span class="k">def</span> <span class="nf">sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="Axes.sorted"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.sorted">[docs]</a>    <span class="k">def</span> <span class="nf">sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">argsort</span><span class="p">()])</span></div>
     
-<div class="viewcode-block" id="Axes.argsort"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.argsort">[docs]</a>    <span class="nd">@check_none</span>
+<div class="viewcode-block" id="Axes.argsort"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.argsort">[docs]</a>    <span class="nd">@check_none</span>
     <span class="k">def</span> <span class="nf">argsort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">([</span><span class="n">ORDER</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">])</span></div>
     
-<div class="viewcode-block" id="Axes.copy"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Axes.copy"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Axes.replace"><a class="viewcode-back" href="../../impy.html#impy.axes.Axes.replace">[docs]</a>    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="Axes.replace"><a class="viewcode-back" href="../../apidoc/impy.html#impy.axes.Axes.replace">[docs]</a>    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Replace axis symbol. To avoid unexpected effect between images, new scale attribute</span>
 <span class="sd">        will be copied.</span>

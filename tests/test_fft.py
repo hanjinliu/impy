@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 from impy.array_api import xp
 from numpy.testing import assert_allclose
-ip.Const["SHOW_PROGRESS"] = False
 
 def test_precision(resource):
     with ip.SetConst(RESOURCE=resource):

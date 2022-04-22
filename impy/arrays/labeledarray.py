@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import DTypeLike
 import os
+import itertools
 from functools import partial
 import inspect
 from typing import TYPE_CHECKING
@@ -11,11 +12,10 @@ from scipy import ndimage as ndi
 from .specials import PropArray
 from ._utils._skimage import skmes, skseg
 from ._utils import _misc, _docs
-from .bases import HistoryArray
+from .bases import MetaArray
 from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.utilcls import Progress
 from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
 from ..utils.deco import record, dims_to_spatial_axes
 from ..utils.io import save_mrc, save_tif
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class LabeledArray(HistoryArray):
+class LabeledArray(MetaArray):
     @property
     def range(self) -> tuple[float, float]:
         return self.min(), self.max()
@@ -39,31 +39,20 @@ class LabeledArray(HistoryArray):
             self.labels.set_scale(other, **kwargs)
         return None
         
-    def __repr__(self):
-        if hasattr(self, "labels"):
-            labels_shape_info = self.labels.shape_info
-        else:
-            labels_shape_info = "No label"
-            
-        return f"\n"\
-               f"    shape     : {self.shape_info}\n"\
-               f"  label shape : {labels_shape_info}\n"\
-               f"    dtype     : {self.dtype}\n"\
-               f"  directory   : {self.dirpath}\n"\
-               f"original image: {self.name}\n"\
-               f"   history    : {'->'.join(self.history)}\n"
-    
+        
     def _repr_dict_(self):
         if hasattr(self, "labels"):
             labels_shape_info = self.labels.shape_info
         else:
             labels_shape_info = "No label"
-        return {"    shape     ": self.shape_info,
-                "  label shape ": labels_shape_info,
-                "    dtype     ": self.dtype,
-                "  directory   ": self.dirpath,
-                "original image": self.name,
-                "   history    ": "->".join(self.history)}
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "label shape ": labels_shape_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "scale": self.scale,
+        }
     
     
     def imsave(self, save_path: str, dtype: DTypeLike = None):
@@ -91,27 +80,26 @@ class LabeledArray(HistoryArray):
             ext = ".tif"
     
         if os.sep not in save_path:
-            if self.dirpath is None:
+            if self.source is None:
                 raise ValueError(
                     "Image directory path is unknown. Set by \n"
-                    " >>> img.dirpath = \"...\"\n"
+                    " >>> img.source = \"...\"\n"
                     "or specify absolute path like\n"
                     " >>> img.imsave(\"/path/to/XXX.tif\")"
                     )
-            save_path = os.path.join(self.dirpath, save_path)
+            save_path = os.path.join(self.source.parent, save_path)
         if self.metadata is None:
             self.metadata = {}
         if dtype is None:
             dtype = self.dtype
             
         # save image
-        with Progress("Saving"):
-            if ext in (".tif", ".tiff"):
-                save_tif(save_path, self)
-            elif ext in (".mrc", ".map"):
-                save_mrc(save_path, self)
-            else:
-                raise ValueError(f"Unsupported extension {ext}")
+        if ext in (".tif", ".tiff"):
+            save_tif(save_path, self)
+        elif ext in (".mrc", ".map"):
+            save_mrc(save_path, self)
+        else:
+            raise ValueError(f"Unsupported extension {ext}")
 
         return None
     
@@ -127,7 +115,11 @@ class LabeledArray(HistoryArray):
         """
         Make a view of label **if possible**.
         """
-        if hasattr(other, "labels") and axes_included(self, other.labels) and _shape_match(self, other.labels):
+        if (
+            hasattr(other, "labels") and
+            axes_included(self, other.labels) and
+            _shape_match(self, other.labels)
+        ):
             if self is not other:
                 self.labels = other.labels.copy()
             else:
@@ -153,16 +145,13 @@ class LabeledArray(HistoryArray):
         
         return None
 
-    def _set_info(self, other, next_history=None, new_axes:str="inherit"):
-        super()._set_info(other, next_history, new_axes)
-        
-        # inherit labels
-        self._view_labels(other)
+    def _set_info(self, other, new_axes: str = "inherit"):
+        super()._set_info(other, new_axes)
+        self._view_labels(other)  # inherit labels
         return None
     
     def _update(self, out: Self):
         self.value[:] = out.as_img_type(self.dtype).value[:]
-        self.history.append(out.history[-1])
         return None
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -247,9 +236,7 @@ class LabeledArray(HistoryArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def hist(self, contrast=None):
-        """
-        Show intensity profile.
-        """
+        """Show intensity profile."""
         from ._utils import _plot as _plt
         _plt.hist(self.value, contrast)
 
@@ -468,11 +455,12 @@ class LabeledArray(HistoryArray):
         ax1 = _misc.make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        cropped_img = self.apply_dask(ndi.map_coordinates, complement_axes(dims, self.axes), 
-                                      dtype=self.dtype,
-                                      args=(all_coords,),
-                                      kwargs=dict(prefilter=False, order=1)
-                                      )
+        cropped_img = self.apply_dask(
+            ndi.map_coordinates, complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            args=(all_coords,),
+            kwargs=dict(prefilter=False, order=1)
+        )
         cropped_img = cropped_img.view(self.__class__)
         cropped_img.axes = self.axes
         if hasattr(self, "labels"):
@@ -544,12 +532,11 @@ class LabeledArray(HistoryArray):
             label_shape = self.sizesof(label_axes)
             labels = largest_zeros(label_shape)
             
-            with Progress("specify"):
-                n_label = 1
-                for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
-                    _specify(labels[sl], crds.values, radius, n_label)
-                    n_label += len(crds)
-            
+            n_label = 1
+            for sl, crds in center.iter(complement_axes(dims, center.col_axes)):
+                _specify(labels[sl], crds.values, radius, n_label)
+                n_label += len(crds)
+        
             if hasattr(self, "labels"):
                 print("Existing labels are updated.")
             self.labels = Label(labels, axes=label_axes).optimize()
@@ -568,8 +555,8 @@ class LabeledArray(HistoryArray):
         return self.labels
        
     @_docs.write_docs
-    @record(append_history=False)
-    def reslice(self, a, b=None, *, order:int=1) -> PropArray:
+    @record
+    def reslice(self, a, b=None, *, order: int = 1) -> PropArray:
         """
         Measure line profile (kymograph) iteratively for every slice of image. This function is almost 
         same as `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is 
@@ -632,13 +619,14 @@ class LabeledArray(HistoryArray):
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
         
-        result = self.as_float().apply_dask(ndi.map_coordinates, 
-                                            c_axes=c_axes, 
-                                            dtype=self.dtype,
-                                            drop_axis=-1,
-                                            args=(coords,),
-                                            kwargs=dict(prefilter=order>1, order=order)
-                                            )
+        result = self.as_float().apply_dask(
+            ndi.map_coordinates, 
+            c_axes=c_axes, 
+            dtype=self.dtype,
+            drop_axis=-1,
+            args=(coords,),
+            kwargs=dict(prefilter=order>1, order=order)
+        )
         
         sl = [slice(None)]*result.ndim
         for a in dims[:-1]:
@@ -653,7 +641,7 @@ class LabeledArray(HistoryArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def label(self, label_image=None, *, dims=None, connectivity=None) -> Label:
         """
         Run skimage's label() and store the results as attribute.
@@ -699,14 +687,14 @@ class LabeledArray(HistoryArray):
     
         # correct the label numbers of `labels`
         self.labels = labels.view(Label)
-        self.labels._set_info(label_image, "label")
+        self.labels._set_info(label_image)
         self.labels = self.labels.increment_iter(c_axes).optimize()
         self.labels.set_scale(self)
         return self.labels
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def label_if(self, label_image=None, filt=None, *, dims=None, connectivity=None) -> Label:
         """
         Label image using `label_image` as reference image only if certain condition
@@ -793,11 +781,11 @@ class LabeledArray(HistoryArray):
             offset += labels.max()
         
         self.labels = labels.view(Label).optimize()
-        self.labels._set_info(label_image, "label_if")
+        self.labels._set_info(label_image)
         self.labels.set_scale(self)
         return self.labels
     
-    @record(append_history=False)
+    @record
     def append_label(self, label_image:np.ndarray, new:bool=False) -> Label:
         """
         Append new labels from an array. This function works for boolean or signed int arrays.
@@ -864,10 +852,10 @@ class LabeledArray(HistoryArray):
                 if not axes_included(self, label_image):
                     raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
                 
-            self.labels = Label(label_image, axes=axes, dirpath=self.dirpath)
+            self.labels = Label(label_image, axes=axes, source=self.source)
         return self.labels
     
-    @record(append_history=False, need_labels=True)
+    @record(need_labels=True)
     def proj_labels(self, axis=None, forbid_overlap=False) -> Label:
         """
         Label projection. This function is useful when zyx-labels are drawn but you want to reduce the 
@@ -917,10 +905,15 @@ class LabeledArray(HistoryArray):
                 img.labels = lbl
             
         return imgs
-    
-    def tile(self, shape: tuple[int, int] = None, along: str = None, order: str = None) -> Self:
-        r"""
-        Tile images in a certain order. Label is also tiled in the same manner.
+        
+    def tile(
+        self,
+        shape: tuple[int, int] | None = None,
+        along: str | None = None,
+        order: str | None = None,
+    ) -> Self:
+        """
+        Tile images in a certain order.
 
         Parameters
         ----------
@@ -930,43 +923,75 @@ class LabeledArray(HistoryArray):
             Axis (Axes) over which will be iterated.
         order : str, {"r", "c"}, optional
             Order of iteration. "r" means row-wise and "c" means column-wise.
-
+        
+            row-wise
+                ----->
+                ----->
+                ----->
             
-            .. code-block::
-            
-                row-wise
-                    ----->
-                    ----->
-                    ----->
-                
-                column-wise
-                    | | |
-                    | | |
-                    v v v
+            column-wise
+                | | |
+                | | |
+                v v v
 
         Returns
         -------
-        HistoryArray
+        Labeled
             Tiled array
-            
-        Examples
-        --------
-        1. Read images as stack and tile them in grid shape :math:`5 \times 4`.
-        
-            >>> img = ip.imread_collection(r"C:\...")
-            >>> tiled_img = img.tile((5, 4))
-            
-        2. Read OME-TIFF images 
-        
-            >>> img = ip.imread_stack(r"C:\...\Images_MMStack-Pos_$i_$j.ome.tif")
-            >>> tiled_img = img.tile()
-            
         """        
-        tiled_img = super().tile(shape, along, order)
+        if along is None:
+            for a in self.axes:
+                l = np.prod(shape)
+                if self.sizeof(a) == l:
+                    along = a
+                    break
+            else:
+                raise ValueError(f"Could not find axis that can be reshaped to shape {shape}")
+        elif len(along) == 2:
+            uyaxis, uxaxis = self.axisof(along[0]), self.axisof(along[1])
+            if uyaxis < uxaxis:
+                shape = self.sizesof(along)
+                order = "r"
+            else:
+                order = "c"
+                shape = self.sizesof(along[::-1])
+        elif len(along) == 1:
+            if shape is None:
+                raise ValueError("`shape` must be specified unless the length of `along` is 2.")
+        else:
+            raise ValueError("`along` must be a string with length 1 or 2.")
+        
+        if order is None:
+            order = "r"
+            
+        uy_max, ux_max = shape
+        imgy, imgx = self.sizesof("yx")
+        if len(shape) == 2:
+            c_axes = complement_axes("yx"+along, self.axes)
+            new_axes = c_axes + "yx"
+            outshape = self.sizesof(c_axes) + (uy_max*imgy, ux_max*imgx)
+        else:
+            raise ValueError("Shape mismatch")
+        
+        out = np.zeros(outshape, dtype=self.dtype)
+        
+        if order == "r":
+            iter_tile = _iter_tile_yx
+        elif order == "c":
+            iter_tile = _iter_tile_xy
+        else:
+            raise ValueError(f"Could not interpret order={repr(order)}.")
+        
+        for (_, img), sl in zip(self.iter(along), iter_tile(uy_max, ux_max, imgy, imgx)):
+            out[sl] = img
+            
+        out = out.view(self.__class__)
+        out._set_info(self, new_axes=new_axes)
+        
         if hasattr(self, "labels"):
             tiled_label = self.labels.tile(shape, along, order)
-            tiled_img.labels = tiled_label
-        return tiled_img
+            out.labels = tiled_label
+        return out
     
     @record
     def for_each_channel(self, func: str, along: str = "c", **kwargs) -> Self:
@@ -991,12 +1016,8 @@ class LabeledArray(HistoryArray):
         imgs = self.split(along)
         outs = []
         for img, kw in zip(imgs, _iter_dict(kwargs, len(imgs))):
-            img.history.pop()
-            out = getattr(img, func)(**kw)
-            out.history.pop()
             outs.append(out)
         out = np.stack(outs, axis=along)
-        out.history.pop()
         return out
     
     @record
@@ -1126,3 +1147,33 @@ def _shape_match(img: LabeledArray, label: Label):
         -> False
     """    
     return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
+
+def _iter_tile_yx(ymax, xmax, imgy, imgx):
+    """
+    +--+--+--+
+    | 0| 1| 2|
+    +--+--+--+
+    | 3| 4| 5|
+    +--+--+--+
+    | 6| 7|..|
+    +--+--+--+
+    """    
+    for uy, ux in itertools.product(range(ymax), range(xmax)):
+        sly = slice(uy*imgy, (uy+1)*imgy, None)
+        slx = slice(ux*imgx, (ux+1)*imgx, None)
+        yield ..., sly, slx
+
+def _iter_tile_xy(ymax, xmax, imgy, imgx):
+    """
+    +--+--+--+
+    | 0| 3| 6|
+    +--+--+--+
+    | 1| 4| 7|
+    +--+--+--+
+    | 2| 5|..|
+    +--+--+--+
+    """    
+    for uy, ux in itertools.product(range(xmax), range(ymax)):
+        sly = slice(uy*imgy, (uy+1)*imgy, None)
+        slx = slice(ux*imgx, (ux+1)*imgx, None)
+        yield ..., slx, sly

@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 def test_pcc(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         reference_image = ip.sample_image("camera")
         shift = (-7, 12)
         shifted_image = reference_image.affine(translation=shift)
@@ -15,7 +15,7 @@ def test_pcc(resource):
         assert_allclose(shift_sk, (7, -12))
 
 def test_zncc_shift(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         reference_image = ip.sample_image("camera")
         shift = (-7, 12)
         shifted_image = reference_image.affine(translation=shift)
@@ -35,7 +35,7 @@ def test_zncc_shift(resource):
         
 
 def test_cc(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         img0 = ip.random.random((10, 10, 10), axes="zyx")
         img1 = ip.random.random((10, 10, 10), axes="zyx")
         ip.ncc(img0, img1)
@@ -64,7 +64,7 @@ def test_cc(resource):
         
 
 def test_fourier(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         reference_image = ip.sample_image("camera")
         shift = (-7, 12)
         shifted_image = reference_image.affine(translation=shift)
@@ -78,7 +78,7 @@ def test_fourier(resource):
         assert_allclose(shift_sk, (7, -12))
 
 def test_pcc_max_shift(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         # check shifts don't exceed max_shifts
         for i in range(10):
             np.random.seed(i)
@@ -120,7 +120,7 @@ def test_pcc_max_shift(resource):
 
 
 def test_zncc_max_shift(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         # check shifts don't exceed max_shifts
         for i in range(10):
             np.random.seed(i)
@@ -161,7 +161,7 @@ def test_zncc_max_shift(resource):
         assert_allclose(shift, [2, 5])
 
 def test_polar_pcc(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         reference_image = ip.sample_image("camera")
         deg = 21
         rotated_image = reference_image.rotate(deg)
@@ -170,7 +170,7 @@ def test_polar_pcc(resource):
         assert rot == deg
 
 def test_fsc(resource):
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         img0 = ip.random.random_uint16((80, 80))
         img1 = ip.random.random_uint16((80, 80))
         a, b = ip.fsc(img0, img1)
@@ -180,7 +180,7 @@ def test_landscale(resource):
     img0 = ip.sample_image("camera")[100:180, 100:180]
     shift = (-2, 3)
     img1 = img0.affine(translation=shift)
-    with ip.SetConst(RESOURCE=resource, SHOW_PROGRESS=False):
+    with ip.SetConst(RESOURCE=resource):
         lds = ip.pcc_landscape(img0, img1, 5)
         assert lds.shape == (11, 11)
         assert np.unravel_index(np.argmax(lds), lds.shape) == (3, 8)

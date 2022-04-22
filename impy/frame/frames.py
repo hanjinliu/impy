@@ -6,14 +6,15 @@ from functools import wraps
 from ..utils.axesop import complement_axes
 from ..utils.deco import dims_to_spatial_axes
 from ..utils.slicer import str_to_slice
-from ..utils.utilcls import Progress, ImportOnRequest
+from ..utils.utilcls import ImportOnRequest
 from .._const import Const
 from ..axes import Axes, ImageAxesError, ORDER
 
 tp = ImportOnRequest("trackpy")
 
 class AxesFrame(pd.DataFrame):
-    _metadata=["_axes"]
+    _metadata = ["_axes"]
+    
     @property
     def _constructor(self):
         return self.__class__
@@ -244,19 +245,18 @@ class MarkerFrame(AxesFrame):
             Result of particle tracking.
         """        
             
-        with Progress("link"):
-            linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, **kwargs)
-            
-            linked.rename(columns = {"particle":Const["ID_AXIS"]}, inplace=True)
-            linked = linked.reindex(columns=[a for a in Const["ID_AXIS"]+str(self.col_axes)])
-            
-            track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
-            track.set_scale(self)
-            if min_dwell > 0:
-                out = track.filter_stubs(min_dwell)
-            else:
-                out = track.as_standard_type()
-            out.index = np.arange(len(out))
+        linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, **kwargs)
+        
+        linked.rename(columns = {"particle":Const["ID_AXIS"]}, inplace=True)
+        linked = linked.reindex(columns=[a for a in Const["ID_AXIS"]+str(self.col_axes)])
+        
+        track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
+        track.set_scale(self)
+        if min_dwell > 0:
+            out = track.filter_stubs(min_dwell)
+        else:
+            out = track.as_standard_type()
+        out.index = np.arange(len(out))
         return out
 
 class TrackFrame(AxesFrame):

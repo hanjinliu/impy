@@ -21,17 +21,13 @@ class GlobalConstant(MutableMapping[str, Any]):
     def __getitem__(self, k):
         return self._const[k]
 
-    def __setitem__(self, k, v):
+    def __setitem__(self, k: str, v):
+        k = k.upper()
         if k == "MAX_GB":
             if not isinstance(v, (int, float)):
                 raise TypeError("MAX_GB must be float.")
             elif v > MAX_GB_LIMIT:
                 raise ValueError(f"Cannot exceed {MAX_GB_LIMIT} GB.")
-        elif k == "SHOW_PROGRESS":
-            if v in (0, 1):
-                v = bool(v)
-            elif not isinstance(v, bool):
-                raise TypeError("SHOW_PROGRESS must be bool.")
         elif k == "ID_AXIS":
             if not isinstance(v, str):
                 raise TypeError("ID_AXIS must be str.")
@@ -66,7 +62,6 @@ class GlobalConstant(MutableMapping[str, Any]):
         return (
             f"""
                   MAX_GB    : {self['MAX_GB']:.2f} GB
-              SHOW_PROGRESS : {self['SHOW_PROGRESS']}
                  ID_AXIS    : {self['ID_AXIS']}
             FONT_SIZE_FACTOR: {self['FONT_SIZE_FACTOR']}
                  RESOURCE   : {self['RESOURCE']}
@@ -79,7 +74,6 @@ class GlobalConstant(MutableMapping[str, Any]):
 
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,
-    SHOW_PROGRESS = True,
     ID_AXIS = "p",
     FONT_SIZE_FACTOR = 1.0,
     RESOURCE = "numpy",
@@ -112,14 +106,6 @@ class SetConst:
                 Const[k] = v
             self._locked_keys.clear()
 
-def silent():
-    """
-    Do not show progress in this context.
-    
-    An alias of ``ip.SetConst(SHOW_PROGRESS=False)``
-    """
-    return SetConst(SHOW_PROGRESS=False)
-
 def use(resource, import_error: bool = False):
     """
     Use a resource (numpy or cupy) in this context.
@@ -132,7 +118,7 @@ def use(resource, import_error: bool = False):
         If false, resource will not be switched to cupy if not available.
         Raise ImportError if true.
     """
-    if not import_error:
+    if not import_error and resource=="cupy":
         try:
             import cupy
         except ImportError:

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from .utils.utilcls import Progress
 from collections import UserList, UserDict
 from typing import Any, Callable, TypeVar
 
@@ -38,7 +37,7 @@ class CollectionBase:
         return self._repr_("_repr_latex_")
         
     
-class DataList(CollectionBase, UserList):
+class DataList(CollectionBase, UserList[_T]):
     """
     List-like class that can call same method for every object containded in it. Accordingly, DataList
     cannot have objects with different types. It is checked every time constructor or `append` method is
@@ -114,13 +113,11 @@ class DataList(CollectionBase, UserList):
             return self.__class__(getattr(a, name) for a in self)
         
         def _run(*args, **kwargs):
-            out = None if name.startswith("_") else "stdout"
-            with Progress(name):
-                out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
+            out = self.__class__(getattr(a, name)(*args, **kwargs) for a in self)
             return out
         return _run
     
-    def apply(self, func: Callable|str, *args, **kwargs) -> DataList:
+    def apply(self, func: Callable | str, *args, **kwargs) -> DataList:
         """
         Apply same function to each components. It can be any callable objects or any method of the components.
 
@@ -201,15 +198,12 @@ class DataDict(CollectionBase, UserDict):
             return self.__class__({k: getattr(a, name) for k, a in self.items()})
         
         def _run(*args, **kwargs):
-            
-            out = None if name.startswith("_") else "stdout"
-            with Progress(name):
-                out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
-                                      for k, a in self.items()})
+            out = self.__class__({k: getattr(a, name)(*args, **kwargs) 
+                                for k, a in self.items()})
             return out
         return _run
     
-    def apply(self, func: Callable|str, *args, **kwargs):
+    def apply(self, func: Callable | str, *args, **kwargs):
         """
         Apply same function to each components. It can be any callable objects or any method of the components.
 

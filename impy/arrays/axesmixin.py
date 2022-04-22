@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import numpy as np
 import itertools
 import re
@@ -15,9 +15,8 @@ if TYPE_CHECKING:
 
 
 class AxesMixin:
-    """
-    Abstract class with shape, ndim and axes are defined.
-    """    
+    """Abstract class with shape, ndim and axes are defined."""
+    
     _axes: Axes
     ndim: int
     shape: tuple[int, ...]
@@ -25,7 +24,7 @@ class AxesMixin:
     @property
     def shape_info(self) -> str:
         if self.axes.is_none():
-            shape_info = self.shape
+            shape_info = str(self.shape)
         else:
             shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
         return shape_info
@@ -36,6 +35,7 @@ class AxesMixin:
     
     @property
     def axes(self) -> Axes:
+        """Axes of the array."""
         return self._axes
     
     @axes.setter
@@ -47,9 +47,13 @@ class AxesMixin:
             if self.ndim != len(self._axes):
                 raise ImageAxesError("Inconpatible dimensions: "
                                     f"array (ndim={self.ndim}) and axes ({value})")
-        
+    
     @property
-    def scale(self) -> ScaleDict:
+    def metadata(self) -> dict[str, Any]:
+        raise NotImplementedError()
+    
+    @property
+    def scale(self) -> ScaleDict | None:
         return self.axes._scale
     
     @scale.setter
@@ -63,7 +67,7 @@ class AxesMixin:
         try:
             unit = self.metadata["unit"]
             if unit.startswith(r"\u"):
-                unit = "u" + unit[6:]
+                unit = "μ" + unit[6:]
         except Exception:
             unit = None
         return unit
@@ -74,16 +78,14 @@ class AxesMixin:
             msg = "Can only set str to scale unit. 'px' is set instead."
             warn(msg)
             unit = "px"
-        if isinstance(self.metadata, dict):
-            self.metadata["unit"] = unit
-        else:
-            self.metadata = {"unit": unit}
+        self.metadata["unit"] = unit
     
-    def _repr_dict_(self) -> dict[str]:
+    def _repr_dict_(self) -> dict[str, Any]:
         raise NotImplementedError()
         
     def __repr__(self) -> str:
-        return "\n" + "\n".join(f"{k}: {v}" for k, v in self._repr_dict_().items()) + "\n"
+        info = "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items())
+        return f"{self.__class__.__name__} of\n{info}\n"
     
     def _repr_html_(self) -> str:
         strs = []
@@ -166,7 +168,7 @@ class AxesMixin:
             self.set_scale(dict(kwargs))
         
         elif hasattr(other, "scale"):
-            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})
+            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})  # type: ignore
         
         else:
             raise TypeError(f"'other' must be str or LazyImgArray, but got {type(other)}")

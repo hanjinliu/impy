@@ -21,27 +21,33 @@ def __getattr__(name: str):
     return _func
 
 @wraps(np.random.random)
-def random(size, 
-            *,
-            name: str = None,
-            axes: str = None) -> ImgArray:
+def random(
+    size, 
+    *,
+    name: str = None,
+    axes: str = None,
+) -> ImgArray:
     name = name or "random"
     return asarray(xp.asnumpy(xp.random.random(size)), name=name, axes=axes)
 
 @wraps(np.random.normal)
-def normal(loc=0.0, 
-           scale=1.0,
-           size=None, 
-           *,
-           name: str = None, 
-           axes: str = None) -> ImgArray:
-    name = name or "normal"
+def normal(
+    loc: float = 0.0, 
+    scale: float = 1.0,
+    size=None, 
+    *,
+    name: str = None, 
+    axes: str = None,
+) -> ImgArray:
+    name = name or f"normal({loc}, {scale})"
     return asarray(xp.asnumpy(xp.random.normal(loc, scale, size)), name=name, axes=axes)
 
-def random_uint8(size: int | tuple[int], 
-                 *, 
-                 name: str = None,
-                 axes: str = None) -> ImgArray:
+def random_uint8(
+    size: int | tuple[int], 
+    *, 
+    name: str = None,
+    axes: str = None,
+) -> ImgArray:
     """
     Return a random uint8 image, ranging 0-255.
 
@@ -63,10 +69,12 @@ def random_uint8(size: int | tuple[int],
     name = name or "random_uint8"
     return asarray(xp.asnumpy(arr), name=name, axes=axes)
 
-def random_uint16(size,
-                  *, 
-                  name: str = None,
-                  axes: str = None) -> ImgArray:
+def random_uint16(
+    size,
+    *, 
+    name: str = None,
+    axes: str = None,
+) -> ImgArray:
     """
     Return a random uint16 image, ranging 0-65535.
 

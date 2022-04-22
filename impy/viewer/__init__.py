@@ -1,2 +1,2 @@
-from .viewer import napariViewers, GUIcanvas
+from .viewer import napariViewers
 gui = napariViewers()

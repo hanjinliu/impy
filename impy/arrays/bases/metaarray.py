@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from pathlib import Path
 import numpy as np
+from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError
@@ -14,37 +16,77 @@ if TYPE_CHECKING:
 
 
 class MetaArray(AxesMixin, np.ndarray):
-    additional_props = ["dirpath", "metadata", "name"]
+    additional_props = ["_source", "_metadata", "_name"]
     NP_DISPATCH = {}
-    name: str
-    dirpath: str
+    _name: str
+    _source: Path | None
+    _metadata: dict[str, Any]
     
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                metadata=None, dtype=None) -> Self:
+    def __new__(
+        cls: type[MetaArray], 
+        obj,
+        name: str | None = None,
+        axes: str | None = None,
+        source: str | Path | None = None, 
+        metadata: dict[str, Any] | None = None,
+        dtype: DTypeLike = None,
+    ) -> Self:
         if isinstance(obj, cls):
             return obj
         
         self = np.asarray(obj, dtype=dtype).view(cls)
-        self.dirpath = dirpath
-        self.name = name
-        
-        # MicroManager
-        if isinstance(self.name, str) and self.name.endswith(".ome") and "_MMStack" in self.name:
-            self.name = self.name.split("_MMStack")[0]
-        
+        self.source = source
+        self._name = name
         self.axes = axes
-        self.metadata = metadata
+        self._metadata = metadata or {}
         return self
     
     @property
+    def source(self):
+        """The source file path."""
+        return self._source
+    
+    @source.setter
+    def source(self, val):
+        if val is None:
+            self._source = None
+        else:
+            self._source = Path(val)
+    
+    @property
+    def name(self) -> str:
+        """Name of the array."""
+        if self._name is None:
+            source = self.source
+            if source is None:
+                return "No name"
+            else:
+                return source.name
+        else:
+            return self._name
+    
+    @name.setter
+    def name(self, val):
+        self._name = str(val)
+    
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Metadata dictionary of the array."""
+        return self._metadata
+    
+    @property
     def value(self) -> np.ndarray:
+        """Numpy view of the array."""
         return np.asarray(self)
     
     def _repr_dict_(self) -> dict[str, Any]:
-        return {"    shape     ": self.shape_info,
-                "    dtype     ": self.dtype,
-                "  directory   ": self.dirpath,
-                "original image": self.name}
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "scale": self.scale,
+        }
     
     def __str__(self):
         return self.name or "None"
@@ -57,10 +99,6 @@ class MetaArray(AxesMixin, np.ndarray):
         except ImageAxesError:
             return super().shape
     
-
-    def showinfo(self):
-        print(repr(self))
-        return None
     
     def _set_additional_props(self, other):
         # set additional properties
@@ -70,7 +108,7 @@ class MetaArray(AxesMixin, np.ndarray):
                                      getattr(self, p, 
                                              None)))
     
-    def _set_info(self, other, new_axes:str="inherit"):
+    def _set_info(self, other: Self, new_axes: str = "inherit"):
         self._set_additional_props(other)
         # set axes
         try:
@@ -86,8 +124,8 @@ class MetaArray(AxesMixin, np.ndarray):
     
     def __getitem__(self, key: int | str | slice | tuple) -> Self:
         if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like, axis-targeted slicing
-            sl = self._str_to_slice(key)
+            # img["t=2;z=4"] ... axis-targeted slicing
+            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
             return self.__getitem__(sl)
 
         if isinstance(key, np.ndarray):
@@ -115,8 +153,9 @@ class MetaArray(AxesMixin, np.ndarray):
             else:
                 new_axes = None
                 
-            out._getitem_additional_set_info(self, keystr=keystr,
-                                             new_axes=new_axes, key=key)
+            out._getitem_additional_set_info(
+                self, keystr=keystr, new_axes=new_axes, key=key
+            )
         
         return out
     
@@ -127,7 +166,7 @@ class MetaArray(AxesMixin, np.ndarray):
     def __setitem__(self, key: int | str | slice | tuple, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
-            sl = self._str_to_slice(key)
+            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
             return self.__setitem__(sl, value)
         
         if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
@@ -179,7 +218,7 @@ class MetaArray(AxesMixin, np.ndarray):
     
     def _inherit_meta(self, obj, ufunc, **kwargs):
         """
-        Copy axis, history etc. from obj.
+        Copy axis etc. from obj.
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
         considered because it changes `ndim`.
         """
@@ -245,13 +284,6 @@ class MetaArray(AxesMixin, np.ndarray):
             return func
         return decorator
     
-    def _str_to_slice(self, string: str):
-        """
-        get subslices using ImageJ-like format.
-        e.g. 't=3:, z=1:5', 't=1, z=:7'
-        """
-        return axis_targeted_slicing(self.ndim, str(self.axes), string)
-    
     def sort_axes(self) -> Self:
         """
         Sort image dimensions to ptzcyx-order
@@ -282,6 +314,32 @@ class MetaArray(AxesMixin, np.ndarray):
             return tup(*argmax)
         except ImageAxesError:
             return argmax
+    
+    def split(self, axis=None) -> DataList[Self]:
+        """
+        Split n-dimensional image into (n-1)-dimensional images.
+
+        Parameters
+        ----------
+        axis : str or int, optional
+            Along which axis the original image will be split, by default "c"
+
+        Returns
+        -------
+        list of arrays
+            Separate images
+        """
+        # determine axis in int.
+        if axis is None:
+            axis = find_first_appeared(self.axes, include="cztp")
+        axisint = self.axisof(axis)
+            
+        imgs: DataList[MetaArray] = DataList(np.moveaxis(self, axisint, 0))
+        for img in imgs:
+            img.axes = del_axis(self.axes, axisint)
+            img.set_scale(self)
+            
+        return imgs
     
     def apply_dask(
         self, 

@@ -2,18 +2,17 @@ from functools import wraps
 import numpy as np
 import inspect
 import re
-from .utilcls import Progress
 from ..array_api import xp
 
-__all__ = ["record",
-           "record_lazy",
-           "same_dtype",
-           "dims_to_spatial_axes",
-           "make_history",
-           ]
+__all__ = [
+    "record",
+    "record_lazy",
+    "same_dtype",
+    "dims_to_spatial_axes",
+]
             
     
-def record(func=None, *, append_history=True, record_label=False, only_binary=False, need_labels=False):
+def record(func=None, *, inherit_label_info=False, only_binary=False, need_labels=False):
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
@@ -24,45 +23,26 @@ def record(func=None, *, append_history=True, record_label=False, only_binary=Fa
                 raise AttributeError(f"Function {func.__name__} needs labels."
                                     " Add labels to the image first.")
             
-            # show the dimensionality of for-loop
-            if "dims" in kwargs.keys():
-                ndim = len(kwargs["dims"])
-                suffix = f" ({ndim}D)"
-            else:
-                suffix = ""
-
-            # start process
-            with Progress(func.__name__ + suffix):
-                out = func(self, *args, **kwargs)
-            
-            temp = getattr(out, "temp", None)
+            out = func(self, *args, **kwargs)
             
             if type(out) in (np.ndarray, xp.ndarray):
                 out = xp.asnumpy(out).view(self.__class__)
             
-            # record history and update if needed
             ifupdate = kwargs.pop("update", False)
-            
-            if append_history:
-                history = make_history(func.__name__, args, kwargs)
-                if record_label:
-                    out.labels._set_info(self.labels, history)
-                else:
-                    try:
-                        out._set_info(self, history)
-                    except AttributeError:
-                        pass
+            if inherit_label_info:
+                out.labels._set_info(self.labels)
+            try:
+                out._set_info(self)
+            except AttributeError:
+                pass
                     
             ifupdate and self._update(out)
             
-            # if temporary item exists
-            if temp is not None:
-                out.temp = temp
             return out
         return _record
     return f if func is None else f(func)
 
-def record_lazy(func=None, *, append_history=True, only_binary=False):
+def record_lazy(func=None, *, only_binary=False):
     def f(func):
         @wraps(func)
         def _record(self, *args, **kwargs):
@@ -75,19 +55,14 @@ def record_lazy(func=None, *, append_history=True, only_binary=False):
             if isinstance(out, da.core.Array):
                 out = self.__class__(out)
             
-            # record history and update if needed
             ifupdate = kwargs.pop("update", False)
-            
-            if append_history:
-                history = make_history(func.__name__, args, kwargs)
-                try:
-                    out._set_info(self, history)
-                except AttributeError:
-                    pass
-                    
+            try:
+                out._set_info(self)
+            except AttributeError:
+                pass
+                
             if ifupdate:
                 self.value = out.value
-                self.history = out.history
             
             return out
         return _record
@@ -162,9 +137,3 @@ def _safe_str(obj):
             return s
     except Exception:
         return str(type(obj))
-
-def make_history(funcname, args, kwargs):
-    _args = list(map(_safe_str, args))
-    _kwargs = [f"{_safe_str(k)}={_safe_str(v)}" for k, v in kwargs.items()]
-    history = f"{funcname}({','.join(_args + _kwargs)})"
-    return history

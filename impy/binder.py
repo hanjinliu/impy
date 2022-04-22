@@ -4,7 +4,6 @@ from typing import Callable
 from functools import wraps
 from .arrays import *
 from .utils.axesop import *
-from .utils.utilcls import Progress
 from .utils.deco import *
 
 # Extend ImgArray with custom functions.
@@ -12,8 +11,7 @@ from .utils.deco import *
 class bind:
     """
     Dynamically define ImgArray function that can iterate over axes. You can integrate your own
-    function, or useful functions from `skimage` or `opencv`. History of function call will be 
-    similarly recorded in `self.history`.
+    function, or useful functions from `skimage` or `opencv`.
     This class is designed as a kind of decorator class so that it can be used as decorator of
     any function or directly takes a function as the first argument.
 
@@ -169,8 +167,7 @@ class bind:
             _drop_axis = lambda dims: None
             def _exit(out, img, func, *args, **kwargs):
                 out = out.view(ImgArray).as_img_type(outdtype)
-                history = make_history(func.__name__, args, kwargs)
-                out._set_info(img, history)
+                out._set_info(img)
                 return out
             
         elif kind == "property":
@@ -183,8 +180,7 @@ class bind:
         elif kind == "label":
             _drop_axis = lambda dims: None
             def _exit(out, img, func, *args, dims=None, **kwargs):
-                img.labels = Label(out, name=img.name, axes=img.axes, dirpath=img.dirpath).optimize()
-                img.labels.history.append(fn)
+                img.labels = Label(out, name=img.name, axes=img.axes, source=img.source).optimize()
                 img.labels.set_scale(img)
                 return img.labels
             
@@ -195,7 +191,6 @@ class bind:
                 arr._set_info(img)
                 lbl = arr.label(dims=dims)
                 img.labels = lbl
-                img.labels.history.append(fn)
                 img.labels.set_scale(img)
                 return img.labels
                         
@@ -209,14 +204,14 @@ class bind:
             if indtype is not None:
                 img = img.as_img_type(indtype)
                 
-            with Progress(fn):
-                out = img.apply_dask(func,
-                                     c_axes=complement_axes(dims, img.axes),
-                                     drop_axis=_drop_axis(dims),
-                                     args=args,
-                                     kwargs=kwargs
-                                     )
-                out = _exit(out, img, func, *args, dims=dims, **kwargs)
+            out = img.apply_dask(
+                func,
+                c_axes=complement_axes(dims, img.axes),
+                drop_axis=_drop_axis(dims),
+                args=args,
+                kwargs=kwargs
+            )
+            out = _exit(out, img, func, *args, dims=dims, **kwargs)
                 
             return out
         

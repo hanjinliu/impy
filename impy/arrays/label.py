@@ -3,7 +3,7 @@ import numpy as np
 
 from ._utils._skimage import skimage, skseg
 from ._utils import _filters, _structures, _docs
-from .bases import HistoryArray
+from .bases import MetaArray
 
 from ..utils.axesop import complement_axes
 from ..utils.deco import record, dims_to_spatial_axes
@@ -18,12 +18,12 @@ def best_dtype(n:int):
     else:
         return np.uint64
 
-class Label(HistoryArray):
-    def __new__(cls, obj, name=None, axes=None, dirpath=None, 
-                history=None, metadata=None, dtype=None) -> Label:
+class Label(MetaArray):
+    def __new__(cls, obj, name=None, axes=None, source=None, 
+                metadata=None, dtype=None) -> Label:
         if dtype is None:
             dtype = best_dtype(np.max(obj))
-        self = super().__new__(cls, obj, name, axes, dirpath, history, metadata, dtype)
+        self = super().__new__(cls, obj, name, axes, source, metadata, dtype)
         return self
     
     def increment(self, n: int) -> Label:
@@ -57,6 +57,7 @@ class Label(HistoryArray):
             raise OverflowError
 
     def optimize(self) -> Label:
+        """Optimize labeling."""
         self.relabel()
         m = self.max()
         if m < 2**8 and np.iinfo(self.dtype).max >= 2**8:
@@ -122,7 +123,7 @@ class Label(HistoryArray):
             test_array = np.sum(self>0, axis=axis)
             if (test_array>1).any():
                 raise ValueError("Label overlapped.")
-        new_labels._set_info(self, "proj", new_axes=c_axes)
+        new_labels._set_info(self, new_axes=c_axes)
         return new_labels
     
     def add_label(self, label_image):

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorial &mdash; impy 1.25.2 documentation</title>
+  <title>Tutorial &mdash; impy 2.0.0.alpha documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -18,7 +18,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Viewer Tutorial" href="tutorial_viewer.html" />
+    <link rel="next" title="Command Line Usage" href="tutorial_cmd.html" />
     <link rel="prev" title="Welcome to impy’s documentation!" href="index.html" /> 
 </head>
 
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                1.25.2
+                2.0.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -51,6 +51,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#extended-numpy-functions">Extended Numpy functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-gpu">Use GPU</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#advanced-reading-options">Advanced Reading Options</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#read-separate-images-as-an-image-stack">Read Separate Images as an Image Stack</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#read-separate-images-as-an-datalist">Read Separate Images as an DataList</a></li>
@@ -59,7 +60,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_viewer.html">Viewer Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
 </ul>
@@ -103,11 +103,12 @@
 </ul>
 </li>
 <li><p><a class="reference internal" href="#extended-numpy-functions" id="id7">Extended Numpy functions</a></p></li>
-<li><p><a class="reference internal" href="#advanced-reading-options" id="id8">Advanced Reading Options</a></p>
+<li><p><a class="reference internal" href="#use-gpu" id="id8">Use GPU</a></p></li>
+<li><p><a class="reference internal" href="#advanced-reading-options" id="id9">Advanced Reading Options</a></p>
 <ul>
-<li><p><a class="reference internal" href="#read-separate-images-as-an-image-stack" id="id9">Read Separate Images as an Image Stack</a></p></li>
-<li><p><a class="reference internal" href="#read-separate-images-as-an-datalist" id="id10">Read Separate Images as an DataList</a></p></li>
-<li><p><a class="reference internal" href="#read-very-large-images" id="id11">Read Very Large Images</a></p></li>
+<li><p><a class="reference internal" href="#read-separate-images-as-an-image-stack" id="id10">Read Separate Images as an Image Stack</a></p></li>
+<li><p><a class="reference internal" href="#read-separate-images-as-an-datalist" id="id11">Read Separate Images as an DataList</a></p></li>
+<li><p><a class="reference internal" href="#read-very-large-images" id="id12">Read Very Large Images</a></p></li>
 </ul>
 </li>
 </ul>
@@ -115,7 +116,7 @@
 <section id="basics">
 <h2><a class="toc-backref" href="#id1">Basics</a><a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code>’s concept is to make image analysis on Python much more user friendly. The core array object,
-<code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, retains all the features of <code class="docutils literal notranslate"><span class="pre">numpy.ndaaray</span></code> while implemented with variety of function
+<code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, retains all the features of <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> while implemented with variety of function
 that minimize your effort of image processing.</p>
 <p>Let’s start with a simple example.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">impy</span> <span class="k">as</span> <span class="nn">ip</span>
@@ -124,28 +125,28 @@ that minimize your effort of image processing.</p>
 <span class="n">out</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">shape</span>     <span class="p">:</span> <span class="mi">10</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">20</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">256</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">256</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-  <span class="n">label</span> <span class="n">shape</span> <span class="p">:</span> <span class="n">No</span> <span class="n">label</span>
-    <span class="n">dtype</span>     <span class="p">:</span> <span class="n">uint16</span>
-  <span class="n">directory</span>   <span class="p">:</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span>
-<span class="n">original</span> <span class="n">image</span><span class="p">:</span> <span class="n">image</span>
-    <span class="n">history</span>   <span class="p">:</span> <span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ImgArray</span> <span class="n">of</span>
+     <span class="n">name</span>      <span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">tif</span>
+    <span class="n">shape</span>      <span class="p">:</span> <span class="mi">10</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">20</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">256</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">256</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+ <span class="n">label</span> <span class="n">shape</span>   <span class="p">:</span> <span class="n">No</span> <span class="n">label</span>
+    <span class="n">dtype</span>      <span class="p">:</span> <span class="n">uint16</span>
+    <span class="n">source</span>     <span class="p">:</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">image</span><span class="o">.</span><span class="n">tif</span>
+    <span class="n">scale</span>      <span class="p">:</span> <span class="n">ScaleDict</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.217</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.217</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.217</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Here, you can see</p>
 <ul class="simple">
-<li><p>each dimension is labeled with a symbol (t, z, y and x)</p></li>
-<li><p>the source directory and file names are recorded</p></li>
-<li><p>history of image analysis is recorded</p></li>
+<li><p>each dimension is labeled with a symbol (t, z, y and x).</p></li>
+<li><p>Physical scale is tagged to the object as a <code class="docutils literal notranslate"><span class="pre">ScaleDict</span></code>, a subclass of Python <code class="docutils literal notranslate"><span class="pre">dict</span></code>.</p></li>
+<li><p>the source file is recorded.</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code>’s <code class="docutils literal notranslate"><span class="pre">imread</span></code> function can extract metadata (such as axes) from image files and “memorize” them
-as additional properties of array objects. Most of array objects in <code class="docutils literal notranslate"><span class="pre">impy</span></code> can record history, which
-makes it much easier to review what changes were applied to the images.</p>
+as additional properties of array objects.</p>
 <p>You can refer to the properties by:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>        <span class="c1"># Out: &quot;tzyx&quot;</span>
-<span class="n">img</span><span class="o">.</span><span class="n">dirpath</span>     <span class="c1"># Out: &quot;path/to&quot;</span>
-<span class="n">img</span><span class="o">.</span><span class="n">name</span>        <span class="c1"># Out: &quot;image&quot;</span>
-<span class="n">img</span><span class="o">.</span><span class="n">history</span>     <span class="c1"># Out: [&quot;gaussian_filter(sigma=1)&quot;]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>       <span class="c1"># Out: &quot;tzyx&quot;</span>
+<span class="n">img</span><span class="o">.</span><span class="n">source</span>     <span class="c1"># Out: such as WindowsPath(&quot;path/to/image.tif&quot;)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">name</span>       <span class="c1"># Out: &quot;image.tif&quot;</span>
+<span class="n">img</span><span class="o">.</span><span class="n">scale</span>      <span class="c1"># Out: ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)</span>
 </pre></div>
 </div>
 <p>After you finished all the process you want, you can view the results in <code class="docutils literal notranslate"><span class="pre">napari</span></code> viewer. Just pass the
@@ -166,6 +167,14 @@ care about which is t-axis. Most arrays in <code class="docutils literal notrans
 <li><p>Fancy slicing, like <code class="docutils literal notranslate"><span class="pre">img[&quot;t=1,3,5&quot;]</span></code></p></li>
 <li><p>Conbination of them with splitter “;”, like <code class="docutils literal notranslate"><span class="pre">img[&quot;t=3;z=5:7&quot;]</span></code></p></li>
 </ul>
+<p>Similarly, image shape is also extended to support axis-based access. In the example above, the image of
+interest has (t, z, y, x) axes and the shape is (10, 20, 256, 256). Similar to <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, you can
+know its shape using <code class="docutils literal notranslate"><span class="pre">img.shape</span></code> but in <code class="docutils literal notranslate"><span class="pre">impy</span></code> an object of <code class="docutils literal notranslate"><span class="pre">AxesShape</span></code> will be returned instead of
+Python <code class="docutils literal notranslate"><span class="pre">tuple</span></code>, as long as axes are well-defined.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">shape</span>       <span class="c1"># Out: AxesShape(t=10, z=20, y=256, z=256)</span>
+</pre></div>
+</div>
+<p>Here, you can get the size of z-axis by <code class="docutils literal notranslate"><span class="pre">img.shape.z</span></code> instead of <code class="docutils literal notranslate"><span class="pre">img.shape[1]</span></code>.</p>
 </section>
 <section id="batch-processing">
 <h2><a class="toc-backref" href="#id3">Batch Processing</a><a class="headerlink" href="#batch-processing" title="Permalink to this headline">¶</a></h2>
@@ -186,7 +195,7 @@ As in the first example, with a <cite>tzyx</cite> image, instead of running</p>
 <p>If you want <cite>yx</cite> axes be the spatial dimensions, i.e., iterate over <cite>t</cite> and <cite>z</cite> axes, explicitly specify it with <code class="docutils literal notranslate"><span class="pre">dims</span></code>
 keyword argument:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">)</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># this is fine</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># this is fine</span>
 </pre></div>
 </div>
 </section>
@@ -195,7 +204,7 @@ keyword argument:</p>
 <ol class="arabic simple">
 <li><p>Apply a function to whole image with different parameters</p></li>
 </ol>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">for_params</span><span class="p">(</span><span class="s2">&quot;log_filter&quot;</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sigma&quot;</span><span class="p">:[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]})</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">for_params</span><span class="p">(</span><span class="s2">&quot;log_filter&quot;</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]})</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">for_params</span><span class="p">(</span><span class="s2">&quot;log_filter&quot;</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span> <span class="c1"># This is also supported.</span>
 </pre></div>
 </div>
@@ -252,29 +261,44 @@ for details.</p>
 </pre></div>
 </div>
 </section>
+<section id="use-gpu">
+<h2><a class="toc-backref" href="#id8">Use GPU</a><a class="headerlink" href="#use-gpu" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> can automatically switch between <code class="docutils literal notranslate"><span class="pre">numpy</span></code> and <code class="docutils literal notranslate"><span class="pre">cupy</span></code>. Using GPU can largely boost
+your image analysis especially when it relies on Fourier transformation or linear algebra.
+You can setup GPU calculation within a context using</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">ip</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;cupy&quot;</span><span class="p">):</span>
+    <span class="n">img_deconv</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">lucy</span><span class="p">(</span><span class="n">psf_image</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or globally</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ip</span><span class="o">.</span><span class="n">Const</span><span class="p">[</span><span class="s2">&quot;RESOURCE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cupy&quot;</span>
+</pre></div>
+</div>
+</section>
 <section id="advanced-reading-options">
-<h2><a class="toc-backref" href="#id8">Advanced Reading Options</a><a class="headerlink" href="#advanced-reading-options" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id9">Advanced Reading Options</a><a class="headerlink" href="#advanced-reading-options" title="Permalink to this headline">¶</a></h2>
 <section id="read-separate-images-as-an-image-stack">
-<h3><a class="toc-backref" href="#id9">Read Separate Images as an Image Stack</a><a class="headerlink" href="#read-separate-images-as-an-image-stack" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id10">Read Separate Images as an Image Stack</a><a class="headerlink" href="#read-separate-images-as-an-image-stack" title="Permalink to this headline">¶</a></h3>
 <p>If images are saved as separate tif files in a directory, you can read them as an image stack by:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="read-separate-images-as-an-datalist">
-<h3><a class="toc-backref" href="#id10">Read Separate Images as an DataList</a><a class="headerlink" href="#read-separate-images-as-an-datalist" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id11">Read Separate Images as an DataList</a><a class="headerlink" href="#read-separate-images-as-an-datalist" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">imread_collection</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="read-very-large-images">
-<h3><a class="toc-backref" href="#id11">Read Very Large Images</a><a class="headerlink" href="#read-very-large-images" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id12">Read Very Large Images</a><a class="headerlink" href="#read-very-large-images" title="Permalink to this headline">¶</a></h3>
 <p>If you deal with very large images that exceeds PC memory, you can use <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>. This object retains
 memory map of the image file that is split into smaller chunks, and passes it to <code class="docutils literal notranslate"><span class="pre">dask</span></code> array as “ready to
 read” state. The image data is therefore loaded only when it is needed. Many useful functions in <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>
 are also implemented in <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code> so that you can easily handle large datasets.</p>
-<p>To read large images as <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>, call <code class="docutils literal notranslate"><span class="pre">lazy_imread</span></code> instead.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">lazy_imread</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">)</span>
+<p>To read large images as <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>, call <code class="docutils literal notranslate"><span class="pre">lazy_imread</span></code> instead. You can specify its chunk size using
+<code class="docutils literal notranslate"><span class="pre">chunks</span></code> parameter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">lazy_imread</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">))</span>
 <span class="n">img</span>
 </pre></div>
 </div>
@@ -294,7 +318,7 @@ are also implemented in <code class="docutils literal notranslate"><span class="
 </pre></div>
 </div>
 <p>When you have to convert it to <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, use <code class="docutils literal notranslate"><span class="pre">data</span></code> property:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span> <span class="c1"># dask&#39;s compute() function will be called inside</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>  <span class="c1"># dask&#39;s compute() function will be called inside</span>
 </pre></div>
 </div>
 </section>
@@ -306,7 +330,7 @@ are also implemented in <code class="docutils literal notranslate"><span class="
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Welcome to impy’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="tutorial_viewer.html" class="btn btn-neutral float-right" title="Viewer Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="tutorial_cmd.html" class="btn btn-neutral float-right" title="Command Line Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

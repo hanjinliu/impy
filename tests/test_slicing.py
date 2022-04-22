@@ -1,6 +1,5 @@
 import impy as ip
 import numpy as np
-ip.Const["SHOW_PROGRESS"] = False
 
 def test_str_slicing():
     img = ip.random.normal(size=(10, 2, 30, 40))

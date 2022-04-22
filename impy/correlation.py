@@ -7,7 +7,6 @@ from .arrays._utils import _docs
 from .arrays._utils._transform import polar2d
 from .arrays._utils._corr import subpixel_pcc, subpixel_ncc, draw_pcc_landscape, draw_ncc_landscape
 from .utils.axesop import complement_axes, add_axes
-from .utils.utilcls import Progress
 from .utils.deco import dims_to_spatial_axes
 from .array_api import xp
 from ._types import Dims
@@ -77,25 +76,24 @@ def fsc(
     
     freqs = xp.meshgrid(*[xp.fft.fftshift(xp.fft.fftfreq(s)) for s in shape], indexing="ij")
     r = xp.sqrt(sum(f**2 for f in freqs))
-    
-    with Progress("fsc"):
-        # make radially separated labels
-        labels = (r/dfreq).astype(np.uint16)
-        nlabels = int(xp.asnumpy(labels.max()))
-        
-        out = xp.empty(nlabels, dtype=np.float32)
-        def radial_sum(arr):
-            arr = xp.asarray(arr)
-            return xp.ndi.sum_labels(arr, labels=labels, index=xp.arange(0, nlabels))
 
-        f0 = img0.fft(dims=dims)
-        f1 = img1.fft(dims=dims)
-        
-        cov = f0.real*f1.real + f0.imag*f1.imag
-        pw0 = f0.real**2 + f0.imag**2
-        pw1 = f1.real**2 + f1.imag**2
+    # make radially separated labels
+    labels = (r/dfreq).astype(np.uint16)
+    nlabels = int(xp.asnumpy(labels.max()))
     
-        out = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
+    out = xp.empty(nlabels, dtype=np.float32)
+    def radial_sum(arr):
+        arr = xp.asarray(arr)
+        return xp.ndi.sum_labels(arr, labels=labels, index=xp.arange(0, nlabels))
+
+    f0 = img0.fft(dims=dims)
+    f1 = img1.fft(dims=dims)
+    
+    cov = f0.real*f1.real + f0.imag*f1.imag
+    pw0 = f0.real**2 + f0.imag**2
+    pw1 = f1.real**2 + f1.imag**2
+
+    out = radial_sum(cov)/xp.sqrt(radial_sum(pw0) * radial_sum(pw1))
     freq = (np.arange(len(out)) + 0.5) * dfreq
     return freq, xp.asnumpy(out)
 
@@ -127,7 +125,6 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: xp.ndarray):
 def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
     # Basic Zero-mean Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
-    # TODO: This is not efficient. Use E[x^2] - E[x]^2.
     corr = xp.sum(img0 * img1, axis=dims) / (
         xp.sqrt(xp.sum(img0**2, axis=dims)*xp.sum(img1**2, axis=dims)))
     return corr
@@ -173,14 +170,13 @@ def ncc(
     PropArray or float
         Correlation value(s).
     """    
-    with Progress("ncc"):
-        img0, img1 = _check_inputs(img0, img1)
-        if mask is None:
-            corr = _ncc(img0, img1, dims)
-        else:
-            if img0.ndim > mask.ndim:
-                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-            corr = _masked_ncc(img0, img1, dims, np.asarray(mask))
+    img0, img1 = _check_inputs(img0, img1)
+    if mask is None:
+        corr = _ncc(img0, img1, dims)
+    else:
+        if img0.ndim > mask.ndim:
+            mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+        corr = _masked_ncc(img0, img1, dims, np.asarray(mask))
     return _make_corr_output(corr, img0, "ncc", squeeze, dims)
 
 @_docs.write_docs
@@ -210,19 +206,18 @@ def zncc(
     PropArray or float
         Correlation value(s).
     """    
-    with Progress("zncc"):
-        img0, img1 = _check_inputs(img0, img1)
-        _dims = tuple(img0.axisof(a) for a in dims)
-        _img0 = xp.asarray(img0.value)
-        _img1 = xp.asarray(img1.value)
-        img0zn = _img0 - xp.mean(_img0, axis=_dims, keepdims=True)
-        img1zn = _img1 - xp.mean(_img1, axis=_dims, keepdims=True)
-        if mask is None:
-            corr = _zncc(img0zn, img1zn, _dims)
-        else:
-            if img0.ndim > mask.ndim:
-                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-            corr = _masked_zncc(img0zn, img1zn, _dims, xp.asarray(np.asarray(mask)))
+    img0, img1 = _check_inputs(img0, img1)
+    _dims = tuple(img0.axisof(a) for a in dims)
+    _img0 = xp.asarray(img0.value)
+    _img1 = xp.asarray(img1.value)
+    img0zn = _img0 - xp.mean(_img0, axis=_dims, keepdims=True)
+    img1zn = _img1 - xp.mean(_img1, axis=_dims, keepdims=True)
+    if mask is None:
+        corr = _zncc(img0zn, img1zn, _dims)
+    else:
+        if img0.ndim > mask.ndim:
+            mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+        corr = _masked_zncc(img0zn, img1zn, _dims, xp.asarray(np.asarray(mask)))
     return _make_corr_output(xp.asnumpy(corr), img0, "zncc", squeeze, dims)
 
 # alias
@@ -307,16 +302,15 @@ def fourier_ncc(
     PropArray or float
         Correlation value(s).
     """    
-    with Progress("fourier_ncc"):
-        img0, img1 = _check_inputs(img0, img1)
-        f0 = np.sqrt(img0.power_spectra(dims=dims, zero_norm=True))
-        f1 = np.sqrt(img1.power_spectra(dims=dims, zero_norm=True))
-        if mask is None:
-            corr = _ncc(f0, f1, dims)
-        else:
-            if img0.ndim > mask.ndim:
-                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-            corr = _masked_ncc(f0, f1, dims, xp.asarray(np.asarray(mask)))
+    img0, img1 = _check_inputs(img0, img1)
+    f0 = np.sqrt(img0.power_spectra(dims=dims, zero_norm=True))
+    f1 = np.sqrt(img1.power_spectra(dims=dims, zero_norm=True))
+    if mask is None:
+        corr = _ncc(f0, f1, dims)
+    else:
+        if img0.ndim > mask.ndim:
+            mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+        corr = _masked_ncc(f0, f1, dims, xp.asarray(np.asarray(mask)))
     return _make_corr_output(corr, img0, "fourier_ncc", squeeze, dims)
 
 @_docs.write_docs
@@ -346,22 +340,21 @@ def fourier_zncc(
     PropArray or float
         Correlation value(s).
     """    
-    with Progress("fourier_zncc"):
-        img0, img1 = _check_inputs(img0, img1)
-        pw0 = xp.asarray(img0.power_spectra(dims=dims, zero_norm=True).value)
-        pw1 = xp.asarray(img1.power_spectra(dims=dims, zero_norm=True).value)
-        
-        _dims = tuple(img0.axisof(a) for a in dims)
-        f0 = xp.sqrt(pw0)
-        f1 = xp.sqrt(pw1)
-        f0 -= xp.mean(f0, axis=_dims, keepdims=True)
-        f1 -= xp.mean(f1, axis=_dims, keepdims=True)
-        if mask is None:
-            corr = _zncc(f0, f1, _dims)
-        else:
-            if img0.ndim > mask.ndim:
-                mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
-            corr = _masked_zncc(f0, f1, _dims, xp.asarray(np.asarray(mask)))
+    img0, img1 = _check_inputs(img0, img1)
+    pw0 = xp.asarray(img0.power_spectra(dims=dims, zero_norm=True).value)
+    pw1 = xp.asarray(img1.power_spectra(dims=dims, zero_norm=True).value)
+    
+    _dims = tuple(img0.axisof(a) for a in dims)
+    f0 = xp.sqrt(pw0)
+    f1 = xp.sqrt(pw1)
+    f0 -= xp.mean(f0, axis=_dims, keepdims=True)
+    f1 -= xp.mean(f1, axis=_dims, keepdims=True)
+    if mask is None:
+        corr = _zncc(f0, f1, _dims)
+    else:
+        if img0.ndim > mask.ndim:
+            mask = add_axes(img0.axes, img0.shape, mask, mask.axes)
+        corr = _masked_zncc(f0, f1, _dims, xp.asarray(np.asarray(mask)))
     return _make_corr_output(xp.asnumpy(corr), img0, "fourier_zncc", squeeze, dims)
 
 @_docs.write_docs
@@ -424,20 +417,19 @@ def pcc_maximum_with_corr(
     """    
     if img0 is img1:
         return np.zeros(img0.ndim)
-    with Progress("pcc_maximum"):
-        img0, img1 = _check_inputs(img0, img1)
-        ft0 = img0.fft(dims=img0.axes)
-        ft1 = img1.fft(dims=img1.axes)
-        if mask is not None:
-            ft0[mask] = 0
-        if isinstance(max_shifts, (int, float)):
-            max_shifts = (max_shifts,) * img0.ndim
-        shift, pcc = subpixel_pcc(
-            xp.asarray(ft0.value), 
-            xp.asarray(ft1.value),
-            upsample_factor, 
-            max_shifts=max_shifts
-        )
+    img0, img1 = _check_inputs(img0, img1)
+    ft0 = img0.fft(dims=img0.axes)
+    ft1 = img1.fft(dims=img1.axes)
+    if mask is not None:
+        ft0[mask] = 0
+    if isinstance(max_shifts, (int, float)):
+        max_shifts = (max_shifts,) * img0.ndim
+    shift, pcc = subpixel_pcc(
+        xp.asarray(ft0.value), 
+        xp.asarray(ft1.value),
+        upsample_factor, 
+        max_shifts=max_shifts
+    )
     return xp.asnumpy(shift), float(pcc)
 
 @_docs.write_docs
@@ -498,19 +490,18 @@ def ft_pcc_maximum_with_corr(
     np.ndarray and float
         Shift in pixel and phase cross correlation.
     """    
-    with Progress("ft_pcc_maximum"):
-        _check_dimensions(img0, img1)
-        if mask is not None:
-            img0 = img0.copy()
-            img0[mask] = 0
-        if isinstance(max_shifts, (int, float)):
-            max_shifts = (max_shifts,) * img0.ndim
-        shift, pcc = subpixel_pcc(
-            xp.asarray(img0.value), 
-            xp.asarray(img1.value),
-            upsample_factor,
-            max_shifts=max_shifts,
-        )
+    _check_dimensions(img0, img1)
+    if mask is not None:
+        img0 = img0.copy()
+        img0[mask] = 0
+    if isinstance(max_shifts, (int, float)):
+        max_shifts = (max_shifts,) * img0.ndim
+    shift, pcc = subpixel_pcc(
+        xp.asarray(img0.value), 
+        xp.asarray(img1.value),
+        upsample_factor,
+        max_shifts=max_shifts,
+    )
     return xp.asnumpy(shift), float(pcc)
 
 @_docs.write_docs
@@ -534,18 +525,17 @@ def pcc_landscape(
     ImgArray
         Landscape image.
     """    
-    with Progress("pcc_landscape"):
-        _check_dimensions(img0, img1)
-        if isinstance(max_shifts, (int, float)):
-            max_shifts = (max_shifts,) * img0.ndim
-        
-        ft0 = img0.fft(dims=img0.axes)
-        ft1 = img1.fft(dims=img1.axes)
-        landscape = draw_pcc_landscape(
-            xp.asarray(ft0.value), 
-            xp.asarray(ft1.value),
-            max_shifts=max_shifts
-        )
+    _check_dimensions(img0, img1)
+    if isinstance(max_shifts, (int, float)):
+        max_shifts = (max_shifts,) * img0.ndim
+    
+    ft0 = img0.fft(dims=img0.axes)
+    ft1 = img1.fft(dims=img1.axes)
+    landscape = draw_pcc_landscape(
+        xp.asarray(ft0.value), 
+        xp.asarray(ft1.value),
+        max_shifts=max_shifts
+    )
     return ip_asarray(xp.asnumpy(landscape), axes=img1.axes)
 
 @_docs.write_docs
@@ -572,16 +562,15 @@ def ft_pcc_landscape(
     ImgArray
         Landscape image.
     """    
-    with Progress("ft_pcc_landscape"):
-        _check_dimensions(img0, img1)
-        if isinstance(max_shifts, (int, float)):
-            max_shifts = (max_shifts,) * img0.ndim
-    
-        landscape = draw_pcc_landscape(
-            xp.asarray(img0.value), 
-            xp.asarray(img1.value),
-            max_shifts=max_shifts
-        )
+    _check_dimensions(img0, img1)
+    if isinstance(max_shifts, (int, float)):
+        max_shifts = (max_shifts,) * img0.ndim
+
+    landscape = draw_pcc_landscape(
+        xp.asarray(img0.value), 
+        xp.asarray(img1.value),
+        max_shifts=max_shifts
+    )
     return ip_asarray(xp.asnumpy(landscape), axes=img1.axes)
 
 @_docs.write_docs
@@ -638,13 +627,12 @@ def polar_pcc_maximum_with_corr(
     if max_degree is None:
         max_degree = 180
     rmax = min(img0.shape)
-    with Progress("polar_pcc_maximum_2d"):
-        imgp = ip_asarray(xp.asnumpy(polar2d(img0, rmax, np.pi/180)))
-        imgrotp = ip_asarray(xp.asnumpy(polar2d(img1, rmax, np.pi/180)))
-        max_shifts = (max_degree, 1)
-        shift, pcc = pcc_maximum_with_corr(
-            imgp, imgrotp, upsample_factor=upsample_factor, max_shifts=max_shifts
-        )
+    imgp = ip_asarray(xp.asnumpy(polar2d(img0, rmax, np.pi/180)))
+    imgrotp = ip_asarray(xp.asnumpy(polar2d(img1, rmax, np.pi/180)))
+    max_shifts = (max_degree, 1)
+    shift, pcc = pcc_maximum_with_corr(
+        imgp, imgrotp, upsample_factor=upsample_factor, max_shifts=max_shifts
+    )
     # Here, `shift` satisfies `img0.rotate(-shift[0]) == img1`
     return shift[0], pcc
 
@@ -707,18 +695,17 @@ def zncc_maximum_with_corr(
     """    
     if img0 is img1:
         return np.zeros(img0.ndim), 1.
-    with Progress("zncc_maximum"):
-        img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
-        img0z = img0 - img0.mean()
-        img1z = img1 - img1.mean()
-        if isinstance(max_shifts, (int, float)):
-            max_shifts = (max_shifts,) * img0.ndim
-        shift, zncc = subpixel_ncc(
-            xp.asarray(np.asarray(img0z)), 
-            xp.asarray(np.asarray(img1z)),
-            upsample_factor, 
-            max_shifts=max_shifts
-        )
+    img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
+    img0z = img0 - img0.mean()
+    img1z = img1 - img1.mean()
+    if isinstance(max_shifts, (int, float)):
+        max_shifts = (max_shifts,) * img0.ndim
+    shift, zncc = subpixel_ncc(
+        xp.asarray(np.asarray(img0z)), 
+        xp.asarray(np.asarray(img1z)),
+        upsample_factor, 
+        max_shifts=max_shifts
+    )
     return xp.asnumpy(shift), float(zncc)
 
 @_docs.write_docs
@@ -742,17 +729,16 @@ def zncc_landscape(
     ImgArray
         Landscape image.
     """    
-    with Progress("zncc_maximum"):
-        img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
-        img0z = img0 - img0.mean()
-        img1z = img1 - img1.mean()
-        if isinstance(max_shifts, (int, float)):
-            max_shifts = (max_shifts,) * img0.ndim
-        landscape = draw_ncc_landscape(
-            xp.asarray(np.asarray(img0z)), 
-            xp.asarray(np.asarray(img1z)),
-            max_shifts=max_shifts
-        )
+    img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
+    img0z = img0 - img0.mean()
+    img1z = img1 - img1.mean()
+    if isinstance(max_shifts, (int, float)):
+        max_shifts = (max_shifts,) * img0.ndim
+    landscape = draw_ncc_landscape(
+        xp.asarray(np.asarray(img0z)), 
+        xp.asarray(np.asarray(img1z)),
+        max_shifts=max_shifts
+    )
     return ip_asarray(xp.asnumpy(landscape), axes=img1.axes)
 
 @_docs.write_docs
@@ -827,6 +813,6 @@ def _make_corr_output(corr: np.ndarray, refimg: ImgArray, propname: str, squeeze
         corr = corr[()]
     else:
         corr = PropArray(corr, name=refimg.name, axes=complement_axes(dims, refimg.axes), 
-                        dirpath=refimg.dirpath, metadata=refimg.metadata, 
+                        source=refimg.source, metadata=refimg.metadata, 
                         propname=propname, dtype=np.float32)
     return corr

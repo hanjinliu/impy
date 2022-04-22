@@ -19,8 +19,8 @@ SCALAR_PROP = (
 
 
 class PropArray(MetaArray):
-    additional_props = ["dirpath", "metadata", "name", "propname"]
-    def __new__(cls, obj, *, name=None, axes=None, dirpath=None, 
+    additional_props = ["_source", "_metadata", "_name", "propname"]
+    def __new__(cls, obj, *, name=None, axes=None, source=None, 
                 metadata=None, propname=None, dtype=None):
         if propname is None:
             propname = "User_Defined"
@@ -32,26 +32,18 @@ class PropArray(MetaArray):
         else:
             dtype = dtype
             
-        self = super().__new__(cls, obj, name, axes, dirpath, metadata, dtype=dtype)
+        self = super().__new__(cls, obj, name, axes, source, metadata, dtype=dtype)
         self.propname = propname
         
         return self
     
-    def __repr__(self):
-        return f"\n"\
-               f"    shape     : {self.shape_info}\n"\
-               f"    dtype     : {self.dtype}\n"\
-               f"  directory   : {self.dirpath}\n"\
-               f"original image: {self.name}\n"\
-               f"property name : {self.propname}\n"
-    
-    
     def _repr_dict_(self):
-        return {"    shape     ": self.shape_info,
-                "    dtype     ": self.dtype,
-                "  directory   ": self.dirpath,
-                "original image": self.name,
-                "property name ": self.propname}
+        return {
+            "name": self.name,
+            "shape": self.shape_info,
+            "dtype": self.dtype,
+            "source": self.source,
+            "property name": self.propname}
     
     def plot(self, along=None, cmap="jet", cmap_range=(0, 1)):
         """

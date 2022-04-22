@@ -17,7 +17,6 @@ from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_a
 from ..utils.deco import record, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.utilcls import Progress
 from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import DataDict
@@ -30,63 +29,30 @@ if TYPE_CHECKING:
 
 
 class ImgArray(LabeledArray):
-    @same_dtype(asfloat=True)
-    def __add__(self, value) -> ImgArray:
-        return super().__add__(value)
+    """
+    An n-D array for image analysis.
     
-    @same_dtype(asfloat=True)
-    def __iadd__(self, value) -> ImgArray:
-        return super().__iadd__(value)
-    
-    @same_dtype(asfloat=True)
-    def __sub__(self, value) -> ImgArray:
-        return super().__sub__(value)
-    
-    @same_dtype(asfloat=True)
-    def __isub__(self, value) -> ImgArray:
-        return super().__isub__(value)
-    
-    @same_dtype(asfloat=True)
-    def __mul__(self, value) -> ImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot multiply negative value.")
-        return super().__mul__(value)
-    
-    @same_dtype(asfloat=True)
-    def __imul__(self, value) -> ImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot multiply negative value.")
-        return super().__imul__(value)
-    
-    def __truediv__(self, value) -> ImgArray:
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            value[value==0] = np.inf
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot devide negative value.")
-        return super().__truediv__(value)
-    
-    def __itruediv__(self, value) -> ImgArray:
-        if self.dtype.kind in "ui":
-            raise ValueError("Cannot divide integer inplace.")
-        if isinstance(value, np.ndarray) and value.dtype.kind != "c":
-            value = value.astype(np.float32)
-            value[value==0] = np.inf
-        elif np.isscalar(value) and value < 0:
-            raise ValueError("Cannot devide negative value.")
-        return super().__itruediv__(value)
-    
+    Attributes
+    ----------
+    axes : str
+        Image axes, such as "zyx" or "tcyx".
+    scale : ScaleDict
+        Physical scale along each axis. For instance, scale of x-axis can be referred 
+        to by ``img.scale["x"]`` or ``img.scale.x
+    metadata : dict
+        Metadata tagged to the image.
+    source : Path
+        Source file of the image.
+    """
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def affine(self, matrix=None, scale=None, rotation=None, shear=None, translation=None,
-               mode: str = "constant", cval: float = 0, output_shape = None, order: int = 1,
-               *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def affine(
+        self, matrix=None, *, scale=None, rotation=None, shear=None, translation=None,
+        mode: str = "constant", cval: float = 0, output_shape = None, order: int = 1,
+        dims: Dims = None, update: bool = False
+    ) -> ImgArray:
         r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
         
@@ -286,20 +252,25 @@ class ImgArray(LabeledArray):
         gb = np.prod(outshape) * 4/1e9
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {gb} GB")
-        with Progress("rescale"):
-            scale_ = [scale if a in dims else 1 for a in self.axes]
-            out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
-            out: ImgArray = out.view(self.__class__)
-            out._set_info(self, f"rescale(scale={scale})")
-            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        scale_ = [scale if a in dims else 1 for a in self.axes]
+        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
+        out: ImgArray = out.view(self.__class__)
+        out._set_info(self)
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype
-    def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, dims: Dims = None
-                ) -> ImgArray:
+    def binning(
+        self,
+        binsize: int = 2,
+        method = "mean", 
+        *, 
+        check_edges: bool = True,
+        dims: Dims = None
+    ) -> ImgArray:
         r"""
         Binning of images. This function is similar to ``rescale`` but is strictly binned by :math:`N \times N` 
         blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.
@@ -329,17 +300,16 @@ class ImgArray(LabeledArray):
         
         if binsize == 1:
             return self
-        with Progress("binning"):
-            img_to_reshape, shape, scale_ = _misc.adjust_bin(
-                self.value, binsize, check_edges, dims, self.axes
-            )
-            
-            reshaped_img = img_to_reshape.reshape(shape)
-            axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
-            out = binfunc(reshaped_img, axis=axes_to_reduce)
-            out:ImgArray = out.view(self.__class__)
-            out._set_info(self, f"binning(binsize={binsize})")
-            out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        img_to_reshape, shape, scale_ = _misc.adjust_bin(
+            self.value, binsize, check_edges, dims, self.axes
+        )
+        
+        reshaped_img = img_to_reshape.reshape(shape)
+        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+        out = binfunc(reshaped_img, axis=axes_to_reduce)
+        out:ImgArray = out.view(self.__class__)
+        out._set_info(self)
+        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
@@ -408,7 +378,7 @@ class ImgArray(LabeledArray):
             np.empty(self.sizesof(c_axes)+(int(labels.max()),)),
             dtype=np.float32,
             axes=c_axes+dims[-1], 
-            dirpath=self.dirpath, 
+            source=self.source, 
             metadata=self.metadata, 
             propname="radial_profile"
         )
@@ -447,7 +417,7 @@ class ImgArray(LabeledArray):
         result = gaussian.fit(rough, method=method)
         gaussian.rescale(1/scale)
         fit = gaussian.generate(self.shape).view(self.__class__)
-        fit.temp = dict(params=gaussian.params, result=result)
+        fit.metadata["Gaussian-params"] = dict(params=gaussian.params, result=result)
         
         # show fitting result
         if show_result:
@@ -457,7 +427,7 @@ class ImgArray(LabeledArray):
     
     @same_dtype(asfloat=True)
     @record
-    def gauss_correction(self, ref:ImgArray=None, scale:float=1/16, median_radius: float = 15):
+    def gauss_correction(self, ref: ImgArray=None, scale: float = 1/16, median_radius: float = 15):
         """
         Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
         background intensity at the same time. If input image is uint, then output value under 0 will
@@ -581,12 +551,12 @@ class ImgArray(LabeledArray):
 
         out = np.stack(corrected, axis=self.axisof(along)).astype(self.dtype)
         out = out.view(self.__class__)
-        out.temp = matrices
+        out.metadata["Affine-matrices"] = matrices
         return out
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def hessian_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. 
@@ -620,13 +590,13 @@ class ImgArray(LabeledArray):
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
-        eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
         
         return eigval
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def hessian_eig(self, sigma: nDFloat = 1, *, dims: Dims = None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
@@ -654,13 +624,13 @@ class ImgArray(LabeledArray):
                                           )
         
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, f"hessian_eigval", new_axes=eigval.axes)
-        eigvec._set_info(self, f"hessian_eigvec", new_axes=eigvec.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
+        eigvec._set_info(self, new_axes=eigvec.axes)
         return eigval, eigvec
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def structure_tensor_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -688,12 +658,12 @@ class ImgArray(LabeledArray):
         
         eigval.axes = str(self.axes) + "l"
         eigval = eigval.sort_axes()
-        eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
         return eigval
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def structure_tensor_eig(self, sigma: nDFloat = 1, *, dims: Dims = None)-> tuple[ImgArray, ImgArray]:
         """
         Calculate structure tensor's eigenvalues and eigenvectors.
@@ -721,8 +691,8 @@ class ImgArray(LabeledArray):
                                           )
         
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, f"structure_tensor_eigval", new_axes=eigval.axes)
-        eigvec._set_info(self, f"structure_tensor_eigvec", new_axes=eigvec.axes)
+        eigval._set_info(self, new_axes=eigval.axes)
+        eigvec._set_info(self, new_axes=eigvec.axes)
         
         return eigval, eigvec
     
@@ -1426,7 +1396,7 @@ class ImgArray(LabeledArray):
         return out
     
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def focus_map(self, radius: int = 1, *, dims: Dims = 2) -> PropArray:
         """
         Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
@@ -1793,7 +1763,7 @@ class ImgArray(LabeledArray):
                                )
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def split_pixel_unit(self, center: tuple[float, float] = (0.5, 0.5), *, order: int = 1,
                          angle_order: list[int] = None, newaxis: str = "a") -> ImgArray:
         r"""
@@ -1872,9 +1842,9 @@ class ImgArray(LabeledArray):
         for y, x in [(0,0), (0,1), (1,1), (1,0)]:
             dr = [(yc-y)/2, (xc-x)/2]
             imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order, dims="yx"))
-        imgs = np.stack(imgs, axis=newaxis)
+        imgs: ImgArray = np.stack(imgs, axis=newaxis)
         imgs = imgs[f"{newaxis}={str(angle_order)[1:-1]}"]
-        imgs._set_info(self, "split_pixel_unit", new_axes=imgs.axes)
+        imgs._set_info(self, new_axes=imgs.axes)
         imgs.set_scale(y=self.scale.y*2, x=self.scale.x*2)
         return imgs
         
@@ -1925,9 +1895,9 @@ class ImgArray(LabeledArray):
         # DoLP is defined as:
         # DoLP = sqrt(s1^2 + s2^2)/s0
         s0[s0==0] = np.inf
-        dolp = np.sqrt(s1**2 + s2**2)/s0
+        dolp: ImgArray = np.sqrt(s1**2 + s2**2) / s0
         dolp = dolp.view(self.__class__)
-        dolp._set_info(self, "dolp", new_axes=new_axes)
+        dolp._set_info(self, new_axes=new_axes)
         dolp.set_scale(self)
         
         # Angle of Polarization (AoP)
@@ -1937,9 +1907,9 @@ class ImgArray(LabeledArray):
         # AoP = { 1/2argtan(s2/s1) + pi/2   (s1<0)
         #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
         # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns correct values.
-        aop = np.arctan2(s2, s1)/2
+        aop: ImgArray = np.arctan2(s2, s1)/2
         aop = aop.view(PhaseArray)
-        aop._set_info(self, "aop", new_axes=new_axes)
+        aop._set_info(self, new_axes=new_axes)
         aop.unit = "rad"
         aop.border = (-np.pi/2, np.pi/2)
         aop.fix_border()
@@ -1950,7 +1920,7 @@ class ImgArray(LabeledArray):
         
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def peak_local_max(self, *, min_distance: float = 1.0, percentile: float = None, 
                        topn: int = np.inf, topn_per_label: int = np.inf, exclude_border: bool =True,
                        use_labels: bool = True, dims: Dims = None) -> MarkerFrame:
@@ -2021,7 +1991,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
                      topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
                      use_labels:bool=True, dims: Dims = None) -> MarkerFrame:
@@ -2117,7 +2087,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def find_corners(self, sigma: nDFloat = 1, k:float=0.05, *, dims: Dims = None) -> ImgArray:
         """
         Corner detection using Harris response.
@@ -2141,7 +2111,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def voronoi(self, coords: Coords, *, inf: nDInt = None, dims: Dims = 2) -> ImgArray:
         """
         Voronoi segmentation of an image. Image region labeled with $i$ means that all
@@ -2186,14 +2156,16 @@ class ImgArray(LabeledArray):
                     grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
                     labels[sl][grids] = n_label
                     n_label += 1
-        self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+        self.labels = Label(
+            labels, name=self.name+"-label", axes=self.axes, source=self.source
+        ).optimize()
         self.labels.set_scale(self)
 
         return self
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims: Dims = None):
         """
         Flood filling with a list of seed points. By repeating skimage's ``flood`` function,
@@ -2228,7 +2200,9 @@ class ImgArray(LabeledArray):
                                                      tolerance=tolerance)
                 labels[sl][fill_area] = n_label
         
-        self.labels = Label(labels, name=self.name, axes=self.axes, dirpath=self.dirpath).optimize()
+        self.labels = Label(
+            labels, name=self.name+"-label", axes=self.axes, source=self.source
+        ).optimize()
         self.labels.set_scale(self)
         return self
     
@@ -2291,27 +2265,26 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         c_axes_list = list(c_axes)
         dims_list = list(dims)
-        with Progress("refine_sm"):
-            for sl, crds in coords.iter(c_axes):
-                img = self[sl]
-                refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
-                                                      max_iterations=n_iter, pos_columns=dims_list)
-                bg = img.value[img.labels==0]
-                black_level = np.mean(bg)
-                noise = np.std(bg)
-                area = np.sum(_structures.ball_like_odd(radius[0], len(dims)))
-                mass = refined_coords["raw_mass"].values - area * black_level
-                ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
-                
-                if ep.ndim == 1:
-                    refined_coords["ep"] = ep
-                else:
-                    ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in dims_list])
-                    refined_coords = pd.concat([refined_coords, ep], axis=1)
-                
-                refined_coords[c_axes_list] = [s for s, a in zip(sl, coords.col_axes) if a not in dims]
-                df_all.append(refined_coords)
-            df_all = pd.concat(df_all, axis=0)
+        for sl, crds in coords.iter(c_axes):
+            img = self[sl]
+            refined_coords = tp.refine.refine_com(img.value, img.value, radius, crds,
+                                                    max_iterations=n_iter, pos_columns=dims_list)
+            bg = img.value[img.labels==0]
+            black_level = np.mean(bg)
+            noise = np.std(bg)
+            area = np.sum(_structures.ball_like_odd(radius[0], len(dims)))
+            mass = refined_coords["raw_mass"].values - area * black_level
+            ep = tp.uncertainty._static_error(mass, noise, radius, sigma)
+            
+            if ep.ndim == 1:
+                refined_coords["ep"] = ep
+            else:
+                ep = pd.DataFrame(ep, columns=["ep_" + cc for cc in dims_list])
+                refined_coords = pd.concat([refined_coords, ep], axis=1)
+            
+            refined_coords[c_axes_list] = [s for s, a in zip(sl, coords.col_axes) if a not in dims]
+            df_all.append(refined_coords)
+        df_all = pd.concat(df_all, axis=0)
                 
         mf = MarkerFrame(df_all.reindex(columns=list(self.axes)), 
                          columns=str(self.axes), dtype=np.float32).as_standard_type()
@@ -2435,32 +2408,31 @@ class ImgArray(LabeledArray):
         filt = check_filter_func(filt)
         radius = np.array(check_nd(radius, ndim))
         shape = self.sizesof(dims)
-        with Progress("centroid_sm"):
-            out = []
-            columns = list(dims)
-            c_axes = complement_axes(dims, coords._axes)
-            for sl, crds in coords.iter(c_axes):
-                centroids = []
-                for center in crds.values:
-                    bbox = _specify_one(center, radius, shape)
-                    input_img = self.value[sl][bbox]
-                    if input_img.size == 0 or not filt(input_img):
-                        continue
-                    
-                    shift = center - radius
-                    centroid = _calc_centroid(input_img, ndim) + shift
-                    
-                    centroids.append(centroid.tolist())
-                df = pd.DataFrame(centroids, columns=columns)
-                df[list(c_axes)] = sl[:-ndim]
-                out.append(df)
-            if len(out) == 0:
-                raise ValueError("No molecule found.")
-            out = pd.concat(out, axis=0)
-            
-            out = MarkerFrame(out.reindex(columns=list(coords._axes)),
-                              columns=str(coords._axes), dtype=np.float32).as_standard_type()
-            out.set_scale(coords.scale)
+        out = []
+        columns = list(dims)
+        c_axes = complement_axes(dims, coords._axes)
+        for sl, crds in coords.iter(c_axes):
+            centroids = []
+            for center in crds.values:
+                bbox = _specify_one(center, radius, shape)
+                input_img = self.value[sl][bbox]
+                if input_img.size == 0 or not filt(input_img):
+                    continue
+                
+                shift = center - radius
+                centroid = _calc_centroid(input_img, ndim) + shift
+                
+                centroids.append(centroid.tolist())
+            df = pd.DataFrame(centroids, columns=columns)
+            df[list(c_axes)] = sl[:-ndim]
+            out.append(df)
+        if len(out) == 0:
+            raise ValueError("No molecule found.")
+        out = pd.concat(out, axis=0)
+        
+        out = MarkerFrame(out.reindex(columns=list(coords._axes)),
+                            columns=str(coords._axes), dtype=np.float32).as_standard_type()
+        out.set_scale(coords.scale)
 
         return out
     
@@ -2519,33 +2491,32 @@ class ImgArray(LabeledArray):
         sigmas = [] # fitting results of sigmas
         errs = []   # fitting errors of means
         ab = []
-        with Progress("gauss_sm"):
-            for crd in coords.values:
-                center = tuple(crd[-ndim:])
-                label_sl = tuple(crd[:-ndim])
-                sl = _specify_one(center, radius, shape) # sl = (..., z,y,x)
-                input_img = self.value[label_sl][sl]
-                if input_img.size == 0 or not filt(input_img):
-                    continue
+        for crd in coords.values:
+            center = tuple(crd[-ndim:])
+            label_sl = tuple(crd[:-ndim])
+            sl = _specify_one(center, radius, shape) # sl = (..., z,y,x)
+            input_img = self.value[label_sl][sl]
+            if input_img.size == 0 or not filt(input_img):
+                continue
+            
+            gaussian = GaussianParticle(initial_sg=sigma)
+            res = gaussian.fit(input_img, method="BFGS")
+            
+            if (gaussian.mu_inrange(0, radius*2) and 
+                gaussian.sg_inrange(sigma/3, sigma*3) and
+                gaussian.a > 0):
+                gaussian.shift(center - radius)
+                # calculate fitting error with Jacobian
+                if return_all:
+                    jac = res.jac[:2].reshape(1,-1)
+                    cov = pseudo_inverse(jac.T @ jac)
+                    err = np.sqrt(np.diag(cov))
+                    sigmas.append(label_sl + tuple(gaussian.sg))
+                    errs.append(label_sl + tuple(err))
+                    ab.append(label_sl + (gaussian.a, gaussian.b))
                 
-                gaussian = GaussianParticle(initial_sg=sigma)
-                res = gaussian.fit(input_img, method="BFGS")
+                means.append(label_sl + tuple(gaussian.mu))
                 
-                if (gaussian.mu_inrange(0, radius*2) and 
-                    gaussian.sg_inrange(sigma/3, sigma*3) and
-                    gaussian.a > 0):
-                    gaussian.shift(center - radius)
-                    # calculate fitting error with Jacobian
-                    if return_all:
-                        jac = res.jac[:2].reshape(1,-1)
-                        cov = pseudo_inverse(jac.T @ jac)
-                        err = np.sqrt(np.diag(cov))
-                        sigmas.append(label_sl + tuple(gaussian.sg))
-                        errs.append(label_sl + tuple(err))
-                        ab.append(label_sl + (gaussian.a, gaussian.b))
-                    
-                    means.append(label_sl + tuple(gaussian.mu))
-                    
         kw = dict(columns=coords.col_axes, dtype=np.float32)
         
         if return_all:
@@ -3134,7 +3105,7 @@ class ImgArray(LabeledArray):
             args=(template, cval, mode)
         )
     
-    @record(append_history=False)
+    @record
     def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
         """
         Tracking using template matching. For every time frame, matched region is interpreted as a
@@ -3385,7 +3356,7 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def pointprops(self, coords: Coords, *, order: int = 1, squeeze: bool = True) -> PropArray:
         """
         Measure interpolated intensity at points with float coordinates.
@@ -3415,8 +3386,8 @@ class ImgArray(LabeledArray):
         coords = np.asarray(coords, dtype=np.float32).T
         shape = self.sizesof(prop_axes)
         l = coords.shape[1] # Number of points
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes=Const["ID_AXIS"]+prop_axes, dirpath=self.dirpath,
+        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
+                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
                         propname = f"pointprops", dtype=np.float32)
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
@@ -3427,7 +3398,7 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def lineprops(self, src: Coords, dst: Coords, func: str|Callable = "mean", *, 
                   order: int = 1, squeeze: bool = True) -> PropArray:
         """
@@ -3467,8 +3438,8 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(src.col_axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                        axes=Const["ID_AXIS"]+prop_axes, dirpath=self.dirpath,
+        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
+                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
                         propname = f"lineprops<{func.__name__}>", dtype=np.float32)
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
@@ -3547,7 +3518,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False, need_labels=True)
+    @record(need_labels=True)
     def random_walker(self, beta: float = 130, mode: str = "cg_j", tol: float = 1e-3, *,
                       dims: Dims = None) -> Label:
         """
@@ -3570,7 +3541,7 @@ class ImgArray(LabeledArray):
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = skseg.random_walker(img.value, img.labels.value, beta=beta, mode=mode, tol=tol)
             
-        self.labels._set_info(self, "random_walker")
+        self.labels._set_info(self)
         return self.labels
     
     def label_threshold(self, thr: float | str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
@@ -3598,7 +3569,7 @@ class ImgArray(LabeledArray):
     
     
     @_docs.write_docs
-    @record(append_history=False)
+    @record
     def pathprops(self, paths: PathFrame, properties: str|Callable|Iterable[str|Callable] = "mean", *, 
                   order: int = 1) -> DataDict:
         """
@@ -3648,11 +3619,16 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(paths._axes, id_axis + str(self.axes))
         shape = self.sizesof(prop_axes)
         
-        out = DataDict({k: PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name, 
-                                     axes=id_axis+prop_axes, dirpath=self.dirpath,
-                                     propname = f"lineprops<{k}>", dtype=np.float32)
-                        for k in funcdict.keys()}
-                       )
+        out = DataDict({k: PropArray(
+                    np.empty((l,)+shape, dtype=np.float32), 
+                    name=self.name+"-prop", 
+                    axes=id_axis+prop_axes,
+                    source=self.source,
+                    propname = f"lineprops<{k}>", dtype=np.float32
+                )
+                for k in funcdict.keys()
+            }
+        )
         
         for i, path in enumerate(paths.split(id_axis)):
             resliced = self.reslice(path, order=order)
@@ -3661,7 +3637,7 @@ class ImgArray(LabeledArray):
                 
         return out
     
-    @record(append_history=False, need_labels=True)
+    @record(need_labels=True)
     def regionprops(self, properties: Iterable[str] | str = ("mean_intensity",), *, 
                     extra_properties: Iterable[Callable] | None = None) -> DataDict[str, PropArray]:
         """
@@ -3704,12 +3680,15 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = DataDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
-                                     name=self.name, 
-                                     axes=id_axis+prop_axes,
-                                     dirpath=self.dirpath,
-                                     propname=p)
-                        for p in properties})
+        out = DataDict({p: PropArray(
+                np.empty((self.labels.max(),) + shape, dtype=np.float32),
+                name=self.name+"-prop", 
+                axes=id_axis+prop_axes,
+                source=self.source,
+                propname=p
+            )
+            for p in properties
+            })
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
@@ -3756,7 +3735,7 @@ class ImgArray(LabeledArray):
         
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
                    *, bins:int=None, rescale_max:bool=False, dims: Dims = None) -> ImgArray:
         """
@@ -3810,19 +3789,17 @@ class ImgArray(LabeledArray):
                 raise TypeError("properties must be str or callable.")
         out = DataDict(out)
         self = self.pad(radius, mode="reflect", dims=dims)
-        self.history.pop()
         for sl, img in self.iter(c_axes):
             propout = _glcm.glcm_props_(img, distances, angles, bins, radius, properties)
             for prop in properties:
                 out[prop].value[sl] = propout[prop]
             
         for k, v in out.items():
-            v._set_info(self, f"glcm_props-{k}", new_axes=c_axes+"da"+dims)
+            v._set_info(self, new_axes=c_axes+"da"+dims)
         return out
     
     
     @same_dtype
-    @record(append_history=False)
     def proj(self, axis: str = None, method: str|Callable = "mean", mask = None, **kwargs) -> ImgArray:
         """
         Z-projection along any axis.
@@ -3870,11 +3847,11 @@ class ImgArray(LabeledArray):
             out = func(self.value, axis=axisint, **kwargs)
         
         out = out.view(self.__class__)
-        out._set_info(self, f"proj(axis={axis}, method={method})", del_axis(self.axes, axisint))
+        out._set_info(self, del_axis(self.axes, axisint))
         return out
 
     @record
-    def clip(self, in_range: tuple[int|str, int|str] = ("0%", "100%")) -> ImgArray:
+    def clip(self, in_range: tuple[int | str, int | str] = ("0%", "100%")) -> ImgArray:
         """
         Saturate low/high intensity using np.clip().
 
@@ -3891,12 +3868,14 @@ class ImgArray(LabeledArray):
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
-        out.temp = [lowerlim, upperlim]
         return out
     
     @record
-    def rescale_intensity(self, in_range: tuple[int|str, int|str] = ("0%", "100%"), 
-                          dtype = np.uint16) -> ImgArray:
+    def rescale_intensity(
+        self,
+        in_range: tuple[int | str, int | str] = ("0%", "100%"), 
+        dtype = np.uint16
+    ) -> ImgArray:
         """
         Rescale the intensity of the image using skimage.exposure.rescale_intensity().
 
@@ -3915,15 +3894,18 @@ class ImgArray(LabeledArray):
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
             
-        out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
+        out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
         
         out = out.view(self.__class__)
-        out.temp = [lowerlim, upperlim]
         return out
     
-    @record(append_history=False)
-    def track_drift(self, along: str = None, show_drift: bool = False, 
-                    upsample_factor: int = 10) -> MarkerFrame:
+    @record
+    def track_drift(
+        self,
+        along: str = None,
+        show_drift: bool = False, 
+        upsample_factor: int = 10,
+    ) -> MarkerFrame:
         """
         Calculate yx-directional drift using the method of `skimage.registration.phase_cross_correlation`.
 
@@ -3935,7 +3917,7 @@ class ImgArray(LabeledArray):
             If True, plot the result.
         upsample_factor : int, default is 10
             Up-sampling factor when calculating phase cross correlation.
-
+            
         Returns
         -------
         MarkerFrame
@@ -3957,7 +3939,9 @@ class ImgArray(LabeledArray):
         for i, (_, img) in enumerate(img_fft.iter(along)):
             img = xp.asarray(img)
             if last_img is not None:
-                result[i] = xp.asnumpy(_corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)[0])
+                result[i] = xp.asnumpy(
+                    _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)[0]
+                )
                 last_img = img
             else:
                 last_img = img
@@ -3974,8 +3958,17 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, zero_ave: bool = True,
-                         along: str = None, dims: Dims = 2, update: bool = False, **affine_kwargs) -> ImgArray:
+    def drift_correction(
+        self,
+        shift: Coords = None,
+        ref: ImgArray = None,
+        *,
+        zero_ave: bool = True,
+        along: str = None,
+        dims: Dims = 2,
+        update: bool = False,
+        **affine_kwargs
+    ) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors ``shift``
         is not given, then it will be determined using ``track_drift`` method of ImgArray.
@@ -4050,7 +4043,7 @@ class ImgArray(LabeledArray):
 
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record(append_history=False)
+    @record
     def estimate_sigma(self, *, squeeze: bool = True, dims: Dims = None) -> PropArray | float:
         """
         Wavelet-based estimation of Gaussian noise.
@@ -4084,7 +4077,14 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @record
-    def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> ImgArray:
+    def pad(
+        self, 
+        pad_width, 
+        mode: str = "constant", 
+        *, 
+        dims: Dims = None, 
+        **kwargs
+    ) -> ImgArray:
         """
         Pad image only for spatial dimensions.
 
@@ -4205,8 +4205,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def wiener(self, psf: np.ndarray, lmd: float = 0.1, *, dims: Dims = None, 
-               update: bool = False) -> ImgArray:
+    def wiener(
+        self,
+        psf: np.ndarray,
+        lmd: float = 0.1,
+        *, 
+        dims: Dims = None, 
+        update: bool = False
+    ) -> ImgArray:
         r"""
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
@@ -4242,18 +4248,26 @@ class ImgArray(LabeledArray):
         
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
         
-        return self.apply_dask(_deconv.wiener, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(psf_ft, psf_ft_conj, lmd)
-                               )
+        return self.apply_dask(
+            _deconv.wiener, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, lmd)
+        )
         
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, *, dims: Dims = None, 
-             update: bool = False) -> ImgArray:
+    def lucy(
+        self,
+        psf: np.ndarray,
+        niter: int = 50,
+        eps: float = 1e-5,
+        *, 
+        dims: Dims = None, 
+        update: bool = False
+    ) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
         
@@ -4283,19 +4297,27 @@ class ImgArray(LabeledArray):
         
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-        out = self.apply_dask(_deconv.richardson_lucy, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(psf_ft, psf_ft_conj, niter, eps)
-                               )
+        return self.apply_dask(
+            _deconv.richardson_lucy, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, niter, eps)
+        )
         
-        return out
-    
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @record
-    def lucy_tv(self, psf: np.ndarray, max_iter: int = 50, lmd: float = 1e-3, tol: float = 1e-3,
-                eps: float = 1e-5, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def lucy_tv(
+        self,
+        psf: np.ndarray,
+        max_iter: int = 50,
+        lmd: float = 1e-3,
+        tol: float = 1e-3,
+        eps: float = 1e-5,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> ImgArray:
         r"""
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
         regularization (so called RL-TV algorithm). The TV regularization factor at pixel position :math:`x`,
@@ -4353,10 +4375,11 @@ class ImgArray(LabeledArray):
                              "must be positive.")
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-        return self.apply_dask(_deconv.richardson_lucy_tv, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
-                               )
+        return self.apply_dask(
+            _deconv.richardson_lucy_tv, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
+        )
 
 def _check_coordinates(coords, img, dims: Dims = None):
     from ..frame import MarkerFrame
