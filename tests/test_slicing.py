@@ -12,7 +12,7 @@ def test_str_slicing():
 def test_broadcasting():
     arr = ip.random.normal(size=(3, 4, 10))
     arr.axes = "tyx"
-    fit = ip.array(np.arange(40).reshape(4,10),axes="yx")
+    fit = ip.array(np.arange(40).reshape(4,10), axes="yx") + 1
     fit0 = np.stack([fit]*3, axis="t")
     assert np.all(arr/fit == arr/fit0)
     assert np.all(arr[fit>12] == arr[fit0>12])

@@ -94,7 +94,7 @@ class ImageIO:
         
         from dask import array as da
         if str(type(img)) == "<class 'zarr.core.Array'>":
-            dask = da.from_zarr(img).map_blocks(
+            dask = da.from_zarr(img, chunks=chunks).map_blocks(
                 xp.asarray, dtype=img.dtype
             )
         else:
@@ -233,7 +233,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
     )
 
 
-@IO.mark_reader(".zarr", ".zip")
+@IO.mark_reader(".zarr")
 def _(path: str, memmap: bool = False) -> ImageData:
     import zarr
     zf = zarr.open(path, mode="r")
@@ -318,18 +318,19 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
             mrc.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
     return None
 
-@IO.mark_writer(".zarr", ".zip")
+@IO.mark_writer(".zarr")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     import zarr
     f = zarr.open(path, mode="w")
-    if lazy:
-        z = img.value.to_zarr()
-    else:
-        z = img.value
-    f.array("data", z)
+    
     f.attrs["axes"] = str(img.axes)
     f.attrs["scale"] = img.scale
     f.attrs["metadata"] = img.metadata
+    if lazy:
+        img.value.to_zarr(url=os.path.join(path, "data"))
+    else:
+        z = img.value
+        f.array("data", z)
     return None
 
 
