@@ -81,7 +81,10 @@ class ImageIO:
         path: str,
         memmap: bool = False
     ) -> ImageData:
-        _, ext = os.path.splitext(path)
+        if path.endswith(".map.gz"):
+            ext = ".map.gz"
+        else:
+            _, ext = os.path.splitext(path)
         reader = self._reader.get(ext, self._default_reader)
         return reader(path, memmap)
     
@@ -201,7 +204,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
         metadata=ijmeta,
     )
 
-@IO.mark_reader(".mrc", ".rec", ".st", ".map")
+@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".map.gz")
 def _(path: str, memmap: bool = False) -> ImageData:
     import mrcfile
     if memmap:
