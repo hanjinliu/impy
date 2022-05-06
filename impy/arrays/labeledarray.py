@@ -18,7 +18,7 @@ from .label import Label
 from ..utils.misc import check_nd, largest_zeros
 from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
 from ..utils.deco import record, dims_to_spatial_axes
-from ..utils.io import save_mrc, save_tif
+from ..utils.io import IO
 
 from ..collections import DataList
 from ..axes import ImageAxesError
@@ -76,8 +76,11 @@ class LabeledArray(MetaArray):
         _, ext = os.path.splitext(save_path)
         
         if ext == "":
-            save_path += ".tif"
-            ext = ".tif"
+            if self.source is not None:
+                ext = self.source.suffix
+            else:
+                ext = ".tif"
+            save_path += ext
     
         if os.sep not in save_path:
             if self.source is None:
@@ -94,12 +97,7 @@ class LabeledArray(MetaArray):
             dtype = self.dtype
             
         # save image
-        if ext in (".tif", ".tiff"):
-            save_tif(save_path, self)
-        elif ext in (".mrc", ".map"):
-            save_mrc(save_path, self)
-        else:
-            raise ValueError(f"Unsupported extension {ext}")
+        IO.imsave(save_path, self)
 
         return None
     
