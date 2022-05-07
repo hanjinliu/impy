@@ -453,7 +453,7 @@ class LabeledArray(MetaArray):
         ax1 = _misc.make_rotated_axis(dst1, origin)
         all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
         all_coords = np.moveaxis(all_coords, -1, 0)
-        cropped_img = self.apply_dask(
+        cropped_img = self._apply_dask(
             ndi.map_coordinates, complement_axes(dims, self.axes), 
             dtype=self.dtype,
             args=(all_coords,),
@@ -617,7 +617,7 @@ class LabeledArray(MetaArray):
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
         
-        result = self.as_float().apply_dask(
+        result = self.as_float()._apply_dask(
             ndi.map_coordinates, 
             c_axes=c_axes, 
             dtype=self.dtype,
@@ -678,7 +678,7 @@ class LabeledArray(MetaArray):
         c_axes = complement_axes(dims, self.axes)
         labels = largest_zeros(label_image.shape)
         
-        labels[:] = label_image.apply_dask(skmes.label, 
+        labels[:] = label_image._apply_dask(skmes.label, 
                                            c_axes=c_axes, 
                                            kwargs=dict(background=0, connectivity=connectivity)
                                            ).view(np.ndarray)

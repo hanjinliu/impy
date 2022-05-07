@@ -2,9 +2,10 @@ from __future__ import annotations
 import numpy as np
 from typing import Callable
 from functools import wraps
-from .arrays import *
-from .utils.axesop import *
-from .utils.deco import *
+
+from .arrays import ImgArray, PropArray, Label, LabeledArray
+from .utils.axesop import complement_axes
+from .utils.deco import dims_to_spatial_axes
 
 # Extend ImgArray with custom functions.
 # TODO: use annotation to determine "kind"
@@ -91,19 +92,29 @@ class bind:
     """    
     bound = set()
     last_added = None
-    def __init__(self, func:Callable=None, funcname:str=None, *, indtype=None, outdtype=None, 
-                 kind:str="image", ndim:int|None=None):
+    def __init__(
+        self,
+        func: Callable = None,
+        funcname: str = None,
+        *, 
+        indtype = None,
+        outdtype = None, 
+        kind: str = "image", 
+        ndim: int | None = None
+    ):
         """
         Method binding is done inside this when bind object is used as function like:
             >>> ip.bind(func, "funcname", ...)
         """        
         if callable(func):
-            self._bind_method(func, 
-                              funcname=funcname, 
-                              indtype=indtype, 
-                              outdtype=outdtype, 
-                              kind=kind, 
-                              ndim=ndim)
+            self._bind_method(
+                func, 
+                funcname=funcname, 
+                indtype=indtype, 
+                outdtype=outdtype, 
+                kind=kind, 
+                ndim=ndim
+            )
         else:
             self.funcname = func
             self.indtype = indtype
@@ -111,7 +122,7 @@ class bind:
             self.kind = kind
             self.ndim = ndim
     
-    def __call__(self, func:Callable):
+    def __call__(self, func: Callable):
         """
         Method binding is done inside this when bind object is used as decorator like:
             >>> @ip.bind(...)
@@ -165,29 +176,39 @@ class bind:
         
         if kind == "image":
             _drop_axis = lambda dims: None
-            def _exit(out, img, func, *args, **kwargs):
+            def _exit(out: np.ndarray, img: ImgArray, func, *args, **kwargs):
                 out = out.view(ImgArray).as_img_type(outdtype)
                 out._set_info(img)
                 return out
             
         elif kind == "property":
             _drop_axis = lambda dims: dims
-            def _exit(out, img, func, *args, dims=None, **kwargs):
-                out = PropArray(out, name=img.name, axes=complement_axes(dims, img.axes), 
-                                propname=fn, dtype=outdtype)
+            def _exit(out: np.ndarray, img: ImgArray, func, *args, dims=None, **kwargs):
+                out = PropArray(
+                    out,
+                    name=img.name,
+                    axes=complement_axes(dims, img.axes), 
+                    propname=fn,
+                    dtype=outdtype
+                )
                 return out
                 
         elif kind == "label":
             _drop_axis = lambda dims: None
-            def _exit(out, img, func, *args, dims=None, **kwargs):
-                img.labels = Label(out, name=img.name, axes=img.axes, source=img.source).optimize()
+            def _exit(out: np.ndarray, img: ImgArray, func, *args, dims=None, **kwargs):
+                img.labels = Label(
+                    out,
+                    name=img.name, 
+                    axes=img.axes,
+                    source=img.source
+                ).optimize()
                 img.labels.set_scale(img)
                 return img.labels
             
         elif kind == "label_binary":
             _drop_axis = lambda dims: None
-            def _exit(out, img, func, *args, dims=None, **kwargs):
-                arr = LabeledArray(out)
+            def _exit(out: np.ndarray, img: ImgArray, func, *args, dims=None, **kwargs):
+                arr: LabeledArray = LabeledArray(out)
                 arr._set_info(img)
                 lbl = arr.label(dims=dims)
                 img.labels = lbl
@@ -200,11 +221,11 @@ class bind:
         # Define method and bind it to ImgArray
         @wraps(func)
         @dims_to_spatial_axes
-        def _func(img, *args, dims=default_dims, **kwargs):
+        def _func(img: ImgArray, *args, dims=default_dims, **kwargs):
             if indtype is not None:
                 img = img.as_img_type(indtype)
                 
-            out = img.apply_dask(
+            out = img._apply_dask(
                 func,
                 c_axes=complement_axes(dims, img.axes),
                 drop_axis=_drop_axis(dims),

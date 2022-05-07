@@ -170,7 +170,7 @@ class PhaseArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         a = 2*np.pi/self.periodicity
             
-        return self.apply_dask(_filters.phase_mean_filter,
+        return self._apply_dask(_filters.phase_mean_filter,
                                c_axes=complement_axes(dims, self.axes),
                                args=(disk, a),
                                dtype=self.dtype)

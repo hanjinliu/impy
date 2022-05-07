@@ -341,7 +341,7 @@ class MetaArray(AxesMixin, np.ndarray):
             
         return imgs
     
-    def apply_dask(
+    def _apply_dask(
         self, 
         func: Callable,
         c_axes: str | None = None,
@@ -415,13 +415,13 @@ class MetaArray(AxesMixin, np.ndarray):
             
             all_args = (self.value,) + args
             img_idx = []
-            args = []
+            _args = []
             for i, arg in enumerate(all_args):
                 if isinstance(arg, (np.ndarray, xp.ndarray)) and arg.shape == self.shape:
-                    args.append(da.from_array(arg, chunks=chunks))
+                    _args.append(da.from_array(arg, chunks=chunks))
                     img_idx.append(i)
                 else:
-                    args.append(arg)
+                    _args.append(arg)
                     
             def _func(*args, **kwargs):
                 args = list(args)
@@ -432,14 +432,15 @@ class MetaArray(AxesMixin, np.ndarray):
                 out = func(*args, **kwargs)
                 return xp.asnumpy(out[slice_out])
             
-            out = da.map_blocks(_func, 
-                                *args, 
-                                drop_axis=drop_axis,
-                                new_axis=new_axis, 
-                                meta=xp.array([], dtype=dtype), 
-                                chunks=out_chunks,
-                                **kwargs
-                                )
+            out = da.map_blocks(
+                _func, 
+                *_args, 
+                drop_axis=drop_axis,
+                new_axis=new_axis, 
+                meta=xp.array([], dtype=dtype), 
+                chunks=out_chunks,
+                **kwargs
+            )
             
             out = out.compute()
             

@@ -91,7 +91,7 @@ class Label(MetaArray):
         Label
             Same array but labels are updated.
         """        
-        labels = self.apply_dask(skseg.expand_labels,
+        labels = self._apply_dask(skseg.expand_labels,
                                 c_axes=complement_axes(dims, self.axes),
                                 dtype=self.dtype,
                                 kwargs=dict(distance=distance)
@@ -172,7 +172,7 @@ class Label(MetaArray):
         else:
             f = _filters.opening
             kwargs = dict(footprint=disk)
-        out = (self>0).apply_dask(f, 
+        out = (self>0)._apply_dask(f, 
                                   c_axes=complement_axes(dims, self.axes), 
                                   dtype=self.dtype,
                                   kwargs=kwargs

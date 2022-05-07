@@ -39,7 +39,7 @@ class AxesMixin:
         return self._axes
     
     @axes.setter
-    def axes(self, value):
+    def axes(self, value: str | Axes | None):
         if value is None:
             self._axes = Axes()
         else:
@@ -168,10 +168,14 @@ class AxesMixin:
             self.set_scale(dict(kwargs))
         
         elif hasattr(other, "scale"):
-            self.set_scale({a: s for a, s in other.scale.items() if a in self.axes})  # type: ignore
+            self.set_scale(
+                {a: s for a, s in other.scale.items() if a in self.axes}  # type: ignore
+            )
         
         else:
-            raise TypeError(f"'other' must be str or LazyImgArray, but got {type(other)}")
+            raise TypeError(
+                f"'other' must be str or axes supported object, but got {type(other)}"
+            )
         
         return None
     
@@ -208,10 +212,12 @@ class AxesMixin:
         slice and (np.ndarray or AxesMixin)
             slice and a subimage=self[sl]
         """     
-        iterlist = switch_slice(axes=axes, 
-                                all_axes=self.axes,
-                                ifin=[range(s) for s in self.shape], 
-                                ifnot=[(slice(None),)]*self.ndim)
+        iterlist = switch_slice(
+            axes=axes, 
+            all_axes=self.axes,
+            ifin=[range(s) for s in self.shape], 
+            ifnot=[(slice(None),)] * self.ndim
+        )
         selfview = self if israw else self.value
         it = itertools.product(*iterlist)
         c = 0 # counter
