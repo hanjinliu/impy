@@ -6,7 +6,6 @@ import warnings
 import os
 import numpy as np
 from numpy.typing import ArrayLike
-from ..array_api import xp
 
 from ..axes import ImageAxesError
 from .axesop import complement_axes
@@ -15,7 +14,9 @@ __all__ = ["IO"]
 
 
 class ImageData(NamedTuple):
-    image: ArrayLike | None
+    """Tuple of image info."""
+    
+    image: ArrayLike
     axes: str | None
     scale: float | None
     metadata: dict[str, Any]
@@ -25,13 +26,15 @@ if TYPE_CHECKING:
     from ..arrays.bases import MetaArray
     from ..arrays import LazyImgArray
     ImpyArray = Union[MetaArray, LazyImgArray]
-    Reader = Callable[[str, bool, bool], ImageData]
+    Reader = Callable[[str, bool], ImageData]
     _R = TypeVar("_R", bound=Reader)
     Writer = Callable[[str, ImpyArray, bool], None]
     _W = TypeVar("_W", bound=Writer)
 
 
 class ImageIO:
+    """A I/O class for image data."""
+    
     def __init__(self):
         self._reader: dict[str, Reader] = {}
         self._default_reader: Reader | None = None
@@ -47,6 +50,15 @@ class ImageIO:
         return f
 
     def mark_reader(self, *ext: str) -> Callable[[_R], _R]:
+        """
+        Mark a function as a reader function.
+        
+        Examples
+        --------
+        >>> @IO.mark_reader(".tif")
+        >>> def read_tif(path, memmap=False):
+        >>>     ...
+        """
         ext_list: list[str] = []
         for _ext in ext:
             if not _ext.startswith("."):
@@ -62,6 +74,15 @@ class ImageIO:
         return _register
 
     def mark_writer(self, *ext: str) -> Callable[[_R], _R]:
+        """
+        Mark a function as a writer function.
+
+        Examples
+        --------
+        >>> @IO.mark_writer(".tif")
+        >>> def save_tif(path, img, lazy=False):
+        >>>     ...
+        """        
         ext_list: list[str] = []
         for _ext in ext:
             if not _ext.startswith("."):
@@ -76,19 +97,48 @@ class ImageIO:
 
         return _register
     
-    def imread(
-        self,
-        path: str,
-        memmap: bool = False
-    ) -> ImageData:
-        if path.endswith(".map.gz"):
-            ext = ".map.gz"
-        else:
-            _, ext = os.path.splitext(path)
+    def imread(self, path: str, memmap: bool = False) -> ImageData:
+        """
+        Read an image file.
+        
+        The reader is chosen according to the file extension.
+
+        Parameters
+        ----------
+        path : str
+            File path of an image.
+        memmap : bool, default is False
+            Read image as a memory-mapped-like state.
+
+        Returns
+        -------
+        ImageData
+            Image data tuple.
+        """
+        _, ext = os.path.splitext(path)
         reader = self._reader.get(ext, self._default_reader)
         return reader(path, memmap)
     
-    def imread_dask(self, path: str, chunks) -> ImageData:
+    def imread_dask(self, path: str, chunks: Any) -> ImageData:
+        """
+        Read an image file as a dask array.
+
+        The reader is chosen according to the file extension.
+        
+        Parameters
+        ----------
+        path : str
+            File path of an image.
+        chunks : Any
+            Parameter that will be passed to ``dask.array.from_array`` or
+            ``dask.array.from_zarr`` function.
+
+        Returns
+        -------
+        ImageData
+            Image data tuple.
+        """
+        from ..array_api import xp
         image_data = self.imread(path, memmap=True)
         img = image_data.image
         
@@ -127,6 +177,7 @@ IO = ImageIO()
 
 @IO.set_default_reader
 def _(path: str, memmap: bool = False):
+    """By default use skimage reader."""
     from skimage import io
     img = io.imread(path)
     _, ext = os.path.splitext(path)
@@ -145,12 +196,14 @@ def _(path: str, memmap: bool = False):
 
 @IO.set_default_writer
 def _(path: str, img: ImpyArray, lazy: bool = False):
+    """By default use skimage writer."""
     from skimage import io
     io.imsave(path, np.asarray(img.value), check_contrast=False)
     return None
 
 @IO.mark_reader(".tif", ".tiff")
 def _(path: str, memmap: bool = False) -> ImageData:
+    """The tif file reader."""
     from tifffile import TiffFile
     with TiffFile(path) as tif:
         ijmeta = tif.imagej_metadata
@@ -204,9 +257,13 @@ def _(path: str, memmap: bool = False) -> ImageData:
         metadata=ijmeta,
     )
 
-@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".map.gz")
+@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".gz")
 def _(path: str, memmap: bool = False) -> ImageData:
+    """The MRC format reader"""
     import mrcfile
+    if path.endswith(".gz") and not path.endswith(".map.gz"):
+        raise ValueError("Only .map.gz file is supported.")
+
     if memmap:
         open_func = mrcfile.mmap
     else:
@@ -238,6 +295,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
 
 @IO.mark_reader(".zarr")
 def _(path: str, memmap: bool = False) -> ImageData:
+    """The zarr reader."""
     import zarr
     zf = zarr.open(path, mode="r")
     if memmap:
@@ -255,6 +313,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
 
 @IO.mark_writer(".tif", ".tiff")
 def _(path: str, img: ImpyArray, lazy: bool = False):
+    """The TIFF writer."""
     if lazy:
         from tifffile import memmap
         kwargs = _get_ijmeta_from_img(img, update_lut=False)
@@ -291,6 +350,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 
 @IO.mark_writer(".mrc", ".rec", ".st", ".map")
 def _(path: str, img: ImpyArray, lazy: bool = False):
+    """The MRC writer."""
     if img.scale_unit and img.scale_unit != "nm":
         raise ValueError(
             f"Scale unit {img.scale_unit} is not supported. Convert to nm instead."
@@ -323,6 +383,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 
 @IO.mark_writer(".zarr")
 def _(path: str, img: ImpyArray, lazy: bool = False):
+    """The zarr writer."""
     import zarr
     f = zarr.open(path, mode="w")
     
