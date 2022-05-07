@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
 from functools import wraps
 
-from .utils.io import open_img, open_as_dask, get_scale_from_meta, open_mrc, open_tif
+from .utils.io import IO
 from .utils import gauss
 from .utils.slicer import *
 from ._types import *
@@ -372,12 +372,14 @@ def imread(
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
 
-    meta, img = open_img(path, memmap=is_memmap)
+    image_data = IO.imread(path, memmap=is_memmap)
 
-    axes = meta["axes"]
-    metadata = meta["ijmeta"]
+    img = image_data.image
+    axes = image_data.axes
+    scale = image_data.scale
+    metadata = image_data.metadata
         
-    if is_memmap:
+    if is_memmap and axes is not None:
         sl = axis_targeted_slicing(img.ndim, axes, key)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
@@ -399,10 +401,7 @@ def imread(
         
     if self.axes.is_none():
         return self
-    else:
-        # read lateral scale if possible
-        scale = get_scale_from_meta(meta)
-        
+    else:        
         # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
         # one by one.
         for k, v in scale.items():
@@ -643,10 +642,12 @@ def lazy_imread(
     if "*" in path:
         return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
     
-    # read tif metadata
-    meta, img = open_as_dask(path, chunks)
-    axes = meta["axes"]
-    metadata = meta["ijmeta"]
+    # read as a dask array
+    image_data = IO.imread_dask(path, chunks)
+    img = image_data.image
+    axes = image_data.axes
+    scale = image_data.scale
+    metadata = image_data.metadata
         
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
@@ -658,7 +659,6 @@ def lazy_imread(
         return self
     else:
         # read lateral scale if possible
-        scale = get_scale_from_meta(meta)
         self.set_scale(**scale)
         return self.sort_axes()
 
@@ -714,20 +714,10 @@ def read_meta(path: str) -> dict[str]:
     Returns
     -------
     dict
-        Dictionary of metadata with following keys.
-        - "axes": axes information
-        - "ijmeta": ImageJ metadata
-        - "tags": tiff tags
-        
+        Dictionary of keys {"axes", "scale", "metadata"}        
     """    
     path = str(path)
-    _, fext = os.path.splitext(path)
-    meta, _ = open_as_dask(path, chunks="default")
-    if fext in (".tif", ".tiff"):
-        meta = open_tif(path)
-    elif fext in (".mrc", ".rec", ".map"):
-        meta = open_mrc(path)
-    else:
-        raise ValueError("Unsupported file extension.")
-    
-    return meta
+    image_data = IO.imread_dask(path, chunks="default")
+    d = image_data._asdict()
+    d.pop("image")
+    return d

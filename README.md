@@ -42,6 +42,15 @@ img_prj = np.max(img_fil, axis="z")    # Z-projection (numpy is aware of image a
 img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend time on searching for the directory!
 ```
 
+### Supported file formats
+
+`impy` automatically chooses proper reader/writer according to the extension.
+
+- Tiff file (".tif", ".tiff")
+- MRC file (".mrc", ".rec", ".st", ".map", ".map.gz")
+- Zarr file (".zarr")
+- Other image file (".png", ".jpg")
+
 ### Switch between CPU and GPU
 
 `impy` can internally switches the functions between `numpy` and `cupy`.

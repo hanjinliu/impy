@@ -19,7 +19,7 @@ from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, d
 from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing, key_repr
-from ..utils.io import get_imsave_meta_from_img, memmap_tif, memmap_mrc
+from ..utils.io import IO
 from ..collections import DataList
 
 from .._types import nDFloat, Coords, Iterable, Dims
@@ -336,27 +336,19 @@ class LazyImgArray(AxesMixin):
         _, ext = os.path.splitext(save_path)
         
         if ext == "":
-            save_path += ".tif"
-            ext = ".tif"
+            if self.source is not None:
+                ext = self.source.suffix
+            else:
+                ext = ".tif"
+            save_path += ext
         
-        if ext in (".tif", ".tiff"):
-            mmap_func = memmap_tif
-        elif ext in (".mrc", ".map"):
-            mmap_func = memmap_mrc
-        else:
-            raise ValueError(f"Unsupported file type '{ext}'.")
-    
         if os.sep not in save_path:
             save_path = os.path.join(self.source.parent, save_path)
         if dtype is None:
             dtype = self.dtype
         
         self = self.as_img_type(dtype).sort_axes()
-        imsave_kwargs = get_imsave_meta_from_img(self, update_lut=False)
-        
-        mmap_func(
-            self.value, save_path, shape=self.shape, dtype=self.dtype, **imsave_kwargs
-        )
+        IO.imsave(save_path, self, lazy=True)
         
         return None
     
