@@ -5,7 +5,7 @@ from numbers import Real
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
-class ImageAxesError(Exception):
+class ImageAxesError(RuntimeError):
     """This error is raised when axes is defined in a wrong way."""
 
 class NoneAxes:

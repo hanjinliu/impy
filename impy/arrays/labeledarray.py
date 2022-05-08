@@ -64,17 +64,22 @@ class LabeledArray(MetaArray):
         if value is None:
             self._labels = None
             return
+
+        if value is self:
+            raise ValueError("Setting labels recursively is not allowed.")
         
         if not isinstance(value, Label):
             # convert input
             arr = np.asarray(value)
+            if arr.dtype.kind == "i":
+                arr = arr.astype(np.uint64)
+            elif arr.dtype.kind != "u":
+                raise TypeError(
+                    f"Input label must be unsigned int but has wrong dtype {arr.dtype}."
+                )
             axes = str(self.axes)[-arr.ndim:]
-            value = Label(arr, axes=axes)
+            value = Label(arr, axes=axes).optimize()
         
-        if value.dtype.kind != "u":
-            raise TypeError(
-                f"Input label must be unsigned int but has wrong dtype {arr.dtype}."
-            )
         
         if not _shape_match(self, value):
             raise ValueError(
@@ -161,15 +166,15 @@ class LabeledArray(MetaArray):
     
     def __array_finalize__(self, obj):
         self._labels = None
+        super().__array_finalize__(obj)
         if isinstance(obj, LabeledArray):
             self._view_labels(obj)
-        super().__array_finalize__(obj)
     
     def _set_info(self, other: Self, new_axes: str = "inherit"):
         self._labels = None
+        super()._set_info(other, new_axes)
         if isinstance(other, LabeledArray):
             self._view_labels(other)
-        super()._set_info(other, new_axes)
     
     def _view_labels(self, other: Self):
         """Make a view of label **if possible**."""
