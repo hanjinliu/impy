@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterator, overload
 import numpy as np
 import itertools
 import re
@@ -8,10 +8,10 @@ from collections import namedtuple
 
 from ..utils.axesop import switch_slice
 from ..axes import Axes, ImageAxesError, ScaleDict
-from .._types import Slices
+from .._types import Slices, Dims
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    from typing_extensions import Self, Literal
 
 
 class AxesMixin:
@@ -20,6 +20,7 @@ class AxesMixin:
     _axes: Axes
     ndim: int
     shape: tuple[int, ...]
+    value: Any
     
     @property
     def shape_info(self) -> str:
@@ -179,13 +180,25 @@ class AxesMixin:
         
         return None
     
-    
+    @overload
     def iter(
         self,
         axes: str,
-        israw: bool = False,
-        exclude: str = ""
-    ) -> tuple[Slices, np.ndarray | Self]:
+        israw: Literal[False] = False, 
+        exclude: Dims = "",
+    ) -> Iterator[tuple[Slices, np.ndarray]]:
+        ...
+    
+    @overload
+    def iter(
+        self,
+        axes: str,
+        israw: Literal[True] = False, 
+        exclude: Dims = "",
+    ) -> Iterator[tuple[Slices, Self]]:
+        ...
+    
+    def iter(self, axes, israw = False, exclude = ""):
         """
         Iteration along axes. If axes="tzc", then equivalent to following pseudo code:
         

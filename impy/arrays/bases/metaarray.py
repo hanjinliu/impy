@@ -192,8 +192,9 @@ class MetaArray(AxesMixin, np.ndarray):
             self.axes = getattr(obj, "axes", None)
         except Exception:
             self.axes = None
-        if not self.axes.is_none() and len(self.axes) != self.ndim:
-            self.axes = None
+        else:
+            if not self.axes.is_none() and len(self.axes) != self.ndim:
+                self.axes = None
         
     def __array_ufunc__(self, ufunc, method, *args, **kwargs):
         """
@@ -216,7 +217,7 @@ class MetaArray(AxesMixin, np.ndarray):
         result._process_output(ufunc, args, kwargs)
         return result
     
-    def _inherit_meta(self, obj, ufunc, **kwargs):
+    def _inherit_meta(self, obj: AxesMixin, ufunc, **kwargs):
         """
         Copy axis etc. from obj.
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be

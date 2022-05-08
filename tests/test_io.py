@@ -21,10 +21,3 @@ def test_imread_and_imsave(ext, unit):
         assert_allclose(img.scale, img0.scale)
         assert img.scale_unit == img0.scale_unit
         assert_equal(img, img0)
-        
-        if ext != ".mrc":
-            # MRC file raises NotADirectoryError...
-            img1 = ip.lazy_imread(file_path, chunks=(1, 100, 100))
-            assert img1.chunksize == (1, 100, 100)
-            img1.imsave(Path(path) / f"test_dask{ext}")
-            del img1  # otherwise __exit__ fails

@@ -431,7 +431,7 @@ class napariViewers:
             name = [l.name for l in layer]
         else:
             name = layer.name
-        if hasattr(img, "labels"):
+        if img.labels is not None:
             add_labels(self.viewer, img.labels, name=name, metadata={"destination_image": img})
         return None
     

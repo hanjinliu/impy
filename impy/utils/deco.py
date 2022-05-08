@@ -1,8 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from functools import wraps
 import numpy as np
 import inspect
 import re
 from ..array_api import xp
+
+if TYPE_CHECKING:
+    from ..arrays import LabeledArray, LazyImgArray
 
 __all__ = [
     "record",
@@ -15,11 +20,11 @@ __all__ = [
 def record(func=None, *, inherit_label_info=False, only_binary=False, need_labels=False):
     def f(func):
         @wraps(func)
-        def _record(self, *args, **kwargs):
+        def _record(self: LabeledArray, *args, **kwargs):
             # check requirements of the ongoing function.
             if only_binary and self.dtype != bool:
                 raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
-            if need_labels and not hasattr(self, "labels"):
+            if need_labels and not self.labels is not None:
                 raise AttributeError(f"Function {func.__name__} needs labels."
                                     " Add labels to the image first.")
             
@@ -45,7 +50,7 @@ def record(func=None, *, inherit_label_info=False, only_binary=False, need_label
 def record_lazy(func=None, *, only_binary=False):
     def f(func):
         @wraps(func)
-        def _record(self, *args, **kwargs):
+        def _record(self: LazyImgArray, *args, **kwargs):
             if only_binary and self.dtype != bool:
                 raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
             

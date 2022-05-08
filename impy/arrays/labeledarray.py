@@ -2,10 +2,11 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import DTypeLike
 import os
+from pathlib import Path
 import itertools
 from functools import partial
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -29,19 +30,72 @@ if TYPE_CHECKING:
 
 
 class LabeledArray(MetaArray):
+    _name: str
+    _source: Path | None
+    _metadata: dict[str, Any]
+    _labels: Label | None
+    
+    def __new__(
+        cls: type[LabeledArray], 
+        obj,
+        name: str | None = None,
+        axes: str | None = None,
+        source: str | Path | None = None, 
+        metadata: dict[str, Any] | None = None,
+        dtype: DTypeLike = None,
+    ) -> Self:
+        self: LabeledArray = super().__new__(
+            cls, obj, name, axes, source, metadata, dtype
+        )
+        self._labels = None
+        return self
+
     @property
     def range(self) -> tuple[float, float]:
+        """Return min/max range of the array."""
         return self.min(), self.max()
+    
+    @property
+    def labels(self) -> Label | None:
+        return self._labels
+    
+    @labels.setter
+    def labels(self, value: np.ndarray | None):
+        if value is None:
+            self._labels = None
+            return
+        
+        if not isinstance(value, Label):
+            # convert input
+            arr = np.asarray(value)
+            axes = str(self.axes)[-arr.ndim:]
+            value = Label(arr, axes=axes)
+        
+        if value.dtype.kind != "u":
+            raise TypeError(
+                f"Input label must be unsigned int but has wrong dtype {arr.dtype}."
+            )
+        
+        if not _shape_match(self, value):
+            raise ValueError(
+                f"Shape of input label ({value.shape_info}) does not match the "
+                f"parent array ({self.shape_info})."
+            )
+        self._labels = value
+    
+    @labels.deleter
+    def labels(self):
+        self._labels = None
     
     def set_scale(self, other=None, **kwargs) -> None:
         super().set_scale(other, **kwargs)
-        if hasattr(self, "labels"):
+        if self.labels is not None:
             self.labels.set_scale(other, **kwargs)
         return None
         
         
     def _repr_dict_(self):
-        if hasattr(self, "labels"):
+        if self.labels is not None:
             labels_shape_info = self.labels.shape_info
         else:
             labels_shape_info = "No label"
@@ -106,15 +160,21 @@ class LabeledArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def __array_finalize__(self, obj):
+        self._labels = None
+        if isinstance(obj, LabeledArray):
+            self._view_labels(obj)
         super().__array_finalize__(obj)
-        self._view_labels(obj)
+    
+    def _set_info(self, other: Self, new_axes: str = "inherit"):
+        self._labels = None
+        if isinstance(other, LabeledArray):
+            self._view_labels(other)
+        super()._set_info(other, new_axes)
     
     def _view_labels(self, other: Self):
-        """
-        Make a view of label **if possible**.
-        """
+        """Make a view of label **if possible**."""
         if (
-            hasattr(other, "labels") and
+            other.labels is not None and
             axes_included(self, other.labels) and
             _shape_match(self, other.labels)
         ):
@@ -122,11 +182,12 @@ class LabeledArray(MetaArray):
                 self.labels = other.labels.copy()
             else:
                 self.labels = other.labels
+        
     
     def _getitem_additional_set_info(self, other: Self, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
         key = kwargs["key"]
-        if other.axes and hasattr(other, "labels") and not isinstance(key, np.ndarray):
+        if other.axes and other.labels is not None and not isinstance(key, np.ndarray):
             if isinstance(key, tuple):
                 _keys = key
             else:
@@ -141,11 +202,6 @@ class LabeledArray(MetaArray):
             except IndexError as e:
                 warn(f"Labels was not inherited due to IndexError : {e}", UserWarning)
         
-        return None
-
-    def _set_info(self, other, new_axes: str = "inherit"):
-        super()._set_info(other, new_axes)
-        self._view_labels(other)  # inherit labels
         return None
     
     def _update(self, out: Self):
@@ -280,7 +336,7 @@ class LabeledArray(MetaArray):
     @dims_to_spatial_axes
     def imshow_label(self, alpha=0.3, dims=2, **kwargs):
         from ._utils import _plot as _plt
-        if not hasattr(self, "labels"):
+        if not self.labels is not None:
             raise AttributeError("No label to show.")
         if self.ndim == 2:
             _plt.plot_2d_label(self.value, self.labels.value, alpha, **kwargs)
@@ -461,7 +517,7 @@ class LabeledArray(MetaArray):
         )
         cropped_img = cropped_img.view(self.__class__)
         cropped_img.axes = self.axes
-        if hasattr(self, "labels"):
+        if self.labels is not None:
             try:
                 lbl = self.labels
                 cropped_labels = np.empty(lbl.shape[:-2] + all_coords.shape[1:], dtype=lbl.dtype)
@@ -535,7 +591,7 @@ class LabeledArray(MetaArray):
                 _specify(labels[sl], crds.values, radius, n_label)
                 n_label += len(crds)
         
-            if hasattr(self, "labels"):
+            if self.labels is not None:
                 print("Existing labels are updated.")
             self.labels = Label(labels, axes=label_axes).optimize()
             self.labels.set_scale(self)
@@ -830,7 +886,7 @@ class LabeledArray(MetaArray):
             raise ValueError(f"`label_image` has dtype {label_image.dtype}, which is unable to be "
                              "interpreted as an label.")
             
-        if hasattr(self, "labels") and not new:
+        if self.labels is not None and not new:
             if label_image.shape != self.labels.shape:
                 raise ImageAxesError(f"Shape mismatch. Existing labels have shape {self.labels.shape} "
                                      f"while labels with shape {label_image.shape} is given.")
@@ -895,7 +951,7 @@ class LabeledArray(MetaArray):
         axisint = self.axisof(axis)
         
         imgs = super().split(axisint)
-        if hasattr(self, "labels"):
+        if self.labels is not None:
             labels = self.labels.split(axisint)
             for img, lbl in zip(imgs, labels):
                 lbl.axes = del_axis(self.labels.axes, axisint)
@@ -986,7 +1042,7 @@ class LabeledArray(MetaArray):
         out = out.view(self.__class__)
         out._set_info(self, new_axes=new_axes)
         
-        if hasattr(self, "labels"):
+        if self.labels is not None:
             tiled_label = self.labels.tile(shape, along, order)
             out.labels = tiled_label
         return out
@@ -1144,7 +1200,9 @@ def _shape_match(img: LabeledArray, label: Label):
     label ... 30(y), 50(x)
         -> False
     """    
-    return all([img.sizeof(a)==label.sizeof(a) for a in label.axes])
+    img_shape = img.shape
+    label_shape = label.shape
+    return all([getattr(img_shape, a) == getattr(label_shape, a) for a in label.axes])
 
 def _iter_tile_yx(ymax, xmax, imgy, imgx):
     """

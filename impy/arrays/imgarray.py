@@ -1968,18 +1968,20 @@ class ImgArray(LabeledArray):
         df_all: list[pd.DataFrame] = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.peak_local_max overwrite something so we need to give copy of img.
-            if use_labels and hasattr(img, "labels"):
+            if use_labels and img.labels is not None:
                 labels = xp.asnumpy(img.labels)
             else:
                 labels = None
             
-            indices = skfeat.peak_local_max(xp.asnumpy(img),
-                                            footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
-                                            threshold_abs=thr,
-                                            num_peaks=topn,
-                                            num_peaks_per_label=topn_per_label,
-                                            labels=labels,
-                                            exclude_border=exclude_border)
+            indices = skfeat.peak_local_max(
+                xp.asnumpy(img),
+                footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
+                threshold_abs=thr,
+                num_peaks=topn,
+                num_peaks_per_label=topn_per_label,
+                labels=labels,
+                exclude_border=exclude_border
+            )
             indices = pd.DataFrame(indices, columns=dims_list)
             indices[c_axes_list] = sl
             df_all.append(indices)
@@ -2039,18 +2041,20 @@ class ImgArray(LabeledArray):
         df_all: list[pd.DataFrame] = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
             # skfeat.corner_peaks overwrite something so we need to give copy of img.
-            if use_labels and hasattr(img, "labels"):
+            if use_labels and img.labels is not None:
                 labels = xp.asnumpy(img.labels)
             else:
                 labels = None
             
-            indices = skfeat.corner_peaks(xp.asnumpy(img),
-                                          footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
-                                          threshold_abs=thr,
-                                          num_peaks=topn,
-                                          num_peaks_per_label=topn_per_label,
-                                          labels=labels,
-                                          exclude_border=exclude_border)
+            indices = skfeat.corner_peaks(
+                xp.asnumpy(img),
+                footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
+                threshold_abs=thr,
+                num_peaks=topn,
+                num_peaks_per_label=topn_per_label,
+                labels=labels,
+                exclude_border=exclude_border
+            )
             indices = pd.DataFrame(indices, columns=dims_list)
             indices[c_axes_list] = sl
             df_all.append(indices)
@@ -2248,7 +2252,7 @@ class ImgArray(LabeledArray):
         else:
             coords = _check_coordinates(coords, self, dims=self.axes)
         
-        if hasattr(self, "labels"):
+        if self.labels is not None:
             labels_now = self.labels.copy()
         else:
             labels_now = None
