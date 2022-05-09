@@ -1764,12 +1764,19 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @record
-    def split_pixel_unit(self, center: tuple[float, float] = (0.5, 0.5), *, order: int = 1,
-                         angle_order: list[int] = None, newaxis: str = "a") -> ImgArray:
+    def split_pixel_unit(
+        self,
+        center: tuple[float, float] = (0.5, 0.5),
+        *, 
+        order: int = 1,
+        angle_order: list[int] = None,
+        newaxis: str = "a"
+    ) -> ImgArray:
         r"""
-        Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels. Generally, 
-        image acquisition with a polarization camera will output :math:`(2N, 2M)`-image with 
-        :math:`N \times M` pixel units:
+        Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels.
+        
+        Generally, image acquisition with a polarization camera will output 
+        :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
         
         +-+-+-+-+-+-+
         |0|1|0|1|0|1|
@@ -1781,35 +1788,26 @@ class ImgArray(LabeledArray):
         |3|2|3|2|3|2|
         +-+-+-+-+-+-+
         
-        This function generates images only consist of positions of [0], [1], [2] or [3]. Strictly,
-        each image is acquired from different position (the pixel (i,j) in [0]-image and the pixel
-        (i,j) in [1]-image are acquired from different positions). This function also complement for
-        this difference by Affine transformation and spline interpolation.
+        This function generates images only consist of positions of [0], [1], [2] or [3]. 
+        Strictly, each image is acquired from different position (the pixel (i,j) in
+        [0]-image and the pixel (i, j) in [1]-image are acquired from different positions).
+        This function also complement for this difference by Affine transformation and 
+        spline interpolation.
          
         Parameters
         ----------
-        center : tuple (a, b), where :math:`0 \le a \le 1` and :math:`0 \le b \le 1`, default is (0, 0)
-            Coordinate that will be considered as the center. For example, center=(0, 0) means the most
-            upper left pixel, and center=(0.5, 0.5) means the middle point of a pixel unit.
-            
-                .. code-block::
-                
-                    0, 1
-                    3, 2
-                    
-                becomes
-                
-                .. code-block::
-                    
-                    (0, 0), (0, 1)
-                    (1, 0), (1, 1)
+        center : tuple, default is (0, 0)
+            Coordinate that will be considered as the center of the returned image. Input
+            (a, b) must satisfy 0 < a < 1 and 0 < b < 1. For example, center=(0, 0) means 
+            the most upper left pixel, and center=(0.5, 0.5) means the middle point of a 
+            pixel unit. `[[0, 1], [3, 2]]` becomes `[[(0, 0), (0, 1)], [(1, 0), (1, 1)]]`.
                     
         {order}
         angle_order : list of int, default is [2, 1, 0, 3]
-            Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 corresponds to
-            polarization of 0, 45, 90 and 135 degree respectively. This list will be directly passed to
-            np.ndarray like ``arr[angle_order]`` to sort it. For example, if a pixel unit receives 
-            polarized light like below:
+            Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 
+            corresponds to polarization of 0, 45, 90 and 135 degree respectively. This 
+            list will be directly passed to ``np.ndarray`` like ``arr[angle_order]`` to
+            sort it. For example, if a pixel unit receives polarized light like below:
             
                 .. code-block::
             
@@ -1821,13 +1819,14 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Axis "a" is added in the first dimension. For example, If input is "tyx"-axes, then output
-            will be "atyx"-axes.
+            Axis "a" is added in the first dimension. For example, If input is "tyx"-axes,
+            then output will be "atyx"-axes.
         
         Examples
         --------
-        Extract polarization in 0-, 45-, 90- and 135-degree directions from an image that is acquired
-        from a polarization camera, and calculate total intensity of light by averaging.
+        Extract polarization in 0-, 45-, 90- and 135-degree directions from an image that
+        is acquired from a polarization camera, and calculate total intensity of light by 
+        averaging.
         
             >>> img_pol = img.split_pixel_unit()
             >>> img_total = img_pol.proj(axis="a")
@@ -1842,30 +1841,31 @@ class ImgArray(LabeledArray):
         for y, x in [(0,0), (0,1), (1,1), (1,0)]:
             dr = [(yc-y)/2, (xc-x)/2]
             imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order, dims="yx"))
-        imgs: ImgArray = np.stack(imgs, axis=newaxis)
-        imgs = imgs[f"{newaxis}={str(angle_order)[1:-1]}"]
-        imgs._set_info(self, new_axes=imgs.axes)
-        imgs.set_scale(y=self.scale.y*2, x=self.scale.x*2)
-        return imgs
+        out: ImgArray = np.stack(imgs, axis=newaxis)
+        out = out[f"{newaxis}={str(angle_order)[1:-1]}"]
+        out._set_info(self, new_axes=out.axes)
+        out.set_scale(y=self.scale.y*2, x=self.scale.x*2)
+        return out
         
     def stokes(self, *, along: str = "a") -> dict:
         """
-        Generate stocks images from an image stack with polarized images. Currently, Degree of Linear 
-        Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. Those irregular values
-        (np.nan, np.inf) will be replaced with 0. Be sure that to calculate DoPL correctly background
-        subtraction must be applied beforehand because stokes parameter ``s0`` is affected by absolute
-        intensities.
+        Generate stocks images from an image stack with polarized images. Currently, Degree
+        of Linear Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. 
+        Those irregular values (np.nan, np.inf) will be replaced with 0. Be sure that to 
+        calculate DoPL correctly background subtraction must be applied beforehand because 
+        stokes parameter ``s0`` is affected by absolute intensities.
 
         Parameters
         ----------
         along : str, default is "a"
-            To define which axis is polarization angle axis. Along this axis the angle of polarizer must be
-            in order of 0, 45, 90, 135 degree.
+            To define which axis is polarization angle axis. Along this axis the angle of
+            polarizer must be in order of 0, 45, 90, 135 degree.
 
         Returns
         -------
         dict
-            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP respectively.
+            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP 
+            respectively.
         
         Examples
         --------
@@ -1901,14 +1901,16 @@ class ImgArray(LabeledArray):
         dolp.set_scale(self)
         
         # Angle of Polarization (AoP)
-        # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because left side
-        # has range of [0, pi) while right side has range of [-pi/4, pi/4). The correct formulation is:
+        # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because 
+        # left side has range of [0, pi) while right side has range of [-pi/4, pi/4). The
+        # correct formulation is:
         #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
         # AoP = { 1/2argtan(s2/s1) + pi/2   (s1<0)
         #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
-        # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns correct values.
-        aop: ImgArray = np.arctan2(s2, s1)/2
-        aop = aop.view(PhaseArray)
+        # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns 
+        # correct values.
+        aop = np.arctan2(s2, s1)/2
+        aop: PhaseArray = aop.view(PhaseArray)
         aop._set_info(self, new_axes=new_axes)
         aop.unit = "rad"
         aop.border = (-np.pi/2, np.pi/2)
@@ -1921,9 +1923,17 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def peak_local_max(self, *, min_distance: float = 1.0, percentile: float = None, 
-                       topn: int = np.inf, topn_per_label: int = np.inf, exclude_border: bool =True,
-                       use_labels: bool = True, dims: Dims = None) -> MarkerFrame:
+    def peak_local_max(
+        self,
+        *, 
+        min_distance: float = 1.0,
+        percentile: float | None = None, 
+        topn: int = np.inf,
+        topn_per_label: int = np.inf,
+        exclude_border: bool =True,
+        use_labels: bool = True,
+        dims: Dims = None
+    ) -> MarkerFrame:
         """
         Find local maxima. This algorithm corresponds to ImageJ's 'Find Maxima' but is more flexible.
 
@@ -1994,9 +2004,17 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def corner_peaks(self, *, min_distance:int=1, percentile:float=None, 
-                     topn:int=np.inf, topn_per_label:int=np.inf, exclude_border:bool=True,
-                     use_labels:bool=True, dims: Dims = None) -> MarkerFrame:
+    def corner_peaks(
+        self,
+        *, 
+        min_distance:int = 1,
+        percentile: float | None = None, 
+        topn: int = np.inf,
+        topn_per_label: int = np.inf,
+        exclude_border: bool = True,
+        use_labels: bool = True, 
+        dims: Dims = None
+    ) -> MarkerFrame:
         """
         Find local corner maxima. Slightly different from peak_local_max.
 
@@ -2067,7 +2085,13 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def corner_harris(self, sigma: nDFloat=1, k: float=0.05, *, dims: Dims = None) -> ImgArray:
+    def corner_harris(
+        self,
+        sigma: nDFloat = 1,
+        k: float = 0.05, 
+        *, 
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Calculate Harris response image.
 
@@ -2092,7 +2116,13 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def find_corners(self, sigma: nDFloat = 1, k:float=0.05, *, dims: Dims = None) -> ImgArray:
+    def find_corners(
+        self,
+        sigma: nDFloat = 1,
+        k: float = 0.05,
+        *, 
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Corner detection using Harris response.
 
@@ -2170,7 +2200,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def flood(self, seeds:Coords, *, connectivity:int=1, tolerance:float=None, dims: Dims = None):
+    def flood(
+        self,
+        seeds: Coords, 
+        *,
+        connectivity: int = 1,
+        tolerance: float = None,
+        dims: Dims = None
+    ):
         """
         Flood filling with a list of seed points. By repeating skimage's ``flood`` function,
         this method can perform segmentation of an image.
@@ -2212,8 +2249,16 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def refine_sm(self, coords: Coords = None, radius: float = 4, *, percentile: float = 95, 
-                  n_iter: int = 10, sigma: float = 1.5, dims: Dims = None):
+    def refine_sm(
+        self,
+        coords: Coords = None,
+        radius: float = 4,
+        *, 
+        percentile: float = 95, 
+        n_iter: int = 10,
+        sigma: float = 1.5,
+        dims: Dims = None
+    ):
         """
         Refine coordinates of peaks and calculate positional errors using `trackpy`'s functions. Mean
         and noise level are determined using original method.
@@ -2301,9 +2346,17 @@ class ImgArray(LabeledArray):
         
     
     @dims_to_spatial_axes
-    def find_sm(self, sigma: nDFloat = 1.5, *, method: str = "dog", cutoff: float = None,
-                percentile: float = 95, topn: int = np.inf, exclude_border: bool = True,
-                dims: Dims = None) -> MarkerFrame:
+    def find_sm(
+        self,
+        sigma: nDFloat = 1.5,
+        *, 
+        method: str = "dog",
+        cutoff: float = None,
+        percentile: float = 95,
+        topn: int = np.inf,
+        exclude_border: bool = True,
+        dims: Dims = None
+    ) -> MarkerFrame:
         """
         Single molecule detection using difference of Gaussian, determinant of Hessian, Laplacian of 
         Gaussian or normalized cross correlation method.
@@ -2371,9 +2424,16 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def centroid_sm(self, coords: Coords = None, radius: nDInt = 4, sigma: nDFloat = 1.5, 
-                    filt: Callable[[ImgArray], bool] = None, percentile: float = 95, *,
-                    dims: Dims = None) -> MarkerFrame:
+    def centroid_sm(
+        self,
+        coords: Coords = None,
+        radius: nDInt = 4,
+        sigma: nDFloat = 1.5, 
+        filt: Callable[[ImgArray], bool] = None,
+        percentile: float = 95,
+        *,
+        dims: Dims = None
+    ) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroid.
 
@@ -2442,9 +2502,17 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def gauss_sm(self, coords: Coords = None, radius: nDInt = 4, sigma: nDFloat = 1.5, 
-                 filt: Callable = None, percentile: float = 95, *, return_all: bool = False,
-                 dims: Dims = None) -> MarkerFrame|DataDict:
+    def gauss_sm(
+        self,
+        coords: Coords = None,
+        radius: nDInt = 4,
+        sigma: nDFloat = 1.5, 
+        filt: Callable = None,
+        percentile: float = 95,
+        *,
+        return_all: bool = False,
+        dims: Dims = None
+    ) -> MarkerFrame|DataDict:
         """
         Calculate positions of particles in subpixel precision using Gaussian fitting.
 
@@ -2544,8 +2612,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def edge_grad(self, sigma: nDFloat = 1.0, method: str = "sobel", *, deg: bool = False,
-                  dims: Dims = 2) -> PhaseArray:
+    def edge_grad(
+        self,
+        sigma: nDFloat = 1.0,
+        method: str = "sobel", 
+        *, 
+        deg: bool = False,
+        dims: Dims = 2
+    ) -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
         is the direction with maximum gradient, i.e., intensity increase is largest. 
@@ -2596,7 +2670,13 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def hessian_angle(self, sigma: nDFloat = 1., *, deg: bool = False, dims: Dims = 2) -> PhaseArray:
+    def hessian_angle(
+        self,
+        sigma: nDFloat = 1.,
+        *, 
+        deg: bool = False,
+        dims: Dims = 2
+    ) -> PhaseArray:
         """
         Calculate filament angles using Hessian's eigenvectors.
 
@@ -2627,8 +2707,17 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def gabor_angle(self, n_sample: int = 180, lmd: float = 5, sigma: float = 2.5, gamma: float = 1, 
-                    phi: float = 0, *, deg: bool = False, dims: Dims = 2) -> PhaseArray:
+    def gabor_angle(
+        self,
+        n_sample: int = 180,
+        lmd: float = 5,
+        sigma: float = 2.5,
+        gamma: float = 1, 
+        phi: float = 0,
+        *, 
+        deg: bool = False, 
+        dims: Dims = 2
+    ) -> PhaseArray:
         """
         Calculate filament angles using Gabor filter. For all the candidates of angles, Gabor response is
         calculated, and the strongest response is returned as output array.
@@ -2687,8 +2776,17 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def gabor_filter(self, lmd:float=5, theta:float=0, sigma:float=2.5, gamma:float=1, phi:float=0, 
-                     *, return_imag:bool=False, dims: Dims = 2) -> ImgArray:
+    def gabor_filter(
+        self,
+        lmd:float=5,
+        theta:float=0,
+        sigma:float=2.5,
+        gamma:float=1,
+        phi:float=0, 
+        *,
+        return_imag: bool = False,
+        dims: Dims = 2
+    ) -> ImgArray:
         """
         Make a Gabor kernel and convolve it.
 
@@ -2741,11 +2839,17 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
-            double_precision = False, dims: Dims = None) -> ImgArray:
+    def fft(
+        self,
+        *, 
+        shape: int | Iterable[int] | str = "same",
+        shift: bool = True, 
+        double_precision: bool = False,
+        dims: Dims = None
+    ) -> ImgArray:
         """
-        Fast Fourier transformation. This function returns complex array, which is inconpatible with 
-        some ImgArray functions.
+        Fast Fourier transformation. This function returns complex array, which is
+        inconpatible with some ImgArray functions.
         
         Parameters
         ----------
@@ -2785,8 +2889,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def local_dft(self, key: str = "", upsample_factor: nDInt = 1, *, double_precision = False, 
-                  dims: Dims = None) -> ImgArray:
+    def local_dft(
+        self,
+        key: str = "",
+        upsample_factor: nDInt = 1,
+        *,
+        double_precision: bool = False, 
+        dims: Dims = None
+    ) -> ImgArray:
         r"""
         Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
         of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
@@ -2859,8 +2969,15 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def local_power_spectra(self, key: str = "", upsample_factor: nDInt = 1, norm: bool = False, *, 
-                            double_precision = False, dims: Dims = None) -> ImgArray:
+    def local_power_spectra(
+        self,
+        key: str = "",
+        upsample_factor: nDInt = 1,
+        norm: bool = False,
+        *, 
+        double_precision: bool = False,
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Return local n-D power spectra of images. See ``local_dft``.
 
@@ -2897,8 +3014,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def ifft(self, real: bool = True, *, shift: bool = True, double_precision = False, 
-             dims: Dims = None) -> ImgArray:
+    def ifft(
+        self,
+        real: bool = True,
+        *,
+        shift: bool = True,
+        double_precision = False, 
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
         
@@ -2933,8 +3056,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def power_spectra(self, shape="same", norm: bool = False, zero_norm: bool = False, *,
-                      double_precision = False, dims: Dims = None) -> ImgArray:
+    def power_spectra(
+        self,
+        shape: int | Iterable[int] | str = "same",
+        norm: bool = False, 
+        zero_norm: bool = False, *,
+        double_precision: bool = False,
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
         
@@ -2973,16 +3102,27 @@ class ImgArray(LabeledArray):
         return pw
     
     @record
-    def threshold(self, thr: float|str = "otsu", *, along: str = None, **kwargs) -> ImgArray:
+    def threshold(
+        self,
+        thr: float | str = "otsu",
+        *,
+        along: str | None = None,
+        **kwargs
+    ) -> ImgArray:
         """
+        Apply thresholding to the image and create a binary image.
+        
+        The threshold value can be given with a float or a string that indicates what
+        thresholding method will be used.
+        
         Parameters
         ----------
         thr: float or str or None, optional
             Threshold value, or thresholding algorithm.
         along : str, optional
-            Dimensions that will not share the same threshold. For instance, if ``along="c"`` then
-            threshold intensities are determined for every channel. If ``thr`` is float, ``along``
-            will be ignored.
+            Dimensions that will not share the same threshold. For instance, if
+            ``along="c"`` then threshold intensities are determined for every channel.
+            If ``thr`` is float, ``along`` will be ignored.
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
 
@@ -3040,7 +3180,9 @@ class ImgArray(LabeledArray):
         elif np.isscalar(thr):
             out = self >= thr
         else:
-            raise TypeError("'thr' must be numeric, or str specifying a thresholding method.")                
+            raise TypeError(
+                "'thr' must be numeric, or str specifying a thresholding method."
+            )
         
         return out
     
@@ -3050,8 +3192,9 @@ class ImgArray(LabeledArray):
     def distance_map(self, *, dims: Dims = None) -> ImgArray:
         """
         Calculate distance map from binary images.
-        For instance, ``[1, 1, 1, 0, 0, 0, 1, 1, 1]`` will be converted to ``[3, 2, 1, 0, 0, 0, 1, 2, 3]``.
-        Note that returned array will be float in n-D images.
+        For instance, ``[1, 1, 1, 0, 0, 0, 1, 1, 1]`` will be converted to 
+        ``[3, 2, 1, 0, 0, 0, 1, 2, 3]``. Note that returned array will be float in n-D 
+        images.
 
         Parameters
         ----------

@@ -25,7 +25,7 @@ class PhaseArray(LabeledArray):
     additional_props = ["_source", "_metadata", "_name", "unit", "border"]
     
     def __new__(cls, obj, name=None, axes=None, source=None, 
-                metadata=None, dtype=None, unit="rad", border=None):
+                metadata=None, dtype=None, unit="rad", border=None) -> PhaseArray:
         if dtype is None:
             dtype = np.float32
         if border is None:
