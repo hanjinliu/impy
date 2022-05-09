@@ -389,7 +389,7 @@ def imread(
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.shape.c > self.shape.x:
         self: ImgArray = np.moveaxis(self, -1, -3)
-        _axes = self.axes.axes
+        _axes = self.axes._axes_str
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     

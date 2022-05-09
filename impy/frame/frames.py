@@ -79,7 +79,7 @@ class AxesFrame(pd.DataFrame):
     @col_axes.setter
     def col_axes(self, value):
         if isinstance(value, str):
-            self._axes.axes = value
+            self._axes._axes_str = value
             self.columns = [a for a in value]
         else:
             raise TypeError("Only str can be set to `col_axes`.")

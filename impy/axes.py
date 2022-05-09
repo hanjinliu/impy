@@ -91,7 +91,7 @@ def check_none(func):
 class Axes:
     def __init__(self, value=None) -> None:
         if value == NONE or value is None:
-            self.axes: str = NONE
+            self._axes_str: str = NONE
             self.scale: ScaleDict[str, float] = None
             
         elif isinstance(value, str):
@@ -100,17 +100,17 @@ class Axes:
             twice = [a for a, v in c.items() if v > 1]
             if len(twice) > 0:
                 raise ImageAxesError(f"{', '.join(twice)} appeared twice")
-            self.axes = value
-            self.scale = {a: 1.0 for a in self.axes}
+            self._axes_str = value
+            self.scale = {a: 1.0 for a in self._axes_str}
             
         elif isinstance(value, self.__class__):
-            self.axes = value.axes
+            self._axes_str = value._axes_str
             self.scale = value.scale
             
         elif isinstance(value, dict):
-            if any(len(v)!=1 for v in value.keys()):
+            if any(len(v) != 1 for v in value.keys()):
                 raise ImageAxesError("Only one-character str can be an axis symbol.")
-            self.axes = "".join(value.keys())
+            self._axes_str = "".join(value.keys())
             for k, v in value.items():
                 try:
                     self.scale[k] = float(v)
@@ -133,33 +133,33 @@ class Axes:
         
     @check_none
     def __str__(self):
-        return self.axes
+        return self._axes_str
     
     @check_none
     def __len__(self):
-        return len(self.axes)
+        return len(self._axes_str)
 
     @check_none
     def __getitem__(self, key):
-        return self.axes[key]
+        return self._axes_str[key]
     
     @check_none
     def __iter__(self):
-        return self.axes.__iter__()
+        return self._axes_str.__iter__()
     
     @check_none
     def __next__(self):
-        return self.axes.__next__()
+        return self._axes_str.__next__()
     
     @check_none
     def __eq__(self, other):
         if isinstance(other, str):
-            return self.axes == other
+            return self._axes_str == other
         elif isinstance(other, self.__class__):
-            return other == self.axes
+            return other == self._axes_str
 
     def __contains__(self, other):
-        return other in self.axes
+        return other in self._axes_str
     
     def __bool__(self):
         return not self.is_none()
@@ -168,43 +168,43 @@ class Axes:
         if self.is_none():
             return "No axes defined"
         else:
-            return self.axes
+            return self._axes_str
 
     def __hash__(self) -> int:
-        return hash(self.axes)
+        return hash(self._axes_str)
     
     def is_none(self):
-        return isinstance(self.axes, NoneAxes)
+        return isinstance(self._axes_str, NoneAxes)
     
     @check_none
     def is_sorted(self) -> bool:
-        return self.axes == self.sorted()
+        return self._axes_str == self.sorted()
     
     def check_is_sorted(self):
         if self.is_sorted():
             pass
         else:
-            raise ImageAxesError(f"Axes must in tzcxy order, but got {self.axes}")
+            raise ImageAxesError(f"Axes must in tzcxy order, but got {self._axes_str}")
     
     @check_none
     def find(self, axis) -> int:
-        i = self.axes.find(axis)
+        i = self._axes_str.find(axis)
         if i < 0:
-            raise ImageAxesError(f"Image does not have {axis}-axis: {self.axes}")
+            raise ImageAxesError(f"Image does not have {axis}-axis: {self._axes_str}")
         else:
             return i
     
     @check_none
     def sort(self) -> None:
-        self.axes = self.sorted()
+        self._axes_str = self.sorted()
         return None
     
     def sorted(self)-> str:
-        return "".join([self.axes[i] for i in self.argsort()])
+        return "".join([self._axes_str[i] for i in self.argsort()])
     
     @check_none
     def argsort(self):
-        return np.argsort([ORDER[k] for k in self.axes])
+        return np.argsort([ORDER[k] for k in self._axes_str])
     
     def copy(self):
         return self.__class__(self)
@@ -223,12 +223,12 @@ class Axes:
         """        
         if len(old) != 1 or len(new) != 1:
             raise ValueError("Both `old` and `new` must be single character.")
-        if old not in self.axes:
-            raise ImageAxesError(f"Axes {old} does not exist: {self.axes}")
-        if new in self.axes:
-            raise ImageAxesError(f"Axes {new} already exists: {self.axes}")
+        if old not in self._axes_str:
+            raise ImageAxesError(f"Axes {old} does not exist: {self._axes_str}")
+        if new in self._axes_str:
+            raise ImageAxesError(f"Axes {new} already exists: {self._axes_str}")
         
-        self.axes = self.axes.replace(old, new)
+        self._axes_str = self._axes_str.replace(old, new)
         scale = self.scale.replace(old, new)
         self.scale = scale
         return None
