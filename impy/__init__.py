@@ -32,3 +32,12 @@ logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
 del logging
+
+# dtypes
+from numpy import (
+	uint8, uint16, uint32, uint64, uint128, uint256,
+	int8, int16, int32, int64, int128, int256,
+	float16, float32, float64, float128, float256,
+	complex64, complex128, complex256, complex512,
+	bool_, bool8,
+)

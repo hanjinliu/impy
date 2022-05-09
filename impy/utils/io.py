@@ -1,24 +1,36 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, NamedTuple, Callable, TypeVar, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Callable, TypeVar, Union, Protocol
 import json
 import re
 import warnings
 import os
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import DTypeLike
 
 from ..axes import ImageAxesError
 from .axesop import complement_axes
 
 __all__ = ["IO"]
 
+class _ImageType(Protocol):
+    @property
+    def ndim(self) -> int:
+        ...
+    
+    @property
+    def dtype(self) -> np.dtype:
+        ...
+    
+    def astype(self, dtype: DTypeLike):
+        ...
+
 
 class ImageData(NamedTuple):
     """Tuple of image info."""
     
-    image: ArrayLike
+    image: _ImageType
     axes: str | None
-    scale: float | None
+    scale: dict[str, float] | None
     metadata: dict[str, Any]
 
 
@@ -179,7 +191,7 @@ IO = ImageIO()
 def _(path: str, memmap: bool = False):
     """By default use skimage reader."""
     from skimage import io
-    img = io.imread(path)
+    img: np.ndarray = io.imread(path)
     _, ext = os.path.splitext(path)
     if ext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
         axes = "yxc"

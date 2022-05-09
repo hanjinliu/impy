@@ -355,8 +355,6 @@ def imread(
         
     """    
     path = str(path)
-    if not os.path.exists(path):
-        raise ValueError(f"Path does not exist: {path}.")
     is_memmap = (key is not None)
     
     if "$" in path:
@@ -368,7 +366,7 @@ def imread(
     
     # read tif metadata
     if not is_memmap:
-        size = os.path.getsize(path)/1e9
+        size = os.path.getsize(path) / 1e9
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
 
@@ -433,7 +431,7 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     if len(imgs) == 0:
         raise RuntimeError("Could not read any images.")
     
-    out = np.stack(imgs, axis="p")
+    out: ImgArray = np.stack(imgs, axis="p")
     if squeeze:
         out = np.squeeze(out)
     try:
@@ -441,7 +439,7 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
         out.source = base
     except Exception:
         pass
-    out.temp = paths
+
     return out
 
 def _imread_stack(
@@ -718,6 +716,8 @@ def read_meta(path: str) -> dict[str]:
     """    
     path = str(path)
     image_data = IO.imread_dask(path, chunks="default")
-    d = image_data._asdict()
-    d.pop("image")
-    return d
+    return {
+        "axes": image_data.axes,
+        "scale": image_data.scale,
+        "metadata": image_data.metadata
+    }
