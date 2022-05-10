@@ -75,3 +75,10 @@ def test_tiled():
     
     img = ip.random.normal(size=(120, 120, 120), axes="zyx")
     img.tiled_lowpass_filter(chunks=(40,50,50))
+
+def test_drift_correction():
+    img = ip.random.normal(size=(5, 10, 3, 120, 120), axes="tzcyx")
+    img["z=0;c=0"].drift_correction(along="t")
+    img.drift_correction(along="t", ref=img["c=0"], dims="zyx")
+    img.drift_correction(along="t")
+    img.drift_correction(ref=img["c=0"], along="t")

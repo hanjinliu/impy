@@ -4073,7 +4073,7 @@ class ImgArray(LabeledArray):
         from ..frame import MarkerFrame
         
         if along is None:
-            along = find_first_appeared("tpzc<i", include=self.axes)
+            along = find_first_appeared("tpzcia", include=self.axes)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         if not isinstance(upsample_factor, int):
@@ -4158,15 +4158,26 @@ class ImgArray(LabeledArray):
                 ref = self
                 _dims = complement_axes(along, self.axes)
                 if dims != _dims:
-                    warnings.warn(f"dims={dims} with along={along} and {self.axes}-image are not "
-                                  f"valid input. Changed to dims={_dims}",
-                                  UserWarning)
+                    warnings.warn(
+                        f"dims={dims} with along={along} and {self.axes}-image are not "
+                        f"valid input. Changed to dims={_dims}",
+                        UserWarning,
+                    )
                     dims = _dims
             elif not isinstance(ref, self.__class__):
-                raise TypeError(f"'ref' must be ImgArray object, but got {type(ref)}")
+                raise TypeError(f"'ref' must be an ImgArray object, but got {type(ref)}")
             elif ref.axes != along + dims:
-                raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
-                                 f"axes of `ref`({ref.axes})")
+                from itertools import product
+                _c_axes = complement_axes(along + dims, str(ref.axes))
+                fstr = ";".join("{axis}={{}}".format(axis=a) for a in _c_axes)
+                out = np.empty_like(self)
+                for idx in product(*(range(ref.sizeof(a)) for a in _c_axes)):
+                    sl = fstr.format(*idx)
+                    out[sl] = self[sl].drift_correction(
+                        ref=ref[sl], zero_ave=zero_ave, along=along, dims=dims,
+                        update=update, **affine_kwargs,
+                    )
+                return out
 
             shift = ref.track_drift(along=along).values
             
@@ -4208,16 +4219,18 @@ class ImgArray(LabeledArray):
             image slice at t=0 and c=1.
         """        
         c_axes = complement_axes(dims, self.axes)
-        out = self._apply_dask(skres.estimate_sigma,
-                              c_axes=c_axes,
-                              drop_axis=dims
-                              )
+        out = self._apply_dask(
+            skres.estimate_sigma,
+            c_axes=c_axes,
+            drop_axis=dims
+        )
             
         if out.ndim == 0 and squeeze:
             out = out[()]
         else:
-            out = PropArray(out, dtype=np.float32, name=self.name, 
-                            axes=c_axes, propname="estimate_sigma")
+            out = PropArray(
+                out, dtype=np.float32, name=self.name, axes=c_axes, propname="estimate_sigma"
+            )
             out._set_info(self, new_axes=c_axes)
         return out       
         
