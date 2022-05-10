@@ -1,6 +1,6 @@
 from __future__ import annotations
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 import numpy as np
 import napari
 import os
@@ -93,7 +93,7 @@ def add_labeledarray(viewer: "napari.Viewer", img: LabeledArray, **kwargs):
     if isinstance(img, PhaseArray) and not "colormap" in kwargs.keys():
         kwargs["colormap"] = "hsv"
         kwargs["contrast_limits"] = img.border
-    elif img.dtype.kind == "c" and  not "colormap" in kwargs.keys():
+    elif img.dtype.kind == "c" and not "colormap" in kwargs.keys():
         kwargs["colormap"] = "plasma"
     
     scale = make_world_scale(img)
@@ -108,10 +108,17 @@ def add_labeledarray(viewer: "napari.Viewer", img: LabeledArray, **kwargs):
             name = [name]
     
     if img.dtype.kind == "c":
-        img = np.abs(img)
-    layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
-                             name=name if len(name)>1 else name[0],
-                             **kwargs)
+        input = ComplexArrayView(img)
+    else:
+        input = img
+        
+    layer = viewer.add_image(
+        input,
+        channel_axis=chn_ax,
+        scale=scale, 
+        name=name if len(name) > 1 else name[0],
+        **kwargs
+    )
     
     if viewer.scale_bar.unit:
         if viewer.scale_bar.unit != img.scale_unit:
@@ -310,3 +317,43 @@ def get_a_selected_layer(viewer:"napari.Viewer"):
         raise ValueError("More than one layers are selected.")
     return selected[0]
 
+
+_A = TypeVar("_A", bound=np.ndarray)
+
+class ComplexArrayView:
+    """View a complex array in napari."""
+    def __init__(self, data: _A):
+        if data.dtype.kind != "c":
+            raise TypeError("Input was not a complex array.")
+        self._data = data
+    
+    def __array__(self, dtype=None) -> np.ndarray:
+        return np.abs(self._data)
+    
+    @property
+    def data_raw(self) -> _A:
+        """Return the raw data."""
+        return self._data
+    
+    @property
+    def shape(self) -> tuple:
+        """Shape of array."""
+        return self._data.shape
+    
+    @property
+    def ndim(self) -> int:
+        """Number of dimensions of array."""
+        return self._data.ndim
+    
+    @property
+    def dtype(self) -> np.dtype:
+        """Data type of array."""
+        return self._data.dtype
+    
+    @property
+    def nbytes(self) -> int:
+        """Bytes of array."""
+        return self._data.nbytes
+    
+    def __getitem__(self, key):
+        return self.__class__(self._data[key])

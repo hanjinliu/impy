@@ -4528,7 +4528,7 @@ class ImgArray(LabeledArray):
             args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
         )
 
-def _check_coordinates(coords, img, dims: Dims = None):
+def _check_coordinates(coords, img: ImgArray, dims: Dims = None):
     from ..frame import MarkerFrame
     if not isinstance(coords, MarkerFrame):
         coords = np.asarray(coords)
@@ -4555,7 +4555,7 @@ def _check_function(func):
     else:
         raise TypeError("Must be one of numpy methods or callable object.")
     
-def _check_bg(img, bg):
+def _check_bg(img: ImgArray, bg):
     # determine bg
     if bg is None:
         bg = img.min()

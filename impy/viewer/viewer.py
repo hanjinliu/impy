@@ -42,7 +42,7 @@ class napariViewers:
         w = "".join([f"<{k}>" for k in self._viewers.keys()])
         return f"{self.__class__}{w}"
     
-    def __getitem__(self, key:str) -> napariViewers:
+    def __getitem__(self, key: str) -> napariViewers:
         """
         This method looks strange but intuitive because you can access the last viewer by
         >>> ip.gui.add(...)
@@ -361,7 +361,14 @@ class napariViewers:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
         
-    def add_surface(self, image3d: LabeledArray, level: float = None, step_size: int = 1, mask=None, **kwargs):
+    def add_surface(
+        self,
+        image3d: LabeledArray,
+        level: float = None,
+        step_size: int = 1,
+        mask=None,
+        **kwargs
+    ):
         """
         Add a surface layer from a 3D image.
 
