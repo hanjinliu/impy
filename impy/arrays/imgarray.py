@@ -388,8 +388,14 @@ class ImgArray(LabeledArray):
         return out
     
     @record
-    def gaussfit(self, scale:float=1/16, p0:list=None, show_result:bool=True, 
-                 method:str="Powell") -> ImgArray:
+    @dims_to_spatial_axes
+    def gaussfit(
+        self,
+        scale: float = 1/16,
+        p0: list = None,
+        method: str = "Powell",
+        dims: Dims = 2,
+    ) -> ImgArray:
         """
         Fit the image to 2-D Gaussian background.
 
@@ -399,30 +405,27 @@ class ImgArray(LabeledArray):
             Scale of rough image (to speed up fitting).
         p0 : list or None, optional
             Initial parameters.
-        show_result : bool, default is True
-            If True, plot the fitting result on the cross sections.
         method : str, optional
             Fitting method. See `scipy.optimize.minimize`.
+        {dims}
 
         Returns
         -------
         ImgArray
             Fit image.
         """
-        if self.ndim != 2:
-            raise TypeError(f"input must be two dimensional, but got {self.shape}")
+        if self.ndim > len(dims):
+            out = np.empty_like(self)
+            for sl, img in self.iter(complement_axes(dims, self.axes), israw=True):
+                out[sl] = img.gaussfit(scale=scale, p0=p0, method=method, dims=dims)
+            return out
         
         rough = self.rescale(scale).value.astype(np.float32)
         gaussian = GaussianBackground(p0)
-        result = gaussian.fit(rough, method=method)
+        gaussian.fit(rough, method=method)
         gaussian.rescale(1/scale)
         fit = gaussian.generate(self.shape).view(self.__class__)
-        fit.metadata["Gaussian-params"] = dict(params=gaussian.params, result=result)
         
-        # show fitting result
-        if show_result:
-            from ._utils import _plot as _plt
-            _plt.plot_gaussfit_result(self, fit)
         return fit
     
     @same_dtype(asfloat=True)

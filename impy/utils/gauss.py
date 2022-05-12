@@ -68,7 +68,7 @@ class DiagonalGaussian(Gaussian):
     def ndim(self):
         return self.mu.size
     
-    def fit(self, data:np.ndarray, method="Powell"):
+    def fit(self, data: np.ndarray, method: str = "Powell"):
         if self.mu is None or self.sg is None or self.a is None or self.b is None:
             self._estimate_params(data)
         r = np.indices(data.shape)
@@ -88,7 +88,7 @@ class DiagonalGaussian(Gaussian):
         return None
     
     def generate(self, shape:tuple) -> np.ndarray:
-        r = np.indices(shape)
+        r = np.indices(shape, dtype=np.float32)
         return diagonal_gaussian(r, *self.params)
     
     def _estimate_params(self, data:np.ndarray):
@@ -108,7 +108,7 @@ class GaussianParticle(DiagonalGaussian):
         return None
 
 class GaussianBackground(DiagonalGaussian):
-    def _estimate_params(self, data:np.ndarray):
+    def _estimate_params(self, data: np.ndarray):
         # n-dim argmax
         self.mu = np.array(np.unravel_index(np.argmax(data), data.shape), dtype="float32")
         self.sg = np.array(data.shape, dtype="float32")
