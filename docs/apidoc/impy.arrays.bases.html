@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.bases package &mdash; impy 2.0.0 documentation</title>
+  <title>impy.arrays.bases package &mdash; impy 2.0.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0
+                2.0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -93,33 +93,6 @@
 <dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.additional_props">
 <span class="sig-name descname"><span class="pre">additional_props</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['_source',</span> <span class="pre">'_metadata',</span> <span class="pre">'_name']</span></em><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.additional_props" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.apply_dask">
-<span class="sig-name descname"><span class="pre">apply_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">func:</span> <span class="pre">Callable</span></em>, <em class="sig-param"><span class="pre">c_axes:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">drop_axis:</span> <span class="pre">Iterable[int]</span> <span class="pre">=</span> <span class="pre">[]</span></em>, <em class="sig-param"><span class="pre">new_axis:</span> <span class="pre">Iterable[int]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;</span></em>, <em class="sig-param"><span class="pre">out_chunks:</span> <span class="pre">tuple[int</span></em>, <em class="sig-param"><span class="pre">...]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">args:</span> <span class="pre">tuple[Any]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">kwargs:</span> <span class="pre">dict[str</span></em>, <em class="sig-param"><span class="pre">Any]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../_modules/impy/arrays/bases/metaarray.html#MetaArray.apply_dask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.bases.metaarray.MetaArray.apply_dask" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert array into dask array and run a batch process in parallel. In many cases batch process
-in this way is faster than <cite>multiprocess</cite> module.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>func</strong> (<em>callable</em>) – Function to apply.</p></li>
-<li><p><strong>c_axes</strong> (<em>str</em><em>, </em><em>optional</em>) – Axes to iterate.</p></li>
-<li><p><strong>drop_axis</strong> (<em>Iterable</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Passed to map_blocks.</p></li>
-<li><p><strong>new_axis</strong> (<em>Iterable</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Passed to map_blocks.</p></li>
-<li><p><strong>dtype</strong> (<em>any that can be converted to np.dtype object</em><em>, </em><em>default is np.float32</em>) – Output data type.</p></li>
-<li><p><strong>out_chunks</strong> (<em>tuple of int</em><em>, </em><em>optional</em>) – Output chunks. This argument is important when the output shape will change.</p></li>
-<li><p><strong>args</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Arguments that will passed to <cite>func</cite>.</p></li>
-<li><p><strong>kwargs</strong> (<em>dict</em>) – Keyword arguments that will passed to <cite>func</cite>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Processed array.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray">MetaArray</a></p>
-</dd>
-</dl>
-</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.bases.metaarray.MetaArray.argmax_nd">

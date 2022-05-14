@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy package &mdash; impy 2.0.0 documentation</title>
+  <title>impy package &mdash; impy 2.0.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0
+                2.0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -172,6 +172,12 @@
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="impy.axes.Axes.contains">
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chars</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/impy/axes.html#Axes.contains"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.contains" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if self contains all the characters in <code class="docutils literal notranslate"><span class="pre">chars</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="impy.axes.Axes.copy">
 <span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.copy" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -226,7 +232,7 @@ will be copied.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="impy.axes.ImageAxesError">
 <em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">ImageAxesError</span></span><a class="reference internal" href="../_modules/impy/axes.html#ImageAxesError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.ImageAxesError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></p>
 <p>This error is raised when axes is defined in a wrong way.</p>
 </dd></dl>
 
@@ -361,8 +367,8 @@ exactly same thing).</p>
 <span id="impy-collections-module"></span><h2>impy.collections module<a class="headerlink" href="#module-impy.collections" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="impy.collections.DataDict">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.collections.</span></span><span class="sig-name descname"><span class="pre">DataDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/collections.html#DataDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataDict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">impy.collections.CollectionBase</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.UserDict</span></code></p>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.collections.</span></span><span class="sig-name descname"><span class="pre">DataDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">_K</span><span class="p"><span class="pre">,</span> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">_K</span><span class="p"><span class="pre">,</span> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/collections.html#DataDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">impy.collections.CollectionBase</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">impy.collections._K</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">impy.collections._T</span></code>]</p>
 <p>Dictionary-like class that can call same method for every object containded in the values. Accordingly,
 DataDict cannot have objects with different types as values. It is checked every time constructor or
 <cite>__setitem__</cite> method is called.</p>
@@ -392,7 +398,7 @@ DataDict cannot have objects with different types as values. It is checked every
 <dd class="field-even"><p>This list is composed of {“name0”: func(data[0]), “name1”: func(data[1]), …}</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#impy.collections.DataList" title="impy.collections.DataList">DataList</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#impy.collections.DataDict" title="impy.collections.DataDict">DataDict</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -401,11 +407,11 @@ DataDict cannot have objects with different types as values. It is checked every
 
 <dl class="py class">
 <dt class="sig sig-object py" id="impy.collections.DataList">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.collections.</span></span><span class="sig-name descname"><span class="pre">DataList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/collections.html#DataList"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">impy.collections.CollectionBase</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.UserList</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">impy.collections._T</span></code>]</p>
-<p>List-like class that can call same method for every object containded in it. Accordingly, DataList
-cannot have objects with different types. It is checked every time constructor or <cite>append</cite> method is
-called.</p>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.collections.</span></span><span class="sig-name descname"><span class="pre">DataList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">impy.collections._T</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/collections.html#DataList"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">impy.collections.CollectionBase</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">MutableSequence</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">impy.collections._T</span></code>]</p>
+<p>List-like class that can call same method for every object containded in it.
+Accordingly, DataList cannot have objects with different types. It is checked
+every time constructor or <cite>append</cite> method is called.</p>
 <p class="rubric">Examples</p>
 <ol class="arabic simple">
 <li><p>Run Gaussian filter for every ImgArray.
@@ -415,12 +421,6 @@ called.</p>
 &gt;&gt;&gt; imgs = DataList([img1, img2, …])
 &gt;&gt;&gt; out = imgs.find_sm()</p></li>
 </ol>
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.collections.DataList.append">
-<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">impy.collections._T</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/impy/collections.html#DataList.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList.append" title="Permalink to this definition">¶</a></dt>
-<dd><p>S.append(value) – append value to the end of the sequence</p>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.collections.DataList.apply">
 <span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span> <span class="p"><span class="pre">|</span></span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.collections.DataList" title="impy.collections.DataList"><span class="pre">DataList</span></a></span></span><a class="reference internal" href="../_modules/impy/collections.html#DataList.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList.apply" title="Permalink to this definition">¶</a></dt>
@@ -443,9 +443,9 @@ called.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="impy.collections.DataList.extend">
-<span class="sig-name descname"><span class="pre">extend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#impy.collections.DataList" title="impy.collections.DataList"><span class="pre">impy.collections.DataList</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/impy/collections.html#DataList.extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList.extend" title="Permalink to this definition">¶</a></dt>
-<dd><p>S.extend(iterable) – extend sequence by appending elements from the iterable</p>
+<dt class="sig sig-object py" id="impy.collections.DataList.insert">
+<span class="sig-name descname"><span class="pre">insert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">impy.collections._T</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/impy/collections.html#DataList.insert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.insert(index, value) – insert value before index</p>
 </dd></dl>
 
 </dd></dl>
@@ -877,10 +877,7 @@ compatible with that passed in via this argument.</p>
 <dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Path to the image file.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Dictionary of metadata with following keys.
-- “axes”: axes information
-- “ijmeta”: ImageJ metadata
-- “tags”: tiff tags</p>
+<dd class="field-even"><p>Dictionary of keys {“axes”, “scale”, “metadata”}</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>dict</p>

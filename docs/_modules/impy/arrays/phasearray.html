@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.phasearray &mdash; impy 2.0.0.alpha documentation</title>
+  <title>impy.arrays.phasearray &mdash; impy 2.0.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0.alpha
+                2.0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -77,7 +77,7 @@
 <span class="kn">from</span> <span class="nn">.labeledarray</span> <span class="kn">import</span> <span class="n">LabeledArray</span>
 
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span>
-<span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">record</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span><span class="p">,</span> <span class="n">same_dtype</span>
+<span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">check_input_and_output</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span><span class="p">,</span> <span class="n">same_dtype</span>
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_misc</span>
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataDict</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Dims</span>
@@ -95,7 +95,7 @@
     <span class="n">additional_props</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;_source&quot;</span><span class="p">,</span> <span class="s2">&quot;_metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;_name&quot;</span><span class="p">,</span> <span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="s2">&quot;border&quot;</span><span class="p">]</span>
     
     <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
-                <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;rad&quot;</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;rad&quot;</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
         <span class="k">if</span> <span class="n">border</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -195,7 +195,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">border</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">border</span><span class="p">))</span>
         <span class="k">return</span> <span class="bp">self</span></div>
     
-<div class="viewcode-block" id="PhaseArray.binning"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.binning">[docs]</a>    <span class="nd">@record</span>
+<div class="viewcode-block" id="PhaseArray.binning"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.binning">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">binning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binsize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">check_edges</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
@@ -214,7 +214,7 @@
         <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">({</span><span class="n">a</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">/</span><span class="n">scale</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">scale</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">scale_</span><span class="p">)})</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="PhaseArray.mean_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.mean_filter">[docs]</a>    <span class="nd">@record</span>
+<div class="viewcode-block" id="PhaseArray.mean_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.mean_filter">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">mean_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
@@ -240,7 +240,7 @@
         <span class="n">disk</span> <span class="o">=</span> <span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
             
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_dask</span><span class="p">(</span><span class="n">_filters</span><span class="o">.</span><span class="n">phase_mean_filter</span><span class="p">,</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">_filters</span><span class="o">.</span><span class="n">phase_mean_filter</span><span class="p">,</span>
                                <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span>
                                <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">disk</span><span class="p">,</span> <span class="n">a</span><span class="p">),</span>
                                <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
@@ -279,7 +279,7 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">out_im</span><span class="p">,</span> <span class="n">out_re</span><span class="p">)</span><span class="o">/</span><span class="n">a</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="PhaseArray.regionprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.regionprops">[docs]</a>    <span class="nd">@record</span><span class="p">(</span><span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="PhaseArray.regionprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.regionprops">[docs]</a>    <span class="nd">@check_input_and_output</span><span class="p">(</span><span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">regionprops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">properties</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">|</span><span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;phase_mean&quot;</span><span class="p">,),</span> <span class="o">*</span><span class="p">,</span> 
                     <span class="n">extra_properties</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>

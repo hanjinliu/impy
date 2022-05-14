@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.utils package &mdash; impy 2.0.0 documentation</title>
+  <title>impy.utils package &mdash; impy 2.0.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0
+                2.0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -87,7 +87,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.axesop.axes_included">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.axesop.</span></span><span class="sig-name descname"><span class="pre">axes_included</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/axesop.html#axes_included"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.axesop.axes_included" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.utils.axesop.</span></span><span class="sig-name descname"><span class="pre">axes_included</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesMixin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesMixin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/axesop.html#axes_included"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.axesop.axes_included" title="Permalink to this definition">¶</a></dt>
 <dd><p>e.g.)
 img.axes = “tyx”, label.axes = “yx” -&gt; True
 img.axes = “tcyx”, label.axes = “zyx” -&gt; False</p>
@@ -120,6 +120,16 @@ delete axis from axes.</p>
 <section id="module-impy.utils.deco">
 <span id="impy-utils-deco-module"></span><h2>impy.utils.deco module<a class="headerlink" href="#module-impy.utils.deco" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
+<dt class="sig sig-object py" id="impy.utils.deco.check_input_and_output">
+<span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">check_input_and_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inherit_label_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">need_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#check_input_and_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.check_input_and_output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.utils.deco.check_input_and_output_lazy">
+<span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">check_input_and_output_lazy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#check_input_and_output_lazy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.check_input_and_output_lazy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.deco.dims_to_spatial_axes">
 <span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">dims_to_spatial_axes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#dims_to_spatial_axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.dims_to_spatial_axes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorator to convert input <cite>dims</cite> to correct spatial axes. Compatible with ImgArray and
@@ -132,18 +142,8 @@ dims=”ty” -&gt; “ty”</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.deco.record">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inherit_label_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">need_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#record"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.record" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.deco.record_lazy">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">record_lazy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#record_lazy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.record_lazy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.deco.same_dtype">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">same_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asfloat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#same_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.same_dtype" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.utils.deco.</span></span><span class="sig-name descname"><span class="pre">same_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asfloat</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/deco.html#same_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.deco.same_dtype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorator to assure output image has the same dtype as the input image.
 This decorator is compatible with both ImgArray and LazyImgArray.</p>
 <dl class="field-list simple">
@@ -162,7 +162,7 @@ This decorator is compatible with both ImgArray and LazyImgArray.</p>
 <dd><p>Bases: <a class="reference internal" href="#impy.utils.gauss.Gaussian" title="impy.utils.gauss.Gaussian"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.utils.gauss.Gaussian</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.utils.gauss.DiagonalGaussian.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Powell'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#DiagonalGaussian.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian.fit" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'Powell'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#DiagonalGaussian.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian.fit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -245,109 +245,6 @@ where x and y are determine by z.shape</p>
 </section>
 <section id="module-impy.utils.io">
 <span id="impy-utils-io-module"></span><h2>impy.utils.io module<a class="headerlink" href="#module-impy.utils.io" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.get_imsave_meta_from_img">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">get_imsave_meta_from_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">MetaArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_lut</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/io.html#get_imsave_meta_from_img"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.get_imsave_meta_from_img" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.get_scale_from_meta">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">get_scale_from_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/io.html#get_scale_from_meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.get_scale_from_meta" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.imwrite">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">imwrite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tifffile/tifffile.html#imwrite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.imwrite" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write numpy array to TIFF file.</p>
-<p>Refer to the TiffWriter class and its write function for documentation.</p>
-<p>A BigTIFF file is created if the data’s size is larger than 4 GB minus
-32 MB (for metadata), and ‘bigtiff’ is not specified, and ‘imagej’ or
-‘truncate’ are not enabled.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>str</em><em>, </em><em>path-like</em><em>, or </em><em>binary stream</em>) – File name or writable binary stream, such as an open file or BytesIO.</p></li>
-<li><p><strong>data</strong> (<em>array-like</em>) – Input image. The last dimensions are assumed to be image depth,
-length, width, and samples.
-If None, an empty array of the specified shape and dtype is
-saved to file.
-Unless ‘byteorder’ is specified in ‘kwargs’, the TIFF file byte order
-is determined from the data’s dtype or the dtype argument.</p></li>
-<li><p><strong>shape</strong> (<em>tuple</em>) – If ‘data’ is None, shape of an empty array to save to the file.</p></li>
-<li><p><strong>dtype</strong> (<em>numpy.dtype</em>) – If ‘data’ is None, datatype of an empty array to save to the file.</p></li>
-<li><p><strong>kwargs</strong> (<em>dict</em>) – Parameters ‘append’, ‘byteorder’, ‘bigtiff’, ‘imagej’, and ‘ome’,
-are passed to TiffWriter().
-Other parameters are passed to TiffWriter.write().</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>offset, bytecount</strong> – If the ‘returnoffset’ argument is True and the image data are written
-contiguously, return offset and bytecount of image data in the file.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>tuple or None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.memmap">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">memmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">series</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r+'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tifffile/tifffile.html#memmap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.memmap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return memory-mapped numpy array stored in TIFF file.</p>
-<p>Memory-mapping requires data stored in native byte order, without tiling,
-compression, predictors, etc.
-If ‘shape’ and ‘dtype’ are provided, existing files are overwritten or
-appended to depending on the ‘append’ parameter.
-Otherwise the image data of a specified page or series in an existing
-file are memory-mapped. By default, the image data of the first
-series are memory-mapped.
-Call flush() to write any changes in the array to the file.
-Raise ValueError if the image data in the file are not memory-mappable.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> (<em>str</em><em> or </em><em>path-like</em>) – Name of the TIFF file which stores the array.</p></li>
-<li><p><strong>shape</strong> (<em>tuple</em>) – Shape of the empty array.</p></li>
-<li><p><strong>dtype</strong> (<em>numpy.dtype</em>) – Datatype of the empty array.</p></li>
-<li><p><strong>page</strong> (<em>int</em>) – Index of the page which image data to memory-map.</p></li>
-<li><p><strong>series</strong> (<em>int</em>) – Index of the page series and pyramid level which image data to
-memory-map.</p></li>
-<li><p><strong>level</strong> (<em>int</em>) – Index of the page series and pyramid level which image data to
-memory-map.</p></li>
-<li><p><strong>mode</strong> (<em>{'r+'</em><em>, </em><em>'r'</em><em>, </em><em>'c'}</em>) – The file open mode. Default is to open existing file for reading and
-writing (‘r+’).</p></li>
-<li><p><strong>kwargs</strong> (<em>dict</em>) – Additional parameters passed to imwrite() or TiffFile().</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Image data in TIFF file.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>numpy.memmap</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.open_as_dask">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">open_as_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/io.html#open_as_dask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.open_as_dask" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.open_img">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">open_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memmap</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/io.html#open_img"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.open_img" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.open_mrc">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">open_mrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memmap</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/io.html#open_mrc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.open_mrc" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.utils.io.open_tif">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.io.</span></span><span class="sig-name descname"><span class="pre">open_tif</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memmap</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/io.html#open_tif"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.io.open_tif" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </section>
 <section id="module-impy.utils.misc">
 <span id="impy-utils-misc-module"></span><h2>impy.utils.misc module<a class="headerlink" href="#module-impy.utils.misc" title="Permalink to this headline">¶</a></h2>

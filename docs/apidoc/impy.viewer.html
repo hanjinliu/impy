@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer package &mdash; impy 2.0.0 documentation</title>
+  <title>impy.viewer package &mdash; impy 2.0.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0
+                2.0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -78,6 +78,43 @@
 </section>
 <section id="module-impy.viewer.utils">
 <span id="impy-viewer-utils-module"></span><h2>impy.viewer.utils module<a class="headerlink" href="#module-impy.viewer.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">ComplexArrayView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">impy.viewer.utils._A</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#ComplexArrayView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>View a complex array in napari.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.data_raw">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data_raw</span></span><em class="property"><span class="pre">:</span> <span class="pre">impy.viewer.utils._A</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.data_raw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the raw data.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.dtype">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">dtype</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.dtype</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data type of array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.nbytes">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">nbytes</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.nbytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bytes of array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.ndim">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">ndim</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.ndim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of dimensions of array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.shape">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="pre">:</span> <span class="pre">tuple</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shape of array.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.add_dask">
 <span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">napari.viewer.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray"><span class="pre">impy.arrays.lazy.LazyImgArray</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_dask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_dask" title="Permalink to this definition">¶</a></dt>
