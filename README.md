@@ -1,3 +1,6 @@
+[![Downloads](https://pepy.tech/badge/impy-array/month)](https://pepy.tech/project/impy-array)
+[![PyPI version](https://badge.fury.io/py/impy-array.svg)](https://badge.fury.io/py/impy-array)
+
 # A numpy extension for efficient and powerful image analysis workflow
 
 `impy` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and so on.
