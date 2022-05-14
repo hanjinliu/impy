@@ -701,13 +701,19 @@ class LabeledArray(MetaArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def label(self, label_image=None, *, dims=None, connectivity=None) -> Label:
+    def label(
+        self,
+        ref_image: np.ndarray | None = None,
+        *,
+        dims: Dims = None,
+        connectivity: int | None = None
+    ) -> Label:
         """
-        Run skimage's label() and store the results as attribute.
+        Label image using skimage's label().
 
         Parameters
         ----------
-        label_image : array, optional
+        ref_image : array, optional
             Image to make label, by default self is used.
         {dims}
         {connectivity}
@@ -726,38 +732,57 @@ class LabeledArray(MetaArray):
             >>> ip.gui.add(img)
         """        
         # check the shape of label_image
-        if label_image is None:
-            label_image = self
-        elif not hasattr(label_image, "axes") or label_image.axes.is_none():
-            raise ValueError("Use Array with axes for label_image.")
-        elif not axes_included(self, label_image):
-            raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
-                                 f"{label_image.axes} and {self.axes}")
-        elif not _shape_match(self, label_image):
-            raise ImageAxesError("Shape mismatch.")
+        if ref_image is None:
+            ref_image = self
+        else:
+            if not isinstance(ref_image, MetaArray):
+                ref_image = MetaArray(
+                    np.asarray(ref_image),
+                    axes=str(self.axes)[-self.ndim:]
+                )
+            if ref_image.axes.is_none():
+                raise ValueError("Axes not defined in `ref_image`.")
+            elif not axes_included(self, ref_image):
+                raise ImageAxesError(
+                    "Not all the axes in `ref_image` are included in self: "
+                    f"{ref_image.axes} and {self.axes}"
+                )
+            elif not _shape_match(self, ref_image):
+                raise ImageAxesError("Shape mismatch.")
         
         c_axes = complement_axes(dims, self.axes)
-        labels = largest_zeros(label_image.shape)
+        labels = largest_zeros(ref_image.shape)
         
-        labels[:] = label_image._apply_dask(skmes.label, 
-                                           c_axes=c_axes, 
-                                           kwargs=dict(background=0, connectivity=connectivity)
-                                           ).view(np.ndarray)
+        labels[:] = ref_image._apply_dask(
+            skmes.label, 
+            c_axes=c_axes, 
+            kwargs=dict(background=0, connectivity=connectivity)
+        ).view(np.ndarray)
     
         # correct the label numbers of `labels`
-        self.labels = labels.view(Label)
-        self.labels._set_info(label_image)
-        self.labels = self.labels.increment_iter(c_axes).optimize()
-        self.labels.set_scale(self)
+        labels = labels.view(Label)
+        labels._set_info(ref_image)
+        labels = labels.increment_iter(c_axes).optimize()
+        labels.set_scale(self)
+        self.labels = labels
         return self.labels
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def label_if(self, label_image=None, filt=None, *, dims=None, connectivity=None) -> Label:
+    def label_if(
+        self,
+        ref_image: np.ndarray | None = None,
+        filt: Callable[..., bool] | None = None,
+        *,
+        dims: Dims = None,
+        connectivity: int | None = None,
+    ) -> Label:
         """
-        Label image using `label_image` as reference image only if certain condition
-        dictated in `filt` is satisfied. `skimage.measure.regionprops_table` is called
+        Label image if the region satisfies the condition.
+        
+        Label image using `ref_image` as reference image only if certain 
+        condition dictated in `filt` is satisfied. `regionprops_table` is called
         inside every time image is labeled.
         
             .. code-block:: python
@@ -767,14 +792,15 @@ class LabeledArray(MetaArray):
 
         Parameters
         ----------
-        label_image : array, optional
+        ref_image : array, optional
             Image to make label, by default self is used.
         filt : callable, positional argument but not optional
-            Filter function. The first argument is intensity image sliced from `self`, the 
-            second is label image sliced from labeled `label_image`, and the rest arguments 
-            is properties that will be calculated using `regionprops` function. The property 
-            arguments **must be named exactly same** as the properties in `regionprops`.
-            Number of arguments can be two.
+            Filter function. The first argument is intensity image sliced from 
+            `self`, the second is label image sliced from labeled `ref_image`,
+            and the rest arguments is properties that will be calculated using
+            `regionprops` function. The property arguments **must be named
+            exactly same** as the properties in `regionprops`. Number of 
+            arguments can be two.
         {dims}
         {connectivity}
 
@@ -802,16 +828,25 @@ class LabeledArray(MetaArray):
             >>> img.label_if(lbl, filt)
         """        
         import pandas as pd
-        # check the shape of label_image
-        if label_image is None:
-            label_image = self
-        elif not hasattr(label_image, "axes") or label_image.axes.is_none():
-            raise ValueError("Use Array with axes for label_image.")
-        elif not axes_included(self, label_image):
-            raise ImageAxesError("Not all the axes in 'label_image' are included in self: "
-                                 f"{label_image.axes} and {self.axes}")
-        elif not _shape_match(self, label_image):
-            raise ImageAxesError("Shape mismatch.")
+        # check the shape of ref_image
+        if ref_image is None:
+            ref_image = self
+        
+        else:
+            if not isinstance(ref_image, MetaArray):
+                ref_image = MetaArray(
+                    np.asarray(ref_image),
+                    axes=str(self.axes)[-self.ndim:]
+                )
+            if ref_image.axes.is_none():
+                raise ValueError("Axes not defined in `ref_image`.")
+            elif not axes_included(self, ref_image):
+                raise ImageAxesError(
+                    "Not all the axes in `ref_image` are included in self: "
+                    f"{ref_image.axes} and {self.axes}"
+                )
+            elif not _shape_match(self, ref_image):
+                raise ImageAxesError("Shape mismatch.")
         
         # check filter function
         if filt is None:
@@ -822,30 +857,34 @@ class LabeledArray(MetaArray):
         properties = tuple(inspect.signature(filt).parameters)[2:]
             
         c_axes = complement_axes(dims, self.axes)
-        labels = largest_zeros(label_image.shape)
+        labels = largest_zeros(ref_image.shape)
         offset = 1
-        for sl, lbl in label_image.iter(c_axes):
+        for sl, lbl in ref_image.iter(c_axes):
             lbl = skmes.label(lbl, background=0, connectivity=connectivity)
             img = self.value[sl]
-            # Following lines are essentially doing the same thing as `skmes.regionprops_table`.
-            # However, `skmes.regionprops_table` returns tuples in the separated columns in
-            # DataFrame and rename property names like "centroid-0" and "centroid-1".
+            # Following lines are essentially doing the same thing as 
+            # `skmes.regionprops_table`. However, `skmes.regionprops_table`
+            # returns tuples in the separated columns in DataFrame and rename
+            # property names like "centroid-0" and "centroid-1".
             props_obj = skmes.regionprops(lbl, img, cache=False)
             d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
-                    for prop_name in properties}
+                 for prop_name in properties}
             df = pd.DataFrame(d)
             del_list = [i+1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
-            labels[sl] = skseg.relabel_sequential(np.where(np.isin(lbl, del_list),
-                                                        0, lbl), offset=offset)[0]
+            labels[sl] = skseg.relabel_sequential(
+                np.where(np.isin(lbl, del_list), 0, lbl),
+                offset=offset
+            )[0]
             offset += labels.max()
         
-        self.labels = labels.view(Label).optimize()
-        self.labels._set_info(label_image)
-        self.labels.set_scale(self)
+        labels = labels.view(Label).optimize()
+        labels._set_info(ref_image)
+        labels.set_scale(self)
+        self.labels = labels
         return self.labels
     
     @record
-    def append_label(self, label_image:np.ndarray, new:bool=False) -> Label:
+    def append_label(self, label_image: np.ndarray, new: bool = False) -> Label:
         """
         Append new labels from an array. This function works for boolean or signed int arrays.
 
@@ -888,28 +927,36 @@ class LabeledArray(MetaArray):
         elif label_image.dtype.kind == "i":
             label_image = label_image.astype(np.uint8)
         else:
-            raise ValueError(f"`label_image` has dtype {label_image.dtype}, which is unable to be "
-                             "interpreted as an label.")
+            raise ValueError(
+                f"`label_image` has dtype {label_image.dtype}, which is unable "
+                "to be interpreted as an label."
+            )
             
         if self.labels is not None and not new:
             if label_image.shape != self.labels.shape:
-                raise ImageAxesError(f"Shape mismatch. Existing labels have shape {self.labels.shape} "
-                                     f"while labels with shape {label_image.shape} is given.")
+                raise ImageAxesError(
+                    "Shape mismatch. Existing labels have shape "
+                    f"{self.labels.shape} while labels with shape "
+                    f"{label_image.shape} is given."
+                )
             
             self.labels = self.labels.add_label(label_image)
         else:
             # when label_image is simple ndarray
-            if not hasattr(label_image, "axes"):
+            if not isinstance(label_image, MetaArray):
                 if label_image.shape == self.shape:
                     axes = self.axes
-                elif label_image.ndim == 2 and "y" in self.axes and "x" in self.axes:
+                elif label_image.ndim == 2 and self.axes.contains("yx"):
                     axes = "yx"
                 else:
                     raise ValueError("Could not infer axes of `label_image`.")
             else:
                 axes = label_image.axes
                 if not axes_included(self, label_image):
-                    raise ImageAxesError(f"Axes mismatch. Image has {self.axes}-axes but {axes} was given.")
+                    raise ImageAxesError(
+                        f"Axes mismatch. Image has {self.axes}-axes but "
+                        f"{axes} was given."
+                    )
                 
             self.labels = Label(label_image, axes=axes, source=self.source)
         return self.labels

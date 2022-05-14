@@ -1,14 +1,20 @@
+from __future__ import annotations
 from functools import lru_cache
 import numpy as np
+from typing import TYPE_CHECKING
 
-def axes_included(img, label):
+if TYPE_CHECKING:
+    from ..arrays.axesmixin import AxesMixin
+
+
+def axes_included(img: AxesMixin, label: AxesMixin):
     """
     e.g.)
     img.axes = "tyx", label.axes = "yx" -> True
     img.axes = "tcyx", label.axes = "zyx" -> False
     
     """
-    return all([a in img.axes for a in label.axes])
+    return img.axes.contains(label.axes)
 
 
 def find_first_appeared(axes, include="", exclude=""):

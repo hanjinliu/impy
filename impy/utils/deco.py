@@ -7,7 +7,8 @@ import re
 from ..array_api import xp
 
 if TYPE_CHECKING:
-    from ..arrays import LabeledArray, LazyImgArray
+    from ..arrays import LabeledArray, LazyImgArray, ImgArray
+    from ..arrays.axesmixin import AxesMixin
 
 __all__ = [
     "record",
@@ -17,7 +18,13 @@ __all__ = [
 ]
             
     
-def record(func=None, *, inherit_label_info=False, only_binary=False, need_labels=False):
+def record(
+    func=None,
+    *, 
+    inherit_label_info=False,
+    only_binary=False,
+    need_labels=False
+):
     def f(func):
         @wraps(func)
         def _record(self: LabeledArray, *args, **kwargs):
@@ -73,7 +80,7 @@ def record_lazy(func=None, *, only_binary=False):
         return _record
     return f if func is None else f(func)
 
-def same_dtype(func=None, asfloat=False):
+def same_dtype(func=None, asfloat: bool = False):
     """
     Decorator to assure output image has the same dtype as the input image. 
     This decorator is compatible with both ImgArray and LazyImgArray.
@@ -85,11 +92,11 @@ def same_dtype(func=None, asfloat=False):
     """    
     def f(func):
         @wraps(func)
-        def _same_dtype(self, *args, **kwargs):
+        def _same_dtype(self: LabeledArray, *args, **kwargs):
             dtype = self.dtype
             if asfloat and self.dtype.kind in "ui":
                 self = self.as_float()
-            out = func(self, *args, **kwargs)
+            out: LabeledArray = func(self, *args, **kwargs)
             out = out.as_img_type(dtype)
             return out
         return _same_dtype
@@ -107,11 +114,13 @@ def dims_to_spatial_axes(func):
     dims="ty" -> "ty"
     """    
     @wraps(func)
-    def _dims_to_spatial_axes(self, *args, **kwargs):
-        dims = kwargs.get("dims", 
-                          inspect.signature(func).parameters["dims"].default)
+    def _dims_to_spatial_axes(self: AxesMixin, *args, **kwargs):
+        dims = kwargs.get(
+            "dims", 
+            inspect.signature(func).parameters["dims"].default
+        )
         if dims is None or dims == "":
-            dims = len([a for a in "zyx" if a in self._axes])
+            dims = len([a for a in "zyx" if a in self.axes])
             if dims not in (2, 3):
                 raise ValueError(
                     f"Image spatial dimension must be 2 or 3, but {dims} was detected. If "
@@ -120,7 +129,7 @@ def dims_to_spatial_axes(func):
                     )
             
         if isinstance(dims, int):
-            s_axes = "".join([a for a in "zyx" if a in self._axes])[-dims:]
+            s_axes = "".join([a for a in "zyx" if a in self.axes])[-dims:]
         else:
             s_axes = str(dims)
         
@@ -128,17 +137,3 @@ def dims_to_spatial_axes(func):
         return func(self, *args, **kwargs)
     
     return _dims_to_spatial_axes
-
-def _safe_str(obj):
-    try:
-        if isinstance(obj, float):
-            s = f"{obj:.3g}"
-        else:
-            s = str(obj)
-        s = re.sub("\n", ";", s)
-        if len(s) > 20:
-            return str(type(obj))
-        else:
-            return s
-    except Exception:
-        return str(type(obj))

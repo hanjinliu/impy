@@ -2149,18 +2149,26 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @record
-    def voronoi(self, coords: Coords, *, inf: nDInt = None, dims: Dims = 2) -> ImgArray:
+    def voronoi(
+        self,
+        coords: Coords,
+        *, 
+        inf: nDInt | None = None,
+        dims: Dims = 2
+    ) -> ImgArray:
         """
-        Voronoi segmentation of an image. Image region labeled with $i$ means that all
-        the points in the region are closer to the $i$-th point than any other points.
+        Voronoi segmentation of an image. 
+        
+        Image region labeled with $i$ means that all the points in the region are
+        closer to the $i$-th point than any other points.
 
         Parameters
         ----------
         coords : MarkerFrame or (N, 2) array-like
             Coordinates of points.
         inf : int, array of int, optional
-            Distance to infinity points. If not provided, infinity points are placed at
-            100 times further positions relative to the image shape.
+            Distance to infinity points. If not provided, infinity points are 
+            placed at 100 times further positions relative to the image shape.
         {dims}
 
         Returns
@@ -2228,7 +2236,8 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Labeled image.
-        """        
+        """
+        from skimage.morphology import flood
         seeds = _check_coordinates(seeds, self, dims=self.axes)
         labels = largest_zeros(self.shape)
         n_label_next = 1
@@ -2240,8 +2249,12 @@ class ImgArray(LabeledArray):
                 else:
                     n_label = n_label_next
                     n_label_next += 1
-                fill_area = skimage.morphology.flood(self.value[sl], crd, connectivity=connectivity, 
-                                                     tolerance=tolerance)
+                fill_area = flood(
+                    self.value[sl], 
+                    seed_point=crd,
+                    connectivity=connectivity, 
+                    tolerance=tolerance
+                )
                 labels[sl][fill_area] = n_label
         
         self.labels = Label(
@@ -2332,12 +2345,11 @@ class ImgArray(LabeledArray):
     def centroid_sm(
         self,
         coords: Coords = None,
-        radius: nDInt = 4,
-        sigma: nDFloat = 1.5, 
-        filt: Callable[[ImgArray], bool] = None,
-        percentile: float = 95,
         *,
-        dims: Dims = None
+        radius: nDInt = 4,
+        filt: Callable[[ImgArray], bool] = None,
+        dims: Dims = None,
+        **find_sm_kwargs,
     ) -> MarkerFrame:
         """
         Calculate positions of particles in subpixel precision using centroid.
@@ -2349,12 +2361,10 @@ class ImgArray(LabeledArray):
         radius : int, default is 4.
             Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
             to calculate moments.
-        sigma : float, default is 1.5
-            Expected standard deviation of particles.
         filt : callable, optional
             For every slice ``sl``, label is added only when filt(`input`) == True is satisfied.
-        percentile, dims
-            Passed to ``peak_local_max()``
+        find_sm_kwargs : keyword arguments
+            Parameters passed to :func:`find_sm`.
         
         Returns
         -------
@@ -2369,7 +2379,7 @@ class ImgArray(LabeledArray):
         import pandas as pd
         from ..frame import MarkerFrame
         if coords is None:
-            coords = self.find_sm(sigma=sigma, dims=dims, percentile=percentile)
+            coords = self.find_sm(dims=dims, **find_sm_kwargs)
         else:
             coords = _check_coordinates(coords, self)
             
@@ -4061,17 +4071,9 @@ class ImgArray(LabeledArray):
             # determine 'ref'
             if ref is None:
                 ref = self
-                _dims = complement_axes(along, self.axes)
-                if dims != _dims:
-                    warnings.warn(
-                        f"dims={dims} with along={along} and {self.axes}-image are not "
-                        f"valid input. Changed to dims={_dims}",
-                        UserWarning,
-                    )
-                    dims = _dims
-            elif not isinstance(ref, self.__class__):
+            elif not isinstance(ref, ImgArray):
                 raise TypeError(f"'ref' must be an ImgArray object, but got {type(ref)}")
-            elif ref.axes != along + dims:
+            if ref.axes != along + dims:
                 from itertools import product
                 _c_axes = complement_axes(along + dims, str(ref.axes))
                 fstr = ";".join("{axis}={{}}".format(axis=a) for a in _c_axes)

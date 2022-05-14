@@ -1,5 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict, Counter, OrderedDict
+from typing import Iterable
 import numpy as np
 from numbers import Real
 
@@ -232,3 +233,7 @@ class Axes:
         scale = self.scale.replace(old, new)
         self.scale = scale
         return None
+    
+    def contains(self, chars: Iterable[str]) -> bool:
+        """True if self contains all the characters in ``chars``."""
+        return all(a in self._axes_str for a in chars)
