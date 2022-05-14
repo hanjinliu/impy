@@ -1766,7 +1766,6 @@ class ImgArray(LabeledArray):
                                )
     
     @_docs.write_docs
-    @record
     def split_pixel_unit(
         self,
         center: tuple[float, float] = (0.5, 0.5),
@@ -1776,7 +1775,7 @@ class ImgArray(LabeledArray):
         newaxis: str = "a"
     ) -> ImgArray:
         r"""
-        Split a :math:`(2N, 2M)`-image into four :math:`(N, M)`-images for each other pixels.
+        Split a (2N, 2M)-image into four (N, M)-images for each other pixels.
         
         Generally, image acquisition with a polarization camera will output 
         :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
@@ -1791,26 +1790,28 @@ class ImgArray(LabeledArray):
         |3|2|3|2|3|2|
         +-+-+-+-+-+-+
         
-        This function generates images only consist of positions of [0], [1], [2] or [3]. 
-        Strictly, each image is acquired from different position (the pixel (i,j) in
-        [0]-image and the pixel (i, j) in [1]-image are acquired from different positions).
-        This function also complement for this difference by Affine transformation and 
-        spline interpolation.
+        This function generates images only consist of positions of [0], [1], 
+        [2] or [3]. Strictly, each image is acquired from different position 
+        (the pixel (i, j) in [0]-image and the pixel (i, j) in [1]-image are 
+        acquired from different positions). This function also complements for
+        this difference by interpolation.
          
         Parameters
         ----------
         center : tuple, default is (0, 0)
-            Coordinate that will be considered as the center of the returned image. Input
-            (a, b) must satisfy 0 < a < 1 and 0 < b < 1. For example, center=(0, 0) means 
-            the most upper left pixel, and center=(0.5, 0.5) means the middle point of a 
-            pixel unit. `[[0, 1], [3, 2]]` becomes `[[(0, 0), (0, 1)], [(1, 0), (1, 1)]]`.
+            Coordinate that will be considered as the center of the returned 
+            image. Input (a, b) must satisfy 0 < a < 1 and 0 < b < 1. For example,
+            center=(0, 0) means the most upper left pixel, and center=(0.5, 0.5)
+            means the middle point of a pixel unit. `[[0, 1], [3, 2]]` becomes
+            `[[(0, 0), (0, 1)], [(1, 0), (1, 1)]]`.
                     
         {order}
         angle_order : list of int, default is [2, 1, 0, 3]
-            Specify which pixels correspond to which polarization angles. 0, 1, 2 and 3 
-            corresponds to polarization of 0, 45, 90 and 135 degree respectively. This 
-            list will be directly passed to ``np.ndarray`` like ``arr[angle_order]`` to
-            sort it. For example, if a pixel unit receives polarized light like below:
+            Specify which pixels correspond to which polarization angles. 0, 1, 2 
+            and 3 corresponds to polarization of 0, 45, 90 and 135 degree
+            respectively. This list will be directly passed to ``np.ndarray`` like
+            ``arr[angle_order]`` to sort it. For example, if a pixel unit receives 
+            polarized light like below:
             
                 .. code-block::
             
@@ -1822,14 +1823,14 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Axis "a" is added in the first dimension. For example, If input is "tyx"-axes,
-            then output will be "atyx"-axes.
+            Axis "a" is added in the first dimension. For example, If input is
+            "tyx"-axes, then output will be "atyx"-axes.
         
         Examples
         --------
-        Extract polarization in 0-, 45-, 90- and 135-degree directions from an image that
-        is acquired from a polarization camera, and calculate total intensity of light by 
-        averaging.
+        Extract polarization in 0-, 45-, 90- and 135-degree directions from an 
+        image that is acquired from a polarization camera, and calculate total 
+        intensity of light by averaging.
         
             >>> img_pol = img.split_pixel_unit()
             >>> img_total = img_pol.proj(axis="a")
@@ -1839,12 +1840,25 @@ class ImgArray(LabeledArray):
             angle_order = [2, 1, 0, 3]
             
         if not self.shape.x % 2 == self.shape.y % 2 == 0:
-            raise ValueError(f"Image pixel sizes must be even numbers, got {self.sizesof('yx')}")
+            raise ValueError(
+                f"Image pixel sizes must be even numbers, got {self.sizesof('yx')}"
+            )
         imgs = []
-        for y, x in [(0,0), (0,1), (1,1), (1,0)]:
-            dr = [(yc-y)/2, (xc-x)/2]
-            imgs.append(self[f"y={y}::2;x={x}::2"].affine(translation=dr, order=order, dims="yx"))
+        for y, x in [(0, 0), (0, 1), (1, 1), (1, 0)]:
+            dr = [(yc - y)/2, (xc - x)/2]
+            imgs.append(
+                self[f"y={y}::2;x={x}::2"].affine(
+                    translation=dr, order=order, dims="yx"
+                )
+            )
         out: ImgArray = np.stack(imgs, axis=newaxis)
+        if out.labels is not None:
+            del out.labels
+            warnings.warn(
+                "Output image labels are deleted because it is incompatible with "
+                "split_pixel_unit",
+                UserWarning,
+            )
         out = out[f"{newaxis}={str(angle_order)[1:-1]}"]
         out._set_info(self, new_axes=out.axes)
         out.set_scale(y=self.scale.y*2, x=self.scale.x*2)
@@ -1852,23 +1866,24 @@ class ImgArray(LabeledArray):
         
     def stokes(self, *, along: str = "a") -> dict:
         """
-        Generate stocks images from an image stack with polarized images. Currently, Degree
-        of Linear Polarization (DoLP) and Angle of Polarization (AoP) will be calculated. 
-        Those irregular values (np.nan, np.inf) will be replaced with 0. Be sure that to 
-        calculate DoPL correctly background subtraction must be applied beforehand because 
+        Generate stocks images from an image stack with polarized images. 
+        Currently, Degree of Linear Polarization (DoLP) and Angle of 
+        Polarization (AoP) will be calculated. Those irregular values 
+        (np.nan, np.inf) will be replaced with 0. Be sure that to calculate
+        DoPL correctly background subtraction must be applied beforehand because 
         stokes parameter ``s0`` is affected by absolute intensities.
 
         Parameters
         ----------
         along : str, default is "a"
-            To define which axis is polarization angle axis. Along this axis the angle of
-            polarizer must be in order of 0, 45, 90, 135 degree.
+            To define which axis is polarization angle axis. Along this axis 
+            the angle of polarizer must be in order of 0, 45, 90, 135 degree.
 
         Returns
         -------
         dict
-            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and AoP 
-            respectively.
+            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and 
+            AoP respectively.
         
         Examples
         --------
