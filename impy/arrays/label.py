@@ -6,7 +6,7 @@ from ._utils import _filters, _structures, _docs
 from .bases import MetaArray
 
 from ..utils.axesop import complement_axes
-from ..utils.deco import record, dims_to_spatial_axes
+from ..utils.deco import check_input_and_output, dims_to_spatial_axes
 
 def best_dtype(n:int):
     if n < 2**8:
@@ -75,7 +75,7 @@ class Label(MetaArray):
     
     
     @dims_to_spatial_axes
-    @record
+    @check_input_and_output
     def expand_labels(self, distance:int=1, *, dims=None) -> Label:
         """
         Expand areas of labels.
@@ -149,7 +149,7 @@ class Label(MetaArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record
+    @check_input_and_output
     def opening(self, radius:float=1, *, dims=None, update:bool=False) -> Label:
         """
         Morphological opening. 

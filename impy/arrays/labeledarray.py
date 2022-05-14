@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import numpy as np
 from numpy.typing import DTypeLike
 import os
@@ -18,7 +19,7 @@ from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
 from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
-from ..utils.deco import record, dims_to_spatial_axes
+from ..utils.deco import check_input_and_output, dims_to_spatial_axes
 from ..utils.io import IO
 
 from ..collections import DataList
@@ -302,27 +303,42 @@ class LabeledArray(MetaArray):
         return None
 
     @dims_to_spatial_axes
-    def imshow(self, dims=2, **kwargs):
+    def imshow(self, label: bool = False, dims = 2, alpha=0.3, **kwargs):
         from ._utils import _plot as _plt
+        if label and self.labels is None:
+            label = False
         if self.ndim == 1:
             _plt.plot_1d(self.value, **kwargs)
         elif self.ndim == 2:
-            _plt.plot_2d(self.value, **kwargs)
+            if label:
+                _plt.plot_2d_label(self.value, self.labels.value, alpha, **kwargs)
+            else:
+                _plt.plot_2d(self.value, **kwargs)
             self.hist()
             
         elif self.ndim == 3:
             if "c" not in self.axes:
                 imglist = self.split(axis=find_first_appeared(self.axes, include=self.axes, exclude=dims))
                 if len(imglist) > 24:
-                    print("Too many images. First 24 images are shown.")
+                    warnings.warn(
+                        "Too many images. First 24 images are shown.",
+                        UserWarning,
+                    )
                     imglist = imglist[:24]
-                _plt.plot_3d(imglist, **kwargs)
+                if label:
+                    _plt.plot_3d_label(imglist.value, imglist.labels.value, alpha, **kwargs)
+                else:
+                    _plt.plot_3d(imglist, **kwargs)
 
             else:
                 n_chn = self.shape.c
                 fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
                 for i in range(n_chn):
-                    _plt.plot_2d(self[f"c={i}"].value, ax=ax[i], **kwargs)
+                    img = self[f"c={i}"]
+                    if label:
+                        _plt.plot_2d_label(img.value, img.labels.value, alpha, ax[i], **kwargs)
+                    else:
+                        _plt.plot_2d(img.value, ax=ax[i], **kwargs)
         else:
             raise ValueError("Image must have three or less dimensions.")
         
@@ -374,7 +390,7 @@ class LabeledArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     @_docs.write_docs
-    @record
+    @check_input_and_output
     @dims_to_spatial_axes
     def crop_center(self, scale: nDFloat = 0.5, *, dims=2) -> Self:
         r"""
@@ -422,7 +438,7 @@ class LabeledArray(MetaArray):
         
         return out
     
-    @record
+    @check_input_and_output
     def crop_kernel(self, radius:nDInt=2) -> Self:
         r"""
         Make a kernel from an image by cropping out the center region. This function is useful especially
@@ -453,7 +469,7 @@ class LabeledArray(MetaArray):
         return self[tuple(slice(s//2-r, (s+1)//2+r) for s, r in zip(sizes, radii))]
     
     @_docs.write_docs
-    @record
+    @check_input_and_output
     @dims_to_spatial_axes
     def remove_edges(self, pixel:nDInt=1, *, dims=2) -> Self:
         """
@@ -485,7 +501,7 @@ class LabeledArray(MetaArray):
         return out
     
     @_docs.write_docs
-    @record
+    @check_input_and_output
     @dims_to_spatial_axes
     def rotated_crop(self, origin, dst1, dst2, dims=2) -> Self:
         """
@@ -614,7 +630,7 @@ class LabeledArray(MetaArray):
         return self.labels
        
     @_docs.write_docs
-    @record
+    @check_input_and_output
     def reslice(self, a, b=None, *, order: int = 1) -> PropArray:
         """
         Measure line profile (kymograph) iteratively for every slice of image. This function is almost 
@@ -700,7 +716,7 @@ class LabeledArray(MetaArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record
+    @check_input_and_output
     def label(
         self,
         ref_image: np.ndarray | None = None,
@@ -769,7 +785,7 @@ class LabeledArray(MetaArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @record
+    @check_input_and_output
     def label_if(
         self,
         ref_image: np.ndarray | None = None,
@@ -883,7 +899,7 @@ class LabeledArray(MetaArray):
         self.labels = labels
         return self.labels
     
-    @record
+    @check_input_and_output
     def append_label(self, label_image: np.ndarray, new: bool = False) -> Label:
         """
         Append new labels from an array. This function works for boolean or signed int arrays.
@@ -961,7 +977,7 @@ class LabeledArray(MetaArray):
             self.labels = Label(label_image, axes=axes, source=self.source)
         return self.labels
     
-    @record(need_labels=True)
+    @check_input_and_output(need_labels=True)
     def proj_labels(self, axis=None, forbid_overlap=False) -> Label:
         """
         Label projection. This function is useful when zyx-labels are drawn but you want to reduce the 
@@ -1099,7 +1115,7 @@ class LabeledArray(MetaArray):
             out.labels = tiled_label
         return out
     
-    @record
+    @check_input_and_output
     def for_each_channel(self, func: str, along: str = "c", **kwargs) -> Self:
         """
         Apply same function with different parameters for each channel. This function will be useful
@@ -1126,7 +1142,7 @@ class LabeledArray(MetaArray):
         out = np.stack(outs, axis=along)
         return out
     
-    @record
+    @check_input_and_output
     def for_params(self, func: Callable|str, var: dict[str, Iterable] = None, **kwargs) -> DataList:
         """
         Apply same function with different parameters with same input. This function will be useful
@@ -1184,7 +1200,7 @@ class LabeledArray(MetaArray):
         return outlist        
         
     
-    @record(need_labels=True)
+    @check_input_and_output(need_labels=True)
     def extract(self, label_ids=None, filt=None, cval:float=0) -> DataList[Self]:
         """
         Extract certain regions of the image and substitute others to `cval`.

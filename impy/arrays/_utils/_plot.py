@@ -1,9 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from ._skimage import skimage, skexp
 
 def plot_drift(result):
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as ticker
     fig = plt.figure()
     ax = fig.add_subplot(111, title="drift")
     ax.plot(result.x, result.y, marker="+", color="red")
@@ -20,27 +20,20 @@ def plot_drift(result):
     plt.show()
     return None
 
-def plot_gaussfit_result(raw, fit):
-    x0 = raw.shape[1]//2
-    y0 = raw.shape[0]//2
-    plt.figure(figsize=(6,4))
-    plt.subplot(2, 1, 1)
-    plt.title("x-direction")
-    plt.plot(raw[y0].value, color="gray", alpha=0.5, label="raw image")
-    plt.plot(fit[y0], color="red", label="fit")
-    plt.subplot(2, 1, 2)
-    plt.title("y-direction")
-    plt.plot(raw[:,x0].value, color="gray", alpha=0.5, label="raw image")
-    plt.plot(fit[:,x0], color="red", label="fit")
-    plt.tight_layout()
-    plt.show()
-    return None
+def subplots(*args, **kwargs):
+    import matplotlib.pyplot as plt
+    plt.subplots(*args, **kwargs)
 
-subplots = plt.subplots
-plot_1d = plt.plot
-show = plt.show
+def plot_1d(*args, **kwargs):
+    import matplotlib.pyplot as plt
+    plt.plot(*args, **kwargs)
+
+def show():
+    import matplotlib.pyplot as plt
+    plt.show()
 
 def plot_2d(img, ax=None, **kwargs):
+    import matplotlib.pyplot as plt
     vmax, vmin = _determine_range(img)
     interpol = "bilinear" if img.dtype == bool else "none"
     imshow_kwargs = {"cmap": "gray", "vmax": vmax, "vmin": vmin, "interpolation": interpol}
@@ -51,6 +44,7 @@ def plot_2d(img, ax=None, **kwargs):
         ax.imshow(img, **imshow_kwargs)
 
 def plot_3d(imglist, **kwargs):
+    import matplotlib.pyplot as plt
     vmax, vmin = _determine_range(np.stack(imglist))
 
     interpol = "bilinear" if imglist[0].dtype == bool else "none"
@@ -70,7 +64,8 @@ def plot_3d(imglist, **kwargs):
         ax[i].axis("off")
         ax[i].set_title(f"Image-{i+1}")
 
-def plot_2d_label(img, label, alpha, ax=None,  **kwargs):
+def plot_2d_label(img, label, alpha, ax=None, **kwargs):
+    import matplotlib.pyplot as plt
     vmax, vmin = _determine_range(img)
     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
     imshow_kwargs.update(kwargs)
@@ -88,6 +83,7 @@ def plot_2d_label(img, label, alpha, ax=None,  **kwargs):
         ax.imshow(overlay, **imshow_kwargs)
 
 def plot_3d_label(imglist, labellist, alpha, **kwargs):
+    import matplotlib.pyplot as plt
     vmax, vmin = _determine_range(np.stack(imglist))
 
     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -115,6 +111,7 @@ def plot_3d_label(imglist, labellist, alpha, **kwargs):
         ax[i].set_title(f"Image-{i+1}")
 
 def hist(img, contrast):
+    import matplotlib.pyplot as plt
     plt.figure(figsize=(4, 1.7))
 
     nbin = min(int(np.sqrt(img.size / 3)), 256)
@@ -137,10 +134,8 @@ def hist(img, contrast):
     plt.yticks([])
 
 
-def _determine_range(arr):
-    """
-    Called in imshow()
-    """
+def _determine_range(arr: np.ndarray):
+    """Called in imshow()"""
     if arr.dtype == bool:
         vmax = 1
         vmin = 0

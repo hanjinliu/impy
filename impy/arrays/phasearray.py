@@ -7,7 +7,7 @@ from .specials import PropArray
 from .labeledarray import LabeledArray
 
 from ..utils.axesop import complement_axes
-from ..utils.deco import record, dims_to_spatial_axes, same_dtype
+from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ._utils import _misc
 from ..collections import DataDict
 from .._types import Dims
@@ -125,7 +125,7 @@ class PhaseArray(LabeledArray):
         self.border = tuple(np.rad2deg(self.border))
         return self
     
-    @record
+    @check_input_and_output
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def binning(self, binsize: int = 2, *, check_edges: bool = True, dims: Dims = None):
@@ -144,7 +144,7 @@ class PhaseArray(LabeledArray):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
-    @record
+    @check_input_and_output
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     def mean_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> PhaseArray:
@@ -209,7 +209,7 @@ class PhaseArray(LabeledArray):
         out = np.arctan2(out_im, out_re)/a
         return out
     
-    @record(need_labels=True)
+    @check_input_and_output(need_labels=True)
     def regionprops(self, properties: tuple[str,...]|str = ("phase_mean",), *, 
                     extra_properties = None) -> DataDict[str, PropArray]:
         """

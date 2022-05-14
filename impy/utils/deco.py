@@ -11,14 +11,14 @@ if TYPE_CHECKING:
     from ..arrays.axesmixin import AxesMixin
 
 __all__ = [
-    "record",
-    "record_lazy",
+    "check_input_and_output",
+    "check_input_and_output_lazy",
     "same_dtype",
     "dims_to_spatial_axes",
 ]
             
     
-def record(
+def check_input_and_output(
     func=None,
     *, 
     inherit_label_info=False,
@@ -27,13 +27,15 @@ def record(
 ):
     def f(func):
         @wraps(func)
-        def _record(self: LabeledArray, *args, **kwargs):
+        def _func(self: ImgArray, *args, **kwargs):
             # check requirements of the ongoing function.
             if only_binary and self.dtype != bool:
-                raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
+                raise TypeError(
+                    f"Cannot run {func.__name__!r} with non-binary image."
+                )
             if need_labels and not self.labels is not None:
                 raise ValueError(
-                    f"Function {func.__name__} needs labels. Add labels to the "
+                    f"Function {func.__name__!r} needs labels. Add labels to the "
                     "image first."
                 )
             
@@ -53,10 +55,10 @@ def record(
             ifupdate and self._update(out)
 
             return out
-        return _record
+        return _func
     return f if func is None else f(func)
 
-def record_lazy(func=None, *, only_binary=False):
+def check_input_and_output_lazy(func=None, *, only_binary=False):
     def f(func):
         @wraps(func)
         def _record(self: LazyImgArray, *args, **kwargs):
@@ -94,11 +96,11 @@ def same_dtype(func=None, asfloat: bool = False):
     """    
     def f(func):
         @wraps(func)
-        def _same_dtype(self: LabeledArray, *args, **kwargs):
+        def _same_dtype(self: ImgArray, *args, **kwargs):
             dtype = self.dtype
             if asfloat and self.dtype.kind in "ui":
                 self = self.as_float()
-            out: LabeledArray = func(self, *args, **kwargs)
+            out: ImgArray = func(self, *args, **kwargs)
             out = out.as_img_type(dtype)
             return out
         return _same_dtype

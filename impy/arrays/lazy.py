@@ -16,7 +16,7 @@ from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
 from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
-from ..utils.deco import record_lazy, dims_to_spatial_axes, same_dtype
+from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing, key_repr
 from ..utils.io import IO
@@ -598,7 +598,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.erosion)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def erosion(
         self,
         radius: float = 1,
@@ -619,7 +619,7 @@ class LazyImgArray(AxesMixin):
         
     @_docs.copy_docs(ImgArray.dilation)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def dilation(
         self,
         radius: float = 1,
@@ -640,7 +640,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.opening)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def opening(
         self,
         radius: float = 1,
@@ -661,7 +661,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.closing)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def closing(
         self,
         radius: float = 1,
@@ -683,7 +683,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy
+    @check_input_and_output_lazy
     def gaussian_filter(
         self,
         sigma: nDFloat = 1.0,
@@ -703,7 +703,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.median_filter)
     @dims_to_spatial_axes
     @same_dtype
-    @record_lazy
+    @check_input_and_output_lazy
     def median_filter(
         self,
         radius: float = 1,
@@ -722,7 +722,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.mean_filter)
     @same_dtype(asfloat=True)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def mean_filter(
         self,
         radius: float = 1,
@@ -742,7 +742,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.convolve)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy
+    @check_input_and_output_lazy
     def convolve(
         self,
         kernel,
@@ -767,7 +767,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
     @same_dtype
-    @record_lazy
+    @check_input_and_output_lazy
     def edge_filter(
         self,
         method: str = "sobel", 
@@ -796,7 +796,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.laplacian_filter)
     @dims_to_spatial_axes
     @same_dtype
-    @record_lazy
+    @check_input_and_output_lazy
     def laplacian_filter(
         self,
         radius: int = 1,
@@ -816,7 +816,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.affine)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy
+    @check_input_and_output_lazy
     def affine(
         self, 
         matrix=None,
@@ -848,7 +848,7 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.kalman_filter)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @record_lazy
+    @check_input_and_output_lazy
     def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t", 
                       dims: Dims = None, update: bool = False) -> LazyImgArray:
         if self.axisof(along) != 0:
@@ -862,7 +862,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
             dims: Dims = None) -> LazyImgArray:
         from dask import array as da
@@ -881,7 +881,7 @@ class LazyImgArray(AxesMixin):
 
     @_docs.copy_docs(ImgArray.ifft)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
         from dask import array as da
         axes = [self.axisof(a) for a in dims]
@@ -898,7 +898,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.power_spectra)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def power_spectra(self, shape = "same", norm: bool = False, zero_norm: bool = False, *,
                       dims: Dims = None) -> LazyImgArray:
         freq = self.fft(dims=dims, shape=shape)
@@ -931,7 +931,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(LabeledArray.crop_center)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def crop_center(self, scale=0.5, *, dims=2) -> LazyImgArray:
         # check scale
         if hasattr(scale, "__iter__") and len(scale) == 3 and len(dims) == 2:
@@ -954,7 +954,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.tiled_lowpass_filter)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
                              dims: Dims = None, update: bool = False) -> LazyImgArray:
         from ._utils._skimage import _get_ND_butterworth_filter
@@ -1064,7 +1064,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.drift_correction)
     @same_dtype(asfloat=True)
-    @record_lazy
+    @check_input_and_output_lazy
     @dims_to_spatial_axes
     def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, 
                          zero_ave: bool = True, along: str = None, dims: Dims = 2, 
@@ -1126,7 +1126,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.pad)
     @dims_to_spatial_axes
-    @record_lazy
+    @check_input_and_output_lazy
     def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> LazyImgArray:
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
         padimg = np.pad(self.value, pad_width, mode, **kwargs)
