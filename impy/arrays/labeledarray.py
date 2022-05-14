@@ -165,13 +165,13 @@ class LabeledArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def __array_finalize__(self, obj):
-        self._labels = None
+        self._labels = getattr(self, "_labels", None)
         super().__array_finalize__(obj)
         if isinstance(obj, LabeledArray):
             self._view_labels(obj)
     
     def _set_info(self, other: Self, new_axes: str = "inherit"):
-        self._labels = None
+        self._labels = getattr(self, "_labels", None)
         super()._set_info(other, new_axes)
         if isinstance(other, LabeledArray):
             self._view_labels(other)

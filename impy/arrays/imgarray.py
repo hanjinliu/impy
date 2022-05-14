@@ -2173,8 +2173,8 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        ImgArray
-            Image labeled with segmentation.
+        Label
+            Segmentation labels of image.
         """        
         from scipy.spatial import Voronoi
         coords = _check_coordinates(coords, self, dims=self.axes)
@@ -2189,12 +2189,19 @@ class ImgArray(LabeledArray):
         else:
             infy, infx = inf
         
-        infpoints = [[-infy, -infx], [-infy, nx+infx], [ny+infy, -infx], [ny+infy, nx+infx]]
+        infpoints = np.array(
+            [[-infy, -infx],
+             [-infy, nx + infx],
+             [ny + infy, -infx],
+             [ny + infy, nx + infx]],
+            dtype=np.float32,
+        )
         
         labels = largest_zeros(self.shape)
         n_label = 1
         for sl, crds in coords.iter(complement_axes(dims, self.axes)):
-            vor = Voronoi(crds.values.tolist() + infpoints)
+            input_coords = np.concatenate([crds.values, infpoints], axis=0)
+            vor = Voronoi(input_coords)
             for r in vor.regions:
                 if all(r0 > 0 for r0 in r):
                     poly = vor.vertices[r]
@@ -2205,8 +2212,7 @@ class ImgArray(LabeledArray):
             labels, name=self.name+"-label", axes=self.axes, source=self.source
         ).optimize()
         self.labels.set_scale(self)
-
-        return self
+        return self.labels
     
     @_docs.write_docs
     @dims_to_spatial_axes

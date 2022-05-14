@@ -89,7 +89,7 @@ class MetaArray(AxesMixin, np.ndarray):
         }
     
     def __str__(self):
-        return self.name or "None"
+        return f"{self.__class__.__name__}<{self.name!r}>"
     
     @property
     def shape(self):

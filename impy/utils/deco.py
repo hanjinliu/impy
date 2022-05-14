@@ -32,14 +32,16 @@ def record(
             if only_binary and self.dtype != bool:
                 raise TypeError(f"Cannot run {func.__name__} with non-binary image.")
             if need_labels and not self.labels is not None:
-                raise AttributeError(f"Function {func.__name__} needs labels."
-                                    " Add labels to the image first.")
+                raise ValueError(
+                    f"Function {func.__name__} needs labels. Add labels to the "
+                    "image first."
+                )
             
             out = func(self, *args, **kwargs)
-            
+
             if type(out) in (np.ndarray, xp.ndarray):
                 out = xp.asnumpy(out).view(self.__class__)
-            
+
             ifupdate = kwargs.pop("update", False)
             if inherit_label_info:
                 out.labels._set_info(self.labels)
@@ -49,7 +51,7 @@ def record(
                 pass
                     
             ifupdate and self._update(out)
-            
+
             return out
         return _record
     return f if func is None else f(func)
