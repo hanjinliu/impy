@@ -376,6 +376,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         mrc_mmap.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
         mrc_mmap.data[:] = img.value
         mrc_mmap.flush()
+        return None
 
     # get voxel_size
     if img.axes not in ("zyx", "yx"):
