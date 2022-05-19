@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, Sequence
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -109,7 +109,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def map_coordinates(self, coordinates, *, mode="constant", cval: float = 0, order: int = 1):
+    def map_coordinates(
+        self,
+        coordinates,
+        *, 
+        mode: str = "constant",
+        cval: float = 0,
+        order: int = 3,
+    ):
         """
         Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
 
@@ -142,8 +149,17 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def rotate(self, degree:float, center="center", *, mode="constant", cval: float = 0, dims: Dims = 2,
-               order: int = 1, update: bool = False) -> ImgArray:
+    def rotate(
+        self,
+        degree: float,
+        center: Sequence[float] | Literal["center"] = "center",
+        *,
+        mode: str = "constant",
+        cval: float = 0,
+        dims: Dims = 2,
+        order: int = 1,
+        update: bool = False
+    ) -> ImgArray:
         """
         2D rotation of an image around a point. Outside will be padded with zero. For n-D images,
         this implementation is faster than ``scipy.ndimage.rotate``.
@@ -178,17 +194,25 @@ class ImgArray(LabeledArray):
         
         mx = translation_0 @ rotation @ translation_1
         mx[-1, :] = [0] * len(dims) + [1]
-        return self._apply_dask(_transform.warp,
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval)
-                               )
+        return self._apply_dask(
+            _transform.warp,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval),
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def stretch(self, scale, center = "center", *, mode: str = "constant", cval: float = 0, 
-                dims: Dims = None, order: int = 1) -> ImgArray:
+    def stretch(
+        self,
+        scale: nDFloat,
+        center: Sequence[float] | Literal["center"] = "center",
+        *,
+        mode: str = "constant", cval: float = 0, 
+        dims: Dims = None,
+        order: int = 1,
+    ) -> ImgArray:
         """
         2D stretching of an image from a point.
 
@@ -224,10 +248,11 @@ class ImgArray(LabeledArray):
         mx = translation_0 @ stretch @ translation_1
         mx[-1, :] = [0] * len(dims) + [1]
         
-        return self._apply_dask(_transform.warp,
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval)
-                               )
+        return self._apply_dask(
+            _transform.warp,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval),
+        )
 
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -272,8 +297,9 @@ class ImgArray(LabeledArray):
         dims: Dims = None
     ) -> ImgArray:
         r"""
-        Binning of images. This function is similar to ``rescale`` but is strictly binned by :math:`N \times N` 
-        blocks. Also, any numpy functions that accept "axis" argument are supported for reduce functions.
+        Binning of images. This function is similar to ``rescale`` but is strictly 
+        binned by :math:`N \times N` blocks. Also, any numpy functions that accept 
+        "axis" argument are supported for reduce functions.
 
         Parameters
         ----------
@@ -282,8 +308,8 @@ class ImgArray(LabeledArray):
         method : str or callable, default is numpy.mean
             Reduce function applied to each bin.
         check_edges : bool, default is True
-            If True, only divisible ``binsize`` is accepted. If False, image is cropped at the end to
-            match `binsize`.
+            If True, only divisible ``binsize`` is accepted. If False, image is
+            cropped at the end to match `binsize`.
         {dims}
 
         Returns
@@ -310,13 +336,22 @@ class ImgArray(LabeledArray):
         out:ImgArray = out.view(self.__class__)
         out._set_info(self)
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
-        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
+        out.set_scale(
+            {a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)}
+        )
         return out
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    def radial_profile(self, nbin: int = 32, center: Iterable[float] = None, r_max: float = None, *, 
-                       method: str = "mean", dims: Dims = None) -> PropArray:
+    def radial_profile(
+        self,
+        nbin: int = 32,
+        center: Iterable[float] = None,
+        r_max: float = None, 
+        *, 
+        method: str = "mean",
+        dims: Dims = None
+    ) -> PropArray:
         """
         Calculate radial profile of images. Scale along each axis will be considered, i.e., rather 
         ellipsoidal profile will be calculated instead if scales are different between axes.
@@ -356,16 +391,22 @@ class ImgArray(LabeledArray):
         if center is None:
             center = [s/2 for s in spatial_shape]
         elif len(center) != len(dims):
-            raise ValueError(f"Length of `center` must match input dimensionality '{dims}'.")
+            raise ValueError(
+                f"Length of `center` must match input dimensionality '{dims}'."
+            )
         
-        r = xp.sqrt(sum(((x - c)*self.scale[a])**2 for x, c, a in zip(inds, center, dims)))
+        r = xp.sqrt(
+            sum(((x - c)*self.scale[a])**2 for x, c, a in zip(inds, center, dims))
+        )
         r_lim = r.max()
         
         # check r_max
         if r_max is None:
             r_max = r_lim
         elif r_max > r_lim or r_max <= 0:
-            raise ValueError(f"`r_max` must be in range of 0 < r_max <= {r_lim} with this image.")
+            raise ValueError(
+                f"`r_max` must be in range of 0 < r_max <= {r_lim} with this image."
+            )
         
         # make radially separated labels
         r_rel = r/r_max
@@ -392,7 +433,7 @@ class ImgArray(LabeledArray):
     def gaussfit(
         self,
         scale: float = 1/16,
-        p0: list = None,
+        p0: list[float] | None = None,
         method: str = "Powell",
         dims: Dims = 2,
     ) -> ImgArray:
@@ -403,7 +444,7 @@ class ImgArray(LabeledArray):
         ----------
         scale : float, default is 1/16.
             Scale of rough image (to speed up fitting).
-        p0 : list or None, optional
+        p0 : list, optional
             Initial parameters.
         method : str, optional
             Fitting method. See `scipy.optimize.minimize`.

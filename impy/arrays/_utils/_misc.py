@@ -2,7 +2,13 @@ from __future__ import annotations
 import numpy as np
 from ...array_api import xp
 
-def adjust_bin(img, binsize: int, check_edges: bool, dims: str, all_axes: str):
+def adjust_bin(
+    img: np.ndarray,
+    binsize: int,
+    check_edges: bool,
+    dims: str,
+    all_axes: str
+) -> tuple[np.ndarray, tuple[int, ...], float]:
     shape = []
     scale = []
     sl = []
