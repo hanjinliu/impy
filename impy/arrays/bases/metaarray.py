@@ -207,7 +207,7 @@ class MetaArray(AxesMixin, np.ndarray):
         considered because it changes `ndim`.
         """
         if "axis" in kwargs.keys():
-            new_axes = axesop.del_axis(obj.axes, kwargs["axis"])
+            new_axes = obj.axes.drop(kwargs["axis"])
         else:
             new_axes = self._INHERIT
         self._set_info(obj, new_axes=new_axes)
@@ -320,7 +320,7 @@ class MetaArray(AxesMixin, np.ndarray):
             
         imgs: DataList[MetaArray] = DataList(np.moveaxis(self, axisint, 0))
         for img in imgs:
-            img.axes = axesop.del_axis(self.axes, axisint)
+            img.axes = self.axes.drop(axisint)
             img.set_scale(self)
             
         return imgs

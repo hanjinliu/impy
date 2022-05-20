@@ -24,29 +24,6 @@ def find_first_appeared(axes, include="", exclude=""):
             return a
     raise ValueError(f"Inappropriate axes: {axes}")
 
-def del_axis(axes, axis) -> str:
-    """
-    axes: str or Axes object.
-    axis: int.
-    delete axis from axes.
-    """
-    new_axes = ""
-    if isinstance(axis, int):
-        axis = [axis]
-    if axes is None:
-        return None
-    else:
-        axes = str(axes)
-    
-    if isinstance(axis, (list, tuple)):
-        for i, o in enumerate(axes):
-            if i not in axis:
-                new_axes += o
-    elif isinstance(axis, str):
-        new_axes = complement_axes(axis, axes)
-        
-    return new_axes
-
 def add_axes(axes, shape, key, key_axes="yx"):
     """
     Stack `key` to make its shape key_axes-> axes.

@@ -2,7 +2,6 @@ from __future__ import annotations
 import numpy as np
 from .metaarray import MetaArray
 from ...axes import Axes
-from ...utils.axesop import del_axis
 from ...collections import DataList
 
 # Overloading numpy functions using __array_function__.
@@ -18,7 +17,7 @@ def _(img: MetaArray):
 
 @MetaArray.implements(np.take)
 def _(a: MetaArray, indices, axis=None, out=None, mode="raise"):
-    new_axes = del_axis(a.axes, axis)
+    new_axes = a.axes.drop(axis)
     if isinstance(axis, str):
         axis = a.axes.find(axis)
     out = np.take(a.value, indices, axis=axis, out=out, mode=mode).view(a.__class__)

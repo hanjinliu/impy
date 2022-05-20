@@ -13,7 +13,7 @@ from .specials import PropArray
 from ._utils._skimage import skexp, skfeat, skfil, skimage, skmes, skreg, skres, skseg, sktrans
 from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
-from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
@@ -3988,7 +3988,7 @@ class ImgArray(LabeledArray):
             out = func(self.value, axis=axisint, **kwargs)
         
         out = out.view(self.__class__)
-        out._set_info(self, del_axis(self.axes, axisint))
+        out._set_info(self, self.axes.drop(axisint))
         return out
 
     @check_input_and_output

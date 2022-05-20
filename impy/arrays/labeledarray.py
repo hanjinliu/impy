@@ -18,7 +18,7 @@ from .bases import MetaArray
 from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
+from ..utils.axesop import complement_axes, find_first_appeared, axes_included
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes
 from ..utils.io import IO
 
@@ -1018,7 +1018,7 @@ class LabeledArray(MetaArray):
         if self.labels is not None:
             labels = self.labels.split(axisint)
             for img, lbl in zip(imgs, labels):
-                lbl.axes = del_axis(self.labels.axes, axisint)
+                lbl.axes = self.labels.axes.drop(axisint)
                 lbl.set_scale(self.labels)
                 img.labels = lbl
             

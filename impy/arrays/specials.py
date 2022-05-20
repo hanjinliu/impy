@@ -5,7 +5,7 @@ from inspect import signature
 from scipy import optimize as opt
 from .bases import MetaArray
 from ..axes import ImageAxesError
-from ..utils.axesop import complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import complement_axes, find_first_appeared
 from ..collections import DataDict
 
 if TYPE_CHECKING:
@@ -20,6 +20,7 @@ SCALAR_PROP = (
 
 class PropArray(MetaArray):
     additional_props = ["_source", "_metadata", "_name", "propname"]
+    propname: str
     def __new__(cls, obj, *, name=None, axes=None, source=None, 
                 metadata=None, propname=None, dtype=None):
         if propname is None:
@@ -65,7 +66,7 @@ class PropArray(MetaArray):
         if along is None:
             along = find_first_appeared("tzp<yxc", include=self.axes)
         
-        iteraxes = del_axis(self.axes, self.axisof(along))
+        iteraxes = self.axes.drop(along)
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
         x = np.arange(self.sizeof(along))*self.scale[along]
@@ -107,7 +108,7 @@ class PropArray(MetaArray):
         if along is None:
             along = find_first_appeared("pxyzt<c", include=self.axes)
             
-        iteraxes = del_axis(self.axes, self.axisof(along))
+        iteraxes = self.axes.drop(along)
         cmap = plt.get_cmap(cmap)
         positions = np.linspace(*cmap_range, self.size//self.sizeof(along), endpoint=False)
         for i, (sl, y) in enumerate(self.iter(iteraxes)):
@@ -167,11 +168,12 @@ class PropArray(MetaArray):
         # set infos
         params = params.view(self.__class__)
         errs = errs.view(self.__class__)
-        params._set_info(self, new_axes=del_axis(self.axes, dims)+"m")
-        errs._set_info(self, new_axes=del_axis(self.axes, dims)+"m")
+        params._set_info(self, new_axes=self.axes.drop(dims).extend("m"))
+        errs._set_info(self, new_axes=self.axes.drop(dims).extend("m"))
+        
         if return_fit:
             fit = fit.view(self.__class__)
-            fit._set_info(self, new_axes=del_axis(self.axes, dims)+dims)
+            fit._set_info(self, new_axes=self.axes.drop(dims).extend(dims))
         
         if return_fit:
             return DataDict(params=params, errs=errs, fit=fit)

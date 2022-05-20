@@ -15,7 +15,7 @@ from .axesmixin import AxesMixin, get_axes_tuple
 from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
-from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing
@@ -977,7 +977,7 @@ class LazyImgArray(AxesMixin):
             projection = getattr(da, method)(self.value, axis=tuple(axisint))
         
         out = self.__class__(projection)
-        out._set_info(self, del_axis(self.axes, axisint))
+        out._set_info(self, self.axes.drop(axisint))
         return out
     
     @_docs.copy_docs(ImgArray.binning)
@@ -1190,7 +1190,7 @@ class LazyImgArray(AxesMixin):
     
     def _process_output(self, input: LazyImgArray, args: tuple, kwargs: dict):
         if "axis" in kwargs.keys():
-            new_axes = del_axis(input.axes, kwargs["axis"])
+            new_axes = input.axes.drop(kwargs["axis"])
         else:
             new_axes = self._INHERIT
         self._set_info(input, new_axes=new_axes)

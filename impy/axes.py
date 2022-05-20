@@ -10,6 +10,7 @@ class ImageAxesError(RuntimeError):
     """This error is raised when axes is defined in a wrong way."""
 
 class UndefAxis:
+    """Undefined axis object."""
     def __str__(self) -> str:
         return "#"
     
@@ -95,17 +96,19 @@ class Axes(Sequence[Hashable]):
             inputs = list(value)
             ndim = len(inputs)
             
-            # replace undef.
-            if "#" in inputs:
-                for i in range(ndim):
-                    if inputs[i] == "#":
-                        inputs[i] = UndefAxis()
+            # replace undef and check type.
+            for i in range(ndim):
+                obj = inputs[i]
+                if obj == "#":
+                    inputs[i] = UndefAxis()
+                elif not hasattr(obj, "__hash__") or isinstance(obj, int):
+                    raise TypeError(f"Cannot use {type(obj)} as an axis.")
             
             # check duplication
             if ndim > len(set(inputs)):
                 raise ImageAxesError(f"Duplicated axes found: {inputs}.")
             
-            self._axis_list = list(value)
+            self._axis_list = inputs
             self.scale = {a: 1.0 for a in self._axis_list}
             
         else:
@@ -151,7 +154,8 @@ class Axes(Sequence[Hashable]):
         return other in self._axis_list
     
     def __repr__(self):
-        return f"{self.__class__.__name__}['{self}']"
+        s = ", ".join(map(repr, self))
+        return f"{self.__class__.__name__}[{s}]"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -184,6 +188,7 @@ class Axes(Sequence[Hashable]):
         return any(isinstance(a, UndefAxis) for a in self)
     
     def copy(self):
+        """Make a copy of Axes object."""
         return self.__class__(self)
 
     def replace(self, old: str, new: str):
@@ -207,6 +212,22 @@ class Axes(Sequence[Hashable]):
         self.scale = scale
         return None
     
-    def contains(self, chars: Iterable[str]) -> bool:
+    def contains(self, chars: Iterable[Hashable]) -> bool:
         """True if self contains all the characters in ``chars``."""
         return all(a in self._axis_list for a in chars)
+    
+    def drop(self, axes) -> Axes:
+        if not isinstance(axes, (list, tuple, str)):
+            axes = (axes,)
+        
+        drop_list = []
+        for a in axes:
+            if isinstance(a, int):
+                drop_list.append(self._axis_list[a])
+            else:
+                drop_list.append(a)
+        
+        return Axes(a for a in self._axis_list if a not in drop_list)
+    
+    def extend(self, axes: Iterable[Hashable]) -> Axes:
+        return Axes(self._axis_list + list(axes))
