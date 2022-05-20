@@ -23,9 +23,6 @@ def test_axes():
     assert str(img2.axes) == "zx"
     assert "".join(img2.scale.keys()) == "zx"
     assert img2.scale.z == 0.3
-    
-    img3 = img[:, :, 0]
-    assert str(img3.axes) == "zy"
 
     
 def test_set_scale():
@@ -57,3 +54,22 @@ def test_set_scale():
 def test_numpy():
     img = ip.random.random_uint8((10, 10, 10), axes="zyx")
     assert np.all(np.array(img.scale) == np.ones(3))
+
+def test_slicing():
+    img = ip.random.random_uint8((10, 10, 10, 10), axes="tzyx")
+    assert img.axes == "tzyx"
+    assert img[0].axes == "zyx"
+    assert img[0, 0].axes == "yx"
+    assert img[1, 1, 2].axes == "x"
+    assert img[1, :, 2].axes == "zx"
+    assert img[1, :, 5:7].axes == "zyx"
+    assert img[:, 0].axes == "tyx"
+    assert img[[1, 3, 5]].axes == "tzyx"
+    assert img[5, [1, 3, 5]].axes == "zyx"
+    sl = img[:, 0, 0, 0].value > 120
+    assert img[sl].axes == "tzyx"
+    assert img[0, sl].axes == "zyx"
+    assert img[..., 0].axes == "tzy"
+    assert img[..., 0, :].axes == "tzx"
+    assert img[0, ..., 0].axes == "zy"
+    

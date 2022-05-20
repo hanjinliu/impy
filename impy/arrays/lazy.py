@@ -15,10 +15,10 @@ from .axesmixin import AxesMixin, get_axes_tuple
 from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
-from ..utils.axesop import switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared, del_axis
 from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
-from ..utils.slicer import axis_targeted_slicing, key_repr
+from ..utils.slicer import axis_targeted_slicing
 from ..utils.io import IO
 from ..collections import DataList
 
@@ -124,21 +124,7 @@ class LazyImgArray(AxesMixin):
     def __getitem__(self, key):
         if isinstance(key, str):
             key = axis_targeted_slicing(self.value.ndim, self.axes, key)
-        keystr = key_repr(key) # write down key like "0,*,*"
-        
-        if hasattr(key, "__array__"):
-            # fancy indexing will lose axes information
-            new_axes = None
-            
-        elif "new" in keystr:
-            # np.newaxis or None will add dimension
-            new_axes = None
-            
-        elif self.axes:
-            del_list = [i for i, s in enumerate(keystr.split(",")) if s not in ("*", "")]
-            new_axes = del_axis(self.axes, del_list)
-        else:
-            new_axes = None
+        new_axes = slice_axes(self.axes, key)
         out = self.__class__(
             self.value[key], 
             name=self.name,
@@ -147,8 +133,11 @@ class LazyImgArray(AxesMixin):
             metadata=self.metadata
         )
         
-        out._getitem_additional_set_info(self, keystr=keystr,
-                                         new_axes=new_axes, key=key)
+        out._getitem_additional_set_info(
+            self,
+            new_axes=new_axes, 
+            key=key
+        )
         
         return out
     

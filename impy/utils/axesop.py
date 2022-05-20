@@ -84,3 +84,39 @@ def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
             sl.append(slout)
     sl = tuple(sl)
     return sl
+
+
+def slice_axes(axes, key):
+    keylist = []
+        
+    if isinstance(key, tuple):
+        _keys = key
+    elif hasattr(key, "__array__"):
+        if key.ndim == 1:
+            new_axes = axes
+        else:
+            new_axes = None
+        return new_axes
+    else:
+        _keys = (key,)
+    
+    for s in _keys:
+        if isinstance(s, (slice, list, np.ndarray)):
+            keylist.append(0)
+        elif s is None:
+            keylist.append(1)
+        elif s is ...:
+            keylist.extend([0] * (len(axes) - len(_keys) + 1))
+        else:
+            keylist.append(-1)
+    
+    if 1 in keylist:
+        # np.newaxis or None will add dimension
+        new_axes = None
+        
+    elif not axes.is_none() and axes:
+        del_list = [i for i, s in enumerate(keylist) if s == -1]
+        new_axes = del_axis(axes, del_list)
+    else:
+        new_axes = None
+    return new_axes

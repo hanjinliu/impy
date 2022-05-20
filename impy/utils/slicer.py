@@ -4,7 +4,7 @@ import re
 from functools import lru_cache
 from .._types import Slices
 
-__all__ = ["str_to_slice", "key_repr", "axis_targeted_slicing"]
+__all__ = ["str_to_slice", "axis_targeted_slicing"]
 
 def _range_to_list(v: str) -> list[int]:
     """
@@ -33,27 +33,6 @@ def str_to_slice(v: str) -> list[int] | slice | int:
         sl = int(v)
     return sl
 
-def key_repr(key):
-    keylist = []
-        
-    if isinstance(key, tuple):
-        _keys = key
-    elif hasattr(key, "__array__"):
-        _keys = ("array",)
-    else:
-        _keys = (key,)
-    
-    for s in _keys:
-        if isinstance(s, (slice, list, np.ndarray)):
-            keylist.append("*")
-        elif s is None:
-            keylist.append("new")
-        elif s is ...:
-            keylist.append("...")
-        else:
-            keylist.append(str(s))
-    
-    return ",".join(keylist)
 
 @lru_cache
 def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:

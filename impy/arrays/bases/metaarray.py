@@ -132,29 +132,12 @@ class MetaArray(AxesMixin, np.ndarray):
             key = self._broadcast(key)
         
         out = super().__getitem__(key)         # get item as np.ndarray
-        keystr = key_repr(key)                 # write down key e.g. "0,*,*"
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            if hasattr(key, "__array__") and key.size > 1:
-                # fancy indexing will lose axes information, except for 1D array
-                key = np.asarray(key)
-                if key.ndim == 1:
-                    new_axes = self.axes
-                else:
-                    new_axes = None
-                
-            elif "new" in keystr:
-                # np.newaxis or None will add dimension
-                new_axes = None
-                
-            elif not self.axes.is_none() and self.axes:
-                del_list = [i for i, s in enumerate(keystr.split(",")) if s not in ("*", "")]
-                new_axes = del_axis(self.axes, del_list)
-            else:
-                new_axes = None
+            new_axes = slice_axes(self.axes, key)
                 
             out._getitem_additional_set_info(
-                self, keystr=keystr, new_axes=new_axes, key=key
+                self, new_axes=new_axes, key=key
             )
         
         return out
