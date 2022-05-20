@@ -14,6 +14,9 @@ class UndefAxis:
     def __str__(self) -> str:
         return "#"
     
+    def __repr__(self) -> str:
+        return "#undef"
+    
     def __hash__(self) -> str:
         return id(self)
 
@@ -145,10 +148,10 @@ class Axes(Sequence[Hashable]):
     
     def __eq__(self, other):
         if isinstance(other, str):
-            return self._axis_list == list(other)
+            return str(self) == other
         elif isinstance(other, self.__class__):
             return other._axis_list == self._axis_list
-        return False
+        return self._axis_list == other
 
     def __contains__(self, other):
         return other in self._axis_list

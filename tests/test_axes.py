@@ -66,9 +66,19 @@ def test_slicing():
     assert img[:, 0].axes == "tyx"
     assert img[[1, 3, 5]].axes == "tzyx"
     assert img[5, [1, 3, 5]].axes == "zyx"
+    
+    # test array slicing
     sl = img[:, 0, 0, 0].value > 120
     assert img[sl].axes == "tzyx"
     assert img[0, sl].axes == "zyx"
+    
+    sl = img[:, :, 0, 0].value > 120
+    assert img[sl].axes == "#yx"
+    
+    sl = img[:, :, :, 0].value > 120
+    assert img[sl].axes == "#x"
+    
+    # test ellipsis
     assert img[..., 0].axes == "tzy"
     assert img[..., 0, :].axes == "tzx"
     assert img[0, ..., 0].axes == "zy"

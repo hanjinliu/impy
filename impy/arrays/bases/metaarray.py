@@ -442,19 +442,16 @@ class MetaArray(AxesMixin, np.ndarray):
         out._set_info(self, new_axes=new_axes)
         return out
     
-    def _broadcast(self, value):
+    def _broadcast(self, value: Any):
         """
         More flexible broadcasting. If `self` has "zcyx"-axes and `value` has "zyx"-axes, then
         they should be broadcasted by stacking `value` along "c"-axes
-        """        
-        if isinstance(value, MetaArray):
+        """
+        if not isinstance(value, np.ndarray) or self.ndim == value.ndim:
+            return value
+        
+        if isinstance(value, MetaArray) and value.axes != self.axes[:value.ndim]:
             value = axesop.add_axes(self.axes, self.shape, value, value.axes)
-        elif isinstance(value, np.ndarray):
-            try:
-                if self.sizesof("yx") == value.shape:
-                    value = axesop.add_axes(self.axes, self.shape, value)
-            except AttributeError:
-                pass
         return value
     
     def __add__(self, value) -> Self:
