@@ -44,7 +44,7 @@ class LazyImgArray(AxesMixin):
         from dask import array as da
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
-        self.value = obj
+        self.value: "da.core.Array" = obj
         self.source = source
         self._name = name
         self.axes = axes
@@ -252,10 +252,7 @@ class LazyImgArray(AxesMixin):
     
     @property
     def chunk_info(self):
-        if self.axes.is_none():
-            chunk_info = self.chunksize
-        else:
-            chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
+        chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
         return chunk_info
     
     def _repr_dict_(self):
@@ -906,10 +903,7 @@ class LazyImgArray(AxesMixin):
         return tuple(self.chunksizeof(a) for a in axes)
         
     def transpose(self, axes):
-        if self.axes.is_none():
-            new_axes = None
-        else:
-            new_axes = "".join([self.axes[i] for i in list(axes)])
+        new_axes = "".join([self.axes[i] for i in list(axes)])
         out = self.__class__(self.value.transpose(axes))
         out._set_info(self, new_axes=new_axes)
         return out
@@ -1194,7 +1188,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     def _process_output(self, input: LazyImgArray, args: tuple, kwargs: dict):
-        if "axis" in kwargs.keys() and not input.axes.is_none():
+        if "axis" in kwargs.keys():
             new_axes = del_axis(input.axes, kwargs["axis"])
         else:
             new_axes = "inherit"

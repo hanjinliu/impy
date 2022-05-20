@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, Hashable
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
@@ -7,7 +7,7 @@ from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError
 from ...array_api import xp
-from ...utils.axesop import *
+from ...utils import axesop
 from ...utils.slicer import *
 from ...collections import DataList
 
@@ -26,7 +26,7 @@ class MetaArray(AxesMixin, np.ndarray):
         cls: type[MetaArray], 
         obj,
         name: str | None = None,
-        axes: str | None = None,
+        axes: Iterable[Hashable] | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,
@@ -134,7 +134,7 @@ class MetaArray(AxesMixin, np.ndarray):
         out = super().__getitem__(key)         # get item as np.ndarray
         
         if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            new_axes = slice_axes(self.axes, key)
+            new_axes = axesop.slice_axes(self.axes, key)
                 
             out._getitem_additional_set_info(
                 self, new_axes=new_axes, key=key
@@ -152,12 +152,12 @@ class MetaArray(AxesMixin, np.ndarray):
             sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
             return self.__setitem__(sl, value)
         
-        if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
-            key = add_axes(self.axes, self.shape, key, key.axes)
+        if isinstance(key, MetaArray) and key.dtype == bool:
+            key = axesop.add_axes(self.axes, self.shape, key, key.axes)
             
         elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
             # img[arr] ... where arr is 2-D boolean array
-            key = add_axes(self.axes, self.shape, key)
+            key = axesop.add_axes(self.axes, self.shape, key)
 
         super().__setitem__(key, value)
     
@@ -176,7 +176,7 @@ class MetaArray(AxesMixin, np.ndarray):
         except Exception:
             self.axes = None
         else:
-            if not self.axes.is_none() and len(self.axes) != self.ndim:
+            if len(self.axes) != self.ndim:
                 self.axes = None
         
     def __array_ufunc__(self, ufunc, method, *args, **kwargs):
@@ -206,8 +206,8 @@ class MetaArray(AxesMixin, np.ndarray):
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
         considered because it changes `ndim`.
         """
-        if "axis" in kwargs.keys() and not obj.axes.is_none():
-            new_axes = del_axis(obj.axes, kwargs["axis"])
+        if "axis" in kwargs.keys():
+            new_axes = axesop.del_axis(obj.axes, kwargs["axis"])
         else:
             new_axes = "inherit"
         self._set_info(obj, new_axes=new_axes)
@@ -315,12 +315,12 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, include="cztp")
+            axis = axesop.find_first_appeared(self.axes, include="cztp")
         axisint = self.axisof(axis)
             
         imgs: DataList[MetaArray] = DataList(np.moveaxis(self, axisint, 0))
         for img in imgs:
-            img.axes = del_axis(self.axes, axisint)
+            img.axes = axesop.del_axis(self.axes, axisint)
             img.set_scale(self)
             
         return imgs
@@ -378,7 +378,7 @@ class MetaArray(AxesMixin, np.ndarray):
             drop_axis = _list_of_axes(self, drop_axis)
                 
             # determine chunk size and slices
-            chunks = switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
+            chunks = axesop.switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
             slice_in = []
             slice_out = []
             for i, a in enumerate(self.axes):
@@ -438,10 +438,7 @@ class MetaArray(AxesMixin, np.ndarray):
         'axes' will also be arranged.
         """
         out = super().transpose(axes)
-        if self.axes.is_none():
-            new_axes = None
-        else:
-            new_axes = "".join([self.axes[i] for i in list(axes)])
+        new_axes = "".join([self.axes[i] for i in list(axes)])
         out._set_info(self, new_axes=new_axes)
         return out
     
@@ -450,12 +447,12 @@ class MetaArray(AxesMixin, np.ndarray):
         More flexible broadcasting. If `self` has "zcyx"-axes and `value` has "zyx"-axes, then
         they should be broadcasted by stacking `value` along "c"-axes
         """        
-        if isinstance(value, MetaArray) and not value.axes.is_none():
-            value = add_axes(self.axes, self.shape, value, value.axes)
+        if isinstance(value, MetaArray):
+            value = axesop.add_axes(self.axes, self.shape, value, value.axes)
         elif isinstance(value, np.ndarray):
             try:
                 if self.sizesof("yx") == value.shape:
-                    value = add_axes(self.axes, self.shape, value)
+                    value = axesop.add_axes(self.axes, self.shape, value)
             except AttributeError:
                 pass
         return value

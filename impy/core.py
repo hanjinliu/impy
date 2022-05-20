@@ -387,7 +387,7 @@ def imread(
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.shape.c > self.shape.x:
         self: ImgArray = np.moveaxis(self, -1, -3)
-        _axes = self.axes._axes_str
+        _axes = self.axes._axis_list
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
@@ -397,16 +397,13 @@ def imread(
     if squeeze:
         self = np.squeeze(self)
         
-    if self.axes.is_none():
-        return self
-    else:        
-        # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
-        # one by one.
-        for k, v in scale.items():
-            if k in self.axes:
-                self.set_scale({k: v})
-        
-        return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
+    # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
+    # one by one.
+    for k, v in scale.items():
+        if k in self.axes:
+            self.set_scale({k: v})
+    
+    return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     """
@@ -652,13 +649,10 @@ def lazy_imread(
         img = np.squeeze(img)
     
     self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
-    
-    if self.axes.is_none():
-        return self
-    else:
-        # read lateral scale if possible
-        self.set_scale(**scale)
-        return self.sort_axes()
+
+    # read lateral scale if possible
+    self.set_scale(**scale)
+    return self.sort_axes()
 
 
 def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArray:

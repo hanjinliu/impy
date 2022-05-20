@@ -754,11 +754,9 @@ class LabeledArray(MetaArray):
             if not isinstance(ref_image, MetaArray):
                 ref_image = MetaArray(
                     np.asarray(ref_image),
-                    axes=str(self.axes)[-self.ndim:]
+                    axes=self.axes[-self.ndim:]
                 )
-            if ref_image.axes.is_none():
-                raise ValueError("Axes not defined in `ref_image`.")
-            elif not axes_included(self, ref_image):
+            if not axes_included(self, ref_image):
                 raise ImageAxesError(
                     "Not all the axes in `ref_image` are included in self: "
                     f"{ref_image.axes} and {self.axes}"
@@ -854,9 +852,7 @@ class LabeledArray(MetaArray):
                     np.asarray(ref_image),
                     axes=str(self.axes)[-self.ndim:]
                 )
-            if ref_image.axes.is_none():
-                raise ValueError("Axes not defined in `ref_image`.")
-            elif not axes_included(self, ref_image):
+            if not axes_included(self, ref_image):
                 raise ImageAxesError(
                     "Not all the axes in `ref_image` are included in self: "
                     f"{ref_image.axes} and {self.axes}"

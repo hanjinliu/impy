@@ -1,6 +1,6 @@
 from __future__ import annotations
-from collections import defaultdict, Counter, OrderedDict
-from typing import Iterable
+from collections import defaultdict, OrderedDict
+from typing import Hashable, Iterable, Sequence, overload
 import numpy as np
 from numbers import Real
 
@@ -9,20 +9,15 @@ ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 class ImageAxesError(RuntimeError):
     """This error is raised when axes is defined in a wrong way."""
 
-class NoneAxes:
-    def __bool__(self):
-        return False
-
-    def __contains__(self, other):
-        return None
+class UndefAxis:
+    def __str__(self) -> str:
+        return "#"
     
-    def __iter__(self):
-        raise StopIteration
+    def __hash__(self) -> str:
+        return id(self)
 
-NONE = NoneAxes()
-
-class ScaleDict(OrderedDict):
-    def __init__(self, d: dict = {}):
+class ScaleDict(OrderedDict[str, float]):
+    def __init__(self, d: dict[str, float] = {}):
         for k, v in d.items():
             if v <= 0:
                 raise ValueError(f"Cannot set negative scale: {k}={v}.")
@@ -45,8 +40,21 @@ class ScaleDict(OrderedDict):
         except KeyError:
             raise AttributeError(f"Image does not have {key} axes.")
     
-    def __getitem__(self, key: str) -> float:
-        return super().__getitem__(key)
+    @overload
+    def __getitem__(self, key: str | int) -> float:
+        ...
+    
+    @overload
+    def __getitem__(self, key: slice) -> list[float]:
+        ...
+    
+    def __getitem__(self, key: str | int | slice) -> float:
+        if isinstance(key, str):
+            return super().__getitem__(key)
+        elif isinstance(key, (int, slice)):
+            return list(self.values())[key]
+        else:
+            raise TypeError(f"Cannot slice {type(self)} with {type(key)}.")
     
     def __setitem__(self, key: str, value: Real) -> None:
         value = float(value)
@@ -72,7 +80,7 @@ class ScaleDict(OrderedDict):
     def copy(self) -> ScaleDict:
         return self.__class__(self)
     
-    def replace(self, old: str, new: str):
+    def replace(self, old: Hashable, new: Hashable):
         d = {}
         for k, v in self.items():
             if k == old:
@@ -81,46 +89,34 @@ class ScaleDict(OrderedDict):
         return self.__class__(d)
 
 
-def check_none(func):
-    def checked(self: Axes, *args, **kwargs):
-        if self.is_none():
-            raise ImageAxesError("Axes not defined.")
-        return func(self, *args, **kwargs)
-    return checked
-
-
-class Axes:
-    def __init__(self, value=None) -> None:
-        if value == NONE or value is None:
-            self._axes_str: str = NONE
-            self.scale: ScaleDict[str, float] = None
+class Axes(Sequence[Hashable]):
+    def __init__(self, value: Iterable[Hashable]) -> None:
+        if not isinstance(value, self.__class__):
+            inputs = list(value)
+            ndim = len(inputs)
             
-        elif isinstance(value, str):
-            value = value.lower()
-            c = Counter(value)
-            twice = [a for a, v in c.items() if v > 1]
-            if len(twice) > 0:
-                raise ImageAxesError(f"{', '.join(twice)} appeared twice")
-            self._axes_str = value
-            self.scale = {a: 1.0 for a in self._axes_str}
+            # replace undef.
+            if "#" in inputs:
+                for i in range(ndim):
+                    if inputs[i] == "#":
+                        inputs[i] = UndefAxis()
             
-        elif isinstance(value, self.__class__):
-            self._axes_str = value._axes_str
-            self.scale = value.scale
+            # check duplication
+            if ndim > len(set(inputs)):
+                raise ImageAxesError(f"Duplicated axes found: {inputs}.")
             
-        elif isinstance(value, dict):
-            if any(len(v) != 1 for v in value.keys()):
-                raise ImageAxesError("Only one-character str can be an axis symbol.")
-            self._axes_str = "".join(value.keys())
-            for k, v in value.items():
-                try:
-                    self.scale[k] = float(v)
-                except ValueError:
-                    raise TypeError(f"Cannot set {type(v)} information to axes from a dict.")
+            self._axis_list = list(value)
+            self.scale = {a: 1.0 for a in self._axis_list}
             
         else:
-            raise ImageAxesError(f"Cannot set {type(value)} to axes.")
-    
+            self._axis_list = value._axis_list.copy()
+            self.scale = value.scale
+            
+    @classmethod
+    def undef(cls, ndim: int):
+        """Construct an Axes object initialized with undefined axes."""
+        return cls([UndefAxis() for _ in range(ndim)])
+        
     @property
     def scale(self):
         return self._scale
@@ -132,85 +128,65 @@ class Axes:
         else:
             self._scale = ScaleDict(value)
         
-    @check_none
     def __str__(self):
-        return self._axes_str
+        return "".join(map(str, self._axis_list))
     
-    @check_none
     def __len__(self):
-        return len(self._axes_str)
+        return len(self._axis_list)
 
-    @check_none
     def __getitem__(self, key):
-        return self._axes_str[key]
+        return self._axis_list[key]
     
-    @check_none
     def __iter__(self):
-        return self._axes_str.__iter__()
+        return iter(self._axis_list)
     
-    @check_none
-    def __next__(self):
-        return self._axes_str.__next__()
-    
-    @check_none
     def __eq__(self, other):
         if isinstance(other, str):
-            return self._axes_str == other
+            return self._axis_list == list(other)
         elif isinstance(other, self.__class__):
-            return other == self._axes_str
+            return other._axis_list == self._axis_list
+        return False
 
     def __contains__(self, other):
-        return other in self._axes_str
-    
-    def __bool__(self):
-        return not self.is_none()
+        return other in self._axis_list
     
     def __repr__(self):
-        if self.is_none():
-            return "No axes defined"
-        else:
-            return self._axes_str
+        return f"{self.__class__.__name__}['{self}']"
 
     def __hash__(self) -> int:
-        return hash(self._axes_str)
+        return hash(str(self))
     
-    def is_none(self):
-        return isinstance(self._axes_str, NoneAxes)
-    
-    @check_none
     def is_sorted(self) -> bool:
-        return self._axes_str == self.sorted()
+        return str(self) == self.sorted()
     
     def check_is_sorted(self):
-        if self.is_sorted():
-            pass
-        else:
-            raise ImageAxesError(f"Axes must in tzcxy order, but got {self._axes_str}")
+        if not self.is_sorted():
+            raise ImageAxesError(f"Axes must in tzcxy order, but got {self._axis_list}")
     
-    @check_none
-    def find(self, axis) -> int:
-        i = self._axes_str.find(axis)
+    def find(self, axis: str) -> int:
+        i = self._axis_list.index(axis)
         if i < 0:
-            raise ImageAxesError(f"Image does not have {axis}-axis: {self._axes_str}")
+            raise ImageAxesError(f"Image does not have {axis}-axis: {self._axis_list}")
         else:
             return i
     
-    @check_none
     def sort(self) -> None:
-        self._axes_str = self.sorted()
+        self._axis_list = list(self.sorted())
         return None
     
     def sorted(self)-> str:
-        return "".join([self._axes_str[i] for i in self.argsort()])
+        return "".join([self._axis_list[i] for i in self.argsort()])
     
-    @check_none
     def argsort(self):
-        return np.argsort([ORDER[k] for k in self._axes_str])
+        return np.argsort([ORDER.get(k, 0) for k in self._axis_list])
+    
+    def has_undef(self) -> bool:
+        return any(isinstance(a, UndefAxis) for a in self)
     
     def copy(self):
         return self.__class__(self)
 
-    def replace(self, old:str, new:str):
+    def replace(self, old: str, new: str):
         """
         Replace axis symbol. To avoid unexpected effect between images, new scale attribute
         will be copied.
@@ -222,18 +198,15 @@ class Axes:
         new : str
             New symbol.
         """        
-        if len(old) != 1 or len(new) != 1:
-            raise ValueError("Both `old` and `new` must be single character.")
-        if old not in self._axes_str:
-            raise ImageAxesError(f"Axes {old} does not exist: {self._axes_str}")
-        if new in self._axes_str:
-            raise ImageAxesError(f"Axes {new} already exists: {self._axes_str}")
+        i = self.index(old)
+        if new in self._axis_list:
+            raise ImageAxesError(f"Axes {new} already exists: {self}")
         
-        self._axes_str = self._axes_str.replace(old, new)
         scale = self.scale.replace(old, new)
+        self._axis_list[i] = new
         self.scale = scale
         return None
     
     def contains(self, chars: Iterable[str]) -> bool:
         """True if self contains all the characters in ``chars``."""
-        return all(a in self._axes_str for a in chars)
+        return all(a in self._axis_list for a in chars)

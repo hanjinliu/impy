@@ -24,10 +24,7 @@ class AxesMixin:
     
     @property
     def shape_info(self) -> str:
-        if self.axes.is_none():
-            shape_info = str(self.shape)
-        else:
-            shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
+        shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
         return shape_info
     
     @property
@@ -42,12 +39,14 @@ class AxesMixin:
     @axes.setter
     def axes(self, value: str | Axes | None):
         if value is None:
-            self._axes = Axes()
+            self._axes = Axes.undef(self.ndim)
         else:
             self._axes = Axes(value)
             if self.ndim != len(self._axes):
-                raise ImageAxesError("Inconpatible dimensions: "
-                                    f"array (ndim={self.ndim}) and axes ({value})")
+                raise ImageAxesError(
+                    "Inconpatible dimensions: "
+                    f"array (ndim={self.ndim}) and axes ({value})"
+                )
     
     @property
     def metadata(self) -> dict[str, Any]:
@@ -66,7 +65,7 @@ class AxesMixin:
     @property
     def scale_unit(self) -> str:
         try:
-            unit = self.metadata["unit"]
+            unit: str = self.metadata["unit"]
             if unit.startswith(r"\u"):
                 unit = "μ" + unit[6:]
         except Exception:
@@ -139,10 +138,8 @@ class AxesMixin:
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
         """        
-        if self.axes.is_none():
-            raise ImageAxesError("Image does not have axes.")
         
-        elif isinstance(other, dict):
+        if isinstance(other, dict):
             # voxel-scale can be set with one keyword.
             if "zyx" in other:
                 zyxscale = other.pop("zyx")
@@ -255,6 +252,13 @@ def get_axes_tuple(self: AxesMixin):
     try:
         return _AxesShapes[axes]
     except KeyError:
-        tup = namedtuple("AxesShape", list(self.axes))
+        fields = []
+        for i, a in enumerate(self.axes):
+            s = str(a)
+            if s.isidentifier():
+                fields.append(s)
+            else:
+                fields.append(f"axis_{i}")
+        tup = namedtuple("AxesShape", fields)
         _AxesShapes[axes] = tup
         return tup

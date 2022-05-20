@@ -32,7 +32,7 @@ class AxesFrame(pd.DataFrame):
                 columns = "".join(columns)
         
         super().__init__(data, **kwargs)
-        self._axes = Axes(columns)
+        self.col_axes = columns
         
     
     def _get_coords_cols(self):
@@ -78,11 +78,16 @@ class AxesFrame(pd.DataFrame):
     
     @col_axes.setter
     def col_axes(self, value):
-        if isinstance(value, str):
-            self._axes._axes_str = value
-            self.columns = [a for a in value]
+        naxes = self.shape[1]
+        if value is None:
+            self._axes = Axes.undef(naxes)
         else:
-            raise TypeError("Only str can be set to `col_axes`.")
+            self._axes = Axes(value)
+            if naxes != len(self._axes):
+                raise ImageAxesError(
+                    "Inconpatible dimensions: "
+                    f"array (ndim={naxes}) and axes ({value})"
+                )
     
     
     @property
@@ -101,11 +106,8 @@ class AxesFrame(pd.DataFrame):
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
 
-        """        
-        if self._axes.is_none():
-            raise ImageAxesError("Frame does not have axes.")
-        
-        elif isinstance(other, dict):
+        """
+        if isinstance(other, dict):
             # yx-scale can be set with one keyword.
             if "yx" in other:
                 yxscale = other.pop("yx")
