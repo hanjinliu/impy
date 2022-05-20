@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 class AxesMixin:
     """Abstract class with shape, ndim and axes are defined."""
     
+    _INHERIT = object()
     _axes: Axes
     ndim: int
     shape: tuple[int, ...]

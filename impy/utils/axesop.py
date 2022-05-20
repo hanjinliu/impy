@@ -2,6 +2,7 @@ from __future__ import annotations
 from functools import lru_cache
 import numpy as np
 from typing import TYPE_CHECKING
+from ..axes import UndefAxis
 
 if TYPE_CHECKING:
     from ..arrays.axesmixin import AxesMixin
@@ -109,17 +110,15 @@ def slice_axes(axes, key):
         else:
             keylist.append(-1)
 
-    out = []
+    new_axes = []
     it = iter(axes)
     for k in keylist:
         if k == 0:
-            out.append(next(it))
+            new_axes.append(next(it))
         elif k == -1:
             next(it)  # drop axis
         else:
-            out.append("#")  # new axis
+            new_axes.append(UndefAxis())  # new axis
     
-    out.extend(it)
-    new_axes = "".join(out)
-
+    new_axes.extend(it)
     return new_axes

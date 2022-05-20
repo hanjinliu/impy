@@ -108,11 +108,11 @@ class MetaArray(AxesMixin, np.ndarray):
                                      getattr(self, p, 
                                              None)))
     
-    def _set_info(self, other: Self, new_axes: str = "inherit"):
+    def _set_info(self, other: Self, new_axes: Any= AxesMixin._INHERIT):
         self._set_additional_props(other)
         # set axes
         try:
-            if new_axes != "inherit":
+            if new_axes is not self._INHERIT:
                 self.axes = new_axes
                 self.set_scale(other)
             else:
@@ -209,7 +209,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if "axis" in kwargs.keys():
             new_axes = axesop.del_axis(obj.axes, kwargs["axis"])
         else:
-            new_axes = "inherit"
+            new_axes = self._INHERIT
         self._set_info(obj, new_axes=new_axes)
         return self
     

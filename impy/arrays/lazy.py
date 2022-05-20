@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
 class LazyImgArray(AxesMixin):
     additional_props = ["_source", "_metadata", "_name"]
+    
     def __init__(
         self,
         obj: "da.core.Array",
@@ -391,7 +392,7 @@ class LazyImgArray(AxesMixin):
         
         out = getattr(self.value, funcname)(*args, **kwargs)
         out = self.__class__(out)
-        new_axes = "inherit" if out.shape == self.shape else None
+        new_axes = self._INHERIT if out.shape == self.shape else None
         out._set_info(self, new_axes=new_axes)
         return out
     
@@ -1191,7 +1192,7 @@ class LazyImgArray(AxesMixin):
         if "axis" in kwargs.keys():
             new_axes = del_axis(input.axes, kwargs["axis"])
         else:
-            new_axes = "inherit"
+            new_axes = self._INHERIT
         self._set_info(input, new_axes=new_axes)
         return None
         
@@ -1287,11 +1288,11 @@ class LazyImgArray(AxesMixin):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def _set_info(self, other: LazyImgArray, new_axes: str = "inherit"):
+    def _set_info(self, other: LazyImgArray, new_axes: Any = AxesMixin._INHERIT):
         self._set_additional_props(other)
         # set axes
         try:
-            if new_axes != "inherit":
+            if new_axes is not self._INHERIT:
                 self.axes = new_axes
                 self.set_scale(other)
             else:

@@ -171,7 +171,7 @@ class LabeledArray(MetaArray):
         if isinstance(obj, LabeledArray):
             self._view_labels(obj)
     
-    def _set_info(self, other: Self, new_axes: str = "inherit"):
+    def _set_info(self, other: Self, new_axes: Any = MetaArray._INHERIT):
         self._labels = getattr(self, "_labels", None)
         super()._set_info(other, new_axes)
         if isinstance(other, LabeledArray):
@@ -1254,6 +1254,12 @@ def _iter_dict(d, nparam):
                 out[k] = v
         yield out
 
+class NotMe:
+    def __eq__(self, other):
+        return False
+
+_notme = NotMe()
+
 def _shape_match(img: LabeledArray, label: Label):
     """
     e.g.)
@@ -1266,7 +1272,10 @@ def _shape_match(img: LabeledArray, label: Label):
     """    
     img_shape = img.shape
     label_shape = label.shape
-    return all([getattr(img_shape, a) == getattr(label_shape, a) for a in label.axes])
+    return all(
+        [getattr(img_shape, a, _notme) == getattr(label_shape, a, _notme)
+         for a in label.axes]
+    )
 
 def _iter_tile_yx(ymax, xmax, imgy, imgx):
     """

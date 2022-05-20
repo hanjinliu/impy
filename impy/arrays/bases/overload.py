@@ -161,6 +161,6 @@ def _(img: MetaArray, indices_or_sections, axis=0):
     out = []
     for each in imgs:
         each = each.view(img.__class__)
-        each._set_info(img, new_axes="inherit")
+        each._set_info(img)
         out.append(each)
     return DataList(out)
