@@ -8,16 +8,6 @@ if TYPE_CHECKING:
     from ..arrays.axesmixin import AxesMixin
 
 
-def axes_included(img: AxesMixin, label: AxesMixin):
-    """
-    e.g.)
-    img.axes = "tyx", label.axes = "yx" -> True
-    img.axes = "tcyx", label.axes = "zyx" -> False
-    
-    """
-    return img.axes.contains(label.axes)
-
-
 def find_first_appeared(axes, include="", exclude=""):
     for a in axes:
         if a in include and not a in exclude:

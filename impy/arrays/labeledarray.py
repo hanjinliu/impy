@@ -18,7 +18,7 @@ from .bases import MetaArray
 from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.axesop import complement_axes, find_first_appeared, axes_included
+from ..utils.axesop import complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes
 from ..utils.io import IO
 
@@ -181,7 +181,7 @@ class LabeledArray(MetaArray):
         """Make a view of label **if possible**."""
         if (
             other.labels is not None and
-            axes_included(self, other.labels) and
+            self.axes.contains(other.labels.axes) and
             _shape_match(self, other.labels)
         ):
             if self is not other:
@@ -756,7 +756,7 @@ class LabeledArray(MetaArray):
                     np.asarray(ref_image),
                     axes=self.axes[-self.ndim:]
                 )
-            if not axes_included(self, ref_image):
+            if not self.axes.contains(ref_image.axes):
                 raise ImageAxesError(
                     "Not all the axes in `ref_image` are included in self: "
                     f"{ref_image.axes} and {self.axes}"
@@ -852,7 +852,7 @@ class LabeledArray(MetaArray):
                     np.asarray(ref_image),
                     axes=str(self.axes)[-self.ndim:]
                 )
-            if not axes_included(self, ref_image):
+            if not self.axes.contains(ref_image.axes):
                 raise ImageAxesError(
                     "Not all the axes in `ref_image` are included in self: "
                     f"{ref_image.axes} and {self.axes}"
@@ -964,7 +964,7 @@ class LabeledArray(MetaArray):
                     raise ValueError("Could not infer axes of `label_image`.")
             else:
                 axes = label_image.axes
-                if not axes_included(self, label_image):
+                if not self.axes.contains(label_image.axes):
                     raise ImageAxesError(
                         f"Axes mismatch. Image has {self.axes}-axes but "
                         f"{axes} was given."

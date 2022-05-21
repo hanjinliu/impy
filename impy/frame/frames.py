@@ -32,7 +32,7 @@ class AxesFrame(pd.DataFrame):
                 columns = "".join(columns)
         
         super().__init__(data, **kwargs)
-        self.col_axes = columns
+        self.col_axes = self.columns
         
     
     def _get_coords_cols(self):
