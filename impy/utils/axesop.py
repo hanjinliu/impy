@@ -1,14 +1,11 @@
 from __future__ import annotations
-from functools import lru_cache
 import numpy as np
-from typing import TYPE_CHECKING
 from ..axes import UndefAxis
-
-if TYPE_CHECKING:
-    from ..arrays.axesmixin import AxesMixin
 
 
 def find_first_appeared(axes, include="", exclude=""):
+    include = list(include)
+    exclude = list(exclude)
     for a in axes:
         if a in include and not a in exclude:
             return a
@@ -17,7 +14,8 @@ def find_first_appeared(axes, include="", exclude=""):
 def add_axes(axes, shape, key, key_axes="yx"):
     """
     Stack `key` to make its shape key_axes-> axes.
-    """    
+    """
+    key_axes = list(key_axes)
     if shape == key.shape:
         return key
     # key = np.asarray(key)
@@ -26,16 +24,18 @@ def add_axes(axes, shape, key, key_axes="yx"):
             key = np.stack([key]*(shape[i]), axis=i)
     return key
 
-@lru_cache
-def complement_axes(axes, all_axes="ptzcyx"):
-    c_axes = ""
+
+def complement_axes(axes, all_axes="ptzcyx") -> list:
+    c_axes = []
+    axes_list = list(axes)
     for a in all_axes:
-        if a not in axes:
-            c_axes += a
+        if a not in axes_list:
+            c_axes.append(a)
     return c_axes
 
 
 def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
+    axes = list(axes)
     if ifnot == ":":
         ifnot = [slice(None)] * len(all_axes)
     elif not hasattr(ifnot, "__iter__"):

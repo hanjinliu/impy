@@ -1430,10 +1430,11 @@ class ImgArray(LabeledArray[Ax]):
         min_a = min(self.axisof(a) for a in dims)
         if t_axis > min_a:
             self = np.swapaxes(self, t_axis, min_a)
-        out = self._apply_dask(_filters.kalman_filter, 
-                              c_axes=complement_axes(along + dims, self.axes), 
-                              args=(gain, noise_var)
-                              )
+        out = self._apply_dask(
+            _filters.kalman_filter, 
+            c_axes=complement_axes([along] + dims, self.axes), 
+            args=(gain, noise_var)
+        )
         
         if t_axis > min_a:
             out = np.swapaxes(out, min_a, t_axis)
@@ -4176,9 +4177,9 @@ class ImgArray(LabeledArray[Ax]):
                 ref = self
             elif not isinstance(ref, ImgArray):
                 raise TypeError(f"'ref' must be an ImgArray object, but got {type(ref)}")
-            if ref.axes != along + dims:
+            if ref.axes != [along] + dims:
                 from itertools import product
-                _c_axes = complement_axes(along + dims, str(ref.axes))
+                _c_axes = complement_axes([along] + dims, str(ref.axes))
                 fstr = ";".join("{axis}={{}}".format(axis=a) for a in _c_axes)
                 out = np.empty_like(self)
                 for idx in product(*(range(ref.sizeof(a)) for a in _c_axes)):

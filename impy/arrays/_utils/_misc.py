@@ -12,6 +12,7 @@ def adjust_bin(
     shape = []
     scale = []
     sl = []
+    dims = list(dims)
     for i, a in enumerate(all_axes):
         s = img.shape[i]
         if a in dims:

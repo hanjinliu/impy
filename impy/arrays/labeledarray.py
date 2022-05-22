@@ -1274,7 +1274,7 @@ def _shape_match(img: LabeledArray, label: Label):
     img_shape = img.shape
     label_shape = label.shape
     return all(
-        [getattr(img_shape, a, _notme) == getattr(label_shape, a, _notme)
+        [getattr(img_shape, str(a), _notme) == getattr(label_shape, str(a), _notme)
          for a in label.axes]
     )
 

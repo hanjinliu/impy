@@ -904,7 +904,7 @@ class LazyImgArray(AxesMixin):
         return tuple(self.chunksizeof(a) for a in axes)
         
     def transpose(self, axes):
-        new_axes = "".join([self.axes[i] for i in list(axes)])
+        new_axes = [self.axes[i] for i in list(axes)]
         out = self.__class__(self.value.transpose(axes))
         out._set_info(self, new_axes=new_axes)
         return out

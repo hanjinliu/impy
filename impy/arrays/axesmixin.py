@@ -43,12 +43,13 @@ class AxesMixin(Generic[Ax]):
         if value is None:
             self._axes = Axes.undef(self.ndim)
         else:
-            self._axes = Axes(value)
-            if self.ndim != len(self._axes):
+            axes = Axes(value)
+            if self.ndim != len(axes):
                 raise ImageAxesError(
                     "Inconpatible dimensions: "
                     f"array (ndim={self.ndim}) and axes ({value})"
                 )
+            self._axes = axes
     
     @property
     def metadata(self) -> dict[str, Any]:
@@ -230,6 +231,7 @@ class AxesMixin(Generic[Ax]):
             ifin=[range(s) for s in self.shape], 
             ifnot=[(slice(None),)] * self.ndim
         )
+        exclude = list(exclude)
         selfview = self if israw else self.value
         it = itertools.product(*iterlist)
         c = 0 # counter

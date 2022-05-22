@@ -171,9 +171,9 @@ def dims_to_spatial_axes(func: Callable[_P, _R]) -> Callable[_P, _R]:
                     )
             
         if isinstance(dims, int):
-            s_axes = "".join([a for a in "zyx" if a in self.axes])[-dims:]
+            s_axes = [a for a in "zyx" if a in self.axes][-dims:]
         else:
-            s_axes = str(dims)
+            s_axes = list(dims)
         
         kwargs["dims"] = s_axes # update input
         return func(self, *args, **kwargs)

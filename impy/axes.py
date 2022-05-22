@@ -1,24 +1,71 @@
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from typing import Hashable, Iterable, Sequence, overload, TypeVar
+from copy import copy
+from typing import Any, Hashable, Iterable, Sequence, overload, TypeVar, TYPE_CHECKING
 import numpy as np
 from numbers import Real
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
 class ImageAxesError(RuntimeError):
     """This error is raised when axes is defined in a wrong way."""
 
-class UndefAxis:
-    """Undefined axis object."""
+
+class Axis:
+    def __init__(self, name: str):
+        self._name = str(name)
+    
     def __str__(self) -> str:
-        return "#"
+        return self._name
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}[{self._name!r}]"
+    
+    def __hash__(self) -> int:
+        return hash(str(self))
+    
+    def __eq__(self, other) -> bool:
+        return str(self) == other
+    
+    def __copy__(self) -> Self:
+        return self.__class__(self._name)
+    
+    def __add__(self, other: str) -> str:
+        return self._name + other
+    
+    def __radd__(self, other: str) -> str:
+        return other + self._name
+    
+    def __lt__(self, other) -> bool:
+        return str(self) < str(other)
+    
+    def __len__(self) -> int:
+        return len(str(self))
+    
+class AnnotatedAxis(Axis):
+    def __init__(self, name: str, metadata: dict[str, Any] = {}):
+        super().__init__(name)
+        self._metadata = metadata.copy()
+    
+    def __copy__(self) -> Self:
+        return self.__class__(self._name, self._metadata.copy())
+
+class UndefAxis(Axis):
+    """Undefined axis object."""
+    def __init__(self, name: str = "#"):
+        super().__init__(name)
     
     def __repr__(self) -> str:
         return "#undef"
     
     def __hash__(self) -> str:
         return id(self)
+    
+    def __eq__(self, other) -> bool:
+        return False
 
 class ScaleDict(OrderedDict[str, float]):
     def __init__(self, d: dict[str, float] = {}):
@@ -53,8 +100,8 @@ class ScaleDict(OrderedDict[str, float]):
         ...
     
     def __getitem__(self, key: str | int | slice) -> float:
-        if isinstance(key, str):
-            return super().__getitem__(key)
+        if isinstance(key, (str, Axis)):
+            return super().__getitem__(str(key))
         elif isinstance(key, (int, slice)):
             return list(self.values())[key]
         else:
@@ -84,6 +131,9 @@ class ScaleDict(OrderedDict[str, float]):
     def copy(self) -> ScaleDict:
         return self.__class__(self)
     
+    def keys(self):
+        yield from map(str, super().keys())
+    
     def replace(self, old: Hashable, new: Hashable):
         d = {}
         for k, v in self.items():
@@ -91,6 +141,7 @@ class ScaleDict(OrderedDict[str, float]):
                 k = new
             d[k] = v
         return self.__class__(d)
+
 
 Ax = TypeVar("Ax", bound=Hashable)
 
@@ -103,10 +154,15 @@ class Axes(Sequence[Ax]):
             # replace undef and check type.
             for i in range(ndim):
                 obj = inputs[i]
-                if obj == "#":
-                    inputs[i] = UndefAxis()
+                if isinstance(obj, str):
+                    if obj == "#":
+                        inputs[i] = UndefAxis()
+                    else:
+                        inputs[i] = Axis(obj)
                 elif not hasattr(obj, "__hash__") or isinstance(obj, int):
                     raise TypeError(f"Cannot use {type(obj)} as an axis.")
+                else:
+                    inputs[i] = copy(inputs[i])
             
             # check duplication
             if ndim > len(set(inputs)):
@@ -164,6 +220,12 @@ class Axes(Sequence[Ax]):
     def __hash__(self) -> int:
         return hash(str(self))
     
+    def __add__(self, other: Iterable[Ax]) -> Axes:
+        return self.__class__(self._axis_list + list(other))
+    
+    def __radd__(self, other: Iterable[Ax]) -> Axes:
+        return self.__class__(list(other) + self._axis_list)
+    
     def is_sorted(self) -> bool:
         return str(self) == self.sorted()
     
@@ -179,11 +241,11 @@ class Axes(Sequence[Ax]):
             return i
     
     def sort(self) -> None:
-        self._axis_list = list(self.sorted())
+        self._axis_list = self.sorted()
         return None
     
-    def sorted(self)-> str:
-        return "".join([self._axis_list[i] for i in self.argsort()])
+    def sorted(self)-> list[Ax]:
+        return [self._axis_list[i] for i in self.argsort()]
     
     def argsort(self):
         return np.argsort([ORDER.get(k, 0) for k in self._axis_list])

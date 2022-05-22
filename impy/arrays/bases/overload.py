@@ -11,8 +11,8 @@ from ...collections import DataList
 @MetaArray.implements(np.squeeze)
 def _(img: MetaArray):
     out = np.squeeze(img.value).view(img.__class__)
-    new_axes = "".join(a for a in img.axes if img.sizeof(a) > 1)
-    out._set_info(img, np.newaxis)
+    new_axes = [a for a in img.axes if img.sizeof(a) > 1]
+    out._set_info(img, new_axes)
     return out
 
 @MetaArray.implements(np.take)

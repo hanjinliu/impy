@@ -28,15 +28,15 @@ class AxesFrame(pd.DataFrame):
                 columns = str(data._axes)
         else:
             kwargs["columns"] = columns
-            if hasattr(columns, "__iter__"):
-                columns = "".join(columns)
+            # if hasattr(columns, "__iter__"):
+            #     columns = "".join(columns)
         
         super().__init__(data, **kwargs)
-        self.col_axes = self.columns
+        self.col_axes = list(self.columns)
         
     
     def _get_coords_cols(self):
-        return "".join(a for a in self.columns if len(a) == 1)
+        return [a for a in self.columns if len(a) == 1]
     
     def get_coords(self):
         return self[self.columns[self.columns.isin([a for a in self.columns if len(a) == 1])]]
@@ -140,7 +140,7 @@ class AxesFrame(pd.DataFrame):
         p -> uint32
         z, y, x -> float32
         """
-        dtype = lambda a: np.uint16 if a in "tc" else (np.uint32 if a == Const["ID_AXIS"] else np.float32)
+        dtype = lambda a: np.uint16 if a in ["t", "c"] else (np.uint32 if a == Const["ID_AXIS"] else np.float32)
         out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
         out._axes = self._axes
         return out

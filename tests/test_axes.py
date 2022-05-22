@@ -1,6 +1,8 @@
 import pytest
 import impy as ip
 import numpy as np
+from impy.axes import ImageAxesError
+
 
 def test_axes():
     img = ip.random.random_uint8((10, 10, 10))
@@ -23,6 +25,16 @@ def test_axes():
     assert str(img2.axes) == "zx"
     assert "".join(img2.scale.keys()) == "zx"
     assert img2.scale.z == 0.3
+
+def test_set_axes():
+    img = ip.random.random_uint8((10, 10, 10), axes="zyx")
+    img.axes = "tyx"
+    assert img.axes == "tyx"
+    with pytest.raises(ImageAxesError):
+        img.axes = "x"
+    assert img.axes == "tyx"
+    img.axes = None
+    assert str(img.axes) == "###"
 
     
 def test_set_scale():

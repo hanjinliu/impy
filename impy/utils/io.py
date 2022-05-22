@@ -338,7 +338,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     rest_axes = complement_axes(img.axes, "tzcyx")
     new_axes = ""
     for a in img.axes:
-        if a in "tzcyx":
+        if a in ["t", "z", "c", "y", "x"]:
             new_axes += a
         else:
             if len(rest_axes) == 0:
@@ -401,7 +401,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     f = zarr.open(path, mode="w")
     
     f.attrs["axes"] = str(img.axes)
-    f.attrs["scale"] = img.scale
+    f.attrs["scale"] = {str(a): v for a, v in img.scale.items()}
     f.attrs["metadata"] = img.metadata
     if lazy:
         img.value.to_zarr(url=os.path.join(path, "data"))

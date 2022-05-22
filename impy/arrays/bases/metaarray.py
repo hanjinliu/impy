@@ -439,7 +439,7 @@ class MetaArray(AxesMixin[Ax], np.ndarray):
         'axes' will also be arranged.
         """
         out = super().transpose(axes)
-        new_axes = "".join([self.axes[i] for i in list(axes)])
+        new_axes = [self.axes[i] for i in list(axes)]
         out._set_info(self, new_axes=new_axes)
         return out
     
