@@ -7,7 +7,7 @@ from pathlib import Path
 import itertools
 from functools import partial
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Hashable, TypeVar
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -29,8 +29,9 @@ from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+Ax = TypeVar("Ax", bound=Hashable)
 
-class LabeledArray(MetaArray):
+class LabeledArray(MetaArray[Ax]):
     _name: str
     _source: Path | None
     _metadata: dict[str, Any]
@@ -40,7 +41,7 @@ class LabeledArray(MetaArray):
         cls: type[LabeledArray], 
         obj,
         name: str | None = None,
-        axes: str | None = None,
+        axes: Iterable[Ax] | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,

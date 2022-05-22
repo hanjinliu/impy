@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Hashable
+from typing import TYPE_CHECKING, Iterable, Hashable, TypeVar
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
@@ -14,8 +14,9 @@ from ...collections import DataList
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+Ax = TypeVar("Ax", bound=Hashable)
 
-class MetaArray(AxesMixin, np.ndarray):
+class MetaArray(AxesMixin[Ax], np.ndarray):
     additional_props = ["_source", "_metadata", "_name"]
     NP_DISPATCH = {}
     _name: str
@@ -26,7 +27,7 @@ class MetaArray(AxesMixin, np.ndarray):
         cls: type[MetaArray], 
         obj,
         name: str | None = None,
-        axes: Iterable[Hashable] | None = None,
+        axes: Iterable[Ax] | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,
@@ -548,26 +549,22 @@ def _list_of_axes(img: MetaArray, axis):
         axis = [axis]
     return axis
         
-def _replace_inputs(img: MetaArray, args, kwargs):
+def _replace_inputs(img: MetaArray, args: tuple[Any], kwargs: dict[str, Any]):
     _as_np_ndarray = lambda a: a.value if isinstance(a, MetaArray) else a
     # convert arguments
     args = tuple(_as_np_ndarray(a) for a in args)
-    if "axis" in kwargs:
+    if kwargs.get("axis", None) is not None:
         axis = kwargs["axis"]
-        if isinstance(axis, str):
-            _axis = tuple(map(img.axisof, axis))
-            if len(_axis) == 1:
-                _axis = _axis[0]
-            kwargs["axis"] = _axis
+        if not hasattr(axis, "__iter__"):
+            axis = [axis]
+        kwargs["axis"] = tuple(map(img.axisof, axis))
     
-    if "axes" in kwargs:
+    if kwargs.get("axes", None) is not None:
         # used in such as np.rot90
         axes = kwargs["axes"]
-        if isinstance(axes, str):
-            _axes = tuple(map(img.axisof, axes))
-            kwargs["axes"] = _axes
+        kwargs["axes"] = tuple(map(img.axisof, axes))
                 
-    if "out" in kwargs:
+    if kwargs.get("out", None) is not None:
         kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
     
     return args, kwargs

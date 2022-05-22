@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Iterator, overload
+from typing import TYPE_CHECKING, Any, Generic, Hashable, Iterable, Iterator, TypeVar, overload
 import numpy as np
 import itertools
 import re
@@ -13,12 +13,13 @@ from .._types import Slices, Dims
 if TYPE_CHECKING:
     from typing_extensions import Self, Literal
 
+Ax = TypeVar("Ax", bound=Hashable)
 
-class AxesMixin:
+class AxesMixin(Generic[Ax]):
     """Abstract class with shape, ndim and axes are defined."""
     
     _INHERIT = object()
-    _axes: Axes
+    _axes: Axes[Ax]
     ndim: int
     shape: tuple[int, ...]
     value: Any
@@ -33,12 +34,12 @@ class AxesMixin:
         return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
     
     @property
-    def axes(self) -> Axes:
+    def axes(self) -> Axes[Ax]:
         """Axes of the array."""
         return self._axes
     
     @axes.setter
-    def axes(self, value: str | Axes | None):
+    def axes(self, value: Iterable[Ax] | None):
         if value is None:
             self._axes = Axes.undef(self.ndim)
         else:

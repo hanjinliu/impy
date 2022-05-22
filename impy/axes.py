@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from typing import Hashable, Iterable, Sequence, overload
+from typing import Hashable, Iterable, Sequence, overload, TypeVar
 import numpy as np
 from numbers import Real
 
@@ -92,9 +92,10 @@ class ScaleDict(OrderedDict[str, float]):
             d[k] = v
         return self.__class__(d)
 
+Ax = TypeVar("Ax", bound=Hashable)
 
-class Axes(Sequence[Hashable]):
-    def __init__(self, value: Iterable[Hashable]) -> None:
+class Axes(Sequence[Ax]):
+    def __init__(self, value: Iterable[Ax]) -> None:
         if not isinstance(value, self.__class__):
             inputs = list(value)
             ndim = len(inputs)
@@ -188,6 +189,7 @@ class Axes(Sequence[Hashable]):
         return np.argsort([ORDER.get(k, 0) for k in self._axis_list])
     
     def has_undef(self) -> bool:
+        """True if the object has at least one undefined axis."""
         return any(isinstance(a, UndefAxis) for a in self)
     
     def copy(self):
@@ -215,11 +217,12 @@ class Axes(Sequence[Hashable]):
         self.scale = scale
         return None
     
-    def contains(self, chars: Iterable[Hashable]) -> bool:
+    def contains(self, chars: Iterable[Ax]) -> bool:
         """True if self contains all the characters in ``chars``."""
         return all(a in self._axis_list for a in chars)
     
     def drop(self, axes) -> Axes:
+        """Drop axis (axes)."""
         if not isinstance(axes, (list, tuple, str)):
             axes = (axes,)
         
@@ -232,5 +235,5 @@ class Axes(Sequence[Hashable]):
         
         return Axes(a for a in self._axis_list if a not in drop_list)
     
-    def extend(self, axes: Iterable[Hashable]) -> Axes:
+    def extend(self, axes: Iterable[Ax]) -> Axes:
         return Axes(self._axis_list + list(axes))

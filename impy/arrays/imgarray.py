@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING, Literal, Sequence
+from typing import TYPE_CHECKING, Hashable, Literal, Sequence, TypeVar
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -27,8 +27,9 @@ from ..array_api import xp, cupy_dispatcher
 if TYPE_CHECKING:
     from ..frame import MarkerFrame, PathFrame
 
+Ax = TypeVar("Ax", bound=Hashable)
 
-class ImgArray(LabeledArray):
+class ImgArray(LabeledArray[Ax]):
     """
     An n-D array for image analysis.
     
@@ -3327,8 +3328,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Image with large objects removed.
-        
-        
+
         See Also
         --------
         remove_fine_objects
@@ -3386,10 +3386,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Convex hull image.
         """        
-        return self._apply_dask(skimage.morphology.convex_hull_image, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=bool
-                               ).astype(bool)
+        return self._apply_dask(
+            skimage.morphology.convex_hull_image, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=bool,
+        ).astype(bool)
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3424,8 +3425,13 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
-    def count_neighbors(self, *, connectivity: int = None, mask: bool = True,
-                        dims: Dims = None) -> ImgArray:
+    def count_neighbors(
+        self,
+        *, 
+        connectivity: int | None = None,
+        mask: bool = True,
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
         or branch detection. Only works for binary images.
@@ -3465,8 +3471,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
-    def remove_skeleton_structure(self, structure: str = "tip", *, connectivity: int = None,
-                                  dims: Dims = None, update: bool = False) -> ImgArray:
+    def remove_skeleton_structure(
+        self,
+        structure: Literal["tip"] | Literal["branch"] | Literal["cross"] = "tip",
+        *,
+        connectivity: int = None,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Remove certain structure from skeletonized images.
 
@@ -3711,8 +3723,13 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @check_input_and_output
-    def pathprops(self, paths: PathFrame, properties: str|Callable|Iterable[str|Callable] = "mean", *, 
-                  order: int = 1) -> DataDict:
+    def pathprops(
+        self,
+        paths: PathFrame,
+        properties: str | Callable | Iterable[str | Callable] = "mean", 
+        *, 
+        order: int = 1,
+    ) -> DataDict:
         """
         Measure line property using func(line_scan) for each func in properties.
 
@@ -3869,10 +3886,11 @@ class ImgArray(LabeledArray):
             Local binary pattern image.
         """        
         
-        return self._apply_dask(skfeat.local_binary_pattern,
-                               c_axes=complement_axes(dims), 
-                               args=(p, radius, method)
-                               )
+        return self._apply_dask(
+            skfeat.local_binary_pattern,
+            c_axes=complement_axes(dims), 
+            args=(p, radius, method)
+        )
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3941,7 +3959,13 @@ class ImgArray(LabeledArray):
     
     
     @same_dtype
-    def proj(self, axis: str = None, method: str|Callable = "mean", mask = None, **kwargs) -> ImgArray:
+    def proj(
+        self,
+        axis: Ax | None = None,
+        method: str | Callable = "mean",
+        mask = None,
+        **kwargs
+    ) -> ImgArray:
         """
         Z-projection along any axis.
 
@@ -3972,9 +3996,9 @@ class ImgArray(LabeledArray):
             func = _check_function(method)
         
         if axis is None:
-            axis = find_first_appeared("ztpi<c", include=self.axes, exclude="yx")
-        elif not isinstance(axis, str):
-            raise TypeError("`axis` must be str.")
+            axis = find_first_appeared("ztpiac", include=self.axes, exclude="yx")
+        elif not hasattr(axis, "__iter__"):
+            axis = [axis]
         axisint = tuple(self.axisof(a) for a in axis)
         if func.__module__ == "numpy.ma.core":
             arr = np.ma.array(self.value, mask=mask, dtype=self.dtype)

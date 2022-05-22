@@ -1,5 +1,4 @@
 from __future__ import annotations
-import numpy as np
 import re
 from functools import lru_cache
 from .._types import Slices
