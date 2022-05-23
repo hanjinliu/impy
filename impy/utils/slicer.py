@@ -34,7 +34,7 @@ def str_to_slice(v: str) -> list[int] | slice | int:
 
 
 @lru_cache
-def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
+def axis_targeted_slicing(ndim: int, axes: tuple[str, ...], string: str) -> Slices:
     """
     Make a conventional slices from an axis-targeted slicing string.
 
@@ -45,8 +45,8 @@ def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
     axes : str
         Axes of input ndarray.
     string : str
-        Axis-targeted slicing string. If an axis that does not exist in `axes` is contained,
-        this function will raise ValueError.
+        Axis-targeted slicing string. If an axis that does not exist in `axes` is
+        contained, this function will raise ValueError.
 
     Returns
     -------
@@ -59,7 +59,7 @@ def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
         if k.count("=") != 1:
             raise ValueError(f"Informal axis-targeted slicing: {k}")
         axis, sl_str = k.split("=")
-        i = axes.find(axis)
+        i = axes.index(axis)
         if i < 0:
             raise ValueError(f"Axis '{axis}' does not exist ({axes}).")
         try:

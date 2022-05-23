@@ -13,13 +13,11 @@ from .._types import Slices, Dims
 if TYPE_CHECKING:
     from typing_extensions import Self, Literal
 
-Ax = TypeVar("Ax", bound=Hashable)
-
-class AxesMixin(Generic[Ax]):
+class AxesMixin:
     """Abstract class with shape, ndim and axes are defined."""
     
     _INHERIT = object()
-    _axes: Axes[Ax]
+    _axes: Axes
     ndim: int
     shape: tuple[int, ...]
     value: Any
@@ -34,12 +32,12 @@ class AxesMixin(Generic[Ax]):
         return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
     
     @property
-    def axes(self) -> Axes[Ax]:
+    def axes(self) -> Axes:
         """Axes of the array."""
         return self._axes
     
     @axes.setter
-    def axes(self, value: Iterable[Ax] | None):
+    def axes(self, value: Iterable[Hashable] | None):
         if value is None:
             self._axes = Axes.undef(self.ndim)
         else:

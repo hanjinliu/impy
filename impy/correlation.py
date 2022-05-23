@@ -104,8 +104,7 @@ fourier_shell_correlation = fsc
 def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     # Basic Normalized Cross Correlation with batch processing
     n = np.prod(img0.sizesof(dims))
-    if isinstance(dims, str):
-        dims = tuple(img0.axisof(a) for a in dims)
+    dims = tuple(img0.axisof(a) for a in dims)
     img0 = xp.asarray(img0)
     img1 = xp.asarray(img1)
     corr = xp.sum(img0 * img1, axis=dims) / (

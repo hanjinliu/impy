@@ -124,7 +124,7 @@ class LazyImgArray(AxesMixin):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            key = axis_targeted_slicing(self.value.ndim, self.axes, key)
+            key = axis_targeted_slicing(self.value.ndim, tuple(self.axes), key)
         new_axes = slice_axes(self.axes, key)
         out = self.__class__(
             self.value[key], 
@@ -843,9 +843,9 @@ class LazyImgArray(AxesMixin):
         
         return self._apply_map_blocks(
             _filters.kalman_filter, 
-            c_axes=complement_axes(along + dims, self.axes), 
+            c_axes=complement_axes([along] + dims, self.axes), 
             args=(gain, noise_var)
-            )
+        )
     
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes

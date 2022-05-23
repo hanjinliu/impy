@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
-from ...axes import ImageAxesError
+from ...axes import Axis, ImageAxesError
 from ...array_api import xp
 from ...utils import axesop
 from ...utils.slicer import *
@@ -14,9 +14,8 @@ from ...collections import DataList
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-Ax = TypeVar("Ax", bound=Hashable)
 
-class MetaArray(AxesMixin[Ax], np.ndarray):
+class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["_source", "_metadata", "_name"]
     NP_DISPATCH = {}
     _name: str
@@ -27,7 +26,7 @@ class MetaArray(AxesMixin[Ax], np.ndarray):
         cls: type[MetaArray], 
         obj,
         name: str | None = None,
-        axes: Iterable[Ax] | None = None,
+        axes: Iterable[Hashable] | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,
@@ -126,7 +125,7 @@ class MetaArray(AxesMixin[Ax], np.ndarray):
     def __getitem__(self, key: int | str | slice | tuple) -> Self:
         if isinstance(key, str):
             # img["t=2;z=4"] ... axis-targeted slicing
-            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
+            sl = axis_targeted_slicing(self.ndim, tuple(self.axes), key)
             return self.__getitem__(sl)
 
         if isinstance(key, np.ndarray):
@@ -150,7 +149,7 @@ class MetaArray(AxesMixin[Ax], np.ndarray):
     def __setitem__(self, key: int | str | slice | tuple, value):
         if isinstance(key, str):
             # img["t=2;z=4"] ... ImageJ-like method
-            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
+            sl = axis_targeted_slicing(self.ndim, tuple(self.axes), key)
             return self.__setitem__(sl, value)
         
         if isinstance(key, MetaArray) and key.dtype == bool:
@@ -543,7 +542,7 @@ class MetaArray(AxesMixin[Ax], np.ndarray):
 def _list_of_axes(img: MetaArray, axis):
     if axis is None:
         axis = []
-    elif isinstance(axis, str):
+    elif hasattr(axis, "__iter__"):
         axis = [img.axisof(a) for a in axis]
     elif np.isscalar(axis):
         axis = [axis]

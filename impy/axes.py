@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from copy import copy
-from typing import Any, Hashable, Iterable, Sequence, overload, TypeVar, TYPE_CHECKING
+from typing import Any, MutableSequence, Union, Iterable, Sequence, overload, TYPE_CHECKING
 import numpy as np
 from numbers import Real
 
@@ -15,16 +15,29 @@ class ImageAxesError(RuntimeError):
 
 
 class Axis:
+    """
+    An axis object.
+    
+    This object behaves like a length-1 string as much as possible.
+    
+    Parameters 
+    ----------
+    name : str
+        Name of axis.
+    """
+    
     def __init__(self, name: str):
         self._name = str(name)
     
     def __str__(self) -> str:
+        """String representation of the axis."""
         return self._name
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self._name!r}]"
     
     def __hash__(self) -> int:
+        """Hash as a string."""
         return hash(str(self))
     
     def __eq__(self, other) -> bool:
@@ -40,10 +53,13 @@ class Axis:
         return other + self._name
     
     def __lt__(self, other) -> bool:
+        """To support alphabetic ordering."""
         return str(self) < str(other)
     
     def __len__(self) -> int:
         return len(str(self))
+
+AxisLike = Union[str, Axis]
     
 class AnnotatedAxis(Axis):
     def __init__(self, name: str, metadata: dict[str, Any] = {}):
@@ -134,7 +150,7 @@ class ScaleDict(OrderedDict[str, float]):
     def keys(self):
         yield from map(str, super().keys())
     
-    def replace(self, old: Hashable, new: Hashable):
+    def replace(self, old: AxisLike, new: AxisLike):
         d = {}
         for k, v in self.items():
             if k == old:
@@ -143,26 +159,28 @@ class ScaleDict(OrderedDict[str, float]):
         return self.__class__(d)
 
 
-Ax = TypeVar("Ax", bound=Hashable)
+def as_axis(obj: Any) -> Axis:
+    if isinstance(obj, str):
+        if obj == "#":
+            axis = UndefAxis()
+        else:
+            axis = Axis(obj)
+    elif isinstance(obj, Axis):
+        axis = copy(obj)
+    else:
+        raise TypeError(f"Cannot use {type(obj)} as an axis.")
+    return axis
 
-class Axes(Sequence[Ax]):
-    def __init__(self, value: Iterable[Ax]) -> None:
+class Axes(MutableSequence[Axis]):
+    """
+    A sequence of axes.
+    
+    This object behaves like a string as much as possible.
+    """
+    def __init__(self, value: Iterable[AxisLike]) -> None:
         if not isinstance(value, self.__class__):
-            inputs = list(value)
+            inputs = list(map(as_axis, value))
             ndim = len(inputs)
-            
-            # replace undef and check type.
-            for i in range(ndim):
-                obj = inputs[i]
-                if isinstance(obj, str):
-                    if obj == "#":
-                        inputs[i] = UndefAxis()
-                    else:
-                        inputs[i] = Axis(obj)
-                elif not hasattr(obj, "__hash__") or isinstance(obj, int):
-                    raise TypeError(f"Cannot use {type(obj)} as an axis.")
-                else:
-                    inputs[i] = copy(inputs[i])
             
             # check duplication
             if ndim > len(set(inputs)):
@@ -198,7 +216,16 @@ class Axes(Sequence[Ax]):
         return len(self._axis_list)
 
     def __getitem__(self, key):
+        """Get an axis."""
         return self._axis_list[key]
+    
+    def __setitem__(self, key: int, value) -> None:
+        self.replace(self[key], value)
+        return None
+    
+    def __delitem__(self, key: int) -> None:
+        self.drop(self[key])
+        return None
     
     def __iter__(self):
         return iter(self._axis_list)
@@ -220,14 +247,14 @@ class Axes(Sequence[Ax]):
     def __hash__(self) -> int:
         return hash(str(self))
     
-    def __add__(self, other: Iterable[Ax]) -> Axes:
+    def __add__(self, other: Iterable[AxisLike]) -> Axes:
         return self.__class__(self._axis_list + list(other))
     
-    def __radd__(self, other: Iterable[Ax]) -> Axes:
+    def __radd__(self, other: Iterable[AxisLike]) -> Axes:
         return self.__class__(list(other) + self._axis_list)
     
     def is_sorted(self) -> bool:
-        return str(self) == self.sorted()
+        return self == self.sorted()
     
     def check_is_sorted(self):
         if not self.is_sorted():
@@ -244,7 +271,7 @@ class Axes(Sequence[Ax]):
         self._axis_list = self.sorted()
         return None
     
-    def sorted(self)-> list[Ax]:
+    def sorted(self)-> list[Axis]:
         return [self._axis_list[i] for i in self.argsort()]
     
     def argsort(self):
@@ -258,7 +285,7 @@ class Axes(Sequence[Ax]):
         """Make a copy of Axes object."""
         return self.__class__(self)
 
-    def replace(self, old: str, new: str):
+    def replace(self, old: AxisLike, new: AxisLike):
         """
         Replace axis symbol. To avoid unexpected effect between images, new scale attribute
         will be copied.
@@ -279,12 +306,12 @@ class Axes(Sequence[Ax]):
         self.scale = scale
         return None
     
-    def contains(self, chars: Iterable[Ax]) -> bool:
+    def contains(self, chars: Iterable[AxisLike]) -> bool:
         """True if self contains all the characters in ``chars``."""
         return all(a in self._axis_list for a in chars)
     
     def drop(self, axes) -> Axes:
-        """Drop axis (axes)."""
+        """Drop an axis or a list of axes."""
         if not isinstance(axes, (list, tuple, str)):
             axes = (axes,)
         
@@ -297,5 +324,10 @@ class Axes(Sequence[Ax]):
         
         return Axes(a for a in self._axis_list if a not in drop_list)
     
-    def extend(self, axes: Iterable[Ax]) -> Axes:
-        return Axes(self._axis_list + list(axes))
+    def insert(self, idx: int = -1, axis: AxisLike = "#"):
+        _list = self._axis_list
+        _list.insert(idx, as_axis(axis))
+        return self.__class__(_list)
+    
+    def extend(self, axes: Iterable[AxisLike]) -> Axes:
+        return self + axes

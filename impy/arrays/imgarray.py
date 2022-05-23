@@ -3,7 +3,8 @@ import warnings
 import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING, Hashable, Literal, Sequence, TypeVar
+from typing import TYPE_CHECKING, Literal, Sequence, TypeVar
+
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -20,6 +21,7 @@ from ..utils.misc import check_nd, largest_zeros
 from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import DataDict
+from ..axes import Axis, AxisLike
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
@@ -27,9 +29,7 @@ from ..array_api import xp, cupy_dispatcher
 if TYPE_CHECKING:
     from ..frame import MarkerFrame, PathFrame
 
-Ax = TypeVar("Ax", bound=Hashable)
-
-class ImgArray(LabeledArray[Ax]):
+class ImgArray(LabeledArray):
     """
     An n-D array for image analysis.
     
@@ -2938,7 +2938,7 @@ class ImgArray(LabeledArray[Ax]):
         if key.startswith(";"):
             key = key[1:]
             
-        slices = axis_targeted_slicing(ndim, dims, key)
+        slices = axis_targeted_slicing(ndim, tuple(dims), key)
         dtype = np.complex128 if double_precision else np.complex64
         
         # Calculate exp(-ikx)
@@ -2955,12 +2955,13 @@ class ImgArray(LabeledArray[Ax]):
             out_chunks[ind] = exps[i].shape[0]
         out_chunks = tuple(out_chunks)
         
-        return self.as_float()._apply_dask(_misc.dft, 
-                                          complement_axes(dims, self.axes),
-                                          dtype=np.complex64, 
-                                          out_chunks=out_chunks,
-                                          kwargs=dict(exps=exps)
-                                          )
+        return self.as_float()._apply_dask(
+            _misc.dft, 
+            complement_axes(dims, self.axes),
+            dtype=np.complex64, 
+            out_chunks=out_chunks,
+            kwargs=dict(exps=exps)
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3962,7 +3963,7 @@ class ImgArray(LabeledArray[Ax]):
     @same_dtype
     def proj(
         self,
-        axis: Ax | None = None,
+        axis: AxisLike | None = None,
         method: str | Callable = "mean",
         mask = None,
         **kwargs

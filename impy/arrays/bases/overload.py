@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from .metaarray import MetaArray
-from ...axes import Axes
+from ...axes import Axes, AxisLike
 from ...collections import DataList
 
 # Overloading numpy functions using __array_function__.
@@ -26,7 +26,7 @@ def _(a: MetaArray, indices, axis=None, out=None, mode="raise"):
     return out
 
 @MetaArray.implements(np.stack)
-def _(imgs: list[MetaArray], axis="c", dtype=None):
+def _(imgs: list[MetaArray], axis: AxisLike = "c", dtype=None):
     """
     Create stack image from list of images.
 
@@ -44,38 +44,28 @@ def _(imgs: list[MetaArray], axis="c", dtype=None):
     ImgArray
         Image stack
     """
-    if imgs[0].axes:
-        old_axes = str(imgs[0].axes)
-    else:
-        old_axes = None
+    old_axes = imgs[0].axes
     
     if isinstance(axis, int):
         _axis = axis
         axis = "p"
-        if old_axes:
-            new_axes = old_axes[:_axis] + axis + old_axes[_axis:]
-        else:
-            new_axes = None
+        new_axes = old_axes[:_axis] + [axis] + old_axes[_axis:]
     elif not isinstance(axis, str):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
     else:
         # find where to add new axis
-        if old_axes:
-            if imgs[0].axes.is_sorted():
-                new_axes = Axes(axis + old_axes)
-                new_axes.sort()
-                _axis = new_axes.find(axis)
-            else:
-                new_axes = axis + old_axes
-                _axis = 0
+        if imgs[0].axes.is_sorted():
+            new_axes = Axes(axis + old_axes)
+            new_axes.sort()
+            _axis = new_axes.find(axis)
         else:
-            new_axes = None
+            new_axes = axis + old_axes
             _axis = 0
-
+        
     if dtype is None:
         dtype = imgs[0].dtype
 
-    arrs = [img.as_img_type(dtype).value for img in imgs]
+    arrs = [img.value.astype(dtype) for img in imgs]
 
     out = np.stack(arrs, axis=0)
     out = np.moveaxis(out, 0, _axis)
