@@ -1,87 +1,16 @@
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from copy import copy
-from typing import Any, MutableSequence, Union, Iterable, Sequence, overload, TYPE_CHECKING
+from typing import MutableSequence, Iterable, overload
 import numpy as np
 from numbers import Real
 
-if TYPE_CHECKING:
-    from typing_extensions import Self
+from ._axis import Axis, AxisLike, as_axis, UndefAxis
 
 ORDER = defaultdict(int, {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6})
 
 class ImageAxesError(RuntimeError):
     """This error is raised when axes is defined in a wrong way."""
 
-
-class Axis:
-    """
-    An axis object.
-    
-    This object behaves like a length-1 string as much as possible.
-    
-    Parameters 
-    ----------
-    name : str
-        Name of axis.
-    """
-    
-    def __init__(self, name: str):
-        self._name = str(name)
-    
-    def __str__(self) -> str:
-        """String representation of the axis."""
-        return self._name
-    
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self._name!r}]"
-    
-    def __hash__(self) -> int:
-        """Hash as a string."""
-        return hash(str(self))
-    
-    def __eq__(self, other) -> bool:
-        return str(self) == other
-    
-    def __copy__(self) -> Self:
-        return self.__class__(self._name)
-    
-    def __add__(self, other: str) -> str:
-        return self._name + other
-    
-    def __radd__(self, other: str) -> str:
-        return other + self._name
-    
-    def __lt__(self, other) -> bool:
-        """To support alphabetic ordering."""
-        return str(self) < str(other)
-    
-    def __len__(self) -> int:
-        return len(str(self))
-
-AxisLike = Union[str, Axis]
-    
-class AnnotatedAxis(Axis):
-    def __init__(self, name: str, metadata: dict[str, Any] = {}):
-        super().__init__(name)
-        self._metadata = metadata.copy()
-    
-    def __copy__(self) -> Self:
-        return self.__class__(self._name, self._metadata.copy())
-
-class UndefAxis(Axis):
-    """Undefined axis object."""
-    def __init__(self, name: str = "#"):
-        super().__init__(name)
-    
-    def __repr__(self) -> str:
-        return "#undef"
-    
-    def __hash__(self) -> str:
-        return id(self)
-    
-    def __eq__(self, other) -> bool:
-        return False
 
 class ScaleDict(OrderedDict[str, float]):
     def __init__(self, d: dict[str, float] = {}):
@@ -98,9 +27,9 @@ class ScaleDict(OrderedDict[str, float]):
                 
                 __getattr__ = dict.__getitem__
         
-        However, we also want to convert it to np.ndarray for compatibility with napari's 
-        "scale" arguments. Because __getattr__ is called inside np.ndarray, it expected to 
-        raise AttributeError rather than KeyError.
+        However, we also want to convert it to np.ndarray for compatibility with 
+        napari's "scale" arguments. Because __getattr__ is called inside np.ndarray, 
+        it expected to raise AttributeError rather than KeyError.
         """        
         try:
             return self[key]
@@ -134,7 +63,7 @@ class ScaleDict(OrderedDict[str, float]):
     __setattr__ = __setitem__
     
     def __list__(self) -> list[Real]:
-        axes = sorted(self.keys(), key=lambda a: ORDER[a])
+        axes = sorted(self.keys(), key=lambda a: ORDER.get(a, 0))
         return [self[a] for a in axes]
     
     def __array__(self, dtype=None):
@@ -158,18 +87,6 @@ class ScaleDict(OrderedDict[str, float]):
             d[k] = v
         return self.__class__(d)
 
-
-def as_axis(obj: Any) -> Axis:
-    if isinstance(obj, str):
-        if obj == "#":
-            axis = UndefAxis()
-        else:
-            axis = Axis(obj)
-    elif isinstance(obj, Axis):
-        axis = copy(obj)
-    else:
-        raise TypeError(f"Cannot use {type(obj)} as an axis.")
-    return axis
 
 class Axes(MutableSequence[Axis]):
     """
@@ -276,10 +193,6 @@ class Axes(MutableSequence[Axis]):
     
     def argsort(self):
         return np.argsort([ORDER.get(k, 0) for k in self._axis_list])
-    
-    def has_undef(self) -> bool:
-        """True if the object has at least one undefined axis."""
-        return any(isinstance(a, UndefAxis) for a in self)
     
     def copy(self):
         """Make a copy of Axes object."""

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from ..axes import UndefAxis
+from ..axes import Axes, Axis, UndefAxis
 
 
 def find_first_appeared(axes, include="", exclude=""):
@@ -11,7 +11,7 @@ def find_first_appeared(axes, include="", exclude=""):
             return a
     raise ValueError(f"Inappropriate axes: {axes}")
 
-def add_axes(axes, shape, key, key_axes="yx"):
+def add_axes(axes: Axes, shape: tuple[int, ...], key: np.ndarray, key_axes="yx"):
     """
     Stack `key` to make its shape key_axes-> axes.
     """
@@ -57,7 +57,7 @@ def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
 def slice_axes(axes, key):
     if isinstance(key, tuple):
         _keys = key
-    elif hasattr(key, "__array__"):
+    elif isinstance(key, np.ndarray) or hasattr(key, "__array__"):
         if key.ndim == 1:
             new_axes = axes
         else:
@@ -77,7 +77,7 @@ def slice_axes(axes, key):
         else:
             keylist.append(-1)
 
-    new_axes = []
+    new_axes: list[Axis] = []
     it = iter(axes)
     for k in keylist:
         if k == 0:

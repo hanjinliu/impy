@@ -8,7 +8,7 @@ from ..utils.deco import dims_to_spatial_axes
 from ..utils.slicer import str_to_slice
 from ..utils.utilcls import ImportOnRequest
 from .._const import Const
-from ..axes import Axes, ImageAxesError, ORDER
+from ..axes import Axes, ImageAxesError
 
 tp = ImportOnRequest("trackpy")
 
@@ -201,7 +201,7 @@ class AxesFrame(pd.DataFrame):
                 yield tuple(outsl), af
     
     def sort(self):
-        ids = np.argsort([ORDER[k] for k in self._axes])
+        ids = self._axes.argsort()
         return self[[self._axes[i] for i in ids]]
     
     def proj(self, axis=None):

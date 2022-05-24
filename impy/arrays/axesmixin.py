@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Generic, Hashable, Iterable, Iterator, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Hashable, Iterable, Iterator, TypeVar, overload
 import numpy as np
 import itertools
 import re
