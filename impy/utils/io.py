@@ -366,8 +366,8 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     if img.scale_unit and img.scale_unit != "nm":
         raise ValueError(
             f"Scale unit {img.scale_unit} is not supported. Convert to nm instead."
-            )
-        
+        )
+    
     import mrcfile
     
     if lazy:

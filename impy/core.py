@@ -376,6 +376,7 @@ def imread(
     axes = image_data.axes
     scale = image_data.scale
     metadata = image_data.metadata
+    spatial_scale_unit = metadata.get("unit", "px")
         
     if is_memmap and axes is not None:
         sl = axis_targeted_slicing(img.ndim, tuple(axes), key)
@@ -402,6 +403,8 @@ def imread(
     for k, v in scale.items():
         if k in self.axes:
             self.set_scale({k: v})
+            if k in "zyx":
+                self.axes[k].unit = spatial_scale_unit
     
     return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 

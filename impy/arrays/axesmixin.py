@@ -1,5 +1,12 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Hashable, Iterable, Iterator, TypeVar, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Iterator,
+    overload,
+    MutableMapping,
+)
 import numpy as np
 import itertools
 import re
@@ -7,7 +14,7 @@ from warnings import warn
 from collections import namedtuple
 
 from ..utils.axesop import switch_slice
-from ..axes import Axes, ImageAxesError, ScaleDict
+from ..axes import Axes, ImageAxesError, ScaleView, AxisLike
 from .._types import Slices, Dims
 
 if TYPE_CHECKING:
@@ -37,7 +44,7 @@ class AxesMixin:
         return self._axes
     
     @axes.setter
-    def axes(self, value: Iterable[Hashable] | None):
+    def axes(self, value: Iterable[AxisLike] | None):
         if value is None:
             self._axes = Axes.undef(self.ndim)
         else:
@@ -54,8 +61,8 @@ class AxesMixin:
         raise NotImplementedError()
     
     @property
-    def scale(self) -> ScaleDict | None:
-        return self.axes._scale
+    def scale(self) -> ScaleView:
+        return self.axes.scale
     
     @scale.setter
     def scale(self, value: dict):
@@ -65,21 +72,21 @@ class AxesMixin:
     
     @property
     def scale_unit(self) -> str:
-        try:
-            unit: str = self.metadata["unit"]
-            if unit.startswith(r"\u"):
-                unit = "μ" + unit[6:]
-        except Exception:
-            unit = None
-        return unit
+        units = set(a.unit for a in self.axes if str(a) in "zyx")
+        if len(units) == 0:
+            return self.axes[-1].unit
+        elif len(units) == 1:
+            return list(units)[0]
+        else:
+            warn(f"Inconsistent spatial unit: {units}.")
+            return list(units)[-1]
     
     @scale_unit.setter
-    def scale_unit(self, unit):
-        if not isinstance(unit, str):
-            msg = "Can only set str to scale unit. 'px' is set instead."
-            warn(msg)
-            unit = "px"
-        self.metadata["unit"] = unit
+    def scale_unit(self, unit) -> None:
+        unit = str(unit)
+        for a in self.axes:
+            if str(a) in ["z", "y", "x"]:
+                a.unit = unit
     
     def _repr_dict_(self) -> dict[str, Any]:
         raise NotImplementedError()
@@ -140,7 +147,7 @@ class AxesMixin:
             This enables function call like set_scale(x=0.1, y=0.1).
         """        
         
-        if isinstance(other, dict):
+        if isinstance(other, MutableMapping):
             # voxel-scale can be set with one keyword.
             if "zyx" in other:
                 zyxscale = other.pop("zyx")
@@ -161,7 +168,9 @@ class AxesMixin:
                     raise ImageAxesError(f"Image does not have axis {a}.")    
                 elif not np.isscalar(val):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
-            self.axes.scale.update(other)
+
+            for k, v in other.items():
+                self.axes[k].scale = v
             
         elif kwargs:
             self.set_scale(dict(kwargs))
@@ -250,7 +259,7 @@ class AxesMixin:
 _AxesShapes: dict[str, tuple] = {}
 
 def get_axes_tuple(self: AxesMixin):
-    axes = str(self.axes)
+    axes = self.axes
     try:
         return _AxesShapes[axes]
     except KeyError:

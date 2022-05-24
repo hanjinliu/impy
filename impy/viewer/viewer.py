@@ -20,7 +20,7 @@ from .utils import (
 from ..collections import *
 from ..arrays import *
 from ..core import array as ip_array, aslazy as ip_aslazy
-from ..axes import ScaleDict
+from ..axes import ScaleView
 from .._const import Const
 
 # TODO: 
@@ -119,7 +119,7 @@ class napariViewers:
         Scale information of current viewer. Defined to make compatible with ``ImgArray``.
         """        
         d = self.viewer.dims
-        return ScaleDict({a: r[2] for a, r in zip(d.axis_labels, d.range)})
+        return ScaleView({a: r[2] for a, r in zip(d.axis_labels, d.range)})
     
     def start(self, key: str = "impy"):
         """

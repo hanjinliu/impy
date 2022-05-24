@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import MutableMapping
 import numpy as np
 import pandas as pd
 from functools import wraps
@@ -28,8 +29,6 @@ class AxesFrame(pd.DataFrame):
                 columns = str(data._axes)
         else:
             kwargs["columns"] = columns
-            # if hasattr(columns, "__iter__"):
-            #     columns = "".join(columns)
         
         super().__init__(data, **kwargs)
         self.col_axes = list(self.columns)
@@ -89,7 +88,6 @@ class AxesFrame(pd.DataFrame):
                     f"array (ndim={naxes}) and axes ({value})"
                 )
     
-    
     @property
     def scale(self):
         return self._axes.scale
@@ -107,7 +105,7 @@ class AxesFrame(pd.DataFrame):
             This enables function call like set_scale(x=0.1, y=0.1).
 
         """
-        if isinstance(other, dict):
+        if isinstance(other, MutableMapping):
             # yx-scale can be set with one keyword.
             if "yx" in other:
                 yxscale = other.pop("yx")
@@ -121,7 +119,9 @@ class AxesFrame(pd.DataFrame):
                     raise ImageAxesError(f"Image does not have axis {a}.")    
                 elif not np.isscalar(val):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
-            self._axes.scale.update(other)
+            
+            for k, v in other.items():
+                self.col_axes[k].scale = v
             
         elif hasattr(other, "scale"):
             self.set_scale({a: s for a, s in other.scale.items() if a in self._axes})

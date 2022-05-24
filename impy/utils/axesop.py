@@ -54,9 +54,13 @@ def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
     return sl
 
 
-def slice_axes(axes, key):
+def slice_axes(axes: Axes, key):
     if isinstance(key, tuple):
-        _keys = key
+        rest = len(axes) - len(key)
+        if any(k is ... for k in key):
+            idx = key.index(...)
+            key = key[:idx] + (slice(None),) * (rest + 1) + key[idx + 1:]
+        _keys = key + (slice(None),) * rest
     elif isinstance(key, np.ndarray) or hasattr(key, "__array__"):
         if key.ndim == 1:
             new_axes = axes
@@ -64,28 +68,13 @@ def slice_axes(axes, key):
             new_axes = [UndefAxis()] + axes[key.ndim:]
         return new_axes
     else:
-        _keys = (key,)
-    
-    keylist: list[int] = []
-    for s in _keys:
-        if isinstance(s, (slice, list, np.ndarray)):
-            keylist.append(0)
-        elif s is None:
-            keylist.append(1)
-        elif s is ...:
-            keylist.extend([0] * (len(axes) - len(_keys) + 1))
-        else:
-            keylist.append(-1)
+        _keys = (key,) +(slice(None),) * (len(axes) - 1)
 
     new_axes: list[Axis] = []
-    it = iter(axes)
-    for k in keylist:
-        if k == 0:
-            new_axes.append(next(it))
-        elif k == -1:
-            next(it)  # drop axis
-        else:
+    for a, sl in zip(axes, _keys):
+        if isinstance(sl, (slice, list, np.ndarray)):
+            new_axes.append(a.slice_axis(sl))
+        elif sl is None:
             new_axes.append(UndefAxis())  # new axis
-    
-    new_axes.extend(it)
+
     return new_axes

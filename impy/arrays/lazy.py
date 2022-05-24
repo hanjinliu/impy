@@ -1294,7 +1294,6 @@ class LazyImgArray(AxesMixin):
         try:
             if new_axes is not self._INHERIT:
                 self.axes = new_axes
-                self.set_scale(other)
             else:
                 self.axes = other.axes.copy()
         except ImageAxesError:

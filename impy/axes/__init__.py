@@ -1,2 +1,2 @@
-from ._axes import Axes, ImageAxesError, ScaleDict
-from ._axis import Axis, as_axis, UndefAxis, ScaledAxis, LabeledAxis, AxisLike
+from ._axes import Axes, ImageAxesError, ScaleView
+from ._axis import Axis, as_axis, UndefAxis, AxisLike

@@ -10,12 +10,12 @@ def test_axes():
     img.set_scale(z=0.3)
     assert str(img.axes) == "zyx"
     assert "".join(img.scale.keys()) == "zyx"
-    assert img.scale.z == 0.3
+    assert img.axes["z"].scale == 0.3
     
     img1 = img.gaussian_filter()
     assert str(img1.axes) == "zyx"
     assert "".join(img1.scale.keys()) == "zyx"
-    assert img1.scale.z == 0.3
+    assert img1.axes["z"].scale == 0.3
     
     img1.axes.replace("z", "t")
     assert img1.axes == "tyx"
@@ -24,7 +24,7 @@ def test_axes():
     img2 = img.proj("y")
     assert str(img2.axes) == "zx"
     assert "".join(img2.scale.keys()) == "zx"
-    assert img2.scale.z == 0.3
+    assert img2.axes["z"].scale == 0.3
 
 def test_set_axes():
     img = ip.random.random_uint8((10, 10, 10), axes="zyx")

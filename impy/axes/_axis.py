@@ -1,11 +1,11 @@
 from __future__ import annotations
-from collections import defaultdict, OrderedDict
 from copy import copy
-from typing import Any, MutableSequence, TypeVar, Union, Iterable, overload, TYPE_CHECKING
+from typing import Any, TypeVar, Union, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+_T = TypeVar("_T")
 
 class Axis:
     """
@@ -19,8 +19,9 @@ class Axis:
         Name of axis.
     """
     
-    def __init__(self, name: str):
+    def __init__(self, name: str, metadata: dict[str, Any] | None = None):
         self._name = str(name)
+        self._metadata = metadata or {}
     
     def __str__(self) -> str:
         """String representation of the axis."""
@@ -36,10 +37,6 @@ class Axis:
     def __eq__(self, other) -> bool:
         """Check equality as a string."""
         return str(self) == other
-    
-    def __copy__(self) -> Self:
-        """Copy object."""
-        return self.__class__(self._name)
     
     def __add__(self, other: str) -> str:
         """Add as a string ans returns a string."""
@@ -57,35 +54,16 @@ class Axis:
         """Length of the string representation."""
         return len(str(self))
     
-    def slice_axis(self, sl: int | slice) -> Self:
-        """This method is called every time an array is sliced."""
-        return self
-
-AxisLike = Union[str, Axis]
-    
-class AnnotatedAxis(Axis):
-    def __init__(
-        self,
-        name: str,
-        metadata: dict[str, Any] | None = None,
-    ):
-        super().__init__(name)
-        self._metadata = metadata or {}
-    
     def __copy__(self) -> Self:
-        return self.__class__(self._name, self._metadata)
+        return self.__class__(self._name, self._metadata.copy())
     
     @property
     def metadata(self) -> dict[str, Any]:
         return self._metadata
-
-class ScaledAxis(AnnotatedAxis):
-    def __init__(self, name: str, scale: float = 1.0, unit: str = "px"):
-        super().__init__(name, metadata={"scale": scale, "unit": unit})
-        
+    
     @property
     def scale(self) -> float:
-        return self.metadata["scale"]
+        return self.metadata.get("scale", 1.0)
     
     @scale.setter
     def scale(self, value: float) -> None:
@@ -95,8 +73,8 @@ class ScaledAxis(AnnotatedAxis):
         self.metadata["scale"] = value
     
     @property
-    def unit(self):
-        return self.metadata["unit"]
+    def unit(self) -> str:
+        return self.metadata.get("unit", "px")
     
     @unit.setter
     def unit(self, value: str):
@@ -105,37 +83,36 @@ class ScaledAxis(AnnotatedAxis):
         
         self.metadata["unit"] = value
     
-    def slice_axis(self, sl: int | slice) -> Self:
-        if not isinstance(sl, slice):
-            return self
-        step = sl.step or 1
-        if step == 1:
-            return self
-        new_scale = self.scale * step
-        return self.__class__(self._name, scale=new_scale, unit=self.unit)
-
-_T = TypeVar("_T")
-
-class LabeledAxis(AnnotatedAxis):
-    def __init__(self, name: str, label: _T = None):
-        super().__init__(name, metadata={"label": label})
-        
     @property
-    def labels(self) -> _T:
-        return self.metadata["labels"]
+    def labels(self) -> list[_T] | None:
+        return self.metadata.get("labels", None)
     
     @labels.setter
     def labels(self, value: Iterable[_T]) -> None:
         self.metadata["labels"] = list(value)
-    
-    def slice_axis(self, key: int | slice) -> Self:
+        
+    def slice_axis(self, sl: Any) -> Self:
+        if not isinstance(sl, slice):
+            return self
         metadata = self.metadata.copy()
-        metadata.update(labels=self.labels[key])
-        return self.__class__(self._name, metadata, copy_metadata=False)
+        if "scale" in metadata:
+            step = sl.step or 1
+            if step == 1:
+                return self
+            new_scale = metadata["scale"] * step
+            metadata.update(scale=new_scale)
+        if "labels" in metadata:
+            metadata.update(labels=metadata["labels"][sl])
+        return self.__class__(self._name, metadata=metadata)
+
+    
+
+AxisLike = Union[str, Axis]
+
 
 class UndefAxis(Axis):
     """Undefined axis object."""
-    def __init__(self, name: None = None):
+    def __init__(self, *args, **kwargs):
         super().__init__("#")
     
     def __repr__(self) -> str:
@@ -147,19 +124,12 @@ class UndefAxis(Axis):
     def __eq__(self, other) -> bool:
         return False
 
-
-_DEFAULT_AXIS = {
-    "#": UndefAxis,
-    "c": LabeledAxis,
-    "t": ScaledAxis,
-    "z": ScaledAxis,
-    "y": ScaledAxis,
-    "x": ScaledAxis,
-}
-
 def as_axis(obj: Any) -> Axis:
     if isinstance(obj, str):
-        axis = _DEFAULT_AXIS.get(obj, Axis)(obj)
+        if obj == "#":
+            axis = UndefAxis()
+        else:
+            axis = Axis(obj)
     elif isinstance(obj, Axis):
         axis = copy(obj)
     else:
