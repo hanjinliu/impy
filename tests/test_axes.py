@@ -9,12 +9,12 @@ def test_axes():
     img.axes = "zyx"
     img.set_scale(z=0.3)
     assert str(img.axes) == "zyx"
-    assert "".join(img.scale.keys()) == "zyx"
+    assert list(img.scale.keys()) == list("zyx")
     assert img.axes["z"].scale == 0.3
     
     img1 = img.gaussian_filter()
     assert str(img1.axes) == "zyx"
-    assert "".join(img1.scale.keys()) == "zyx"
+    assert list(img1.scale.keys()) == list("zyx")
     assert img1.axes["z"].scale == 0.3
     
     img1.axes.replace("z", "t")
@@ -23,7 +23,7 @@ def test_axes():
         
     img2 = img.proj("y")
     assert str(img2.axes) == "zx"
-    assert "".join(img2.scale.keys()) == "zx"
+    assert list(img2.scale.keys()) == list("zx")
     assert img2.axes["z"].scale == 0.3
 
 def test_set_axes():
@@ -78,6 +78,10 @@ def test_slicing():
     assert img[:, 0].axes == "tyx"
     assert img[[1, 3, 5]].axes == "tzyx"
     assert img[5, [1, 3, 5]].axes == "zyx"
+    assert img[[1, 2, 3], [1, 2, 3]].axes == "#yx"
+    assert img[[1, 2, 3], :, [1, 2, 3]].axes == "#zx"
+    assert img[:, [1, 2, 3], :, [1, 2, 3]].axes == "t#y"
+    assert img[[1, 3, 5], [1, 2, 3], :, [1, 2, 3]].axes == "#y"
     
     # test array slicing
     sl = img[:, 0, 0, 0].value > 120

@@ -32,7 +32,7 @@ class ScaleView(MutableMapping[str, float]):
             raise AttributeError(f"Image does not have {key} axes.")
     
     def __iter__(self) -> Iterable[str]:
-        return map(str, self.axes)
+        return iter(self.axes)
     
     def values(self) -> Iterable[float]:
         return map(lambda a: a.scale, self.axes)
@@ -50,7 +50,6 @@ class ScaleView(MutableMapping[str, float]):
     
     def __getitem__(self, key):
         if isinstance(key, (str, Axis)):
-            key = str(key)
             if key not in self.axes:
                 raise KeyError(key)
             return self.axes[key].scale
@@ -122,7 +121,7 @@ class Axes(Sequence[Axis]):
         return len(self._axis_list)
 
     @overload
-    def __getitem__(self, key: int | str) -> Axis:
+    def __getitem__(self, key: int | str | Axis) -> Axis:
         ...
         
     @overload
