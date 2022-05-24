@@ -92,17 +92,24 @@ class Axis:
         self.metadata["labels"] = list(value)
         
     def slice_axis(self, sl: Any) -> Self:
-        if not isinstance(sl, slice):
+        if not isinstance(sl, (slice, list)):
             return self
         metadata = self.metadata.copy()
         if "scale" in metadata:
-            step = sl.step or 1
-            if step == 1:
-                return self
-            new_scale = metadata["scale"] * step
-            metadata.update(scale=new_scale)
+            if isinstance(sl, slice):
+                step = sl.step or 1
+                if step == 1:
+                    return self
+                new_scale = metadata["scale"] * step
+                metadata.update(scale=new_scale)
+            else:
+                metadata.pop("scale")
         if "labels" in metadata:
-            metadata.update(labels=metadata["labels"][sl])
+            labels = metadata["labels"]
+            if isinstance(sl, slice):
+                metadata.update(labels=labels[sl])
+            else:
+                metadata.update(labels=[labels[i] for i in sl])
         return self.__class__(self._name, metadata=metadata)
 
     

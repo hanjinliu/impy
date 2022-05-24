@@ -187,6 +187,16 @@ class AxesMixin:
         
         return None
     
+    def set_axis_labels(self, _dict: MutableMapping[str, float] = None, **kwargs) -> str:
+        if _dict is None:
+            _dict = kwargs
+        for k, v in _dict.items():
+            if self.sizeof(k) != len(v):
+                raise ValueError(f"Lengths of axis {k} and labels {v} don't match.")
+        for k, v in _dict.items():
+            self.axes[k].labels = v
+        return None
+    
     @overload
     def iter(
         self,

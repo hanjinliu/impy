@@ -45,11 +45,11 @@ def test_set_scale():
     assert img.scale.y == img.scale.x == 0.4
     
     with pytest.raises(Exception):
-        img.scale["t"] = 1
+        img.scale["t"] = 1  # cannot set scale to an axis that image does not have.
     with pytest.raises(Exception):
-        img.scale.t = 1
+        img.scale.t = 1  # cannot set scale to an axis that image does not have.
     with pytest.raises(ValueError):
-        img.scale["z"] = 0
+        img.scale["z"] = 0  # cannot set zero
     
     img.scale.z = 0.3
     assert img.scale.z == 0.3
@@ -94,4 +94,14 @@ def test_slicing():
     assert img[..., 0].axes == "tzy"
     assert img[..., 0, :].axes == "tzx"
     assert img[0, ..., 0].axes == "zy"
+
+def test_axis_labels():
+    img = ip.zeros((4, 10, 10), axes="cyx")
+    with pytest.raises(ValueError):
+        img.set_axis_labels(c=["c0", "c1", "c2"])
+    img.set_axis_labels(c=["c0", "c1", "c2", "c3"])
+    assert img.axes["c"].labels == ["c0", "c1", "c2", "c3"]
+    assert img[:2].axes["c"].labels == ["c0", "c1"]
+    assert img[2:].axes["c"].labels == ["c2", "c3"]
+    assert img[[0, 2]].axes["c"].labels == ["c0", "c2"]
     
