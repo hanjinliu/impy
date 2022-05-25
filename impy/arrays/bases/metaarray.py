@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Hashable, TypeVar
+from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
@@ -14,6 +14,14 @@ from ...collections import DataList
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+SupportOneSlicing = Union[SupportsInt, slice]
+SupportSlicing = Union[
+    SupportsInt,
+    str,
+    slice,
+    tuple[SupportOneSlicing, ...], 
+    dict[str, SupportOneSlicing]
+]
 
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["_source", "_metadata", "_name"]
@@ -121,11 +129,12 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key: int | str | slice | tuple) -> Self:
+    def __getitem__(self, key: SupportSlicing) -> Self:
         if isinstance(key, str):
-            # img["t=2;z=4"] ... axis-targeted slicing
-            sl = axis_targeted_slicing(tuple(self.axes), key)
-            return self.__getitem__(sl)
+            key = axis_targeted_slicing(tuple(self.axes), key)
+        
+        elif isinstance(key, dict):
+            key = self.axes.create_slicer(key)
 
         if isinstance(key, np.ndarray):
             key = self._broadcast(key)
@@ -145,11 +154,12 @@ class MetaArray(AxesMixin, np.ndarray):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def __setitem__(self, key: int | str | slice | tuple, value):
+    def __setitem__(self, key: SupportSlicing, value):
         if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like method
-            sl = axis_targeted_slicing(tuple(self.axes), key)
-            return self.__setitem__(sl, value)
+            key = axis_targeted_slicing(tuple(self.axes), key)
+        
+        elif isinstance(key, dict):
+            key = self.axes.create_slicer(key)
         
         if isinstance(key, MetaArray) and key.dtype == bool:
             key = axesop.add_axes(self.axes, self.shape, key, key.axes)

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Iterable, overload, MutableMapping
+from typing import Any, Sequence, Iterable, overload, MutableMapping
 import weakref
 import numpy as np
 
@@ -255,3 +255,25 @@ class Axes(Sequence[Axis]):
     
     def extend(self, axes: Iterable[AxisLike]) -> Axes:
         return self + axes
+
+    @overload
+    def create_slicer(self, sl: dict[str, Any]) -> tuple[Any, ...]:
+        ...
+    
+    @overload
+    def create_slicer(self, **kwargs: dict[str, Any]) -> tuple[Any, ...]:
+        ...
+    
+    def create_slicer(self, sl: dict[str, Any] | None = None, /, **kwargs):
+        if sl is None:
+            sl = kwargs
+        if not sl:
+            raise TypeError("Slice not given.")
+        
+        sl_list = [slice(None)] * len(self)
+    
+        for k, v in sl.items():
+            idx = self.index(k)
+            sl_list[idx] = v
+        
+        return tuple(sl_list)
