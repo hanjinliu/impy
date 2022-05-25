@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt
+from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mapping
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
-from ...axes import Axis, ImageAxesError
+from ...axes import ImageAxesError, Slicer
 from ...array_api import xp
 from ...utils import axesop
 from ...utils.slicer import *
@@ -20,7 +20,7 @@ SupportSlicing = Union[
     str,
     slice,
     tuple[SupportOneSlicing, ...], 
-    dict[str, SupportOneSlicing]
+    Mapping[str, SupportOneSlicing],
 ]
 
 class MetaArray(AxesMixin, np.ndarray):
@@ -133,7 +133,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if isinstance(key, str):
             key = axis_targeted_slicing(tuple(self.axes), key)
         
-        elif isinstance(key, dict):
+        elif isinstance(key, (Mapping, Slicer)):
             key = self.axes.create_slicer(key)
 
         if isinstance(key, np.ndarray):
@@ -158,7 +158,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if isinstance(key, str):
             key = axis_targeted_slicing(tuple(self.axes), key)
         
-        elif isinstance(key, dict):
+        elif isinstance(key, (Mapping, Slicer)):
             key = self.axes.create_slicer(key)
         
         if isinstance(key, MetaArray) and key.dtype == bool:

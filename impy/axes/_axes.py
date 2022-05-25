@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Any, Sequence, Iterable, overload, MutableMapping
+from typing import Any, Mapping, Sequence, Iterable, overload, MutableMapping
 import weakref
 import numpy as np
 
 from ._axis import Axis, AxisLike, as_axis, UndefAxis
+from ._slicer import Slicer
 
 ORDER = {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6}
 
@@ -257,16 +258,19 @@ class Axes(Sequence[Axis]):
         return self + axes
 
     @overload
-    def create_slicer(self, sl: dict[str, Any]) -> tuple[Any, ...]:
+    def create_slicer(self, sl: Mapping[str, Any] | Slicer) -> tuple[Any, ...]:
         ...
     
     @overload
     def create_slicer(self, **kwargs: dict[str, Any]) -> tuple[Any, ...]:
         ...
     
-    def create_slicer(self, sl: dict[str, Any] | None = None, /, **kwargs):
+    def create_slicer(self, sl = None, /, **kwargs):
         if sl is None:
             sl = kwargs
+        elif isinstance(sl, Slicer):
+            sl = sl._dict
+            
         if not sl:
             raise TypeError("Slice not given.")
         
