@@ -2938,7 +2938,7 @@ class ImgArray(LabeledArray):
         if key.startswith(";"):
             key = key[1:]
             
-        slices = axis_targeted_slicing(ndim, tuple(dims), key)
+        slices = axis_targeted_slicing(tuple(dims), key)
         dtype = np.complex128 if double_precision else np.complex64
         
         # Calculate exp(-ikx)

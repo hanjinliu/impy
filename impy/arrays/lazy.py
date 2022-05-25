@@ -124,7 +124,7 @@ class LazyImgArray(AxesMixin):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            key = axis_targeted_slicing(self.value.ndim, tuple(self.axes), key)
+            key = axis_targeted_slicing(tuple(self.axes), key)
         new_axes = slice_axes(self.axes, key)
         out = self.__class__(
             self.value[key], 
