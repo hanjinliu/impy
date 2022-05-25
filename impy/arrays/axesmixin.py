@@ -187,7 +187,26 @@ class AxesMixin:
         
         return None
     
-    def set_axis_labels(self, _dict: MutableMapping[str, float] = None, **kwargs) -> str:
+    def set_axis_label(
+        self,
+        _dict: MutableMapping[str, Iterable[Any]] = None,
+        /,
+        **kwargs
+    ) -> None:
+        """
+        Set labels to an axis (axes).
+
+        Parameters
+        ----------
+        _dict : mapping, optional
+            Mapping from axis to its labels. Labels must have the same length as its
+            dimensionality.
+            
+        Examples
+        --------
+        >>> img.set_axis_label(c=["Blue", "Green", "Red"])
+
+        """
         if _dict is None:
             _dict = kwargs
         for k, v in _dict.items():

@@ -119,6 +119,7 @@ AxisLike = Union[str, Axis]
 
 class UndefAxis(Axis):
     """Undefined axis object."""
+    
     def __init__(self, *args, **kwargs):
         super().__init__("#")
     
@@ -129,7 +130,7 @@ class UndefAxis(Axis):
         return id(self)
     
     def __eq__(self, other) -> bool:
-        return False
+        return isinstance(other, str) and other == "#"
 
 def as_axis(obj: Any) -> Axis:
     if isinstance(obj, str):
