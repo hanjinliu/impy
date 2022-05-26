@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Iterable
 from numbers import Number
 
 class Slicer:
@@ -22,7 +22,7 @@ class Slicer:
         s = "".join(s)
         return f"{self.__class__.__name__} of {s}"
 
-    def get_formatter(self, axes: list[str]) -> SliceFormatter:
+    def get_formatter(self, axes: Iterable[str]) -> SliceFormatter:
         return SliceFormatter(axes, self._dict)
 
 class _AxisSlice:
@@ -42,9 +42,9 @@ class _AxisSlice:
         return Slicer(d)
 
 class SliceFormatter:
-    def __init__(self, axes: list[str], defined: dict[str, Any]):
+    def __init__(self, axes: Iterable[str], defined: dict[str, Any]):
         self._defined = defined
-        self.axes = axes
+        self.axes = list(axes)
     
     def __getitem__(self, key) -> Slicer | SliceFormatter:
         if not isinstance(key, tuple):
