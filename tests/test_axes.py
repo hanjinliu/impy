@@ -1,7 +1,7 @@
 import pytest
 import impy as ip
 import numpy as np
-from impy.axes import ImageAxesError
+from impy.axes import ImageAxesError, broadcast
 
 @pytest.mark.parametrize("axes", [["t", "z", "y", "x"], ["time", "z", ":y", ":x"]])
 def test_axes(axes):
@@ -124,4 +124,16 @@ def test_axis_labels():
     assert img[:2].axes["c"].labels == ["c0", "c1"]
     assert img[2:].axes["c"].labels == ["c2", "c3"]
     assert img[[0, 2]].axes["c"].labels == ["c0", "c2"]
-    
+
+def test_broadcast():
+    assert broadcast("zyx", "tzyx") == "tzyx"
+    assert broadcast("yx", "tzyx") == "tzyx"
+    assert broadcast("z", "tzyx") == "tzyx"
+    assert broadcast("tzcyx", "tyx") == "tzcyx"
+    assert broadcast("tzyx", "tcyx") == "tzcyx"
+    assert broadcast("yx", "xy") == "yx"
+    assert broadcast("tyx", "xy") == "tyx"
+    assert broadcast("y", "x") == "yx"
+    assert broadcast("z", "y", "x") == "zyx"
+    assert broadcast("dz", "dy", "dx") == "dzyx"
+    assert broadcast("tzyx", "tyx", "tzyx", "yzx") == "tzyx"

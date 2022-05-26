@@ -31,8 +31,7 @@ class AxesFrame(pd.DataFrame):
             kwargs["columns"] = columns
         
         super().__init__(data, **kwargs)
-        self.col_axes = list(self.columns)
-        
+        self._axes = Axes(kwargs["columns"])
     
     def _get_coords_cols(self):
         return [a for a in self.columns if len(a) == 1]
@@ -81,12 +80,13 @@ class AxesFrame(pd.DataFrame):
         if value is None:
             self._axes = Axes.undef(naxes)
         else:
-            self._axes = Axes(value)
-            if naxes != len(self._axes):
+            axes = Axes(value)
+            if naxes != len(axes):
                 raise ImageAxesError(
                     "Inconpatible dimensions: "
                     f"array (ndim={naxes}) and axes ({value})"
                 )
+            self._axes = axes
     
     @property
     def scale(self):

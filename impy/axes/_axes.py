@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Any, Mapping, Sequence, Iterable, overload, MutableMapping
+from typing import (
+    Any, Mapping, Sequence, Iterable, overload, MutableMapping, TypeVar
+)
 import weakref
 import numpy as np
 
@@ -7,7 +9,8 @@ from ._axis import Axis, AxisLike, as_axis, UndefAxis
 from ._slicer import Slicer
 
 ORDER = {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6}
-
+_T = TypeVar("_T")
+AxesLike = Iterable[AxisLike]
 
 class ImageAxesError(RuntimeError):
     """This error is raised when axes is defined in a wrong way."""
@@ -87,7 +90,7 @@ class Axes(Sequence[Axis]):
     
     This object behaves like a string as much as possible.
     """
-    def __init__(self, value: Iterable[AxisLike]) -> None:
+    def __init__(self, value: AxesLike) -> None:
         if not isinstance(value, self.__class__):
             inputs = list(map(as_axis, value))
             ndim = len(inputs)
@@ -176,19 +179,31 @@ class Axes(Sequence[Axis]):
         """Hash as a tuple of strings."""
         return hash(tuple(map(str, self._axis_list)))
     
-    def __add__(self, other: Iterable[AxisLike]) -> Axes:
+    def __add__(self, other: AxesLike) -> Axes:
         return self.__class__(self._axis_list + list(other))
     
-    def __radd__(self, other: Iterable[AxisLike]) -> Axes:
+    def __radd__(self, other: AxesLike) -> Axes:
         return self.__class__(list(other) + self._axis_list)
     
     def is_sorted(self) -> bool:
         return self == self.sorted()
     
-    def find(self, axis: str) -> int:
+    @overload
+    def find(self, axis: str | Axis) -> int:
+        ...
+    
+    @overload
+    def find(self, axis: str | Axis, default: _T) -> _T:
+        ...
+        
+    def find(self, axis: str | Axis, *args) -> int:
+        if len(args) > 1:
+            raise TypeError(f"Expected 2 or 3 arguments but got {len(args) + 2}.")
         try:
             return self._axis_list.index(axis)
         except ValueError:
+            if args:
+                return args[0]
             _axes = tuple(str(a) for a in self._axis_list)
             raise ImageAxesError(
                 f"Image does not have {axis}-axis: {_axes}."
@@ -231,7 +246,7 @@ class Axes(Sequence[Axis]):
         self._axis_list[i] = new_axis
         return None
     
-    def contains(self, chars: Iterable[AxisLike]) -> bool:
+    def contains(self, chars: AxesLike) -> bool:
         """True if self contains all the characters in ``chars``."""
         return all(a in self._axis_list for a in chars)
     
@@ -254,7 +269,7 @@ class Axes(Sequence[Axis]):
         _list.insert(idx, as_axis(axis))
         return self.__class__(_list)
     
-    def extend(self, axes: Iterable[AxisLike]) -> Axes:
+    def extend(self, axes: AxesLike) -> Axes:
         return self + axes
 
     @overload
@@ -281,3 +296,55 @@ class Axes(Sequence[Axis]):
             sl_list[idx] = v
         
         return tuple(sl_list)
+
+def _broadcast_two(axes0: AxesLike, axes1: AxesLike) -> Axes:
+    if not isinstance(axes0, Axes):
+        axes0 = Axes(axes0)
+    if not isinstance(axes1, Axes):
+        axes1 = Axes(axes1)
+    
+    arg_idx = []
+    out = list(axes0)
+    for a in axes1:
+        arg_idx.append(axes0.find(a, -1))
+    
+    stack = []
+    n_insert = 0
+    iter = enumerate(arg_idx.copy())
+    for i, idx in iter:
+        if idx < 0:
+            stack.append(i)
+        else:
+            for j in stack:
+                out.insert(idx + n_insert, axes1[j])
+                n_insert += 1
+            stack.clear()
+    for j in stack:
+        out.append(axes1[j])
+        
+    return Axes(out)
+
+def broadcast(*axes_objects: Sequence[AxesLike]) -> Axes:
+    """
+    Broadcast two or more axes objects and returns their consensus.
+    
+    This function is designed for more flexible ``numpy`` broadcasting using axes.
+    
+    Examples
+    --------
+    >>> broadcast("zyx", "tzyx")  # Axes "tzyx"
+    >>> broadcast("tzyx", "tcyx")  # Axes "tzcyx"
+    >>> broadcast("yx", "xy")  # Axes "yx"
+    """
+    n_axes = len(axes_objects)
+    
+    if n_axes == 2:
+        return _broadcast_two(*axes_objects)
+    elif n_axes < 2:
+        raise TypeError("Less than two axes objects were given.")
+    
+    it = iter(axes_objects)
+    axes0 = next(it)
+    for axes1 in it:
+        axes0 = _broadcast_two(axes0, axes1)
+    return axes0
