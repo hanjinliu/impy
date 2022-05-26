@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING, Literal, Sequence, TypeVar
+from typing import TYPE_CHECKING, Literal, Sequence
 
 
 from .labeledarray import LabeledArray
@@ -21,7 +21,7 @@ from ..utils.misc import check_nd, largest_zeros
 from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import DataDict
-from ..axes import Axis, AxisLike
+from ..axes import AxisLike, slicer
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
@@ -1905,7 +1905,7 @@ class ImgArray(LabeledArray):
         for y, x in [(0, 0), (0, 1), (1, 1), (1, 0)]:
             dr = [(yc - y)/2, (xc - x)/2]
             imgs.append(
-                self[f"y={y}::2;x={x}::2"].affine(
+                self[slicer.y[y::2].x[x::2]].affine(
                     translation=dr, order=order, dims="yx"
                 )
             )
@@ -2693,7 +2693,8 @@ class ImgArray(LabeledArray):
         gabor_angle
         """        
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
-        arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
+        
+        arg = -np.arctan2(eigvec[slicer.r[0].l[1]], eigvec[slicer.r[1].l[1]])
         
         arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
         arg.fix_border()

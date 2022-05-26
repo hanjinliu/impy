@@ -15,7 +15,7 @@ from collections import namedtuple
 from numbers import Number
 
 from ..utils.axesop import switch_slice
-from ..axes import Axes, ImageAxesError, ScaleView, AxisLike
+from ..axes import Axes, ImageAxesError, ScaleView, AxisLike, AxesLike
 from .._types import Slices, Dims
 
 if TYPE_CHECKING:
@@ -220,7 +220,7 @@ class AxesMixin:
     @overload
     def iter(
         self,
-        axes: str,
+        axes: AxesLike,
         israw: Literal[False] = False, 
         exclude: Dims = "",
     ) -> Iterator[tuple[Slices, np.ndarray]]:
@@ -229,7 +229,7 @@ class AxesMixin:
     @overload
     def iter(
         self,
-        axes: str,
+        axes: AxesLike,
         israw: Literal[True] = False, 
         exclude: Dims = "",
     ) -> Iterator[tuple[Slices, Self]]:
