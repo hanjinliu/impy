@@ -419,7 +419,7 @@ class ImgArray(LabeledArray):
         out = PropArray(
             np.empty(self.sizesof(c_axes)+(int(labels.max()),)),
             dtype=np.float32,
-            axes=c_axes+dims[-1], 
+            axes=c_axes + [dims[-1]], 
             source=self.source, 
             metadata=self.metadata, 
             propname="radial_profile"
@@ -3541,9 +3541,14 @@ class ImgArray(LabeledArray):
         coords = np.asarray(coords, dtype=np.float32).T
         shape = self.sizesof(prop_axes)
         l = coords.shape[1] # Number of points
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
-                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
-                        propname = f"pointprops", dtype=np.float32)
+        out = PropArray(
+            np.empty((l,)+shape, dtype=np.float32), 
+            name=self.name+"-prop", 
+            axes=[Const["ID_AXIS"]]+prop_axes,
+            source=self.source,
+            propname = f"pointprops",
+            dtype=np.float32
+        )
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
             out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
@@ -3593,9 +3598,14 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(src.col_axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
-                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
-                        propname = f"lineprops<{func.__name__}>", dtype=np.float32)
+        out = PropArray(
+            np.empty((l,)+shape, dtype=np.float32),
+            name=self.name+"-prop", 
+            axes=[Const["ID_AXIS"]]+prop_axes,
+            source=self.source,
+            propname = f"lineprops<{func.__name__}>", 
+            dtype=np.float32,
+        )
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
             resliced = self.reslice(s, d, order=order)
@@ -3776,13 +3786,13 @@ class ImgArray(LabeledArray):
         
         # prepare output
         l = len(paths[id_axis].unique())
-        prop_axes = complement_axes(paths._axes, id_axis + str(self.axes))
+        prop_axes = complement_axes(paths._axes, [id_axis] + self.axes)
         shape = self.sizesof(prop_axes)
         
         out = DataDict({k: PropArray(
                     np.empty((l,)+shape, dtype=np.float32), 
                     name=self.name+"-prop", 
-                    axes=id_axis+prop_axes,
+                    axes=[id_axis]+prop_axes,
                     source=self.source,
                     propname = f"lineprops<{k}>", dtype=np.float32
                 )
@@ -3798,8 +3808,11 @@ class ImgArray(LabeledArray):
         return out
     
     @check_input_and_output(need_labels=True)
-    def regionprops(self, properties: Iterable[str] | str = ("mean_intensity",), *, 
-                    extra_properties: Iterable[Callable] | None = None) -> DataDict[str, PropArray]:
+    def regionprops(
+        self,
+        properties: Iterable[str] | str = ("mean_intensity",), *, 
+        extra_properties: Iterable[Callable] | None = None
+    ) -> DataDict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -3843,7 +3856,7 @@ class ImgArray(LabeledArray):
         out = DataDict({p: PropArray(
                 np.empty((self.labels.max(),) + shape, dtype=np.float32),
                 name=self.name+"-prop", 
-                axes=id_axis+prop_axes,
+                axes=[id_axis]+prop_axes,
                 source=self.source,
                 propname=p
             )
