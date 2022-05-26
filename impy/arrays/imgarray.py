@@ -1830,7 +1830,7 @@ class ImgArray(LabeledArray):
         *, 
         order: int = 1,
         angle_order: list[int] = None,
-        newaxis: str = "a"
+        newaxis: AxisLike = "a",
     ) -> ImgArray:
         r"""
         Split a (2N, 2M)-image into four (N, M)-images for each other pixels.
@@ -1901,11 +1901,12 @@ class ImgArray(LabeledArray):
             raise ValueError(
                 f"Image pixel sizes must be even numbers, got {self.sizesof('yx')}"
             )
-        imgs = []
+        imgs: list[ImgArray] = []
+        fmt = slicer.get_formatter(["y", "x"])
         for y, x in [(0, 0), (0, 1), (1, 1), (1, 0)]:
             dr = [(yc - y)/2, (xc - x)/2]
             imgs.append(
-                self[slicer.y[y::2].x[x::2]].affine(
+                self[fmt[y::2, x::2]].affine(
                     translation=dr, order=order, dims="yx"
                 )
             )
@@ -1922,7 +1923,7 @@ class ImgArray(LabeledArray):
         out.set_scale(y=self.scale.y*2, x=self.scale.x*2)
         return out
         
-    def stokes(self, *, along: str = "a") -> dict:
+    def stokes(self, *, along: AxisLike = "a") -> dict:
         """
         Generate stocks images from an image stack with polarized images. 
         
@@ -1934,7 +1935,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        along : str, default is "a"
+        along : AxisLike, default is "a"
             To define which axis is polarization angle axis. Along this axis 
             the angle of polarizer must be in order of 0, 45, 90, 135 degree.
 
@@ -3104,7 +3105,7 @@ class ImgArray(LabeledArray):
         self,
         thr: float | str = "otsu",
         *,
-        along: str | None = None,
+        along: AxisLike | None = None,
         **kwargs
     ) -> ImgArray:
         """
@@ -3117,7 +3118,7 @@ class ImgArray(LabeledArray):
         ----------
         thr: float or str or None, optional
             Threshold value, or thresholding algorithm.
-        along : str, optional
+        along : AxisLike, optional
             Dimensions that will not share the same threshold. For instance, if
             ``along="c"`` then threshold intensities are determined for every channel.
             If ``thr`` is float, ``along`` will be ignored.
@@ -3251,7 +3252,7 @@ class ImgArray(LabeledArray):
         )
     
     @check_input_and_output
-    def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
+    def track_template(self, template:np.ndarray, bg=None, along: AxisLike = "t") -> MarkerFrame:
         """
         Tracking using template matching. For every time frame, matched region is interpreted as a
         new template and is used for the next template. To avoid slight shifts accumulating to the
@@ -4083,7 +4084,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def track_drift(
         self,
-        along: str = None,
+        along: AxisLike | None = None,
         show_drift: bool = False, 
         upsample_factor: int = 10,
     ) -> MarkerFrame:
@@ -4092,7 +4093,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        along : str, optional
+        along : AxisLike, optional
             Along which axis drift will be calculated.
         show_drift : bool, default is False
             If True, plot the result.
@@ -4132,7 +4133,7 @@ class ImgArray(LabeledArray):
             from ._utils import _plot as _plt
             _plt.plot_drift(result)
         
-        result.index.name = along
+        result.index.name = str(along)
         return result
     
     @_docs.write_docs
@@ -4145,7 +4146,7 @@ class ImgArray(LabeledArray):
         ref: ImgArray = None,
         *,
         zero_ave: bool = True,
-        along: str = None,
+        along: AxisLike | None = None,
         dims: Dims = 2,
         update: bool = False,
         **affine_kwargs
@@ -4163,7 +4164,7 @@ class ImgArray(LabeledArray):
             The reference n-D image to determine drift, if ``shift`` was not given.
         zero_ave : bool, default is True
             If True, average shift will be zero.
-        along : str, optional
+        along : AxisLike, optional
             Along which axis drift will be corrected.
         {dims}
         {update}

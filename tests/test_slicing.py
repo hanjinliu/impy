@@ -43,4 +43,3 @@ def test_formatter():
     assert_equal(img[fmt[0, 0]], img["t=0;x=0"])
     assert_equal(img[fmt[0, 3:6]], img["t=0;x=3:6"])
     assert_equal(img[fmt[:5][:6]], img["t=:5;x=:6"])
-    

@@ -54,6 +54,9 @@ class Axis:
         """Length of the string representation."""
         return len(str(self))
     
+    def __iter__(self) -> Iterable[str]:
+        return iter(str(self))
+    
     def __copy__(self) -> Self:
         return self.__class__(self._name, self._metadata.copy())
     
