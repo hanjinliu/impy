@@ -27,23 +27,6 @@ def _(a: MetaArray, indices, axis=None, out=None, mode="raise"):
 
 @MetaArray.implements(np.stack)
 def _(imgs: list[MetaArray], axis: AxisLike = 0, dtype=None):
-    """
-    Create stack image from list of images.
-
-    Parameters
-    ----------
-    imgs : iterable object of images.
-        Images to stack. These images must have exactly the same shapes.
-    axis : str or int, default is 0
-        Which axis will be the new one.
-    dtype : str, optional
-        Output dtype.
-
-    Returns
-    -------
-    ImgArray
-        Image stack
-    """
     old_axes = imgs[0].axes
     
     if isinstance(axis, int):
