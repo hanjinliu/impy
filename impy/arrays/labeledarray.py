@@ -20,7 +20,7 @@ from .label import Label
 from ..utils.misc import check_nd, largest_zeros
 from ..utils.axesop import complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes
-from ..utils.io import IO
+from ..io import imsave
 
 from ..collections import DataList
 from ..axes import ImageAxesError
@@ -156,7 +156,7 @@ class LabeledArray(MetaArray):
             dtype = self.dtype
             
         # save image
-        IO.imsave(save_path, self)
+        imsave(save_path, self)
 
         return None
     

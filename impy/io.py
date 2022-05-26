@@ -7,10 +7,16 @@ import os
 import numpy as np
 from numpy.typing import DTypeLike
 
-from ..axes import ImageAxesError
-from .axesop import complement_axes
+from .axes import ImageAxesError
+from .utils.axesop import complement_axes
 
-__all__ = ["IO"]
+__all__ = [
+    "imread",
+    "imread_dask",
+    "imsave",
+    "mark_reader",
+    "mark_writer",
+]
 
 class _ImageType(Protocol):
     @property
@@ -35,8 +41,8 @@ class ImageData(NamedTuple):
 
 
 if TYPE_CHECKING:
-    from ..arrays.bases import MetaArray
-    from ..arrays import LazyImgArray
+    from .arrays.bases import MetaArray
+    from .arrays import LazyImgArray
     ImpyArray = Union[MetaArray, LazyImgArray]
     Reader = Callable[[str, bool], ImageData]
     _R = TypeVar("_R", bound=Reader)
@@ -150,7 +156,7 @@ class ImageIO:
         ImageData
             Image data tuple.
         """
-        from ..array_api import xp
+        from .array_api import xp
         image_data = self.imread(path, memmap=True)
         img = image_data.image
         
@@ -455,3 +461,9 @@ def _get_ijmeta_from_img(img: "MetaArray", update_lut=True):
         metadata["hyperstack"] = True
     
     return dict(imagej=True, resolution=res, metadata=metadata)
+
+imread = IO.imread
+imread_dask = IO.imread_dask
+imsave = IO.imsave
+mark_reader = IO.mark_reader
+mark_writer = IO.mark_writer

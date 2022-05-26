@@ -19,7 +19,7 @@ from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first
 from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing
-from ..utils.io import IO
+from ..io import imsave
 from ..collections import DataList
 
 from .._types import nDFloat, Coords, Iterable, Dims
@@ -339,7 +339,7 @@ class LazyImgArray(AxesMixin):
             dtype = self.dtype
         
         self = self.as_img_type(dtype).sort_axes()
-        IO.imsave(save_path, self, lazy=True)
+        imsave(save_path, self, lazy=True)
         
         return None
     

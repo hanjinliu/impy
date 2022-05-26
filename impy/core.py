@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
 from functools import wraps
 
-from .utils.io import IO
+from .io import imread, imread_dask, imsave
 from .utils import gauss
 from .utils.slicer import *
 from ._types import *
@@ -370,7 +370,7 @@ def imread(
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
 
-    image_data = IO.imread(path, memmap=is_memmap)
+    image_data = imread(path, memmap=is_memmap)
 
     img = image_data.image
     axes = image_data.axes
@@ -641,7 +641,7 @@ def lazy_imread(
         return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
     
     # read as a dask array
-    image_data = IO.imread_dask(path, chunks)
+    image_data = imread_dask(path, chunks)
     img = image_data.image
     axes = image_data.axes
     scale = image_data.scale
@@ -712,7 +712,7 @@ def read_meta(path: str) -> dict[str]:
         Dictionary of keys {"axes", "scale", "metadata"}        
     """    
     path = str(path)
-    image_data = IO.imread_dask(path, chunks="default")
+    image_data = imread_dask(path, chunks="default")
     return {
         "axes": image_data.axes,
         "scale": image_data.scale,
