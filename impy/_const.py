@@ -33,9 +33,6 @@ class GlobalConstant(MutableMapping[str, Any]):
                 raise TypeError("ID_AXIS must be str.")
             elif len(v) != 1:
                 raise ValueError("ID_AXIS must be single character.")
-        elif k == "FONT_SIZE_FACTOR":
-            if not isinstance(v, (int, float)):
-                raise TypeError("FONT_SIZE_FACTOR must be float.")
         elif k == "RESOURCE":
             from .array_api import xp
             if v == "numpy":
@@ -63,7 +60,6 @@ class GlobalConstant(MutableMapping[str, Any]):
             f"""
                   MAX_GB    : {self['MAX_GB']:.2f} GB
                  ID_AXIS    : {self['ID_AXIS']}
-            FONT_SIZE_FACTOR: {self['FONT_SIZE_FACTOR']}
                  RESOURCE   : {self['RESOURCE']}
                 SCHEDULER   : {self['SCHEDULER']}
             """
@@ -75,7 +71,6 @@ class GlobalConstant(MutableMapping[str, Any]):
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,
     ID_AXIS = "p",
-    FONT_SIZE_FACTOR = 1.0,
     RESOURCE = "numpy",
     SCHEDULER = "threads",
 )
