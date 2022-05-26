@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from .metaarray import MetaArray
-from ...axes import Axes, AxisLike
+from ...axes import Axes, AxisLike, AxesLike, UndefAxis
 from ...collections import DataList
 
 # Overloading numpy functions using __array_function__.
@@ -26,7 +26,7 @@ def _(a: MetaArray, indices, axis=None, out=None, mode="raise"):
     return out
 
 @MetaArray.implements(np.stack)
-def _(imgs: list[MetaArray], axis: AxisLike = "c", dtype=None):
+def _(imgs: list[MetaArray], axis: AxisLike = 0, dtype=None):
     """
     Create stack image from list of images.
 
@@ -34,7 +34,7 @@ def _(imgs: list[MetaArray], axis: AxisLike = "c", dtype=None):
     ----------
     imgs : iterable object of images.
         Images to stack. These images must have exactly the same shapes.
-    axis : str or int, default is "c"
+    axis : str or int, default is 0
         Which axis will be the new one.
     dtype : str, optional
         Output dtype.
@@ -47,20 +47,18 @@ def _(imgs: list[MetaArray], axis: AxisLike = "c", dtype=None):
     old_axes = imgs[0].axes
     
     if isinstance(axis, int):
-        _axis = axis
-        axis = "p"
-        new_axes = old_axes[:_axis] + [axis] + old_axes[_axis:]
-    elif not isinstance(axis, str):
-        raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
+        idx = axis
+        axis = "#"
+        new_axes = old_axes[:idx] + [axis] + old_axes[idx:]
     else:
         # find where to add new axis
         if imgs[0].axes.is_sorted():
-            new_axes = Axes(axis + old_axes)
+            new_axes = Axes([axis] + old_axes)
             new_axes.sort()
-            _axis = new_axes.find(axis)
+            idx = new_axes.find(axis)
         else:
             new_axes = axis + old_axes
-            _axis = 0
+            idx = 0
         
     if dtype is None:
         dtype = imgs[0].dtype
@@ -68,17 +66,19 @@ def _(imgs: list[MetaArray], axis: AxisLike = "c", dtype=None):
     arrs = [img.value.astype(dtype) for img in imgs]
 
     out = np.stack(arrs, axis=0)
-    out = np.moveaxis(out, 0, _axis)
+    out = np.moveaxis(out, 0, idx)
     out = out.view(imgs[0].__class__)
     out._set_info(imgs[0], new_axes)
     return out
 
 @MetaArray.implements(np.concatenate)
-def _(imgs: list[MetaArray], axis="c", dtype=None, casting="same_kind"):
+def _(imgs: list[MetaArray], axis=0, dtype=None, casting="same_kind"):
     if not isinstance(axis, (int, str)):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
     axis = imgs[0].axisof(axis)
-    out = np.concatenate([img.value for img in imgs], axis=axis, dtype=dtype, casting=casting)
+    out: np.ndarray = np.concatenate(
+        [img.value for img in imgs], axis=axis, dtype=dtype, casting=casting
+    )
     out = out.view(imgs[0].__class__)
     out._set_info(imgs[0], imgs[0].axes)
     return out
@@ -130,14 +130,16 @@ def _(img: MetaArray, axis):
         axisint = tuple(new_axes.find(a) for a in axis)
     else:
         axisint = axis
-        new_axes = img.axes
+        new_axes = list(img.axes)
+        new_axes.insert(axis, UndefAxis())
     
-    out = np.expand_dims(img.value, axisint).view(img.__class__)
+    out: np.ndarray = np.expand_dims(img.value, axisint)
+    out = out.view(img.__class__)
     out._set_info(img, new_axes)
     return out
 
 @MetaArray.implements(np.transpose)
-def _(img: MetaArray, axes: str):
+def _(img: MetaArray, axes: AxesLike):
     return img.transpose(axes)
 
 @MetaArray.implements(np.split)
@@ -146,10 +148,19 @@ def _(img: MetaArray, indices_or_sections, axis=0):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
     axis = img.axisof(axis)
     
-    imgs = np.split(img.value, indices_or_sections, axis=axis)
+    imgs: list[MetaArray] = np.split(img.value, indices_or_sections, axis=axis)
     out = []
     for each in imgs:
         each = each.view(img.__class__)
         each._set_info(img)
         out.append(each)
     return DataList(out)
+
+@MetaArray.implements(np.broadcast_to)
+def _(img: MetaArray, shape: tuple[int, ...]):
+    out: np.ndarray = np.broadcast_to(img.value, shape)
+    nexpand = len(shape) - img.ndim
+    new_axes = [UndefAxis()] * nexpand + list(img.axes)
+    out = out.view(img.__class__)
+    out._set_info(img, new_axes=new_axes)
+    return out

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
-from ...axes import ImageAxesError, Slicer
+from ...axes import ImageAxesError, Slicer, AxesLike, Axes
 from ...array_api import xp
 from ...utils import axesop
 from ...utils.slicer import *
@@ -446,8 +446,10 @@ class MetaArray(AxesMixin, np.ndarray):
         change the order of image dimensions.
         'axes' will also be arranged.
         """
-        out = super().transpose(axes)
+        _axes = [self.axisof(a) for a in axes]
         new_axes = [self.axes[i] for i in list(axes)]
+        out: np.ndarray = np.transpose(self.value, _axes)
+        out = out.view(self.__class__)
         out._set_info(self, new_axes=new_axes)
         return out
     
@@ -460,8 +462,29 @@ class MetaArray(AxesMixin, np.ndarray):
             return value
         
         if isinstance(value, MetaArray) and value.axes != self.axes[:value.ndim]:
-            value = axesop.add_axes(self.axes, self.shape, value, value.axes)
+            value = value.broadcast_to(self.shape, self.axes)
         return value
+    
+    def broadcast_to(self, shape: tuple[int, ...], axes: AxesLike | None = None):
+        if axes is None:
+            return np.broadcast_to(self, shape)
+        if len(shape) != len(axes):
+            raise ValueError(f"Dimensionality mismatch: {shape=} and {axes=}")
+        out = axesop.add_axes(axes, shape, self.value, self.axes)
+        out = out.view(self.__class__)
+        if out.shape != shape:
+            raise ValueError(
+                f"Shape {shape} required but returned {out.shape}."
+            )
+        
+        if not isinstance(axes, Axes):
+            new_axes = Axes(axes)
+            for a in self.axes:
+                new_axes.replace(str(a), a)
+        else:
+            new_axes = axes
+        out._set_info(self, new_axes=new_axes)
+        return out
     
     def __add__(self, value) -> Self:
         value = self._broadcast(value)

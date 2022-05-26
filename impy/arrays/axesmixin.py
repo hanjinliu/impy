@@ -12,6 +12,7 @@ import itertools
 import re
 from warnings import warn
 from collections import namedtuple
+from numbers import Number
 
 from ..utils.axesop import switch_slice
 from ..axes import Axes, ImageAxesError, ScaleView, AxisLike
@@ -121,14 +122,14 @@ class AxesMixin:
         return html
         
     def axisof(self, symbol) -> int:
-        if type(symbol) is int:
+        if isinstance(symbol, Number):
             return symbol
         else:
             return self.axes.find(symbol)
     
     
-    def sizeof(self, axis: str) -> int:
-        return getattr(self.shape, axis)
+    def sizeof(self, axis: AxisLike) -> int:
+        return getattr(self.shape, str(axis))
     
     def sizesof(self, axes: str) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in axes)

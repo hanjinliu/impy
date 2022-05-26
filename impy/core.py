@@ -17,7 +17,7 @@ from .utils import gauss
 from .utils.slicer import *
 from ._types import *
 
-from .axes import ImageAxesError
+from .axes import ImageAxesError, broadcast
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
@@ -178,7 +178,7 @@ def aslazy(
 
 _P = ParamSpec("_P")
 
-def inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArray]:
+def _inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArray]:
     npfunc: Callable = getattr(np, func.__name__)
     @wraps(func)
     def _func(*args, **kwargs):
@@ -203,22 +203,24 @@ def inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArr
     _func.__annotations__.update({"return": ImgArray})
     return _func
 
-@inject_numpy_function
+@_inject_numpy_function
 def zeros(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
     
-@inject_numpy_function
+@_inject_numpy_function
 def empty(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-@inject_numpy_function
+@_inject_numpy_function
 def ones(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-@inject_numpy_function
+@_inject_numpy_function
 def full(shape: _ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
 
-def gaussian_kernel(shape: _ShapeLike, 
-                    sigma: nDFloat = 1.0,
-                    peak: float = 1.0) -> ImgArray:
+def gaussian_kernel(
+    shape: _ShapeLike, 
+    sigma: nDFloat = 1.0,
+    peak: float = 1.0,
+) -> ImgArray:
     """
     Make an Gaussian kernel or Gaussian image.
 
@@ -306,6 +308,11 @@ def sample_image(name: str) -> ImgArray:
         out.axes = ["x", "yx", "zyx"][out.ndim-2] + "c"
         out = out.sort_axes()
     return out
+
+def broadcast_arrays(*arrays: MetaArray):
+    axes_list = [arr.axes for arr in arrays]
+    axes = broadcast(**axes_list)
+    
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #   Imread functions

@@ -236,7 +236,7 @@ class Axes(Sequence[Axis]):
             New symbol.
         """        
         i = self.index(old)
-        if new in self._axis_list:
+        if new in self._axis_list and old != new:
             raise ImageAxesError(f"Axes {new} already exists: {self}")
         
         if isinstance(new, str):
@@ -324,7 +324,7 @@ def _broadcast_two(axes0: AxesLike, axes1: AxesLike) -> Axes:
         
     return Axes(out)
 
-def broadcast(*axes_objects: Sequence[AxesLike]) -> Axes:
+def broadcast(*axes_objects: AxesLike) -> Axes:
     """
     Broadcast two or more axes objects and returns their consensus.
     

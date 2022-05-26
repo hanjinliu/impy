@@ -31,7 +31,7 @@ class AxesFrame(pd.DataFrame):
             kwargs["columns"] = columns
         
         super().__init__(data, **kwargs)
-        self._axes = Axes(kwargs["columns"])
+        self._axes = Axes(self.columns)
     
     def _get_coords_cols(self):
         return [a for a in self.columns if len(a) == 1]
