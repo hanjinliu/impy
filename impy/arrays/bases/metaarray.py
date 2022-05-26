@@ -454,16 +454,40 @@ class MetaArray(AxesMixin, np.ndarray):
         return out
     
     def _broadcast(self, value: Any):
-        """
-        More flexible broadcasting. If `self` has "zcyx"-axes and `value` has "zyx"-axes, then
-        they should be broadcasted by stacking `value` along "c"-axes
-        """
-        if not isinstance(value, MetaArray) or self.axes.has_undef():
+        """Broadcasting method used in most of the mathematical operations."""
+        if not isinstance(value, MetaArray):
             return value
-        value = value.broadcast_to(self.shape, self.axes)
+        current_axes = self.axes
+        if (current_axes == value.axes 
+            or current_axes.has_undef() or
+            value.axes.has_undef()):
+            # In most cases arrays don't need broadcasting. Check axes first to
+            # avoid spending time on broadcasting.
+            return value
+        value = value.broadcast_to(self.shape, current_axes)
         return value
     
-    def broadcast_to(self, shape: tuple[int, ...], axes: AxesLike | None = None):
+    def broadcast_to(
+        self, 
+        shape: tuple[int, ...], 
+        axes: AxesLike | None = None,
+    ) -> Self:
+        """
+        Broadcast array to specified shape and axes.
+
+        Parameters
+        ----------
+        shape : shape-like
+            Shape of output array.
+        axes : AxesLike, optional
+            Axes of output array. If given, it must match the dimensionality of
+            input shape.
+
+        Returns
+        -------
+        MetaArray
+            Broadcasted array.
+        """
         if axes is None:
             return np.broadcast_to(self, shape)
         elif len(shape) != len(axes):
@@ -471,6 +495,12 @@ class MetaArray(AxesMixin, np.ndarray):
         current_axes = self.axes
         if self.shape == shape and current_axes == axes:
             return self
+        if any(a not in axes for a in current_axes):
+            ax0 = [str(a) for a in current_axes]
+            ax1 = [str(a) for a in axes]
+            raise ImageAxesError(
+                f"Cannot broadcast array with axes {ax0} to {ax1}."
+            )
 
         out = self.value
         for i, axis in enumerate(axes):

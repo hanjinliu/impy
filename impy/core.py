@@ -17,7 +17,7 @@ from .utils import gauss
 from .utils.slicer import *
 from ._types import *
 
-from .axes import ImageAxesError, broadcast
+from .axes import ImageAxesError, broadcast, Axes
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
@@ -37,7 +37,8 @@ __all__ = [
     "imread_collection", 
     "lazy_imread", 
     "read_meta", 
-    "sample_image"
+    "sample_image",
+    "broadcast_arrays"
 ]
 
 # TODO: 
@@ -309,10 +310,18 @@ def sample_image(name: str) -> ImgArray:
         out = out.sort_axes()
     return out
 
-def broadcast_arrays(*arrays: MetaArray):
-    axes_list = [arr.axes for arr in arrays]
-    axes = broadcast(**axes_list)
+def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
+    axes_list: list[Axes] = []
+    shapes: dict[str, int] = {}
+    for arr in arrays:
+        axes_list.append(arr.axes)
+        for a, s in zip(arr.axes, arr.shape):
+            shapes[a] = s
+    axes = broadcast(*axes_list)
+    shape = tuple(shapes[a] for a in axes)
     
+    out = [a.broadcast_to(shape, axes) for a in arrays]
+    return out
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #   Imread functions
