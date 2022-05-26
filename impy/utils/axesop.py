@@ -18,10 +18,10 @@ def add_axes(axes: Axes, shape: tuple[int, ...], key: np.ndarray, key_axes="yx")
     key_axes = list(key_axes)
     if shape == key.shape:
         return key
-    # key = np.asarray(key)
+
     for i, o in enumerate(axes):
         if o not in key_axes:
-            key = np.stack([key]*(shape[i]), axis=i)
+            key = np.stack([key] * shape[i], axis=i)
     return key
 
 

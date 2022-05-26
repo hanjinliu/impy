@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to impy's documentation!
-================================
+impy
+====
 
 ``impy`` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and 
 so on.

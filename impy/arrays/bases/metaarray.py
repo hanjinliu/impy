@@ -458,20 +458,27 @@ class MetaArray(AxesMixin, np.ndarray):
         More flexible broadcasting. If `self` has "zcyx"-axes and `value` has "zyx"-axes, then
         they should be broadcasted by stacking `value` along "c"-axes
         """
-        if not isinstance(value, np.ndarray) or self.ndim == value.ndim:
+        if not isinstance(value, MetaArray) or self.axes.has_undef():
             return value
-        
-        if isinstance(value, MetaArray) and value.axes != self.axes[:value.ndim]:
-            value = value.broadcast_to(self.shape, self.axes)
+        value = value.broadcast_to(self.shape, self.axes)
         return value
     
     def broadcast_to(self, shape: tuple[int, ...], axes: AxesLike | None = None):
         if axes is None:
             return np.broadcast_to(self, shape)
-        if len(shape) != len(axes):
+        elif len(shape) != len(axes):
             raise ValueError(f"Dimensionality mismatch: {shape=} and {axes=}")
-        out = axesop.add_axes(axes, shape, self.value, self.axes)
+        current_axes = self.axes
+        if self.shape == shape and current_axes == axes:
+            return self
+
+        out = self.value
+        for i, axis in enumerate(axes):
+            if axis not in current_axes:
+                out = np.stack([out] * shape[i], axis=i)
+
         out = out.view(self.__class__)
+
         if out.shape != shape:
             raise ValueError(
                 f"Shape {shape} required but returned {out.shape}."
@@ -480,6 +487,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if not isinstance(axes, Axes):
             new_axes = Axes(axes)
             for a in self.axes:
+                # update axis metadata such as scale
                 new_axes.replace(str(a), a)
         else:
             new_axes = axes

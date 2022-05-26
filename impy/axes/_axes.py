@@ -219,6 +219,9 @@ class Axes(Sequence[Axis]):
     def argsort(self):
         return np.argsort([ORDER.get(k, 0) for k in self._axis_list])
     
+    def has_undef(self) -> bool:
+        return any(isinstance(a, UndefAxis) for a in self._axis_list)
+
     def copy(self):
         """Make a copy of Axes object."""
         return self.__class__(self)
