@@ -120,10 +120,10 @@ def test_axis_labels():
     with pytest.raises(ValueError):
         img.set_axis_label(c=["c0", "c1", "c2"])
     img.set_axis_label(c=["c0", "c1", "c2", "c3"])
-    assert img.axes["c"].labels == ["c0", "c1", "c2", "c3"]
-    assert img[:2].axes["c"].labels == ["c0", "c1"]
-    assert img[2:].axes["c"].labels == ["c2", "c3"]
-    assert img[[0, 2]].axes["c"].labels == ["c0", "c2"]
+    assert img.axes["c"].labels == ("c0", "c1", "c2", "c3")
+    assert img[:2].axes["c"].labels == ("c0", "c1")
+    assert img[2:].axes["c"].labels == ("c2", "c3")
+    assert img[[0, 2]].axes["c"].labels == ("c0", "c2")
 
 def test_broadcast():
     assert broadcast("zyx", "tzyx") == "tzyx"

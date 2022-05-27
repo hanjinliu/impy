@@ -112,7 +112,7 @@ class Axis:
             if isinstance(sl, slice):
                 metadata.update(labels=labels[sl])
             else:
-                metadata.update(labels=[labels[i] for i in sl])
+                metadata.update(labels=tuple(labels[i] for i in sl))
         return self.__class__(self._name, metadata=metadata)
 
     
