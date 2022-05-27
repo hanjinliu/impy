@@ -172,7 +172,7 @@ class Axes(Sequence[Axis]):
         return other in self._axis_list
     
     def __repr__(self):
-        s = ", ".join(map(repr, self))
+        s = ", ".join(map(lambda x: repr(str(x)), self))
         return f"{self.__class__.__name__}[{s}]"
 
     def __hash__(self) -> int:

@@ -40,6 +40,18 @@ or
 
    git clone https://github.com/hanjinliu/impy
 
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorial
+   tutorial_axes
+   tutorial_cmd
+   api
+   
+
 Major Classes
 -------------
 
@@ -115,17 +127,6 @@ Data Frame
 - ``PathFrame``: ``AxesFrame`` for paths.
 
 
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 1
-
-   tutorial
-   tutorial_cmd
-   api
-   
 
 Indices and tables
 ==================
