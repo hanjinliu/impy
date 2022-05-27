@@ -3533,114 +3533,6 @@ class ImgArray(LabeledArray):
         out.value[sl] = 0
         return out
     
-    @_docs.write_docs
-    def pointprops(self, coords: Coords, *, order: int = 3, squeeze: bool = True) -> PropArray:
-        """
-        Measure interpolated intensity at points with float coordinates.
-        
-        This method is essentially identical to :func:`map_coordinates` but is
-        more straightforward for measuring intensities at points.
-
-        Parameters
-        ----------
-        coords : DataFrame or array-like
-            Coordinates of point to be measured.
-        {order}
-        squeeze : bool, default is True
-            If True and only one point is measured, the redundant dimension ID_AXIS will be deleted.
-
-        Returns
-        -------
-        PropArray or float
-            Intensities at points.
-        
-        Examples
-        --------
-        Calculate centroids and measure intensities.
-            >>> coords = img.proj("t").centroid_sm()
-            >>> prop = img.pointprops(coords)
-        """
-        id_axis = Const["ID_AXIS"]
-        coords = MetaArray(np.atleast_2d(coords), axes=[id_axis, "dim"])
-        npoints, ncol = coords.shape
-        dims = self.axes[-ncol:]
-        out = self.map_coordinates(coords.T, order=order, dims=dims)
-        
-        out = PropArray(
-            out, name=out.name, axes=out.axes, source=out.source,
-            metadata=out.metadata, propname="pointprops",
-        )
-        out = np.moveaxis(out, out.axisof(id_axis), 0)
-        if npoints == 1 and squeeze:
-            out = out[0]
-        return out
-    
-    @_docs.write_docs
-    @check_input_and_output
-    def lineprops(
-        self,
-        src: Coords,
-        dst: Coords,
-        func: str|Callable = "mean", *, 
-        order: int = 1,
-        squeeze: bool = True
-    ) -> PropArray:
-        """
-        Measure line property using func(line_scan).
-
-        Parameters
-        ----------
-        src : MarkerFrame or array-like
-            Source coordinates.
-        dst : MarkerFrame of array-like
-            Destination coordinates.
-        func : str or callable, default is "mean".
-            Measurement function.
-        {order}
-        squeeze : bool, default is True.
-            If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
-
-        Returns
-        -------
-        PropArray
-            Line properties.
-
-        Examples
-        --------
-        Time-course measurement of intensities on lines.
-            >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
-            >>> pr.plot()
-        """        
-        func = _check_function(func)
-        src = _check_coordinates(src, self)
-        dst = _check_coordinates(dst, self)
-        
-        if src.shape != dst.shape:
-            raise ValueError(f"Shape mismatch between `src` and `dst`: {src.shape} and {dst.shape}")
-        
-        l = src.shape[0]
-        prop_axes = complement_axes(src.col_axes, self.axes)
-        shape = self.sizesof(prop_axes)
-        
-        out = PropArray(
-            np.empty((l,)+shape, dtype=np.float32),
-            name=self.name+"-prop", 
-            axes=[Const["ID_AXIS"]]+prop_axes,
-            source=self.source,
-            propname = f"lineprops<{func.__name__}>", 
-            dtype=np.float32,
-        )
-        
-        for i, (s, d) in enumerate(zip(src.values, dst.values)):
-            resliced = self.reslice(s, d, order=order)
-            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
-        
-        if l == 1 and squeeze:
-            out = out[0]
-        
-        return out
-    
-    
     @dims_to_spatial_axes
     @check_input_and_output(need_labels=True)
     def watershed(self, coords: MarkerFrame = None, *, connectivity: int = 1, input: str = "distance", 
@@ -3756,6 +3648,203 @@ class ImgArray(LabeledArray):
         labels = self.threshold(thr=thr, **kwargs)
         return self.label(labels, dims=dims)
     
+    @_docs.write_docs
+    def pointprops(self, coords: Coords, *, order: int = 3, squeeze: bool = True) -> PropArray:
+        """
+        Measure interpolated intensity at points with float coordinates.
+        
+        This method is essentially identical to :func:`map_coordinates` but is
+        more straightforward for measuring intensities at points.
+
+        Parameters
+        ----------
+        coords : DataFrame or array-like
+            Coordinates of point to be measured.
+        {order}
+        squeeze : bool, default is True
+            If True and only one point is measured, the redundant dimension ID_AXIS will be deleted.
+
+        Returns
+        -------
+        PropArray or float
+            Intensities at points.
+        
+        Examples
+        --------
+        Calculate centroids and measure intensities.
+            >>> coords = img.proj("t").centroid_sm()
+            >>> prop = img.pointprops(coords)
+        """
+        id_axis = Const["ID_AXIS"]
+        coords = MetaArray(np.atleast_2d(coords), axes=[id_axis, "dim"])
+        npoints, ncol = coords.shape
+        dims = self.axes[-ncol:]
+        out = self.map_coordinates(coords.T, order=order, dims=dims)
+        
+        out = PropArray(
+            out, name=out.name, axes=out.axes, source=out.source,
+            metadata=out.metadata, propname="pointprops",
+        )
+        out = np.moveaxis(out, out.axisof(id_axis), 0)
+        if npoints == 1 and squeeze:
+            out = out[0]
+        return out
+    
+    @_docs.write_docs
+    @check_input_and_output
+    def lineprops(
+        self,
+        src: Coords,
+        dst: Coords,
+        func: str | Callable[[np.ndarray], float] = "mean", 
+        *, 
+        order: int = 1,
+        squeeze: bool = True
+    ) -> PropArray:
+        """
+        Measure line property using func(line_scan).
+
+        Parameters
+        ----------
+        src : MarkerFrame or array-like
+            Source coordinates.
+        dst : MarkerFrame of array-like
+            Destination coordinates.
+        func : str or callable, default is "mean".
+            Measurement function.
+        {order}
+        squeeze : bool, default is True.
+            If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
+
+        Returns
+        -------
+        PropArray
+            Line properties.
+
+        Examples
+        --------
+        Time-course measurement of intensities on lines.
+            >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
+            >>> pr.plot()
+        """        
+        func = _check_function(func)
+        src = _check_coordinates(src, self)
+        dst = _check_coordinates(dst, self)
+        
+        if src.shape != dst.shape:
+            raise ValueError(f"Shape mismatch between `src` and `dst`: {src.shape} and {dst.shape}")
+        
+        l = src.shape[0]
+        prop_axes = complement_axes(src.col_axes, self.axes)
+        shape = self.sizesof(prop_axes)
+        
+        out = PropArray(
+            np.empty((l,)+shape, dtype=np.float32),
+            name=self.name, 
+            axes=[Const["ID_AXIS"]]+prop_axes,
+            source=self.source,
+            propname = f"lineprops<{func.__name__}>", 
+            dtype=np.float32,
+        )
+        
+        for i, (s, d) in enumerate(zip(src.values, dst.values)):
+            resliced = self.reslice(s, d, order=order)
+            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
+        
+        if l == 1 and squeeze:
+            out = out[0]
+        
+        return out
+    
+    
+    @_docs.write_docs
+    @check_input_and_output
+    def reslice(self, a, b=None, *, order: int = 1) -> PropArray:
+        """
+        Measure line profile (kymograph) iteratively for every slice of image. This function is almost 
+        same as `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is 
+        not implemented here because it is useless.
+
+        Parameters
+        ----------
+        a : array-like
+            Path or source coordinate. If the former, it must be like:
+            `a = [[y0, x0], [y1, x1], ..., [yn, xn]]`
+        b : array-like, optional
+            Destination coordinate. If specified, `a` must be the source coordinate.
+        {order}
+
+        Returns
+        -------
+        PropArray
+            Line scans.
+        
+        Examples
+        --------
+        1. Rescile along a line and fit to a model function for every time frame.
+        
+            >>> scan = img.reslice([18, 32], [53, 48])
+            >>> out = scan.curve_fit(func, init, return_fit=True)
+            >>> plt.plot(scan[0])
+            >>> plt.plot(out.fit[0])
+            
+        2. Rescile along a path.
+        
+            >>> scan = img.reslice([[18, 32], [53,48], [22,45], [28, 32]])
+        """        
+        # path = [[y1, x1], [y2, x2], ..., [yn, xn]]
+        if b is not None:
+            a = [list(a), list(b)]
+        a = np.asarray(a, dtype=np.float32)
+        npoints, ndim = a.shape
+        
+        if npoints < 2:
+            raise ValueError("Insufficient number of points for a path.")
+        elif npoints == 2:
+            src, dst = a
+            d = dst - src
+            length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
+            coords = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
+        else:    
+            vec = np.diff(a, axis=0)
+            dist = np.sqrt(np.sum(vec**2, axis=1))
+            res = 0
+            out = [a[0:1]]
+            for v, d, p in zip(vec, dist, a[:-1]):
+                res0 = res
+                d_int, res = divmod(d + res, 1.0)
+                idx = np.arange(d_int) + 1 - res0
+                xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
+                out.append(xs)
+            coords = np.concatenate(out, axis=0)
+        
+        coords = coords[(slice(None),)+(np.newaxis,)*(ndim-1)]
+        
+        if ndim == self.ndim:
+            dims = self.axes
+        else:
+            dims = complement_axes("c", self.axes)[-ndim:]
+        c_axes = complement_axes(dims, self.axes)
+        
+        result = self.as_float()._apply_dask(
+            ndi.map_coordinates, 
+            c_axes=c_axes, 
+            dtype=self.dtype,
+            drop_axis=-1,
+            args=(coords,),
+            kwargs=dict(prefilter=order>1, order=order)
+        )
+        
+        sl = [slice(None)] * result.ndim
+        for a in dims[:-1]:
+            i = self.axisof(a)
+            sl[i] = 0
+        
+        out = PropArray(result[tuple(sl)], name=self.name, dtype=np.float32,
+                        axes=c_axes+dims[-1], propname="reslice")
+        
+        out.set_scale(self)
+        return out
     
     @_docs.write_docs
     @check_input_and_output

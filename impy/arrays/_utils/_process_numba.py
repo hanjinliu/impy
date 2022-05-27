@@ -96,38 +96,3 @@ def _specify_circ_3d(arr, coords, radius, label_offset=1):
                 for x in range(x0, x1):
                     if ((x-xc)/rx)**2 + ((y-yc)/ry)**2 + ((z-zc)/rz)**2 <= 1:
                         arr[z,y,x] = i + label_offset
-
-@jit(nopython=True)
-def _get_coordinate(path, coords):
-    # Same as the ImageJ's profile-line function.
-    # See: https://imagej.nih.gov/ij/source/ij/gui/ProfilePlot.java
-    inc = 0.01
-    dist_unit = 1.0 - inc/2.0
-    npoints, ndim = path.shape
-    
-    # memory allocation
-    r2 = path[0]
-    r1 = np.zeros(r2.size)
-    r = np.zeros(r2.size)
-    r_last = np.zeros(r2.size)
-    dr = np.zeros(r2.size)
-    
-    nout = 0
-    for i in range(1, npoints):
-        r1[:] = r2
-        r[:] = r1
-        r2[:] = path[i]
-        dr[:] = r2 - r1
-        distance = np.sqrt(np.sum(dr**2))
-        r_inc = dr * inc / distance
-        n2 = int(distance/inc)
-        while n2 >= 0:
-            dr[:] = r - r_last
-            distance = np.sqrt(np.sum(dr**2))
-            if distance >= dist_unit:
-                coords[:, nout] = r
-                r_last[:] = r
-                nout += 1
-            r += r_inc
-            n2 -= 1
-    
