@@ -92,7 +92,7 @@ class Axis:
     
     @labels.setter
     def labels(self, value: Iterable[_T]) -> None:
-        self.metadata["labels"] = list(value)
+        self.metadata["labels"] = tuple(value)
         
     def slice_axis(self, sl: Any) -> Self:
         if not isinstance(sl, (slice, list)):

@@ -601,7 +601,6 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def hessian_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. 
@@ -627,21 +626,22 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigval = self.as_float()._apply_dask(_linalg.hessian_eigval, 
-                                            c_axes=complement_axes(dims, self.axes), 
-                                            new_axis=-1,
-                                            args=(sigma, pxsize)
-                                            )
+        eigval = self.as_float()._apply_dask(
+            _linalg.hessian_eigval, 
+            c_axes=complement_axes(dims, self.axes), 
+            new_axis=-1,
+            args=(sigma, pxsize)
+        )
         
-        eigval.axes = str(self.axes) + "l"
-        eigval = eigval.sort_axes()
-        eigval._set_info(self, new_axes=eigval.axes)
+        eigval: ImgArray = np.moveaxis(eigval, -1, 0)
+        
+        new_axes = ["base"] + self.axes
+        eigval._set_info(self, new_axes=new_axes)
         
         return eigval
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def hessian_eig(self, sigma: nDFloat = 1, *, dims: Dims = None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
@@ -662,15 +662,14 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigs = self.as_float()._apply_dask(_linalg.hessian_eigh, 
-                                          c_axes=complement_axes(dims, self.axes),
-                                          new_axis=[-2, -1],
-                                          args=(sigma, pxsize)
-                                          )
+        eigs = self.as_float()._apply_dask(
+            _linalg.hessian_eigh, 
+            c_axes=complement_axes(dims, self.axes),
+            new_axis=[-2, -1],
+            args=(sigma, pxsize)
+        )
         
-        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, new_axes=eigval.axes)
-        eigvec._set_info(self, new_axes=eigvec.axes)
+        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes, self)
         return eigval, eigvec
     
     @_docs.write_docs
@@ -695,15 +694,16 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigval = self.as_float()._apply_dask(_linalg.structure_tensor_eigval, 
-                                            c_axes=complement_axes(dims, self.axes), 
-                                            new_axis=-1,
-                                            args=(sigma, pxsize),
-                                            )
+        eigval = self.as_float()._apply_dask(
+            _linalg.structure_tensor_eigval, 
+            c_axes=complement_axes(dims, self.axes), 
+            new_axis=-1,
+            args=(sigma, pxsize),
+        )
         
-        eigval.axes = str(self.axes) + "l"
-        eigval = eigval.sort_axes()
-        eigval._set_info(self, new_axes=eigval.axes)
+        new_axes = ["base"] + self.axes
+        eigval._set_info(self, new_axes=new_axes)
+        
         return eigval
     
     @_docs.write_docs
@@ -729,16 +729,15 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigs = self.as_float()._apply_dask(_linalg.structure_tensor_eigh,
-                                          c_axes=complement_axes(dims, self.axes),
-                                          new_axis=[-2, -1],
-                                          args=(sigma, pxsize)
-                                          )
+        eigs = self.as_float()._apply_dask(
+            _linalg.structure_tensor_eigh,
+            c_axes=complement_axes(dims, self.axes),
+            new_axis=[-2, -1],
+            args=(sigma, pxsize)
+        )
         
-        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, new_axes=eigval.axes)
-        eigvec._set_info(self, new_axes=eigvec.axes)
-        
+        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes, self)
+
         return eigval, eigvec
     
     @_docs.write_docs
