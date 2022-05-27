@@ -454,9 +454,15 @@ class MetaArray(AxesMixin, np.ndarray):
         return out
     
     def reshape(self, *shape, order="C", axes: AxesLike | None = None) -> Self:
-        out = super().reshape(*shape, order=order)
+        out: MetaArray = super().reshape(*shape, order=order)
         if axes:
             out.axes = axes
+        return out
+    
+    @property
+    def T(self) -> Self:
+        out = super().T
+        out.axes = out.axes[::-1]
         return out
     
     def _broadcast(self, value: Any):

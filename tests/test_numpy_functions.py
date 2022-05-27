@@ -95,3 +95,25 @@ def test_broadcast_to():
     out = np.broadcast_to(img0, (6, 4, 2, 3))
     assert out.axes == ["#", "#", "y", "x"]
     assert out.shape == (6, 4, 2, 3)
+
+def test_moveaxis():
+    img0 = ip.zeros((4, 3, 2, 5), axes="tzyx")
+    
+    out = np.moveaxis(img0, 0, 2)
+    assert out.axes == ["z", "y", "t", "x"]
+    assert out.shape == np.moveaxis(img0.value, 0, 2).shape
+    
+    out = np.moveaxis(img0, [0, 2], [1, 3])
+    assert out.axes == ["z", "t", "x", "y"]
+    assert out.shape == np.moveaxis(img0.value, [0, 2], [1, 3]).shape
+
+def test_swapaxes():
+    img0 = ip.zeros((4, 3, 2, 5), axes="tzyx")
+    
+    out = np.swapaxes(img0, 0, 2)
+    assert out.axes == ["y", "z", "t", "x"]
+    assert out.shape == np.swapaxes(img0.value, 0, 2).shape
+    
+    out = np.swapaxes(img0, "x", "z")
+    assert out.axes == ["t", "x", "y", "z"]
+    assert out.shape == np.swapaxes(img0.value, 3, 1).shape

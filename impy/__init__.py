@@ -12,7 +12,7 @@ from .binder import bind
 from .viewer import gui
 from .correlation import *
 from .arrays import ImgArray, LazyImgArray, Label  # for typing
-from . import random
+from . import random, io
 from .axes import slicer
 
 r"""

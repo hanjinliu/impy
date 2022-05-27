@@ -1,7 +1,8 @@
 from __future__ import annotations
 import numpy as np
+import operator
 from .metaarray import MetaArray
-from ...axes import Axes, AxisLike, AxesLike, UndefAxis
+from ...axes import Axis, Axes, AxisLike, AxesLike, UndefAxis
 from ...collections import DataList
 
 # Overloading numpy functions using __array_function__.
@@ -147,3 +148,54 @@ def _(img: MetaArray, shape: tuple[int, ...]):
     out = out.view(img.__class__)
     out._set_info(img, new_axes=new_axes)
     return out
+
+@MetaArray.implements(np.moveaxis)
+def _(img: MetaArray, source, destination):
+    out = np.moveaxis(img.value, source, destination)
+    
+    if not hasattr(source, "__iter__"):
+        source = [source]
+    if not hasattr(destination, "__iter__"):
+        destination = [destination]
+    
+    order = [n for n in range(img.ndim) if n not in source]
+
+    for dest, src in sorted(zip(destination, source)):
+        order.insert(dest, src)
+
+    new_axes = [img.axes[i] for i in order]
+    out = out.view(img.__class__)
+    out._set_info(img, new_axes=new_axes)
+    return out
+
+@MetaArray.implements(np.swapaxes)
+def _(img: MetaArray, axis1: int | AxisLike, axis2: int = AxisLike):
+    if isinstance(axis1, (str, Axis)):
+        axis1 = img.axisof(axis1)
+    if isinstance(axis2, (str, Axis)):
+        axis2 = img.axisof(axis2)
+    out = np.swapaxes(img.value, axis1, axis2)
+    out = out.view(img.__class__)
+    
+    axes_list = list(img.axes)
+    axes_list[axis1], axes_list[axis2] = axes_list[axis2], axes_list[axis1]
+    
+    out._set_info(img, new_axes=axes_list)
+    return out
+
+# This function is ported from numpy.core.numeric.normalize_axis_tuple
+def np_normalize_axis_tuple(axis, ndim, argname=None, allow_duplicate=False):
+    # Optimization to speed-up the most common cases.
+    if type(axis) not in (tuple, list):
+        try:
+            axis = [operator.index(axis)]
+        except TypeError:
+            pass
+    # Going via an iterator directly is slower than via list comprehension.
+    axis = tuple([np_normalize_axis_tuple(ax, ndim, argname) for ax in axis])
+    if not allow_duplicate and len(set(axis)) != len(axis):
+        if argname:
+            raise ValueError('repeated axis in `{}` argument'.format(argname))
+        else:
+            raise ValueError('repeated axis')
+    return axis

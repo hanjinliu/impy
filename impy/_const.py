@@ -70,7 +70,7 @@ class GlobalConstant(MutableMapping[str, Any]):
 
 Const = GlobalConstant(
     MAX_GB = MAX_GB_LIMIT/2,
-    ID_AXIS = "p",
+    ID_AXIS = "N",
     RESOURCE = "numpy",
     SCHEDULER = "threads",
 )

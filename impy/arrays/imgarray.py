@@ -3534,14 +3534,16 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @check_input_and_output
-    def pointprops(self, coords: Coords, *, order: int = 1, squeeze: bool = True) -> PropArray:
+    def pointprops(self, coords: Coords, *, order: int = 3, squeeze: bool = True) -> PropArray:
         """
         Measure interpolated intensity at points with float coordinates.
+        
+        This method is essentially identical to :func:`map_coordinates` but is
+        more straightforward for measuring intensities at points.
 
         Parameters
         ----------
-        coords : MarkerFrame or array-like
+        coords : DataFrame or array-like
             Coordinates of point to be measured.
         {order}
         squeeze : bool, default is True
@@ -3549,35 +3551,27 @@ class ImgArray(LabeledArray):
 
         Returns
         -------
-        PropArray
-            Point properties.
+        PropArray or float
+            Intensities at points.
         
         Examples
         --------
         Calculate centroids and measure intensities.
             >>> coords = img.proj("t").centroid_sm()
             >>> prop = img.pointprops(coords)
-        """        
-        coords = _check_coordinates(coords, self)
-        col_axes = coords.col_axes
-        prop_axes = complement_axes(coords.col_axes, self.axes)
-        coords = np.asarray(coords, dtype=np.float32).T
-        shape = self.sizesof(prop_axes)
-        l = coords.shape[1] # Number of points
-        out = PropArray(
-            np.empty((l,)+shape, dtype=np.float32), 
-            name=self.name+"-prop", 
-            axes=[Const["ID_AXIS"]]+prop_axes,
-            source=self.source,
-            propname = f"pointprops",
-            dtype=np.float32
-        )
+        """
+        id_axis = Const["ID_AXIS"]
+        coords = MetaArray(np.atleast_2d(coords), axes=[id_axis, "dim"])
+        npoints, ncol = coords.shape
+        dims = self.axes[-ncol:]
+        out = self.map_coordinates(coords.T, order=order, dims=dims)
         
-        for sl, img in self.iter(prop_axes, exclude=col_axes):
-            out[(slice(None),) + sl] = ndi.map_coordinates(
-                img, coords, prefilter=order > 1, order=order, mode="reflect"
-            )
-        if l == 1 and squeeze:
+        out = PropArray(
+            out, name=out.name, axes=out.axes, source=out.source,
+            metadata=out.metadata, propname="pointprops",
+        )
+        out = np.moveaxis(out, out.axisof(id_axis), 0)
+        if npoints == 1 and squeeze:
             out = out[0]
         return out
     
