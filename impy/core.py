@@ -662,7 +662,8 @@ def lazy_imread(
     axes = image_data.axes
     scale = image_data.scale
     metadata = image_data.metadata
-        
+    spatial_scale_unit = metadata.get("unit", "px")
+    
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
         img = np.squeeze(img)
@@ -671,6 +672,13 @@ def lazy_imread(
 
     # read lateral scale if possible
     self.set_scale(**scale)
+    
+    for k, v in scale.items():
+        if k in self.axes:
+            self.set_scale({k: v})
+            if k in "zyx":
+                self.axes[k].unit = spatial_scale_unit
+    
     return self.sort_axes()
 
 
