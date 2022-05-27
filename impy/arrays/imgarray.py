@@ -1,10 +1,10 @@
 from __future__ import annotations
 import warnings
 import numpy as np
+from numpy.typing import ArrayLike
 from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence
-
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -3560,8 +3560,14 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @check_input_and_output
-    def lineprops(self, src: Coords, dst: Coords, func: str|Callable = "mean", *, 
-                  order: int = 1, squeeze: bool = True) -> PropArray:
+    def lineprops(
+        self,
+        src: Coords,
+        dst: Coords,
+        func: str|Callable = "mean", *, 
+        order: int = 1,
+        squeeze: bool = True
+    ) -> PropArray:
         """
         Measure line property using func(line_scan).
 
@@ -3738,7 +3744,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def pathprops(
         self,
-        paths: PathFrame,
+        paths: PathFrame | ArrayLike,
         properties: str | Callable | Iterable[str | Callable] = "mean", 
         *, 
         order: int = 1,

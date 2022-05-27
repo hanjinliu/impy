@@ -420,12 +420,12 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 
 
 _MRC_MODE = {
-    np.int8: 0,
-    np.int16: 1,
-    np.float32: 2,
-    np.complex64: 4,
-    np.uint16: 6,
-    np.float16: 12,
+    np.dtype("int8"): 0,
+    np.dtype("int16"): 1,
+    np.dtype("float32"): 2,
+    np.dtype("complex64"): 4,
+    np.dtype("uint16"): 6,
+    np.dtype("float16"): 12,
 }
 
 def _load_json(s: str):
