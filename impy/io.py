@@ -37,6 +37,7 @@ class ImageData(NamedTuple):
     image: _ImageType
     axes: str | None
     scale: dict[str, float] | None
+    shape: tuple[int, ...]
     metadata: dict[str, Any]
 
 

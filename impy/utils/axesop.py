@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from ..axes import Axes, Axis, UndefAxis
+from ..axes import Axes, Axis, UndefAxis, AxisLike
 
 
 def find_first_appeared(axes, include="", exclude=""):
@@ -25,7 +25,7 @@ def add_axes(axes: Axes, shape: tuple[int, ...], key: np.ndarray, key_axes="yx")
     return key
 
 
-def complement_axes(axes, all_axes="ptzcyx") -> list:
+def complement_axes(axes, all_axes="ptzcyx") -> list[AxisLike]:
     c_axes = []
     axes_list = list(axes)
     for a in all_axes:

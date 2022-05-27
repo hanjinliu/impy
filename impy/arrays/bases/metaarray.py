@@ -453,6 +453,12 @@ class MetaArray(AxesMixin, np.ndarray):
         out._set_info(self, new_axes=new_axes)
         return out
     
+    def reshape(self, *shape, order="C", axes: AxesLike | None = None) -> Self:
+        out = super().reshape(*shape, order=order)
+        if axes:
+            out.axes = axes
+        return out
+    
     def _broadcast(self, value: Any):
         """Broadcasting method used in most of the mathematical operations."""
         if not isinstance(value, MetaArray):

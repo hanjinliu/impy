@@ -6,6 +6,7 @@ from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence
 
+from .bases.metaarray import MetaArray
 from .labeledarray import LabeledArray
 from .label import Label
 from .phasearray import PhaseArray
@@ -109,7 +110,7 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @same_dtype(asfloat=True)
-    @check_input_and_output
+    @dims_to_spatial_axes
     def map_coordinates(
         self,
         coordinates,
@@ -117,6 +118,7 @@ class ImgArray(LabeledArray):
         mode: str = "constant",
         cval: float = 0,
         order: int = 3,
+        dims: Dims = None,
     ):
         """
         Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
@@ -124,27 +126,47 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         coordinates, mode, cval
-            Padding mode, constant value and the shape of output. See ``scipy.ndimage.map_coordinates``.
-            for details.
+            Padding mode, constant value and the shape of output. See 
+            ``scipy.ndimage.map_coordinates``. for details.
         {order}
+        {dims}
 
         Returns
         -------
         ImgArray
             Transformed image.
         """
-        # TODO: Support multi-dimension
-        return xp.asnumpy(
-            xp.ndi.map_coordinates(
-                xp.asarray(self.value), 
-                xp.asarray(coordinates), 
-                mode=mode,
-                cval=cval,
-                order=order,
-                prefilter=order>1
+        ndim = len(dims)
+        coords = xp.asarray(coordinates)
+        c_axes = complement_axes(dims, self.axes)
+        out = np.empty(self.sizesof(c_axes) + coords.shape[1:], dtype=np.float32)
+
+        for sl, img in self.iter(c_axes):
+            out[sl[:-ndim]] = xp.asnumpy(
+                xp.ndi.map_coordinates(
+                    xp.asarray(img), 
+                    coords, 
+                    mode=mode,
+                    cval=cval,
+                    order=order,
+                    prefilter=order>1,
+                )
             )
-        )
         
+        if coords.ndim == len(dims) + 1:
+            if isinstance(coordinates, MetaArray):
+                new_axes = c_axes + coordinates.axes[1:]
+            else:
+                new_axes = self.axes
+        else:
+            if isinstance(coordinates, MetaArray):
+                new_axes = c_axes + coordinates.axes[1:2]
+            else:
+                new_axes = c_axes + ["#"]
+            
+        out = out.view(self.__class__)
+        out._set_info(self, new_axes=new_axes)
+        return out
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1991,7 +2013,7 @@ class ImgArray(LabeledArray):
         aop._set_info(self, new_axes=new_axes)
         aop.unit = "rad"
         aop.border = (-np.pi/2, np.pi/2)
-        aop.fix_border()
+        aop._fix_border()
         aop.set_scale(self)
         
         out = dict(dolp=dolp, aop=aop)
@@ -2659,7 +2681,7 @@ class ImgArray(LabeledArray):
         grad = np.arctan2(-grad_h, grad_v)
         
         grad = PhaseArray(grad, border=(-np.pi, np.pi))
-        grad.fix_border()
+        grad._fix_border()
         deg and grad.rad2deg()
         return grad
     
@@ -2697,7 +2719,7 @@ class ImgArray(LabeledArray):
         arg = -np.arctan2(eigvec[slicer.r[0].l[1]], eigvec[slicer.r[1].l[1]])
         
         arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
-        arg.fix_border()
+        arg._fix_border()
         deg and arg.rad2deg()
         return arg
     
@@ -2766,7 +2788,7 @@ class ImgArray(LabeledArray):
         argmax_[:] = np.pi/2 - argmax_
         
         argmax_ = PhaseArray(argmax_, border=(-np.pi/2, np.pi/2))
-        argmax_.fix_border()
+        argmax_._fix_border()
         deg and argmax_.rad2deg()
         return argmax_
     
@@ -3552,8 +3574,9 @@ class ImgArray(LabeledArray):
         )
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
-            out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
-                                                         order=order, mode="reflect")
+            out[(slice(None),) + sl] = ndi.map_coordinates(
+                img, coords, prefilter=order > 1, order=order, mode="reflect"
+            )
         if l == 1 and squeeze:
             out = out[0]
         return out

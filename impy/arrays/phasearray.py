@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 
 from ._utils import _filters, _structures
@@ -11,6 +12,10 @@ from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtyp
 from ._utils import _misc
 from ..collections import DataDict
 from .._types import Dims
+from ..array_api import xp
+
+if TYPE_CHECKING:
+    from .imgarray import ImgArray
 
 def _calc_phase_mean(sl, img, periodicity):
     a = 2 * np.pi / periodicity
@@ -39,50 +44,51 @@ class PhaseArray(LabeledArray):
     
     def __add__(self, value) -> PhaseArray:
         out = super().__add__(value)
-        out.fix_border()
+        out._fix_border()
         return out
     
     def __iadd__(self, value) -> PhaseArray:
         out = super().__iadd__(value)
-        out.fix_border()
+        out._fix_border()
         return out
     
     def __sub__(self, value) -> PhaseArray:
         out = super().__sub__(value)
-        out.fix_border()
+        out._fix_border()
         return out
     
     def __isub__(self, value) -> PhaseArray:
         out = super().__isub__(value)
-        out.fix_border()
+        out._fix_border()
         return out
     
     def __mul__(self, value) -> PhaseArray:
         out = super().__mul__(value)
-        out.fix_border()
+        out._fix_border()
         return out
         
     def __imul__(self, value) -> PhaseArray:
         out = super().__imul__(value)
-        out.fix_border()
+        out._fix_border()
         return out
         
     def __truediv__(self, value) -> PhaseArray:
         out = super().__truediv__(value)
-        out.fix_border()
+        out._fix_border()
         return out
     
     def __itruediv__(self, value) -> PhaseArray:
         out = super().__itruediv__(value)
-        out.fix_border()
+        out._fix_border()
         return out
     
     @property
     def periodicity(self) -> float:
+        """Return the periodicity of current border."""
         a, b = self.border
         return b - a
     
-    def fix_border(self) -> None:
+    def _fix_border(self) -> None:
         """
         Considering periodic boundary condition, fix the values by `__mod__` method.
         """        
@@ -106,7 +112,7 @@ class PhaseArray(LabeledArray):
         if b - a != self.periodicity:
             raise ValueError("New border does not match current periodicity.")
         self.border = (b, a)
-        self.fix_border()
+        self._fix_border()
         return None
     
     def deg2rad(self) -> PhaseArray:
@@ -285,5 +291,56 @@ class PhaseArray(LabeledArray):
             parr.set_scale(self)
         return out
 
+    def as_exp(self) -> ImgArray:
+        a = 2 * np.pi / self.periodicity
+        exps = np.exp(1j / a * self.value)
+        from .imgarray import ImgArray
+        return ImgArray(
+            exps, name=self.name, axes=self.axes, source=self.source,
+            metadata=self.metadata
+        )
 
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def map_coordinates(
+        self,
+        coordinates,
+        *, 
+        mode: str = "constant",
+        cval: float = 0,
+        order: int = 3,
+    ):
+        """
+        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
+
+        Parameters
+        ----------
+        coordinates, mode, cval
+            Padding mode, constant value and the shape of output. See 
+            ``scipy.ndimage.map_coordinates``. for details.
+        {order}
+
+        Returns
+        -------
+        ImgArray
+            Transformed image.
+        """
+        a = 2 * np.pi / self.periodicity
+        exps = xp.exp(1j * a * xp.asarray(self.value))
+        
+        out = xp.asnumpy(
+            xp.ndi.map_coordinates(
+                exps,
+                xp.asarray(coordinates), 
+                mode=mode,
+                cval=cval,
+                order=order,
+                prefilter=order>1
+            )
+        )
+        return np.angle(out) / a
+        
+# TODO:
+# - map_coordinates
+# - pathprops
 

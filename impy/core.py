@@ -31,6 +31,7 @@ __all__ = [
     "empty", 
     "ones", 
     "full",
+    "arange",
     "gaussian_kernel", 
     "circular_mask", 
     "imread", 
@@ -56,6 +57,7 @@ shared_docs = \
     """    
     
 def write_docs(func):
+    """Add doc for numpy function."""
     func.__doc__ = re.sub(r"{}", shared_docs, func.__doc__)
     return func
 
@@ -179,13 +181,14 @@ def aslazy(
 
 _P = ParamSpec("_P")
 
-def _inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArray]:
+def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgArray]:
     npfunc: Callable = getattr(np, func.__name__)
     @wraps(func)
     def _func(*args, **kwargs):
         axes = kwargs.pop("axes", None)
         name = kwargs.pop("name", None)
         return asarray(npfunc(*args, **kwargs), name=name, axes=axes)
+    
     _func.__doc__ = (
         f"""
         impy version of numpy.{func.__name__}. This function has additional parameters ``axes``
@@ -215,6 +218,9 @@ def ones(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, a
 
 @_inject_numpy_function
 def full(shape: _ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+
+@_inject_numpy_function
+def arange(stop: int, dtype: DTypeLike = ..., like: Any = ...): ...
 
 
 def gaussian_kernel(
