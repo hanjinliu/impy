@@ -1,14 +1,16 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Literal, TypeVar, overload
 from functools import wraps
 import numpy as np
 import inspect
-import re
 from ..array_api import xp
 
 if TYPE_CHECKING:
-    from ..arrays import LabeledArray, LazyImgArray, ImgArray
+    from ..arrays import LazyImgArray, ImgArray
     from ..arrays.axesmixin import AxesMixin
+    from typing_extensions import ParamSpec
+    _P = ParamSpec("_P")
+    _R = TypeVar("_R")
 
 __all__ = [
     "check_input_and_output",
@@ -16,8 +18,28 @@ __all__ = [
     "same_dtype",
     "dims_to_spatial_axes",
 ]
-            
-    
+
+
+@overload
+def check_input_and_output(
+    func: Literal[None],
+    *, 
+    inherit_label_info: bool = False,
+    only_binary: bool = False,
+    need_labels: bool = False,
+) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    ...
+
+@overload
+def check_input_and_output(
+    func: Callable[_P, _R],
+    *, 
+    inherit_label_info: bool = False,
+    only_binary: bool = False,
+    need_labels: bool = False,
+) -> Callable[_P, _R]:
+    ...
+
 def check_input_and_output(
     func=None,
     *, 
@@ -25,7 +47,7 @@ def check_input_and_output(
     only_binary=False,
     need_labels=False
 ):
-    def f(func):
+    def f(func: Callable[_P, _R]) -> Callable[_P, _R]:
         @wraps(func)
         def _func(self: ImgArray, *args, **kwargs):
             # check requirements of the ongoing function.
@@ -58,8 +80,16 @@ def check_input_and_output(
         return _func
     return f if func is None else f(func)
 
+@overload
+def check_input_and_output_lazy(func: Callable[_P, _R], *, only_binary: bool = False) -> Callable[_P, _R]:
+    ...
+
+@overload
+def check_input_and_output_lazy(func: Literal[None], *, only_binary: bool = False) -> Callable[[Callable[_P, _R], Callable[_P, _R]]]:
+    ...
+    
 def check_input_and_output_lazy(func=None, *, only_binary=False):
-    def f(func):
+    def f(func: Callable[_P, _R]) -> Callable[_P, _R]:
         @wraps(func)
         def _record(self: LazyImgArray, *args, **kwargs):
             if only_binary and self.dtype != bool:
@@ -84,6 +114,14 @@ def check_input_and_output_lazy(func=None, *, only_binary=False):
         return _record
     return f if func is None else f(func)
 
+@overload
+def same_dtype(func: Callable[_P, _R], asfloat: bool = False) -> Callable[_P, _R]:
+    ...
+
+@overload
+def same_dtype(func: Literal[None], asfloat: bool = False) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    ...
+    
 def same_dtype(func=None, asfloat: bool = False):
     """
     Decorator to assure output image has the same dtype as the input image. 
@@ -94,7 +132,7 @@ def same_dtype(func=None, asfloat: bool = False):
     asfloat : bool, optional
         If input image should be converted to float first, by default False
     """    
-    def f(func):
+    def f(func: Callable[_P, _R]) -> Callable[_P, _R]:
         @wraps(func)
         def _same_dtype(self: ImgArray, *args, **kwargs):
             dtype = self.dtype
@@ -107,7 +145,7 @@ def same_dtype(func=None, asfloat: bool = False):
     return f if func is None else f(func)
 
 
-def dims_to_spatial_axes(func):
+def dims_to_spatial_axes(func: Callable[_P, _R]) -> Callable[_P, _R]:
     """
     Decorator to convert input `dims` to correct spatial axes. Compatible with ImgArray and
     LazyImgArray
@@ -133,9 +171,9 @@ def dims_to_spatial_axes(func):
                     )
             
         if isinstance(dims, int):
-            s_axes = "".join([a for a in "zyx" if a in self.axes])[-dims:]
+            s_axes = [a for a in "zyx" if a in self.axes][-dims:]
         else:
-            s_axes = str(dims)
+            s_axes = list(dims)
         
         kwargs["dims"] = s_axes # update input
         return func(self, *args, **kwargs)

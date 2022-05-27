@@ -3,7 +3,7 @@ from functools import wraps
 import os
 import itertools
 from pathlib import Path
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING, Mapping
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from warnings import warn
@@ -15,15 +15,15 @@ from .axesmixin import AxesMixin, get_axes_tuple
 from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
-from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
 from ..utils.slicer import axis_targeted_slicing
-from ..utils.io import IO
+from ..io import imsave
 from ..collections import DataList
 
 from .._types import nDFloat, Coords, Iterable, Dims
-from ..axes import ImageAxesError
+from ..axes import ImageAxesError, Slicer
 from .._const import Const
 from ..array_api import xp
 
@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
 class LazyImgArray(AxesMixin):
     additional_props = ["_source", "_metadata", "_name"]
+    
     def __init__(
         self,
         obj: "da.core.Array",
@@ -44,7 +45,7 @@ class LazyImgArray(AxesMixin):
         from dask import array as da
         if not isinstance(obj, da.core.Array):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
-        self.value = obj
+        self.value: "da.core.Array" = obj
         self.source = source
         self._name = name
         self.axes = axes
@@ -123,7 +124,11 @@ class LazyImgArray(AxesMixin):
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            key = axis_targeted_slicing(self.value.ndim, self.axes, key)
+            key = axis_targeted_slicing(tuple(self.axes), key)
+        
+        elif isinstance(key, (Mapping, Slicer)):
+            key = self.axes.create_slicer(key)
+            
         new_axes = slice_axes(self.axes, key)
         out = self.__class__(
             self.value[key], 
@@ -252,10 +257,7 @@ class LazyImgArray(AxesMixin):
     
     @property
     def chunk_info(self):
-        if self.axes.is_none():
-            chunk_info = self.chunksize
-        else:
-            chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
+        chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
         return chunk_info
     
     def _repr_dict_(self):
@@ -337,7 +339,7 @@ class LazyImgArray(AxesMixin):
             dtype = self.dtype
         
         self = self.as_img_type(dtype).sort_axes()
-        IO.imsave(save_path, self, lazy=True)
+        imsave(save_path, self, lazy=True)
         
         return None
     
@@ -394,7 +396,7 @@ class LazyImgArray(AxesMixin):
         
         out = getattr(self.value, funcname)(*args, **kwargs)
         out = self.__class__(out)
-        new_axes = "inherit" if out.shape == self.shape else None
+        new_axes = self._INHERIT if out.shape == self.shape else None
         out._set_info(self, new_axes=new_axes)
         return out
     
@@ -845,9 +847,9 @@ class LazyImgArray(AxesMixin):
         
         return self._apply_map_blocks(
             _filters.kalman_filter, 
-            c_axes=complement_axes(along + dims, self.axes), 
+            c_axes=complement_axes([along] + dims, self.axes), 
             args=(gain, noise_var)
-            )
+        )
     
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
@@ -906,10 +908,7 @@ class LazyImgArray(AxesMixin):
         return tuple(self.chunksizeof(a) for a in axes)
         
     def transpose(self, axes):
-        if self.axes.is_none():
-            new_axes = None
-        else:
-            new_axes = "".join([self.axes[i] for i in list(axes)])
+        new_axes = [self.axes[i] for i in list(axes)]
         out = self.__class__(self.value.transpose(axes))
         out._set_info(self, new_axes=new_axes)
         return out
@@ -982,7 +981,7 @@ class LazyImgArray(AxesMixin):
             projection = getattr(da, method)(self.value, axis=tuple(axisint))
         
         out = self.__class__(projection)
-        out._set_info(self, del_axis(self.axes, axisint))
+        out._set_info(self, self.axes.drop(axisint))
         return out
     
     @_docs.copy_docs(ImgArray.binning)
@@ -1194,10 +1193,10 @@ class LazyImgArray(AxesMixin):
         return out
     
     def _process_output(self, input: LazyImgArray, args: tuple, kwargs: dict):
-        if "axis" in kwargs.keys() and not input.axes.is_none():
-            new_axes = del_axis(input.axes, kwargs["axis"])
+        if "axis" in kwargs.keys():
+            new_axes = input.axes.drop(kwargs["axis"])
         else:
-            new_axes = "inherit"
+            new_axes = self._INHERIT
         self._set_info(input, new_axes=new_axes)
         return None
         
@@ -1293,13 +1292,12 @@ class LazyImgArray(AxesMixin):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def _set_info(self, other: LazyImgArray, new_axes: str = "inherit"):
+    def _set_info(self, other: LazyImgArray, new_axes: Any = AxesMixin._INHERIT):
         self._set_additional_props(other)
         # set axes
         try:
-            if new_axes != "inherit":
+            if new_axes is not self._INHERIT:
                 self.axes = new_axes
-                self.set_scale(other)
             else:
                 self.axes = other.axes.copy()
         except ImageAxesError:

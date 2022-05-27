@@ -1,19 +1,27 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mapping
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
-from ...axes import ImageAxesError
+from ...axes import ImageAxesError, Slicer, AxesLike, Axes
 from ...array_api import xp
-from ...utils.axesop import *
+from ...utils import axesop
 from ...utils.slicer import *
 from ...collections import DataList
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+SupportOneSlicing = Union[SupportsInt, slice]
+SupportSlicing = Union[
+    SupportsInt,
+    str,
+    slice,
+    tuple[SupportOneSlicing, ...], 
+    Mapping[str, SupportOneSlicing],
+]
 
 class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["_source", "_metadata", "_name"]
@@ -26,7 +34,7 @@ class MetaArray(AxesMixin, np.ndarray):
         cls: type[MetaArray], 
         obj,
         name: str | None = None,
-        axes: str | None = None,
+        axes: Iterable[Hashable] | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,
@@ -108,13 +116,12 @@ class MetaArray(AxesMixin, np.ndarray):
                                      getattr(self, p, 
                                              None)))
     
-    def _set_info(self, other: Self, new_axes: str = "inherit"):
+    def _set_info(self, other: Self, new_axes: Any= AxesMixin._INHERIT):
         self._set_additional_props(other)
         # set axes
         try:
-            if new_axes != "inherit":
+            if new_axes is not self._INHERIT:
                 self.axes = new_axes
-                self.set_scale(other)
             else:
                 self.axes = other.axes.copy()
         except ImageAxesError:
@@ -122,19 +129,20 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return None
     
-    def __getitem__(self, key: int | str | slice | tuple) -> Self:
+    def __getitem__(self, key: SupportSlicing) -> Self:
         if isinstance(key, str):
-            # img["t=2;z=4"] ... axis-targeted slicing
-            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
-            return self.__getitem__(sl)
+            key = axis_targeted_slicing(tuple(self.axes), key)
+        
+        elif isinstance(key, (Mapping, Slicer)):
+            key = self.axes.create_slicer(key)
 
         if isinstance(key, np.ndarray):
             key = self._broadcast(key)
         
-        out = super().__getitem__(key)         # get item as np.ndarray
+        out = super().__getitem__(key)  # get item as np.ndarray
         
-        if isinstance(out, self.__class__):   # cannot set attribution to such as numpy.int32 
-            new_axes = slice_axes(self.axes, key)
+        if isinstance(out, self.__class__):  # cannot set attribution to such as numpy.int32 
+            new_axes = axesop.slice_axes(self.axes, key)
                 
             out._getitem_additional_set_info(
                 self, new_axes=new_axes, key=key
@@ -146,18 +154,19 @@ class MetaArray(AxesMixin, np.ndarray):
         self._set_info(other, kwargs["new_axes"])
         return None
     
-    def __setitem__(self, key: int | str | slice | tuple, value):
+    def __setitem__(self, key: SupportSlicing, value):
         if isinstance(key, str):
-            # img["t=2;z=4"] ... ImageJ-like method
-            sl = axis_targeted_slicing(self.ndim, str(self.axes), key)
-            return self.__setitem__(sl, value)
+            key = axis_targeted_slicing(tuple(self.axes), key)
         
-        if isinstance(key, MetaArray) and key.dtype == bool and not key.axes.is_none():
-            key = add_axes(self.axes, self.shape, key, key.axes)
+        elif isinstance(key, (Mapping, Slicer)):
+            key = self.axes.create_slicer(key)
+        
+        if isinstance(key, MetaArray) and key.dtype == bool:
+            key = axesop.add_axes(self.axes, self.shape, key, key.axes)
             
         elif isinstance(key, np.ndarray) and key.dtype == bool and key.ndim == 2:
             # img[arr] ... where arr is 2-D boolean array
-            key = add_axes(self.axes, self.shape, key)
+            key = axesop.add_axes(self.axes, self.shape, key)
 
         super().__setitem__(key, value)
     
@@ -176,7 +185,7 @@ class MetaArray(AxesMixin, np.ndarray):
         except Exception:
             self.axes = None
         else:
-            if not self.axes.is_none() and len(self.axes) != self.ndim:
+            if len(self.axes) != self.ndim:
                 self.axes = None
         
     def __array_ufunc__(self, ufunc, method, *args, **kwargs):
@@ -206,10 +215,10 @@ class MetaArray(AxesMixin, np.ndarray):
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
         considered because it changes `ndim`.
         """
-        if "axis" in kwargs.keys() and not obj.axes.is_none():
-            new_axes = del_axis(obj.axes, kwargs["axis"])
+        if "axis" in kwargs.keys():
+            new_axes = obj.axes.drop(kwargs["axis"])
         else:
-            new_axes = "inherit"
+            new_axes = self._INHERIT
         self._set_info(obj, new_axes=new_axes)
         return self
     
@@ -315,12 +324,12 @@ class MetaArray(AxesMixin, np.ndarray):
         """
         # determine axis in int.
         if axis is None:
-            axis = find_first_appeared(self.axes, include="cztp")
+            axis = axesop.find_first_appeared(self.axes, include="cztp")
         axisint = self.axisof(axis)
             
         imgs: DataList[MetaArray] = DataList(np.moveaxis(self, axisint, 0))
         for img in imgs:
-            img.axes = del_axis(self.axes, axisint)
+            img.axes = self.axes.drop(axisint)
             img.set_scale(self)
             
         return imgs
@@ -378,7 +387,7 @@ class MetaArray(AxesMixin, np.ndarray):
             drop_axis = _list_of_axes(self, drop_axis)
                 
             # determine chunk size and slices
-            chunks = switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
+            chunks = axesop.switch_slice(c_axes, self.axes, ifin=1, ifnot=self.shape)
             slice_in = []
             slice_out = []
             for i, a in enumerate(self.axes):
@@ -437,28 +446,83 @@ class MetaArray(AxesMixin, np.ndarray):
         change the order of image dimensions.
         'axes' will also be arranged.
         """
-        out = super().transpose(axes)
-        if self.axes.is_none():
-            new_axes = None
-        else:
-            new_axes = "".join([self.axes[i] for i in list(axes)])
+        _axes = [self.axisof(a) for a in axes]
+        new_axes = [self.axes[i] for i in list(axes)]
+        out: np.ndarray = np.transpose(self.value, _axes)
+        out = out.view(self.__class__)
         out._set_info(self, new_axes=new_axes)
         return out
     
-    def _broadcast(self, value):
-        """
-        More flexible broadcasting. If `self` has "zcyx"-axes and `value` has "zyx"-axes, then
-        they should be broadcasted by stacking `value` along "c"-axes
-        """        
-        if isinstance(value, MetaArray) and not value.axes.is_none():
-            value = add_axes(self.axes, self.shape, value, value.axes)
-        elif isinstance(value, np.ndarray):
-            try:
-                if self.sizesof("yx") == value.shape:
-                    value = add_axes(self.axes, self.shape, value)
-            except AttributeError:
-                pass
+    def _broadcast(self, value: Any):
+        """Broadcasting method used in most of the mathematical operations."""
+        if not isinstance(value, MetaArray):
+            return value
+        current_axes = self.axes
+        if (current_axes == value.axes 
+            or current_axes.has_undef() or
+            value.axes.has_undef()):
+            # In most cases arrays don't need broadcasting. Check axes first to
+            # avoid spending time on broadcasting.
+            return value
+        value = value.broadcast_to(self.shape, current_axes)
         return value
+    
+    def broadcast_to(
+        self, 
+        shape: tuple[int, ...], 
+        axes: AxesLike | None = None,
+    ) -> Self:
+        """
+        Broadcast array to specified shape and axes.
+
+        Parameters
+        ----------
+        shape : shape-like
+            Shape of output array.
+        axes : AxesLike, optional
+            Axes of output array. If given, it must match the dimensionality of
+            input shape.
+
+        Returns
+        -------
+        MetaArray
+            Broadcasted array.
+        """
+        if axes is None:
+            return np.broadcast_to(self, shape)
+        elif len(shape) != len(axes):
+            raise ValueError(f"Dimensionality mismatch: {shape=} and {axes=}")
+        current_axes = self.axes
+        if self.shape == shape and current_axes == axes:
+            return self
+        if any(a not in axes for a in current_axes):
+            ax0 = [str(a) for a in current_axes]
+            ax1 = [str(a) for a in axes]
+            raise ImageAxesError(
+                f"Cannot broadcast array with axes {ax0} to {ax1}."
+            )
+
+        out = self.value
+        for i, axis in enumerate(axes):
+            if axis not in current_axes:
+                out = np.stack([out] * shape[i], axis=i)
+
+        out = out.view(self.__class__)
+
+        if out.shape != shape:
+            raise ValueError(
+                f"Shape {shape} required but returned {out.shape}."
+            )
+        
+        if not isinstance(axes, Axes):
+            new_axes = Axes(axes)
+            for a in self.axes:
+                # update axis metadata such as scale
+                new_axes.replace(str(a), a)
+        else:
+            new_axes = axes
+        out._set_info(self, new_axes=new_axes)
+        return out
     
     def __add__(self, value) -> Self:
         value = self._broadcast(value)
@@ -548,32 +612,28 @@ class MetaArray(AxesMixin, np.ndarray):
 def _list_of_axes(img: MetaArray, axis):
     if axis is None:
         axis = []
-    elif isinstance(axis, str):
+    elif hasattr(axis, "__iter__"):
         axis = [img.axisof(a) for a in axis]
     elif np.isscalar(axis):
         axis = [axis]
     return axis
         
-def _replace_inputs(img: MetaArray, args, kwargs):
+def _replace_inputs(img: MetaArray, args: tuple[Any], kwargs: dict[str, Any]):
     _as_np_ndarray = lambda a: a.value if isinstance(a, MetaArray) else a
     # convert arguments
     args = tuple(_as_np_ndarray(a) for a in args)
-    if "axis" in kwargs:
+    if kwargs.get("axis", None) is not None:
         axis = kwargs["axis"]
-        if isinstance(axis, str):
-            _axis = tuple(map(img.axisof, axis))
-            if len(_axis) == 1:
-                _axis = _axis[0]
-            kwargs["axis"] = _axis
+        if not hasattr(axis, "__iter__"):
+            axis = [axis]
+        kwargs["axis"] = tuple(map(img.axisof, axis))
     
-    if "axes" in kwargs:
+    if kwargs.get("axes", None) is not None:
         # used in such as np.rot90
         axes = kwargs["axes"]
-        if isinstance(axes, str):
-            _axes = tuple(map(img.axisof, axes))
-            kwargs["axes"] = _axes
+        kwargs["axes"] = tuple(map(img.axisof, axes))
                 
-    if "out" in kwargs:
+    if kwargs.get("out", None) is not None:
         kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
     
     return args, kwargs

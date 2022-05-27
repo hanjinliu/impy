@@ -1,80 +1,48 @@
 from __future__ import annotations
-from functools import lru_cache
 import numpy as np
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..arrays.axesmixin import AxesMixin
-
-
-def axes_included(img: AxesMixin, label: AxesMixin):
-    """
-    e.g.)
-    img.axes = "tyx", label.axes = "yx" -> True
-    img.axes = "tcyx", label.axes = "zyx" -> False
-    
-    """
-    return img.axes.contains(label.axes)
+from ..axes import Axes, Axis, UndefAxis
 
 
 def find_first_appeared(axes, include="", exclude=""):
+    include = list(include)
+    exclude = list(exclude)
     for a in axes:
         if a in include and not a in exclude:
             return a
     raise ValueError(f"Inappropriate axes: {axes}")
 
-def del_axis(axes, axis) -> str:
-    """
-    axes: str or Axes object.
-    axis: int.
-    delete axis from axes.
-    """
-    new_axes = ""
-    if isinstance(axis, int):
-        axis = [axis]
-    if axes is None:
-        return None
-    else:
-        axes = str(axes)
-    
-    if isinstance(axis, (list, tuple)):
-        for i, o in enumerate(axes):
-            if i not in axis:
-                new_axes += o
-    elif isinstance(axis, str):
-        new_axes = complement_axes(axis, axes)
-        
-    return new_axes
-
-def add_axes(axes, shape, key, key_axes="yx"):
+def add_axes(axes: Axes, shape: tuple[int, ...], key: np.ndarray, key_axes="yx"):
     """
     Stack `key` to make its shape key_axes-> axes.
-    """    
+    """
+    key_axes = list(key_axes)
     if shape == key.shape:
         return key
-    # key = np.asarray(key)
+
     for i, o in enumerate(axes):
         if o not in key_axes:
-            key = np.stack([key]*(shape[i]), axis=i)
+            key = np.stack([key] * shape[i], axis=i)
     return key
 
-@lru_cache
-def complement_axes(axes, all_axes="ptzcyx"):
-    c_axes = ""
+
+def complement_axes(axes, all_axes="ptzcyx") -> list:
+    c_axes = []
+    axes_list = list(axes)
     for a in all_axes:
-        if a not in axes:
-            c_axes += a
+        if a not in axes_list:
+            c_axes.append(a)
     return c_axes
 
 
 def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
+    axes = list(axes)
     if ifnot == ":":
-        ifnot = [slice(None)]*len(all_axes)
+        ifnot = [slice(None)] * len(all_axes)
     elif not hasattr(ifnot, "__iter__"):
-        ifnot = [ifnot]*len(all_axes)
+        ifnot = [ifnot] * len(all_axes)
         
     if not hasattr(ifin, "__iter__"):
-        ifin = [ifin]*len(all_axes)
+        ifin = [ifin] * len(all_axes)
         
     sl = []
     for a, slin, slout in zip(all_axes, ifin, ifnot):
@@ -86,37 +54,54 @@ def switch_slice(axes, all_axes, ifin=np.newaxis, ifnot=":"):
     return sl
 
 
-def slice_axes(axes, key):
-    keylist = []
-        
+def slice_axes(axes: Axes, key):
+    ndim = len(axes)
     if isinstance(key, tuple):
-        _keys = key
-    elif hasattr(key, "__array__"):
+        ndim += sum(k is None for k in key)
+        rest = ndim - len(key)
+        if any(k is ... for k in key):
+            idx = key.index(...)
+            _keys = key[:idx] + (slice(None),) * (rest + 1) + key[idx + 1:]
+        else:
+            _keys = key + (slice(None),) * rest
+    elif isinstance(key, np.ndarray) or hasattr(key, "__array__"):
         if key.ndim == 1:
             new_axes = axes
         else:
-            new_axes = None
+            new_axes = [UndefAxis()] + axes[key.ndim:]
         return new_axes
+    elif key is None:
+        return [UndefAxis()] + axes
+    elif key is ...:
+        return axes
     else:
-        _keys = (key,)
-    
-    for s in _keys:
-        if isinstance(s, (slice, list, np.ndarray)):
-            keylist.append(0)
-        elif s is None:
-            keylist.append(1)
-        elif s is ...:
-            keylist.extend([0] * (len(axes) - len(_keys) + 1))
+        _keys = (key,) +(slice(None),) * (ndim - 1)
+
+    new_axes: list[Axis] = []
+    list_idx: list[int] = []
+
+    axes_iter = iter(axes)
+    for sl in _keys:
+        if sl is not None:
+            a = next(axes_iter)
+            if isinstance(sl, (slice, np.ndarray)):
+                new_axes.append(a.slice_axis(sl))
+            elif isinstance(sl, list):
+                new_axes.append(a.slice_axis(sl))
+                list_idx.append(a)
         else:
-            keylist.append(-1)
-    
-    if 1 in keylist:
-        # np.newaxis or None will add dimension
-        new_axes = None
+            new_axes.append(UndefAxis())  # new axis
         
-    elif not axes.is_none() and axes:
-        del_list = [i for i, s in enumerate(keylist) if s == -1]
-        new_axes = del_axis(axes, del_list)
-    else:
-        new_axes = None
+
+    if len(list_idx) > 1:
+        added = False
+        out: list[Axis] = []
+        for a in new_axes:
+            if a not in list_idx:
+                out.append(a)
+            elif not added:
+                out.append(UndefAxis())
+                added = True
+        new_axes = out
+
     return new_axes

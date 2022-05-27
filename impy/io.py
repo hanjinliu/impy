@@ -7,10 +7,16 @@ import os
 import numpy as np
 from numpy.typing import DTypeLike
 
-from ..axes import ImageAxesError
-from .axesop import complement_axes
+from .axes import ImageAxesError
+from .utils.axesop import complement_axes
 
-__all__ = ["IO"]
+__all__ = [
+    "imread",
+    "imread_dask",
+    "imsave",
+    "mark_reader",
+    "mark_writer",
+]
 
 class _ImageType(Protocol):
     @property
@@ -35,8 +41,8 @@ class ImageData(NamedTuple):
 
 
 if TYPE_CHECKING:
-    from ..arrays.bases import MetaArray
-    from ..arrays import LazyImgArray
+    from .arrays.bases import MetaArray
+    from .arrays import LazyImgArray
     ImpyArray = Union[MetaArray, LazyImgArray]
     Reader = Callable[[str, bool], ImageData]
     _R = TypeVar("_R", bound=Reader)
@@ -150,7 +156,7 @@ class ImageIO:
         ImageData
             Image data tuple.
         """
-        from ..array_api import xp
+        from .array_api import xp
         image_data = self.imread(path, memmap=True)
         img = image_data.image
         
@@ -338,7 +344,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     rest_axes = complement_axes(img.axes, "tzcyx")
     new_axes = ""
     for a in img.axes:
-        if a in "tzcyx":
+        if a in ["t", "z", "c", "y", "x"]:
             new_axes += a
         else:
             if len(rest_axes) == 0:
@@ -366,8 +372,8 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     if img.scale_unit and img.scale_unit != "nm":
         raise ValueError(
             f"Scale unit {img.scale_unit} is not supported. Convert to nm instead."
-            )
-        
+        )
+    
     import mrcfile
     
     if lazy:
@@ -399,10 +405,12 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     """The zarr writer."""
     import zarr
     f = zarr.open(path, mode="w")
+    metadata = img.metadata.copy()
+    metadata["unit"] = img.scale_unit
     
     f.attrs["axes"] = str(img.axes)
-    f.attrs["scale"] = img.scale
-    f.attrs["metadata"] = img.metadata
+    f.attrs["scale"] = {str(a): v for a, v in img.scale.items()}
+    f.attrs["metadata"] = metadata
     if lazy:
         img.value.to_zarr(url=os.path.join(path, "data"))
     else:
@@ -412,12 +420,12 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 
 
 _MRC_MODE = {
-    np.int8: 0,
-    np.int16: 1,
-    np.float32: 2,
-    np.complex64: 4,
-    np.uint16: 6,
-    np.float16: 12,
+    np.dtype("int8"): 0,
+    np.dtype("int16"): 1,
+    np.dtype("float32"): 2,
+    np.dtype("complex64"): 4,
+    np.dtype("uint16"): 6,
+    np.dtype("float16"): 12,
 }
 
 def _load_json(s: str):
@@ -425,28 +433,37 @@ def _load_json(s: str):
 
 def _get_ijmeta_from_img(img: "MetaArray", update_lut=True):
     metadata = img.metadata.copy()
+    scale_view = img.scale
     if update_lut:
         lut_min, lut_max = np.percentile(img, [1, 99])
         metadata.update({"min": lut_min, "max": lut_max})
     # set lateral scale
     try:
-        res = (1/img.scale["x"], 1/img.scale["y"])
+        res = (1/scale_view["x"], 1/scale_view["y"])
     except Exception:
         res = None
     # set z-scale
     if "z" in img.axes:
-        metadata["spacing"] = img.scale["z"]
+        metadata["spacing"] = scale_view["z"]
     else:
-        metadata["spacing"] = img.scale["x"]
+        metadata["spacing"] = scale_view["x"]
         
     try:
         info = _load_json(metadata["Info"])
     except:
         info = {}
     metadata["Info"] = str(info)
+    metadata["unit"] = img.scale_unit
+        
     # set axes in tiff metadata
     metadata["axes"] = str(img.axes).upper()
     if img.ndim > 3:
         metadata["hyperstack"] = True
     
     return dict(imagej=True, resolution=res, metadata=metadata)
+
+imread = IO.imread
+imread_dask = IO.imread_dask
+imsave = IO.imsave
+mark_reader = IO.mark_reader
+mark_writer = IO.mark_writer

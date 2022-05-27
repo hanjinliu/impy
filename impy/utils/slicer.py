@@ -1,7 +1,7 @@
 from __future__ import annotations
-import numpy as np
 import re
 from functools import lru_cache
+from typing import Any
 from .._types import Slices
 
 __all__ = ["str_to_slice", "axis_targeted_slicing"]
@@ -35,7 +35,7 @@ def str_to_slice(v: str) -> list[int] | slice | int:
 
 
 @lru_cache
-def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
+def axis_targeted_slicing(axes: tuple[str, ...], string: str) -> Slices:
     """
     Make a conventional slices from an axis-targeted slicing string.
 
@@ -46,26 +46,34 @@ def axis_targeted_slicing(ndim: int, axes: str, string: str) -> Slices:
     axes : str
         Axes of input ndarray.
     string : str
-        Axis-targeted slicing string. If an axis that does not exist in `axes` is contained,
-        this function will raise ValueError.
+        Axis-targeted slicing string. If an axis that does not exist in `axes` is
+        contained, this function will raise ValueError.
 
     Returns
     -------
     slices
     """    
     keylist = re.sub(" ", "", string).split(";")
-    sl_list = [slice(None)]*ndim
+    dict_slicer: dict[str, Any] = {}
     
     for k in keylist:
         if k.count("=") != 1:
             raise ValueError(f"Informal axis-targeted slicing: {k}")
         axis, sl_str = k.split("=")
-        i = axes.find(axis)
-        if i < 0:
-            raise ValueError(f"Axis '{axis}' does not exist ({axes}).")
         try:
-            sl_list[i] = str_to_slice(sl_str)
+            sl = str_to_slice(sl_str)
         except ValueError:
             raise ValueError(f"Informal axis-targeted slicing: {string}")
+        else:
+            dict_slicer[axis] = sl
+    
+    return dict_to_slice(dict_slicer, axes)
+
+def dict_to_slice(sl: dict[str, Any], axes: tuple[str]):
+    sl_list = [slice(None)] * len(axes)
+    
+    for k, v in sl.items():
+        idx = axes.index(k)
+        sl_list[idx] = v
     
     return tuple(sl_list)

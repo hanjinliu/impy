@@ -7,7 +7,7 @@ from pathlib import Path
 import itertools
 from functools import partial
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Hashable, TypeVar
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -18,9 +18,9 @@ from .bases import MetaArray
 from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.axesop import complement_axes, find_first_appeared, del_axis, axes_included
+from ..utils.axesop import complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes
-from ..utils.io import IO
+from ..io import imsave
 
 from ..collections import DataList
 from ..axes import ImageAxesError
@@ -28,7 +28,6 @@ from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-
 
 class LabeledArray(MetaArray):
     _name: str
@@ -40,7 +39,7 @@ class LabeledArray(MetaArray):
         cls: type[LabeledArray], 
         obj,
         name: str | None = None,
-        axes: str | None = None,
+        axes: Iterable[Hashable] | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,
@@ -157,7 +156,7 @@ class LabeledArray(MetaArray):
             dtype = self.dtype
             
         # save image
-        IO.imsave(save_path, self)
+        imsave(save_path, self)
 
         return None
     
@@ -171,7 +170,7 @@ class LabeledArray(MetaArray):
         if isinstance(obj, LabeledArray):
             self._view_labels(obj)
     
-    def _set_info(self, other: Self, new_axes: str = "inherit"):
+    def _set_info(self, other: Self, new_axes: Any = MetaArray._INHERIT):
         self._labels = getattr(self, "_labels", None)
         super()._set_info(other, new_axes)
         if isinstance(other, LabeledArray):
@@ -181,7 +180,7 @@ class LabeledArray(MetaArray):
         """Make a view of label **if possible**."""
         if (
             other.labels is not None and
-            axes_included(self, other.labels) and
+            self.axes.contains(other.labels.axes) and
             _shape_match(self, other.labels)
         ):
             if self is not other:
@@ -754,11 +753,9 @@ class LabeledArray(MetaArray):
             if not isinstance(ref_image, MetaArray):
                 ref_image = MetaArray(
                     np.asarray(ref_image),
-                    axes=str(self.axes)[-self.ndim:]
+                    axes=self.axes[-self.ndim:]
                 )
-            if ref_image.axes.is_none():
-                raise ValueError("Axes not defined in `ref_image`.")
-            elif not axes_included(self, ref_image):
+            if not self.axes.contains(ref_image.axes):
                 raise ImageAxesError(
                     "Not all the axes in `ref_image` are included in self: "
                     f"{ref_image.axes} and {self.axes}"
@@ -854,9 +851,7 @@ class LabeledArray(MetaArray):
                     np.asarray(ref_image),
                     axes=str(self.axes)[-self.ndim:]
                 )
-            if ref_image.axes.is_none():
-                raise ValueError("Axes not defined in `ref_image`.")
-            elif not axes_included(self, ref_image):
+            if not self.axes.contains(ref_image.axes):
                 raise ImageAxesError(
                     "Not all the axes in `ref_image` are included in self: "
                     f"{ref_image.axes} and {self.axes}"
@@ -968,7 +963,7 @@ class LabeledArray(MetaArray):
                     raise ValueError("Could not infer axes of `label_image`.")
             else:
                 axes = label_image.axes
-                if not axes_included(self, label_image):
+                if not self.axes.contains(label_image.axes):
                     raise ImageAxesError(
                         f"Axes mismatch. Image has {self.axes}-axes but "
                         f"{axes} was given."
@@ -1022,7 +1017,7 @@ class LabeledArray(MetaArray):
         if self.labels is not None:
             labels = self.labels.split(axisint)
             for img, lbl in zip(imgs, labels):
-                lbl.axes = del_axis(self.labels.axes, axisint)
+                lbl.axes = self.labels.axes.drop(axisint)
                 lbl.set_scale(self.labels)
                 img.labels = lbl
             
@@ -1258,6 +1253,12 @@ def _iter_dict(d, nparam):
                 out[k] = v
         yield out
 
+class NotMe:
+    def __eq__(self, other):
+        return False
+
+_notme = NotMe()
+
 def _shape_match(img: LabeledArray, label: Label):
     """
     e.g.)
@@ -1270,7 +1271,10 @@ def _shape_match(img: LabeledArray, label: Label):
     """    
     img_shape = img.shape
     label_shape = label.shape
-    return all([getattr(img_shape, a) == getattr(label_shape, a) for a in label.axes])
+    return all(
+        [getattr(img_shape, str(a), _notme) == getattr(label_shape, str(a), _notme)
+         for a in label.axes]
+    )
 
 def _iter_tile_yx(ymax, xmax, imgy, imgx):
     """

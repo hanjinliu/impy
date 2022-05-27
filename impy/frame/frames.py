@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import MutableMapping
 import numpy as np
 import pandas as pd
 from functools import wraps
@@ -8,7 +9,7 @@ from ..utils.deco import dims_to_spatial_axes
 from ..utils.slicer import str_to_slice
 from ..utils.utilcls import ImportOnRequest
 from .._const import Const
-from ..axes import Axes, ImageAxesError, ORDER
+from ..axes import Axes, ImageAxesError
 
 tp = ImportOnRequest("trackpy")
 
@@ -28,15 +29,12 @@ class AxesFrame(pd.DataFrame):
                 columns = str(data._axes)
         else:
             kwargs["columns"] = columns
-            if hasattr(columns, "__iter__"):
-                columns = "".join(columns)
         
         super().__init__(data, **kwargs)
-        self._axes = Axes(columns)
-        
+        self._axes = Axes(self.columns)
     
     def _get_coords_cols(self):
-        return "".join(a for a in self.columns if len(a) == 1)
+        return [a for a in self.columns if len(a) == 1]
     
     def get_coords(self):
         return self[self.columns[self.columns.isin([a for a in self.columns if len(a) == 1])]]
@@ -78,12 +76,17 @@ class AxesFrame(pd.DataFrame):
     
     @col_axes.setter
     def col_axes(self, value):
-        if isinstance(value, str):
-            self._axes._axes_str = value
-            self.columns = [a for a in value]
+        naxes = self.shape[1]
+        if value is None:
+            self._axes = Axes.undef(naxes)
         else:
-            raise TypeError("Only str can be set to `col_axes`.")
-    
+            axes = Axes(value)
+            if naxes != len(axes):
+                raise ImageAxesError(
+                    "Inconpatible dimensions: "
+                    f"array (ndim={naxes}) and axes ({value})"
+                )
+            self._axes = axes
     
     @property
     def scale(self):
@@ -101,11 +104,8 @@ class AxesFrame(pd.DataFrame):
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
 
-        """        
-        if self._axes.is_none():
-            raise ImageAxesError("Frame does not have axes.")
-        
-        elif isinstance(other, dict):
+        """
+        if isinstance(other, MutableMapping):
             # yx-scale can be set with one keyword.
             if "yx" in other:
                 yxscale = other.pop("yx")
@@ -119,7 +119,9 @@ class AxesFrame(pd.DataFrame):
                     raise ImageAxesError(f"Image does not have axis {a}.")    
                 elif not np.isscalar(val):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
-            self._axes.scale.update(other)
+            
+            for k, v in other.items():
+                self.col_axes[k].scale = v
             
         elif hasattr(other, "scale"):
             self.set_scale({a: s for a, s in other.scale.items() if a in self._axes})
@@ -138,7 +140,7 @@ class AxesFrame(pd.DataFrame):
         p -> uint32
         z, y, x -> float32
         """
-        dtype = lambda a: np.uint16 if a in "tc" else (np.uint32 if a == Const["ID_AXIS"] else np.float32)
+        dtype = lambda a: np.uint16 if a in ["t", "c"] else (np.uint32 if a == Const["ID_AXIS"] else np.float32)
         out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
         out._axes = self._axes
         return out
@@ -199,7 +201,7 @@ class AxesFrame(pd.DataFrame):
                 yield tuple(outsl), af
     
     def sort(self):
-        ids = np.argsort([ORDER[k] for k in self._axes])
+        ids = self._axes.argsort()
         return self[[self._axes[i] for i in ids]]
     
     def proj(self, axis=None):

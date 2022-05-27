@@ -12,12 +12,12 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
 from functools import wraps
 
-from .utils.io import IO
+from . import io
 from .utils import gauss
 from .utils.slicer import *
 from ._types import *
 
-from .axes import ImageAxesError
+from .axes import ImageAxesError, broadcast, Axes
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
@@ -37,7 +37,8 @@ __all__ = [
     "imread_collection", 
     "lazy_imread", 
     "read_meta", 
-    "sample_image"
+    "sample_image",
+    "broadcast_arrays"
 ]
 
 # TODO: 
@@ -178,7 +179,7 @@ def aslazy(
 
 _P = ParamSpec("_P")
 
-def inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArray]:
+def _inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArray]:
     npfunc: Callable = getattr(np, func.__name__)
     @wraps(func)
     def _func(*args, **kwargs):
@@ -203,22 +204,24 @@ def inject_numpy_function(func: Callable[_P, np.ndarray]) -> Callable[_P, ImgArr
     _func.__annotations__.update({"return": ImgArray})
     return _func
 
-@inject_numpy_function
+@_inject_numpy_function
 def zeros(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
     
-@inject_numpy_function
+@_inject_numpy_function
 def empty(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-@inject_numpy_function
+@_inject_numpy_function
 def ones(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
-@inject_numpy_function
+@_inject_numpy_function
 def full(shape: _ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
 
-def gaussian_kernel(shape: _ShapeLike, 
-                    sigma: nDFloat = 1.0,
-                    peak: float = 1.0) -> ImgArray:
+def gaussian_kernel(
+    shape: _ShapeLike, 
+    sigma: nDFloat = 1.0,
+    peak: float = 1.0,
+) -> ImgArray:
     """
     Make an Gaussian kernel or Gaussian image.
 
@@ -307,6 +310,19 @@ def sample_image(name: str) -> ImgArray:
         out = out.sort_axes()
     return out
 
+def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
+    axes_list: list[Axes] = []
+    shapes: dict[str, int] = {}
+    for arr in arrays:
+        axes_list.append(arr.axes)
+        for a, s in zip(arr.axes, arr.shape):
+            shapes[a] = s
+    axes = broadcast(*axes_list)
+    shape = tuple(shapes[a] for a in axes)
+    
+    out = [a.broadcast_to(shape, axes) for a in arrays]
+    return out
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 #   Imread functions
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -370,15 +386,16 @@ def imread(
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
 
-    image_data = IO.imread(path, memmap=is_memmap)
+    image_data = io.imread(path, memmap=is_memmap)
 
     img = image_data.image
     axes = image_data.axes
     scale = image_data.scale
     metadata = image_data.metadata
+    spatial_scale_unit = metadata.get("unit", "px")
         
     if is_memmap and axes is not None:
-        sl = axis_targeted_slicing(img.ndim, axes, key)
+        sl = axis_targeted_slicing(tuple(axes), key)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
     
@@ -387,7 +404,7 @@ def imread(
     # In case the image is in yxc-order. This sometimes happens.
     if "c" in self.axes and self.shape.c > self.shape.x:
         self: ImgArray = np.moveaxis(self, -1, -3)
-        _axes = self.axes._axes_str
+        _axes = self.axes._axis_list
         _axes = _axes[:-3] + "cyx"
         self.axes = _axes
     
@@ -397,16 +414,15 @@ def imread(
     if squeeze:
         self = np.squeeze(self)
         
-    if self.axes.is_none():
-        return self
-    else:        
-        # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
-        # one by one.
-        for k, v in scale.items():
-            if k in self.axes:
-                self.set_scale({k: v})
-        
-        return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
+    # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
+    # one by one.
+    for k, v in scale.items():
+        if k in self.axes:
+            self.set_scale({k: v})
+            if k in "zyx":
+                self.axes[k].unit = spatial_scale_unit
+    
+    return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     """
@@ -641,7 +657,7 @@ def lazy_imread(
         return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
     
     # read as a dask array
-    image_data = IO.imread_dask(path, chunks)
+    image_data = io.imread_dask(path, chunks)
     img = image_data.image
     axes = image_data.axes
     scale = image_data.scale
@@ -652,13 +668,10 @@ def lazy_imread(
         img = np.squeeze(img)
     
     self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
-    
-    if self.axes.is_none():
-        return self
-    else:
-        # read lateral scale if possible
-        self.set_scale(**scale)
-        return self.sort_axes()
+
+    # read lateral scale if possible
+    self.set_scale(**scale)
+    return self.sort_axes()
 
 
 def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArray:
@@ -715,7 +728,7 @@ def read_meta(path: str) -> dict[str]:
         Dictionary of keys {"axes", "scale", "metadata"}        
     """    
     path = str(path)
-    image_data = IO.imread_dask(path, chunks="default")
+    image_data = io.imread_dask(path, chunks="default")
     return {
         "axes": image_data.axes,
         "scale": image_data.scale,

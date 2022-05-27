@@ -10,7 +10,7 @@ from .._const import Const
 from ..core import imread, lazy_imread
 
 if TYPE_CHECKING:
-    from ..frame import TrackFrame, PathFrame
+    from ..frame import TrackFrame, PathFrame, AxesFrame
     from napari.layers import Shapes
 
 
@@ -65,7 +65,7 @@ def to_labels(layer: "Shapes", labels_shape, zoom_factor=1):
 def make_world_scale(obj):
     scale = []
     for a in obj._axes:
-        if a in "zyx":
+        if a in ["z", "y", "x"]:
             scale.append(obj.scale[a])
         elif a == "c":
             pass
@@ -130,7 +130,7 @@ def add_labeledarray(viewer: "napari.Viewer", img: LabeledArray, **kwargs):
     else:
         viewer.scale_bar.unit = img.scale_unit
         
-    new_axes = [a for a in img.axes if a != "c"]
+    new_axes = [str(a) for a in img.axes if a != "c"]
     # add axis labels to slide bars and image orientation.
     if len(new_axes) >= len(viewer.dims.axis_labels):
         viewer.dims.axis_labels = new_axes
@@ -171,14 +171,6 @@ def add_dask(viewer: "napari.Viewer", img: LazyImgArray, **kwargs):
     chn_ax = img.axisof("c") if "c" in img.axes else None
                 
     scale = make_world_scale(img)
-    
-    if "contrast_limits" not in kwargs.keys():
-        # contrast limits should be determined quickly.
-        leny, lenx = img.shape[-2:]
-        sample = img.value[..., ::leny//min(10, leny), ::lenx//min(10, lenx)]
-        kwargs["contrast_limits"] = [float(sample.min().compute()), 
-                                     float(sample.max().compute())]
-
     name = img.name
 
     if chn_ax is not None:
@@ -189,13 +181,13 @@ def add_dask(viewer: "napari.Viewer", img: LazyImgArray, **kwargs):
     layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale, 
                              name=name if len(name)>1 else name[0], **kwargs)
     viewer.scale_bar.unit = img.scale_unit
-    new_axes = [a for a in img.axes if a != "c"]
+    new_axes = [str(a) for a in img.axes if a != "c"]
     # add axis labels to slide bars and image orientation.
     if len(new_axes) >= len(viewer.dims.axis_labels):
         viewer.dims.axis_labels = new_axes
     return layer
 
-def add_points(viewer:"napari.Viewer", points, **kwargs):
+def add_points(viewer:"napari.Viewer", points: AxesFrame, **kwargs):
     from ..frame import MarkerFrame
     if isinstance(points, MarkerFrame):
         scale = make_world_scale(points)
@@ -212,7 +204,7 @@ def add_points(viewer:"napari.Viewer", points, **kwargs):
         metadata = {"axes": str(each._axes), "scale": each.scale}
         kw = dict(
             size=3.2,
-            face_color=[0,0,0,0],
+            face_color=[0, 0, 0, 0],
             metadata=metadata,
         )
         kw.update(kwargs)
@@ -244,7 +236,7 @@ def add_paths(viewer: "napari.Viewer", paths: PathFrame, **kwargs):
     scale = make_world_scale(
         paths[[a for a in paths._axes if a != Const["ID_AXIS"]]]
     )
-    kw = {"edge_color":"lime", "edge_width":0.3, "shape_type":"path"}
+    kw = {"edge_color": "lime", "edge_width": 0.3, "shape_type": "path"}
     kw.update(kwargs)
 
     for path in path_list:

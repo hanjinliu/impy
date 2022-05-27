@@ -1,4 +1,6 @@
+import pytest
 import impy as ip
+from impy.axes import ImageAxesError
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -10,4 +12,86 @@ def test_numpy_function():
     proj = np.mean(img, axis="y")
     assert_allclose(proj, np.mean(img.value, axis=1))
     np.random.seed()
+
+def test_squeeze():
+    img0 = ip.zeros((3, 3, 1), axes="zyx")
+    out = np.squeeze(img0)
+    assert out.axes == ["z", "y"]
+    assert out.shape == (3, 3)
     
+def test_stack():
+    img0 = ip.zeros((3, 3))
+    img1 = ip.zeros((3, 3))
+    
+    out = np.stack([img0, img1], axis=0)
+    assert out.axes == ["#", "y", "x"]
+    assert out.shape == (2, 3, 3)
+    
+    out = np.stack([img0, img1], axis=1)
+    assert out.axes == ["y", "#", "x"]
+    assert out.shape == (3, 2, 3)
+    
+    out = np.stack([img0, img1], axis="p")
+    assert out.axes == ["p", "y", "x"]
+    assert out.shape == (2, 3, 3)
+    
+    with pytest.raises(ImageAxesError):
+        np.stack([img0, img1], axis="y")
+
+def test_concatenate():
+    img0 = ip.zeros((3, 2))
+    img1 = ip.zeros((3, 2))
+    
+    out = np.concatenate([img0, img1], axis=0)
+    assert out.axes == ["y", "x"]
+    assert out.shape == (6, 2)
+    
+    out = np.concatenate([img0, img1], axis=1)
+    assert out.axes == ["y", "x"]
+    assert out.shape == (3, 4)
+    
+    out = np.concatenate([img0, img1], axis="y")
+    assert out.axes == ["y", "x"]
+    assert out.shape == (6, 2)
+    
+    with pytest.raises(ImageAxesError):
+        np.concatenate([img0, img1], axis="z")
+    
+def test_expand_dims():
+    img0 = ip.zeros((3, 3))
+    out = np.expand_dims(img0, axis=0)
+    assert out.axes == ["#", "y", "x"]
+    assert out.shape == (1, 3, 3)
+    
+    out = np.expand_dims(img0, axis=1)
+    assert out.axes == ["y", "#", "x"]
+    assert out.shape == (3, 1, 3)
+    
+    out = np.expand_dims(img0, axis="z")
+    assert out.axes == ["z", "y", "x"]
+    assert out.shape == (1, 3, 3)
+    
+    with pytest.raises(ImageAxesError):
+        np.expand_dims(img0, axis="y")
+
+def test_transpose():
+    img0 = ip.zeros((2, 3, 4), axes="zyx")
+    
+    out = np.transpose(img0, "zxy")
+    assert out.axes == ["z", "x", "y"]
+    assert out.shape == (2, 4, 3)
+    
+    out = np.transpose(img0, "yxz")
+    assert out.axes == ["y", "x", "z"]
+    assert out.shape == (3, 4, 2)
+
+def test_broadcast_to():
+    img0 = ip.zeros((2, 3), axes="yx")
+    
+    out = np.broadcast_to(img0, (4, 2, 3))
+    assert out.axes == ["#", "y", "x"]
+    assert out.shape == (4, 2, 3)
+    
+    out = np.broadcast_to(img0, (6, 4, 2, 3))
+    assert out.axes == ["#", "#", "y", "x"]
+    assert out.shape == (6, 4, 2, 3)

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, NewType
+from typing import Any, NewType, TYPE_CHECKING
 import napari
 import warnings
 from weakref import WeakValueDictionary
@@ -20,8 +20,11 @@ from .utils import (
 from ..collections import *
 from ..arrays import *
 from ..core import array as ip_array, aslazy as ip_aslazy
-from ..axes import ScaleDict
+from ..axes import ScaleView
 from .._const import Const
+
+if TYPE_CHECKING:
+    from napari.components import LayerList
 
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
@@ -70,14 +73,14 @@ class napariViewers:
         return self._viewers[self._front_viewer]
         
     @property
-    def layers(self) -> "napari.components.LayerList":
+    def layers(self) -> "LayerList":
         """
         Napari layer list. Identical to ``ip.gui.viewer.layers``.
         """        
         return self.viewer.layers
     
     @property
-    def current_slice(self) -> tuple[slice|int, ...]:
+    def current_slice(self) -> tuple[slice | int, ...]:
         """
         Return a tuple of slicer that corresponds to current field of view. For instance,
         when the viewer is displaying yx-plane at t=1, then this property returns 
@@ -119,7 +122,7 @@ class napariViewers:
         Scale information of current viewer. Defined to make compatible with ``ImgArray``.
         """        
         d = self.viewer.dims
-        return ScaleDict({a: r[2] for a, r in zip(d.axis_labels, d.range)})
+        return ScaleView({a: r[2] for a, r in zip(d.axis_labels, d.range)})
     
     def start(self, key: str = "impy"):
         """
@@ -429,7 +432,7 @@ class napariViewers:
         i = self.axes.find(symbol)
         return self.viewer.dims.current_step[i]
 
-    def axisof(self, symbol:str) -> int:
+    def axisof(self, symbol: str) -> int:
         return self.axes.find(symbol)
     
     def _add_image(self, img: LabeledArray, **kwargs):
@@ -442,3 +445,8 @@ class napariViewers:
             add_labels(self.viewer, img.labels, name=name, metadata={"destination_image": img})
         return None
     
+    def add_table(self, obj):
+        from magicgui.widgets import Table
+        table = Table(value=obj)
+        self.viewer.window.add_dock_widget(table)
+        return table

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import warnings
 import numpy as np
+from numpy.typing import ArrayLike
 from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence
@@ -13,20 +14,20 @@ from .specials import PropArray
 from ._utils._skimage import skexp, skfeat, skfil, skimage, skmes, skreg, skres, skseg, sktrans
 from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
-from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared, del_axis
+from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
 from ..utils.slicer import axis_targeted_slicing
 
 from ..collections import DataDict
+from ..axes import AxisLike, slicer
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
 
 if TYPE_CHECKING:
     from ..frame import MarkerFrame, PathFrame
-
 
 class ImgArray(LabeledArray):
     """
@@ -418,7 +419,7 @@ class ImgArray(LabeledArray):
         out = PropArray(
             np.empty(self.sizesof(c_axes)+(int(labels.max()),)),
             dtype=np.float32,
-            axes=c_axes+dims[-1], 
+            axes=c_axes + [dims[-1]], 
             source=self.source, 
             metadata=self.metadata, 
             propname="radial_profile"
@@ -600,7 +601,6 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def hessian_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Calculate Hessian's eigenvalues for each image. 
@@ -626,21 +626,22 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigval = self.as_float()._apply_dask(_linalg.hessian_eigval, 
-                                            c_axes=complement_axes(dims, self.axes), 
-                                            new_axis=-1,
-                                            args=(sigma, pxsize)
-                                            )
+        eigval = self.as_float()._apply_dask(
+            _linalg.hessian_eigval, 
+            c_axes=complement_axes(dims, self.axes), 
+            new_axis=-1,
+            args=(sigma, pxsize)
+        )
         
-        eigval.axes = str(self.axes) + "l"
-        eigval = eigval.sort_axes()
-        eigval._set_info(self, new_axes=eigval.axes)
+        eigval: ImgArray = np.moveaxis(eigval, -1, 0)
+        
+        new_axes = ["base"] + self.axes
+        eigval._set_info(self, new_axes=new_axes)
         
         return eigval
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def hessian_eig(self, sigma: nDFloat = 1, *, dims: Dims = None) -> tuple[ImgArray, ImgArray]:
         """
         Calculate Hessian's eigenvalues and eigenvectors.
@@ -661,15 +662,14 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigs = self.as_float()._apply_dask(_linalg.hessian_eigh, 
-                                          c_axes=complement_axes(dims, self.axes),
-                                          new_axis=[-2, -1],
-                                          args=(sigma, pxsize)
-                                          )
+        eigs = self.as_float()._apply_dask(
+            _linalg.hessian_eigh, 
+            c_axes=complement_axes(dims, self.axes),
+            new_axis=[-2, -1],
+            args=(sigma, pxsize)
+        )
         
-        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, new_axes=eigval.axes)
-        eigvec._set_info(self, new_axes=eigvec.axes)
+        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes, self)
         return eigval, eigvec
     
     @_docs.write_docs
@@ -694,15 +694,16 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigval = self.as_float()._apply_dask(_linalg.structure_tensor_eigval, 
-                                            c_axes=complement_axes(dims, self.axes), 
-                                            new_axis=-1,
-                                            args=(sigma, pxsize),
-                                            )
+        eigval = self.as_float()._apply_dask(
+            _linalg.structure_tensor_eigval, 
+            c_axes=complement_axes(dims, self.axes), 
+            new_axis=-1,
+            args=(sigma, pxsize),
+        )
         
-        eigval.axes = str(self.axes) + "l"
-        eigval = eigval.sort_axes()
-        eigval._set_info(self, new_axes=eigval.axes)
+        new_axes = ["base"] + self.axes
+        eigval._set_info(self, new_axes=new_axes)
+        
         return eigval
     
     @_docs.write_docs
@@ -728,16 +729,15 @@ class ImgArray(LabeledArray):
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
         
-        eigs = self.as_float()._apply_dask(_linalg.structure_tensor_eigh,
-                                          c_axes=complement_axes(dims, self.axes),
-                                          new_axis=[-2, -1],
-                                          args=(sigma, pxsize)
-                                          )
+        eigs = self.as_float()._apply_dask(
+            _linalg.structure_tensor_eigh,
+            c_axes=complement_axes(dims, self.axes),
+            new_axis=[-2, -1],
+            args=(sigma, pxsize)
+        )
         
-        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes)
-        eigval._set_info(self, new_axes=eigval.axes)
-        eigvec._set_info(self, new_axes=eigvec.axes)
-        
+        eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes, self)
+
         return eigval, eigvec
     
     @_docs.write_docs
@@ -1429,10 +1429,11 @@ class ImgArray(LabeledArray):
         min_a = min(self.axisof(a) for a in dims)
         if t_axis > min_a:
             self = np.swapaxes(self, t_axis, min_a)
-        out = self._apply_dask(_filters.kalman_filter, 
-                              c_axes=complement_axes(along + dims, self.axes), 
-                              args=(gain, noise_var)
-                              )
+        out = self._apply_dask(
+            _filters.kalman_filter, 
+            c_axes=complement_axes([along] + dims, self.axes), 
+            args=(gain, noise_var)
+        )
         
         if t_axis > min_a:
             out = np.swapaxes(out, min_a, t_axis)
@@ -1828,7 +1829,7 @@ class ImgArray(LabeledArray):
         *, 
         order: int = 1,
         angle_order: list[int] = None,
-        newaxis: str = "a"
+        newaxis: AxisLike = "a",
     ) -> ImgArray:
         r"""
         Split a (2N, 2M)-image into four (N, M)-images for each other pixels.
@@ -1899,11 +1900,12 @@ class ImgArray(LabeledArray):
             raise ValueError(
                 f"Image pixel sizes must be even numbers, got {self.sizesof('yx')}"
             )
-        imgs = []
+        imgs: list[ImgArray] = []
+        fmt = slicer.get_formatter(["y", "x"])
         for y, x in [(0, 0), (0, 1), (1, 1), (1, 0)]:
             dr = [(yc - y)/2, (xc - x)/2]
             imgs.append(
-                self[f"y={y}::2;x={x}::2"].affine(
+                self[fmt[y::2, x::2]].affine(
                     translation=dr, order=order, dims="yx"
                 )
             )
@@ -1920,7 +1922,7 @@ class ImgArray(LabeledArray):
         out.set_scale(y=self.scale.y*2, x=self.scale.x*2)
         return out
         
-    def stokes(self, *, along: str = "a") -> dict:
+    def stokes(self, *, along: AxisLike = "a") -> dict:
         """
         Generate stocks images from an image stack with polarized images. 
         
@@ -1932,7 +1934,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        along : str, default is "a"
+        along : AxisLike, default is "a"
             To define which axis is polarization angle axis. Along this axis 
             the angle of polarizer must be in order of 0, 45, 90, 135 degree.
 
@@ -2691,7 +2693,8 @@ class ImgArray(LabeledArray):
         gabor_angle
         """        
         eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
-        arg = -np.arctan2(eigvec["r=0;l=1"], eigvec["r=1;l=1"])
+        
+        arg = -np.arctan2(eigvec[slicer.r[0].l[1]], eigvec[slicer.r[1].l[1]])
         
         arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
         arg.fix_border()
@@ -2936,7 +2939,7 @@ class ImgArray(LabeledArray):
         if key.startswith(";"):
             key = key[1:]
             
-        slices = axis_targeted_slicing(ndim, dims, key)
+        slices = axis_targeted_slicing(tuple(dims), key)
         dtype = np.complex128 if double_precision else np.complex64
         
         # Calculate exp(-ikx)
@@ -2953,12 +2956,13 @@ class ImgArray(LabeledArray):
             out_chunks[ind] = exps[i].shape[0]
         out_chunks = tuple(out_chunks)
         
-        return self.as_float()._apply_dask(_misc.dft, 
-                                          complement_axes(dims, self.axes),
-                                          dtype=np.complex64, 
-                                          out_chunks=out_chunks,
-                                          kwargs=dict(exps=exps)
-                                          )
+        return self.as_float()._apply_dask(
+            _misc.dft, 
+            complement_axes(dims, self.axes),
+            dtype=np.complex64, 
+            out_chunks=out_chunks,
+            kwargs=dict(exps=exps)
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3100,7 +3104,7 @@ class ImgArray(LabeledArray):
         self,
         thr: float | str = "otsu",
         *,
-        along: str | None = None,
+        along: AxisLike | None = None,
         **kwargs
     ) -> ImgArray:
         """
@@ -3113,7 +3117,7 @@ class ImgArray(LabeledArray):
         ----------
         thr: float or str or None, optional
             Threshold value, or thresholding algorithm.
-        along : str, optional
+        along : AxisLike, optional
             Dimensions that will not share the same threshold. For instance, if
             ``along="c"`` then threshold intensities are determined for every channel.
             If ``thr`` is float, ``along`` will be ignored.
@@ -3247,7 +3251,7 @@ class ImgArray(LabeledArray):
         )
     
     @check_input_and_output
-    def track_template(self, template:np.ndarray, bg=None, along:str="t") -> MarkerFrame:
+    def track_template(self, template:np.ndarray, bg=None, along: AxisLike = "t") -> MarkerFrame:
         """
         Tracking using template matching. For every time frame, matched region is interpreted as a
         new template and is used for the next template. To avoid slight shifts accumulating to the
@@ -3327,8 +3331,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Image with large objects removed.
-        
-        
+
         See Also
         --------
         remove_fine_objects
@@ -3386,10 +3389,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Convex hull image.
         """        
-        return self._apply_dask(skimage.morphology.convex_hull_image, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=bool
-                               ).astype(bool)
+        return self._apply_dask(
+            skimage.morphology.convex_hull_image, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=bool,
+        ).astype(bool)
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3424,8 +3428,13 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
-    def count_neighbors(self, *, connectivity: int = None, mask: bool = True,
-                        dims: Dims = None) -> ImgArray:
+    def count_neighbors(
+        self,
+        *, 
+        connectivity: int | None = None,
+        mask: bool = True,
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Count the number or neighbors of binary images. This function can be used for cross section
         or branch detection. Only works for binary images.
@@ -3465,8 +3474,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
-    def remove_skeleton_structure(self, structure: str = "tip", *, connectivity: int = None,
-                                  dims: Dims = None, update: bool = False) -> ImgArray:
+    def remove_skeleton_structure(
+        self,
+        structure: Literal["tip"] | Literal["branch"] | Literal["cross"] = "tip",
+        *,
+        connectivity: int = None,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Remove certain structure from skeletonized images.
 
@@ -3527,9 +3542,14 @@ class ImgArray(LabeledArray):
         coords = np.asarray(coords, dtype=np.float32).T
         shape = self.sizesof(prop_axes)
         l = coords.shape[1] # Number of points
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
-                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
-                        propname = f"pointprops", dtype=np.float32)
+        out = PropArray(
+            np.empty((l,)+shape, dtype=np.float32), 
+            name=self.name+"-prop", 
+            axes=[Const["ID_AXIS"]]+prop_axes,
+            source=self.source,
+            propname = f"pointprops",
+            dtype=np.float32
+        )
         
         for sl, img in self.iter(prop_axes, exclude=col_axes):
             out[(slice(None),)+sl] = ndi.map_coordinates(img, coords, prefilter=order > 1,
@@ -3540,8 +3560,14 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @check_input_and_output
-    def lineprops(self, src: Coords, dst: Coords, func: str|Callable = "mean", *, 
-                  order: int = 1, squeeze: bool = True) -> PropArray:
+    def lineprops(
+        self,
+        src: Coords,
+        dst: Coords,
+        func: str|Callable = "mean", *, 
+        order: int = 1,
+        squeeze: bool = True
+    ) -> PropArray:
         """
         Measure line property using func(line_scan).
 
@@ -3579,9 +3605,14 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(src.col_axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = PropArray(np.empty((l,)+shape, dtype=np.float32), name=self.name+"-prop", 
-                        axes=Const["ID_AXIS"]+prop_axes, source=self.source,
-                        propname = f"lineprops<{func.__name__}>", dtype=np.float32)
+        out = PropArray(
+            np.empty((l,)+shape, dtype=np.float32),
+            name=self.name+"-prop", 
+            axes=[Const["ID_AXIS"]]+prop_axes,
+            source=self.source,
+            propname = f"lineprops<{func.__name__}>", 
+            dtype=np.float32,
+        )
         
         for i, (s, d) in enumerate(zip(src.values, dst.values)):
             resliced = self.reslice(s, d, order=order)
@@ -3711,8 +3742,13 @@ class ImgArray(LabeledArray):
     
     @_docs.write_docs
     @check_input_and_output
-    def pathprops(self, paths: PathFrame, properties: str|Callable|Iterable[str|Callable] = "mean", *, 
-                  order: int = 1) -> DataDict:
+    def pathprops(
+        self,
+        paths: PathFrame | ArrayLike,
+        properties: str | Callable | Iterable[str | Callable] = "mean", 
+        *, 
+        order: int = 1,
+    ) -> DataDict:
         """
         Measure line property using func(line_scan) for each func in properties.
 
@@ -3757,13 +3793,13 @@ class ImgArray(LabeledArray):
         
         # prepare output
         l = len(paths[id_axis].unique())
-        prop_axes = complement_axes(paths._axes, id_axis + str(self.axes))
+        prop_axes = complement_axes(paths._axes, [id_axis] + self.axes)
         shape = self.sizesof(prop_axes)
         
         out = DataDict({k: PropArray(
                     np.empty((l,)+shape, dtype=np.float32), 
                     name=self.name+"-prop", 
-                    axes=id_axis+prop_axes,
+                    axes=[id_axis]+prop_axes,
                     source=self.source,
                     propname = f"lineprops<{k}>", dtype=np.float32
                 )
@@ -3779,8 +3815,11 @@ class ImgArray(LabeledArray):
         return out
     
     @check_input_and_output(need_labels=True)
-    def regionprops(self, properties: Iterable[str] | str = ("mean_intensity",), *, 
-                    extra_properties: Iterable[Callable] | None = None) -> DataDict[str, PropArray]:
+    def regionprops(
+        self,
+        properties: Iterable[str] | str = ("mean_intensity",), *, 
+        extra_properties: Iterable[Callable] | None = None
+    ) -> DataDict[str, PropArray]:
         """
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
@@ -3824,7 +3863,7 @@ class ImgArray(LabeledArray):
         out = DataDict({p: PropArray(
                 np.empty((self.labels.max(),) + shape, dtype=np.float32),
                 name=self.name+"-prop", 
-                axes=id_axis+prop_axes,
+                axes=[id_axis]+prop_axes,
                 source=self.source,
                 propname=p
             )
@@ -3869,10 +3908,11 @@ class ImgArray(LabeledArray):
             Local binary pattern image.
         """        
         
-        return self._apply_dask(skfeat.local_binary_pattern,
-                               c_axes=complement_axes(dims), 
-                               args=(p, radius, method)
-                               )
+        return self._apply_dask(
+            skfeat.local_binary_pattern,
+            c_axes=complement_axes(dims), 
+            args=(p, radius, method)
+        )
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3941,7 +3981,13 @@ class ImgArray(LabeledArray):
     
     
     @same_dtype
-    def proj(self, axis: str = None, method: str|Callable = "mean", mask = None, **kwargs) -> ImgArray:
+    def proj(
+        self,
+        axis: AxisLike | None = None,
+        method: str | Callable = "mean",
+        mask = None,
+        **kwargs
+    ) -> ImgArray:
         """
         Z-projection along any axis.
 
@@ -3972,9 +4018,9 @@ class ImgArray(LabeledArray):
             func = _check_function(method)
         
         if axis is None:
-            axis = find_first_appeared("ztpi<c", include=self.axes, exclude="yx")
-        elif not isinstance(axis, str):
-            raise TypeError("`axis` must be str.")
+            axis = find_first_appeared("ztpiac", include=self.axes, exclude="yx")
+        elif not hasattr(axis, "__iter__"):
+            axis = [axis]
         axisint = tuple(self.axisof(a) for a in axis)
         if func.__module__ == "numpy.ma.core":
             arr = np.ma.array(self.value, mask=mask, dtype=self.dtype)
@@ -3988,7 +4034,7 @@ class ImgArray(LabeledArray):
             out = func(self.value, axis=axisint, **kwargs)
         
         out = out.view(self.__class__)
-        out._set_info(self, del_axis(self.axes, axisint))
+        out._set_info(self, self.axes.drop(axisint))
         return out
 
     @check_input_and_output
@@ -4043,7 +4089,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def track_drift(
         self,
-        along: str = None,
+        along: AxisLike | None = None,
         show_drift: bool = False, 
         upsample_factor: int = 10,
     ) -> MarkerFrame:
@@ -4052,7 +4098,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        along : str, optional
+        along : AxisLike, optional
             Along which axis drift will be calculated.
         show_drift : bool, default is False
             If True, plot the result.
@@ -4092,7 +4138,7 @@ class ImgArray(LabeledArray):
             from ._utils import _plot as _plt
             _plt.plot_drift(result)
         
-        result.index.name = along
+        result.index.name = str(along)
         return result
     
     @_docs.write_docs
@@ -4105,7 +4151,7 @@ class ImgArray(LabeledArray):
         ref: ImgArray = None,
         *,
         zero_ave: bool = True,
-        along: str = None,
+        along: AxisLike | None = None,
         dims: Dims = 2,
         update: bool = False,
         **affine_kwargs
@@ -4123,7 +4169,7 @@ class ImgArray(LabeledArray):
             The reference n-D image to determine drift, if ``shift`` was not given.
         zero_ave : bool, default is True
             If True, average shift will be zero.
-        along : str, optional
+        along : AxisLike, optional
             Along which axis drift will be corrected.
         {dims}
         {update}
@@ -4152,9 +4198,9 @@ class ImgArray(LabeledArray):
                 ref = self
             elif not isinstance(ref, ImgArray):
                 raise TypeError(f"'ref' must be an ImgArray object, but got {type(ref)}")
-            if ref.axes != along + dims:
+            if ref.axes != [along] + dims:
                 from itertools import product
-                _c_axes = complement_axes(along + dims, str(ref.axes))
+                _c_axes = complement_axes([along] + dims, str(ref.axes))
                 fstr = ";".join("{axis}={{}}".format(axis=a) for a in _c_axes)
                 out = np.empty_like(self)
                 for idx in product(*(range(ref.sizeof(a)) for a in _c_axes)):
