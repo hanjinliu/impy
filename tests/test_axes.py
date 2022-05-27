@@ -99,6 +99,11 @@ def test_slicing(axes):
     assert img[:, [1, 2, 3], :, [1, 2, 3]].axes == tzyx[0:1] + ["#"] + tzyx[2:3]
     assert img[[1, 3, 5], [1, 2, 3], :, [1, 2, 3]].axes == ["#"] + tzyx[2:3]
     
+    # test new axis
+    assert img[np.newaxis].axes == ["#"] + tzyx
+    assert img[:, :, np.newaxis].axes == axes[0:2] + ["#"] + axes[2:]
+    assert img[np.newaxis, :, np.newaxis].axes == ["#", axes[0], "#"] + zyx
+    
     # test array slicing
     sl = img[:, 0, 0, 0].value > 120
     assert img[sl].axes == tzyx

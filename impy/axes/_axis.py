@@ -66,6 +66,7 @@ class Axis:
     
     @property
     def scale(self) -> float:
+        """Physical scale of axis."""
         return self.metadata.get("scale", 1.0)
     
     @scale.setter
@@ -77,6 +78,7 @@ class Axis:
     
     @property
     def unit(self) -> str:
+        """Physical scale unit of axis."""
         return self.metadata.get("unit", "px")
     
     @unit.setter
@@ -87,7 +89,8 @@ class Axis:
         self.metadata["unit"] = value
     
     @property
-    def labels(self) -> list[_T] | None:
+    def labels(self) -> tuple[_T, ...] | None:
+        """Axis labels."""
         return self.metadata.get("labels", None)
     
     @labels.setter
@@ -95,6 +98,7 @@ class Axis:
         self.metadata["labels"] = tuple(value)
         
     def slice_axis(self, sl: Any) -> Self:
+        """Return sliced axis."""
         if not isinstance(sl, (slice, list)):
             return self
         metadata = self.metadata.copy()
@@ -136,6 +140,7 @@ class UndefAxis(Axis):
         return isinstance(other, str) and other == "#"
 
 def as_axis(obj: Any) -> Axis:
+    """Convert an object into an ``Axis`` object."""
     if isinstance(obj, str):
         if obj == "#":
             axis = UndefAxis()

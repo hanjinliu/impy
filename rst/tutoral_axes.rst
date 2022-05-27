@@ -46,13 +46,30 @@ Each axis is a ``Axis`` object. They are available by indexing ``Axes`` object.
 Undefined Axis
 ==============
 
-TODO
+Some functions and operations creates arrays with unknown axes.
+
+.. code-block:: python
+
+    img.axes  # Axes['z', 'y', 'x']
+    np.expand_dims(img, axis=0).axes  # Axes['#', 'z', 'y', 'x']
+    img[np.newaxis].axes  # Axes['#', 'z', 'y', 'x']
+    img[img>0].axes  # Axes['#']
+    img[[1, 2, 3], [2, 3, 4]].axes  # Axes['#', 'x']
 
 Axis Metadata
 =============
 
 Each axis could be tagged with some metadata. The major ones are physical scale,
 physical scale unit and labels.
+
+.. code-block:: python
+
+    img.axes[0].scale  # scale of the first axis
+    img.axes[0].unit  # scale unit of the first axis
+    img.axes["c"].labels  # e.g. ("Red", "Green")
+    img.axes[0].scale = 0.21
+    img.axes[0].unit = "µm"
+
 
 Slicing and Formatting
 ======================
