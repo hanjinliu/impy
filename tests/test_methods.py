@@ -46,7 +46,6 @@ def test_filters(f, dtype, resource):
 
 @pytest.mark.parametrize("method", ["dog", "doh", "log", "ncc"])
 def test_sm(method):
-    path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
     img = img_orig["c=1"]
     img.find_sm(method=method, percentile=98)
     img.centroid_sm()
@@ -72,7 +71,7 @@ def test_tiled():
     np.random.seed(1111)
     
     img = ip.random.normal(size=(120, 120, 120), axes="zyx")
-    img.tiled_lowpass_filter(chunks=(40,50,50))
+    img.tiled_lowpass_filter(chunks=(40, 50, 50))
 
 def test_drift_correction():
     img = ip.random.normal(size=(5, 10, 3, 120, 120), axes="tzcyx")

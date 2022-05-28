@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING, Literal, Sequence
+from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable
 
 from .bases.metaarray import MetaArray
 from .labeledarray import LabeledArray
@@ -19,11 +19,11 @@ from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_a
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.slicer import axis_targeted_slicing, solve_slicer
+from ..utils.slicer import solve_slicer
 
 from ..collections import DataDict
-from ..axes import AxisLike, slicer, Axes, Slicer
-from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
+from ..axes import AxisLike, slicer, Axes
+from .._types import nDInt, nDFloat, Dims, Coords, AxesTargetedSlicer
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
 
@@ -94,19 +94,22 @@ class ImgArray(LabeledArray):
         
         if translation is not None and all(a is None for a in [matrix, scale, rotation, shear]):
             shift = -np.asarray(translation)
-            return self._apply_dask(_transform.shift,
-                                   c_axes=complement_axes(dims, self.axes),
-                                   kwargs=dict(shift=shift, order=order, mode=mode, cval=cval)
-                                   )
+            return self._apply_dask(
+                _transform.shift,
+                c_axes=complement_axes(dims, self.axes),
+                kwargs=dict(shift=shift, order=order, mode=mode, cval=cval)
+            )
         if matrix is None:
-            matrix = _transform.compose_affine_matrix(scale=scale, rotation=rotation, 
-                                                      shear=shear, translation=translation,
-                                                      ndim=len(dims))
-        return self._apply_dask(_transform.warp,
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
-                                           output_shape=output_shape)
-                               )
+            matrix = _transform.compose_affine_matrix(
+                scale=scale, rotation=rotation, shear=shear, translation=translation,
+                ndim=len(dims)
+            )
+        return self._apply_dask(
+            _transform.warp,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
+                        output_shape=output_shape)
+        )
     
     @_docs.write_docs
     @same_dtype(asfloat=True)
@@ -355,8 +358,8 @@ class ImgArray(LabeledArray):
         
         reshaped_img = img_to_reshape.reshape(shape)
         axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
-        out = binfunc(reshaped_img, axis=axes_to_reduce)
-        out:ImgArray = out.view(self.__class__)
+        out: np.ndarray = binfunc(reshaped_img, axis=axes_to_reduce)
+        out: ImgArray = out.view(self.__class__)
         out._set_info(self)
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
         out.set_scale(
@@ -539,87 +542,13 @@ class ImgArray(LabeledArray):
             ref_: ImgArray
             if median_radius >= 1:
                 ref_ = ref_.median_filter(radius=median_radius)
-            fit = ref_.gaussfit(scale=scale, show_result=False)
+            fit = ref_.gaussfit(scale=scale)
             a = fit.max()
             for sl, img in self.iter(self_loop_axes, israw=True):
                 out[sl][sl0] = (img[sl0] / fit * a - a).value
         
         return out.view(self.__class__)
-    
-    @_docs.write_docs
-    @check_input_and_output
-    def affine_correction(self, matrices=None, *, bins:int=256, order:int=1, prefilter:bool=True, 
-                          along:str="c") -> ImgArray:
-        """
-        Correct chromatic aberration using Affine transformation. Input matrix is determined by maximizing
-        normalized mutual information.
-        
-        Parameters
-        ----------
-        matrices : array or iterable of arrays, optional
-            Affine matrices.
-        bins : int, default is 256
-            Number of bins that is generated on calculating mutual information.
-        {order}
-        prefilter : bool, default is True.
-            If median filter is applied to all images before fitting. This does not
-            change original images.
-        along : str, default is "c"
-            Along which axis correction will be performed.
-            Chromatic aberration -> "c"
-            Some drift during time lapse movie -> "t"
 
-        Returns
-        -------
-        ImgArray
-            Corrected image.
-        """
-        warnings.warn("This function will integrated to other correlation maximization method in the "
-                      "future.", DeprecationWarning)
-        def check_c_axis(self):
-            if not hasattr(self, "axes"):
-                raise AttributeError("Image dose not have axes.")
-            elif along not in self.axes:
-                raise ValueError("Image does not have channel axis.")
-            elif self.sizeof(along) < 2:
-                raise ValueError("Image must have two channels or more.")
-        
-        check_c_axis(self)
-        
-        if isinstance(matrices, np.ndarray):
-            # ref is single Affine transformation matrix or a reference image stack.
-            matrices = [1, matrices]
-                
-        elif isinstance(matrices, (list, tuple)):
-            # ref is a list of Affine transformation matrix
-            matrices = _misc.check_matrix(matrices)
-            
-        # Determine matrices by fitting
-        # if Affine matrix is not given
-        if matrices is None:
-            if prefilter:
-                imgs = self.median_filter(radius=1).split(along)
-            else:
-                imgs = self.split(along)
-            matrices = [1] + [_misc.affinefit(img, imgs[0], bins, order) for img in imgs[1:]]
-        
-        # check Affine matrix shape
-        if len(matrices) != self.sizeof(along):
-            nchn = self.sizeof(along)
-            raise ValueError(f"{nchn}-channel image needs {nchn} matrices.")
-        
-        # Affine transformation
-        corrected = []
-        for i, m in enumerate(matrices):
-            if np.isscalar(m) and m==1:
-                corrected.append(self[f"{along}={i}"].value)
-            else:
-                corrected.append(self[f"{along}={i}"].affine(order=order, matrix=m).value)
-
-        out = np.stack(corrected, axis=self.axisof(along)).astype(self.dtype)
-        out = out.view(self.__class__)
-        out.metadata["Affine-matrices"] = matrices
-        return out
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -766,7 +695,13 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def edge_filter(self, method: str = "sobel", *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def edge_filter(
+        self,
+        method: str = "sobel",
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> ImgArray:
         """
         Sobel filter. This filter is useful for edge detection.
 
@@ -798,8 +733,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def lowpass_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, dims: Dims = None, 
-                       update: bool = False) -> ImgArray:
+    def lowpass_filter(
+        self,
+        cutoff: nDFloat = 0.2,
+        order: float = 2,
+        *, 
+        dims: Dims = None, 
+        update: bool = False,
+    ) -> ImgArray:
         """
         Butterworth low-pass filter.
 
@@ -828,16 +769,25 @@ class ImgArray(LabeledArray):
         input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes), 
-                            s=spatial_shape, axes=spatial_axes)
+        out = xp.fft.irfftn(
+            xp.asarray(weight) * xp.fft.rfftn(input, axes=spatial_axes), 
+            s=spatial_shape, 
+            axes=spatial_axes,
+        )
         return xp.asnumpy(out)
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def lowpass_conv_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, 
-                            dims: Dims = None, update: bool = False) -> ImgArray:
+    def lowpass_conv_filter(
+        self,
+        cutoff: nDFloat = 0.2,
+        order: float = 2,
+        *, 
+        dims: Dims = None,
+        update: bool = False
+    ) -> ImgArray:
         """
         Butterworth low-pass filter in real space. Butterworth kernel is created first using inverse
         Fourier transform of weight function.
@@ -876,8 +826,16 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def tiled_lowpass_filter(self, cutoff: float = 0.2, chunks = "auto", order: int = 2, 
-                             overlap: int = 16, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def tiled_lowpass_filter(
+        self,
+        cutoff: float = 0.2,
+        chunks = "auto",
+        order: int = 2, 
+        overlap: int = 16,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> ImgArray:
         """
         Tile-by-tile Butterworth low-pass filter. This method is an approximation of the standard
         low-pass filter, which would be useful when the image is large.
@@ -921,8 +879,9 @@ class ImgArray(LabeledArray):
             return xp.asnumpy(ift)
         
         input = da.from_array(self.value, chunks=chunks)
-        out = da.map_overlap(func, input, depth=depth, boundary="reflect", dtype=self.dtype
-                             ).compute()
+        out = da.map_overlap(
+            func, input, depth=depth, boundary="reflect", dtype=self.dtype
+        ).compute()
         
         return out
     
@@ -930,8 +889,14 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def highpass_filter(self, cutoff: nDFloat = 0.2, order: float = 2, *, dims: Dims = None, 
-                        update: bool = False) -> ImgArray:
+    def highpass_filter(
+        self,
+        cutoff: nDFloat = 0.2,
+        order: float = 2,
+        *, 
+        dims: Dims = None, 
+        update: bool = False
+    ) -> ImgArray:
         """
         Butterworth high-pass filter.
 
@@ -988,12 +953,13 @@ class ImgArray(LabeledArray):
             Convolved image.
         """        
         kernel = np.asarray(kernel, dtype=np.float32)
-        return self._apply_dask(_filters.convolve, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               args=(kernel,),
-                               kwargs=dict(mode=mode, cval=cval)
-                               )
+        return self._apply_dask(
+            _filters.convolve, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            args=(kernel,),
+            kwargs=dict(mode=mode, cval=cval)
+        )
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1022,11 +988,12 @@ class ImgArray(LabeledArray):
         else:
             f = _filters.erosion
             kwargs = dict(footprint=disk)
-        return self._apply_dask(f, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               kwargs=kwargs
-                               )
+        return self._apply_dask(
+            f, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            kwargs=kwargs
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1054,11 +1021,12 @@ class ImgArray(LabeledArray):
         else:
             f = _filters.dilation
             kwargs = dict(footprint=disk)
-        return self._apply_dask(f, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               kwargs=kwargs
-                               )
+        return self._apply_dask(
+            f, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            kwargs=kwargs
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1086,11 +1054,12 @@ class ImgArray(LabeledArray):
         else:
             f = _filters.opening
             kwargs = dict(footprint=disk)
-        return self._apply_dask(f, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               kwargs=kwargs
-                               )
+        return self._apply_dask(
+            f, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            kwargs=kwargs
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1118,11 +1087,12 @@ class ImgArray(LabeledArray):
         else:
             f = _filters.closing
             kwargs = dict(footprint=disk)
-        return self._apply_dask(f, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               kwargs=kwargs
-                               )
+        return self._apply_dask(
+            f, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            kwargs=kwargs
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1144,17 +1114,25 @@ class ImgArray(LabeledArray):
         """        
         
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask(_filters.white_tophat, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               kwargs=dict(footprint=disk)
-                               )
+        return self._apply_dask(
+            _filters.white_tophat, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            kwargs=dict(footprint=disk)
+        )
     
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
-    def smooth_mask(self, sigma: float = 2.0, dilate_radius: float = 2.0, mask_light: bool = False, *, dims: Dims = None) -> ImgArray:
+    def smooth_mask(
+        self,
+        sigma: float = 2.0,
+        dilate_radius: float = 2.0,
+        mask_light: bool = False,
+        *,
+        dims: Dims = None
+    ) -> ImgArray:
         """
         Smoothen binary mask image at its edges. This is useful to make a "soft mask".
 
@@ -1204,11 +1182,12 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask(_filters.mean_filter, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               args=(disk,)
-                               )
+        return self._apply_dask(
+            _filters.mean_filter, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            args=(disk,)
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1228,10 +1207,11 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         disk = _structures.ball_like(radius, len(dims))
-        return self.as_float()._apply_dask(_filters.std_filter, 
-                                          c_axes=complement_axes(dims, self.axes), 
-                                          args=(disk,)
-                                          )
+        return self.as_float()._apply_dask(
+            _filters.std_filter, 
+            c_axes=complement_axes(dims, self.axes), 
+            args=(disk,)
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1252,10 +1232,11 @@ class ImgArray(LabeledArray):
             Filtered image
         """        
         disk = _structures.ball_like(radius, len(dims))
-        return self.as_float()._apply_dask(_filters.coef_filter, 
-                                          c_axes=complement_axes(dims, self.axes), 
-                                          args=(disk,)
-                                          )
+        return self.as_float()._apply_dask(
+            _filters.coef_filter, 
+            c_axes=complement_axes(dims, self.axes), 
+            args=(disk,)
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1276,11 +1257,12 @@ class ImgArray(LabeledArray):
             Filtered image.
         """     
         disk = _structures.ball_like(radius, len(dims))
-        return self._apply_dask(_filters.median_filter, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               dtype=self.dtype,
-                               kwargs=dict(footprint=disk)
-                               )
+        return self._apply_dask(
+            _filters.median_filter, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            kwargs=dict(footprint=disk)
+        )
     
     @dims_to_spatial_axes
     @same_dtype
@@ -2910,7 +2892,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def local_dft(
         self,
-        key: str | Slicer | None = None,
+        key: AxesTargetedSlicer | None = None,
         upsample_factor: nDInt = 1,
         *,
         double_precision: bool = False, 
@@ -4288,10 +4270,10 @@ class ImgArray(LabeledArray):
             if ref.axes != [along] + dims:
                 from itertools import product
                 _c_axes = complement_axes([along] + dims, str(ref.axes))
-                fstr = ";".join("{axis}={{}}".format(axis=a) for a in _c_axes)
+                fmt = slicer.get_formatter(_c_axes)
                 out = np.empty_like(self)
                 for idx in product(*(range(ref.sizeof(a)) for a in _c_axes)):
-                    sl = fstr.format(*idx)
+                    sl = fmt[idx]
                     out[sl] = self[sl].drift_correction(
                         ref=ref[sl], zero_ave=zero_ave, along=along, dims=dims,
                         update=update, **affine_kwargs,
@@ -4598,9 +4580,9 @@ class ImgArray(LabeledArray):
         update: bool = False
     ) -> ImgArray:
         r"""
-        Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with total variance
-        regularization (so called RL-TV algorithm). The TV regularization factor at pixel position :math:`x`,
-        :math:`F_{reg}(x)`, is calculated as:
+        Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with
+        total variance regularization (so called RL-TV algorithm). The TV regularization
+        factor at pixel position :math:`x`, :math:`F_{reg}(x)`, is calculated as:
         
         .. math::
             
@@ -4619,17 +4601,18 @@ class ImgArray(LabeledArray):
         lmd : float, default is 1e-3
             The constant lambda of TV regularization factor.
         tol : float, default is 1e-3
-            Iteration stops if regularized absolute summation is lower than this value.
+            Iteration stops if regularized absolute summation is lower than this 
+            value.
             
             :math:`\frac{\sum_{x}|I'(x) - I(x)|}{\sum_{x}|I(x)|}`
             
-            (:math:`I'(x)`: estimation of :math:`k+1`-th iteration, :math:`I(x)`: estimation of 
-            :math:`k`-th iteration)
+            (:math:`I'(x)`: estimation of :math:`k+1`-th iteration, :math:`I(x)`: 
+            estimation of :math:`k`-th iteration)
         
         eps : float, default is 1e-5
-            During deconvolution, division by small values in the convolve image of estimation and 
-            PSF may cause divergence. Therefore, division by values under ``eps`` is substituted
-            to zero.
+            During deconvolution, division by small values in the convolve image of
+            estimation and PSF may cause divergence. Therefore, division by values 
+            under ``eps`` is substituted to zero.
         {dims}
         {update}
         
@@ -4650,8 +4633,10 @@ class ImgArray(LabeledArray):
         wiener
         """
         if lmd <= 0:
-            raise ValueError("In Richadson-Lucy with total-variance-regularization, parameter `lmd` "
-                             "must be positive.")
+            raise ValueError(
+                "In Richadson-Lucy with total-variance-regularization, "
+                "parameter `lmd` must be positive."
+            )
         psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
         return self._apply_dask(

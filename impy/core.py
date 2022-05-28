@@ -336,14 +336,14 @@ def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
 def imread(
     path: str,
     dtype: DTypeLike = None,
-    key: str = None,
+    key: AxesTargetedSlicer | None = None,
     *, 
     name: str | None = None,
     squeeze: bool = False,
 ) -> ImgArray:
     r"""
-    Load image(s) from a path. You can read list of images from directories with wildcards or ``"$"``
-    in ``path``.
+    Load image(s) from a path. You can read list of images from directories with 
+    wildcards or ``"$"`` in ``path``.
 
     Parameters
     ----------
@@ -351,10 +351,10 @@ def imread(
         Path to the image or directory.
     dtype : Any type that np.dtype accepts
         Data type of images.
-    key : str, optional
-        If not None, image is read in a memory-mapped array first, and only ``img[key]`` is returned.
-        Only axis-targeted slicing is supported. This argument is important when reading a large
-        file.
+    key : AxesTargetedSlicer, optional
+        If not None, image is read in a memory-mapped array first, and only 
+        ``img[key]`` is returned. Only axis-targeted slicing is supported. This
+        argument is important when reading a large file.
     name : str, optional
         Name of array.
     squeeze : bool, default is False
@@ -471,7 +471,7 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
 def _imread_stack(
     path: str, 
     dtype: DTypeLike = None,
-    key: str = None,
+    key: AxesTargetedSlicer | None = None,
     squeeze: bool = False
 ):
     r"""
