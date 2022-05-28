@@ -276,14 +276,14 @@ class Axes(Sequence[Axis]):
         return self + axes
 
     @overload
-    def create_slicer(self, sl: Mapping[str, Any] | Slicer) -> tuple[Any, ...]:
+    def create_slice(self, sl: Mapping[str, Any] | Slicer) -> tuple[Any, ...]:
         ...
     
     @overload
-    def create_slicer(self, **kwargs: dict[str, Any]) -> tuple[Any, ...]:
+    def create_slice(self, **kwargs: dict[str, Any]) -> tuple[Any, ...]:
         ...
     
-    def create_slicer(self, sl = None, /, **kwargs):
+    def create_slice(self, sl = None, /, **kwargs):
         if sl is None:
             sl = kwargs
         elif isinstance(sl, Slicer):

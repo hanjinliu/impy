@@ -4,10 +4,12 @@ import numpy as np
 from impy.array_api import xp
 from numpy.testing import assert_allclose
 
+path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
+img_orig = ip.imread(path)
+
 def test_precision(resource):
     with ip.SetConst(RESOURCE=resource):
-        path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-        img = ip.imread(path)["c=1;t=0"].as_float()
+        img = img_orig["c=1;t=0"].as_float()
         
         assert_allclose(img.fft(shift=False),
                         xp.asnumpy(xp.fft.fftn(xp.asarray(img.value)))
@@ -25,13 +27,21 @@ def test_precision(resource):
 
 def test_iteration(resource):
     with ip.SetConst(RESOURCE=resource):
-        path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-        img = ip.imread(path)["c=1;t=0"].as_float()
+        img = img_orig["c=1;t=0"].as_float()
         
         ft0 = img.fft(dims="zx")
-        ft1 = np.stack([img[f"y={i}"].fft(dims="zx") for i in range(img.shape.y)], axis="y")
+        fmt = ip.slicer.get_formatter("y")
+        ft1 = np.stack([img[fmt[i]].fft(dims="zx") for i in range(img.shape.y)], axis="y")
         assert_allclose(ft0, ft1)
         
         ft0 = img.ifft(dims="zx")
-        ft1 = np.stack([img[f"y={i}"].ifft(dims="zx") for i in range(img.shape.y)], axis="y")
+        ft1 = np.stack([img[fmt[i]].ifft(dims="zx") for i in range(img.shape.y)], axis="y")
         assert_allclose(ft0, ft1)
+
+def test_local_dft(resource):
+    with ip.SetConst(RESOURCE=resource):
+        img = img_orig["c=1"].as_float()
+        img.local_dft(key="y=2:5", upsample_factor=8)
+        img.local_dft(key="y=-2:3", upsample_factor=8)
+        img.local_dft(key="y=-2:3;x=2:4", upsample_factor=8)
+        img.local_dft(key=ip.slicer.y[:2].x[:3], upsample_factor=8)

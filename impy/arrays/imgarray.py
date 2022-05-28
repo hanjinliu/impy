@@ -19,10 +19,10 @@ from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_a
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..utils.gauss import GaussianBackground, GaussianParticle
 from ..utils.misc import check_nd, largest_zeros
-from ..utils.slicer import axis_targeted_slicing
+from ..utils.slicer import axis_targeted_slicing, solve_slicer
 
 from ..collections import DataDict
-from ..axes import AxisLike, slicer
+from ..axes import AxisLike, slicer, Axes, Slicer
 from .._types import nDInt, nDFloat, Dims, Coords, Iterable, Callable
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
@@ -2910,35 +2910,39 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def local_dft(
         self,
-        key: str = "",
+        key: str | Slicer | None = None,
         upsample_factor: nDInt = 1,
         *,
         double_precision: bool = False, 
         dims: Dims = None
     ) -> ImgArray:
         r"""
-        Local discrete Fourier transformation (DFT). This function will be useful for Fourier transformation
-        of small region of an image with a certain factor of up-sampling. In general FFT takes :math:`O(N\log{N})`
-        time, much faster compared to normal DFT (:math:`O(N^2)`). However, If you are interested in certain 
-        region of Fourier space, you don't have to calculate all the spectra. In this case DFT is faster and
-        less memory comsuming.
+        Local discrete Fourier transformation (DFT). This function will be useful 
+        for Fourier transformation of small region of an image with a certain
+        factor of up-sampling. In general FFT takes :math:`O(N\log{N})` time, much
+        faster compared to normal DFT (:math:`O(N^2)`). However, If you are 
+        interested in certain region of Fourier space, you don't have to calculate 
+        all the spectra. In this case DFT is faster and less memory comsuming.
         
             .. warning::
-                The result of ``local_dft`` will **NOT** be shifted with ``np.fft.fftshift`` because in general 
-                the center of arrays are unknown. Also, it is easier to understand `x=0` corresponds to the center.
+                The result of ``local_dft`` will **NOT** be shifted with 
+                ``np.fft.fftshift`` because in general the center of arrays are
+                unknown. Also, it is easier to understand `x=0` corresponds to the
+                center.
         
-        Even whole spectrum is returned, ``local_dft`` may be faster than FFT with small and/or non-FFT-friendly
-        shaped image.
+        Even whole spectrum is returned, ``local_dft`` may be faster than FFT with 
+        small and/or non-FFT-friendly shaped image.
 
         Parameters
         ----------
         key : str
-            Key string that specify region to DFT, such as "y=-50:10;x=:80". With Upsampled spectra, keys
-            corresponds to the coordinate **before** up-sampling. If you want certain region, say "x=10:20",
-            this value will not change with different ``upsample_factor``.
+            Key string that specify region to DFT, such as "y=-50:10;x=:80". With
+            upsampled spectra, keys corresponds to the coordinate **before** 
+            up-sampling. If you want certain region, say "x=10:20", this value 
+            will not change with different ``upsample_factor``.
         upsample_factor : int or array of int, default is 1
-            Up-sampling factor. For instance, when ``upsample_factor=10`` a single pixel will be expanded to
-            10 pixels.
+            Up-sampling factor. For instance, when ``upsample_factor=10`` a single
+            pixel will be expanded to 10 pixels.
         {double_precision}
         {dims}
 
@@ -2955,13 +2959,10 @@ class ImgArray(LabeledArray):
         upsample_factor = check_nd(upsample_factor, ndim)
         
         # determine how to slice the result of FFT
-        for a in dims:
-            if a not in key:
-                key += f";{a}=0:{self.sizeof(a)}"
-        if key.startswith(";"):
-            key = key[1:]
-            
-        slices = axis_targeted_slicing(tuple(dims), key)
+        if key is None:
+            slices = (slice(None), ) * ndim
+        else:
+            slices = solve_slicer(key, Axes(dims))
         dtype = np.complex128 if double_precision else np.complex64
         
         # Calculate exp(-ikx)

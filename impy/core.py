@@ -405,7 +405,7 @@ def imread(
         scale_unit = {a: scale_unit for a in "zyx"}
         
     if is_memmap and axes is not None:
-        sl = axis_targeted_slicing(tuple(axes), key)
+        sl = solve_slicer(key, Axes(axes))
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
     

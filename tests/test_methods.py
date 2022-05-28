@@ -33,24 +33,22 @@ filters = ["median_filter",
 
 dtypes = [np.uint8, np.uint16, np.float32]
 
+path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
+img_orig = ip.imread(path)
+
 @pytest.mark.parametrize("f", filters)
 @pytest.mark.parametrize("dtype", dtypes)
 def test_filters(f, dtype, resource):
     with ip.SetConst(RESOURCE=resource):
-        path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-        img = ip.imread(path, dtype=dtype)["c=1;z=2"]
+        img = img_orig["c=1;z=2"].astype(dtype)
         assert img.axes == "tyx"
         getattr(img, f)()
 
-def test_sm():
+@pytest.mark.parametrize("method", ["dog", "doh", "log", "ncc"])
+def test_sm(method):
     path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-    img = ip.imread(path)["c=1"]
-    for method in ["dog", "doh", "log", "ncc"]:
-        try:
-            img.find_sm(method=method, percentile=98)
-        except Exception as e:
-            e.args = (str(e) + f". Caused by method={method}.",)
-            raise e
+    img = img_orig["c=1"]
+    img.find_sm(method=method, percentile=98)
     img.centroid_sm()
 
 

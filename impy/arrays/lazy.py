@@ -3,7 +3,7 @@ from functools import wraps
 import os
 import itertools
 from pathlib import Path
-from typing import Any, Callable, TYPE_CHECKING, Mapping
+from typing import Any, Callable, TYPE_CHECKING
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from warnings import warn
@@ -18,7 +18,7 @@ from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _d
 from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
 from ..utils.misc import check_nd
-from ..utils.slicer import axis_targeted_slicing
+from ..utils import slicer
 from ..io import imsave
 from ..collections import DataList
 
@@ -123,11 +123,7 @@ class LazyImgArray(AxesMixin):
         return xp.asnumpy(self.value.compute())
     
     def __getitem__(self, key):
-        if isinstance(key, str):
-            key = axis_targeted_slicing(tuple(self.axes), key)
-        
-        elif isinstance(key, (Mapping, Slicer)):
-            key = self.axes.create_slicer(key)
+        key = slicer.solve_slicer(key, self.axes)
             
         new_axes = slice_axes(self.axes, key)
         out = self.__class__(

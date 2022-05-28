@@ -7,8 +7,7 @@ from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
 from ...axes import ImageAxesError, Slicer, AxesLike, Axes
 from ...array_api import xp
-from ...utils import axesop
-from ...utils.slicer import *
+from ...utils import axesop, slicer
 from ...collections import DataList
 
 if TYPE_CHECKING:
@@ -130,11 +129,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return None
     
     def __getitem__(self, key: SupportSlicing) -> Self:
-        if isinstance(key, str):
-            key = axis_targeted_slicing(tuple(self.axes), key)
-        
-        elif isinstance(key, (Mapping, Slicer)):
-            key = self.axes.create_slicer(key)
+        key = slicer.solve_slicer(key, self.axes)
 
         if isinstance(key, np.ndarray):
             key = self._broadcast(key)
@@ -155,11 +150,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return None
     
     def __setitem__(self, key: SupportSlicing, value):
-        if isinstance(key, str):
-            key = axis_targeted_slicing(tuple(self.axes), key)
-        
-        elif isinstance(key, (Mapping, Slicer)):
-            key = self.axes.create_slicer(key)
+        key = slicer.solve_slicer(key, self.axes)
         
         if isinstance(key, MetaArray) and key.dtype == bool:
             key = axesop.add_axes(self.axes, self.shape, key, key.axes)

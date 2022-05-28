@@ -1,10 +1,11 @@
 from __future__ import annotations
 import re
 from functools import lru_cache
-from typing import Any
+from typing import Any, Mapping
 from .._types import Slices
+from ..axes import Slicer, Axes
 
-__all__ = ["str_to_slice", "axis_targeted_slicing"]
+__all__ = ["str_to_slice", "axis_targeted_slicing", "solve_slicer"]
 
 def _range_to_list(v: str) -> list[int]:
     """
@@ -58,18 +59,18 @@ def axis_targeted_slicing(axes: tuple[str, ...], string: str) -> Slices:
     
     for k in keylist:
         if k.count("=") != 1:
-            raise ValueError(f"Informal axis-targeted slicing: {k}")
+            raise ValueError(f"Informal axis-targeted slicing: {k!r}.")
         axis, sl_str = k.split("=")
         try:
             sl = str_to_slice(sl_str)
         except ValueError:
-            raise ValueError(f"Informal axis-targeted slicing: {string}")
+            raise ValueError(f"Informal axis-targeted slicing: {k!r}.")
         else:
             dict_slicer[axis] = sl
     
     return dict_to_slice(dict_slicer, axes)
 
-def dict_to_slice(sl: dict[str, Any], axes: tuple[str]):
+def dict_to_slice(sl: dict[str, Any], axes: tuple[str, ...]):
     sl_list = [slice(None)] * len(axes)
     
     for k, v in sl.items():
@@ -77,3 +78,12 @@ def dict_to_slice(sl: dict[str, Any], axes: tuple[str]):
         sl_list[idx] = v
     
     return tuple(sl_list)
+
+def solve_slicer(key: Any, axes: Axes):
+    if isinstance(key, str):
+        key = axis_targeted_slicing(tuple(axes), key)
+    
+    elif isinstance(key, (Mapping, Slicer)):
+        key = axes.create_slice(key)
+    
+    return key

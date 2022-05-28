@@ -21,3 +21,19 @@ def test_imread_and_imsave(ext, unit):
         assert_allclose(img.scale, img0.scale)
         assert img.scale_unit == img0.scale_unit
         assert_equal(img, img0)
+
+
+path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
+img_orig = ip.imread(path)
+
+@pytest.mark.parametrize(
+    "key",
+    ["y=:10;x=:10",
+     "t=1;y=2,4,6",
+     ip.slicer.y[10:].x[12:],
+     ip.slicer.c[1].x[12:],
+     ])
+def test_imread_key(key):
+    img0 = ip.imread(path, key=key)
+    img1 = img_orig[key]
+    assert_equal(img0, img1)
