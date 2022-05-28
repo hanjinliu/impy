@@ -44,3 +44,22 @@ def test_broadcasting_arrays():
     for i in range(3):
         assert out[i].shape == (3, 3, 4, 5)
         assert out[i].axes == ["d", "z", "y", "x"]
+
+def test_error():
+    with pytest.raises(Exception):
+        ip.broadcast_arrays(
+            ip.zeros((3, 4, 5), axes="zyx"),
+            ip.zeros((4, 6), axes="yx"),
+        )
+
+    with pytest.raises(Exception):
+        ip.broadcast_arrays(
+            ip.zeros((3, 4, 5), axes="zyx"),
+            ip.zeros((5, 5), axes="yt"),
+        )
+        
+    with pytest.raises(Exception):
+        ip.broadcast_arrays(
+            ip.zeros((3, 4, 5), axes="zyx"),
+            ip.zeros((4, 5), axes="zy"),
+        )

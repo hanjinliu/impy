@@ -31,6 +31,12 @@ def test_axes(axes):
     assert list(img2.scale.keys()) == zx
     assert img2.axes[axes[1]].scale == 0.3
 
+def test_getattr():
+    img = ip.zeros((10, 10, 10), axes="zyx")
+    assert img.axes[0] == img.axes.z == img.axes["z"]
+    assert img.axes[1] == img.axes.y == img.axes["y"]
+    assert img.axes[2] == img.axes.x == img.axes["x"]
+    
 @pytest.mark.parametrize("axes", [["t", "z", "y", "x"], ["time", "z", ":y", ":x"]])
 def test_set_axes(axes):
     img = ip.random.random_uint8((10, 10, 10), axes="zyx")

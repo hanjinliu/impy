@@ -6,6 +6,7 @@ from typing import (
     Iterator,
     overload,
     MutableMapping,
+    NamedTuple,
 )
 import numpy as np
 import itertools
@@ -15,7 +16,7 @@ from collections import namedtuple
 from numbers import Number
 
 from ..utils.axesop import switch_slice
-from ..axes import Axes, ImageAxesError, ScaleView, AxisLike, AxesLike
+from ..axes import Axes, ImageAxesError, ScaleView, AxisLike, AxesLike, Axis
 from .._types import Slices, Dims
 
 if TYPE_CHECKING:
@@ -301,5 +302,19 @@ def get_axes_tuple(self: AxesMixin):
             else:
                 fields.append(f"axis_{i}")
         tup = namedtuple("AxesShape", fields)
+        tup.__getitem__ = _getitem
         _AxesShapes[axes] = tup
         return tup
+
+@overload
+def _getitem(self: NamedTuple, key: int | str | Axis) -> int:
+    ...
+
+@overload
+def _getitem(self: NamedTuple, key: slice) -> tuple[int, ...]:
+    ...
+
+def _getitem(self: NamedTuple, key, /):
+    if isinstance(key, (str, Axis)):
+        return self._asdict()[key]
+    return tuple.__getitem__(self, key)

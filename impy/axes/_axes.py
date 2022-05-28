@@ -142,7 +142,7 @@ class Axes(Sequence[Axis]):
         else:
             return self._axis_list[key]
     
-    def __setitem__(self, key: int | str, value) -> None:
+    def __setitem__(self, key: int | str | Axis, value) -> None:
         if isinstance(key, str):
             old = key
         else:
@@ -150,13 +150,17 @@ class Axes(Sequence[Axis]):
         self.replace(old, value)
         return None
     
-    def __delitem__(self, key: int | str) -> None:
+    def __delitem__(self, key: int | str | Axis) -> None:
         if isinstance(key, str):
             old = key
         else:
             old = self[key]
         self.drop(old)
         return None
+    
+    def __getattr__(self, key: str) -> Axis:
+        """Return an axis with name `key`."""
+        return self._axis_list[self.find(key)]
     
     def __iter__(self):
         return iter(self._axis_list)
@@ -268,11 +272,13 @@ class Axes(Sequence[Axis]):
         return Axes(a for a in self._axis_list if a not in drop_list)
     
     def insert(self, idx: int = -1, axis: AxisLike = "#") -> Axes:
+        """Insert axis at a position."""
         _list = self._axis_list
         _list.insert(idx, as_axis(axis))
         return self.__class__(_list)
     
     def extend(self, axes: AxesLike) -> Axes:
+        """Extend axes with given axes."""
         return self + axes
 
     @overload
