@@ -47,6 +47,8 @@ Undefined Axis
 ==============
 
 Some functions and operations creates arrays with unknown axes.
+In this case, ``UndefAxis`` objects are used for these axes and are represented by 
+``"#"``.
 
 .. code-block:: python
 
@@ -55,6 +57,7 @@ Some functions and operations creates arrays with unknown axes.
     img[np.newaxis].axes  # Axes['#', 'z', 'y', 'x']
     img[img>0].axes  # Axes['#']
     img[[1, 2, 3], [2, 3, 4]].axes  # Axes['#', 'x']
+    img.ravel().axes  # Axes["#"]
 
 Axis Metadata
 =============
@@ -71,7 +74,16 @@ physical scale unit and labels.
     img.axes[0].unit = "µm"
 
 
+Practical Usage of Axes
+=======================
+
 Slicing and Formatting
-======================
+----------------------
+
+TODO
+
+
+Broadcasting
+------------
 
 TODO
