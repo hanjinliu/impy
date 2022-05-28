@@ -407,17 +407,22 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 @IO.mark_writer(".mrc", ".rec", ".st", ".map")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The MRC writer."""
-    if img.scale_unit and img.scale_unit != "nm":
-        raise ValueError(
-            f"Scale unit {img.scale_unit} is not supported. Convert to nm instead."
-        )
     
     import mrcfile
+    
+    if img.scale_unit == "nm":
+        voxel_size = tuple(np.array(img.scale)[::-1] * 10)
+    elif img.scale_unit in ("ang", "Å", "angstrom"):
+        voxel_size = tuple(np.array(img.scale)[::-1])
+    else:
+        warnings.warn(
+            f"Scale unit was {img.scale_unit}. Could not normalize scale."
+        )
     
     if lazy:
         mode = _MRC_MODE[img.dtype]
         mrc_mmap = mrcfile.new_mmap(path, img.shape, mrc_mode=mode, overwrite=True)
-        mrc_mmap.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
+        mrc_mmap.voxel_size = voxel_size
         mrc_mmap.data[:] = img.value
         mrc_mmap.flush()
         return None
@@ -430,12 +435,12 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     if os.path.exists(path):
         with mrcfile.open(path, mode="r+") as mrc:
             mrc.set_data(img.value)
-            mrc.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
+            mrc.voxel_size = voxel_size
             
     else:
         with mrcfile.new(path) as mrc:
             mrc.set_data(img.value)
-            mrc.voxel_size = tuple(np.array(img.scale)[::-1] * 10)
+            mrc.voxel_size = voxel_size
     return None
 
 @IO.mark_writer(".zarr")
