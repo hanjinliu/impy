@@ -397,8 +397,12 @@ def imread(
     img = image_data.image
     axes = image_data.axes
     scale = image_data.scale
+    scale_unit = image_data.unit
     metadata = image_data.metadata
-    spatial_scale_unit = metadata.get("unit", "px")
+    labels = image_data.labels
+    
+    if not isinstance(scale_unit, dict):
+        scale_unit = {a: scale_unit for a in "zyx"}
         
     if is_memmap and axes is not None:
         sl = axis_targeted_slicing(tuple(axes), key)
@@ -407,12 +411,12 @@ def imread(
     
     self = ImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
         
-    # In case the image is in yxc-order. This sometimes happens.
-    if "c" in self.axes and self.shape.c > self.shape.x:
-        self: ImgArray = np.moveaxis(self, -1, -3)
-        _axes = self.axes._axis_list
-        _axes = _axes[:-3] + "cyx"
-        self.axes = _axes
+    if "c" in self.axes:
+        if self.shape.c > self.shape.x:
+            # In case the image is in yxc-order. This sometimes happens.
+            self: ImgArray = np.moveaxis(self, -1, -3)
+        if labels is not None:
+            self.set_axis_label(c=labels)
     
     if dtype is None:
         dtype = self.dtype
@@ -426,7 +430,7 @@ def imread(
         if k in self.axes:
             self.set_scale({k: v})
             if k in "zyx":
-                self.axes[k].unit = spatial_scale_unit
+                self.axes[k].unit = scale_unit[k]
     
     return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
@@ -667,8 +671,9 @@ def lazy_imread(
     img = image_data.image
     axes = image_data.axes
     scale = image_data.scale
+    spatial_scale_unit = image_data.unit
     metadata = image_data.metadata
-    spatial_scale_unit = metadata.get("unit", "px")
+    labels = image_data.labels
     
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
@@ -676,14 +681,18 @@ def lazy_imread(
     
     self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
 
-    # read lateral scale if possible
+    # read scale if possible
     self.set_scale(**scale)
+    
+    
+    if "c" in self.axes and labels is not None:
+        self.set_axis_label(c=labels)
     
     for k, v in scale.items():
         if k in self.axes:
             self.set_scale({k: v})
             if k in "zyx":
-                self.axes[k].unit = spatial_scale_unit
+                self.axes[k].unit = spatial_scale_unit.get(k)
     
     return self.sort_axes()
 

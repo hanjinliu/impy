@@ -41,8 +41,9 @@ class ImageData(NamedTuple):
     image: _ImageType
     axes: str | None
     scale: dict[str, float] | None
+    unit: dict[str, str | None] | str | None
     metadata: dict[str, Any]
-
+    labels: list[Any]
 
 if TYPE_CHECKING:
     from .arrays.bases import MetaArray
@@ -180,7 +181,9 @@ class ImageIO:
             image=dask, 
             axes=image_data.axes,
             scale=image_data.scale,
+            unit=image_data.unit,
             metadata=image_data.metadata,
+            labels=image_data.labels,
         )
     
     def imsave(
@@ -203,8 +206,13 @@ def _(path: str, memmap: bool = False):
     from skimage import io
     img: np.ndarray = io.imread(path)
     _, ext = os.path.splitext(path)
+    labels = None
     if ext in (".png", ".jpg") and img.ndim == 3 and img.shape[-1] <= 4:
         axes = "yxc"
+        if img.shape[-1] == 3:
+            labels = ["R", "G", "B"]
+        elif img.shape[-1] == 4:
+            labels = ["R", "G", "B", "A"]
     elif img.ndim == 2:
         axes = "yx"
     else:
@@ -213,7 +221,9 @@ def _(path: str, memmap: bool = False):
         image=img,
         axes=axes,
         scale=None,
+        unit=None,
         metadata={},
+        labels=labels,
     )
 
 @IO.set_default_writer
@@ -226,7 +236,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 @IO.mark_reader(".tif", ".tiff")
 def _(path: str, memmap: bool = False) -> ImageData:
     """The tif file reader."""
-    from tifffile import TiffFile
+    from tifffile import TiffFile, xml2dict
     with TiffFile(path) as tif:
         ijmeta = tif.imagej_metadata
         series0 = tif.series[0]
@@ -244,39 +254,58 @@ def _(path: str, memmap: bool = False) -> ImageData:
             axes = None
         
         tags = {v.name: v.value for v in pagetag.values()}
+    
+        labels = ijmeta.get("Labels")
+        scale = dict()
+        dz = ijmeta.get("spacing", 1.0)
+        try:
+            # For MicroManager
+            info = _load_json(ijmeta["Info"])
+            dx = dy = info["PixelSize_um"]
+        except Exception:
+            try:
+                xres = tags["XResolution"]
+                yres = tags["YResolution"]
+                dx = xres[1]/xres[0]
+                dy = yres[1]/yres[0]
+            except KeyError:
+                dx = dy = dz
+        scale["x"] = dx
+        scale["y"] = dy
+        # read z scale if needed
+        if axes is not None and "z" in axes:
+            scale["z"] = dz
+        scale_unit = dict.fromkeys(scale.keys(), ijmeta.pop("unit", None))
+        
+        if tif.is_ome:
+            meta_data: dict[str, Any] = xml2dict(tif.ome_metadata)["OME"]["Image"]
+            pix_info: dict[str, Any] = meta_data.get("Pixels", {})
+            # get scale
+            scale_unit = {x.lower(): pix_info.get(f"PhysicalSize{x}Unit") for x in "ZYX"}
+            dz, dy, dx = [pix_info.get(f"PhysicalSize{x}", 1.0) for x in "ZYX"]
+            scale["z"] = dz
+            scale["y"] = dy
+            scale["x"] = dx
+            # get channel names
+            chn = pix_info.get("Channel")
+            if isinstance(chn, (list, tuple)):
+                labels = [ch.get("Name") for ch in chn]
+            else:
+                labels = None
         
         if memmap:
             image = tif.asarray(out="memmap")
         else:
             image = tif.asarray()
     
-    # get scale
-    scale = dict()
-    dz = ijmeta.get("spacing", 1.0)
-    try:
-        # For MicroManager
-        info = _load_json(ijmeta["Info"])
-        dx = dy = info["PixelSize_um"]
-    except Exception:
-        try:
-            xres = tags["XResolution"]
-            yres = tags["YResolution"]
-            dx = xres[1]/xres[0]
-            dy = yres[1]/yres[0]
-        except KeyError:
-            dx = dy = dz
-    
-    scale["x"] = dx
-    scale["y"] = dy
-    # read z scale if needed
-    if axes is not None and "z" in axes:
-        scale["z"] = dz
 
     return ImageData(
         image=image,
         axes=axes,
         scale=scale,
+        unit=scale_unit,
         metadata=ijmeta,
+        labels=labels,
     )
 
 @IO.mark_reader(".mrc", ".rec", ".st", ".map", ".gz")
@@ -292,7 +321,6 @@ def _(path: str, memmap: bool = False) -> ImageData:
         open_func = mrcfile.open
     
     with open_func(path, mode="r") as mrc:
-        metadata = {"unit": "nm"}
         ndim = len(mrc.voxel_size.item())
         if ndim == 3:
             axes = "zyx"
@@ -311,7 +339,9 @@ def _(path: str, memmap: bool = False) -> ImageData:
         image=image,
         axes=axes,
         scale=scale,
-        metadata=metadata,
+        unit="nm",
+        metadata={},
+        labels=None,
     )
 
 
@@ -324,12 +354,16 @@ def _(path: str, memmap: bool = False) -> ImageData:
         image = zf["data"]
     else:
         image = np.asarray(zf["data"])
-        
+    metadata = zf.attrs.get("metadata", {})
+    unit = metadata.pop("unit", None)
+    labels = metadata.pop("labels", None)
     return ImageData(
         image=image,
         axes=zf.attrs.get("axes", None),
         scale=zf.attrs.get("scale", None),
-        metadata=zf.attrs.get("metadata", {})
+        unit=unit,
+        metadata=metadata,
+        labels=labels,
     )
 
 

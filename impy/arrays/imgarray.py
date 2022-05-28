@@ -3797,27 +3797,7 @@ class ImgArray(LabeledArray):
             a = [list(a), list(b)]
         a = np.asarray(a, dtype=np.float32)
         npoints, ndim = a.shape
-        
-        if npoints < 2:
-            raise ValueError("Insufficient number of points for a path.")
-        elif npoints == 2:
-            src, dst = a
-            d = dst - src
-            length = int(np.ceil(np.sqrt(np.sum(d**2)) + 1))
-            coords = np.vstack([np.linspace(src_, dst_, length) for src_, dst_ in zip(src, dst)])
-        else:    
-            vec = np.diff(a, axis=0)
-            dist = np.sqrt(np.sum(vec**2, axis=1))
-            res = 0
-            out = [a[0:1]]
-            for v, d, p in zip(vec, dist, a[:-1]):
-                res0 = res
-                d_int, res = divmod(d + res, 1.0)
-                idx = np.arange(d_int) + 1 - res0
-                xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
-                out.append(xs)
-            coords = np.concatenate(out, axis=0)
-        
+        coords = _sample_on_path(a)
         coords = coords[(slice(None),)+(np.newaxis,)*(ndim-1)]
         
         if ndim == self.ndim:
@@ -4806,3 +4786,23 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
         
     n = stop - start
     return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]
+
+def _sample_on_path(a: np.ndarray) -> np.ndarray:
+    if a.shape[0] < 2:
+        raise ValueError("More than one points must be given.")
+    vec = np.diff(a, axis=0)
+    dist = np.sqrt(np.sum(vec**2, axis=1))
+    res = 0
+    out = [a[0:1]]
+    dist_sum = np.sum(dist)
+    npoints = int(dist_sum)
+    interv = dist_sum / npoints
+    for v, d, p in zip(vec, dist, a[:-1]):
+        res0 = res
+        d_int, res = divmod(d + res, interv)
+        idx = interv*(np.arange(d_int) + 1) - res0
+        xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
+        out.append(xs)
+    if len(out) <= npoints:
+        out.append(a[-1:])
+    return np.concatenate(out, axis=0)
