@@ -64,7 +64,10 @@ class PropArray(MetaArray):
             raise TypeError(f"Cannot call plot_profile for {self.propname} "
                             "because dtype == object.")
         if along is None:
-            along = find_first_appeared("tzp<yxc", include=self.axes)
+            try:
+                along = find_first_appeared("tzp<yxc", include=self.axes)
+            except ValueError:
+                along = self.axes[-1]
         
         iteraxes = self.axes.drop(along)
         cmap = plt.get_cmap(cmap)

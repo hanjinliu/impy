@@ -87,6 +87,19 @@ shared_docs = dict(
             Second image.
             """
     ,
+    
+    mode = \
+        """
+        mode : {"reflect", "constant", "nearest", "mirror", "wrap"}
+            Edge padding mode.
+            """
+    ,
+    cval = \
+        """
+        cval : float, default is 0.0
+            Constant value for constant padding mode.
+        """
+
 )
 
 def write_docs(func):

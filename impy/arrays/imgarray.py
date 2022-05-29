@@ -23,7 +23,7 @@ from ..utils.slicer import solve_slicer
 
 from ..collections import DataDict
 from ..axes import AxisLike, slicer, Axes
-from .._types import nDInt, nDFloat, Dims, Coords, AxesTargetedSlicer
+from .._types import nDInt, nDFloat, Dims, Coords, AxesTargetedSlicer, PaddingMode
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
 
@@ -118,7 +118,7 @@ class ImgArray(LabeledArray):
         self,
         coordinates,
         *, 
-        mode: str = "constant",
+        mode: PaddingMode = "constant",
         cval: float = 0,
         order: int = 3,
         prefilter: bool | None = None,
@@ -132,7 +132,12 @@ class ImgArray(LabeledArray):
         coordinates, mode, cval
             Padding mode, constant value and the shape of output. See 
             ``scipy.ndimage.map_coordinates``. for details.
+        {mode}
+        {cval}
         {order}
+        prefilter : bool, optional
+            Spline prefilter applied to the array. By default set to True if ``order`` is larger
+            than 1.
         {dims}
 
         Returns
@@ -1693,7 +1698,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         return -self.as_float()._apply_dask(
             _filters.gaussian_laplace,
             c_axes=complement_axes(dims, self.axes), 
@@ -1707,11 +1712,26 @@ class ImgArray(LabeledArray):
     def spline_filter(
         self,
         order: int = 3,
-        mode="mirror", 
+        mode: PaddingMode = "mirror", 
         *,
         dims: Dims = None,
         update: bool = False,
     ):
+        """
+        Run spline filter.
+        
+        Parameters
+        ----------
+        {order}
+        
+        {dims}
+        {update}
+            
+        Returns
+        -------
+        ImgArray
+            Filtered image.
+        """
         return self._apply_dask(
             _filters.spline_filter,
             c_axes=complement_axes(dims, self.axes), 
@@ -3756,7 +3776,7 @@ class ImgArray(LabeledArray):
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
         result = self.map_coordinates(
-            coords, order=order, prefilter=prefilter, dims=dims
+            coords, order=order, mode="constant", prefilter=prefilter, dims=dims,
         )
         
         new_axis = "s"
@@ -3777,7 +3797,7 @@ class ImgArray(LabeledArray):
         order: int = 1,
     ) -> DataDict:
         """
-        Measure line property using func(line_scan) for each func in properties.
+        Measure line property using func(line_scan) for each functions in properties.
 
         Parameters
         ----------
@@ -3839,7 +3859,7 @@ class ImgArray(LabeledArray):
         )
         
         if order > 1:
-            self = self.spline_filter(order=order)
+            self = self.spline_filter(order=order, mode="constant")
         
         for i, path in enumerate(paths):
             resliced = self.reslice(path, order=order, prefilter=False)
