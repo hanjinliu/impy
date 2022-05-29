@@ -20,3 +20,28 @@ def test_reslice():
     out = img.reslice(coords)
     assert out.shape == (4, 5)
     assert out.axes == ["t", "s"]
+
+def test_pathprops():
+    img = ip.zeros((4, 10, 12, 14), axes="tzyx")
+    
+    # 2-D
+    coords = [
+        np.array([[2, 2], [3.4, 4.2], [7.5, 8.7]]),
+        np.array([[1, 2.1], [5.4, 3.2]]),
+    ]
+    
+    out = img.pathprops(coords, [np.mean, np.std])
+    assert len(out) == 2
+    out["mean"].shape == (2, 4, 10)
+    out["std"].shape == (2, 4, 10)
+    
+    # 3-D
+    coords = [
+        np.array([[1.2, 2, 2], [1.4, 3.4, 4.2], [5.5, 7.5, 8.7]]),
+        np.array([[3.4, 1, 2.1], [3, 5.4, 3.2]]),
+    ]
+    
+    out = img.pathprops(coords, [np.mean, np.std])
+    assert len(out) == 2
+    out["mean"].shape == (2, 10)
+    out["std"].shape == (2, 10)

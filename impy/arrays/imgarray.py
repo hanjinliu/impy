@@ -121,6 +121,7 @@ class ImgArray(LabeledArray):
         mode: str = "constant",
         cval: float = 0,
         order: int = 3,
+        prefilter: bool | None = None,
         dims: Dims = None,
     ):
         """
@@ -139,22 +140,23 @@ class ImgArray(LabeledArray):
         ImgArray
             Transformed image.
         """
-        ndim = len(dims)
         coords = xp.asarray(coordinates)
         c_axes = complement_axes(dims, self.axes)
         
-        if coords.ndim == ndim + 1:
+        if coords.ndim != 2:
             drop_axis = []
         else:
             drop_axis = [self.axisof(a) for a in dims[:-1]]
         
+        if prefilter is None:
+            prefilter = order > 1
         out = self._apply_dask(
             xp.ndi.map_coordinates,
             c_axes,
             dtype=self.dtype,
             drop_axis=drop_axis,
             args=(coords,),
-            kwargs=dict(mode=mode, cval=cval, order=order, prefilter=order>1),
+            kwargs=dict(mode=mode, cval=cval, order=order, prefilter=prefilter),
         )
         
         if coords.ndim == len(dims) + 1:
@@ -3699,73 +3701,6 @@ class ImgArray(LabeledArray):
         return out
     
     @_docs.write_docs
-    @check_input_and_output
-    def lineprops(
-        self,
-        src: Coords,
-        dst: Coords,
-        func: str | Callable[[np.ndarray], float] = "mean", 
-        *, 
-        order: int = 1,
-        squeeze: bool = True
-    ) -> PropArray:
-        """
-        Measure line property using func(line_scan).
-
-        Parameters
-        ----------
-        src : MarkerFrame or array-like
-            Source coordinates.
-        dst : MarkerFrame of array-like
-            Destination coordinates.
-        func : str or callable, default is "mean".
-            Measurement function.
-        {order}
-        squeeze : bool, default is True.
-            If True and only one line is measured, the redundant dimension ID_AXIS will be deleted.
-
-        Returns
-        -------
-        PropArray
-            Line properties.
-
-        Examples
-        --------
-        Time-course measurement of intensities on lines.
-            >>> pr = img.lineprops([[2,3], [8,9]], [[32,85], [66,73]])
-            >>> pr.plot()
-        """        
-        func = _check_function(func)
-        src = _check_coordinates(src, self)
-        dst = _check_coordinates(dst, self)
-        
-        if src.shape != dst.shape:
-            raise ValueError(f"Shape mismatch between `src` and `dst`: {src.shape} and {dst.shape}")
-        
-        l = src.shape[0]
-        prop_axes = complement_axes(src.col_axes, self.axes)
-        shape = self.sizesof(prop_axes)
-        
-        out = PropArray(
-            np.empty((l,)+shape, dtype=np.float32),
-            name=self.name, 
-            axes=[Const["ID_AXIS"]]+prop_axes,
-            source=self.source,
-            propname = f"lineprops<{func.__name__}>", 
-            dtype=np.float32,
-        )
-        
-        for i, (s, d) in enumerate(zip(src.values, dst.values)):
-            resliced = self.reslice(s, d, order=order)
-            out[i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
-        
-        if l == 1 and squeeze:
-            out = out[0]
-        
-        return out
-    
-    
-    @_docs.write_docs
     def reslice(
         self,
         a: ArrayLike,
@@ -3820,16 +3755,8 @@ class ImgArray(LabeledArray):
         else:
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
-        if prefilter is None:
-            prefilter = order > 1
-        
-        result = self.as_float()._apply_dask(
-            ndi.map_coordinates, 
-            c_axes=c_axes, 
-            dtype=self.dtype,
-            drop_axis=self.ndim - np.arange(ndim - 1) - 1,
-            args=(coords,),
-            kwargs=dict(prefilter=prefilter, order=order)
+        result = self.map_coordinates(
+            coords, order=order, prefilter=prefilter, dims=dims
         )
         
         new_axis = "s"
@@ -3868,20 +3795,22 @@ class ImgArray(LabeledArray):
         Examples
         --------
         1. Time-course measurement of intensities on a path.
-            >>> img.pathprops([[2,3], [102, 301], [200,400]])
+            >>> img.pathprops([[2, 3], [102, 301], [200, 400]])
         """        
         id_axis = Const["ID_AXIS"]
-        from ..frame import PathFrame
         
-        # check path
-        if not isinstance(paths, PathFrame):
-            if hasattr(paths, "__array__"):
-                paths = np.asarray(paths)
-            else:
-                paths = np.concatenate([np.asarray(path) for path in paths], axis=0)
-            paths = np.hstack([np.zeros((paths.shape[0], 1)), paths])
-            paths = PathFrame(paths, columns=id_axis+str(self.axes)[-paths.shape[1]+1:])
-            
+        # normalize paths
+        if type(paths).__name__ == "PathFrame":
+            paths = [np.asarray(path) for path in paths.split(id_axis)]
+        elif _count_list_depth(paths) == 2:
+            paths = [np.asarray(paths)]
+        else:
+            paths = [np.asarray(path) for path in paths]
+        
+        ndim = paths[0].shape[1]
+        npaths = len(paths)
+        dims = ["z", "y", "x"][-ndim:]
+        
         # make a function dictionary
         funcdict = dict()
         if isinstance(properties, str) or callable(properties):
@@ -3894,25 +3823,26 @@ class ImgArray(LabeledArray):
             else:
                 raise TypeError(f"Cannot interpret property {f}")
         
-        # prepare output
-        l = len(paths[id_axis].unique())
-        prop_axes = complement_axes(paths._axes, [id_axis] + self.axes)
-        shape = self.sizesof(prop_axes)
-        
+        c_axes = complement_axes(dims, self.axes)
+        out_shape = tuple(self.sizeof(a) for a in c_axes)
         out = DataDict(
             {k: PropArray(
-                np.empty((l,)+shape, dtype=np.float32), 
-                name=self.name+"-prop", 
-                axes=[id_axis]+prop_axes,
-                source=self.source,
-                propname = f"lineprops<{k}>", dtype=np.float32
+                    np.empty((npaths,) + out_shape, dtype=np.float32), 
+                    name=self.name, 
+                    axes=[id_axis] + c_axes,
+                    source=self.source,
+                    propname = f"pathprops<{k}>", 
+                    dtype=np.float32
                 )
                 for k in funcdict.keys()
             }
         )
         
-        for i, path in enumerate(paths.split(id_axis)):
-            resliced = self.reslice(path, order=order)
+        if order > 1:
+            self = self.spline_filter(order=order)
+        
+        for i, path in enumerate(paths):
+            resliced = self.reslice(path, order=order, prefilter=False)
             for name, func in funcdict.items():
                 out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
                 
@@ -4807,6 +4737,18 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
         
     n = stop - start
     return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]
+
+def _count_list_depth(x) -> int:
+    n = 0
+    out = x
+    while True:
+        try:
+            out = out[0]
+        except IndexError:
+            break
+        else:
+            n += 1
+    return n
 
 class SegmentedLine:
     def __init__(self, nodes: np.ndarray):
