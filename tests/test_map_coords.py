@@ -30,17 +30,21 @@ def test_map_coordinates():
 def test_multi_map_coordinates():
     img = ip.arange(120 * 21, dtype=ip.float32).reshape(3, 7, 10, 12, axes="ctyx")
     
-    coords = ip.random.random((2, 4, 4), axes="duv") * 10
+    coords = ip.random.random((2, 4, 5), axes="duv") * 10
     
     out = img.map_coordinates(coords)
     assert out.axes == ["c", "t", "u", "v"]
+    assert out.shape == (3, 7, 4, 5)
     
     out = img.map_coordinates(coords.value)
     assert out.axes == ["c", "t", "y", "x"]
+    assert out.shape == (3, 7, 4, 5)
     
-    coords = ip.random.random((2, 7), axes="dv") * 10
+    coords = ip.random.random((2, 6), axes="dv") * 10
     out = img.map_coordinates(coords)
     assert out.axes == ["c", "t", "v"]
+    assert out.shape == (3, 7, 6)
     
     out = img.map_coordinates(coords.value)
     assert out.axes == ["c", "t", "#"]
+    assert out.shape == (3, 7, 6)

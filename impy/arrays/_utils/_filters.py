@@ -1,3 +1,4 @@
+from typing import Callable
 import numpy as np
 from ._skimage import *
 from ._linalg import hessian_eigval
@@ -18,6 +19,7 @@ __all__ = ["binary_erosion",
            "convolve",
            "white_tophat",
            "gaussian_laplace",
+           "spline_filter",
            "kalman_filter",
            "fill_hole",
            "mean_filter",
@@ -32,7 +34,7 @@ __all__ = ["binary_erosion",
            "ncc_filter",
            ]
 
-def get_func(function_name):
+def get_func(function_name) -> Callable[..., np.ndarray]:
     def func(*args, **kwargs):
         _f = getattr(xp.ndi, function_name, getattr(scipy_ndi, function_name))
         return cupy_dispatcher(_f)(*args, **kwargs)
@@ -49,10 +51,10 @@ binary_closing = get_func("binary_closing")
 closing = get_func("grey_closing")
 gaussian_filter = get_func("gaussian_filter")
 median_filter = get_func("median_filter")
+spline_filter = get_func("spline_filter")
 convolve = get_func("convolve")
 white_tophat = get_func("white_tophat")
 gaussian_laplace = get_func("gaussian_laplace")
-
 
 def kalman_filter(img_stack, gain, noise_var):
     # data is 3D or 4D

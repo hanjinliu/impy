@@ -396,7 +396,7 @@ class MetaArray(AxesMixin, np.ndarray):
                     
             slice_in = tuple(slice_in)
             slice_out = tuple(slice_out)
-            
+
             all_args = (self.value,) + args
             img_idx = []
             _args = []

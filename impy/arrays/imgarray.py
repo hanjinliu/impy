@@ -142,19 +142,20 @@ class ImgArray(LabeledArray):
         ndim = len(dims)
         coords = xp.asarray(coordinates)
         c_axes = complement_axes(dims, self.axes)
-        out = np.empty(self.sizesof(c_axes) + coords.shape[1:], dtype=np.float32)
-
-        for sl, img in self.iter(c_axes):
-            out[sl[:-ndim]] = xp.asnumpy(
-                xp.ndi.map_coordinates(
-                    xp.asarray(img), 
-                    coords, 
-                    mode=mode,
-                    cval=cval,
-                    order=order,
-                    prefilter=order>1,
-                )
-            )
+        
+        if coords.ndim == ndim + 1:
+            drop_axis = []
+        else:
+            drop_axis = [self.axisof(a) for a in dims[:-1]]
+        
+        out = self._apply_dask(
+            xp.ndi.map_coordinates,
+            c_axes,
+            dtype=self.dtype,
+            drop_axis=drop_axis,
+            args=(coords,),
+            kwargs=dict(mode=mode, cval=cval, order=order, prefilter=order>1),
+        )
         
         if coords.ndim == len(dims) + 1:
             if isinstance(coordinates, MetaArray):
@@ -299,7 +300,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Rescaled image.
         """        
-        outshape = switch_slice(dims, self.axes, ifin=np.array(self.shape)*scale, ifnot=self.shape)
+        outshape = switch_slice(
+            dims, self.axes, ifin=np.array(self.shape)*scale, ifnot=self.shape
+        )
         gb = np.prod(outshape) * 4/1e9
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {gb} GB")
@@ -379,21 +382,25 @@ class ImgArray(LabeledArray):
         dims: Dims = None
     ) -> PropArray:
         """
-        Calculate radial profile of images. Scale along each axis will be considered, i.e., rather 
-        ellipsoidal profile will be calculated instead if scales are different between axes.
+        Calculate radial profile of images. Scale along each axis will be considered, 
+        i.e., rather ellipsoidal profile will be calculated instead if scales are
+        different between axes.
 
         Parameters
         ----------
         nbin : int, default is 32
             Number of bins.
         center : iterable of float, optional
-            The coordinate of center of radial profile. By default, the center of image is used.
+            The coordinate of center of radial profile. By default, the center of image
+            is used.
         r_max : float, optional
-            Maximum radius to make profile. Region 0 <= r < r_max will be split into ``nbin`` rings
-            (or shells). **Scale must be considered** because scales of each axis may vary.
+            Maximum radius to make profile. Region 0 <= r < r_max will be split into 
+            ``nbin`` rings (or shells). **Scale must be considered** because scales of 
+            each axis may vary.
         method : str, default is "mean"
-            Reduce function. Basic statistics functions are supported in ``scipy.ndimage`` but their
-            names are not consistent with those in `numpy`. Use `numpy`'s names here.
+            Reduce function. Basic statistics functions are supported in ``scipy.ndimage``
+            but their names are not consistent with those in `numpy`. Use `numpy`'s names
+            here.
         {dims}
 
         Returns
@@ -570,7 +577,7 @@ class ImgArray(LabeledArray):
         Examples
         --------
         Extract filament
-            >>> eig = -img.hessian_eigval()["l=0"]
+            >>> eig = -img.hessian_eigval()[ip.slicer.base[0]]
             >>> eig[eig<0] = 0
         """        
         ndim = len(dims)
@@ -1572,12 +1579,12 @@ class ImgArray(LabeledArray):
         else:
             mask = self.value
                     
-        return self._apply_dask(_filters.fill_hole, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               args=(mask,),
-                               dtype=self.dtype
-                               )
-    
+        return self._apply_dask(
+            _filters.fill_hole, 
+            c_axes=complement_axes(dims, self.axes), 
+            args=(mask,),
+            dtype=self.dtype
+        )
 
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1689,6 +1696,24 @@ class ImgArray(LabeledArray):
             _filters.gaussian_laplace,
             c_axes=complement_axes(dims, self.axes), 
             args=(sigma,)
+        )
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def spline_filter(
+        self,
+        order: int = 3,
+        mode="mirror", 
+        *,
+        dims: Dims = None,
+        update: bool = False,
+    ):
+        return self._apply_dask(
+            _filters.spline_filter,
+            c_axes=complement_axes(dims, self.axes), 
+            args=(order, np.float32, mode),
         )
     
     @_docs.write_docs
@@ -3741,12 +3766,19 @@ class ImgArray(LabeledArray):
     
     
     @_docs.write_docs
-    @check_input_and_output
-    def reslice(self, a, b=None, *, order: int = 1) -> PropArray:
+    def reslice(
+        self,
+        a: ArrayLike,
+        b=None,
+        *,
+        order: int = 3,
+        prefilter: bool | None = None,
+    ) -> PropArray:
         """
-        Measure line profile (kymograph) iteratively for every slice of image. This function is almost 
-        same as `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is 
-        not implemented here because it is useless.
+        Measure line profile (kymograph) iteratively for every slice of image. This 
+        function is almost same as `skimage.measure.profile_line`, but can reslice
+        3D-images. The argument `linewidth` is not implemented here because it is
+        useless.
 
         Parameters
         ----------
@@ -3779,41 +3811,40 @@ class ImgArray(LabeledArray):
         if b is not None:
             a = [list(a), list(b)]
         a = np.asarray(a, dtype=np.float32)
-        npoints, ndim = a.shape
-        coords = _sample_on_path(a)
-        coords = coords[(slice(None),)+(np.newaxis,)*(ndim-1)]
+        _, ndim = a.shape
+        seg = SegmentedLine(a)
+        coords = seg.sample_points().T
         
         if ndim == self.ndim:
             dims = self.axes
         else:
             dims = complement_axes("c", self.axes)[-ndim:]
         c_axes = complement_axes(dims, self.axes)
+        if prefilter is None:
+            prefilter = order > 1
         
         result = self.as_float()._apply_dask(
             ndi.map_coordinates, 
             c_axes=c_axes, 
             dtype=self.dtype,
-            drop_axis=-1,
+            drop_axis=self.ndim - np.arange(ndim - 1) - 1,
             args=(coords,),
-            kwargs=dict(prefilter=order>1, order=order)
+            kwargs=dict(prefilter=prefilter, order=order)
         )
         
-        sl = [slice(None)] * result.ndim
-        for a in dims[:-1]:
-            i = self.axisof(a)
-            sl[i] = 0
-        
-        out = PropArray(result[tuple(sl)], name=self.name, dtype=np.float32,
-                        axes=c_axes+dims[-1], propname="reslice")
+        new_axis = "s"
+        out = PropArray(result, name=self.name, dtype=np.float32,
+                        axes=c_axes+[new_axis], propname="reslice")
         
         out.set_scale(self)
+        out.set_scale({new_axis: self.scale[dims[-1]] * seg.interv})
         return out
     
     @_docs.write_docs
     @check_input_and_output
     def pathprops(
         self,
-        paths: PathFrame | ArrayLike,
+        paths: PathFrame | ArrayLike | Sequence[ArrayLike],
         properties: str | Callable | Iterable[str | Callable] = "mean", 
         *, 
         order: int = 1,
@@ -3844,8 +3875,11 @@ class ImgArray(LabeledArray):
         
         # check path
         if not isinstance(paths, PathFrame):
-            paths = np.asarray(paths)
-            paths = np.hstack([np.zeros((paths.shape[0],1)), paths])
+            if hasattr(paths, "__array__"):
+                paths = np.asarray(paths)
+            else:
+                paths = np.concatenate([np.asarray(path) for path in paths], axis=0)
+            paths = np.hstack([np.zeros((paths.shape[0], 1)), paths])
             paths = PathFrame(paths, columns=id_axis+str(self.axes)[-paths.shape[1]+1:])
             
         # make a function dictionary
@@ -3865,12 +3899,13 @@ class ImgArray(LabeledArray):
         prop_axes = complement_axes(paths._axes, [id_axis] + self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = DataDict({k: PropArray(
-                    np.empty((l,)+shape, dtype=np.float32), 
-                    name=self.name+"-prop", 
-                    axes=[id_axis]+prop_axes,
-                    source=self.source,
-                    propname = f"lineprops<{k}>", dtype=np.float32
+        out = DataDict(
+            {k: PropArray(
+                np.empty((l,)+shape, dtype=np.float32), 
+                name=self.name+"-prop", 
+                axes=[id_axis]+prop_axes,
+                source=self.source,
+                propname = f"lineprops<{k}>", dtype=np.float32
                 )
                 for k in funcdict.keys()
             }
@@ -3935,8 +3970,8 @@ class ImgArray(LabeledArray):
                 axes=[id_axis]+prop_axes,
                 source=self.source,
                 propname=p
-            )
-            for p in properties
+                )
+                for p in properties
             })
         
         # calculate property value for each slice
@@ -4773,22 +4808,36 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
     n = stop - start
     return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]
 
-def _sample_on_path(a: np.ndarray) -> np.ndarray:
-    if a.shape[0] < 2:
-        raise ValueError("More than one points must be given.")
-    vec = np.diff(a, axis=0)
-    dist = np.sqrt(np.sum(vec**2, axis=1))
-    res = 0
-    out = [a[0:1]]
-    dist_sum = np.sum(dist)
-    npoints = int(dist_sum)
-    interv = dist_sum / npoints
-    for v, d, p in zip(vec, dist, a[:-1]):
-        res0 = res
-        d_int, res = divmod(d + res, interv)
-        idx = interv*(np.arange(d_int) + 1) - res0
-        xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
-        out.append(xs)
-    if len(out) <= npoints:
-        out.append(a[-1:])
-    return np.concatenate(out, axis=0)
+class SegmentedLine:
+    def __init__(self, nodes: np.ndarray):
+        if nodes.shape[0] < 2:
+            raise ValueError("More than one points must be given.")
+        
+        vec = np.diff(nodes, axis=0)
+        dist = np.sqrt(np.sum(vec**2, axis=1))
+        dist_sum = np.sum(dist)
+        npoints = int(dist_sum)
+        interv = dist_sum / npoints
+        
+        self.length = dist_sum
+        self.vec = vec
+        self.dist = dist
+        self.nodes = nodes
+        self.interv = interv
+    
+    def sample_points(self) -> np.ndarray:
+        res = 0
+        out = [self.nodes[0:1]]
+        npoints = 1
+        for v, d, p in zip(self.vec, self.dist, self.nodes[:-1]):
+            res0 = res
+            d_int, res = divmod(d + res, self.interv)
+            idx = self.interv*(np.arange(d_int) + 1) - res0
+            xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
+            out.append(xs)
+            npoints += xs.shape[0]
+        
+        if npoints <= int(self.length):
+            out.append(self.nodes[-1:])
+        
+        return np.concatenate(out, axis=0)
