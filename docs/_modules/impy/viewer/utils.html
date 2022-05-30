@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer.utils &mdash; impy 2.0.1 documentation</title>
+  <title>impy.viewer.utils &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.1
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -80,7 +80,7 @@
 <span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">imread</span><span class="p">,</span> <span class="n">lazy_imread</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">TrackFrame</span><span class="p">,</span> <span class="n">PathFrame</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">TrackFrame</span><span class="p">,</span> <span class="n">PathFrame</span><span class="p">,</span> <span class="n">AxesFrame</span>
     <span class="kn">from</span> <span class="nn">napari.layers</span> <span class="kn">import</span> <span class="n">Shapes</span>
 
 
@@ -135,7 +135,7 @@
 <div class="viewcode-block" id="make_world_scale"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.make_world_scale">[docs]</a><span class="k">def</span> <span class="nf">make_world_scale</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
     <span class="n">scale</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">_axes</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="s2">&quot;zyx&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]:</span>
             <span class="n">scale</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="n">a</span><span class="p">])</span>
         <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
             <span class="k">pass</span>
@@ -200,7 +200,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">viewer</span><span class="o">.</span><span class="n">scale_bar</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">scale_unit</span>
         
-    <span class="n">new_axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;c&quot;</span><span class="p">]</span>
+    <span class="n">new_axes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;c&quot;</span><span class="p">]</span>
     <span class="c1"># add axis labels to slide bars and image orientation.</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_axes</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">):</span>
         <span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span> <span class="o">=</span> <span class="n">new_axes</span>
@@ -241,14 +241,6 @@
     <span class="n">chn_ax</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">else</span> <span class="kc">None</span>
                 
     <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
-    
-    <span class="k">if</span> <span class="s2">&quot;contrast_limits&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="c1"># contrast limits should be determined quickly.</span>
-        <span class="n">leny</span><span class="p">,</span> <span class="n">lenx</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">::</span><span class="n">leny</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">leny</span><span class="p">),</span> <span class="p">::</span><span class="n">lenx</span><span class="o">//</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">lenx</span><span class="p">)]</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;contrast_limits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">()),</span> 
-                                     <span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">())]</span>
-
     <span class="n">name</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">name</span>
 
     <span class="k">if</span> <span class="n">chn_ax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -259,13 +251,13 @@
     <span class="n">layer</span> <span class="o">=</span> <span class="n">viewer</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">channel_axis</span><span class="o">=</span><span class="n">chn_ax</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> 
                              <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span> <span class="k">else</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">scale_bar</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">scale_unit</span>
-    <span class="n">new_axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;c&quot;</span><span class="p">]</span>
+    <span class="n">new_axes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;c&quot;</span><span class="p">]</span>
     <span class="c1"># add axis labels to slide bars and image orientation.</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_axes</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">):</span>
         <span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span> <span class="o">=</span> <span class="n">new_axes</span>
     <span class="k">return</span> <span class="n">layer</span></div>
 
-<div class="viewcode-block" id="add_points"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.add_points">[docs]</a><span class="k">def</span> <span class="nf">add_points</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="add_points"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.add_points">[docs]</a><span class="k">def</span> <span class="nf">add_points</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">:</span> <span class="n">AxesFrame</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">MarkerFrame</span><span class="p">):</span>
         <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
@@ -282,7 +274,7 @@
         <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;axes&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">each</span><span class="o">.</span><span class="n">_axes</span><span class="p">),</span> <span class="s2">&quot;scale&quot;</span><span class="p">:</span> <span class="n">each</span><span class="o">.</span><span class="n">scale</span><span class="p">}</span>
         <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">size</span><span class="o">=</span><span class="mf">3.2</span><span class="p">,</span>
-            <span class="n">face_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">face_color</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
             <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
@@ -314,7 +306,7 @@
     <span class="n">scale</span> <span class="o">=</span> <span class="n">make_world_scale</span><span class="p">(</span>
         <span class="n">paths</span><span class="p">[[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">paths</span><span class="o">.</span><span class="n">_axes</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;ID_AXIS&quot;</span><span class="p">]]]</span>
     <span class="p">)</span>
-    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;edge_color&quot;</span><span class="p">:</span><span class="s2">&quot;lime&quot;</span><span class="p">,</span> <span class="s2">&quot;edge_width&quot;</span><span class="p">:</span><span class="mf">0.3</span><span class="p">,</span> <span class="s2">&quot;shape_type&quot;</span><span class="p">:</span><span class="s2">&quot;path&quot;</span><span class="p">}</span>
+    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;edge_color&quot;</span><span class="p">:</span> <span class="s2">&quot;lime&quot;</span><span class="p">,</span> <span class="s2">&quot;edge_width&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s2">&quot;shape_type&quot;</span><span class="p">:</span> <span class="s2">&quot;path&quot;</span><span class="p">}</span>
     <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">path_list</span><span class="p">:</span>

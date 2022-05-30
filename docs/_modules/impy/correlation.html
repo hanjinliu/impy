@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.correlation &mdash; impy 2.0.0.alpha documentation</title>
+  <title>impy.correlation &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0.alpha
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -174,8 +174,7 @@
 <span class="k">def</span> <span class="nf">_ncc</span><span class="p">(</span><span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span><span class="p">):</span>
     <span class="c1"># Basic Normalized Cross Correlation with batch processing</span>
     <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">sizesof</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">dims</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">)</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">)</span>
     <span class="n">img0</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img0</span><span class="p">)</span>
     <span class="n">img1</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img1</span><span class="p">)</span>
     <span class="n">corr</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">img0</span> <span class="o">*</span> <span class="n">img1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>

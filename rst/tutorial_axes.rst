@@ -2,6 +2,10 @@
 Axes in impy
 ============
 
+.. contents:: Contents of Tutorial
+    :local:
+    :depth: 2
+
 Basics
 ======
 
@@ -147,7 +151,124 @@ Slicing and Formatting
 
 Axes object is very useful in slicing multi-dimensional arrays.
 
+Axis-targeted slicing
+^^^^^^^^^^^^^^^^^^^^^
+
+As shown in tutorial, the easiest way to slice an array is to use axis axis-targeted slicing.
+
+.. code-block:: python
+
+    img["t=1"]
+    img["t=3:5"]
+
+This slicing method, however, ignores Python type-checking a little bit since you'll not notice
+any wrong slicing grammar in the string until you run the code.
+
+``impy`` also support a ``Slicer`` object for safer axis-targeted slicing.
+
+.. code-block:: python
+
+    ip.slicer.t[2].x[4:6]
+
+.. code-block::
+    
+    Slicer of 
+        t ==> 2
+        x ==> 4:6
+
+A ``Slicer`` object can be used for indexing an axis-implemented array.
+
+.. code-block:: python
+
+    img[ip.slicer.t[1]]  # equivalent to img["t=1"]
+    img[ip.slicer.t[3:5]]  # equivalent to img["t=3:5"]
+    img[ip.slicer.t[2, 4, 6]]  # equivalent to img["t=2,4,6"]
+    img[ip.slicer.t[2].x[4]]  # equivalent to img["t=1;x=4"]
+
+Slice Formatting
+^^^^^^^^^^^^^^^^
+
+Sometimes you would slice many times at the same axes.
+
+.. code-block:: python
+
+    img[ip.slicer.z[0].t[2]].gaussian_filter(1.0)
+    img[ip.slicer.z[1].t[1]].gaussian_filter(1.5)
+    img[ip.slicer.z[2].t[0]].gaussian_filter(1.0)
+
+In this case, you can format slices using ``get_formatter`` method.
+
+.. code-block:: python
+
+    fmt = ip.slicer.get_formatter("zt")
+    fmt
+
+.. code-block::
+
+    SliceFormatter of 
+        z ==> Undefined
+        t ==> Undefined
+
+
+.. code-block:: python
+
+    fmt[0, 2]
+
+.. code-block::
+
+    Slicer of 
+        z ==> 0
+        t ==> 2
+
+Thus, you'll code will be 
+
+.. code-block:: python
+
+    img[fmt[0, 2]].gaussian_filter(1.0)
+    img[fmt[1, 1]].gaussian_filter(1.5)
+    img[fmt[2, 0]].gaussian_filter(1.0)
+
 Broadcasting
 ------------
 
-TODO
+By using axes information, arrays can be broadcasted in a more flexible but strict way.
+
+- Examples
+
+    .. code-block:: python
+
+        img0 = ip.random.random((12, 10, 14), axes="zyx")
+        img1 = ip.random.random((12, 14), axes="zx") 
+        
+        np.asarray(img0) + np.asarray(img1)  # ValueError
+        img0 + img1  # OK!
+
+    .. code-block:: python
+
+        img = ip.random.random((12, 12, 12), axes="tyx")
+        img0 = np.mean(img, axis="y")  # axes: 't', 'x'
+        img1 = np.mean(img, axis="x")  # axes: 't', 'y'
+        np.asarray(img0) + np.asarray(img1)  # No error, but they should not be added!
+        img0 + img1  # Error!
+
+``impy`` also has a ``broadcast_arrays`` function for broadcasting arrays as flexible as
+possible.
+
+- Examples
+
+    .. code-block:: python
+
+        x = ip.arange(10, axes="x")
+        y = ip.arange(8, axes="y")
+        out = ip.broadcast_arrays(y, x)
+        out[0].shape  # AxesShape(y=8, x=10)
+        out[1].shape  # AxesShape(y=8, x=10)
+    
+    
+    .. code-block:: python
+
+        x = ip.random.random((5, 6, 7), axes="tzx")
+        y = ip.random.random((4, 5, 7), axes="ntx")
+        out = ip.broadcast_arrays(y, x)
+        out[0].shape  # AxesShape(n=4, t=5, z=6, x=7)
+        out[1].shape  # AxesShape(n=4, t=5, z=6, x=7)

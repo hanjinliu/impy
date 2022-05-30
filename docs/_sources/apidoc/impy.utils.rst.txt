@@ -28,14 +28,6 @@ impy.utils.gauss module
    :undoc-members:
    :show-inheritance:
 
-impy.utils.io module
---------------------
-
-.. automodule:: impy.utils.io
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 impy.utils.misc module
 ----------------------
 

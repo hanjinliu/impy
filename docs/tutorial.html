@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorial &mdash; impy 2.0.1 documentation</title>
+  <title>Tutorial &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -19,7 +19,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Command Line Usage" href="tutorial_cmd.html" />
-    <link rel="prev" title="Welcome to impy’s documentation!" href="index.html" /> 
+    <link rel="prev" title="impy" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.1
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -131,19 +131,19 @@ that minimize your effort of image processing.</p>
  <span class="n">label</span> <span class="n">shape</span>   <span class="p">:</span> <span class="n">No</span> <span class="n">label</span>
     <span class="n">dtype</span>      <span class="p">:</span> <span class="n">uint16</span>
     <span class="n">source</span>     <span class="p">:</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">image</span><span class="o">.</span><span class="n">tif</span>
-    <span class="n">scale</span>      <span class="p">:</span> <span class="n">ScaleDict</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.217</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.217</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.217</span><span class="p">)</span>
+    <span class="n">scale</span>      <span class="p">:</span> <span class="n">ScaleView</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.217</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.217</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.217</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Here, you can see</p>
 <ul class="simple">
 <li><p>each dimension is labeled with a symbol (t, z, y and x).</p></li>
-<li><p>Physical scale is tagged to the object as a <code class="docutils literal notranslate"><span class="pre">ScaleDict</span></code>, a subclass of Python <code class="docutils literal notranslate"><span class="pre">dict</span></code>.</p></li>
+<li><p>Physical scale is tagged to the object as a <code class="docutils literal notranslate"><span class="pre">ScaleView</span></code>, a subclass of Python <code class="docutils literal notranslate"><span class="pre">dict</span></code>.</p></li>
 <li><p>the source file is recorded.</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code>’s <code class="docutils literal notranslate"><span class="pre">imread</span></code> function can extract metadata (such as axes) from image files and “memorize” them
 as additional properties of array objects.</p>
 <p>You can refer to the properties by:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>       <span class="c1"># Out: &quot;tzyx&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>       <span class="c1"># Out: Axes[&#39;t&#39;, &#39;z&#39;, &#39;y&#39;, &#39;x&#39;]</span>
 <span class="n">img</span><span class="o">.</span><span class="n">source</span>     <span class="c1"># Out: such as WindowsPath(&quot;path/to/image.tif&quot;)</span>
 <span class="n">img</span><span class="o">.</span><span class="n">name</span>       <span class="c1"># Out: &quot;image.tif&quot;</span>
 <span class="n">img</span><span class="o">.</span><span class="n">scale</span>      <span class="c1"># Out: ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)</span>
@@ -175,6 +175,13 @@ Python <code class="docutils literal notranslate"><span class="pre">tuple</span>
 </pre></div>
 </div>
 <p>Here, you can get the size of z-axis by <code class="docutils literal notranslate"><span class="pre">img.shape.z</span></code> instead of <code class="docutils literal notranslate"><span class="pre">img.shape[1]</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can also use <code class="docutils literal notranslate"><span class="pre">dict</span></code> for slicing.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[{</span><span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}]</span>  <span class="c1"># identical to img[&quot;y=3;x=4:10&quot;]</span>
+</pre></div>
+</div>
+</div>
 </section>
 <section id="batch-processing">
 <h2><a class="toc-backref" href="#id3">Batch Processing</a><a class="headerlink" href="#batch-processing" title="Permalink to this headline">¶</a></h2>
@@ -329,7 +336,7 @@ are also implemented in <code class="docutils literal notranslate"><span class="
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to impy’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="impy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="tutorial_cmd.html" class="btn btn-neutral float-right" title="Command Line Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

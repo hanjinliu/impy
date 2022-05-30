@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 2.0.1 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.1
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -77,7 +77,7 @@
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">TypeVar</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
 
@@ -88,9 +88,9 @@
 <span class="kn">from</span> <span class="nn">.label</span> <span class="kn">import</span> <span class="n">Label</span>
 
 <span class="kn">from</span> <span class="nn">..utils.misc</span> <span class="kn">import</span> <span class="n">check_nd</span><span class="p">,</span> <span class="n">largest_zeros</span>
-<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span><span class="p">,</span> <span class="n">del_axis</span><span class="p">,</span> <span class="n">axes_included</span>
+<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span>
 <span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">check_input_and_output</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span>
-<span class="kn">from</span> <span class="nn">..utils.io</span> <span class="kn">import</span> <span class="n">IO</span>
+<span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="n">imsave</span>
 
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataList</span>
 <span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span>
@@ -98,7 +98,6 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
-
 
 <div class="viewcode-block" id="LabeledArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray">[docs]</a><span class="k">class</span> <span class="nc">LabeledArray</span><span class="p">(</span><span class="n">MetaArray</span><span class="p">):</span>
     <span class="n">_name</span><span class="p">:</span> <span class="nb">str</span>
@@ -110,7 +109,7 @@
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LabeledArray</span><span class="p">],</span> 
         <span class="n">obj</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">axes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
         <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -227,7 +226,7 @@
             <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
             
         <span class="c1"># save image</span>
-        <span class="n">IO</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">imsave</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="kc">None</span></div>
     
@@ -241,7 +240,7 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_view_labels</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
     
-    <span class="k">def</span> <span class="nf">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;inherit&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="o">.</span><span class="n">_INHERIT</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_labels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
@@ -251,7 +250,7 @@
         <span class="sd">&quot;&quot;&quot;Make a view of label **if possible**.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="n">other</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-            <span class="n">axes_included</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> <span class="ow">and</span>
             <span class="n">_shape_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
         <span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">other</span><span class="p">:</span>
@@ -698,91 +697,6 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">specify</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">labeltype</span><span class="o">=</span><span class="n">labeltype</span><span class="p">)</span>     
         
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
-       
-<div class="viewcode-block" id="LabeledArray.reslice"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.reslice">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-    <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">reslice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Measure line profile (kymograph) iteratively for every slice of image. This function is almost </span>
-<span class="sd">        same as `skimage.measure.profile_line`, but can reslice 3D-images. The argument `linewidth` is </span>
-<span class="sd">        not implemented here because it is useless.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        a : array-like</span>
-<span class="sd">            Path or source coordinate. If the former, it must be like:</span>
-<span class="sd">            `a = [[y0, x0], [y1, x1], ..., [yn, xn]]`</span>
-<span class="sd">        b : array-like, optional</span>
-<span class="sd">            Destination coordinate. If specified, `a` must be the source coordinate.</span>
-<span class="sd">        {order}</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        PropArray</span>
-<span class="sd">            Line scans.</span>
-<span class="sd">        </span>
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        1. Rescile along a line and fit to a model function for every time frame.</span>
-<span class="sd">        </span>
-<span class="sd">            &gt;&gt;&gt; scan = img.reslice([18, 32], [53, 48])</span>
-<span class="sd">            &gt;&gt;&gt; out = scan.curve_fit(func, init, return_fit=True)</span>
-<span class="sd">            &gt;&gt;&gt; plt.plot(scan[0])</span>
-<span class="sd">            &gt;&gt;&gt; plt.plot(out.fit[0])</span>
-<span class="sd">            </span>
-<span class="sd">        2. Rescile along a path.</span>
-<span class="sd">        </span>
-<span class="sd">            &gt;&gt;&gt; scan = img.reslice([[18,32], [53,48], [22,45], [28, 32]])</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="c1"># path = [[y1, x1],[y2, x2], ..., [yn, xn]]</span>
-        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">)]</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">npoints</span><span class="p">,</span> <span class="n">ndim</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span>
-        
-        <span class="k">if</span> <span class="n">npoints</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Insufficient number of points for a path.&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">npoints</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">src</span><span class="p">,</span> <span class="n">dst</span> <span class="o">=</span> <span class="n">a</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">dst</span> <span class="o">-</span> <span class="n">src</span>
-            <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-            <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">src_</span><span class="p">,</span> <span class="n">dst_</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span> <span class="k">for</span> <span class="n">src_</span><span class="p">,</span> <span class="n">dst_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)])</span>
-        <span class="k">else</span><span class="p">:</span>    
-            <span class="kn">from</span> <span class="nn">._utils._process_numba</span> <span class="kn">import</span> <span class="n">_get_coordinate</span>
-            
-            <span class="n">each_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">total_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">each_length</span><span class="p">)</span>
-            
-            <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ndim</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_length</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">_get_coordinate</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
-        
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span><span class="o">+</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,)</span><span class="o">*</span><span class="p">(</span><span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
-        
-        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
-            <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">dims</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:]</span>
-        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
-        
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
-            <span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">,</span> 
-            <span class="n">c_axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">,</span> 
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">drop_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">coords</span><span class="p">,),</span>
-            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">prefilter</span><span class="o">=</span><span class="n">order</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
-        <span class="p">)</span>
-        
-        <span class="n">sl</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span><span class="o">*</span><span class="n">result</span><span class="o">.</span><span class="n">ndim</span>
-        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-            <span class="n">sl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        
-        <span class="n">out</span> <span class="o">=</span> <span class="n">PropArray</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">sl</span><span class="p">)],</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-                        <span class="n">axes</span><span class="o">=</span><span class="n">c_axes</span><span class="o">+</span><span class="n">dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">propname</span><span class="o">=</span><span class="s2">&quot;reslice&quot;</span><span class="p">)</span>
-        
-        <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
     
 <div class="viewcode-block" id="LabeledArray.label"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.label">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
@@ -824,11 +738,9 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_image</span><span class="p">,</span> <span class="n">MetaArray</span><span class="p">):</span>
                 <span class="n">ref_image</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="p">(</span>
                     <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ref_image</span><span class="p">),</span>
-                    <span class="n">axes</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
+                    <span class="n">axes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">is_none</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Axes not defined in `ref_image`.&quot;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="ow">not</span> <span class="n">axes_included</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span>
                     <span class="s2">&quot;Not all the axes in `ref_image` are included in self: &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -924,9 +836,7 @@
                     <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ref_image</span><span class="p">),</span>
                     <span class="n">axes</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">is_none</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Axes not defined in `ref_image`.&quot;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="ow">not</span> <span class="n">axes_included</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span>
                     <span class="s2">&quot;Not all the axes in `ref_image` are included in self: &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -1038,7 +948,7 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Could not infer axes of `label_image`.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">axes</span> <span class="o">=</span> <span class="n">label_image</span><span class="o">.</span><span class="n">axes</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">axes_included</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_image</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">label_image</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;Axes mismatch. Image has </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">-axes but &quot;</span>
                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">axes</span><span class="si">}</span><span class="s2"> was given.&quot;</span>
@@ -1092,7 +1002,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">axisint</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">img</span><span class="p">,</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">imgs</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-                <span class="n">lbl</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">del_axis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">axisint</span><span class="p">)</span>
+                <span class="n">lbl</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">axisint</span><span class="p">)</span>
                 <span class="n">lbl</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
                 <span class="n">img</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">lbl</span>
             
@@ -1328,6 +1238,12 @@
                 <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">yield</span> <span class="n">out</span>
 
+<div class="viewcode-block" id="NotMe"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.NotMe">[docs]</a><span class="k">class</span> <span class="nc">NotMe</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<span class="n">_notme</span> <span class="o">=</span> <span class="n">NotMe</span><span class="p">()</span>
+
 <span class="k">def</span> <span class="nf">_shape_match</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">LabeledArray</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="n">Label</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    e.g.)</span>
@@ -1340,7 +1256,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>    
     <span class="n">img_shape</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">label_shape</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">shape</span>
-    <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">img_shape</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">label_shape</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">label</span><span class="o">.</span><span class="n">axes</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">img_shape</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">_notme</span><span class="p">)</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">label_shape</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">_notme</span><span class="p">)</span>
+         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">label</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
+    <span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_iter_tile_yx</span><span class="p">(</span><span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">imgy</span><span class="p">,</span> <span class="n">imgx</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>

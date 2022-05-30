@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to impy's documentation!
-================================
+impy
+====
 
 ``impy`` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and 
 so on.
@@ -39,6 +39,18 @@ or
 .. code-block:: shell
 
    git clone https://github.com/hanjinliu/impy
+
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorial
+   tutorial_axes
+   tutorial_cmd
+   api
+   
 
 Major Classes
 -------------
@@ -115,17 +127,6 @@ Data Frame
 - ``PathFrame``: ``AxesFrame`` for paths.
 
 
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 1
-
-   tutorial
-   tutorial_cmd
-   api
-   
 
 Indices and tables
 ==================

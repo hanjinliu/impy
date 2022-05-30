@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.phasearray &mdash; impy 2.0.1 documentation</title>
+  <title>impy.arrays.phasearray &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.1
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -69,6 +69,7 @@
              
   <h1>Source code for impy.arrays.phasearray</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_filters</span><span class="p">,</span> <span class="n">_structures</span>
@@ -81,6 +82,10 @@
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_misc</span>
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataDict</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Dims</span>
+<span class="kn">from</span> <span class="nn">..array_api</span> <span class="kn">import</span> <span class="n">xp</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.imgarray</span> <span class="kn">import</span> <span class="n">ImgArray</span>
 
 <span class="k">def</span> <span class="nf">_calc_phase_mean</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">periodicity</span><span class="p">):</span>
     <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">periodicity</span>
@@ -109,55 +114,56 @@
     
     <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__iadd__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__sub__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="k">def</span> <span class="fm">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__isub__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
         
     <span class="k">def</span> <span class="fm">__imul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__imul__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
         
     <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__truediv__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="k">def</span> <span class="fm">__itruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__itruediv__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">periodicity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return the periodicity of current border.&quot;&quot;&quot;</span>
         <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">border</span>
         <span class="k">return</span> <span class="n">b</span> <span class="o">-</span> <span class="n">a</span>
     
-<div class="viewcode-block" id="PhaseArray.fix_border"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.fix_border">[docs]</a>    <span class="k">def</span> <span class="nf">fix_border</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_fix_border</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Considering periodic boundary condition, fix the values by `__mod__` method.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="bp">self</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">border</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">border</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="kc">None</span>
     
 <div class="viewcode-block" id="PhaseArray.set_border"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.set_border">[docs]</a>    <span class="k">def</span> <span class="nf">set_border</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -176,7 +182,7 @@
         <span class="k">if</span> <span class="n">b</span> <span class="o">-</span> <span class="n">a</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;New border does not match current periodicity.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">border</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fix_border</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fix_border</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">None</span></div>
     
 <div class="viewcode-block" id="PhaseArray.deg2rad"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.deg2rad">[docs]</a>    <span class="k">def</span> <span class="nf">deg2rad</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
@@ -353,9 +359,60 @@
         
         <span class="k">for</span> <span class="n">parr</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="n">parr</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div></div>
+        <span class="k">return</span> <span class="n">out</span></div>
 
+<div class="viewcode-block" id="PhaseArray.as_exp"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.as_exp">[docs]</a>    <span class="k">def</span> <span class="nf">as_exp</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
+        <span class="n">exps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">/</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">.imgarray</span> <span class="kn">import</span> <span class="n">ImgArray</span>
+        <span class="k">return</span> <span class="n">ImgArray</span><span class="p">(</span>
+            <span class="n">exps</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span>
+        <span class="p">)</span></div>
 
+<div class="viewcode-block" id="PhaseArray.map_coordinates"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.map_coordinates">[docs]</a>    <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@check_input_and_output</span>
+    <span class="k">def</span> <span class="nf">map_coordinates</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span> 
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+        <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coordinates, mode, cval</span>
+<span class="sd">            Padding mode, constant value and the shape of output. See </span>
+<span class="sd">            ``scipy.ndimage.map_coordinates``. for details.</span>
+<span class="sd">        {order}</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ImgArray</span>
+<span class="sd">            Transformed image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
+        <span class="n">exps</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+        
+        <span class="n">out</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span>
+            <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">(</span>
+                <span class="n">exps</span><span class="p">,</span>
+                <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">),</span> 
+                <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+                <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
+                <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+                <span class="n">prefilter</span><span class="o">=</span><span class="n">order</span><span class="o">&gt;</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span></div></div>
+        
+<span class="c1"># TODO:</span>
+<span class="c1"># - map_coordinates</span>
+<span class="c1"># - pathprops</span>
 
 </pre></div>
 

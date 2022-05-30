@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy package &mdash; impy 2.0.1 documentation</title>
+  <title>impy package &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.1
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -100,6 +100,10 @@
 <li class="toctree-l2"><a class="reference internal" href="impy.arrays.html#module-impy.arrays">Module contents</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="impy.axes.html">impy.axes package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="impy.axes.html#module-impy.axes">Module contents</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="impy.frame.html">impy.frame package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="impy.frame.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="impy.frame.html#module-impy.frame.frames">impy.frame.frames module</a></li>
@@ -111,7 +115,6 @@
 <li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.axesop">impy.utils.axesop module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.deco">impy.utils.deco module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.gauss">impy.utils.gauss module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.io">impy.utils.io module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.misc">impy.utils.misc module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.slicer">impy.utils.slicer module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="impy.utils.html#module-impy.utils.utilcls">impy.utils.utilcls module</a></li>
@@ -152,115 +155,6 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.array_api.cupy_dispatcher">
 <span class="sig-prename descclassname"><span class="pre">impy.array_api.</span></span><span class="sig-name descname"><span class="pre">cupy_dispatcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/array_api.html#cupy_dispatcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.array_api.cupy_dispatcher" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</section>
-<section id="module-impy.axes">
-<span id="impy-axes-module"></span><h2>impy.axes module<a class="headerlink" href="#module-impy.axes" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="impy.axes.Axes">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">Axes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.argsort">
-<span class="sig-name descname"><span class="pre">argsort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.argsort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.argsort" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.check_is_sorted">
-<span class="sig-name descname"><span class="pre">check_is_sorted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.check_is_sorted"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.check_is_sorted" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.contains">
-<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chars</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/impy/axes.html#Axes.contains"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.contains" title="Permalink to this definition">¶</a></dt>
-<dd><p>True if self contains all the characters in <code class="docutils literal notranslate"><span class="pre">chars</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.find">
-<span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.find" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.is_none">
-<span class="sig-name descname"><span class="pre">is_none</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.is_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.is_none" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.is_sorted">
-<span class="sig-name descname"><span class="pre">is_sorted</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.is_sorted"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.is_sorted" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.replace">
-<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.replace" title="Permalink to this definition">¶</a></dt>
-<dd><p>Replace axis symbol. To avoid unexpected effect between images, new scale attribute
-will be copied.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>old</strong> (<em>str</em>) – Old symbol.</p></li>
-<li><p><strong>new</strong> (<em>str</em>) – New symbol.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="impy.axes.Axes.scale">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">scale</span></span><a class="headerlink" href="#impy.axes.Axes.scale" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.sort">
-<span class="sig-name descname"><span class="pre">sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#Axes.sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.sort" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.Axes.sorted">
-<span class="sig-name descname"><span class="pre">sorted</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/impy/axes.html#Axes.sorted"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.Axes.sorted" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py exception">
-<dt class="sig sig-object py" id="impy.axes.ImageAxesError">
-<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">ImageAxesError</span></span><a class="reference internal" href="../_modules/impy/axes.html#ImageAxesError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.ImageAxesError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></p>
-<p>This error is raised when axes is defined in a wrong way.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="impy.axes.NoneAxes">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">NoneAxes</span></span><a class="reference internal" href="../_modules/impy/axes.html#NoneAxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.NoneAxes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="impy.axes.ScaleDict">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">ScaleDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#ScaleDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.ScaleDict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.OrderedDict</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.ScaleDict.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">a</span> <span class="pre">shallow</span> <span class="pre">copy</span> <span class="pre">of</span> <span class="pre">od</span></span></span><a class="reference internal" href="../_modules/impy/axes.html#ScaleDict.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.ScaleDict.copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="impy.axes.ScaleDict.replace">
-<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#ScaleDict.replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.ScaleDict.replace" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="impy.axes.check_none">
-<span class="sig-prename descclassname"><span class="pre">impy.axes.</span></span><span class="sig-name descname"><span class="pre">check_none</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/axes.html#check_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.axes.check_none" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
@@ -454,6 +348,88 @@ every time constructor or <cite>append</cite> method is called.</p>
 <section id="module-impy.core">
 <span id="impy-core-module"></span><h2>impy.core module<a class="headerlink" href="#module-impy.core" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
+<dt class="sig sig-object py" id="impy.core.arange">
+<span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">arange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">type</span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.typing._dtype_like._SupportsDType</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">SupportsIndex</span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">SupportsIndex</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.typing._dtype_like._DTypeDict</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">Ellipsis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">like</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">Ellipsis</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="../_modules/impy/core.html#arange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.arange" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>impy version of numpy.arange. This function has additional parameters <code class="docutils literal notranslate"><span class="pre">axes</span></code>
+and <code class="docutils literal notranslate"><span class="pre">name</span></code>. Original docstring follows.</p>
+<dl class="simple">
+<dt>axes<span class="classifier">str, optional</span></dt><dd><p>Image axes. Must be same length as image dimension.</p>
+</dd>
+<dt>name: str, optional</dt><dd><p>Image name.</p>
+</dd>
+</dl>
+<p>arange([start,] stop[, step,], dtype=None, <a href="#id1"><span class="problematic" id="id2">*</span></a>, like=None)</p>
+</div></blockquote>
+<p>Return evenly spaced values within a given interval.</p>
+<p>Values are generated within the half-open interval <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">stop)</span></code>
+(in other words, the interval including <cite>start</cite> but excluding <cite>stop</cite>).
+For integer arguments the function is equivalent to the Python built-in
+<cite>range</cite> function, but returns an ndarray rather than a list.</p>
+<p>When using a non-integer step, such as 0.1, the results will often not
+be consistent.  It is better to use <cite>numpy.linspace</cite> for these cases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>integer</em><em> or </em><em>real</em><em>, </em><em>optional</em>) – Start of interval.  The interval includes this value.  The default
+start value is 0.</p></li>
+<li><p><strong>stop</strong> (<em>integer</em><em> or </em><em>real</em>) – End of interval.  The interval does not include this value, except
+in some cases where <cite>step</cite> is not an integer and floating point
+round-off affects the length of <cite>out</cite>.</p></li>
+<li><p><strong>step</strong> (<em>integer</em><em> or </em><em>real</em><em>, </em><em>optional</em>) – Spacing between values.  For any output <cite>out</cite>, this is the distance
+between two adjacent values, <code class="docutils literal notranslate"><span class="pre">out[i+1]</span> <span class="pre">-</span> <span class="pre">out[i]</span></code>.  The default
+step size is 1.  If <cite>step</cite> is specified as a position argument,
+<cite>start</cite> must also be given.</p></li>
+<li><p><strong>dtype</strong> (<em>dtype</em>) – The type of the output array.  If <cite>dtype</cite> is not given, infer the data
+type from the other input arguments.</p></li>
+<li><p><strong>like</strong> (<em>array_like</em>) – <p>Reference object to allow the creation of arrays which are not
+NumPy arrays. If an array-like passed in as <code class="docutils literal notranslate"><span class="pre">like</span></code> supports
+the <code class="docutils literal notranslate"><span class="pre">__array_function__</span></code> protocol, the result will be defined
+by it. In this case, it ensures the creation of an array object
+compatible with that passed in via this argument.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 1.20.0.</span></p>
+</div>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p><strong>arange</strong> – Array of evenly spaced values.</p>
+<p>For floating point arguments, the length of the result is
+<code class="docutils literal notranslate"><span class="pre">ceil((stop</span> <span class="pre">-</span> <span class="pre">start)/step)</span></code>.  Because of floating point overflow,
+this rule may result in the last element of <cite>out</cite> being greater
+than <cite>stop</cite>.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.linspace</span></code></dt><dd><p>Evenly spaced numbers with careful handling of endpoints.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ogrid</span></code></dt><dd><p>Arrays of evenly spaced numbers in N-dimensions.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.mgrid</span></code></dt><dd><p>Grid-shaped arrays of evenly spaced numbers in N-dimensions.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">array([0, 1, 2])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span>
+<span class="go">array([ 0.,  1.,  2.])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">7</span><span class="p">)</span>
+<span class="go">array([3, 4, 5, 6])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">array([3, 5])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="impy.core.array">
 <span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.typing._array_like._SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.typing._array_like._SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.typing._array_like._SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.typing._array_like._SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.typing._array_like._SupportsArray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">bool</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">complex</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">bytes</span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">complex</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">complex</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">complex</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">complex</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">type</span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.typing._dtype_like._SupportsDType</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">SupportsIndex</span><span class="p"><span class="pre">,</span> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">SupportsIndex</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.typing._dtype_like._DTypeDict</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray"><span class="pre">impy.arrays.imgarray.ImgArray</span></a></span></span><a class="reference internal" href="../_modules/impy/core.html#array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.array" title="Permalink to this definition">¶</a></dt>
 <dd><p>make an ImgArray object, like <code class="docutils literal notranslate"><span class="pre">np.array(x)</span></code></p>
@@ -523,6 +499,11 @@ every time constructor or <cite>append</cite> method is called.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="impy.core.broadcast_arrays">
+<span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">broadcast_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">arrays</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">impy.arrays.bases.metaarray.MetaArray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">impy.arrays.bases.metaarray.MetaArray</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/impy/core.html#broadcast_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.broadcast_arrays" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="impy.core.circular_mask">
 <span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">circular_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">nDFloat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">_ShapeLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span> <span class="p"><span class="pre">|</span></span> <span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'center'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ImgArray</span></span></span><a class="reference internal" href="../_modules/impy/core.html#circular_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.circular_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a circular or ellipsoid shaped mask. Region close to center will be filled with <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
@@ -555,7 +536,7 @@ and <code class="docutils literal notranslate"><span class="pre">name</span></co
 <dt>name: str, optional</dt><dd><p>Image name.</p>
 </dd>
 </dl>
-<p>empty(shape, dtype=float, order=’C’, <a href="#id1"><span class="problematic" id="id2">*</span></a>, like=None)</p>
+<p>empty(shape, dtype=float, order=’C’, <a href="#id3"><span class="problematic" id="id4">*</span></a>, like=None)</p>
 </div></blockquote>
 <p>Return a new array of given shape and type, without initializing entries.</p>
 <dl class="field-list simple">
@@ -713,17 +694,17 @@ compatible with that passed in via this argument.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.core.imread">
-<span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">imread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">DTypeLike</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">squeeze</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ImgArray</span></span></span><a class="reference internal" href="../_modules/impy/core.html#imread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.imread" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load image(s) from a path. You can read list of images from directories with wildcards or <code class="docutils literal notranslate"><span class="pre">&quot;$&quot;</span></code>
-in <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p>
+<span class="sig-prename descclassname"><span class="pre">impy.core.</span></span><span class="sig-name descname"><span class="pre">imread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">DTypeLike</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesTargetedSlicer</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">squeeze</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ImgArray</span></span></span><a class="reference internal" href="../_modules/impy/core.html#imread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.core.imread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load image(s) from a path. You can read list of images from directories with
+wildcards or <code class="docutils literal notranslate"><span class="pre">&quot;$&quot;</span></code> in <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>path</strong> (<em>str</em>) – Path to the image or directory.</p></li>
 <li><p><strong>dtype</strong> (<em>Any type that np.dtype accepts</em>) – Data type of images.</p></li>
-<li><p><strong>key</strong> (<em>str</em><em>, </em><em>optional</em>) – If not None, image is read in a memory-mapped array first, and only <code class="docutils literal notranslate"><span class="pre">img[key]</span></code> is returned.
-Only axis-targeted slicing is supported. This argument is important when reading a large
-file.</p></li>
+<li><p><strong>key</strong> (<em>AxesTargetedSlicer</em><em>, </em><em>optional</em>) – If not None, image is read in a memory-mapped array first, and only
+<code class="docutils literal notranslate"><span class="pre">img[key]</span></code> is returned. Only axis-targeted slicing is supported. This
+argument is important when reading a large file.</p></li>
 <li><p><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of array.</p></li>
 <li><p><strong>squeeze</strong> (<em>bool</em><em>, </em><em>default is False</em>) – If True, redundant dimensions will be squeezed.</p></li>
 </ul>
@@ -914,7 +895,7 @@ and <code class="docutils literal notranslate"><span class="pre">name</span></co
 <dt>name: str, optional</dt><dd><p>Image name.</p>
 </dd>
 </dl>
-<p>zeros(shape, dtype=float, order=’C’, <a href="#id3"><span class="problematic" id="id4">*</span></a>, like=None)</p>
+<p>zeros(shape, dtype=float, order=’C’, <a href="#id5"><span class="problematic" id="id6">*</span></a>, like=None)</p>
 </div></blockquote>
 <p>Return a new array of given shape and type, filled with zeros.</p>
 <dl class="field-list simple">
@@ -1623,6 +1604,81 @@ maximum shifts in all dimensions. No upper bound of shifts if not given.</p>
 </dd></dl>
 
 </section>
+<section id="module-impy.io">
+<span id="impy-io-module"></span><h2>impy.io module<a class="headerlink" href="#module-impy.io" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.io.imread">
+<span class="sig-prename descclassname"><span class="pre">impy.io.</span></span><span class="sig-name descname"><span class="pre">imread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memmap</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">impy.io.ImageData</span></span></span><a class="headerlink" href="#impy.io.imread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read an image file.</p>
+<p>The reader is chosen according to the file extension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – File path of an image.</p></li>
+<li><p><strong>memmap</strong> (<em>bool</em><em>, </em><em>default is False</em>) – Read image as a memory-mapped-like state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Image data tuple.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ImageData</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.io.imread_dask">
+<span class="sig-prename descclassname"><span class="pre">impy.io.</span></span><span class="sig-name descname"><span class="pre">imread_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">impy.io.ImageData</span></span></span><a class="headerlink" href="#impy.io.imread_dask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read an image file as a dask array.</p>
+<p>The reader is chosen according to the file extension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – File path of an image.</p></li>
+<li><p><strong>chunks</strong> (<em>Any</em>) – Parameter that will be passed to <code class="docutils literal notranslate"><span class="pre">dask.array.from_array</span></code> or
+<code class="docutils literal notranslate"><span class="pre">dask.array.from_zarr</span></code> function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Image data tuple.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ImageData</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.io.imsave">
+<span class="sig-prename descclassname"><span class="pre">impy.io.</span></span><span class="sig-name descname"><span class="pre">imsave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImpyArray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lazy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#impy.io.imsave" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.io.mark_reader">
+<span class="sig-prename descclassname"><span class="pre">impy.io.</span></span><span class="sig-name descname"><span class="pre">mark_reader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">ext</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_R</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">_R</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#impy.io.mark_reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mark a function as a reader function.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@IO</span><span class="o">.</span><span class="n">mark_reader</span><span class="p">(</span><span class="s2">&quot;.tif&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">read_tif</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="impy.io.mark_writer">
+<span class="sig-prename descclassname"><span class="pre">impy.io.</span></span><span class="sig-name descname"><span class="pre">mark_writer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">ext</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_R</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">_R</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#impy.io.mark_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mark a function as a writer function.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@IO</span><span class="o">.</span><span class="n">mark_writer</span><span class="p">(</span><span class="s2">&quot;.tif&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">save_tif</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
 <section id="module-impy.random">
 <span id="impy-random-module"></span><h2>impy.random module<a class="headerlink" href="#module-impy.random" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
@@ -1631,12 +1687,12 @@ maximum shifts in all dimensions. No upper bound of shifts if not given.</p>
 <dd><p>Draw random samples from a normal (Gaussian) distribution.</p>
 <p>The probability density function of the normal distribution, first
 derived by De Moivre and 200 years later by both Gauss and Laplace
-independently <a class="footnote-reference brackets" href="#id9" id="id5">2</a>, is often called the bell curve because of
+independently <a class="footnote-reference brackets" href="#id11" id="id7">2</a>, is often called the bell curve because of
 its characteristic shape (see the example below).</p>
 <p>The normal distributions occurs often in nature.  For example, it
 describes the commonly occurring distribution of samples influenced
 by a large number of tiny, random disturbances, each with its own
-unique distribution <a class="footnote-reference brackets" href="#id9" id="id6">2</a>.</p>
+unique distribution <a class="footnote-reference brackets" href="#id11" id="id8">2</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>New code should use the <code class="docutils literal notranslate"><span class="pre">normal</span></code> method of a <code class="docutils literal notranslate"><span class="pre">default_rng()</span></code>
@@ -1680,16 +1736,16 @@ deviation. The square of the standard deviation, <span class="math notranslate n
 is called the variance.</p>
 <p>The function has its peak at the mean, and its “spread” increases with
 the standard deviation (the function reaches 0.607 times its maximum at
-<span class="math notranslate nohighlight">\(x + \sigma\)</span> and <span class="math notranslate nohighlight">\(x - \sigma\)</span> <a class="footnote-reference brackets" href="#id9" id="id7">2</a>).  This implies that
+<span class="math notranslate nohighlight">\(x + \sigma\)</span> and <span class="math notranslate nohighlight">\(x - \sigma\)</span> <a class="footnote-reference brackets" href="#id11" id="id9">2</a>).  This implies that
 normal is more likely to return samples lying close to the mean, rather
 than those far away.</p>
 <p class="rubric">References</p>
 <dl class="footnote brackets">
-<dt class="label" id="id8"><span class="brackets">1</span></dt>
+<dt class="label" id="id10"><span class="brackets">1</span></dt>
 <dd><p>Wikipedia, “Normal distribution”,
 <a class="reference external" href="https://en.wikipedia.org/wiki/Normal_distribution">https://en.wikipedia.org/wiki/Normal_distribution</a></p>
 </dd>
-<dt class="label" id="id9"><span class="brackets">2</span><span class="fn-backref">(<a href="#id5">1</a>,<a href="#id6">2</a>,<a href="#id7">3</a>)</span></dt>
+<dt class="label" id="id11"><span class="brackets">2</span><span class="fn-backref">(<a href="#id7">1</a>,<a href="#id8">2</a>,<a href="#id9">3</a>)</span></dt>
 <dd><p>P. R. Peebles Jr., “Central Limit Theorem” in “Probability,
 Random Variables and Random Signal Principles”, 4th ed., 2001,
 pp. 51, 51, 125.</p>

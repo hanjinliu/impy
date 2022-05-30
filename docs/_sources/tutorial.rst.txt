@@ -29,12 +29,12 @@ Let's start with a simple example.
      label shape   : No label
         dtype      : uint16
         source     : path/to/image.tif
-        scale      : ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)
-
+        scale      : ScaleView(t=1.0, z=0.217, y=0.217, x=0.217)
+        
 Here, you can see 
 
 - each dimension is labeled with a symbol (t, z, y and x).
-- Physical scale is tagged to the object as a ``ScaleDict``, a subclass of Python ``dict``.
+- Physical scale is tagged to the object as a ``ScaleView``, a subclass of Python ``dict``.
 - the source file is recorded.
 
 ``impy``'s ``imread`` function can extract metadata (such as axes) from image files and "memorize" them 
@@ -44,7 +44,7 @@ You can refer to the properties by:
 
 .. code-block::
 
-    img.axes       # Out: "tzyx"
+    img.axes       # Out: Axes['t', 'z', 'y', 'x']
     img.source     # Out: such as WindowsPath("path/to/image.tif")
     img.name       # Out: "image.tif"
     img.scale      # Out: ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)
@@ -82,6 +82,13 @@ Python ``tuple``, as long as axes are well-defined.
 
 Here, you can get the size of z-axis by ``img.shape.z`` instead of ``img.shape[1]``.
 
+.. note::
+
+    You can also use ``dict`` for slicing.
+    
+    .. code-block:: python
+
+        img[{"y": 3, "x": slice(4, 10)}]  # identical to img["y=3;x=4:10"]
 
 Batch Processing
 ----------------

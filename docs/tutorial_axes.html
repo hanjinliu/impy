@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axes in impy &mdash; impy 2.1.0.alpha documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Command Line Usage" href="tutorial_cmd.html" />
+    <link rel="prev" title="Tutorial" href="tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                2.1.0.alpha
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Axes in impy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#undefined-axis">Undefined Axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#axis-metadata">Axis Metadata</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#physical-scale">Physical scale</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#axis-labels">Axis Labels</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#practical-usage-of-axes">Practical Usage of Axes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#slicing-and-formatting">Slicing and Formatting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#axis-targeted-slicing">Axis-targeted slicing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#slice-formatting">Slice Formatting</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#broadcasting">Broadcasting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Axes in impy</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial_axes.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="axes-in-impy">
+<h1>Axes in impy<a class="headerlink" href="#axes-in-impy" title="Permalink to this headline">¶</a></h1>
+<div class="contents local topic" id="contents-of-tutorial">
+<p class="topic-title">Contents of Tutorial</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#basics" id="id1">Basics</a></p></li>
+<li><p><a class="reference internal" href="#undefined-axis" id="id2">Undefined Axis</a></p></li>
+<li><p><a class="reference internal" href="#axis-metadata" id="id3">Axis Metadata</a></p>
+<ul>
+<li><p><a class="reference internal" href="#physical-scale" id="id4">Physical scale</a></p></li>
+<li><p><a class="reference internal" href="#axis-labels" id="id5">Axis Labels</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#practical-usage-of-axes" id="id6">Practical Usage of Axes</a></p>
+<ul>
+<li><p><a class="reference internal" href="#slicing-and-formatting" id="id7">Slicing and Formatting</a></p></li>
+<li><p><a class="reference internal" href="#broadcasting" id="id8">Broadcasting</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="basics">
+<h2><a class="toc-backref" href="#id1">Basics</a><a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
+<p>Understanding the concept of axes is important to use multi-dimensional arrays.</p>
+<p>Each dimension of an array has its own meaning. A 3-D array can be composed of
+three spatial axes or two spatial axes and a time axis.</p>
+<p>You can create a <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> with any axes you want using <code class="docutils literal notranslate"><span class="pre">axes</span></code> argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">impy</span> <span class="k">as</span> <span class="nn">ip</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Any iterable objects can be used. In general, each axis label is represented by
+a single character. In this case, it’s simpler to use a <code class="docutils literal notranslate"><span class="pre">str</span></code> because a <code class="docutils literal notranslate"><span class="pre">str</span></code>
+itself is an iterable of <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;zyx&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>If you give axes of wrong length, or axes containing the same charactor, array</dt><dd><p>creation will fail.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">)</span>  <span class="c1"># Error!!</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;tzyx&quot;</span><span class="p">)</span>  <span class="c1"># Error!!</span>
+</pre></div>
+</div>
+<p>Each axis is a <code class="docutils literal notranslate"><span class="pre">Axis</span></code> object. They are available by indexing <code class="docutils literal notranslate"><span class="pre">Axes</span></code> object.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&#39;z&#39;, &#39;y&#39;, &#39;x&#39;]</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Axis[&#39;z&#39;]</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>  <span class="c1"># Axis[&#39;y&#39;]</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span>  <span class="c1"># Error!</span>
+</pre></div>
+</div>
+</section>
+<section id="undefined-axis">
+<h2><a class="toc-backref" href="#id2">Undefined Axis</a><a class="headerlink" href="#undefined-axis" title="Permalink to this headline">¶</a></h2>
+<p>Some functions and operations creates arrays with unknown axes.
+In this case, <code class="docutils literal notranslate"><span class="pre">UndefAxis</span></code> objects are used for these axes and are represented by
+<code class="docutils literal notranslate"><span class="pre">&quot;#&quot;</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&#39;z&#39;, &#39;y&#39;, &#39;x&#39;]</span>
+<span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&#39;#&#39;, &#39;z&#39;, &#39;y&#39;, &#39;x&#39;]</span>
+<span class="n">img</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&#39;#&#39;, &#39;z&#39;, &#39;y&#39;, &#39;x&#39;]</span>
+<span class="n">img</span><span class="p">[</span><span class="n">img</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&#39;#&#39;]</span>
+<span class="n">img</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&#39;#&#39;, &#39;x&#39;]</span>
+<span class="n">img</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">axes</span>  <span class="c1"># Axes[&quot;#&quot;]</span>
+</pre></div>
+</div>
+</section>
+<section id="axis-metadata">
+<h2><a class="toc-backref" href="#id3">Axis Metadata</a><a class="headerlink" href="#axis-metadata" title="Permalink to this headline">¶</a></h2>
+<p>Each axis could be tagged with some metadata. The major ones are physical scale,
+physical scale unit and labels.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># scale of the first axis</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>  <span class="c1"># scale unit of the first axis</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span>  <span class="c1"># e.g. (&quot;Red&quot;, &quot;Green&quot;)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">0.21</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;µm&quot;</span>
+</pre></div>
+</div>
+<section id="physical-scale">
+<h3><a class="toc-backref" href="#id4">Physical scale</a><a class="headerlink" href="#physical-scale" title="Permalink to this headline">¶</a></h3>
+<p>Physical scale is the length of value between <code class="docutils literal notranslate"><span class="pre">a[i]</span></code> and <code class="docutils literal notranslate"><span class="pre">a[i+1]</span></code>. In image analysis,
+this value is usually represented as “µm/pixel” or “nm/pixel” for spatial axes and “sec” for
+time axis.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># scale of the first axis</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># scale of x-axis</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">0.21</span>  <span class="c1"># update the scale of the first axis</span>
+</pre></div>
+</div>
+<p>You can refer to the scale unit with <code class="docutils literal notranslate"><span class="pre">unit</span></code> property.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>  <span class="c1"># scale unit of the first axis</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;µm&quot;</span>  <span class="c1"># update the scale unit</span>
+</pre></div>
+</div>
+<p>Since these values are tagged to <code class="docutils literal notranslate"><span class="pre">Axis</span></code> objects, they will be inherited after slicing,
+filtering or any other operations.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># True</span>
+<span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># True</span>
+<span class="p">(</span><span class="n">img</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># True</span>
+<span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># True</span>
+</pre></div>
+</div>
+<p>It is not always the case if you called certain functions that will change scales.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[::</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># True</span>
+<span class="n">img</span><span class="p">[::</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="mi">3</span>  <span class="c1"># True</span>
+<span class="n">img</span><span class="o">.</span><span class="n">binning</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</section>
+<section id="axis-labels">
+<h3><a class="toc-backref" href="#id5">Axis Labels</a><a class="headerlink" href="#axis-labels" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes an axis is tagged with “labels” that explains what each slice means. <code class="docutils literal notranslate"><span class="pre">Axis</span></code> object
+retains labels information and can be referred to as a tuple.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span>  <span class="c1"># say the length of t-axis is 4</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;10 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;30 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;1 min&quot;</span><span class="p">]</span>
+<span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span> <span class="o">==</span> <span class="p">(</span><span class="s2">&quot;0 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;10 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;30 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;1 min&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Because the length of labels must match corresponding shape of an array, it is safer to
+use <code class="docutils literal notranslate"><span class="pre">set_axis_label</span></code> method. It checks the new labels.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">set_axis_label</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;0 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;10 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;30 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;1 min&quot;</span><span class="p">])</span>
+<span class="n">img</span><span class="o">.</span><span class="n">set_axis_label</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;wrong&quot;</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">])</span>  <span class="c1"># Error!</span>
+</pre></div>
+</div>
+<p>When array is sliced, labels are also correctly inherited</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">set_axis_label</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;0 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;10 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;30 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;1 min&quot;</span><span class="p">])</span>
+<span class="n">img</span><span class="p">[</span><span class="s2">&quot;t=:2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span> <span class="o">==</span> <span class="p">(</span><span class="s2">&quot;0 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;10 sec&quot;</span><span class="p">)</span>  <span class="c1"># True</span>
+<span class="n">img</span><span class="p">[</span><span class="s2">&quot;t=1,3&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span> <span class="o">==</span> <span class="p">(</span><span class="s2">&quot;10 sec&quot;</span><span class="p">,</span> <span class="s2">&quot;1 min&quot;</span><span class="p">)</span>  <span class="c1"># True</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="practical-usage-of-axes">
+<h2><a class="toc-backref" href="#id6">Practical Usage of Axes</a><a class="headerlink" href="#practical-usage-of-axes" title="Permalink to this headline">¶</a></h2>
+<section id="slicing-and-formatting">
+<h3><a class="toc-backref" href="#id7">Slicing and Formatting</a><a class="headerlink" href="#slicing-and-formatting" title="Permalink to this headline">¶</a></h3>
+<p>Axes object is very useful in slicing multi-dimensional arrays.</p>
+<section id="axis-targeted-slicing">
+<h4>Axis-targeted slicing<a class="headerlink" href="#axis-targeted-slicing" title="Permalink to this headline">¶</a></h4>
+<p>As shown in tutorial, the easiest way to slice an array is to use axis axis-targeted slicing.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="s2">&quot;t=1&quot;</span><span class="p">]</span>
+<span class="n">img</span><span class="p">[</span><span class="s2">&quot;t=3:5&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>This slicing method, however, ignores Python type-checking a little bit since you’ll not notice
+any wrong slicing grammar in the string until you run the code.</p>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> also support a <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> object for safer axis-targeted slicing.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Slicer</span> <span class="n">of</span>
+    <span class="n">t</span> <span class="o">==&gt;</span> <span class="mi">2</span>
+    <span class="n">x</span> <span class="o">==&gt;</span> <span class="mi">4</span><span class="p">:</span><span class="mi">6</span>
+</pre></div>
+</div>
+<p>A <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> object can be used for indexing an axis-implemented array.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>  <span class="c1"># equivalent to img[&quot;t=1&quot;]</span>
+<span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">5</span><span class="p">]]</span>  <span class="c1"># equivalent to img[&quot;t=3:5&quot;]</span>
+<span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">]]</span>  <span class="c1"># equivalent to img[&quot;t=2,4,6&quot;]</span>
+<span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">]]</span>  <span class="c1"># equivalent to img[&quot;t=1;x=4&quot;]</span>
+</pre></div>
+</div>
+</section>
+<section id="slice-formatting">
+<h4>Slice Formatting<a class="headerlink" href="#slice-formatting" title="Permalink to this headline">¶</a></h4>
+<p>Sometimes you would slice many times at the same axes.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case, you can format slices using <code class="docutils literal notranslate"><span class="pre">get_formatter</span></code> method.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fmt</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">get_formatter</span><span class="p">(</span><span class="s2">&quot;zt&quot;</span><span class="p">)</span>
+<span class="n">fmt</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SliceFormatter</span> <span class="n">of</span>
+    <span class="n">z</span> <span class="o">==&gt;</span> <span class="n">Undefined</span>
+    <span class="n">t</span> <span class="o">==&gt;</span> <span class="n">Undefined</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fmt</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Slicer</span> <span class="n">of</span>
+    <span class="n">z</span> <span class="o">==&gt;</span> <span class="mi">0</span>
+    <span class="n">t</span> <span class="o">==&gt;</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p>Thus, you’ll code will be</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="n">fmt</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">img</span><span class="p">[</span><span class="n">fmt</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="n">img</span><span class="p">[</span><span class="n">fmt</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="broadcasting">
+<h3><a class="toc-backref" href="#id8">Broadcasting</a><a class="headerlink" href="#broadcasting" title="Permalink to this headline">¶</a></h3>
+<p>By using axes information, arrays can be broadcasted in a more flexible but strict way.</p>
+<ul>
+<li><p>Examples</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img0</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;zyx&quot;</span><span class="p">)</span>
+<span class="n">img1</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;zx&quot;</span><span class="p">)</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img0</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img1</span><span class="p">)</span>  <span class="c1"># ValueError</span>
+<span class="n">img0</span> <span class="o">+</span> <span class="n">img1</span>  <span class="c1"># OK!</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;tyx&quot;</span><span class="p">)</span>
+<span class="n">img0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>  <span class="c1"># axes: &#39;t&#39;, &#39;x&#39;</span>
+<span class="n">img1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>  <span class="c1"># axes: &#39;t&#39;, &#39;y&#39;</span>
+<span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img0</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">img1</span><span class="p">)</span>  <span class="c1"># No error, but they should not be added!</span>
+<span class="n">img0</span> <span class="o">+</span> <span class="n">img1</span>  <span class="c1"># Error!</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">impy</span></code> also has a <code class="docutils literal notranslate"><span class="pre">broadcast_arrays</span></code> function for broadcasting arrays as flexible as
+possible.</p>
+<ul>
+<li><p>Examples</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># AxesShape(y=8, x=10)</span>
+<span class="n">out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># AxesShape(y=8, x=10)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;tzx&quot;</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;ntx&quot;</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># AxesShape(n=4, t=5, z=6, x=7)</span>
+<span class="n">out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># AxesShape(n=4, t=5, z=6, x=7)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorial.html" class="btn btn-neutral float-left" title="Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial_cmd.html" class="btn btn-neutral float-right" title="Command Line Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.utils.slicer &mdash; impy 2.0.0.alpha documentation</title>
+  <title>impy.utils.slicer &mdash; impy 2.1.0.alpha documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.0.0.alpha
+                2.1.0.alpha
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -69,12 +69,13 @@
              
   <h1>Source code for impy.utils.slicer</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Slices</span>
+<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">Slicer</span><span class="p">,</span> <span class="n">Axes</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;str_to_slice&quot;</span><span class="p">,</span> <span class="s2">&quot;key_repr&quot;</span><span class="p">,</span> <span class="s2">&quot;axis_targeted_slicing&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;str_to_slice&quot;</span><span class="p">,</span> <span class="s2">&quot;axis_targeted_slicing&quot;</span><span class="p">,</span> <span class="s2">&quot;solve_slicer&quot;</span><span class="p">]</span>
 
 <span class="k">def</span> <span class="nf">_range_to_list</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -103,30 +104,9 @@
         <span class="n">sl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sl</span></div>
 
-<div class="viewcode-block" id="key_repr"><a class="viewcode-back" href="../../../apidoc/impy.utils.html#impy.utils.slicer.key_repr">[docs]</a><span class="k">def</span> <span class="nf">key_repr</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-    <span class="n">keylist</span> <span class="o">=</span> <span class="p">[]</span>
-        
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-        <span class="n">_keys</span> <span class="o">=</span> <span class="n">key</span>
-    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">&quot;__array__&quot;</span><span class="p">):</span>
-        <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;array&quot;</span><span class="p">,)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,)</span>
-    
-    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">_keys</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="p">(</span><span class="nb">slice</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
-            <span class="n">keylist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">keylist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;new&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">s</span> <span class="ow">is</span> <span class="o">...</span><span class="p">:</span>
-            <span class="n">keylist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">keylist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-    
-    <span class="k">return</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">keylist</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="axis_targeted_slicing"><a class="viewcode-back" href="../../../apidoc/impy.utils.html#impy.utils.slicer.axis_targeted_slicing">[docs]</a><span class="nd">@lru_cache</span>
-<span class="k">def</span> <span class="nf">axis_targeted_slicing</span><span class="p">(</span><span class="n">ndim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Slices</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">axis_targeted_slicing</span><span class="p">(</span><span class="n">axes</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Slices</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Make a conventional slices from an axis-targeted slicing string.</span>
 
@@ -137,29 +117,46 @@
 <span class="sd">    axes : str</span>
 <span class="sd">        Axes of input ndarray.</span>
 <span class="sd">    string : str</span>
-<span class="sd">        Axis-targeted slicing string. If an axis that does not exist in `axes` is contained,</span>
-<span class="sd">        this function will raise ValueError.</span>
+<span class="sd">        Axis-targeted slicing string. If an axis that does not exist in `axes` is</span>
+<span class="sd">        contained, this function will raise ValueError.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    slices</span>
 <span class="sd">    &quot;&quot;&quot;</span>    
     <span class="n">keylist</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
-    <span class="n">sl_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span><span class="o">*</span><span class="n">ndim</span>
+    <span class="n">dict_slicer</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keylist</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Informal axis-targeted slicing: </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Informal axis-targeted slicing: </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="n">axis</span><span class="p">,</span> <span class="n">sl_str</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Axis &#39;</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">&#39; does not exist (</span><span class="si">{</span><span class="n">axes</span><span class="si">}</span><span class="s2">).&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">sl_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">str_to_slice</span><span class="p">(</span><span class="n">sl_str</span><span class="p">)</span>
+            <span class="n">sl</span> <span class="o">=</span> <span class="n">str_to_slice</span><span class="p">(</span><span class="n">sl_str</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Informal axis-targeted slicing: </span><span class="si">{</span><span class="n">string</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Informal axis-targeted slicing: </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dict_slicer</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span>
     
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sl_list</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">dict_to_slice</span><span class="p">(</span><span class="n">dict_slicer</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">dict_to_slice</span><span class="p">(</span><span class="n">sl</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]):</span>
+    <span class="n">sl_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sl</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">sl_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sl_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="solve_slicer"><a class="viewcode-back" href="../../../apidoc/impy.utils.html#impy.utils.slicer.solve_slicer">[docs]</a><span class="k">def</span> <span class="nf">solve_slicer</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="n">Axes</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">axis_targeted_slicing</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">axes</span><span class="p">),</span> <span class="n">key</span><span class="p">)</span>
+    
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">Slicer</span><span class="p">)):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">create_slice</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">key</span></div>
 </pre></div>
 
            </div>

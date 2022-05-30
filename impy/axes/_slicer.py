@@ -71,7 +71,7 @@ class SliceFormatter:
 def _fmt(s):
     if isinstance(s, slice):
         r = ":".join("" if a is None else str(a) for a in [s.start, s.stop, s.step])
-        if r.endswith("::"):
+        if r.count(":") == 2 and r.endswith(":"):
             r = r[:-1]
     elif isinstance(s, (Number, list)):
         r = str(s)

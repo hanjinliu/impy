@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    impy.arrays
+   impy.axes
    impy.frame
    impy.utils
    impy.viewer
@@ -19,14 +20,6 @@ impy.array\_api module
 ----------------------
 
 .. automodule:: impy.array_api
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-impy.axes module
-----------------
-
-.. automodule:: impy.axes
    :members:
    :undoc-members:
    :show-inheritance:
@@ -59,6 +52,14 @@ impy.correlation module
 -----------------------
 
 .. automodule:: impy.correlation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+impy.io module
+--------------
+
+.. automodule:: impy.io
    :members:
    :undoc-members:
    :show-inheritance:
