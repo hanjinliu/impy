@@ -42,3 +42,14 @@ def test_formatter():
     assert_equal(img[fmt[0, 0]], img["t=0;x=0"])
     assert_equal(img[fmt[0, 3:6]], img["t=0;x=3:6"])
     assert_equal(img[fmt[:5][:6]], img["t=:5;x=:6"])
+
+def test_scale():
+    img = ip.zeros((10, 10))
+    img.set_scale(xy=0.2)
+    assert img[0].axes[-1].scale == img.axes[-1].scale
+    assert img[0, 2:4].axes[-1].scale == img.axes[-1].scale
+    assert img[0, ::-1].axes[-1].scale == img.axes[-1].scale
+    assert img[0, ::2].axes[-1].scale == img.axes[-1].scale * 2
+    assert img[0, ::-3].axes[-1].scale == img.axes[-1].scale * 3
+    assert img.binning(2).axes[-1].scale == img.axes[-1].scale * 2
+    assert img.rescale(1/4).axes[-1].scale == img.axes[-1].scale * 4    

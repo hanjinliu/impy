@@ -92,7 +92,6 @@ def slice_axes(axes: Axes, key):
         else:
             new_axes.append(UndefAxis())  # new axis
         
-
     if len(list_idx) > 1:
         added = False
         out: list[Axis] = []

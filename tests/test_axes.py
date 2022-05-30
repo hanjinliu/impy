@@ -135,6 +135,7 @@ def test_axis_labels():
     assert img[:2].axes["c"].labels == ("c0", "c1")
     assert img[2:].axes["c"].labels == ("c2", "c3")
     assert img[[0, 2]].axes["c"].labels == ("c0", "c2")
+    assert img[2::-1].axes["c"].labels == ("c2", "c1", "c0")
 
 def test_broadcast():
     assert broadcast("zyx", "tzyx") == "tzyx"

@@ -109,7 +109,7 @@ class Axis:
                 step = sl.step or 1
                 if step == 1:
                     return self
-                new_scale = metadata["scale"] * step
+                new_scale = metadata["scale"] * abs(step)
                 metadata.update(scale=new_scale)
             else:
                 metadata.pop("scale")

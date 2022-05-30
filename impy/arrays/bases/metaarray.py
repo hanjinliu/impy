@@ -138,11 +138,11 @@ class MetaArray(AxesMixin, np.ndarray):
         
         if isinstance(out, self.__class__):  # cannot set attribution to such as numpy.int32 
             new_axes = axesop.slice_axes(self.axes, key)
-                
+
             out._getitem_additional_set_info(
                 self, new_axes=new_axes, key=key
             )
-        
+
         return out
     
     def _getitem_additional_set_info(self, other: Self, **kwargs):
