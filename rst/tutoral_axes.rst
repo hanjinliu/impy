@@ -73,6 +73,71 @@ physical scale unit and labels.
     img.axes[0].scale = 0.21
     img.axes[0].unit = "µm"
 
+Physical scale
+--------------
+
+Physical scale is the length of value between ``a[i]`` and ``a[i+1]``. In image analysis,
+this value is usually represented as "µm/pixel" or "nm/pixel" for spatial axes and "sec" for
+time axis.
+
+.. code-block:: python
+
+    img.axes[0].scale  # scale of the first axis
+    img.axes["x"].scale  # scale of x-axis
+    img.axes[0].scale = 0.21  # update the scale of the first axis
+
+You can refer to the scale unit with ``unit`` property.
+
+.. code-block:: python
+
+    img.axes[0].unit  # scale unit of the first axis
+    img.axes[0].unit = "µm"  # update the scale unit
+
+Since these values are tagged to ``Axis`` objects, they will be inherited after slicing,
+filtering or any other operations.
+
+.. code-block:: python
+
+    img[0].axes["x"].scale == img.axes["x"].scale  # True
+    img.gaussian_filter(sigma=1.0).axes["x"].scale == img.axes["x"].scale  # True
+    (img + 1).axes["x"].scale == img.axes["x"].scale  # True
+    np.mean(img, axis=0).axes["x"].scale == img.axes["x"].scale  # True
+
+It is not always the case if you called certain functions that will change scales.
+
+.. code-block:: python
+
+    img[::2].axes[0].scale == img.axes[0].scale * 2  # True
+    img[::-3].axes[0].scale == img.axes[0].scale * 3  # True
+    img.binning(3) == img.axes[0].scale * 3
+
+Axis Labels
+-----------
+
+Sometimes an axis is tagged with "labels" that explains what each slice means. ``Axis`` object
+retains labels information and can be referred to as a tuple.
+
+.. code-block:: python
+
+    assert img.shape["t"] == 4  # say the length of t-axis is 4
+    img.axes["t"].labels = ["0 sec", "10 sec", "30 sec", "1 min"]
+    img.axes["t"].labels == ("0 sec", "10 sec", "30 sec", "1 min")
+
+Because the length of labels must match corresponding shape of an array, it is safer to
+use ``set_axis_label`` method. It checks the new labels.
+
+.. code-block:: python
+
+    img.set_axis_label(t=["0 sec", "10 sec", "30 sec", "1 min"])
+    img.set_axis_label(t=["wrong", "input"])  # Error!
+
+When array is sliced, labels are also correctly inherited
+
+.. code-block:: python
+
+    img.set_axis_label(t=["0 sec", "10 sec", "30 sec", "1 min"])
+    img["t=:2"].axes["t"].labels == ("0 sec", "10 sec")  # True
+    img["t=1,3"].axes["t"].labels == ("10 sec", "1 min")  # True
 
 Practical Usage of Axes
 =======================
@@ -80,8 +145,7 @@ Practical Usage of Axes
 Slicing and Formatting
 ----------------------
 
-TODO
-
+Axes object is very useful in slicing multi-dimensional arrays.
 
 Broadcasting
 ------------
