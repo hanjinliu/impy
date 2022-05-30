@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import numpy as np
 from ._skimage import *
 from ._linalg import hessian_eigval
@@ -56,6 +56,22 @@ convolve = get_func("convolve")
 white_tophat = get_func("white_tophat")
 gaussian_laplace = get_func("gaussian_laplace")
 
+if TYPE_CHECKING:
+    binary_erosion = scipy_ndi.binary_erosion
+    erosion = scipy_ndi.grey_erosion
+    binary_dilation = scipy_ndi.binary_dilation
+    dilation = scipy_ndi.grey_dilation
+    binary_opening = scipy_ndi.binary_opening
+    opening = scipy_ndi.grey_opening
+    binary_closing = scipy_ndi.binary_closing
+    closing = scipy_ndi.grey_closing
+    gaussian_filter = scipy_ndi.gaussian_filter
+    median_filter = scipy_ndi.median_filter
+    spline_filter = scipy_ndi.spline_filter
+    convolve = scipy_ndi.convolve
+    white_tophat = scipy_ndi.white_tophat
+    gaussian_laplace = scipy_ndi.gaussian_laplace
+
 def kalman_filter(img_stack, gain, noise_var):
     # data is 3D or 4D
     img_stack = xp.asarray(img_stack)
@@ -72,37 +88,38 @@ def kalman_filter(img_stack, gain, noise_var):
         out[t] = estimate
     return out
 
-def fill_hole(img, mask):
+def fill_hole(img: np.ndarray, mask: np.ndarray):
+    from skimage.morphology import reconstruction
     seed = np.copy(img)
     seed[1:-1, 1:-1] = img.max()
-    return skimage.morphology.reconstruction(seed, mask, method="erosion")
+    return reconstruction(seed, mask, method="erosion")
 
-def mean_filter(img, selem):
-    return convolve(img, selem/np.sum(selem))
+def mean_filter(img, selem, mode="reflect", cval=0.0):
+    return convolve(img, selem/np.sum(selem), mode=mode, cval=cval)
 
-def phase_mean_filter(img, selem, a):
+def phase_mean_filter(img: np.ndarray, selem, a, mode="reflect", cval=0.0):
     out = xp.empty(img.shape, dtype=np.complex64)
     xp.exp(1j*a*img, out=out)
-    convolve(out, selem, output=out)
+    convolve(out, selem, output=out, mode=mode, cval=cval)
     return xp.angle(out)/a
 
-def std_filter(data, selem):
+def std_filter(data, selem, mode="reflect", cval=0.0):
     selem = selem / np.sum(selem)
-    x1 = convolve(data, selem)
-    x2 = convolve(data**2, selem)
+    x1 = convolve(data, selem, mode=mode, cval=cval)
+    x2 = convolve(data**2, selem, mode=mode, cval=cval)
     std_img = _safe_sqrt(xp.asnumpy(x2 - x1**2), fill=0)
     return std_img
 
-def coef_filter(data, selem):
+def coef_filter(data, selem, mode="reflect", cval=0.0):
     selem = selem / np.sum(selem)
-    x1 = convolve(data, selem)
-    x2 = convolve(data**2, selem)
+    x1 = convolve(data, selem, mode=mode, cval=cval)
+    x2 = convolve(data**2, selem, mode=mode, cval=cval)
     out = _safe_sqrt(xp.asnumpy(x2 - x1**2), fill=0)/xp.asnumpy(x1)
     return out
     
-def dog_filter(img, low_sigma, high_sigma):
-    filt_l = gaussian_filter(img, low_sigma)
-    filt_h = gaussian_filter(img, high_sigma)
+def dog_filter(img, low_sigma, high_sigma, mode="reflect", cval=0.0):
+    filt_l = gaussian_filter(img, low_sigma, mode=mode, cval=cval)
+    filt_h = gaussian_filter(img, high_sigma, mode=mode, cval=cval)
     return filt_l - filt_h
 
 def doh_filter(img, sigma, pxsize):
@@ -111,25 +128,27 @@ def doh_filter(img, sigma, pxsize):
     det = xp.abs(xp.prod(eigval, axis=-1))
     return det
 
-def gabor_filter(img, ker):
+def gabor_filter(img: np.ndarray, ker: np.ndarray, mode="reflect", cval=0.0):
     out = xp.empty(img.shape, dtype=np.complex64)
-    out.real[:] = convolve(img, ker.real)
-    out.imag[:] = convolve(img, ker.imag)
+    out.real[:] = convolve(img, ker.real, mode=mode, cval=cval)
+    out.imag[:] = convolve(img, ker.imag, mode=mode, cval=cval)
     return out
 
 
 def skeletonize(img, selem):
-    skl = skimage.morphology.skeletonize_3d(img)
+    from skimage import morphology
+    skl = morphology.skeletonize_3d(img)
     if selem is not None:
-        skl = skimage.morphology.binary_dilation(skl, selem)
+        skl = morphology.binary_dilation(skl, selem)
     return skl
 
 def population(img, selem):
-    return skfil.rank.pop(img, selem, mask=img)
+    from skimage.filters import rank
+    return rank.pop(img, selem, mask=img)
 
 # Essentially identical to skimage.feature.match_template
 # See skimage/feature/template.py
-def ncc_filter(img, template, bg=0, mode="constant"):
+def ncc_filter(img: np.ndarray, template: np.ndarray, bg=0, mode="constant"):
     from scipy.signal import fftconvolve
     ndim = template.ndim
     _win_sum = skfeat.template._window_sum_2d if ndim == 2 else skfeat.template._window_sum_3d
@@ -159,7 +178,7 @@ def ncc_filter(img, template, bg=0, mode="constant"):
     out = response[tuple(slices)]
     return out
     
-def _safe_sqrt(a, fill=0):
+def _safe_sqrt(a: np.ndarray, fill=0):
     out = np.full(a.shape, fill, dtype=np.float32)
     out = np.zeros_like(a)
     mask = a > 0

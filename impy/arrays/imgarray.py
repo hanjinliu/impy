@@ -52,8 +52,8 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def affine(
         self, matrix=None, *, scale=None, rotation=None, shear=None, translation=None,
-        mode: str = "constant", cval: float = 0, output_shape = None, order: int = 1,
-        dims: Dims = None, update: bool = False
+        order: int = 1, mode: str = "constant", cval: float = 0, output_shape = None,
+        prefilter: bool | None = None, dims: Dims = None, update: bool = False,
     ) -> ImgArray:
         r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
@@ -73,12 +73,10 @@ class ImgArray(LabeledArray):
         ----------
         matrix, scale, rotation, shear, translation
             Affine transformation parameters. See ``skimage.transform.AffineTransform`` for details.
-        mode, cval, output_shape
-            Padding mode, constant value and the shape of output. See ``scipy.ndimage.affine_transform``
-            for details.
-        {order}
-        {dims}
-        {update}
+        {order}{mode}{cval}
+        output_shape : tuple of int, optional
+            Shape of output array.
+        {dims}{update}
 
         Returns
         -------
@@ -92,12 +90,14 @@ class ImgArray(LabeledArray):
         elif callable(cval):
             cval = cval(self.value)
         
+        prefilter = prefilter or order > 1
+        
         if translation is not None and all(a is None for a in [matrix, scale, rotation, shear]):
             shift = -np.asarray(translation)
             return self._apply_dask(
                 _transform.shift,
                 c_axes=complement_axes(dims, self.axes),
-                kwargs=dict(shift=shift, order=order, mode=mode, cval=cval)
+                kwargs=dict(shift=shift, order=order, mode=mode, cval=cval, prefilter=prefilter)
             )
         if matrix is None:
             matrix = _transform.compose_affine_matrix(
@@ -108,7 +108,7 @@ class ImgArray(LabeledArray):
             _transform.warp,
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
-                        output_shape=output_shape)
+                        output_shape=output_shape, prefilter=prefilter)
         )
     
     @_docs.write_docs
@@ -188,10 +188,10 @@ class ImgArray(LabeledArray):
         degree: float,
         center: Sequence[float] | Literal["center"] = "center",
         *,
-        mode: str = "constant",
+        order: int = 3,
+        mode: PaddingMode = "constant",
         cval: float = 0,
         dims: Dims = 2,
-        order: int = 1,
         update: bool = False
     ) -> ImgArray:
         """
@@ -204,13 +204,7 @@ class ImgArray(LabeledArray):
             Clockwise degree of rotation. Not radian.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
-        mode : str
-            Padding mode. See ``scipy.ndimage.affine_transform`` for details.
-        cval : float, default is 0
-            Constant value to fill outside the image for mode == "constant".
-        {dims}
-        {order}
-        {update}
+        {order}{mode}{cval}{dims}{update}
 
         Returns
         -------
@@ -243,7 +237,8 @@ class ImgArray(LabeledArray):
         scale: nDFloat,
         center: Sequence[float] | Literal["center"] = "center",
         *,
-        mode: str = "constant", cval: float = 0, 
+        mode: PaddingMode = "constant", 
+        cval: float = 0, 
         dims: Dims = None,
         order: int = 1,
     ) -> ImgArray:
@@ -256,12 +251,7 @@ class ImgArray(LabeledArray):
             Stretch factors.
         center : str or array-like, optional
             Rotation center coordinate. By default the center of image will be the rotation center.
-        mode : str
-            Padding mode. See ``scipy.ndimage.affine_transform`` for details.
-        cval : float, default is 0
-            Constant value to fill outside the image for mode == "constant".
-        {dims}
-        {order}
+        {mode}{cval}{dims}{order}
 
         Returns
         -------
@@ -291,7 +281,15 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    def rescale(self, scale: float = 1/16, *, dims: Dims = None, order: int = None) -> ImgArray:
+    def rescale(
+        self,
+        scale: float = 1/16,
+        *,
+        order: int = None,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Rescale image.
 
@@ -299,8 +297,7 @@ class ImgArray(LabeledArray):
         ----------
         scale : float, optional
             scale of the new image.
-        {dims}
-        {order}
+        {order}{mode}{cval}{dims}
         
         Returns
         -------
@@ -314,7 +311,9 @@ class ImgArray(LabeledArray):
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Too large: {gb} GB")
         scale_ = [scale if a in dims else 1 for a in self.axes]
-        out = sktrans.rescale(self.value, scale_, order=order, anti_aliasing=False)
+        out = sktrans.rescale(
+            self.value, scale_, order=order, mode=mode, cval=cval, anti_aliasing=False
+        )
         out: ImgArray = out.view(self.__class__)
         out._set_info(self)
         out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
@@ -578,7 +577,7 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray
-            Array of eigenvalues. The axis ``"l"`` denotes the index of eigenvalues.
+            Array of eigenvalues. The axis ``"base"`` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
         
         Examples
@@ -613,15 +612,14 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {sigma}
-        {dims}
+        {sigma}{dims}
 
         Returns
         -------
         ImgArray and ImgArray
-            Arrays of eigenvalues and eigenvectors. The axis ``"l"`` denotes the index of 
-            eigenvalues. l=0 means the smallest eigenvalue. ``"r"`` denotes the index of
-            spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
+            Arrays of eigenvalues and eigenvectors. The axis ``"base"`` denotes the index of 
+            eigenvalues. l=0 means the smallest eigenvalue. ``"dim"`` denotes the index of
+            spatial dimensions. For 3D image, dim=0 means z-element of an eigenvector.
         """                
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
@@ -723,8 +721,7 @@ class ImgArray(LabeledArray):
         ----------
         method : str, {"sobel", "farid", "scharr", "prewitt"}, default is "sobel"
             Edge operator name.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -764,8 +761,7 @@ class ImgArray(LabeledArray):
             Cutoff frequency.
         order : float, default is 2
             Steepness of cutoff.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -945,8 +941,15 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def convolve(self, kernel, *, mode: str = "reflect", cval: float = 0, dims: Dims = None, 
-                 update: bool = False) -> ImgArray:
+    def convolve(
+        self,
+        kernel, 
+        *,
+        mode: PaddingMode = "reflect", 
+        cval: float = 0,
+        dims: Dims = None, 
+        update: bool = False,
+    ) -> ImgArray:
         """
         General linear convolution by running kernel filtering.
 
@@ -954,12 +957,7 @@ class ImgArray(LabeledArray):
         ----------
         kernel : array-like
             Convolution kernel.
-        mode : str, default is "reflect".
-            Padding mode. See `scipy.ndimage.convolve`.
-        cval : int, default is 0
-            Constant value to fill outside the image if mode == "constant".
-        {dims}
-        {update}
+        {mode}{cval}{dims}{update}
 
         Returns
         -------
@@ -978,17 +976,24 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def erosion(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def erosion(
+        self,
+        radius: float = 1.,
+        *, 
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
-        Morphological erosion. If input is binary image, the running function will automatically switched to
+        Morphological erosion. 
+        
+        If input is binary image, the running function will automatically switched to
         ``binary_erosion`` to speed up calculation.
 
         Parameters
         ----------
-        {radius}
-        {cval}
-        {dims}
-        {update}
+        {radius}{mode}{cval}{dims}{update}
 
         Returns
         -------
@@ -998,10 +1003,10 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_erosion
-            kwargs = dict(structure=disk, border_value=1)
+            kwargs = dict(structure=disk, border_value=1, mode=mode, cval=cval)
         else:
             f = _filters.erosion
-            kwargs = dict(footprint=disk)
+            kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
             f, 
             c_axes=complement_axes(dims, self.axes), 
@@ -1012,16 +1017,22 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def dilation(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def dilation(
+        self,
+        radius: float = 1,
+        *, 
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Morphological dilation. If input is binary image, the running function will automatically switched to
         ``binary_dilation`` to speed up calculation.
 
         Parameters
         ----------
-        {radius}
-        {dims}
-        {update}
+        {radius}{mode}{cval}{dims}{update}
 
         Returns
         -------
@@ -1031,10 +1042,10 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_dilation
-            kwargs = dict(structure=disk)
+            kwargs = dict(structure=disk, mode=mode, cval=cval)
         else:
             f = _filters.dilation
-            kwargs = dict(footprint=disk)
+            kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
             f, 
             c_axes=complement_axes(dims, self.axes), 
@@ -1045,16 +1056,22 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def opening(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def opening(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Morphological opening. If input is binary image, the running function will automatically switched to
         ``binary_opening`` to speed up calculation.
 
         Parameters
         ----------
-        {radius}
-        {dims}
-        {update}
+        {radius}{mode}{cval}{dims}{update}
 
         Returns
         -------
@@ -1064,10 +1081,10 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_opening
-            kwargs = dict(structure=disk)
+            kwargs = dict(structure=disk, mode=mode, cval=cval)
         else:
             f = _filters.opening
-            kwargs = dict(footprint=disk)
+            kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
             f, 
             c_axes=complement_axes(dims, self.axes), 
@@ -1078,16 +1095,24 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def closing(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def closing(
+        self,
+        radius: float = 1,
+        *, 
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
-        Morphological closing. If input is binary image, the running function will automatically switched to
+        Morphological closing. 
+        
+        If input is binary image, the running function will automatically switched to
         ``binary_closing`` to speed up calculation.
 
         Parameters
         ----------
-        {radius}
-        {dims}
-        {update}
+        {radius}{dims}{mode}{cval}{update}
 
         Returns
         -------
@@ -1097,10 +1122,10 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_closing
-            kwargs = dict(structure=disk)
+            kwargs = dict(structure=disk, mode=mode, cval=cval)
         else:
             f = _filters.closing
-            kwargs = dict(footprint=disk)
+            kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
             f, 
             c_axes=complement_axes(dims, self.axes), 
@@ -1111,15 +1136,21 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def tophat(self, radius: float = 30, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def tophat(
+        self,
+        radius: float = 30,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Tophat morphological image processing. This is useful for background subtraction.
 
         Parameters
         ----------
-        {radius}
-        {dims}
-        {update}
+        {radius}{mode}{cval}{dims}{update}
 
         Returns
         -------
@@ -1132,7 +1163,7 @@ class ImgArray(LabeledArray):
             _filters.white_tophat, 
             c_axes=complement_axes(dims, self.axes), 
             dtype=self.dtype,
-            kwargs=dict(footprint=disk)
+            kwargs=dict(footprint=disk, mode=mode, cval=cval)
         )
     
     
@@ -1180,15 +1211,20 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def mean_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def mean_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False) -> ImgArray:
         """
         Mean filter. Kernel is filled with same values.
 
         Parameters
         ----------
-        {radius}
-        {dims}
-        {update}
+        {radius}{mode}{cval}{dims}{update}
             
         Returns
         -------
@@ -1206,14 +1242,20 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def std_filter(self, radius: float = 1, *, dims: Dims = None) -> ImgArray:
+    def std_filter(
+        self,
+        radius: float = 1, 
+        *, 
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Standard deviation filter.
 
         Parameters
         ----------
-        {radius}
-        {dims}
+        {radius}{mode}{cval}{dims}
 
         Returns
         -------
@@ -1224,21 +1266,30 @@ class ImgArray(LabeledArray):
         return self.as_float()._apply_dask(
             _filters.std_filter, 
             c_axes=complement_axes(dims, self.axes), 
-            args=(disk,)
+            args=(disk,),
+            kwargs=dict(mode=mode, cval=cval),
         )
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def coef_filter(self, radius: float = 1, *, dims: Dims = None) -> ImgArray:
+    def coef_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None
+    ) -> ImgArray:
         r"""
-        Coefficient of variance filter. For kernel area X, :math:`\frac{\sqrt{V[X]}}{E[X]}` is calculated.
-        This filter is useful for feature extraction from images with uneven background intensity.
+        Coefficient of variance filter. 
+        
+        For kernel area X, :math:`\frac{\sqrt{V[X]}}{E[X]}` is calculated. This filter
+        is useful for feature extraction from images with uneven background intensity.
 
         Parameters
         ----------
-        {radius}
-        {dims}
+        {radius}{mode}{cval}{dims}
         
         Returns
         -------
@@ -1249,19 +1300,32 @@ class ImgArray(LabeledArray):
         return self.as_float()._apply_dask(
             _filters.coef_filter, 
             c_axes=complement_axes(dims, self.axes), 
-            args=(disk,)
+            args=(disk,),
+            kwargs=dict(mode=mode, cval=cval),
         )
     
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def median_filter(self, radius: float = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def median_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
-        Running median filter. This filter is useful for deleting outliers generated by noise.
+        Running multi-dimensional median filter. 
+        
+        This filter is useful for deleting outliers generated by noise.
 
         Parameters
         ----------
         {radius}
+        {mode}
+        {cval}
         {dims}
         {update}
         
@@ -1275,7 +1339,7 @@ class ImgArray(LabeledArray):
             _filters.median_filter, 
             c_axes=complement_axes(dims, self.axes), 
             dtype=self.dtype,
-            kwargs=dict(footprint=disk)
+            kwargs=dict(footprint=disk, mode=mode, cval=cval),
         )
     
     @dims_to_spatial_axes
@@ -1723,7 +1787,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         {order}
-        
+        {mode}
         {dims}
         {update}
             
@@ -4043,7 +4107,7 @@ class ImgArray(LabeledArray):
         **kwargs
     ) -> ImgArray:
         """
-        Z-projection along any axis.
+        Projection along any axis.
 
         Parameters
         ----------
@@ -4225,8 +4289,7 @@ class ImgArray(LabeledArray):
             If True, average shift will be zero.
         along : AxisLike, optional
             Along which axis drift will be corrected.
-        {dims}
-        {update}
+        {dims}{update}
         affine_kwargs :
             Keyword arguments that will be passed to ``warp``.
 
@@ -4326,8 +4389,8 @@ class ImgArray(LabeledArray):
     def pad(
         self, 
         pad_width, 
-        mode: str = "constant", 
         *, 
+        mode: PaddingMode = "constant", 
         dims: Dims = None, 
         **kwargs
     ) -> ImgArray:

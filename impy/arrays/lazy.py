@@ -22,8 +22,8 @@ from ..utils import slicer
 from ..io import imsave
 from ..collections import DataList
 
-from .._types import nDFloat, Coords, Iterable, Dims
-from ..axes import ImageAxesError, Slicer
+from .._types import nDFloat, Coords, Iterable, Dims, PaddingMode
+from ..axes import ImageAxesError
 from .._const import Const
 from ..array_api import xp
 
@@ -114,8 +114,11 @@ class LazyImgArray(AxesMixin):
             return self.value.chunksize
         
     @property
-    def gb(self):
+    def GB(self) -> float:
+        """Return the array size in GB."""
         return self.value.nbytes / 1e9
+    
+    gb = GB  # alias
     
     def __array__(self):
         # Should not be `self.compute` because in napari Viewer this function is called every time
@@ -135,14 +138,13 @@ class LazyImgArray(AxesMixin):
         )
         
         out._getitem_additional_set_info(
-            self,
-            new_axes=new_axes, 
-            key=key
+            self, new_axes=new_axes, key=key
         )
         
         return out
     
     def __neg__(self) -> LazyImgArray:
+        """Invert array."""
         out = self.__class__(-self.value)
         out._set_info(self)
         return out
@@ -191,8 +193,6 @@ class LazyImgArray(AxesMixin):
         elif isinstance(other, self.__class__) and other.dtype.kind != "c":
             other = other.as_float()
             other = other.value
-        elif np.isscalar(other) and other < 0:
-            raise ValueError("Cannot multiply negative value.")
         else:
             other = other
         out = self.value * other
@@ -207,8 +207,6 @@ class LazyImgArray(AxesMixin):
         elif isinstance(other, self.__class__) and other.dtype.kind != "c":
             other = other.as_float()
             other = other.value
-        elif np.isscalar(other) and other < 0:
-            raise ValueError("Cannot multiply negative value.")
         else:
             other = other
         self.value *= other
@@ -282,18 +280,6 @@ class LazyImgArray(AxesMixin):
         else:
             img = arr
         return img
-    
-    @property
-    def data(self):
-        warn("'data' should no longer be used and will be removed soon. Use 'img.compute()' instead.", 
-             DeprecationWarning)
-        return self.compute()
-    
-    @property
-    def img(self):
-        warn("'img' is renamed to 'value' for compatibility with ImgArray and will be removed soon.", 
-             DeprecationWarning)
-        return self.value
     
     def release(self, update: bool = True) -> LazyImgArray:
         """
@@ -602,7 +588,7 @@ class LazyImgArray(AxesMixin):
             c_axes=c_axes,
             depth=_ceilint(radius),
             kwargs=dict(footprint=disk)
-            )
+        )
         
     @_docs.copy_docs(ImgArray.dilation)
     @dims_to_spatial_axes
@@ -623,7 +609,7 @@ class LazyImgArray(AxesMixin):
             c_axes=c_axes,
             depth=_ceilint(radius),
             kwargs=dict(footprint=disk)
-            )
+        )
     
     @_docs.copy_docs(ImgArray.opening)
     @dims_to_spatial_axes
@@ -644,7 +630,7 @@ class LazyImgArray(AxesMixin):
             c_axes=c_axes,
             depth=_ceilint(radius)*2,
             kwargs=dict(footprint=disk)
-            )
+        )
     
     @_docs.copy_docs(ImgArray.closing)
     @dims_to_spatial_axes
@@ -665,7 +651,7 @@ class LazyImgArray(AxesMixin):
             c_axes=c_axes,
             depth=_ceilint(radius)*2,
             kwargs=dict(footprint=disk)
-            )
+        )
     
     @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
@@ -685,7 +671,29 @@ class LazyImgArray(AxesMixin):
             c_axes=c_axes,
             depth=depth,
             kwargs=dict(sigma=sigma),
-            )
+        )
+    
+    @_docs.copy_docs(ImgArray.spline_filter)
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output_lazy
+    def spline_filter(
+        self,
+        order: int = 3,
+        mode: PaddingMode = "mirror", 
+        *,
+        dims: Dims = None,
+        update: bool = False,
+    ):
+        # TODO: need test
+        depth = order
+        return self._apply_map_overlap(
+            _filters.spline_filter,
+            c_axes=complement_axes(dims, self.axes), 
+            depth=depth,
+            args=(order, np.float32, mode),
+        )
+    
     
     @_docs.copy_docs(ImgArray.median_filter)
     @dims_to_spatial_axes

@@ -108,14 +108,16 @@ def write_docs(func):
         summary, params, rest = _split_doc(doc)
         for key, value in shared_docs.items():
             value = value.rstrip()
-            params = re.sub("{"+key+"}", value, params)
+            params = params.replace("{" + key + "}", value)
+            # params = re.sub("{"+key+"}", value, params)
         doc = _merge_doc(summary, params, rest)
         func.__doc__ = doc
     return func
 
-def _split_doc(doc:str):
+def _split_doc(doc: str):
     summary, other = doc.split("Parameters\n")
     params, rest = other.split("Returns\n")
+    params = params.replace("}{", "}\n{")
     return summary, params, rest
 
 def _merge_doc(summary, params, rest):

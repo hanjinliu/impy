@@ -23,10 +23,10 @@ def warp(img: xp.ndarray, matrix: xp.ndarray, cval=0, mode="constant", output_sh
                                   order=order, prefilter=order>1)
     return out
 
-def shift(img: xp.ndarray, shift: xp.ndarray, cval=0, mode="constant", order=1):
+def shift(img: xp.ndarray, shift: xp.ndarray, cval=0, mode="constant", order=1, prefilter=False):
     img = xp.asarray(img, dtype=img.dtype)
     out = xp.ndi.shift(img, shift, cval=cval, mode=mode, 
-                       order=order, prefilter=order>1)
+                       order=order, prefilter=prefilter)
     return out
 
 def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):
