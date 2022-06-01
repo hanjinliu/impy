@@ -79,3 +79,9 @@ def test_drift_correction():
     img.drift_correction(along="t", ref=img["c=0"], dims="zyx")
     img.drift_correction(along="t")
     img.drift_correction(ref=img["c=0"], along="t")
+
+def test_hessian_angle():
+    img = ip.asarray(np.eye(32, dtype=np.float32)).gaussian_filter(3)
+    ang = img.hessian_angle(deg=True)
+    assert abs(ang[15, 15] + 45) < 1e-3
+    assert abs(ang[16, 16] + 45) < 1e-3

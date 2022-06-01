@@ -2786,7 +2786,7 @@ class ImgArray(LabeledArray):
         sigma: nDFloat = 1.,
         *, 
         deg: bool = False,
-        dims: Dims = 2
+        dims: Dims = 2,
     ) -> PhaseArray:
         """
         Calculate filament angles using Hessian's eigenvectors.
@@ -2795,7 +2795,8 @@ class ImgArray(LabeledArray):
         ----------
         {sigma}
         deg : bool, default is False
-            If True, degree rather than radian is returned.
+            If True, returned array will be in degree. Otherwise, radian will be the unit
+            of angle.
         {dims}
 
         Returns
@@ -2807,10 +2808,11 @@ class ImgArray(LabeledArray):
         --------
         gabor_angle
         """        
-        eigval, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
+        _, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
         
-        arg = -np.arctan2(eigvec[slicer.r[0].l[1]], eigvec[slicer.r[1].l[1]])
+        fmt = slicer.get_formatter(["dim", "base"])
         
+        arg = -np.arctan2(eigvec[fmt[0, 1]], eigvec[fmt[1, 1]])
         arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
         arg._fix_border()
         deg and arg.rad2deg()
