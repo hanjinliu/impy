@@ -21,7 +21,7 @@ from ..utils.axesop import complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..io import imsave
 from ..collections import DataList, DataDict
-from ..axes import ImageAxesError, AxesLike
+from ..axes import ImageAxesError, AxesLike, slicer
 from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable, PaddingMode
 from ..array_api import xp
 
@@ -57,6 +57,7 @@ class LabeledArray(MetaArray):
     
     @property
     def labels(self) -> Label | None:
+        """The label of the image."""
         return self._labels
     
     @labels.setter
@@ -302,7 +303,7 @@ class LabeledArray(MetaArray):
         return None
 
     @dims_to_spatial_axes
-    def imshow(self, label: bool = False, dims = 2, alpha=0.3, **kwargs):
+    def imshow(self, label: bool = False, dims = 2, alpha: float = 0.3, **kwargs):
         from ._utils import _plot as _plt
         if label and self.labels is None:
             label = False
@@ -350,36 +351,6 @@ class LabeledArray(MetaArray):
         fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
         _plt.plot_2d(self.value, ax=ax[0], **kwargs)
         _plt.plot_2d(other.value, ax=ax[1], **kwargs)        
-        _plt.show()
-        return self
-    
-    @dims_to_spatial_axes
-    def imshow_label(self, alpha=0.3, dims=2, **kwargs):
-        from ._utils import _plot as _plt
-        if not self.labels is not None:
-            raise AttributeError("No label to show.")
-        if self.ndim == 2:
-            _plt.plot_2d_label(self.value, self.labels.value, alpha, **kwargs)
-            self.hist()
-        elif self.ndim == 3:
-            if "c" not in self.axes:
-                imglist = self.split(axis=find_first_appeared(self.axes, include=self.axes, exclude=dims))
-                if len(imglist) > 24:
-                    print("Too many images. First 24 images are shown.")
-                    imglist = imglist[:24]
-
-                _plt.plot_3d_label(imglist.value, imglist.labels.value, alpha, **kwargs)
-
-            else:
-                n_chn = self.shape.c
-                fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
-                for i in range(n_chn):
-                    img = self[f"c={i}"]
-                    _plt.plot_2d_label(img.value, img.labels.value, alpha, ax[i], **kwargs)
-                    
-        else:
-            raise ValueError("Image must be two or three dimensional.")
-        
         _plt.show()
         return self
     
@@ -721,21 +692,26 @@ class LabeledArray(MetaArray):
         
         # Make axis-targeted slicing string
         sizes = self.sizesof(dims)
+        fmt = slicer.get_formatter(dims)
         slices = []
-        for a, size, sc in zip(dims, sizes, scale):
-            x0 = int(size / 2 * (1 - sc))
-            x1 = int(np.ceil(size / 2 * (1 + sc)))
-            slices.append(f"{a}={x0}:{x1}")
+        for size, sc in zip(sizes, scale):
+            if sc == 1:
+                x0 = 0
+                x1 = size
+            else:
+                x0 = int(np.ceil((size - 1) / 2 * (1 - sc)))
+                x1 = int((size - 1) / 2 * (1 + sc) + 1)
+            slices.append(slice(x0, x1))
 
-        out = self[";".join(slices)]
+        out = self[fmt[tuple(slices)]]
         
         return out
     
     @check_input_and_output
-    def crop_kernel(self, radius:nDInt=2) -> Self:
+    def crop_kernel(self, radius: nDInt = 2) -> Self:
         r"""
-        Make a kernel from an image by cropping out the center region. This function is useful especially
-        in `ImgArray.defocus()`.
+        Make a kernel from an image by cropping out the center region. 
+        This function is useful especially in `ImgArray.defocus()`.
 
         Parameters
         ----------
@@ -749,8 +725,8 @@ class LabeledArray(MetaArray):
         
         Examples
         --------
-        Make a :math:`4\times4\times4` kernel from a point spread function image (suppose the image shapes 
-        are all even numbers).
+        Make a :math:`4\times4\times4` kernel from a point spread function image (suppose the
+        image shapes are all even numbers).
             
             >>> psf = ip.imread(r".../PSF.tif")
             >>> psfker = psf.crop_kernel()
@@ -764,7 +740,7 @@ class LabeledArray(MetaArray):
     @_docs.write_docs
     @check_input_and_output
     @dims_to_spatial_axes
-    def remove_edges(self, pixel:nDInt=1, *, dims=2) -> Self:
+    def remove_edges(self, pixel: nDInt = 1, *, dims=2) -> Self:
         """
         Remove pixels from the edges.
 
@@ -786,11 +762,10 @@ class LabeledArray(MetaArray):
         if np.any(pixel < 0):
             raise ValueError("`pixel` must be positive.")
             
-        slices = []
-        for a, px in zip(dims, pixel):
-            slices.append(f"{a}={px}:-{px}")
+        fmt = slicer.get_formatter(dims)
+        sl = tuple(slice(px, (-px or None)) for px in pixel)
         
-        out = self[";".join(slices)]
+        out = self[fmt[sl]]
         return out
     
     @_docs.write_docs
@@ -906,7 +881,7 @@ class LabeledArray(MetaArray):
                 n_label += len(crds)
         
             if self.labels is not None:
-                print("Existing labels are updated.")
+                warn("Existing labels are updated.", UserWarning)
             self.labels = Label(labels, axes=label_axes).optimize()
             self.labels.set_scale(self)
         

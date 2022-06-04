@@ -63,7 +63,7 @@ You can use GPU for calculation very easily.
 img.gaussian_filter()  # <- CPU
 with ip.use("cupy"):
     img.gaussian_filter()  # <- GPU
-ip.Const["resource"] = "cupy"  # <- globally use GPU
+ip.Const["RESOURCE"] = "cupy"  # <- globally use GPU
 ```
 
 ### Seamless interface between `napari`

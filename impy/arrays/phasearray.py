@@ -185,15 +185,18 @@ class PhaseArray(LabeledArray):
                                args=(disk, a),
                                dtype=self.dtype)
     
-    def imshow(self, dims="yx", **kwargs):
-        if "cmap" not in kwargs:
+    @dims_to_spatial_axes
+    def imshow(self, label: bool = False, dims = 2, alpha=0.3, **kwargs):
+        if "cmap" not in kwargs and self.ndim > 1:
             kwargs["cmap"] = "hsv"
-        return super().imshow(dims=dims, **kwargs)
+        return super().imshow(label=label, dims=dims, alpha=alpha, **kwargs)
     
     def reslice(self, src, dst, *, order: int = 1) -> PropArray:
         """
-        Measure line profile iteratively for every slice of image. Because input is phase, we can
-        not apply standard interpolation to calculate intensities on float-coordinates.
+        Measure line profile iteratively for every slice of image. 
+        
+        Because input is phase, we can not apply standard interpolation to calculate
+        intensities on float-coordinates.
 
         Parameters
         ----------
@@ -222,10 +225,12 @@ class PhaseArray(LabeledArray):
     def regionprops(self, properties: tuple[str,...] | str = ("phase_mean",), *, 
                     extra_properties = None) -> DataDict[str, PropArray]:
         """
+        Measure region properties.
+        
         Run ``skimage``'s ``regionprops()`` function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
         analyzed with ``properties=("X", "Y")``, then you can get X's time-course profile
-        of channel 1 at label 3 by ``prop["X"]["p=5;c=1"]`` or ``prop.X["p=5;c=1"]``.
+        of channel 1 at label 3 by ``prop["X"]["N=5;c=1"]`` or ``prop.X["N=5;c=1"]``.
         In PhaseArray, instead of mean_intensity you should use "phase_mean". The
         phase_mean function is included so that it can be passed in ``properties`` argument.
 
