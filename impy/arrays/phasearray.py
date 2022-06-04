@@ -6,13 +6,15 @@ from ._utils import _filters, _structures
 from ._utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
+from .bases import MetaArray
 
 from ..utils.axesop import complement_axes
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
-from ._utils import _misc
+from ._utils import _misc, _docs
 from ..collections import DataDict
-from .._types import Dims
+from .._types import Dims, PaddingMode
 from ..array_api import xp
+
 
 if TYPE_CHECKING:
     from .imgarray import ImgArray
@@ -28,6 +30,8 @@ def _calc_phase_std(sl, img, periodicity):
 
 class PhaseArray(LabeledArray):
     additional_props = ["_source", "_metadata", "_name", "unit", "border"]
+    unit: str
+    border: tuple[float, float]
     
     def __new__(cls, obj, name=None, axes=None, source=None, 
                 metadata=None, dtype=None, unit="rad", border=None) -> PhaseArray:
@@ -215,8 +219,7 @@ class PhaseArray(LabeledArray):
         out = np.arctan2(out_im, out_re)/a
         return out
     
-    @check_input_and_output(need_labels=True)
-    def regionprops(self, properties: tuple[str,...]|str = ("phase_mean",), *, 
+    def regionprops(self, properties: tuple[str,...] | str = ("phase_mean",), *, 
                     extra_properties = None) -> DataDict[str, PropArray]:
         """
         Run ``skimage``'s ``regionprops()`` function and return the results as PropArray, so
@@ -248,6 +251,7 @@ class PhaseArray(LabeledArray):
             return _calc_phase_mean(sl, img, self.periodicity)
         def phase_std(sl, img):
             return _calc_phase_std(sl, img, self.periodicity)
+        id_axis = "N"
         additional_props = {"phase_mean": phase_mean, "phase_std": phase_std}
                 
         # check arguments
@@ -263,19 +267,23 @@ class PhaseArray(LabeledArray):
             if prop in additional_props.keys():
                 extra_properties = (additional_props[prop],) + extra_properties
                 
-        if "p" in self.axes:
+        if id_axis in self.axes:
             # this dimension will be label
-            raise ValueError("axis 'p' is forbidden in regionprops().")
+            raise ValueError(f"axis {id_axis} is forbidden in regionprops().")
         
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
         
-        out = DataDict({p: PropArray(np.empty((self.labels.max(),) + shape, dtype=np.float32),
-                                      name=self.name+"-prop", 
-                                      axes="p"+prop_axes,
-                                      source=self.source,
-                                      propname=p)
-                         for p in properties})
+        out = DataDict(
+            {p: PropArray(
+                np.empty((self.labels.max(),) + shape, dtype=np.float32),
+                name=self.name+"-prop", 
+                axes=[id_axis]+prop_axes,
+                source=self.source,
+                propname=p
+            )
+            for p in properties}
+        )
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
@@ -300,47 +308,79 @@ class PhaseArray(LabeledArray):
             metadata=self.metadata
         )
 
+    @_docs.write_docs
     @same_dtype(asfloat=True)
-    @check_input_and_output
+    @dims_to_spatial_axes
     def map_coordinates(
         self,
         coordinates,
         *, 
-        mode: str = "constant",
+        mode: PaddingMode = "constant",
         cval: float = 0,
         order: int = 3,
+        prefilter: bool | None = None,
+        dims: Dims = None,
     ):
-        """
+        r"""
         Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
+        
+        For a ``PhaseArray``, standard interpolation does not work because of its specific
+        addition rule. Phase image is first converted into a complex array by :math:`e^{-i \psi}`
+        and the phase is restored by logarithm after interpolation.
 
         Parameters
         ----------
-        coordinates, mode, cval
-            Padding mode, constant value and the shape of output. See 
-            ``scipy.ndimage.map_coordinates``. for details.
+        coordinates : ArrayLike
+            Interpolation coordinates. Must be (D, N) or (D, X_1, ..., X_D) shape.
+        {mode}
+        {cval}
         {order}
+        prefilter : bool, optional
+            Spline prefilter applied to the array. By default set to True if ``order`` is larger
+            than 1.
+        {dims}
 
         Returns
         -------
-        ImgArray
+        PhaseArray
             Transformed image.
         """
+        coords = xp.asarray(coordinates)
+        c_axes = complement_axes(dims, self.axes)
+        
+        if coords.ndim != 2:
+            drop_axis = []
+        else:
+            drop_axis = [self.axisof(a) for a in dims[:-1]]
+        
+        if prefilter is None:
+            prefilter = order > 1
+        
         a = 2 * np.pi / self.periodicity
-        exps = xp.exp(1j * a * xp.asarray(self.value))
-        
-        out = xp.asnumpy(
-            xp.ndi.map_coordinates(
-                exps,
-                xp.asarray(coordinates), 
-                mode=mode,
-                cval=cval,
-                order=order,
-                prefilter=order>1
-            )
-        )
-        return np.angle(out) / a
-        
-# TODO:
-# - map_coordinates
-# - pathprops
+        complex_array: PhaseArray = np.exp(1j * a * self)
 
+        out = complex_array._apply_dask(
+            xp.ndi.map_coordinates,
+            c_axes,
+            dtype=complex_array.dtype,
+            drop_axis=drop_axis,
+            args=(coords,),
+            kwargs=dict(mode=mode, cval=cval, order=order, prefilter=prefilter),
+        )
+        
+        out: np.ndarray = np.angle(out.value) / a
+        
+        if coords.ndim == len(dims) + 1:
+            if isinstance(coordinates, MetaArray):
+                new_axes = c_axes + coordinates.axes[1:]
+            else:
+                new_axes = self.axes
+        else:
+            if isinstance(coordinates, MetaArray):
+                new_axes = c_axes + coordinates.axes[1:2]
+            else:
+                new_axes = c_axes + ["#"]
+            
+        out: PhaseArray = out.view(self.__class__)
+        out._set_info(self, new_axes=new_axes)
+        return out

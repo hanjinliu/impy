@@ -1,13 +1,12 @@
 from __future__ import annotations
 import warnings
 import numpy as np
-from numpy.typing import DTypeLike
+from numpy.typing import ArrayLike, DTypeLike
 import os
 from pathlib import Path
 import itertools
 from functools import partial
-import inspect
-from typing import TYPE_CHECKING, Any, Hashable, TypeVar
+from typing import TYPE_CHECKING, Any, Sequence
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -19,15 +18,16 @@ from .label import Label
 
 from ..utils.misc import check_nd, largest_zeros
 from ..utils.axesop import complement_axes, find_first_appeared
-from ..utils.deco import check_input_and_output, dims_to_spatial_axes
+from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..io import imsave
-
-from ..collections import DataList
-from ..axes import ImageAxesError
-from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable
+from ..collections import DataList, DataDict
+from ..axes import ImageAxesError, AxesLike
+from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable, PaddingMode
+from ..array_api import xp
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+    from ..frame import PathFrame
 
 class LabeledArray(MetaArray):
     _name: str
@@ -39,7 +39,7 @@ class LabeledArray(MetaArray):
         cls: type[LabeledArray], 
         obj,
         name: str | None = None,
-        axes: Iterable[Hashable] | None = None,
+        axes: AxesLike | None = None,
         source: str | Path | None = None, 
         metadata: dict[str, Any] | None = None,
         dtype: DTypeLike = None,
@@ -383,6 +383,300 @@ class LabeledArray(MetaArray):
         _plt.show()
         return self
     
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #   Interpolation
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #    
+    
+    @_docs.write_docs
+    @same_dtype(asfloat=True)
+    @dims_to_spatial_axes
+    def map_coordinates(
+        self,
+        coordinates,
+        *, 
+        mode: PaddingMode = "constant",
+        cval: float = 0,
+        order: int = 3,
+        prefilter: bool | None = None,
+        dims: Dims = None,
+    ) -> Self:
+        """
+        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
+
+        Parameters
+        ----------
+        coordinates : ArrayLike
+            Interpolation coordinates. Must be (D, N) or (D, X_1, ..., X_D) shape.
+        {mode}
+        {cval}
+        {order}
+        prefilter : bool, optional
+            Spline prefilter applied to the array. By default set to True if ``order`` is larger
+            than 1.
+        {dims}
+
+        Returns
+        -------
+        LabeledArray
+            Transformed image. Axes will be correctly filled if possible.
+        """
+        coords = xp.asarray(coordinates)
+        c_axes = complement_axes(dims, self.axes)
+        
+        if coords.ndim != 2:
+            drop_axis = []
+        else:
+            drop_axis = [self.axisof(a) for a in dims[:-1]]
+        
+        if prefilter is None:
+            prefilter = order > 1
+        out = self._apply_dask(
+            xp.ndi.map_coordinates,
+            c_axes,
+            dtype=self.dtype,
+            drop_axis=drop_axis,
+            args=(coords,),
+            kwargs=dict(mode=mode, cval=cval, order=order, prefilter=prefilter),
+        )
+        
+        if coords.ndim == len(dims) + 1:
+            if isinstance(coordinates, MetaArray):
+                new_axes = c_axes + coordinates.axes[1:]
+            else:
+                new_axes = self.axes
+        else:
+            if isinstance(coordinates, MetaArray):
+                new_axes = c_axes + coordinates.axes[1:2]
+            else:
+                new_axes = c_axes + ["#"]
+            
+        out = out.view(self.__class__)
+        out._set_info(self, new_axes=new_axes)
+        return out
+
+    @_docs.write_docs
+    def pointprops(self, coords: Coords, *, order: int = 3, squeeze: bool = True) -> PropArray:
+        """
+        Measure interpolated intensity at points with float coordinates.
+        
+        This method is essentially identical to :func:`map_coordinates` but is
+        more straightforward for measuring intensities at points.
+
+        Parameters
+        ----------
+        coords : DataFrame or array-like
+            Coordinates of point to be measured.
+        {order}
+        squeeze : bool, default is True
+            If True and only one point is measured, the redundant dimension ID_AXIS will be deleted.
+
+        Returns
+        -------
+        PropArray or float
+            Intensities at points.
+        
+        Examples
+        --------
+        Calculate centroids and measure intensities.
+            >>> coords = img.proj("t").centroid_sm()
+            >>> prop = img.pointprops(coords)
+        """
+        id_axis = "N"
+        coords = MetaArray(np.atleast_2d(coords), axes=[id_axis, "dim"])
+        npoints, ncol = coords.shape
+        dims = self.axes[-ncol:]
+        out = self.map_coordinates(coords.T, order=order, dims=dims)
+        
+        out = PropArray(
+            out, name=out.name, axes=out.axes, source=out.source,
+            metadata=out.metadata, propname="pointprops",
+        )
+        out = np.moveaxis(out, out.axisof(id_axis), 0)
+        if npoints == 1 and squeeze:
+            out = out[0]
+        return out
+    
+    @_docs.write_docs
+    def reslice(
+        self,
+        a: ArrayLike,
+        b=None,
+        *,
+        order: int = 3,
+        prefilter: bool | None = None,
+    ) -> PropArray:
+        """
+        Measure line profile (kymograph) iteratively for every slice of image. This 
+        function is almost same as `skimage.measure.profile_line`, but can reslice
+        3D-images. The argument `linewidth` is not implemented here because it is
+        useless.
+
+        Parameters
+        ----------
+        a : array-like
+            Path or source coordinate. If the former, it must be like:
+            `a = [[y0, x0], [y1, x1], ..., [yn, xn]]`
+        b : array-like, optional
+            Destination coordinate. If specified, `a` must be the source coordinate.
+        {order}
+
+        Returns
+        -------
+        PropArray
+            Line scans.
+        
+        Examples
+        --------
+        1. Rescile along a line and fit to a model function for every time frame.
+        
+            >>> scan = img.reslice([18, 32], [53, 48])
+            >>> out = scan.curve_fit(func, init, return_fit=True)
+            >>> plt.plot(scan[0])
+            >>> plt.plot(out.fit[0])
+            
+        2. Rescile along a path.
+        
+            >>> scan = img.reslice([[18, 32], [53,48], [22,45], [28, 32]])
+        """        
+        # path = [[y1, x1], [y2, x2], ..., [yn, xn]]
+        if b is not None:
+            a = [list(a), list(b)]
+        a = np.asarray(a, dtype=np.float32)
+        _, ndim = a.shape
+        seg = SegmentedLine(a)
+        coords = seg.sample_points().T
+        
+        if ndim == self.ndim:
+            dims = self.axes
+        else:
+            dims = complement_axes("c", self.axes)[-ndim:]
+        c_axes = complement_axes(dims, self.axes)
+        result = self.map_coordinates(
+            coords, order=order, mode="constant", prefilter=prefilter, dims=dims,
+        )
+        
+        new_axis = "s"
+        out = PropArray(result, name=self.name, dtype=np.float32,
+                        axes=c_axes+[new_axis], propname="reslice")
+        
+        out.set_scale(self)
+        out.set_scale({new_axis: self.scale[dims[-1]] * seg.interv})
+        return out
+    
+    @_docs.write_docs
+    @check_input_and_output
+    def pathprops(
+        self,
+        paths: PathFrame | ArrayLike | Sequence[ArrayLike],
+        properties: str | Callable | Iterable[str | Callable] = "mean", 
+        *, 
+        order: int = 1,
+    ) -> DataDict[str, PropArray]:
+        """
+        Measure line property using func(line_scan) for each functions in properties.
+
+        Parameters
+        ----------
+        paths : PathFrame
+            Paths to measure properties.
+        properties : str or callable, or their iterable
+            Properties to be analyzed.
+        {order}
+        
+        Returns
+        -------
+        DataDict of PropArray
+            Line properties. Keys are property names and values are the corresponding PropArrays.
+
+        Examples
+        --------
+        1. Time-course measurement of intensities on a path.
+            >>> img.pathprops([[2, 3], [102, 301], [200, 400]])
+        """        
+        id_axis = "N"
+        
+        # normalize paths
+        if type(paths).__name__ == "PathFrame":
+            paths = [np.asarray(path) for path in paths.split(id_axis)]
+        elif _count_list_depth(paths) == 2:
+            paths = [np.asarray(paths)]
+        else:
+            paths = [np.asarray(path) for path in paths]
+        
+        ndim = paths[0].shape[1]
+        npaths = len(paths)
+        dims = ["z", "y", "x"][-ndim:]
+        
+        # make a function dictionary
+        funcdict = dict()
+        if isinstance(properties, str) or callable(properties):
+            properties = (properties,)
+        for f in properties:
+            if isinstance(f, str):
+                funcdict[f] = getattr(np, f)
+            elif callable(f):
+                funcdict[f.__name__] = f
+            else:
+                raise TypeError(f"Cannot interpret property {f}")
+        
+        c_axes = complement_axes(dims, self.axes)
+        out_shape = tuple(self.sizeof(a) for a in c_axes)
+        out = DataDict(
+            {k: PropArray(
+                    np.empty((npaths,) + out_shape, dtype=np.float32), 
+                    name=self.name, 
+                    axes=[id_axis] + c_axes,
+                    source=self.source,
+                    propname = f"pathprops<{k}>", 
+                    dtype=np.float32
+                )
+                for k in funcdict.keys()
+            }
+        )
+        
+        if order > 1:
+            self = self.spline_filter(order=order, mode="constant")
+        
+        for i, path in enumerate(paths):
+            resliced = self.reslice(path, order=order, prefilter=False)
+            for name, func in funcdict.items():
+                out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
+                
+        return out
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def spline_filter(
+        self,
+        order: int = 3,
+        mode: PaddingMode = "mirror", 
+        *,
+        dims: Dims = None,
+        update: bool = False,
+    ):
+        """
+        Run spline filter.
+        
+        Parameters
+        ----------
+        {order}
+        {mode}
+        {dims}
+        {update}
+            
+        Returns
+        -------
+        LabeledArray
+            Filtered image.
+        """
+        from ._utils import _filters
+        return self._apply_dask(
+            _filters.spline_filter,
+            c_axes=complement_axes(dims, self.axes), 
+            args=(order, np.float32, mode),
+        )
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Cropping
@@ -780,6 +1074,7 @@ class LabeledArray(MetaArray):
         if not callable(filt):
             raise TypeError("`filt` must be callable.")
         
+        import inspect
         properties = tuple(inspect.signature(filt).parameters)[2:]
             
         c_axes = complement_axes(dims, self.axes)
@@ -1220,3 +1515,50 @@ def _iter_tile_xy(ymax, xmax, imgy, imgx):
         sly = slice(uy*imgy, (uy+1)*imgy, None)
         slx = slice(ux*imgx, (ux+1)*imgx, None)
         yield ..., slx, sly
+
+
+class SegmentedLine:
+    def __init__(self, nodes: np.ndarray):
+        if nodes.shape[0] < 2:
+            raise ValueError("More than one points must be given.")
+        
+        vec = np.diff(nodes, axis=0)
+        dist = np.sqrt(np.sum(vec**2, axis=1))
+        dist_sum = np.sum(dist)
+        npoints = int(dist_sum)
+        interv = dist_sum / npoints
+        
+        self.length = dist_sum
+        self.vec = vec
+        self.dist = dist
+        self.nodes = nodes
+        self.interv = interv
+    
+    def sample_points(self) -> np.ndarray:
+        res = 0
+        out = [self.nodes[0:1]]
+        npoints = 1
+        for v, d, p in zip(self.vec, self.dist, self.nodes[:-1]):
+            res0 = res
+            d_int, res = divmod(d + res, self.interv)
+            idx = self.interv*(np.arange(d_int) + 1) - res0
+            xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
+            out.append(xs)
+            npoints += xs.shape[0]
+        
+        if npoints <= int(self.length):
+            out.append(self.nodes[-1:])
+        
+        return np.concatenate(out, axis=0)
+
+def _count_list_depth(x) -> int:
+    n = 0
+    out = x
+    while True:
+        try:
+            out = out[0]
+        except IndexError:
+            break
+        else:
+            n += 1
+    return n

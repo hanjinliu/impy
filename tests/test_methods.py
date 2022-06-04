@@ -85,3 +85,12 @@ def test_hessian_angle():
     ang = img.hessian_angle(deg=True)
     assert abs(ang[15, 15] + 45) < 1e-3
     assert abs(ang[16, 16] + 45) < 1e-3
+
+@pytest.mark.parametrize("method", ["sobel", "farid", "scharr", "prewitt"])
+def test_edge_grad(method):
+    img = ip.asarray(np.eye(32, dtype=np.float32)).gaussian_filter(3)
+    ang = img.edge_grad(method=method, deg=True)
+    assert abs(ang[14, 12] - 45) < 1e-3
+    assert abs(ang[18, 16] - 45) < 1e-3
+    assert abs(ang[12, 14] + 135) < 1e-3
+    assert abs(ang[16, 18] + 135) < 1e-3

@@ -112,74 +112,6 @@ class ImgArray(LabeledArray):
         )
     
     @_docs.write_docs
-    @same_dtype(asfloat=True)
-    @dims_to_spatial_axes
-    def map_coordinates(
-        self,
-        coordinates,
-        *, 
-        mode: PaddingMode = "constant",
-        cval: float = 0,
-        order: int = 3,
-        prefilter: bool | None = None,
-        dims: Dims = None,
-    ):
-        """
-        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.
-
-        Parameters
-        ----------
-        coordinates, mode, cval
-            Padding mode, constant value and the shape of output. See 
-            ``scipy.ndimage.map_coordinates``. for details.
-        {mode}
-        {cval}
-        {order}
-        prefilter : bool, optional
-            Spline prefilter applied to the array. By default set to True if ``order`` is larger
-            than 1.
-        {dims}
-
-        Returns
-        -------
-        ImgArray
-            Transformed image.
-        """
-        coords = xp.asarray(coordinates)
-        c_axes = complement_axes(dims, self.axes)
-        
-        if coords.ndim != 2:
-            drop_axis = []
-        else:
-            drop_axis = [self.axisof(a) for a in dims[:-1]]
-        
-        if prefilter is None:
-            prefilter = order > 1
-        out = self._apply_dask(
-            xp.ndi.map_coordinates,
-            c_axes,
-            dtype=self.dtype,
-            drop_axis=drop_axis,
-            args=(coords,),
-            kwargs=dict(mode=mode, cval=cval, order=order, prefilter=prefilter),
-        )
-        
-        if coords.ndim == len(dims) + 1:
-            if isinstance(coordinates, MetaArray):
-                new_axes = c_axes + coordinates.axes[1:]
-            else:
-                new_axes = self.axes
-        else:
-            if isinstance(coordinates, MetaArray):
-                new_axes = c_axes + coordinates.axes[1:2]
-            else:
-                new_axes = c_axes + ["#"]
-            
-        out = out.view(self.__class__)
-        out._set_info(self, new_axes=new_axes)
-        return out
-    
-    @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
@@ -1773,39 +1705,6 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def spline_filter(
-        self,
-        order: int = 3,
-        mode: PaddingMode = "mirror", 
-        *,
-        dims: Dims = None,
-        update: bool = False,
-    ):
-        """
-        Run spline filter.
-        
-        Parameters
-        ----------
-        {order}
-        {mode}
-        {dims}
-        {update}
-            
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """
-        return self._apply_dask(
-            _filters.spline_filter,
-            c_axes=complement_axes(dims, self.axes), 
-            args=(order, np.float32, mode),
-        )
-    
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    @same_dtype(asfloat=True)
-    @check_input_and_output
     def rolling_ball(
         self,
         radius: float = 30,
@@ -2937,17 +2836,19 @@ class ImgArray(LabeledArray):
         # TODO: 3D Gabor filter
         ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
-            out = self.as_float()._apply_dask(_filters.gabor_filter, 
-                                             c_axes=complement_axes(dims, self.axes), 
-                                             args=(ker,), 
-                                             dtype=np.complex64
-                                             )
+            out = self.as_float()._apply_dask(
+                _filters.gabor_filter, 
+                c_axes=complement_axes(dims, self.axes), 
+                args=(ker,), 
+                dtype=np.complex64
+            )
         else:
-            out = self.as_float()._apply_dask(_filters.convolve, 
-                                             c_axes=complement_axes(dims, self.axes),
-                                             args=(ker.real,), 
-                                             dtype=np.float32
-                                             )
+            out = self.as_float()._apply_dask(
+                _filters.convolve, 
+                c_axes=complement_axes(dims, self.axes),
+                args=(ker.real,), 
+                dtype=np.float32
+            )
         return out
     
     @_docs.write_docs
@@ -2956,7 +2857,7 @@ class ImgArray(LabeledArray):
     def fft(
         self,
         *, 
-        shape: int | Iterable[int] | str = "same",
+        shape: int | Iterable[int] | Literal["same"] | Literal["square"] = "same",
         shift: bool = True, 
         double_precision: bool = False,
         dims: Dims = None
@@ -3087,7 +2988,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def local_power_spectra(
         self,
-        key: str = "",
+        key: AxesTargetedSlicer | None = None,
         upsample_factor: nDInt = 1,
         norm: bool = False,
         *, 
@@ -3161,9 +3062,10 @@ class ImgArray(LabeledArray):
         else:
             freq = self.value
         dtype = np.complex128 if double_precision else np.complex64
-        out = xp.fft.ifftn(xp.asarray(freq, dtype=dtype), 
-                           axes=axes
-                           ).astype(np.complex64)
+        out = xp.fft.ifftn(
+            xp.asarray(freq, dtype=dtype), 
+            axes=axes
+        ).astype(np.complex64)
         
         if real:
             out = np.real(out)
@@ -3174,7 +3076,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def power_spectra(
         self,
-        shape: int | Iterable[int] | str = "same",
+        shape: int | Iterable[int] | Literal["same"] | Literal["square"] = "same",
         norm: bool = False, 
         zero_norm: bool = False, *,
         double_precision: bool = False,
@@ -3463,7 +3365,7 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
-    def remove_fine_objects(self, length:float=10, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def remove_fine_objects(self, length: float = 10, *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Remove fine objects using diameter_opening.
 
@@ -3537,11 +3439,12 @@ class ImgArray(LabeledArray):
         else:
             selem = None
         
-        return self._apply_dask(_filters.skeletonize, 
-                               c_axes=complement_axes(dims, self.axes),
-                               args=(selem,),
-                               dtype=bool
-                               ).astype(bool)
+        return self._apply_dask(
+            _filters.skeletonize, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(selem,),
+            dtype=bool
+        ).astype(bool)
         
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -3581,9 +3484,11 @@ class ImgArray(LabeledArray):
         connectivity = ndim if connectivity is None else connectivity
         selem = ndi.morphology.generate_binary_structure(ndim, connectivity)
         selem[(1,)*ndim] = 0
-        out = self.as_uint8()._apply_dask(_filters.population, 
-                                         c_axes=complement_axes(dims, self.axes), 
-                                         args=(selem,))
+        out = self.as_uint8()._apply_dask(
+            _filters.population, 
+            c_axes=complement_axes(dims, self.axes), 
+            args=(selem,)
+        )
         if mask:
             out[~self.value] = 0
             
@@ -3631,8 +3536,15 @@ class ImgArray(LabeledArray):
     
     @dims_to_spatial_axes
     @check_input_and_output(need_labels=True)
-    def watershed(self, coords: MarkerFrame = None, *, connectivity: int = 1, input: str = "distance", 
-                  min_distance: float = 2, dims: Dims = None) -> Label:
+    def watershed(
+        self,
+        coords: MarkerFrame | None = None,
+        *,
+        connectivity: int = 1,
+        input: Literal["self"] | Literal["distance"] = "distance", 
+        min_distance: float = 2,
+        dims: Dims = None,
+    ) -> Label:
         """
         Label segmentation using watershed algorithm.
 
@@ -3641,7 +3553,7 @@ class ImgArray(LabeledArray):
         coords : MarkerFrame, optional
             Returned by such as `peak_local_max()`. Array of coordinates of peaks.
         {connectivity}
-        input_ : str, optional
+        input : str, optional
             What image will be the input of watershed algorithm.            
             
             - "self" ... self is used.
@@ -3744,197 +3656,6 @@ class ImgArray(LabeledArray):
         labels = self.threshold(thr=thr, **kwargs)
         return self.label(labels, dims=dims)
     
-    @_docs.write_docs
-    def pointprops(self, coords: Coords, *, order: int = 3, squeeze: bool = True) -> PropArray:
-        """
-        Measure interpolated intensity at points with float coordinates.
-        
-        This method is essentially identical to :func:`map_coordinates` but is
-        more straightforward for measuring intensities at points.
-
-        Parameters
-        ----------
-        coords : DataFrame or array-like
-            Coordinates of point to be measured.
-        {order}
-        squeeze : bool, default is True
-            If True and only one point is measured, the redundant dimension ID_AXIS will be deleted.
-
-        Returns
-        -------
-        PropArray or float
-            Intensities at points.
-        
-        Examples
-        --------
-        Calculate centroids and measure intensities.
-            >>> coords = img.proj("t").centroid_sm()
-            >>> prop = img.pointprops(coords)
-        """
-        id_axis = Const["ID_AXIS"]
-        coords = MetaArray(np.atleast_2d(coords), axes=[id_axis, "dim"])
-        npoints, ncol = coords.shape
-        dims = self.axes[-ncol:]
-        out = self.map_coordinates(coords.T, order=order, dims=dims)
-        
-        out = PropArray(
-            out, name=out.name, axes=out.axes, source=out.source,
-            metadata=out.metadata, propname="pointprops",
-        )
-        out = np.moveaxis(out, out.axisof(id_axis), 0)
-        if npoints == 1 and squeeze:
-            out = out[0]
-        return out
-    
-    @_docs.write_docs
-    def reslice(
-        self,
-        a: ArrayLike,
-        b=None,
-        *,
-        order: int = 3,
-        prefilter: bool | None = None,
-    ) -> PropArray:
-        """
-        Measure line profile (kymograph) iteratively for every slice of image. This 
-        function is almost same as `skimage.measure.profile_line`, but can reslice
-        3D-images. The argument `linewidth` is not implemented here because it is
-        useless.
-
-        Parameters
-        ----------
-        a : array-like
-            Path or source coordinate. If the former, it must be like:
-            `a = [[y0, x0], [y1, x1], ..., [yn, xn]]`
-        b : array-like, optional
-            Destination coordinate. If specified, `a` must be the source coordinate.
-        {order}
-
-        Returns
-        -------
-        PropArray
-            Line scans.
-        
-        Examples
-        --------
-        1. Rescile along a line and fit to a model function for every time frame.
-        
-            >>> scan = img.reslice([18, 32], [53, 48])
-            >>> out = scan.curve_fit(func, init, return_fit=True)
-            >>> plt.plot(scan[0])
-            >>> plt.plot(out.fit[0])
-            
-        2. Rescile along a path.
-        
-            >>> scan = img.reslice([[18, 32], [53,48], [22,45], [28, 32]])
-        """        
-        # path = [[y1, x1], [y2, x2], ..., [yn, xn]]
-        if b is not None:
-            a = [list(a), list(b)]
-        a = np.asarray(a, dtype=np.float32)
-        _, ndim = a.shape
-        seg = SegmentedLine(a)
-        coords = seg.sample_points().T
-        
-        if ndim == self.ndim:
-            dims = self.axes
-        else:
-            dims = complement_axes("c", self.axes)[-ndim:]
-        c_axes = complement_axes(dims, self.axes)
-        result = self.map_coordinates(
-            coords, order=order, mode="constant", prefilter=prefilter, dims=dims,
-        )
-        
-        new_axis = "s"
-        out = PropArray(result, name=self.name, dtype=np.float32,
-                        axes=c_axes+[new_axis], propname="reslice")
-        
-        out.set_scale(self)
-        out.set_scale({new_axis: self.scale[dims[-1]] * seg.interv})
-        return out
-    
-    @_docs.write_docs
-    @check_input_and_output
-    def pathprops(
-        self,
-        paths: PathFrame | ArrayLike | Sequence[ArrayLike],
-        properties: str | Callable | Iterable[str | Callable] = "mean", 
-        *, 
-        order: int = 1,
-    ) -> DataDict:
-        """
-        Measure line property using func(line_scan) for each functions in properties.
-
-        Parameters
-        ----------
-        paths : PathFrame
-            Paths to measure properties.
-        properties : str or callable, or their iterable
-            Properties to be analyzed.
-        {order}
-        
-        Returns
-        -------
-        DataDict of PropArray
-            Line properties. Keys are property names and values are the corresponding PropArrays.
-
-        Examples
-        --------
-        1. Time-course measurement of intensities on a path.
-            >>> img.pathprops([[2, 3], [102, 301], [200, 400]])
-        """        
-        id_axis = Const["ID_AXIS"]
-        
-        # normalize paths
-        if type(paths).__name__ == "PathFrame":
-            paths = [np.asarray(path) for path in paths.split(id_axis)]
-        elif _count_list_depth(paths) == 2:
-            paths = [np.asarray(paths)]
-        else:
-            paths = [np.asarray(path) for path in paths]
-        
-        ndim = paths[0].shape[1]
-        npaths = len(paths)
-        dims = ["z", "y", "x"][-ndim:]
-        
-        # make a function dictionary
-        funcdict = dict()
-        if isinstance(properties, str) or callable(properties):
-            properties = (properties,)
-        for f in properties:
-            if isinstance(f, str):
-                funcdict[f] = getattr(np, f)
-            elif callable(f):
-                funcdict[f.__name__] = f
-            else:
-                raise TypeError(f"Cannot interpret property {f}")
-        
-        c_axes = complement_axes(dims, self.axes)
-        out_shape = tuple(self.sizeof(a) for a in c_axes)
-        out = DataDict(
-            {k: PropArray(
-                    np.empty((npaths,) + out_shape, dtype=np.float32), 
-                    name=self.name, 
-                    axes=[id_axis] + c_axes,
-                    source=self.source,
-                    propname = f"pathprops<{k}>", 
-                    dtype=np.float32
-                )
-                for k in funcdict.keys()
-            }
-        )
-        
-        if order > 1:
-            self = self.spline_filter(order=order, mode="constant")
-        
-        for i, path in enumerate(paths):
-            resliced = self.reslice(path, order=order, prefilter=False)
-            for name, func in funcdict.items():
-                out[name][i] = np.apply_along_axis(func, axis=-1, arr=resliced.value)
-                
-        return out
-    
-    @check_input_and_output(need_labels=True)
     def regionprops(
         self,
         properties: Iterable[str] | str = ("mean_intensity",), *, 
@@ -3967,7 +3688,7 @@ class ImgArray(LabeledArray):
             >>> img.specify(coords, 3, labeltype="circle")
             >>> props = img.regionprops()
         """        
-        id_axis = Const["ID_AXIS"]
+        id_axis = "N"
         if isinstance(properties, str):
             properties = (properties,)
         if extra_properties is not None:
@@ -3979,7 +3700,7 @@ class ImgArray(LabeledArray):
         
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
-        
+
         out = DataDict({p: PropArray(
                 np.empty((self.labels.max(),) + shape, dtype=np.float32),
                 name=self.name+"-prop", 
@@ -3996,7 +3717,7 @@ class ImgArray(LabeledArray):
                                       extra_properties=extra_properties)
             label_sl = (slice(None),) + sl
             for prop_name in properties:
-                # Both sides have length of p-axis (number of labels) so that values
+                # Both sides have length of id_axis (number of labels) so that values
                 # can be correctly substituted.
                 out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
         
@@ -4822,49 +4543,3 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
         
     n = stop - start
     return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]
-
-def _count_list_depth(x) -> int:
-    n = 0
-    out = x
-    while True:
-        try:
-            out = out[0]
-        except IndexError:
-            break
-        else:
-            n += 1
-    return n
-
-class SegmentedLine:
-    def __init__(self, nodes: np.ndarray):
-        if nodes.shape[0] < 2:
-            raise ValueError("More than one points must be given.")
-        
-        vec = np.diff(nodes, axis=0)
-        dist = np.sqrt(np.sum(vec**2, axis=1))
-        dist_sum = np.sum(dist)
-        npoints = int(dist_sum)
-        interv = dist_sum / npoints
-        
-        self.length = dist_sum
-        self.vec = vec
-        self.dist = dist
-        self.nodes = nodes
-        self.interv = interv
-    
-    def sample_points(self) -> np.ndarray:
-        res = 0
-        out = [self.nodes[0:1]]
-        npoints = 1
-        for v, d, p in zip(self.vec, self.dist, self.nodes[:-1]):
-            res0 = res
-            d_int, res = divmod(d + res, self.interv)
-            idx = self.interv*(np.arange(d_int) + 1) - res0
-            xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
-            out.append(xs)
-            npoints += xs.shape[0]
-        
-        if npoints <= int(self.length):
-            out.append(self.nodes[-1:])
-        
-        return np.concatenate(out, axis=0)

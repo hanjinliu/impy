@@ -267,7 +267,7 @@ You can check its size in GB:
 
 .. code-block:: python
 
-    img.gb
+    img.GB
 
 .. code-block::
 

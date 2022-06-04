@@ -45,3 +45,27 @@ def test_pathprops():
     assert len(out) == 2
     out["mean"].shape == (2, 10)
     out["std"].shape == (2, 10)
+
+def test_regionprops():
+    # prepare labeled image
+    zz, yy, xx = np.indices((10, 12, 14), dtype=np.float32)
+    imgs = []
+    for u in range(4):
+        imgs.append(np.sin(zz/3 + u)*np.cos(yy/2+u)*np.sin(xx/1.3 + u*2))
+    img = ip.asarray(np.stack(imgs, axis=0), axes="tzyx")
+    
+    property_names = ["mean_intensity", "area", "centroid"]
+        
+    lbl = img[0].threshold().label()
+    img.labels = lbl
+    props = img.regionprops(properties=property_names)
+    
+    for name in property_names:
+        assert props[name].axes == ["N", "t"]
+
+    lbl = img[0, 4].threshold().label()
+    img.labels = lbl
+    props = img.regionprops(properties=property_names)
+    
+    for name in property_names:
+        assert props[name].axes == ["N", "t", "z"]
