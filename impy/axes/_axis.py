@@ -85,7 +85,7 @@ class Axis:
     def unit(self, value: str | None):
         if value is None:
             value = "px"
-        elif value.startswith("\\u00B5"):
+        elif value.startswith("\\u00B5") or value.startswith("\\u03BC"):
             value = "μ" + value[6:]
         
         self.metadata["unit"] = value
