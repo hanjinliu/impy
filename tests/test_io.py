@@ -37,3 +37,5 @@ def test_imread_key(key):
     img0 = ip.imread(path, key=key)
     img1 = img_orig[key]
     assert_equal(img0, img1)
+    assert img1.scale_unit == "μm"
+    assert img0.scale_unit == "μm"

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.phasearray &mdash; impy 2.1.0.alpha documentation</title>
+  <title>impy.arrays.phasearray &mdash; impy 2.1.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0.alpha
+                2.1.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,6 +39,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
@@ -76,13 +77,15 @@
 <span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">skmes</span>
 <span class="kn">from</span> <span class="nn">.specials</span> <span class="kn">import</span> <span class="n">PropArray</span>
 <span class="kn">from</span> <span class="nn">.labeledarray</span> <span class="kn">import</span> <span class="n">LabeledArray</span>
+<span class="kn">from</span> <span class="nn">.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
 
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">complement_axes</span>
 <span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">check_input_and_output</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span><span class="p">,</span> <span class="n">same_dtype</span>
-<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_misc</span>
+<span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_docs</span>
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataDict</span>
-<span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Dims</span>
+<span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">PaddingMode</span>
 <span class="kn">from</span> <span class="nn">..array_api</span> <span class="kn">import</span> <span class="n">xp</span>
+
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">.imgarray</span> <span class="kn">import</span> <span class="n">ImgArray</span>
@@ -98,6 +101,8 @@
 
 <div class="viewcode-block" id="PhaseArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray">[docs]</a><span class="k">class</span> <span class="nc">PhaseArray</span><span class="p">(</span><span class="n">LabeledArray</span><span class="p">):</span>
     <span class="n">additional_props</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;_source&quot;</span><span class="p">,</span> <span class="s2">&quot;_metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;_name&quot;</span><span class="p">,</span> <span class="s2">&quot;unit&quot;</span><span class="p">,</span> <span class="s2">&quot;border&quot;</span><span class="p">]</span>
+    <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">border</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
     
     <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
                 <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;rad&quot;</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhaseArray</span><span class="p">:</span>
@@ -251,15 +256,18 @@
                                <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">disk</span><span class="p">,</span> <span class="n">a</span><span class="p">),</span>
                                <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="PhaseArray.imshow"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.imshow">[docs]</a>    <span class="k">def</span> <span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s2">&quot;cmap&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+<div class="viewcode-block" id="PhaseArray.imshow"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.imshow">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
+    <span class="k">def</span> <span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;cmap&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cmap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hsv&quot;</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="PhaseArray.reslice"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.reslice">[docs]</a>    <span class="k">def</span> <span class="nf">reslice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Measure line profile iteratively for every slice of image. Because input is phase, we can</span>
-<span class="sd">        not apply standard interpolation to calculate intensities on float-coordinates.</span>
+<span class="sd">        Measure line profile iteratively for every slice of image. </span>
+<span class="sd">        </span>
+<span class="sd">        Because input is phase, we can not apply standard interpolation to calculate</span>
+<span class="sd">        intensities on float-coordinates.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -285,14 +293,15 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">out_im</span><span class="p">,</span> <span class="n">out_re</span><span class="p">)</span><span class="o">/</span><span class="n">a</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="PhaseArray.regionprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.regionprops">[docs]</a>    <span class="nd">@check_input_and_output</span><span class="p">(</span><span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">regionprops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">properties</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">|</span><span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;phase_mean&quot;</span><span class="p">,),</span> <span class="o">*</span><span class="p">,</span> 
+<div class="viewcode-block" id="PhaseArray.regionprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.regionprops">[docs]</a>    <span class="k">def</span> <span class="nf">regionprops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">properties</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;phase_mean&quot;</span><span class="p">,),</span> <span class="o">*</span><span class="p">,</span> 
                     <span class="n">extra_properties</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Measure region properties.</span>
+<span class="sd">        </span>
 <span class="sd">        Run ``skimage``&#39;s ``regionprops()`` function and return the results as PropArray, so</span>
 <span class="sd">        that you can access using flexible slicing. For example, if a tcyx-image is</span>
 <span class="sd">        analyzed with ``properties=(&quot;X&quot;, &quot;Y&quot;)``, then you can get X&#39;s time-course profile</span>
-<span class="sd">        of channel 1 at label 3 by ``prop[&quot;X&quot;][&quot;p=5;c=1&quot;]`` or ``prop.X[&quot;p=5;c=1&quot;]``.</span>
+<span class="sd">        of channel 1 at label 3 by ``prop[&quot;X&quot;][&quot;N=5;c=1&quot;]`` or ``prop.X[&quot;N=5;c=1&quot;]``.</span>
 <span class="sd">        In PhaseArray, instead of mean_intensity you should use &quot;phase_mean&quot;. The</span>
 <span class="sd">        phase_mean function is included so that it can be passed in ``properties`` argument.</span>
 
@@ -318,6 +327,7 @@
             <span class="k">return</span> <span class="n">_calc_phase_mean</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="p">)</span>
         <span class="k">def</span> <span class="nf">phase_std</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">_calc_phase_std</span><span class="p">(</span><span class="n">sl</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="p">)</span>
+        <span class="n">id_axis</span> <span class="o">=</span> <span class="s2">&quot;N&quot;</span>
         <span class="n">additional_props</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;phase_mean&quot;</span><span class="p">:</span> <span class="n">phase_mean</span><span class="p">,</span> <span class="s2">&quot;phase_std&quot;</span><span class="p">:</span> <span class="n">phase_std</span><span class="p">}</span>
                 
         <span class="c1"># check arguments</span>
@@ -333,19 +343,23 @@
             <span class="k">if</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">additional_props</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="n">extra_properties</span> <span class="o">=</span> <span class="p">(</span><span class="n">additional_props</span><span class="p">[</span><span class="n">prop</span><span class="p">],)</span> <span class="o">+</span> <span class="n">extra_properties</span>
                 
-        <span class="k">if</span> <span class="s2">&quot;p&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">id_axis</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
             <span class="c1"># this dimension will be label</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;axis &#39;p&#39; is forbidden in regionprops().&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;axis </span><span class="si">{</span><span class="n">id_axis</span><span class="si">}</span><span class="s2"> is forbidden in regionprops().&quot;</span><span class="p">)</span>
         
         <span class="n">prop_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sizesof</span><span class="p">(</span><span class="n">prop_axes</span><span class="p">)</span>
         
-        <span class="n">out</span> <span class="o">=</span> <span class="n">DataDict</span><span class="p">({</span><span class="n">p</span><span class="p">:</span> <span class="n">PropArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">max</span><span class="p">(),)</span> <span class="o">+</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-                                      <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">+</span><span class="s2">&quot;-prop&quot;</span><span class="p">,</span> 
-                                      <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;p&quot;</span><span class="o">+</span><span class="n">prop_axes</span><span class="p">,</span>
-                                      <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
-                                      <span class="n">propname</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-                         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">})</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">DataDict</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">PropArray</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">max</span><span class="p">(),)</span> <span class="o">+</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">+</span><span class="s2">&quot;-prop&quot;</span><span class="p">,</span> 
+                <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="n">id_axis</span><span class="p">]</span><span class="o">+</span><span class="n">prop_axes</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+                <span class="n">propname</span><span class="o">=</span><span class="n">p</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">}</span>
+        <span class="p">)</span>
         
         <span class="c1"># calculate property value for each slice</span>
         <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">prop_axes</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
@@ -370,50 +384,82 @@
             <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="PhaseArray.map_coordinates"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.map_coordinates">[docs]</a>    <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="nd">@check_input_and_output</span>
+<div class="viewcode-block" id="PhaseArray.map_coordinates"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.map_coordinates">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+    <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">map_coordinates</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">coordinates</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span> 
-        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">PaddingMode</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
         <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">prefilter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.</span>
+<span class="sd">        </span>
+<span class="sd">        For a ``PhaseArray``, standard interpolation does not work because of its specific</span>
+<span class="sd">        addition rule. Phase image is first converted into a complex array by :math:`e^{-i \psi}`</span>
+<span class="sd">        and the phase is restored by logarithm after interpolation.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        coordinates, mode, cval</span>
-<span class="sd">            Padding mode, constant value and the shape of output. See </span>
-<span class="sd">            ``scipy.ndimage.map_coordinates``. for details.</span>
+<span class="sd">        coordinates : ArrayLike</span>
+<span class="sd">            Interpolation coordinates. Must be (D, N) or (D, X_1, ..., X_D) shape.</span>
+<span class="sd">        {mode}</span>
+<span class="sd">        {cval}</span>
 <span class="sd">        {order}</span>
+<span class="sd">        prefilter : bool, optional</span>
+<span class="sd">            Spline prefilter applied to the array. By default set to True if ``order`` is larger</span>
+<span class="sd">            than 1.</span>
+<span class="sd">        {dims}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        ImgArray</span>
+<span class="sd">        PhaseArray</span>
 <span class="sd">            Transformed image.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">drop_axis</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">drop_axis</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        
+        <span class="k">if</span> <span class="n">prefilter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prefilter</span> <span class="o">=</span> <span class="n">order</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        
         <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
-        <span class="n">exps</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
-        
-        <span class="n">out</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span>
-            <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">(</span>
-                <span class="n">exps</span><span class="p">,</span>
-                <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">),</span> 
-                <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
-                <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
-                <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
-                <span class="n">prefilter</span><span class="o">=</span><span class="n">order</span><span class="o">&gt;</span><span class="mi">1</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span></div></div>
-        
-<span class="c1"># TODO:</span>
-<span class="c1"># - map_coordinates</span>
-<span class="c1"># - pathprops</span>
+        <span class="n">complex_array</span><span class="p">:</span> <span class="n">PhaseArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="p">)</span>
 
+        <span class="n">out</span> <span class="o">=</span> <span class="n">complex_array</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">,</span>
+            <span class="n">c_axes</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">complex_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">drop_axis</span><span class="o">=</span><span class="n">drop_axis</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">coords</span><span class="p">,),</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">prefilter</span><span class="o">=</span><span class="n">prefilter</span><span class="p">),</span>
+        <span class="p">)</span>
+        
+        <span class="n">out</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span>
+        
+        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">MetaArray</span><span class="p">):</span>
+                <span class="n">new_axes</span> <span class="o">=</span> <span class="n">c_axes</span> <span class="o">+</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">MetaArray</span><span class="p">):</span>
+                <span class="n">new_axes</span> <span class="o">=</span> <span class="n">c_axes</span> <span class="o">+</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_axes</span> <span class="o">=</span> <span class="n">c_axes</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;#&quot;</span><span class="p">]</span>
+            
+        <span class="n">out</span><span class="p">:</span> <span class="n">PhaseArray</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_axes</span><span class="o">=</span><span class="n">new_axes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div></div>
 </pre></div>
 
            </div>
