@@ -1,50 +1,154 @@
 from __future__ import annotations
+from typing import Callable
+import numpy as np
+
 from .labeledarray import LabeledArray
-from ..utils.axesop import find_first_appeared
+from ..utils.axesop import find_first_appeared, complement_axes
+from ..axes import slicer
+
+__all__ = ["imshow", "register"]
 
 class ImshowManager:
+    """Manage imshow plugins."""
+    
     def __init__(self):
-        self._mgr = {}
+        self._mgr: dict[str, Callable] = {}
     
     def register(self, name: str):
         def _f(f):
+            if name in self._mgr:
+                raise ValueError(f"Plugin {name!r} already exists.")
             self._mgr[name] = f
         return _f
     
     def call(self, *args, plugin="matplotlib", **kwargs):
+        if plugin not in self._mgr:
+            raise ValueError(f"Plugin {plugin!r} not found.")
         return self._mgr[plugin](*args, **kwargs)
     
 MANAGER = ImshowManager()
 
 imshow = MANAGER.call
+register = MANAGER.register
 
-@MANAGER.register("magicgui")
-def _imshow_magicgui(arr: LabeledArray, label, dims, **kwargs) -> LabeledArray:
-    from magicgui.widgets import Image, Slider, Container
+# ##############
+#   magicgui
+# ##############
+
+@register("magicgui")
+def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
+    from magicgui import  widgets as wdt
+    h, w = arr.sizesof(dims)
+    if h > w:
+        min_height = 400
+        min_width = 400 / h * w
+    else:
+        min_height = 400 / w * h
+        min_width = 400
     
+    min_, max_ = arr.range
+    if arr.ndim == 1:
+        raise NotImplementedError()
     if arr.ndim == 2:
-        widget = Image(value=arr)
-        widget.min_height = 300
+        value = arr.value
+        img = wdt.Image(value=value)
+        sliders = wdt.EmptyWidget(visible=False)
     else:
         if "c" in arr.axes:
-            ...
-        img = Image(value=arr[(0,) * (arr.ndim - 2)])
-        img.min_height = 300
-        sliders = Container(
-            widgets=[Slider(max=arr.shape[a], name=str(a)) for a in arr.axes if a not in dims]
+            # TODO: how to deal with this?
+            c_axes = complement_axes(["c"] + list(dims), arr.axes)
+            arr = np.moveaxis(arr, arr.axisof("c"), -1)
+        else:
+            c_axes = complement_axes(dims, arr.axes)
+        fmt = slicer.get_formatter(c_axes)
+        img = wdt.Image(value=arr[fmt.zeros()])
+        sliders = wdt.Container(
+            widgets=[wdt.Slider(max=arr.shape[a] - 1, name=str(a)) for a in c_axes]
         )
         sliders.margins = (0, 0, 0, 0)
         @sliders.changed.connect
         def _on_slider_change():
             vals = tuple(sl.value for sl in sliders)
-            img.value = arr[vals]
+            img_slice = arr[fmt[vals]]
             
-        widget = Container(widgets=[img, sliders])
+            img.value = img_slice
     
+    min_slider = wdt.FloatSlider(min=min_, max=max_, value=min_, name="min")
+    max_slider = wdt.FloatSlider(min=min_, max=max_, value=max_, name="max")
+    clim = wdt.Container(
+        widgets=[min_slider, max_slider],
+    )
+    clim.margins = (0, 0, 0, 0)
+    
+    @min_slider.changed.connect
+    def _on_contrast_min_change():
+        if min_slider.value > max_slider.value:
+            max_slider.value = min_slider.value
+
+    @max_slider.changed.connect
+    def _on_contrast_max_change():
+        if min_slider.value > max_slider.value:
+            min_slider.value = max_slider.value
+    
+    imgc = wdt.Container(widgets=[img])
+    imgc.min_height = min_height
+    imgc.min_width = min_width
+    imgc.margins = (0, 0, 0, 0)
+    if arr.labels is not None:
+        cbox = wdt.CheckBox(text="Show labels", value=kwargs.get("label", False))
+        alpha = wdt.FloatSlider(name="Label alpha", value=0.3, min=0.0, max=1.0)
+        label_wdt = wdt.Container(widgets=[cbox, alpha])
+        
+        @cbox.changed.connect
+        @alpha.changed.connect
+        @sliders.changed.connect
+        @min_slider.changed.connect
+        @max_slider.changed.connect
+        def _on_slider_change():
+            vals = tuple(sl.value for sl in sliders)
+            img_slice = arr[fmt[vals]]
+            if cbox.value:
+                from skimage.color import label2rgb
+                vmin = min_slider.value
+                vmax = max_slider.value
+                image = (np.clip(img_slice, vmin, vmax) - vmin)/(vmax - vmin)
+                img.value = label2rgb(
+                    img_slice.labels, image, alpha=alpha.value, bg_label=0, image_alpha=1,
+                    bg_color=None,
+                )
+            else:
+                img.value = img_slice
+            img.set_clim(min_slider.value, max_slider.value)
+
+    else:
+        label_wdt = wdt.EmptyWidget()
+        
+        @sliders.changed.connect
+        def _on_slider_change():
+            vals = tuple(sl.value for sl in sliders)
+            img_slice = arr[fmt[vals]]
+            img.value = img_slice
+        
+        @min_slider.changed.connect
+        @max_slider.changed.connect
+        def _on_clim_change():
+            img.set_clim(min_slider.value, max_slider.value)
+    
+    widget = wdt.Container(
+        widgets=[imgc, sliders, clim, label_wdt], 
+        labels=False,
+    )
+    
+    if "cmap" in kwargs:
+        img.set_cmap(kwargs["cmap"])
     widget.show(kwargs.get("run", False))
     return arr
 
-@MANAGER.register("matplotlib")
+# ################
+#   matplotlib
+# ################
+
+@register("matplotlib")
 def _imshow_matplotlib(self: LabeledArray, label, dims, **kwargs) -> LabeledArray:
     from ._utils import _plot as _plt
     alpha = 0.3
@@ -91,3 +195,10 @@ def _imshow_matplotlib(self: LabeledArray, label, dims, **kwargs) -> LabeledArra
     _plt.show()
 
     return self
+
+
+@register("ipywidgets")
+def _imshow_ipywidgets(arr: LabeledArray, label: bool, dims, **kwargs) -> LabeledArray:
+    from ipywidgets import interact
+    
+    raise NotImplementedError()
