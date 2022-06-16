@@ -935,7 +935,7 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_erosion
-            kwargs = dict(structure=disk, border_value=1, mode=mode, cval=cval)
+            kwargs = dict(structure=disk, border_value=1)
         else:
             f = _filters.erosion
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
@@ -974,7 +974,7 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_dilation
-            kwargs = dict(structure=disk, mode=mode, cval=cval)
+            kwargs = dict(structure=disk)
         else:
             f = _filters.dilation
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
@@ -1013,7 +1013,7 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_opening
-            kwargs = dict(structure=disk, mode=mode, cval=cval)
+            kwargs = dict(structure=disk)
         else:
             f = _filters.opening
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
@@ -1054,7 +1054,7 @@ class ImgArray(LabeledArray):
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_closing
-            kwargs = dict(structure=disk, mode=mode, cval=cval)
+            kwargs = dict(structure=disk)
         else:
             f = _filters.closing
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
@@ -1255,11 +1255,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {radius}
-        {mode}
-        {cval}
-        {dims}
-        {update}
+        {radius}{mode}{cval}{dims}{update}
         
         Returns
         -------
@@ -1279,52 +1275,62 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims: Dims = None, 
                          update: bool = False) -> ImgArray:
-        return self._apply_dask(skimage.morphology.diameter_opening, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
-                               )
+        from skimage.morphology import diameter_opening
+        return self._apply_dask(
+            diameter_opening, 
+            c_axes=complement_axes(dims, self.axes), 
+            kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
+        )
         
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
     def diameter_closing(self, diameter:int=8, *, connectivity:int=1, dims: Dims = None,
                          update: bool = False) -> ImgArray:
-        return self._apply_dask(skimage.morphology.diameter_closing, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
-                               )
+        from skimage.morphology import diameter_closing
+        return self._apply_dask(
+            diameter_closing, 
+            c_axes=complement_axes(dims, self.axes), 
+            kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
+        )
     
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
     def area_opening(self, area:int=64, *, connectivity:int=1, dims: Dims = None, 
                      update: bool = False) -> ImgArray:
+        from skimage.morphology import remove_small_holes, area_opening
         if self.dtype == bool:
-            return self._apply_dask(skimage.morphology.remove_small_objects,
-                                   c_axes=complement_axes(dims, self.axes), 
-                                   kwargs=dict(min_size=area, connectivity=connectivity)
-                                   )
+            return self._apply_dask(
+                remove_small_holes,
+                c_axes=complement_axes(dims, self.axes), 
+                kwargs=dict(area_threshold=area, connectivity=connectivity)
+            )
         else:
-            return self._apply_dask(skimage.morphology.area_opening, 
-                                   c_axes=complement_axes(dims, self.axes), 
-                                   kwargs=dict(area_threshold=area, connectivity=connectivity)
-                                   )
+            return self._apply_dask(
+                area_opening, 
+                c_axes=complement_axes(dims, self.axes), 
+                kwargs=dict(area_threshold=area, connectivity=connectivity)
+            )
         
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
     def area_closing(self, area:int=64, *, connectivity:int=1, dims: Dims = None, 
                      update: bool = False) -> ImgArray:
+        from skimage.morphology import remove_small_holes, area_closing
         if self.dtype == bool:
-            return self._apply_dask(skimage.morphology.remove_small_holes,
-                                   c_axes=complement_axes(dims, self.axes), 
-                                   kwargs=dict(min_size=area, connectivity=connectivity)
-                                   )
+            return self._apply_dask(
+                remove_small_holes,
+                c_axes=complement_axes(dims, self.axes), 
+                kwargs=dict(area_threshold=area, connectivity=connectivity)
+            )
         else:
-            return self._apply_dask(skimage.morphology.area_closing, 
-                                   c_axes=complement_axes(dims, self.axes), 
-                                   kwargs=dict(area_threshold=area, connectivity=connectivity)
-                                   )
+            return self._apply_dask(
+                area_closing, 
+                c_axes=complement_axes(dims, self.axes), 
+                kwargs=dict(area_threshold=area, connectivity=connectivity)
+            )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1335,8 +1341,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {radius}
-        {dims}
+        {radius}{dims}
 
         Returns
         -------
@@ -1360,9 +1365,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {radius}
-        {dims}
-        {update}
+        {radius}{dims}{update}
 
         Returns
         -------
@@ -1396,8 +1399,7 @@ class ImgArray(LabeledArray):
         ----------
         radius : int, default is 1
             Radius of kernel. Shape of kernel will be (2*radius+1, 2*radius+1).
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -1431,8 +1433,7 @@ class ImgArray(LabeledArray):
             Initial estimate of noise variance.
         along : str, default is "t"
             Which axis will be the time axis.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -1599,9 +1600,7 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        {sigma}
-        {dims}
-        {update}
+        {sigma}{dims}{update}
             
         Returns
         -------
@@ -1662,8 +1661,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {sigma}
-        {dims}
+        {sigma}{dims}
 
         Returns
         -------
@@ -1687,8 +1685,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {sigma}
-        {dims}
+        {sigma}{dims}
 
         Returns
         -------
@@ -1722,8 +1719,7 @@ class ImgArray(LabeledArray):
         {radius}
         prefilter : str, {"mean", "median", "none"}
             If apply 3x3 averaging before creating background.
-        {dims}
-        {update}
+        {dims}{update}
             
         Returns
         -------
@@ -1777,8 +1773,7 @@ class ImgArray(LabeledArray):
             Iteration stops when gain is under this value.
         max_iter : int, default is 50
             Maximum number of iterations.
-        {dims}
-        {update}
+        {dims}{update}
         
         Returns
         -------

@@ -4,32 +4,45 @@ from numpy.testing import assert_allclose
 from pathlib import Path
 import pytest
 
-filters = ["median_filter", 
-           "gaussian_filter", 
-           "lowpass_filter", 
-           "lowpass_conv_filter",
-           "highpass_filter",
-           "erosion",
-           "dilation",
-           "opening",
-           "closing",
-           "tophat",
-           "mean_filter",
-           "std_filter",
-           "coef_filter",
-           "diameter_opening",
-           "diameter_closing",
-           "area_opening",
-           "area_closing",
-           "entropy_filter",
-           "enhance_contrast",
-           "laplacian_filter",
-           "kalman_filter",
-           "dog_filter",
-           "doh_filter",
-           "log_filter",
-           "rolling_ball",
-           ]
+filters = [
+    "median_filter", 
+    "gaussian_filter", 
+    "lowpass_filter", 
+    "lowpass_conv_filter",
+    "highpass_filter",
+    "erosion",
+    "dilation",
+    "opening",
+    "closing",
+    "tophat",
+    "mean_filter",
+    "std_filter",
+    "coef_filter",
+    "diameter_opening",
+    "diameter_closing",
+    "area_opening",
+    "area_closing",
+    "entropy_filter",
+    "enhance_contrast",
+    "laplacian_filter",
+    "kalman_filter",
+    "dog_filter",
+    "doh_filter",
+    "log_filter",
+    "rolling_ball",
+]
+
+binary_filters = [
+    "erosion",
+    "dilation",
+    "opening",
+    "closing",
+    "tophat",
+    "diameter_opening",
+    "diameter_closing",
+    "area_opening",
+    "area_closing",
+]
 
 dtypes = [np.uint8, np.uint16, np.float32]
 
@@ -41,6 +54,14 @@ img_orig = ip.imread(path)
 def test_filters(f, dtype, resource):
     with ip.SetConst(RESOURCE=resource):
         img = img_orig["c=1;z=2"].astype(dtype)
+        assert img.axes == "tyx"
+        getattr(img, f)()
+
+@pytest.mark.parametrize("f", binary_filters)
+def test_binary_filters(f, resource):
+    thr = np.mean(img_orig["c=1;z=2"].range)
+    with ip.SetConst(RESOURCE=resource):
+        img = img_orig["c=1;z=2"] > thr
         assert img.axes == "tyx"
         getattr(img, f)()
 
