@@ -339,7 +339,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
         image=image,
         axes=axes,
         scale=scale,
-        unit="nm",
+        unit={a: "nm" for a in axes},
         metadata={},
         labels=None,
     )
