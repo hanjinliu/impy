@@ -54,12 +54,7 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
         img = wdt.Image(value=value)
         sliders = wdt.EmptyWidget(visible=False)
     else:
-        if "c" in arr.axes:
-            # TODO: how to deal with this?
-            c_axes = complement_axes(["c"] + list(dims), arr.axes)
-            arr = np.moveaxis(arr, arr.axisof("c"), -1)
-        else:
-            c_axes = complement_axes(dims, arr.axes)
+        c_axes = complement_axes(dims, arr.axes)
         fmt = slicer.get_formatter(c_axes)
         img = wdt.Image(value=arr[fmt.zeros()])
         sliders = wdt.Container(
@@ -70,7 +65,6 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
         def _on_slider_change():
             vals = tuple(sl.value for sl in sliders)
             img_slice = arr[fmt[vals]]
-            
             img.value = img_slice
     
     min_slider = wdt.FloatSlider(min=min_, max=max_, value=min_, name="min")
