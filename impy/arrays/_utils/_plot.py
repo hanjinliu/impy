@@ -22,15 +22,15 @@ def plot_drift(result):
 
 def subplots(*args, **kwargs):
     import matplotlib.pyplot as plt
-    plt.subplots(*args, **kwargs)
+    return plt.subplots(*args, **kwargs)
 
 def plot_1d(*args, **kwargs):
     import matplotlib.pyplot as plt
-    plt.plot(*args, **kwargs)
+    return plt.plot(*args, **kwargs)
 
 def show():
     import matplotlib.pyplot as plt
-    plt.show()
+    return plt.show()
 
 def plot_2d(img, ax=None, **kwargs):
     import matplotlib.pyplot as plt

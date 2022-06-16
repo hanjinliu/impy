@@ -303,57 +303,10 @@ class LabeledArray(MetaArray):
         return None
 
     @dims_to_spatial_axes
-    def imshow(self, label: bool = False, dims = 2, alpha: float = 0.3, **kwargs):
-        from ._utils import _plot as _plt
-        if label and self.labels is None:
-            label = False
-        if self.ndim == 1:
-            _plt.plot_1d(self.value, **kwargs)
-        elif self.ndim == 2:
-            if label:
-                _plt.plot_2d_label(self.value, self.labels.value, alpha, **kwargs)
-            else:
-                _plt.plot_2d(self.value, **kwargs)
-            self.hist()
-            
-        elif self.ndim == 3:
-            if "c" not in self.axes:
-                imglist = self.split(axis=find_first_appeared(self.axes, include=self.axes, exclude=dims))
-                if len(imglist) > 24:
-                    warnings.warn(
-                        "Too many images. First 24 images are shown.",
-                        UserWarning,
-                    )
-                    imglist = imglist[:24]
-                if label:
-                    _plt.plot_3d_label(imglist.value, imglist.labels.value, alpha, **kwargs)
-                else:
-                    _plt.plot_3d(imglist, **kwargs)
+    def imshow(self, label: bool = False, dims = 2, plugin="matplotlib", **kwargs):
+        from ._imshow import imshow
+        return imshow(self, label=label, dims=dims, plugin=plugin, **kwargs)
 
-            else:
-                n_chn = self.shape.c
-                fig, ax = _plt.subplots(1, n_chn, figsize=(4*n_chn, 4))
-                for i in range(n_chn):
-                    img = self[f"c={i}"]
-                    if label:
-                        _plt.plot_2d_label(img.value, img.labels.value, alpha, ax[i], **kwargs)
-                    else:
-                        _plt.plot_2d(img.value, ax=ax[i], **kwargs)
-        else:
-            raise ValueError("Image must have three or less dimensions.")
-        
-        _plt.show()
-
-        return self
-
-    def imshow_comparewith(self, other: Self, **kwargs):
-        from ._utils import _plot as _plt
-        fig, ax = _plt.subplots(1, 2, figsize=(8, 4))
-        _plt.plot_2d(self.value, ax=ax[0], **kwargs)
-        _plt.plot_2d(other.value, ax=ax[1], **kwargs)        
-        _plt.show()
-        return self
-    
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #   Interpolation
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #    

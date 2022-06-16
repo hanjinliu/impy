@@ -66,6 +66,9 @@ class SliceFormatter:
             s.append(f"\n\t{a} ==> Undefined")
         s = "".join(s)
         return f"{self.__class__.__name__} of {s}"
+    
+    def zeros(self) -> Slicer:
+        return self[(0,) * len(self.axes)]
 
 
 def _fmt(s):
