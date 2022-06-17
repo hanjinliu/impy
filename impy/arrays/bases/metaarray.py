@@ -145,9 +145,8 @@ class MetaArray(AxesMixin, np.ndarray):
 
         return out
     
-    def _getitem_additional_set_info(self, other: Self, **kwargs):
-        self._set_info(other, kwargs["new_axes"])
-        return None
+    def _getitem_additional_set_info(self, other: Self, key: Slices, new_axes):
+        self._set_info(other, new_axes=new_axes)
     
     def __setitem__(self, key: SupportSlicing, value):
         key = slicer.solve_slicer(key, self.axes)

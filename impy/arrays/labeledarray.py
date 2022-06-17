@@ -43,7 +43,7 @@ class SupportAxesSlicing(Protocol):
         """Slice object."""
 
 
-class ArrayConjugates(MutableMapping[str, SupportAxesSlicing]):
+class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
     def __init__(self, data: dict[str, SupportAxesSlicing], parent: MetaArray):
         import weakref
         self._data = data
@@ -57,7 +57,7 @@ class ArrayConjugates(MutableMapping[str, SupportAxesSlicing]):
             raise ValueError("Parent LabeledArray is deleted.")
         return out
 
-    def copy_all(self, parent: MetaArray | None) -> Self:
+    def construct_by_copying(self, parent: MetaArray | None) -> Self:
         if parent is None:
             parent = self.parent
         data: dict[str, SupportAxesSlicing] = {}
@@ -67,7 +67,7 @@ class ArrayConjugates(MutableMapping[str, SupportAxesSlicing]):
         
         return self.__class__(data, parent)
     
-    def slice_all(self, key, next_parent: MetaArray | None):
+    def construct_by_slicing(self, key, next_parent: MetaArray | None) -> Self:
         parent = self.parent
         if next_parent is None:
             next_parent = parent
@@ -124,7 +124,7 @@ class LabeledArray(MetaArray):
     _name: str
     _source: Path | None
     _metadata: dict[str, Any]
-    _conjugates: ArrayConjugates
+    _covariates: ArrayCovariates
     
     def __new__(
         cls: type[LabeledArray], 
@@ -138,7 +138,7 @@ class LabeledArray(MetaArray):
         self: LabeledArray = super().__new__(
             cls, obj, name, axes, source, metadata, dtype
         )
-        self._conjugates = ArrayConjugates({}, self)
+        self._covariates = ArrayCovariates({}, self)
         
         return self
 
@@ -148,18 +148,18 @@ class LabeledArray(MetaArray):
         return self.min(), self.max()
     
     @property
-    def conjugates(self) -> ArrayConjugates:
-        return self._conjugates
+    def covariates(self) -> ArrayCovariates:
+        return self._covariates
 
     @property
     def labels(self) -> Label | None:
         """The label of the image."""
-        return self.conjugates.get("labels")
+        return self.covariates.get("labels")
     
     @labels.setter
     def labels(self, value: np.ndarray | None):
         if value is None:
-            self.conjugates.pop("labels", None)
+            self.covariates.pop("labels", None)
             return
 
         if value is self:
@@ -182,11 +182,11 @@ class LabeledArray(MetaArray):
                 f"Shape of input label ({value.shape_info}) does not match the "
                 f"parent array ({self.shape_info})."
             )
-        self.conjugates["labels"] = value
+        self.covariates["labels"] = value
     
     @labels.deleter
     def labels(self):
-        self.conjugates.pop("labels", None)
+        self.covariates.pop("labels", None)
     
     def set_scale(self, other=None, **kwargs) -> None:
         super().set_scale(other, **kwargs)
@@ -261,28 +261,27 @@ class LabeledArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def __array_finalize__(self, obj):
-        self._conjugates = getattr(self, "conjugates", ArrayConjugates({}, self))
         super().__array_finalize__(obj)
-        if isinstance(obj, LabeledArray):
-            if obj is not self:
-                self._conjugates = obj.conjugates.copy_all(self)
-            else:
-                self._conjugates = obj._conjugates
+        self._inherit_covariates(obj)
     
     def _set_info(self, other: Self, new_axes: Any = MetaArray._INHERIT):
-        self._conjugates = getattr(self, "conjugates", ArrayConjugates({}, self))
         super()._set_info(other, new_axes)
+        self._inherit_covariates(other)
+    
+    def _inherit_covariates(self, other: Self):
         if isinstance(other, LabeledArray):
             if other is not self:
-                self._conjugates = other.conjugates.copy_all(self)
+                self._covariates = other.covariates.construct_by_copying(self)
             else:
-                self._conjugates = other._conjugates
-
-    def _getitem_additional_set_info(self, other: Self, **kwargs):
-        super()._getitem_additional_set_info(other, **kwargs)
-        key = kwargs["key"]
+                self._covariates = other._covariates
+        else:
+            self._covariates = ArrayCovariates({}, self)
+    
+    def _getitem_additional_set_info(self, other: Self, key, new_axes):
+        self._covariates = getattr(self, "covariates", ArrayCovariates({}, self))
+        super()._set_info(other, new_axes)
         if isinstance(other, LabeledArray):
-            self._conjugates = other.conjugates.slice_all(key, self)
+            self._covariates = other.covariates.construct_by_slicing(key, self)
         
         return None
     
