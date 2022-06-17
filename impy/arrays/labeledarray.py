@@ -1,12 +1,10 @@
 from __future__ import annotations
-import warnings
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
 import os
 from pathlib import Path
 import itertools
 from functools import partial
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, MutableMapping, Protocol
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -21,19 +19,112 @@ from ..utils.axesop import complement_axes, find_first_appeared
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from ..io import imsave
 from ..collections import DataList, DataDict
-from ..axes import ImageAxesError, AxesLike, slicer
+from ..axes import ImageAxesError, AxesLike, slicer, Axes
 from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable, PaddingMode
 from ..array_api import xp
 
 if TYPE_CHECKING:
     from typing_extensions import Self
     from ..frame import PathFrame
+    from numpy.typing import ArrayLike, DTypeLike
+
+class SupportAxesSlicing(Protocol):
+    @property
+    def axes(self) -> Axes:
+        """Axes object bound to the object."""
+    
+    def _dimension_matches(self, array: MetaArray) -> bool:
+        """Check if self matches array's shape and axes."""
+    
+    def copy(self) -> Self:
+        """Shallow copy of the object."""
+    
+    def __getitem__(self, key) -> SupportAxesSlicing | None:
+        """Slice object."""
+
+
+class ArrayConjugates(MutableMapping[str, SupportAxesSlicing]):
+    def __init__(self, data: dict[str, SupportAxesSlicing], parent: MetaArray):
+        import weakref
+        self._data = data
+        self._parent_ref = weakref.ref(parent)
+    
+    @property
+    def parent(self):
+        """Return the parent MetaArray object"""
+        out = self._parent_ref()
+        if out is None:
+            raise ValueError("Parent LabeledArray is deleted.")
+        return out
+
+    def copy_all(self, parent: MetaArray | None) -> Self:
+        if parent is None:
+            parent = self.parent
+        data: dict[str, SupportAxesSlicing] = {}
+        for k, value in self.items():
+            if parent.axes.contains(value.axes):
+                data[k] = value.copy()
+        
+        return self.__class__(data, parent)
+    
+    def slice_all(self, key, next_parent: MetaArray | None):
+        parent = self.parent
+        if next_parent is None:
+            next_parent = parent
+        
+        data: dict[str, SupportAxesSlicing] = {}
+        for k, value in self.items():
+            if value is not None:
+                if not isinstance(key, np.ndarray):
+                    if isinstance(key, tuple):
+                        _keys = key
+                    else:
+                        _keys = (key,)
+                    label_sl = tuple(
+                        _keys[i] for i, a in enumerate(parent.axes) 
+                        if a in value.axes and i < len(_keys)
+                    )
+                            
+                    if len(label_sl) == 0 or len(label_sl) > len(value.axes):
+                        label_sl = (slice(None),)
+                else:
+                    label_sl = key
+
+                data[k] = value[label_sl]
+
+        return self.__class__(data, next_parent)
+
+    def __getitem__(self, key: str) -> SupportAxesSlicing:
+        return self._data[key]
+    
+    def __setitem__(self, key: str, value: SupportAxesSlicing) -> None:
+        if value is None:
+            self.pop(key, None)
+            return
+
+        parent = self.parent
+        if not value._dimension_matches(parent):
+            raise ValueError(
+                f"Shape of input object ({value!r}) does not match the "
+                f"parent array ({parent.shape_info})."
+            )
+        self._data["labels"] = value
+    
+    def __delitem__(self, key: str) -> None:
+        del self._data[key]
+    
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)
+    
 
 class LabeledArray(MetaArray):
     _name: str
     _source: Path | None
     _metadata: dict[str, Any]
-    _labels: Label | None
+    _conjugates: ArrayConjugates
     
     def __new__(
         cls: type[LabeledArray], 
@@ -47,7 +138,8 @@ class LabeledArray(MetaArray):
         self: LabeledArray = super().__new__(
             cls, obj, name, axes, source, metadata, dtype
         )
-        self._labels = None
+        self._conjugates = ArrayConjugates({}, self)
+        
         return self
 
     @property
@@ -56,14 +148,18 @@ class LabeledArray(MetaArray):
         return self.min(), self.max()
     
     @property
+    def conjugates(self) -> ArrayConjugates:
+        return self._conjugates
+
+    @property
     def labels(self) -> Label | None:
         """The label of the image."""
-        return self._labels
+        return self.conjugates.get("labels")
     
     @labels.setter
     def labels(self, value: np.ndarray | None):
         if value is None:
-            self._labels = None
+            self.conjugates.pop("labels", None)
             return
 
         if value is self:
@@ -81,17 +177,16 @@ class LabeledArray(MetaArray):
             axes = str(self.axes)[-arr.ndim:]
             value = Label(arr, axes=axes).optimize()
         
-        
-        if not _shape_match(self, value):
+        if not value._dimension_matches(self):
             raise ValueError(
                 f"Shape of input label ({value.shape_info}) does not match the "
                 f"parent array ({self.shape_info})."
             )
-        self._labels = value
+        self.conjugates["labels"] = value
     
     @labels.deleter
     def labels(self):
-        self._labels = None
+        self.conjugates.pop("labels", None)
     
     def set_scale(self, other=None, **kwargs) -> None:
         super().set_scale(other, **kwargs)
@@ -166,47 +261,28 @@ class LabeledArray(MetaArray):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
     def __array_finalize__(self, obj):
-        self._labels = getattr(self, "_labels", None)
+        self._conjugates = getattr(self, "conjugates", ArrayConjugates({}, self))
         super().__array_finalize__(obj)
         if isinstance(obj, LabeledArray):
-            self._view_labels(obj)
+            if obj is not self:
+                self._conjugates = obj.conjugates.copy_all(self)
+            else:
+                self._conjugates = obj._conjugates
     
     def _set_info(self, other: Self, new_axes: Any = MetaArray._INHERIT):
-        self._labels = getattr(self, "_labels", None)
+        self._conjugates = getattr(self, "conjugates", ArrayConjugates({}, self))
         super()._set_info(other, new_axes)
         if isinstance(other, LabeledArray):
-            self._view_labels(other)
-    
-    def _view_labels(self, other: Self):
-        """Make a view of label **if possible**."""
-        if (
-            other.labels is not None and
-            self.axes.contains(other.labels.axes) and
-            _shape_match(self, other.labels)
-        ):
-            if self is not other:
-                self.labels = other.labels.copy()
+            if other is not self:
+                self._conjugates = other.conjugates.copy_all(self)
             else:
-                self.labels = other.labels
-        
-    
+                self._conjugates = other._conjugates
+
     def _getitem_additional_set_info(self, other: Self, **kwargs):
         super()._getitem_additional_set_info(other, **kwargs)
         key = kwargs["key"]
-        if other.axes and other.labels is not None and not isinstance(key, np.ndarray):
-            if isinstance(key, tuple):
-                _keys = key
-            else:
-                _keys = (key,)
-            label_sl = [_keys[i] for i, a in enumerate(other.axes) 
-                        if a in other.labels.axes and i < len(_keys)]
-                    
-            if len(label_sl) == 0 or len(label_sl) > other.labels.ndim:
-                label_sl = (slice(None),)
-            try:
-                self.labels = other.labels[tuple(label_sl)]
-            except IndexError as e:
-                warn(f"Labels was not inherited due to IndexError : {e}", UserWarning)
+        if isinstance(other, LabeledArray):
+            self._conjugates = other.conjugates.slice_all(key, self)
         
         return None
     
@@ -852,7 +928,6 @@ class LabeledArray(MetaArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def label(
         self,
         ref_image: np.ndarray | None = None,
@@ -887,17 +962,13 @@ class LabeledArray(MetaArray):
         if ref_image is None:
             ref_image = self
         else:
-            if not isinstance(ref_image, MetaArray):
-                ref_image = MetaArray(
-                    np.asarray(ref_image),
-                    axes=self.axes[-self.ndim:]
+            if not isinstance(ref_image, Label):
+                ref_image = np.asarray(ref_image)
+                ref_image = Label(
+                    ref_image,
+                    axes=self.axes[-ref_image.ndim:]
                 )
-            if not self.axes.contains(ref_image.axes):
-                raise ImageAxesError(
-                    "Not all the axes in `ref_image` are included in self: "
-                    f"{ref_image.axes} and {self.axes}"
-                )
-            elif not _shape_match(self, ref_image):
+            if not ref_image._dimension_matches(self):
                 raise ImageAxesError("Shape mismatch.")
         
         c_axes = complement_axes(dims, self.axes)
@@ -919,7 +990,6 @@ class LabeledArray(MetaArray):
     
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def label_if(
         self,
         ref_image: np.ndarray | None = None,
@@ -984,16 +1054,13 @@ class LabeledArray(MetaArray):
         
         else:
             if not isinstance(ref_image, MetaArray):
-                ref_image = MetaArray(
-                    np.asarray(ref_image),
-                    axes=str(self.axes)[-self.ndim:]
+                ref_image = np.ndarray(ref_image)
+                ref_image = Label(
+                    ref_image,
+                    axes=self.axes[-ref_image.ndim:],
                 )
-            if not self.axes.contains(ref_image.axes):
-                raise ImageAxesError(
-                    "Not all the axes in `ref_image` are included in self: "
-                    f"{ref_image.axes} and {self.axes}"
-                )
-            elif not _shape_match(self, ref_image):
+            
+            if not ref_image._dimension_matches(self):
                 raise ImageAxesError("Shape mismatch.")
         
         # check filter function
@@ -1391,28 +1458,6 @@ def _iter_dict(d, nparam):
                 out[k] = v
         yield out
 
-class NotMe:
-    def __eq__(self, other):
-        return False
-
-_notme = NotMe()
-
-def _shape_match(img: LabeledArray, label: Label):
-    """
-    e.g.)
-    img   ... 12(t), 100(y), 50(x)
-    label ... 100(y), 50(x)
-        -> True
-    img   ... 12(t), 100(y), 50(x)
-    label ... 30(y), 50(x)
-        -> False
-    """    
-    img_shape = img.shape
-    label_shape = label.shape
-    return all(
-        [getattr(img_shape, str(a), _notme) == getattr(label_shape, str(a), _notme)
-         for a in label.axes]
-    )
 
 def _iter_tile_yx(ymax, xmax, imgy, imgx):
     """

@@ -79,7 +79,7 @@ def dict_to_slice(sl: dict[str, Any], axes: tuple[str, ...]):
     
     return tuple(sl_list)
 
-def solve_slicer(key: Any, axes: Axes):
+def solve_slicer(key: Any, axes: Axes) -> Slices:
     if isinstance(key, str):
         key = axis_targeted_slicing(tuple(axes), key)
     

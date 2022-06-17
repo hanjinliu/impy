@@ -3573,7 +3573,7 @@ class ImgArray(LabeledArray):
         if input_img.dtype == bool:
             input_img = input_img.astype(np.uint8)
             
-        input_img._view_labels(self)
+        input_img.labels = self.labels
         
         if coords is None:
             coords = input_img.peak_local_max(min_distance=min_distance, dims=dims)

@@ -18,13 +18,14 @@ from .axes import slicer
 r"""
 Inheritance
 -----------
-        np.ndarray _    _ AxesMixin _
-                    \  /             \
-            ____ MetaArray _     LazyImgArray
-          /        /        \ 
-  LabeledArray  Label    PropArray
-    /     \
-ImgArray PhaseArray
+
+AxesMixin -----> LazyImgArray
+    |
+    +-----> MetaArray --+--> LabeledArray --+--> ImgArray
+    |                   |                   |
+np.ndarray              +--> Label          +--> PhaseArray
+                        |
+                        +--> PropArray
 
 """
 

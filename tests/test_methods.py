@@ -115,3 +115,21 @@ def test_edge_grad(method):
     assert abs(ang[18, 16] - 45) < 1e-3
     assert abs(ang[12, 14] + 135) < 1e-3
     assert abs(ang[16, 18] + 135) < 1e-3
+
+def test_labeling():
+    img = ip.zeros((32, 32), dtype=np.uint8)
+    img[20:25, 18:28] = 1
+    img[4:12, 8:16] = 1
+    img[10:22, 14:26] = 2
+    
+    img0 = img.copy()
+    img0.label()
+    assert img0.labels is not None
+    assert img0.labels.max() == 3
+    
+    img0 = img.copy()
+    lbl = img0 > 0.5
+    img0.label(lbl)
+    assert img0.labels is not None
+    assert img0.labels.max() == 1
+    
