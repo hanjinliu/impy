@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin, get_axes_tuple
 from ..._types import *
-from ...axes import ImageAxesError, Slicer, AxesLike, Axes
+from ...axes import ImageAxesError, AxesLike, Axes
 from ...array_api import xp
 from ...utils import axesop, slicer
 from ...collections import DataList
@@ -86,6 +86,11 @@ class MetaArray(AxesMixin, np.ndarray):
         """Numpy view of the array."""
         return np.asarray(self)
     
+    def __repr__(self) -> str:
+        if self.ndim > 0:
+            return super().__repr__()
+        return self.value[()]
+
     def _repr_dict_(self) -> dict[str, Any]:
         return {
             "name": self.name,
@@ -610,6 +615,10 @@ class MetaArray(AxesMixin, np.ndarray):
         value = self._broadcast(value)
         return super().__ifloordiv__(value)
 
+    if TYPE_CHECKING:
+        def astype(self, dtype) -> Self: ...
+        def flatten(self, order="C") -> Self: ...
+        def ravel(self, order="C") -> Self: ...
 
 def _list_of_axes(img: MetaArray, axis):
     if axis is None:

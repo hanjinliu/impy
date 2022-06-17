@@ -108,7 +108,7 @@ class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
                 f"Shape of input object ({value!r}) does not match the "
                 f"parent array ({parent.shape_info})."
             )
-        self._data["labels"] = value
+        self._data[key] = value
     
     def __delitem__(self, key: str) -> None:
         del self._data[key]
@@ -190,20 +190,23 @@ class LabeledArray(MetaArray):
     
     def set_scale(self, other=None, **kwargs) -> None:
         super().set_scale(other, **kwargs)
-        if self.labels is not None:
-            self.labels.set_scale(other, **kwargs)
+        for cov in self.covariates.values():
+            if hasattr(cov, "set_scale"):
+                cov.set_scale(other, **kwargs)
         return None
         
         
     def _repr_dict_(self):
         if self.labels is not None:
             labels_shape_info = self.labels.shape_info
+            if len(labels_shape_info) == 0:
+                labels_shape_info = "scalar"
         else:
             labels_shape_info = "No label"
         return {
             "name": self.name,
             "shape": self.shape_info,
-            "label shape ": labels_shape_info,
+            "label shape": labels_shape_info,
             "dtype": self.dtype,
             "source": self.source,
             "scale": self.scale,
@@ -406,9 +409,7 @@ class LabeledArray(MetaArray):
         ----------
         coordinates : ArrayLike
             Interpolation coordinates. Must be (D, N) or (D, X_1, ..., X_D) shape.
-        {mode}
-        {cval}
-        {order}
+        {mode}{cval}{order}
         prefilter : bool, optional
             Spline prefilter applied to the array. By default set to True if ``order`` is larger
             than 1.
@@ -660,10 +661,7 @@ class LabeledArray(MetaArray):
         
         Parameters
         ----------
-        {order}
-        {mode}
-        {dims}
-        {update}
+        {order}{mode}{dims}{update}
             
         Returns
         -------

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 
 from ._utils._skimage import skimage, skseg
@@ -8,6 +9,9 @@ from .bases import MetaArray
 from ..utils.axesop import complement_axes
 from ..utils.deco import check_input_and_output, dims_to_spatial_axes
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+    
 def best_dtype(n:int):
     if n < 2**8:
         return np.uint8
@@ -39,6 +43,13 @@ class Label(MetaArray):
             [getattr(img_shape, str(a), _NOTME) == getattr(label_shape, str(a), _NOTME)
             for a in self.axes]
         )
+    
+    def __getitem__(self, key) -> Self:
+        # For compatibility in LabeledArray, Label should not return scalar.
+        out = super().__getitem__(key)
+        if np.isscalar(out):
+            return Label(out, axes=[])
+        return out
     
     def increment(self, n: int) -> Label:
         # return view if possible

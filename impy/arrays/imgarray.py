@@ -740,8 +740,7 @@ class ImgArray(LabeledArray):
             Cutoff frequency.
         order : float, default is 2
             Steepness of cutoff.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -792,8 +791,7 @@ class ImgArray(LabeledArray):
             Steepness of cutoff.
         overlap : int, default is 16
             Overlapping pixels at the edges of tiles.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -848,8 +846,7 @@ class ImgArray(LabeledArray):
             Cutoff frequency.
         order : float, default is 2
             Steepness of cutoff.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -1570,8 +1567,7 @@ class ImgArray(LabeledArray):
         ----------
         thr : scalar or str, optional
             Threshold (value or method) to apply if image is not binary.
-        {dims}
-        {update}
+        {dims}{update}
         
         Returns
         -------
@@ -3339,8 +3335,7 @@ class ImgArray(LabeledArray):
         ----------
         radius : float, optional
             Objects with radius larger than this value will be removed.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -3368,8 +3363,7 @@ class ImgArray(LabeledArray):
         ----------
         length : float, default is 10
             Objects longer than this will be removed.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -3396,8 +3390,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -3421,8 +3414,7 @@ class ImgArray(LabeledArray):
         ----------
         radius : float, optional
             Radius of skeleton. This is achieved simply by dilation of skeletonized results.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -3508,8 +3500,7 @@ class ImgArray(LabeledArray):
         structure : str, default is "tip"
             What type of structure to remove.
         {connectivity}
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -4256,8 +4247,7 @@ class ImgArray(LabeledArray):
             Point spread function.
         lmd : float, default is 0.1
             Constant value used in the deconvolution. See Formulation below.
-        {dims}
-        {update}
+        {dims}{update}
 
         Returns
         -------
@@ -4308,8 +4298,7 @@ class ImgArray(LabeledArray):
             During deconvolution, division by small values in the convolve image of estimation and 
             PSF may cause divergence. Therefore, division by values under `eps` is substituted
             to zero.
-        {dims}
-        {update}
+        {dims}{update}
         
         Returns
         -------
@@ -4379,8 +4368,7 @@ class ImgArray(LabeledArray):
             During deconvolution, division by small values in the convolve image of
             estimation and PSF may cause divergence. Therefore, division by values 
             under ``eps`` is substituted to zero.
-        {dims}
-        {update}
+        {dims}{update}
         
         Returns
         -------
