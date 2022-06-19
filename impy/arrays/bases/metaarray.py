@@ -80,6 +80,12 @@ class MetaArray(AxesMixin, np.ndarray):
     def metadata(self) -> dict[str, Any]:
         """Metadata dictionary of the array."""
         return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        if not isinstance(value, dict):
+            raise TypeError(f"Cannot set {type(value)} as a metadata.")
+        self._metadata = value
     
     @property
     def value(self) -> np.ndarray:

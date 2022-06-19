@@ -1,5 +1,6 @@
+from __future__ import annotations
+from typing import Any
 import numpy as np
-import scipy
 
 def square(params, func, r, z):
     """
@@ -8,6 +9,10 @@ def square(params, func, r, z):
     """
     z_guess = func(r, *params)
     return np.mean((z - z_guess)**2)
+
+def masked_square(params, func, r, z, mask):
+    z_guess = func(r, *params)
+    return np.mean((z[mask] - z_guess[mask])**2)
 
 def diagonal_gaussian(r, *params):
     a, b = params[-2:]
@@ -56,6 +61,7 @@ class DiagonalGaussian(Gaussian):
         
     @property    
     def params(self):
+        """Get flattened parameters."""
         return tuple(self.mu) + tuple(self.sg) + (self.a, self.b)
     
     @params.setter
@@ -64,21 +70,52 @@ class DiagonalGaussian(Gaussian):
         self.mu = params[:self.ndim]
         self.sg = params[self.ndim:-2]
     
+    def asdict(self) -> dict[str, Any]:
+        return {
+            "mu": self.mu.tolist(),
+            "sigma": self.sg.tolist(),
+            "A": self.a,
+            "B": self.b,
+        }
+    
     @property
     def ndim(self):
         return self.mu.size
     
-    def fit(self, data: np.ndarray, method: str = "Powell"):
+    def fit(self, data: np.ndarray, method: str = "Powell", mask: np.ndarray | None = None):
+        from scipy.optimize import minimize
         if self.mu is None or self.sg is None or self.a is None or self.b is None:
-            self._estimate_params(data)
+            if mask is not None:
+                data = data.copy()
+                data[mask] = -np.inf
+                self._estimate_params(data)
+            else:
+                self._estimate_params(data)
         r = np.indices(data.shape)
-        result = scipy.optimize.minimize(square, self.params, args=(diagonal_gaussian, r, data),
-                                         method=method)
+        
+        if mask is None:
+            result = minimize(
+                square,
+                self.params,
+                args=(diagonal_gaussian, r, data),
+                method=method
+            )
+        else:
+            if mask.shape != data.shape:
+                raise ValueError(
+                    f"Shape mismatch between data {data.shape!r} and mask {mask.shape!r}."
+                )
+            result = minimize(
+                masked_square,
+                self.params,
+                args=(diagonal_gaussian, r, data, ~mask),
+                method=method
+            )
         self.params = result.x
         
         return result
             
-    def rescale(self, scale:float):
+    def rescale(self, scale: float):
         self.mu *= scale
         self.sg *= scale
         return None

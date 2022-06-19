@@ -279,6 +279,8 @@ def _(path: str, memmap: bool = False) -> ImageData:
         
         if tif.is_ome:
             meta_data: dict[str, Any] = xml2dict(tif.ome_metadata)["OME"]["Image"]
+            if isinstance(meta_data, list):
+                meta_data = meta_data[0]
             pix_info: dict[str, Any] = meta_data.get("Pixels", {})
             # get scale
             scale_unit = {x.lower(): pix_info.get(f"PhysicalSize{x}Unit") for x in "ZYX"}

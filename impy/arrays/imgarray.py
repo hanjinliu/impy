@@ -6,7 +6,6 @@ from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable
 
-from .bases.metaarray import MetaArray
 from .labeledarray import LabeledArray
 from .label import Label
 from .phasearray import PhaseArray
@@ -248,7 +247,7 @@ class ImgArray(LabeledArray):
         )
         out: ImgArray = out.view(self.__class__)
         out._set_info(self)
-        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        out.axes = self.axes.copy()
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
@@ -399,14 +398,14 @@ class ImgArray(LabeledArray):
             out[sl] = xp.asnumpy(radial_func(img))
         return out
     
-    @check_input_and_output
     @dims_to_spatial_axes
     def gaussfit(
         self,
         scale: float = 1/16,
-        p0: list[float] | None = None,
+        p0: Sequence[float] | None = None,
         method: str = "Powell",
-        dims: Dims = 2,
+        mask: np.ndarray | None = None,
+        dims: Dims = "yx",
     ) -> ImgArray:
         """
         Fit the image to 2-D Gaussian background.
@@ -415,10 +414,12 @@ class ImgArray(LabeledArray):
         ----------
         scale : float, default is 1/16.
             Scale of rough image (to speed up fitting).
-        p0 : list, optional
+        p0 : sequence of float, optional
             Initial parameters.
         method : str, optional
             Fitting method. See `scipy.optimize.minimize`.
+        mask : np.ndarray, optional,
+            If given, ignore the True region from fitting.
         {dims}
 
         Returns
@@ -426,18 +427,31 @@ class ImgArray(LabeledArray):
         ImgArray
             Fit image.
         """
-        if self.ndim > len(dims):
+        ndim = len(dims)
+        if self.ndim > ndim:
             out = np.empty_like(self)
-            for sl, img in self.iter(complement_axes(dims, self.axes), israw=True):
-                out[sl] = img.gaussfit(scale=scale, p0=p0, method=method, dims=dims)
+            c_axes = complement_axes(dims, self.axes)
+            from .bases import MetaArray
+            params = MetaArray(np.empty(self.shape[:-ndim], dtype=object), axes=c_axes)
+            for sl, img in self.iter(c_axes, israw=True):
+                fit = img.gaussfit(scale=scale, p0=p0, method=method, dims=dims)
+                params[sl[:-ndim]] = fit.metadata["GaussianParameters"]
+                out[sl] = fit.value
+            out.metadata = out.metadata.copy()
+            out.metadata["GaussianParameters"] = params
             return out
         
         rough = self.rescale(scale).value.astype(np.float32)
+        if mask is not None:
+            from ..core import asarray as ip_asarray
+            mask = ip_asarray(mask).rescale(scale) > 0
         gaussian = GaussianBackground(p0)
-        gaussian.fit(rough, method=method)
+        gaussian.fit(rough, method=method, mask=mask)
         gaussian.rescale(1/scale)
         fit = gaussian.generate(self.shape).view(self.__class__)
-        
+        fit._set_info(self)
+        fit.metadata = fit.metadata.copy()
+        fit.metadata["GaussianParameters"] = gaussian.asdict()
         return fit
     
     @same_dtype(asfloat=True)
