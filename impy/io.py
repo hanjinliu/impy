@@ -278,22 +278,26 @@ def _(path: str, memmap: bool = False) -> ImageData:
         scale_unit = dict.fromkeys(scale.keys(), ijmeta.pop("unit", None))
         
         if tif.is_ome:
-            meta_data: dict[str, Any] = xml2dict(tif.ome_metadata)["OME"]["Image"]
-            if isinstance(meta_data, list):
-                meta_data = meta_data[0]
-            pix_info: dict[str, Any] = meta_data.get("Pixels", {})
-            # get scale
-            scale_unit = {x.lower(): pix_info.get(f"PhysicalSize{x}Unit") for x in "ZYX"}
-            dz, dy, dx = [pix_info.get(f"PhysicalSize{x}", 1.0) for x in "ZYX"]
-            scale["z"] = dz
-            scale["y"] = dy
-            scale["x"] = dx
-            # get channel names
-            chn = pix_info.get("Channel")
-            if isinstance(chn, (list, tuple)):
-                labels = [ch.get("Name") for ch in chn]
-            else:
-                labels = None
+            try:
+                xml = xml2dict(tif.ome_metadata)
+                meta_data: dict[str, Any] = xml["OME"]["Image"]
+                if isinstance(meta_data, list):
+                    meta_data = meta_data[0]
+                pix_info: dict[str, Any] = meta_data.get("Pixels", {})
+                # get scale
+                scale_unit = {x.lower(): pix_info.get(f"PhysicalSize{x}Unit") for x in "ZYX"}
+                dz, dy, dx = [pix_info.get(f"PhysicalSize{x}", 1.0) for x in "ZYX"]
+                scale["z"] = dz
+                scale["y"] = dy
+                scale["x"] = dx
+                # get channel names
+                chn = pix_info.get("Channel")
+                if isinstance(chn, (list, tuple)):
+                    labels = [ch.get("Name") for ch in chn]
+                else:
+                    labels = None
+            except Exception:
+                pass
         
         if memmap:
             image = tif.asarray(out="memmap")
