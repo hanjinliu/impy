@@ -41,6 +41,29 @@ class AxesFrame(pd.DataFrame):
     
     
     def __getitem__(self, k):
+        # sl_tuple = solve_slicer(key, self.axes)
+        # drops: list[int] = []
+        # for i, sl in enumerate(sl_tuple):
+        #     arr = self._data[:, i]
+        #     out: bool | np.ndarray = True
+        #     if isinstance(sl, slice):
+        #         s0, s1, step = sl.indices(len(self))
+        #         binary = np.logical_and(s0 <= arr, arr < s1)
+        #         if step > 1:
+        #             binary = np.logical_and(binary, (arr - s0) % step == 0)
+        #         elif step < 0:
+        #             raise NotImplementedError
+                
+        #     else:
+        #         binary = arr == sl
+        #         drops.append(i)
+        #     out *= binary
+        # inherits = [i for i in range(len(self)) if i not in drops]
+        # df_out = super().__getitem__(out)
+        # if isinstance(df_out, AxesFrame):
+        #     df_out._axes = Axes(df_out._get_coords_cols())
+        #     df_out.set_scale(self)
+        # return df_out
         if isinstance(k, str):
             if ";" in k:
                 for each in k.split(";"):

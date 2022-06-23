@@ -4,6 +4,7 @@ import sys
 import re
 import glob
 import itertools
+
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
 else:
@@ -21,6 +22,7 @@ from .axes import ImageAxesError, broadcast, Axes
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
+from .frame import AxesFrame
 from ._const import Const
 
 __all__ = [
@@ -757,3 +759,7 @@ def read_meta(path: str) -> dict[str]:
         "scale": image_data.scale,
         "metadata": image_data.metadata
     }
+
+def roiread(path: str) -> AxesFrame:
+    path = str(path)
+    return io.roiread(path)
