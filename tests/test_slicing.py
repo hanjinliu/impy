@@ -1,4 +1,5 @@
 import impy as ip
+import numpy as np
 from numpy.testing import assert_equal
 import pytest
 
@@ -53,3 +54,32 @@ def test_scale():
     assert img[0, ::-3].axes[-1].scale == img.axes[-1].scale * 3
     assert img.binning(2).axes[-1].scale == img.axes[-1].scale * 2
     assert img.rescale(1/4).axes[-1].scale == img.axes[-1].scale * 4    
+
+def test_dataframe_slicing():
+    from impy.frame import AxesFrame
+    
+    df = AxesFrame({
+        "t": [0, 0, 1, 1, 2], 
+        "y": [8, 9, 7, 5, 3],
+        "x": [2, 3, 5 ,7 ,10],
+    })
+    
+    assert df.col_axes == ["t", "y", "x"]
+    assert (df["t=0"]["t"] == 0).all()
+    assert (df["t=1"]["t"] == 1).all()
+    assert_equal(df["t=0"].values, np.array([[0, 8, 2], [0, 9, 3]]))
+    assert_equal(df["t=1"].values, np.array([[1, 7, 5], [1, 5, 7]]))
+    assert_equal(df["t=0:2"].values, np.array([[0, 8, 2], [0, 9, 3], [1, 7, 5], [1, 5, 7]]))
+
+def test_roi_slicing():
+    from impy.roi import LineRoi
+    
+    roi = LineRoi(
+        [[3, 4],
+         [6, 10]],
+        "tyx", 
+        multi_dims=[2]
+    )
+    assert roi._slice_by((0, slice(1, 6, 1), slice(3, 8, 1))) == LineRoi([[2, 1], [5, 7]], "yx", multi_dims=None)
+    assert roi._slice_by((2, slice(1, 6, 2), slice(3, 12, -1))) == LineRoi([[2, 8], [3.5, 2]], "yx", multi_dims=None)
+    

@@ -522,42 +522,6 @@ mark_writer = IO.mark_writer
 
 def roiread(path: str) -> AxesFrame:
     """Read a Roi.zip file as a DataFrame-like object."""
-    from roifile import roiread, ROI_TYPE, ROI_SUBTYPE
-    from .frame import AxesFrame, PathFrame, MarkerFrame
-    import pandas as pd
+    from .roi import RoiList
     
-    obj = roiread(path)
-    if not isinstance(obj, list):
-        obj = [obj]
-    
-    roi_types = set((roi.roitype, roi.subtype) for roi in obj)
-    if len(roi_types) > 1:
-        raise ValueError(f"ROI file {path} contains multiple ROI types.")
-    roi_type = roi_types.pop()
-    if roi_type == (ROI_TYPE.POINT, ROI_SUBTYPE.UNDEFINED):
-        cls = MarkerFrame
-    elif roi_type == (ROI_TYPE.POLYLINE, ROI_SUBTYPE.UNDEFINED):
-        cls = PathFrame
-    else:
-        cls = AxesFrame
-    dfs: list[pd.DataFrame] = []
-    for n, roi in enumerate(obj):
-        arr, axes = _normalize_roi(roi)
-        df = pd.DataFrame(arr, columns=list(axes))
-        if cls is not MarkerFrame:
-            df.insert(0, "N", n)
-        dfs.append(df)
-    return cls(pd.concat(dfs, axis=0))
-            
-
-def _normalize_roi(roi: ImagejRoi) -> tuple[np.ndarray, Axes]:
-    yx: np.ndarray = roi.coordinates()[::-1] - 1
-    p = roi.position
-    c = roi.c_position
-    t = roi.t_position
-    z = roi.z_position
-    d = [x - 1 for x in [p, t, z, c] if x > 0]
-    axes = [a for a, x in zip("ptzc", [p, t, z, c]) if x > 0] + ["y", "x"]
-    multi = np.stack([np.array(d)] * yx.shape[0], axis=0)
-    arr = np.concatenate([multi, yx], axis=1)
-    return arr, axes
+    return RoiList.fromfile(path)

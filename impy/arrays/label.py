@@ -51,6 +51,8 @@ class Label(MetaArray):
             return Label(out, axes=[])
         return out
     
+    _slice_by = __getitem__
+    
     def increment(self, n: int) -> Label:
         # return view if possible
         if self.max() + n > np.iinfo(self.dtype).max:

@@ -28,7 +28,10 @@ if TYPE_CHECKING:
     from ..frame import PathFrame
     from numpy.typing import ArrayLike, DTypeLike
 
+
 class SupportAxesSlicing(Protocol):
+    """A protocol that covariate objects must follow."""
+
     @property
     def axes(self) -> Axes:
         """Axes object bound to the object."""
@@ -41,7 +44,15 @@ class SupportAxesSlicing(Protocol):
     
     def __getitem__(self, key) -> SupportAxesSlicing | None:
         """Slice object."""
+    
+    def _slice_by(self, key) -> SupportAxesSlicing | None:
+        """Slice object."""
 
+def _fmt_slice(k, length: int):
+    if isinstance(k, slice):
+        return slice(*k.indices(length))
+    else:
+        return k
 
 class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
     def __init__(self, data: dict[str, SupportAxesSlicing], parent: MetaArray):
@@ -81,8 +92,9 @@ class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
                     else:
                         _keys = (key,)
                     label_sl = tuple(
-                        _keys[i] for i, a in enumerate(parent.axes) 
-                        if a in value.axes and i < len(_keys)
+                        _fmt_slice(_keys[i], parent.shape[i])
+                        for i, a in enumerate(parent.axes) 
+                        if (a in value.axes and i < len(_keys))
                     )
                             
                     if len(label_sl) == 0 or len(label_sl) > len(value.axes):
@@ -90,7 +102,10 @@ class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
                 else:
                     label_sl = key
 
-                data[k] = value[label_sl]
+                if hasattr(value, "_slice_by"):
+                    data[k] = value._slice_by(label_sl)
+                else:
+                    data[k] = value[label_sl]
 
         return self.__class__(data, next_parent)
 
@@ -149,6 +164,7 @@ class LabeledArray(MetaArray):
     
     @property
     def covariates(self) -> ArrayCovariates:
+        """Get all the covariates."""
         return self._covariates
 
     @property
