@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.frame.frames &mdash; impy 2.1.0.alpha documentation</title>
+  <title>impy.frame.frames &mdash; impy 2.1.1.dev1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0.alpha
+                2.1.1.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,6 +39,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
@@ -111,6 +112,29 @@
     
     
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="c1"># sl_tuple = solve_slicer(key, self.axes)</span>
+        <span class="c1"># drops: list[int] = []</span>
+        <span class="c1"># for i, sl in enumerate(sl_tuple):</span>
+        <span class="c1">#     arr = self._data[:, i]</span>
+        <span class="c1">#     out: bool | np.ndarray = True</span>
+        <span class="c1">#     if isinstance(sl, slice):</span>
+        <span class="c1">#         s0, s1, step = sl.indices(len(self))</span>
+        <span class="c1">#         binary = np.logical_and(s0 &lt;= arr, arr &lt; s1)</span>
+        <span class="c1">#         if step &gt; 1:</span>
+        <span class="c1">#             binary = np.logical_and(binary, (arr - s0) % step == 0)</span>
+        <span class="c1">#         elif step &lt; 0:</span>
+        <span class="c1">#             raise NotImplementedError</span>
+                
+        <span class="c1">#     else:</span>
+        <span class="c1">#         binary = arr == sl</span>
+        <span class="c1">#         drops.append(i)</span>
+        <span class="c1">#     out *= binary</span>
+        <span class="c1"># inherits = [i for i in range(len(self)) if i not in drops]</span>
+        <span class="c1"># df_out = super().__getitem__(out)</span>
+        <span class="c1"># if isinstance(df_out, AxesFrame):</span>
+        <span class="c1">#     df_out._axes = Axes(df_out._get_coords_cols())</span>
+        <span class="c1">#     df_out.set_scale(self)</span>
+        <span class="c1"># return df_out</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">if</span> <span class="s2">&quot;;&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">):</span>

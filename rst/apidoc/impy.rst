@@ -72,6 +72,14 @@ impy.random module
    :undoc-members:
    :show-inheritance:
 
+impy.roi module
+---------------
+
+.. automodule:: impy.roi
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

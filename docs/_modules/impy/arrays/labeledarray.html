@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 2.1.0 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 2.1.1.dev1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0
+                2.1.1.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -70,14 +70,12 @@
              
   <h1>Source code for impy.arrays.labeledarray</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Protocol</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
 
@@ -92,19 +90,127 @@
 <span class="kn">from</span> <span class="nn">..utils.deco</span> <span class="kn">import</span> <span class="n">check_input_and_output</span><span class="p">,</span> <span class="n">dims_to_spatial_axes</span><span class="p">,</span> <span class="n">same_dtype</span>
 <span class="kn">from</span> <span class="nn">..io</span> <span class="kn">import</span> <span class="n">imsave</span>
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataList</span><span class="p">,</span> <span class="n">DataDict</span>
-<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">AxesLike</span><span class="p">,</span> <span class="n">slicer</span>
+<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">AxesLike</span><span class="p">,</span> <span class="n">slicer</span><span class="p">,</span> <span class="n">Axes</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">nDInt</span><span class="p">,</span> <span class="n">nDFloat</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Coords</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">PaddingMode</span>
 <span class="kn">from</span> <span class="nn">..array_api</span> <span class="kn">import</span> <span class="n">xp</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
     <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">PathFrame</span>
+    <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span>
+
+
+<div class="viewcode-block" id="SupportAxesSlicing"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing">[docs]</a><span class="k">class</span> <span class="nc">SupportAxesSlicing</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A protocol that covariate objects must follow.&quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Axes</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Axes object bound to the object.&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">_dimension_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Check if self matches array&#39;s shape and axes.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SupportAxesSlicing.copy"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Shallow copy of the object.&quot;&quot;&quot;</span></div>
+    
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SupportAxesSlicing</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Slice object.&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">_slice_by</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SupportAxesSlicing</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Slice object.&quot;&quot;&quot;</span></div>
+
+<span class="k">def</span> <span class="nf">_fmt_slice</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="o">*</span><span class="n">k</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="n">length</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">k</span>
+
+<div class="viewcode-block" id="ArrayCovariates"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates">[docs]</a><span class="k">class</span> <span class="nc">ArrayCovariates</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">],</span> <span class="n">parent</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">weakref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_ref</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the parent MetaArray object&quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent_ref</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parent LabeledArray is deleted.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+<div class="viewcode-block" id="ArrayCovariates.construct_by_copying"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates.construct_by_copying">[docs]</a>    <span class="k">def</span> <span class="nf">construct_by_copying</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">parent</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ArrayCovariates.construct_by_slicing"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates.construct_by_slicing">[docs]</a>    <span class="k">def</span> <span class="nf">construct_by_slicing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">next_parent</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="n">next_parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">next_parent</span> <span class="o">=</span> <span class="n">parent</span>
+        
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="n">_keys</span> <span class="o">=</span> <span class="n">key</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,)</span>
+                    <span class="n">label_sl</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">_fmt_slice</span><span class="p">(</span><span class="n">_keys</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">parent</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> 
+                        <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">axes</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">_keys</span><span class="p">))</span>
+                    <span class="p">)</span>
+                            
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
+                        <span class="n">label_sl</span> <span class="o">=</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">label_sl</span> <span class="o">=</span> <span class="n">key</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;_slice_by&quot;</span><span class="p">):</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">_slice_by</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">label_sl</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">next_parent</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SupportAxesSlicing</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">SupportAxesSlicing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">_dimension_matches</span><span class="p">(</span><span class="n">parent</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Shape of input object (</span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">) does not match the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;parent array (</span><span class="si">{</span><span class="n">parent</span><span class="o">.</span><span class="n">shape_info</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span></div>
+    
 
 <div class="viewcode-block" id="LabeledArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray">[docs]</a><span class="k">class</span> <span class="nc">LabeledArray</span><span class="p">(</span><span class="n">MetaArray</span><span class="p">):</span>
     <span class="n">_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">_source</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-    <span class="n">_labels</span><span class="p">:</span> <span class="n">Label</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">_covariates</span><span class="p">:</span> <span class="n">ArrayCovariates</span>
     
     <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LabeledArray</span><span class="p">],</span> 
@@ -118,7 +224,8 @@
         <span class="bp">self</span><span class="p">:</span> <span class="n">LabeledArray</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
             <span class="bp">cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">dtype</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="n">ArrayCovariates</span><span class="p">({},</span> <span class="bp">self</span><span class="p">)</span>
+        
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@property</span>
@@ -127,14 +234,19 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
     
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">covariates</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArrayCovariates</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get all the covariates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;The label of the image.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">)</span>
     
     <span class="nd">@labels</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">return</span>
 
         <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">:</span>
@@ -152,34 +264,36 @@
             <span class="n">axes</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)[</span><span class="o">-</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
         
-        
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">_shape_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">_dimension_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Shape of input label (</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">shape_info</span><span class="si">}</span><span class="s2">) does not match the &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;parent array (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">shape_info</span><span class="si">}</span><span class="s2">).&quot;</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
     
     <span class="nd">@labels</span><span class="o">.</span><span class="n">deleter</span>
     <span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     
 <div class="viewcode-block" id="LabeledArray.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">cov</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cov</span><span class="p">,</span> <span class="s2">&quot;set_scale&quot;</span><span class="p">):</span>
+                <span class="n">cov</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span></div>
         
         
     <span class="k">def</span> <span class="nf">_repr_dict_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">labels_shape_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">shape_info</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels_shape_info</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">labels_shape_info</span> <span class="o">=</span> <span class="s2">&quot;scalar&quot;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">labels_shape_info</span> <span class="o">=</span> <span class="s2">&quot;No label&quot;</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s2">&quot;shape&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape_info</span><span class="p">,</span>
-            <span class="s2">&quot;label shape &quot;</span><span class="p">:</span> <span class="n">labels_shape_info</span><span class="p">,</span>
+            <span class="s2">&quot;label shape&quot;</span><span class="p">:</span> <span class="n">labels_shape_info</span><span class="p">,</span>
             <span class="s2">&quot;dtype&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
             <span class="s2">&quot;scale&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span>
@@ -237,47 +351,27 @@
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #</span>
     
     <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_labels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_view_labels</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inherit_covariates</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
     
     <span class="k">def</span> <span class="nf">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="o">.</span><span class="n">_INHERIT</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_labels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inherit_covariates</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_inherit_covariates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">construct_by_copying</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_covariates</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="n">ArrayCovariates</span><span class="p">({},</span> <span class="bp">self</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_getitem_additional_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;covariates&quot;</span><span class="p">,</span> <span class="n">ArrayCovariates</span><span class="p">({},</span> <span class="bp">self</span><span class="p">))</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_view_labels</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
-    
-    <span class="k">def</span> <span class="nf">_view_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Make a view of label **if possible**.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">other</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> <span class="ow">and</span>
-            <span class="n">_shape_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
-        <span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">other</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span>
-        
-    
-    <span class="k">def</span> <span class="nf">_getitem_additional_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_getitem_additional_set_info</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">axes</span> <span class="ow">and</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                <span class="n">_keys</span> <span class="o">=</span> <span class="n">key</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">_keys</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,)</span>
-            <span class="n">label_sl</span> <span class="o">=</span> <span class="p">[</span><span class="n">_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> 
-                        <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">axes</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">_keys</span><span class="p">)]</span>
-                    
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
-                <span class="n">label_sl</span> <span class="o">=</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)]</span>
-            <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Labels was not inherited due to IndexError : </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">construct_by_slicing</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="kc">None</span>
     
@@ -374,57 +468,10 @@
         <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="LabeledArray.imshow"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imshow">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="k">def</span> <span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
-        <span class="k">if</span> <span class="n">label</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">label</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">_plt</span><span class="o">.</span><span class="n">plot_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
-                <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d_label</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">hist</span><span class="p">()</span>
-            
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
-                <span class="n">imglist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">find_first_appeared</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">dims</span><span class="p">))</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">imglist</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">24</span><span class="p">:</span>
-                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                        <span class="s2">&quot;Too many images. First 24 images are shown.&quot;</span><span class="p">,</span>
-                        <span class="ne">UserWarning</span><span class="p">,</span>
-                    <span class="p">)</span>
-                    <span class="n">imglist</span> <span class="o">=</span> <span class="n">imglist</span><span class="p">[:</span><span class="mi">24</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
-                    <span class="n">_plt</span><span class="o">.</span><span class="n">plot_3d_label</span><span class="p">(</span><span class="n">imglist</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">imglist</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">_plt</span><span class="o">.</span><span class="n">plot_3d</span><span class="p">(</span><span class="n">imglist</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">plugin</span><span class="o">=</span><span class="s2">&quot;matplotlib&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">._imshow</span> <span class="kn">import</span> <span class="n">imshow</span>
+        <span class="k">return</span> <span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">plugin</span><span class="o">=</span><span class="n">plugin</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">n_chn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">c</span>
-                <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_chn</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">n_chn</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_chn</span><span class="p">):</span>
-                    <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;c=</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
-                        <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d_label</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Image must have three or less dimensions.&quot;</span><span class="p">)</span>
-        
-        <span class="n">_plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="bp">self</span></div>
-
-<div class="viewcode-block" id="LabeledArray.imshow_comparewith"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imshow_comparewith">[docs]</a>    <span class="k">def</span> <span class="nf">imshow_comparewith</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
-        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-        <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">_plt</span><span class="o">.</span><span class="n">plot_2d</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>        
-        <span class="n">_plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span></div>
-    
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #</span>
     <span class="c1">#   Interpolation</span>
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #    </span>
@@ -449,9 +496,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        coordinates : ArrayLike</span>
 <span class="sd">            Interpolation coordinates. Must be (D, N) or (D, X_1, ..., X_D) shape.</span>
-<span class="sd">        {mode}</span>
-<span class="sd">        {cval}</span>
-<span class="sd">        {order}</span>
+<span class="sd">        {mode}{cval}{order}</span>
 <span class="sd">        prefilter : bool, optional</span>
 <span class="sd">            Spline prefilter applied to the array. By default set to True if ``order`` is larger</span>
 <span class="sd">            than 1.</span>
@@ -703,10 +748,7 @@
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {order}</span>
-<span class="sd">        {mode}</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {order}{mode}{dims}{update}</span>
 <span class="sd">            </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -970,88 +1012,21 @@
     
 <div class="viewcode-block" id="LabeledArray.label"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.label">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">label</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ref_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Label image using skimage&#39;s label().</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        ref_image : array, optional</span>
-<span class="sd">            Image to make label, by default self is used.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {connectivity}</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        Label</span>
-<span class="sd">            Labeled image.</span>
 <span class="sd">        </span>
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        Label the image with threshold and visualize with napari.</span>
-<span class="sd">        </span>
-<span class="sd">            &gt;&gt;&gt; thr = img.threshold()</span>
-<span class="sd">            &gt;&gt;&gt; img.label(thr)</span>
-<span class="sd">            &gt;&gt;&gt; ip.gui.add(img)</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="c1"># check the shape of label_image</span>
-        <span class="k">if</span> <span class="n">ref_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">ref_image</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_image</span><span class="p">,</span> <span class="n">MetaArray</span><span class="p">):</span>
-                <span class="n">ref_image</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="p">(</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ref_image</span><span class="p">),</span>
-                    <span class="n">axes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span>
-                    <span class="s2">&quot;Not all the axes in `ref_image` are included in self: &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="ow">not</span> <span class="n">_shape_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_image</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="s2">&quot;Shape mismatch.&quot;</span><span class="p">)</span>
-        
-        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
-        <span class="n">labels</span> <span class="o">=</span> <span class="n">largest_zeros</span><span class="p">(</span><span class="n">ref_image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        
-        <span class="n">labels</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
-            <span class="n">skmes</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> 
-            <span class="n">c_axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">,</span> 
-            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">background</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-    
-        <span class="c1"># correct the label numbers of `labels`</span>
-        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">Label</span><span class="p">)</span>
-        <span class="n">labels</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">ref_image</span><span class="p">)</span>
-        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">increment_iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
-        <span class="n">labels</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
-    
-<div class="viewcode-block" id="LabeledArray.label_if"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.label_if">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">label_if</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">ref_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Label image if the region satisfies the condition.</span>
-<span class="sd">        </span>
-<span class="sd">        Label image using `ref_image` as reference image only if certain </span>
-<span class="sd">        condition dictated in `filt` is satisfied. `regionprops_table` is called</span>
-<span class="sd">        inside every time image is labeled.</span>
+<span class="sd">        Label image using `ref_image` as reference image, or image itself. If </span>
+<span class="sd">        ``filt`` is given, image will be labeled only if certain condition</span>
+<span class="sd">        dictated in `filt` is satisfied. `regionprops_table` is called inside</span>
+<span class="sd">        every time image is labeled.</span>
 <span class="sd">        </span>
 <span class="sd">            .. code-block:: python</span>
 <span class="sd">            </span>
@@ -1074,81 +1049,109 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        LabeledArray</span>
-<span class="sd">            Labeled image</span>
+<span class="sd">        Label</span>
+<span class="sd">            Newly created label.</span>
 <span class="sd">        </span>
-<span class="sd">        Example</span>
-<span class="sd">        -------</span>
-<span class="sd">        1. Label regions if only intensity is high.</span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        1. Label the image with threshold and visualize with napari.</span>
+<span class="sd">            &gt;&gt;&gt; thr = img.threshold()</span>
+<span class="sd">            &gt;&gt;&gt; img.label(thr)</span>
+<span class="sd">            &gt;&gt;&gt; ip.gui.add(img)</span>
+<span class="sd">            </span>
+<span class="sd">        2. Label regions if only intensity is high.</span>
 <span class="sd">            &gt;&gt;&gt; def high_intensity(img, lbl, slice):</span>
 <span class="sd">            &gt;&gt;&gt;     return np.mean(img[slice]) &gt; 10000</span>
-<span class="sd">            &gt;&gt;&gt; img.label_if(lbl, filt)</span>
+<span class="sd">            &gt;&gt;&gt; img.label(lbl, filt)</span>
 <span class="sd">        </span>
-<span class="sd">        2. Label regions if no hole exists.</span>
+<span class="sd">        3. Label regions if no hole exists.</span>
 <span class="sd">            &gt;&gt;&gt; def no_hole(img, lbl, euler_number):</span>
 <span class="sd">            &gt;&gt;&gt;     return euler_number &gt; 0</span>
-<span class="sd">            &gt;&gt;&gt; img.label_if(lbl, filt)</span>
+<span class="sd">            &gt;&gt;&gt; img.label(lbl, filt)</span>
 <span class="sd">        </span>
-<span class="sd">        3. Label regions if centroids are inside themselves.</span>
+<span class="sd">        4. Label regions if centroids are inside themselves.</span>
 <span class="sd">            &gt;&gt;&gt; def no_hole(img, lbl, centroid):</span>
 <span class="sd">            &gt;&gt;&gt;     yc, xc = map(int, centroid)</span>
 <span class="sd">            &gt;&gt;&gt;     return lbl[yc, xc] &gt; 0</span>
-<span class="sd">            &gt;&gt;&gt; img.label_if(lbl, filt)</span>
+<span class="sd">            &gt;&gt;&gt; img.label(lbl, filt)</span>
+<span class="sd">        </span>
 <span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-        <span class="c1"># check the shape of ref_image</span>
+        <span class="c1"># check the shape of label_image</span>
         <span class="k">if</span> <span class="n">ref_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ref_image</span> <span class="o">=</span> <span class="bp">self</span>
-        
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_image</span><span class="p">,</span> <span class="n">MetaArray</span><span class="p">):</span>
+                <span class="n">ref_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ref_image</span><span class="p">)</span>
                 <span class="n">ref_image</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="p">(</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ref_image</span><span class="p">),</span>
-                    <span class="n">axes</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
+                    <span class="n">ref_image</span><span class="p">,</span>
+                    <span class="n">axes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">ref_image</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">_dimension_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span>
-                    <span class="s2">&quot;Not all the axes in `ref_image` are included in self: &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_image</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Shape mismatch. Image is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">shape_info</span><span class="si">}</span><span class="s2"> but reference is&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ref_image</span><span class="o">.</span><span class="n">shape_info</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
-            <span class="k">elif</span> <span class="ow">not</span> <span class="n">_shape_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_image</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="s2">&quot;Shape mismatch.&quot;</span><span class="p">)</span>
         
-        <span class="c1"># check filter function</span>
-        <span class="k">if</span> <span class="n">filt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`filt` must be given.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">filt</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`filt` must be callable.&quot;</span><span class="p">)</span>
-        
-        <span class="kn">import</span> <span class="nn">inspect</span>
-        <span class="n">properties</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">filt</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
-            
         <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">largest_zeros</span><span class="p">(</span><span class="n">ref_image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">):</span>
-            <span class="n">lbl</span> <span class="o">=</span> <span class="n">skmes</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">background</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span>
-            <span class="c1"># Following lines are essentially doing the same thing as </span>
-            <span class="c1"># `skmes.regionprops_table`. However, `skmes.regionprops_table`</span>
-            <span class="c1"># returns tuples in the separated columns in DataFrame and rename</span>
-            <span class="c1"># property names like &quot;centroid-0&quot; and &quot;centroid-1&quot;.</span>
-            <span class="n">props_obj</span> <span class="o">=</span> <span class="n">skmes</span><span class="o">.</span><span class="n">regionprops</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop_name</span><span class="p">:</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">prop_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">props_obj</span><span class="p">]</span>
-                 <span class="k">for</span> <span class="n">prop_name</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">}</span>
-            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
-            <span class="n">del_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">filt</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">lbl</span><span class="p">,</span> <span class="o">**</span><span class="n">r</span><span class="p">)]</span>
-            <span class="n">labels</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">skseg</span><span class="o">.</span><span class="n">relabel_sequential</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">del_list</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lbl</span><span class="p">),</span>
-                <span class="n">offset</span><span class="o">=</span><span class="n">offset</span>
-            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">offset</span> <span class="o">+=</span> <span class="n">labels</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
         
-        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">Label</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">filt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">labels</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+                <span class="n">skmes</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> 
+                <span class="n">c_axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">,</span> 
+                <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">background</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">filt</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`filt` must be callable.&quot;</span><span class="p">)</span>
+            
+            <span class="kn">import</span> <span class="nn">inspect</span>
+            <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+            <span class="n">properties</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">filt</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
+
+            <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="n">ref_image</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">):</span>
+                <span class="n">lbl</span> <span class="o">=</span> <span class="n">skmes</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">background</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span>
+                <span class="c1"># Following lines are essentially doing the same thing as </span>
+                <span class="c1"># `skmes.regionprops_table`. However, `skmes.regionprops_table`</span>
+                <span class="c1"># returns tuples in the separated columns in DataFrame and rename</span>
+                <span class="c1"># property names like &quot;centroid-0&quot; and &quot;centroid-1&quot;.</span>
+                <span class="n">props_obj</span> <span class="o">=</span> <span class="n">skmes</span><span class="o">.</span><span class="n">regionprops</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop_name</span><span class="p">:</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">prop_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">props_obj</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">prop_name</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">}</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+                <span class="n">del_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">filt</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">lbl</span><span class="p">,</span> <span class="o">**</span><span class="n">r</span><span class="p">)]</span>
+                <span class="n">labels</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">skseg</span><span class="o">.</span><span class="n">relabel_sequential</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">del_list</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">lbl</span><span class="p">),</span>
+                    <span class="n">offset</span><span class="o">=</span><span class="n">offset</span>
+                <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">offset</span> <span class="o">+=</span> <span class="n">labels</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    
+        <span class="c1"># correct the label numbers of `labels`</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">Label</span><span class="p">)</span>
         <span class="n">labels</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">ref_image</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">increment_iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
         <span class="n">labels</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
+    
+<div class="viewcode-block" id="LabeledArray.label_if"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.label_if">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+    <span class="nd">@dims_to_spatial_axes</span>
+    <span class="k">def</span> <span class="nf">label_if</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
+        <span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;`label_if` is deprecated and will be removed soon. `label` method does the &quot;</span>
+            <span class="s2">&quot;same function&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">ref_image</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="LabeledArray.append_label"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.append_label">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">append_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
@@ -1509,28 +1512,6 @@
                 <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">yield</span> <span class="n">out</span>
 
-<div class="viewcode-block" id="NotMe"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.NotMe">[docs]</a><span class="k">class</span> <span class="nc">NotMe</span><span class="p">:</span>
-    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">False</span></div>
-
-<span class="n">_notme</span> <span class="o">=</span> <span class="n">NotMe</span><span class="p">()</span>
-
-<span class="k">def</span> <span class="nf">_shape_match</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">LabeledArray</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="n">Label</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    e.g.)</span>
-<span class="sd">    img   ... 12(t), 100(y), 50(x)</span>
-<span class="sd">    label ... 100(y), 50(x)</span>
-<span class="sd">        -&gt; True</span>
-<span class="sd">    img   ... 12(t), 100(y), 50(x)</span>
-<span class="sd">    label ... 30(y), 50(x)</span>
-<span class="sd">        -&gt; False</span>
-<span class="sd">    &quot;&quot;&quot;</span>    
-    <span class="n">img_shape</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">label_shape</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">shape</span>
-    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
-        <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">img_shape</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">_notme</span><span class="p">)</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">label_shape</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">_notme</span><span class="p">)</span>
-         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">label</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
-    <span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_iter_tile_yx</span><span class="p">(</span><span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">imgy</span><span class="p">,</span> <span class="n">imgx</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>

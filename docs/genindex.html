@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; impy 2.1.0 documentation</title>
+  <title>Index &mdash; impy 2.1.1.dev1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0
+                2.1.1.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -41,6 +41,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API References</a></li>
 </ul>
 
@@ -137,6 +138,8 @@
         <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.affine">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
       </ul></li>
+      <li><a href="apidoc/impy.html#impy.collections.DataList.agg">agg() (impy.collections.DataList method)</a>
+</li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.append_label">append_label() (impy.arrays.labeledarray.LabeledArray method)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.collections.DataDict.apply">apply() (impy.collections.DataDict method)</a>
@@ -153,11 +156,13 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.area_opening">area_opening() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray.argmax_nd">argmax_nd() (impy.arrays.bases.metaarray.MetaArray method)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.core.array">array() (in module impy.core)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates">ArrayCovariates (class in impy.arrays.labeledarray)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.as_exp">as_exp() (impy.arrays.phasearray.PhaseArray method)</a>
 </li>
@@ -195,12 +200,18 @@
       </ul></li>
       <li><a href="apidoc/impy.html#impy.core.asarray">asarray() (in module impy.core)</a>
 </li>
+      <li><a href="apidoc/impy.utils.html#impy.utils.gauss.DiagonalGaussian.asdict">asdict() (impy.utils.gauss.DiagonalGaussian method)</a>
+</li>
       <li><a href="apidoc/impy.html#impy.core.aslazy">aslazy() (in module impy.core)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.axes">axes (impy.arrays.axesmixin.AxesMixin property)</a>
 
       <ul>
         <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.axes">(impy.arrays.imgarray.ImgArray attribute)</a>
+</li>
+        <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing.axes">(impy.arrays.labeledarray.SupportAxesSlicing property)</a>
+</li>
+        <li><a href="apidoc/impy.html#impy.roi.Roi.axes">(impy.roi.Roi property)</a>
 </li>
         <li><a href="apidoc/impy.viewer.html#impy.viewer.viewer.napariViewers.axes">(impy.viewer.viewer.napariViewers property)</a>
 </li>
@@ -285,11 +296,15 @@
 </li>
       <li><a href="apidoc/impy.utils.html#impy.utils.axesop.complement_axes">complement_axes() (in module impy.utils.axesop)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.viewer.html#impy.viewer.utils.ComplexArrayView">ComplexArrayView (class in impy.viewer.utils)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.compute">compute() (impy.arrays.lazy.LazyImgArray method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates.construct_by_copying">construct_by_copying() (impy.arrays.labeledarray.ArrayCovariates method)</a>
+</li>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates.construct_by_slicing">construct_by_slicing() (impy.arrays.labeledarray.ArrayCovariates method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.convex_hull">convex_hull() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
@@ -299,11 +314,19 @@
         <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.convolve">(impy.arrays.lazy.LazyImgArray method)</a>
 </li>
       </ul></li>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing.copy">copy() (impy.arrays.labeledarray.SupportAxesSlicing method)</a>
+
+      <ul>
+        <li><a href="apidoc/impy.html#impy.roi.Roi.copy">(impy.roi.Roi method)</a>
+</li>
+      </ul></li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.corner_harris">corner_harris() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.corner_peaks">corner_peaks() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.count_neighbors">count_neighbors() (impy.arrays.imgarray.ImgArray method)</a>
+</li>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.covariates">covariates (impy.arrays.labeledarray.LabeledArray property)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.crop_center">crop_center() (impy.arrays.labeledarray.LabeledArray method)</a>
 
@@ -439,10 +462,10 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.focus_map">focus_map() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.for_each_channel">for_each_channel() (impy.arrays.labeledarray.LabeledArray method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.for_params">for_params() (impy.arrays.labeledarray.LabeledArray method)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.correlation.fourier_ncc">fourier_ncc() (in module impy.correlation)</a>
@@ -450,6 +473,10 @@
       <li><a href="apidoc/impy.html#impy.correlation.fourier_shell_correlation">fourier_shell_correlation() (in module impy.correlation)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.correlation.fourier_zncc">fourier_zncc() (in module impy.correlation)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.Roi.from_imagejroi">from_imagejroi() (impy.roi.Roi class method)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.RoiList.fromfile">fromfile() (impy.roi.RoiList class method)</a>
 </li>
       <li><a href="apidoc/impy.viewer.html#impy.viewer.utils.front_image">front_image() (in module impy.viewer.utils)</a>
 </li>
@@ -491,10 +518,10 @@
 </li>
       <li><a href="apidoc/impy.utils.html#impy.utils.gauss.GaussianBackground">GaussianBackground (class in impy.utils.gauss)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.utils.html#impy.utils.gauss.GaussianParticle">GaussianParticle (class in impy.utils.gauss)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.GB">GB (impy.arrays.lazy.LazyImgArray property)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.gb">gb (impy.arrays.lazy.LazyImgArray property)</a>
@@ -507,6 +534,12 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.axesmixin.get_axes_tuple">get_axes_tuple() (in module impy.arrays.axesmixin)</a>
 </li>
+      <li><a href="apidoc/impy.html#impy.roi.PolygonRoi.get_coordinates">get_coordinates() (impy.roi.PolygonRoi static method)</a>
+
+      <ul>
+        <li><a href="apidoc/impy.html#impy.roi.Roi.get_coordinates">(impy.roi.Roi static method)</a>
+</li>
+      </ul></li>
       <li><a href="apidoc/impy.frame.html#impy.frame.frames.AxesFrame.get_coords">get_coords() (impy.frame.frames.AxesFrame method)</a>
 </li>
       <li><a href="apidoc/impy.viewer.html#impy.viewer.utils.get_viewer_scale">get_viewer_scale() (in module impy.viewer.utils)</a>
@@ -695,8 +728,6 @@
         <li><a href="apidoc/impy.frame.html#module-impy.frame.frames">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     impy.io
 
@@ -704,11 +735,20 @@
         <li><a href="apidoc/impy.html#module-impy.io">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     impy.random
 
       <ul>
         <li><a href="apidoc/impy.html#module-impy.random">module</a>
+</li>
+      </ul></li>
+      <li>
+    impy.roi
+
+      <ul>
+        <li><a href="apidoc/impy.html#module-impy.roi">module</a>
 </li>
       </ul></li>
       <li>
@@ -809,14 +849,16 @@
         <li><a href="apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray.imshow">(impy.arrays.phasearray.PhaseArray method)</a>
 </li>
       </ul></li>
-      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imshow_comparewith">imshow_comparewith() (impy.arrays.labeledarray.LabeledArray method)</a>
-</li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.label.Label.increment">increment() (impy.arrays.label.Label method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.label.Label.increment_iter">increment_iter() (impy.arrays.label.Label method)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.collections.DataList.insert">insert() (impy.collections.DataList method)</a>
+
+      <ul>
+        <li><a href="apidoc/impy.html#impy.roi.RoiList.insert">(impy.roi.RoiList method)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.itemsize">itemsize (impy.arrays.lazy.LazyImgArray property)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.iter">iter() (impy.arrays.axesmixin.AxesMixin method)</a>
@@ -885,6 +927,8 @@
 </li>
       <li><a href="apidoc/impy.frame.html#impy.frame.frames.PathFrame.length">length() (impy.frame.frames.PathFrame method)</a>
 </li>
+      <li><a href="apidoc/impy.html#impy.roi.LineRoi">LineRoi (class in impy.roi)</a>
+</li>
       <li><a href="apidoc/impy.frame.html#impy.frame.frames.MarkerFrame.link">link() (impy.frame.frames.MarkerFrame method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.local_dft">local_dft() (impy.arrays.imgarray.ImgArray method)</a>
@@ -922,6 +966,8 @@
       <li><a href="apidoc/impy.html#impy.io.mark_writer">mark_writer() (in module impy.io)</a>
 </li>
       <li><a href="apidoc/impy.frame.html#impy.frame.frames.MarkerFrame">MarkerFrame (class in impy.frame.frames)</a>
+</li>
+      <li><a href="apidoc/impy.utils.html#impy.utils.gauss.masked_square">masked_square() (in module impy.utils.gauss)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.mean_filter">mean_filter() (impy.arrays.imgarray.ImgArray method)</a>
 
@@ -997,6 +1043,8 @@
 </li>
         <li><a href="apidoc/impy.html#module-impy.random">impy.random</a>
 </li>
+        <li><a href="apidoc/impy.html#module-impy.roi">impy.roi</a>
+</li>
         <li><a href="apidoc/impy.utils.html#module-impy.utils">impy.utils</a>
 </li>
         <li><a href="apidoc/impy.utils.html#module-impy.utils.axesop">impy.utils.axesop</a>
@@ -1051,6 +1099,8 @@
       <ul>
         <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.ndim">(impy.arrays.lazy.LazyImgArray property)</a>
 </li>
+        <li><a href="apidoc/impy.html#impy.roi.Roi.ndim">(impy.roi.Roi property)</a>
+</li>
         <li><a href="apidoc/impy.utils.html#impy.utils.gauss.DiagonalGaussian.ndim">(impy.utils.gauss.DiagonalGaussian property)</a>
 </li>
         <li><a href="apidoc/impy.viewer.html#impy.viewer.utils.ComplexArrayView.ndim">(impy.viewer.utils.ComplexArrayView property)</a>
@@ -1062,7 +1112,7 @@
 </li>
       <li><a href="apidoc/impy.html#impy.random.normal">normal() (in module impy.random)</a>
 </li>
-      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.NotMe">NotMe (class in impy.arrays.labeledarray)</a>
+      <li><a href="apidoc/impy.arrays.bases.html#impy.arrays.bases.metaarray.NotMe">NotMe (class in impy.arrays.bases.metaarray)</a>
 </li>
       <li><a href="apidoc/impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray.NP_DISPATCH">NP_DISPATCH (impy.arrays.bases.metaarray.MetaArray attribute)</a>
 </li>
@@ -1104,6 +1154,8 @@
 </li>
       <li><a href="apidoc/impy.utils.html#impy.utils.gauss.DiagonalGaussian.params">params (impy.utils.gauss.DiagonalGaussian property)</a>
 </li>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates.parent">parent (impy.arrays.labeledarray.ArrayCovariates property)</a>
+</li>
       <li><a href="apidoc/impy.frame.html#impy.frame.frames.PathFrame">PathFrame (class in impy.frame.frames)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.pathprops">pathprops() (impy.arrays.labeledarray.LabeledArray method)</a>
@@ -1122,15 +1174,25 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.phasearray.PhaseArray">PhaseArray (class in impy.arrays.phasearray)</a>
 </li>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.specials.PropArray.plot">plot() (impy.arrays.specials.PropArray method)</a>
+
+      <ul>
+        <li><a href="apidoc/impy.html#impy.roi.Roi.plot">(impy.roi.Roi method)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="apidoc/impy.arrays.html#impy.arrays.specials.PropArray.plot">plot() (impy.arrays.specials.PropArray method)</a>
-</li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.pointprops">pointprops() (impy.arrays.labeledarray.LabeledArray method)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.PointRoi">PointRoi (class in impy.roi)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.correlation.polar_pcc_maximum">polar_pcc_maximum() (in module impy.correlation)</a>
 </li>
       <li><a href="apidoc/impy.html#impy.correlation.polar_pcc_maximum_with_corr">polar_pcc_maximum_with_corr() (in module impy.correlation)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.PolygonRoi">PolygonRoi (class in impy.roi)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.PolyLineRoi">PolyLineRoi (class in impy.roi)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.power_spectra">power_spectra() (impy.arrays.imgarray.ImgArray method)</a>
 
@@ -1178,6 +1240,8 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.rechunk">rechunk() (impy.arrays.lazy.LazyImgArray method)</a>
 </li>
+      <li><a href="apidoc/impy.html#impy.roi.RectangleRoi">RectangleRoi (class in impy.roi)</a>
+</li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.regionprops">regionprops() (impy.arrays.imgarray.ImgArray method)</a>
 
       <ul>
@@ -1188,10 +1252,10 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.release">release() (impy.arrays.lazy.LazyImgArray method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.remove_edges">remove_edges() (impy.arrays.labeledarray.LabeledArray method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_fine_objects">remove_fine_objects() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_large_objects">remove_large_objects() (impy.arrays.imgarray.ImgArray method)</a>
@@ -1215,6 +1279,10 @@
 </li>
       </ul></li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.rof_filter">rof_filter() (impy.arrays.imgarray.ImgArray method)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.Roi">Roi (class in impy.roi)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.RoiList">RoiList (class in impy.roi)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.rolling_ball">rolling_ball() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
@@ -1354,6 +1422,8 @@
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.structure_tensor_eigval">structure_tensor_eigval() (impy.arrays.imgarray.ImgArray method)</a>
 </li>
+      <li><a href="apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing">SupportAxesSlicing (class in impy.arrays.labeledarray)</a>
+</li>
       <li><a href="apidoc/impy.utils.html#impy.utils.axesop.switch_slice">switch_slice() (in module impy.utils.axesop)</a>
 </li>
   </ul></td>
@@ -1375,6 +1445,8 @@
 </li>
       </ul></li>
       <li><a href="apidoc/impy.viewer.html#impy.viewer.utils.to_labels">to_labels() (in module impy.viewer.utils)</a>
+</li>
+      <li><a href="apidoc/impy.html#impy.roi.RoiList.tofile">tofile() (impy.roi.RoiList method)</a>
 </li>
       <li><a href="apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.tophat">tophat() (impy.arrays.imgarray.ImgArray method)</a>
 </li>

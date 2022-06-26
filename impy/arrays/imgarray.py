@@ -1185,7 +1185,8 @@ class ImgArray(LabeledArray):
             _filters.mean_filter, 
             c_axes=complement_axes(dims, self.axes), 
             dtype=self.dtype,
-            args=(disk,)
+            args=(disk,),
+            kwargs=dict(mode=mode, cval=cval),
         )
     
     @_docs.write_docs

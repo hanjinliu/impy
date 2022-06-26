@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.utils package &mdash; impy 2.1.0 documentation</title>
+  <title>impy.utils package &mdash; impy 2.1.1.dev1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0
+                2.1.1.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -157,8 +157,13 @@ This decorator is compatible with both ImgArray and LazyImgArray.</p>
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.utils.gauss.</span></span><span class="sig-name descname"><span class="pre">DiagonalGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#DiagonalGaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#impy.utils.gauss.Gaussian" title="impy.utils.gauss.Gaussian"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.utils.gauss.Gaussian</span></code></a></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="impy.utils.gauss.DiagonalGaussian.asdict">
+<span class="sig-name descname"><span class="pre">asdict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">typing.Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/impy/utils/gauss.html#DiagonalGaussian.asdict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian.asdict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="impy.utils.gauss.DiagonalGaussian.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'Powell'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#DiagonalGaussian.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian.fit" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'Powell'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">np.ndarray</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#DiagonalGaussian.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian.fit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -179,7 +184,8 @@ This decorator is compatible with both ImgArray and LazyImgArray.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.utils.gauss.DiagonalGaussian.params">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#impy.utils.gauss.DiagonalGaussian.params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get flattened parameters.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.utils.gauss.DiagonalGaussian.rescale">
@@ -232,6 +238,11 @@ This decorator is compatible with both ImgArray and LazyImgArray.</p>
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="impy.utils.gauss.masked_square">
+<span class="sig-prename descclassname"><span class="pre">impy.utils.gauss.</span></span><span class="sig-name descname"><span class="pre">masked_square</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#masked_square"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.masked_square" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.gauss.square">
 <span class="sig-prename descclassname"><span class="pre">impy.utils.gauss.</span></span><span class="sig-name descname"><span class="pre">square</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/gauss.html#square"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.gauss.square" title="Permalink to this definition">¶</a></dt>
 <dd><p>calculate ||z - func(x, y, <a href="#id1"><span class="problematic" id="id2">*</span></a>params)||^2
@@ -278,7 +289,7 @@ contained, this function will raise ValueError.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.utils.slicer.solve_slicer">
-<span class="sig-prename descclassname"><span class="pre">impy.utils.slicer.</span></span><span class="sig-name descname"><span class="pre">solve_slicer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">impy.axes._axes.Axes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/utils/slicer.html#solve_slicer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.slicer.solve_slicer" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.utils.slicer.</span></span><span class="sig-name descname"><span class="pre">solve_slicer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">impy.axes._axes.Axes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">slice</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/impy/utils/slicer.html#solve_slicer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.utils.slicer.solve_slicer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">

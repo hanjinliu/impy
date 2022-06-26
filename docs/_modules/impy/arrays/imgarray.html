@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.imgarray &mdash; impy 2.1.0 documentation</title>
+  <title>impy.arrays.imgarray &mdash; impy 2.1.1.dev1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0
+                2.1.1.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -41,6 +41,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -77,7 +78,6 @@
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Callable</span>
 
-<span class="kn">from</span> <span class="nn">.bases.metaarray</span> <span class="kn">import</span> <span class="n">MetaArray</span>
 <span class="kn">from</span> <span class="nn">.labeledarray</span> <span class="kn">import</span> <span class="n">LabeledArray</span>
 <span class="kn">from</span> <span class="nn">.label</span> <span class="kn">import</span> <span class="n">Label</span>
 <span class="kn">from</span> <span class="nn">.phasearray</span> <span class="kn">import</span> <span class="n">PhaseArray</span>
@@ -99,7 +99,13 @@
 <span class="kn">from</span> <span class="nn">..array_api</span> <span class="kn">import</span> <span class="n">xp</span><span class="p">,</span> <span class="n">cupy_dispatcher</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span><span class="p">,</span> <span class="n">PathFrame</span>
+    <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
+    <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Union</span>
+    <span class="n">ThreasholdMethod</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;isodata&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;li&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;local&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">],</span>
+        <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;minimum&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;niblack&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;otsu&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;sauvola&quot;</span><span class="p">],</span> 
+        <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;triangle&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;yen&quot;</span><span class="p">]</span>
+    <span class="p">]</span>
 
 <div class="viewcode-block" id="ImgArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray">[docs]</a><span class="k">class</span> <span class="nc">ImgArray</span><span class="p">(</span><span class="n">LabeledArray</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -319,7 +325,7 @@
         <span class="p">)</span>
         <span class="n">out</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> <span class="c1"># _set_info does not pass copy so new axes must be defined here.</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">({</span><span class="n">a</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">/</span><span class="n">scale</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">scale</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">scale_</span><span class="p">)})</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
@@ -470,14 +476,14 @@
             <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">radial_func</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="ImgArray.gaussfit"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.gaussfit">[docs]</a>    <span class="nd">@check_input_and_output</span>
-    <span class="nd">@dims_to_spatial_axes</span>
+<div class="viewcode-block" id="ImgArray.gaussfit"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.gaussfit">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">gaussfit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span>
-        <span class="n">p0</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">p0</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Powell&quot;</span><span class="p">,</span>
-        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="s2">&quot;yx&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit the image to 2-D Gaussian background.</span>
@@ -486,10 +492,12 @@
 <span class="sd">        ----------</span>
 <span class="sd">        scale : float, default is 1/16.</span>
 <span class="sd">            Scale of rough image (to speed up fitting).</span>
-<span class="sd">        p0 : list, optional</span>
+<span class="sd">        p0 : sequence of float, optional</span>
 <span class="sd">            Initial parameters.</span>
 <span class="sd">        method : str, optional</span>
 <span class="sd">            Fitting method. See `scipy.optimize.minimize`.</span>
+<span class="sd">        mask : np.ndarray, optional,</span>
+<span class="sd">            If given, ignore the True region from fitting.</span>
 <span class="sd">        {dims}</span>
 
 <span class="sd">        Returns</span>
@@ -497,18 +505,31 @@
 <span class="sd">        ImgArray</span>
 <span class="sd">            Fit image.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="n">ndim</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> <span class="n">israw</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-                <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussfit</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+            <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
+            <span class="kn">from</span> <span class="nn">.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="n">ndim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">fit</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussfit</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+                <span class="n">params</span><span class="p">[</span><span class="n">sl</span><span class="p">[:</span><span class="o">-</span><span class="n">ndim</span><span class="p">]]</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;GaussianParameters&quot;</span><span class="p">]</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;GaussianParameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span>
             <span class="k">return</span> <span class="n">out</span>
         
         <span class="n">rough</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rescale</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">asarray</span> <span class="k">as</span> <span class="n">ip_asarray</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">ip_asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">rescale</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="n">gaussian</span> <span class="o">=</span> <span class="n">GaussianBackground</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span>
-        <span class="n">gaussian</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">rough</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+        <span class="n">gaussian</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">rough</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
         <span class="n">gaussian</span><span class="o">.</span><span class="n">rescale</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">scale</span><span class="p">)</span>
         <span class="n">fit</span> <span class="o">=</span> <span class="n">gaussian</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
-        
+        <span class="n">fit</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">fit</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">fit</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;GaussianParameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gaussian</span><span class="o">.</span><span class="n">asdict</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">fit</span></div>
     
 <div class="viewcode-block" id="ImgArray.gauss_correction"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.gauss_correction">[docs]</a>    <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -811,8 +832,7 @@
 <span class="sd">            Cutoff frequency.</span>
 <span class="sd">        order : float, default is 2</span>
 <span class="sd">            Steepness of cutoff.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -863,8 +883,7 @@
 <span class="sd">            Steepness of cutoff.</span>
 <span class="sd">        overlap : int, default is 16</span>
 <span class="sd">            Overlapping pixels at the edges of tiles.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -919,8 +938,7 @@
 <span class="sd">            Cutoff frequency.</span>
 <span class="sd">        order : float, default is 2</span>
 <span class="sd">            Steepness of cutoff.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1006,7 +1024,7 @@
         <span class="n">disk</span> <span class="o">=</span> <span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">binary_erosion</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">border_value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">border_value</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">erosion</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">footprint</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
@@ -1045,7 +1063,7 @@
         <span class="n">disk</span> <span class="o">=</span> <span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">binary_dilation</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">dilation</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">footprint</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
@@ -1084,7 +1102,7 @@
         <span class="n">disk</span> <span class="o">=</span> <span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">binary_opening</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">opening</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">footprint</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
@@ -1125,7 +1143,7 @@
         <span class="n">disk</span> <span class="o">=</span> <span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">binary_closing</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">structure</span><span class="o">=</span><span class="n">disk</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">_filters</span><span class="o">.</span><span class="n">closing</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">footprint</span><span class="o">=</span><span class="n">disk</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
@@ -1239,7 +1257,8 @@
             <span class="n">_filters</span><span class="o">.</span><span class="n">mean_filter</span><span class="p">,</span> 
             <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">disk</span><span class="p">,)</span>
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">disk</span><span class="p">,),</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">),</span>
         <span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.std_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.std_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
@@ -1326,11 +1345,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {radius}</span>
-<span class="sd">        {mode}</span>
-<span class="sd">        {cval}</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {radius}{mode}{cval}{dims}{update}</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1350,52 +1365,62 @@
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">diameter_opening</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diameter</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">connectivity</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
                          <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skimage</span><span class="o">.</span><span class="n">morphology</span><span class="o">.</span><span class="n">diameter_opening</span><span class="p">,</span> 
-                               <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                               <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">diameter_threshold</span><span class="o">=</span><span class="n">diameter</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-                               <span class="p">)</span></div>
+        <span class="kn">from</span> <span class="nn">skimage.morphology</span> <span class="kn">import</span> <span class="n">diameter_opening</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">diameter_opening</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">diameter_threshold</span><span class="o">=</span><span class="n">diameter</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+        <span class="p">)</span></div>
         
 <div class="viewcode-block" id="ImgArray.diameter_closing"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.diameter_closing">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span>
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">diameter_closing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diameter</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">connectivity</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                          <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skimage</span><span class="o">.</span><span class="n">morphology</span><span class="o">.</span><span class="n">diameter_closing</span><span class="p">,</span> 
-                               <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                               <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">diameter_threshold</span><span class="o">=</span><span class="n">diameter</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-                               <span class="p">)</span></div>
+        <span class="kn">from</span> <span class="nn">skimage.morphology</span> <span class="kn">import</span> <span class="n">diameter_closing</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">diameter_closing</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">diameter_threshold</span><span class="o">=</span><span class="n">diameter</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+        <span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.area_opening"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.area_opening">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span>
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">area_opening</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">connectivity</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
                      <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">skimage.morphology</span> <span class="kn">import</span> <span class="n">remove_small_holes</span><span class="p">,</span> <span class="n">area_opening</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skimage</span><span class="o">.</span><span class="n">morphology</span><span class="o">.</span><span class="n">remove_small_objects</span><span class="p">,</span>
-                                   <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                                   <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">min_size</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-                                   <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+                <span class="n">remove_small_holes</span><span class="p">,</span>
+                <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+                <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">area_threshold</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skimage</span><span class="o">.</span><span class="n">morphology</span><span class="o">.</span><span class="n">area_opening</span><span class="p">,</span> 
-                                   <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                                   <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">area_threshold</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-                                   <span class="p">)</span></div>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+                <span class="n">area_opening</span><span class="p">,</span> 
+                <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+                <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">area_threshold</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+            <span class="p">)</span></div>
         
 <div class="viewcode-block" id="ImgArray.area_closing"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.area_closing">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span>
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">area_closing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">connectivity</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
                      <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">skimage.morphology</span> <span class="kn">import</span> <span class="n">remove_small_holes</span><span class="p">,</span> <span class="n">area_closing</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skimage</span><span class="o">.</span><span class="n">morphology</span><span class="o">.</span><span class="n">remove_small_holes</span><span class="p">,</span>
-                                   <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                                   <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">min_size</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-                                   <span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+                <span class="n">remove_small_holes</span><span class="p">,</span>
+                <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+                <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">area_threshold</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skimage</span><span class="o">.</span><span class="n">morphology</span><span class="o">.</span><span class="n">area_closing</span><span class="p">,</span> 
-                                   <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                                   <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">area_threshold</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
-                                   <span class="p">)</span></div>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+                <span class="n">area_closing</span><span class="p">,</span> 
+                <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+                <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">area_threshold</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span><span class="p">)</span>
+            <span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.entropy_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.entropy_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
@@ -1406,8 +1431,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {radius}</span>
-<span class="sd">        {dims}</span>
+<span class="sd">        {radius}{dims}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1431,9 +1455,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {radius}</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {radius}{dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1467,8 +1489,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        radius : int, default is 1</span>
 <span class="sd">            Radius of kernel. Shape of kernel will be (2*radius+1, 2*radius+1).</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1502,8 +1523,7 @@
 <span class="sd">            Initial estimate of noise variance.</span>
 <span class="sd">        along : str, default is &quot;t&quot;</span>
 <span class="sd">            Which axis will be the time axis.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1640,8 +1660,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        thr : scalar or str, optional</span>
 <span class="sd">            Threshold (value or method) to apply if image is not binary.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1670,9 +1689,7 @@
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {sigma}</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {sigma}{dims}{update}</span>
 <span class="sd">            </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1733,8 +1750,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {sigma}</span>
-<span class="sd">        {dims}</span>
+<span class="sd">        {sigma}{dims}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1758,8 +1774,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {sigma}</span>
-<span class="sd">        {dims}</span>
+<span class="sd">        {sigma}{dims}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1793,8 +1808,7 @@
 <span class="sd">        {radius}</span>
 <span class="sd">        prefilter : str, {&quot;mean&quot;, &quot;median&quot;, &quot;none&quot;}</span>
 <span class="sd">            If apply 3x3 averaging before creating background.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 <span class="sd">            </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1848,8 +1862,7 @@
 <span class="sd">            Iteration stops when gain is under this value.</span>
 <span class="sd">        max_iter : int, default is 50</span>
 <span class="sd">            Maximum number of iterations.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3193,7 +3206,7 @@
 <div class="viewcode-block" id="ImgArray.threshold"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.threshold">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">threshold</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">thr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;otsu&quot;</span><span class="p">,</span>
+        <span class="n">thr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">ThreasholdMethod</span> <span class="o">=</span> <span class="s2">&quot;otsu&quot;</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">along</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span>
@@ -3231,7 +3244,7 @@
         
         <span class="k">if</span> <span class="n">along</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">along</span> <span class="o">=</span> <span class="s2">&quot;c&quot;</span> <span class="k">if</span> <span class="s2">&quot;c&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
-            
+
         <span class="n">methods_</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;isodata&quot;</span><span class="p">:</span> <span class="n">skfil</span><span class="o">.</span><span class="n">threshold_isodata</span><span class="p">,</span>
                     <span class="s2">&quot;li&quot;</span><span class="p">:</span> <span class="n">skfil</span><span class="o">.</span><span class="n">threshold_li</span><span class="p">,</span>
                     <span class="s2">&quot;local&quot;</span><span class="p">:</span> <span class="n">skfil</span><span class="o">.</span><span class="n">threshold_local</span><span class="p">,</span>
@@ -3415,8 +3428,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        radius : float, optional</span>
 <span class="sd">            Objects with radius larger than this value will be removed.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3444,8 +3456,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        length : float, default is 10</span>
 <span class="sd">            Objects longer than this will be removed.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3472,8 +3483,7 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3497,8 +3507,7 @@
 <span class="sd">        ----------</span>
 <span class="sd">        radius : float, optional</span>
 <span class="sd">            Radius of skeleton. This is achieved simply by dilation of skeletonized results.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3584,8 +3593,7 @@
 <span class="sd">        structure : str, default is &quot;tip&quot;</span>
 <span class="sd">            What type of structure to remove.</span>
 <span class="sd">        {connectivity}</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -3649,7 +3657,7 @@
         <span class="k">if</span> <span class="n">input_img</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="n">input_img</span> <span class="o">=</span> <span class="n">input_img</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
             
-        <span class="n">input_img</span><span class="o">.</span><span class="n">_view_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">input_img</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span>
         
         <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">input_img</span><span class="o">.</span><span class="n">peak_local_max</span><span class="p">(</span><span class="n">min_distance</span><span class="o">=</span><span class="n">min_distance</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
@@ -3704,7 +3712,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
     
-<div class="viewcode-block" id="ImgArray.label_threshold"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.label_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">label_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;otsu&quot;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
+<div class="viewcode-block" id="ImgArray.label_threshold"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.label_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">label_threshold</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">thr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">ThreasholdMethod</span> <span class="o">=</span> <span class="s2">&quot;otsu&quot;</span><span class="p">,</span>
+        <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make labels with threshold(). Be sure that keyword argument ``dims`` can be</span>
 <span class="sd">        different (in most cases for &gt;4D images) between threshold() and label().</span>
@@ -3720,12 +3735,11 @@
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        ImgArray</span>
-<span class="sd">            Same array but labels are updated.</span>
-<span class="sd">        </span>
+<span class="sd">        Label</span>
+<span class="sd">            Newly created label.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">thr</span><span class="o">=</span><span class="n">thr</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="n">filt</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.regionprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.regionprops">[docs]</a>    <span class="k">def</span> <span class="nf">regionprops</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -4332,8 +4346,7 @@
 <span class="sd">            Point spread function.</span>
 <span class="sd">        lmd : float, default is 0.1</span>
 <span class="sd">            Constant value used in the deconvolution. See Formulation below.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -4384,8 +4397,7 @@
 <span class="sd">            During deconvolution, division by small values in the convolve image of estimation and </span>
 <span class="sd">            PSF may cause divergence. Therefore, division by values under `eps` is substituted</span>
 <span class="sd">            to zero.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -4455,8 +4467,7 @@
 <span class="sd">            During deconvolution, division by small values in the convolve image of</span>
 <span class="sd">            estimation and PSF may cause divergence. Therefore, division by values </span>
 <span class="sd">            under ``eps`` is substituted to zero.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">        {update}</span>
+<span class="sd">        {dims}{update}</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>

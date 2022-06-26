@@ -49,6 +49,7 @@ Contents
    tutorial
    tutorial_axes
    tutorial_cmd
+   ./gallery/index
    api
    
 

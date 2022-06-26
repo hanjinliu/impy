@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy package &mdash; impy 2.1.0 documentation</title>
+  <title>impy package &mdash; impy 2.1.1.dev1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0
+                2.1.1.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -41,11 +41,37 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_cmd.html">Command Line Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api.html">API References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gallery/index.html">Gallery</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API References</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">impy package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.arrays.html">impy.arrays package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.axes.html">impy.axes package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.frame.html">impy.frame package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.utils.html">impy.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.array_api">impy.array_api module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.binder">impy.binder module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.collections">impy.collections module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.core">impy.core module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.correlation">impy.correlation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.io">impy.io module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.random">impy.random module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy.roi">impy.roi module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-impy">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.arrays.html">impy.arrays package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -316,6 +342,11 @@ every time constructor or <cite>append</cite> method is called.</p>
 &gt;&gt;&gt; imgs = DataList([img1, img2, …])
 &gt;&gt;&gt; out = imgs.find_sm()</p></li>
 </ol>
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.collections.DataList.agg">
+<span class="sig-name descname"><span class="pre">agg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span> <span class="p"><span class="pre">|</span></span> <span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/collections.html#DataList.agg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList.agg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.collections.DataList.apply">
 <span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span> <span class="p"><span class="pre">|</span></span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#impy.collections.DataList" title="impy.collections.DataList"><span class="pre">DataList</span></a></span></span><a class="reference internal" href="../_modules/impy/collections.html#DataList.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.collections.DataList.apply" title="Permalink to this definition">¶</a></dt>
@@ -1832,6 +1863,104 @@ the probability density function:</p>
 <dd class="field-odd"><p><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray">ImgArray</a></p>
 </dd>
 </dl>
+</dd></dl>
+
+</section>
+<section id="module-impy.roi">
+<span id="impy-roi-module"></span><h2>impy.roi module<a class="headerlink" href="#module-impy.roi" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.LineRoi">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">LineRoi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#LineRoi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.LineRoi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#impy.roi.PolyLineRoi" title="impy.roi.PolyLineRoi"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.roi.PolyLineRoi</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.PointRoi">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">PointRoi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#PointRoi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.PointRoi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#impy.roi.Roi" title="impy.roi.Roi"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.roi.Roi</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.PolyLineRoi">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">PolyLineRoi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#PolyLineRoi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.PolyLineRoi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#impy.roi.Roi" title="impy.roi.Roi"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.roi.Roi</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.PolygonRoi">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">PolygonRoi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#PolygonRoi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.PolygonRoi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#impy.roi.Roi" title="impy.roi.Roi"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.roi.Roi</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.PolygonRoi.get_coordinates">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#PolygonRoi.get_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.PolygonRoi.get_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert coordinates.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.RectangleRoi">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">RectangleRoi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#RectangleRoi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.RectangleRoi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#impy.roi.PolygonRoi" title="impy.roi.PolygonRoi"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.roi.PolygonRoi</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.Roi">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">Roi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">AxesLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ArrayLike</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#Roi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.Roi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.roi.Roi.axes">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">axes</span></span><em class="property"><span class="pre">:</span> <span class="pre">impy.axes._axes.Axes</span></em><a class="headerlink" href="#impy.roi.Roi.axes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.Roi.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../_modules/impy/roi.html#Roi.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.Roi.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.Roi.from_imagejroi">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_imagejroi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">roi</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ImagejRoi</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../_modules/impy/roi.html#Roi.from_imagejroi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.Roi.from_imagejroi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.Roi.get_coordinates">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#Roi.get_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.Roi.get_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert coordinates.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.roi.Roi.ndim">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">ndim</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#impy.roi.Roi.ndim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.Roi.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#Roi.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.Roi.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="impy.roi.RoiList">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.roi.</span></span><span class="sig-name descname"><span class="pre">RoiList</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rois</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#impy.roi.Roi" title="impy.roi.Roi"><span class="pre">impy.roi.Roi</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#RoiList"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.RoiList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MutableSequence</span></code>[<a class="reference internal" href="#impy.roi.Roi" title="impy.roi.Roi"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.roi.Roi</span></code></a>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.RoiList.fromfile">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">fromfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../_modules/impy/roi.html#RoiList.fromfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.RoiList.fromfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.RoiList.insert">
+<span class="sig-name descname"><span class="pre">insert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roi</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#impy.roi.Roi" title="impy.roi.Roi"><span class="pre">impy.roi.Roi</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/roi.html#RoiList.insert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.RoiList.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>S.insert(index, value) – insert value before index</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="impy.roi.RoiList.tofile">
+<span class="sig-name descname"><span class="pre">tofile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/impy/roi.html#RoiList.tofile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.roi.RoiList.tofile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>

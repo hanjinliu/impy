@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Filters &mdash; impy 2.1.1.dev1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Labeling and Measurement" href="regionprops.html" />
+    <link rel="prev" title="Gallery" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                2.1.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_axes.html">Axes in impy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Gallery</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Image Filters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#batch-processing">Batch Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#denoising">Denoising</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gaussian-filter">Gaussian filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#median-filter">Median filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mean-filter">Mean filter</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#use-standard-deviation">Use Standard Deviation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#standard-deviation-filter">Standard deviation filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#coefficient-of-variation-filter">Coefficient of variation filter</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#feature-detection">Feature Detection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#edge-detection">Edge detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#puncta-detection">Puncta detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#filament-detection">Filament detection</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="regionprops.html">Labeling and Measurement</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Gallery</a> &raquo;</li>
+      <li>Image Filters</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/gallery/filters.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="image-filters">
+<h1>Image Filters<a class="headerlink" href="#image-filters" title="Permalink to this headline">¶</a></h1>
+<p>There are several filtering methods implemented in <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">impy</span> <span class="k">as</span> <span class="nn">ip</span>
+
+<span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">axes</span><span class="o">=</span><span class="s2">&quot;tzyx&quot;</span><span class="p">)</span>
+<span class="n">img</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ImgArray</span> <span class="n">of</span>
+      <span class="n">name</span>      <span class="p">:</span> <span class="n">random</span>
+     <span class="n">shape</span>      <span class="p">:</span> <span class="mi">5</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">32</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">64</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">label</span> <span class="n">shape</span>   <span class="p">:</span> <span class="n">No</span> <span class="n">label</span>
+     <span class="n">dtype</span>      <span class="p">:</span> <span class="n">float32</span>
+     <span class="n">source</span>     <span class="p">:</span> <span class="kc">None</span>
+     <span class="n">scale</span>      <span class="p">:</span> <span class="n">ScaleView</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="contents local topic" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#batch-processing" id="id1">Batch Processing</a></p></li>
+<li><p><a class="reference internal" href="#denoising" id="id2">Denoising</a></p>
+<ul>
+<li><p><a class="reference internal" href="#gaussian-filter" id="id3">Gaussian filter</a></p></li>
+<li><p><a class="reference internal" href="#median-filter" id="id4">Median filter</a></p></li>
+<li><p><a class="reference internal" href="#mean-filter" id="id5">Mean filter</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#use-standard-deviation" id="id6">Use Standard Deviation</a></p>
+<ul>
+<li><p><a class="reference internal" href="#standard-deviation-filter" id="id7">Standard deviation filter</a></p></li>
+<li><p><a class="reference internal" href="#coefficient-of-variation-filter" id="id8">Coefficient of variation filter</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#feature-detection" id="id9">Feature Detection</a></p>
+<ul>
+<li><p><a class="reference internal" href="#edge-detection" id="id10">Edge detection</a></p></li>
+<li><p><a class="reference internal" href="#puncta-detection" id="id11">Puncta detection</a></p></li>
+<li><p><a class="reference internal" href="#filament-detection" id="id12">Filament detection</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="batch-processing">
+<h2><a class="toc-backref" href="#id1">Batch Processing</a><a class="headerlink" href="#batch-processing" title="Permalink to this headline">¶</a></h2>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> consider <code class="docutils literal notranslate"><span class="pre">[&quot;z&quot;,</span> <span class="pre">&quot;y&quot;,</span> <span class="pre">&quot;x&quot;]</span></code> axes as spatial axes and iterate functions
+along other axes. In this example, 3-D filter will be applied for every <code class="docutils literal notranslate"><span class="pre">&quot;t&quot;</span></code>. If you want
+other iteration options, explicitly specify <code class="docutils literal notranslate"><span class="pre">dims</span></code> keyword argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="s2">&quot;yx&quot;</span><span class="p">)</span>  <span class="c1"># [&quot;y&quot;, &quot;x&quot;] is considered as spatial axes.</span>
+<span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">])</span>  <span class="c1"># same as dims=&quot;yx&quot;.</span>
+</pre></div>
+</div>
+</section>
+<section id="denoising">
+<h2><a class="toc-backref" href="#id2">Denoising</a><a class="headerlink" href="#denoising" title="Permalink to this headline">¶</a></h2>
+<section id="gaussian-filter">
+<h3><a class="toc-backref" href="#id3">Gaussian filter</a><a class="headerlink" href="#gaussian-filter" title="Permalink to this headline">¶</a></h3>
+<p>Gaussian filter is a widely used denoising filter. It blurs image using Gaussian kernel.
+<code class="docutils literal notranslate"><span class="pre">sigma</span></code> is standard deviation (in pixel) of the kernel.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">()</span>  <span class="c1"># sigma=1.0 by default</span>
+<span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>  <span class="c1"># use sigma=2.0</span>
+<span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>  <span class="c1"># non-uniform sigma</span>
+</pre></div>
+</div>
+</section>
+<section id="median-filter">
+<h3><a class="toc-backref" href="#id4">Median filter</a><a class="headerlink" href="#median-filter" title="Permalink to this headline">¶</a></h3>
+<p>Median filter is a denoising that is considered to be robust against outliers. Kernel shape is
+specified by <code class="docutils literal notranslate"><span class="pre">radius</span></code> argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">median_filter</span><span class="p">()</span>  <span class="c1"># radius=1.0 by default</span>
+<span class="n">img</span><span class="o">.</span><span class="n">median_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">median_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="p">[</span><span class="mf">3.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>  <span class="c1"># non-uniform radii</span>
+</pre></div>
+</div>
+</section>
+<section id="mean-filter">
+<h3><a class="toc-backref" href="#id5">Mean filter</a><a class="headerlink" href="#mean-filter" title="Permalink to this headline">¶</a></h3>
+<p>Mean filter (uniform filter) is a simple denoising, where image is locally averaged with same
+weight.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">mean_filter</span><span class="p">()</span>  <span class="c1"># radius=1.0 by default</span>
+<span class="n">img</span><span class="o">.</span><span class="n">mean_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">mean_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="p">[</span><span class="mf">3.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>  <span class="c1"># non-uniform radii</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="use-standard-deviation">
+<h2><a class="toc-backref" href="#id6">Use Standard Deviation</a><a class="headerlink" href="#use-standard-deviation" title="Permalink to this headline">¶</a></h2>
+<section id="standard-deviation-filter">
+<h3><a class="toc-backref" href="#id7">Standard deviation filter</a><a class="headerlink" href="#standard-deviation-filter" title="Permalink to this headline">¶</a></h3>
+<p>Standard deviation filter can detect regions that signal changes a lot.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">std_filter</span><span class="p">()</span>  <span class="c1"># radius=1.0 by default</span>
+<span class="n">img</span><span class="o">.</span><span class="n">std_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">std_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="p">[</span><span class="mf">3.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>  <span class="c1"># non-uniform radii</span>
+</pre></div>
+</div>
+</section>
+<section id="coefficient-of-variation-filter">
+<h3><a class="toc-backref" href="#id8">Coefficient of variation filter</a><a class="headerlink" href="#coefficient-of-variation-filter" title="Permalink to this headline">¶</a></h3>
+<p>Coefficient of variation is a quantity that is defined by <cite>S.D. / mean</cite>. Coefficient of
+variation filter is similar to standard deviation filter but is not sensitive to mean intensity.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">coef_filter</span><span class="p">()</span>  <span class="c1"># radius=1.0 by default</span>
+<span class="n">img</span><span class="o">.</span><span class="n">coef_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">coef_filter</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="p">[</span><span class="mf">3.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>  <span class="c1"># non-uniform radii</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="feature-detection">
+<h2><a class="toc-backref" href="#id9">Feature Detection</a><a class="headerlink" href="#feature-detection" title="Permalink to this headline">¶</a></h2>
+<section id="edge-detection">
+<h3><a class="toc-backref" href="#id10">Edge detection</a><a class="headerlink" href="#edge-detection" title="Permalink to this headline">¶</a></h3>
+<p>Edge detection filters generate images that have large value at the regions that signal change
+largely. You can consider them as scalar differentiation of images. Different edge detection
+filter used slightly different kernel but these kernels always take positive values on one side
+while take negative on the other.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">edge_filter</span><span class="p">()</span>  <span class="c1"># Sobel filter by default</span>
+<span class="n">img</span><span class="o">.</span><span class="n">edge_filter</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;farid&quot;</span><span class="p">)</span>  <span class="c1"># Farid filter</span>
+<span class="n">img</span><span class="o">.</span><span class="n">edge_filter</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;scharr&quot;</span><span class="p">)</span>  <span class="c1"># Scharr filter</span>
+<span class="n">img</span><span class="o">.</span><span class="n">edge_filter</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;prewitt&quot;</span><span class="p">)</span>  <span class="c1"># Prewitt filter</span>
+</pre></div>
+</div>
+</section>
+<section id="puncta-detection">
+<h3><a class="toc-backref" href="#id11">Puncta detection</a><a class="headerlink" href="#puncta-detection" title="Permalink to this headline">¶</a></h3>
+<p>Puncta detection filters are useful for automatic molecule detection with images taken by light
+or electron microscope. Note that images must be dark-background.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">dog_filter</span><span class="p">()</span>  <span class="c1"># DoG (Difference of Gaussian)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">doh_filter</span><span class="p">()</span>  <span class="c1"># DoH (Difference of Hessian)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">log_filter</span><span class="p">()</span>  <span class="c1"># Log (Laplacian of Gaussian)</span>
+</pre></div>
+</div>
+</section>
+<section id="filament-detection">
+<h3><a class="toc-backref" href="#id12">Filament detection</a><a class="headerlink" href="#filament-detection" title="Permalink to this headline">¶</a></h3>
+<p>A “filament” can be defined by 2nd derivative: convex in one direction and flat in the perpendicular
+direction. This trick can be achieved by inspecting the Hessian of an image.</p>
+<p><code class="docutils literal notranslate"><span class="pre">hessian_eigval</span></code> is composed of two steps. First, apply Gaussain filter to the image. Then,
+eigenvalues of Hessian are calculated. That’s why it has <code class="docutils literal notranslate"><span class="pre">sigma</span></code> argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vals</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">hessian_eigval</span><span class="p">()</span>
+<span class="n">vals</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">hessian_eigval</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The returned array has a new axis named <code class="docutils literal notranslate"><span class="pre">&quot;base&quot;</span></code>, which corresponds to each spatial axis.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ImgArray</span> <span class="n">of</span>
+      <span class="n">name</span>      <span class="p">:</span> <span class="n">random</span>
+     <span class="n">shape</span>      <span class="p">:</span> <span class="mi">3</span><span class="p">(</span><span class="n">base</span><span class="p">),</span> <span class="mi">5</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">32</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">64</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">label</span> <span class="n">shape</span>   <span class="p">:</span> <span class="n">No</span> <span class="n">label</span>
+     <span class="n">dtype</span>      <span class="p">:</span> <span class="n">float32</span>
+     <span class="n">source</span>     <span class="p">:</span> <span class="kc">None</span>
+     <span class="n">scale</span>      <span class="p">:</span> <span class="n">ScaleView</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Gallery" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="regionprops.html" class="btn btn-neutral float-right" title="Labeling and Measurement" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

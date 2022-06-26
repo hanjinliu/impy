@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>impy.roi &mdash; impy 2.1.1.dev1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                2.1.1.dev1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_axes.html">Axes in impy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>impy.roi</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for impy.roi</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">MutableSequence</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span> <span class="nn">roifile</span> <span class="kn">import</span> <span class="n">ImagejRoi</span><span class="p">,</span> <span class="n">ROI_TYPE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="p">,</span> <span class="n">roiread</span><span class="p">,</span> <span class="n">roiwrite</span>
+
+<span class="kn">from</span> <span class="nn">.axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">AxesLike</span><span class="p">,</span> <span class="n">ImageAxesError</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
+    <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span>
+    <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">axes</span>
+    <span class="kn">from</span> <span class="nn">.arrays.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
+
+<div class="viewcode-block" id="Roi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.Roi">[docs]</a><span class="k">class</span> <span class="nc">Roi</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
+        <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span><span class="p">,</span>
+        <span class="n">multi_dims</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">multi_dims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">multi_dims</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ndim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Axes</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span>
+    
+    <span class="nd">@axes</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_axes</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ImageAxesError</span><span class="p">(</span><span class="s2">&quot;Dimension mismatch.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span> <span class="o">=</span> <span class="n">_axes</span>
+    
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(axes=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">!r}</span><span class="s2">)&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__array__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">arr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Roi</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span> 
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">axes</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_multi_dims</span><span class="p">)</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="Roi.get_coordinates"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.Roi.get_coordinates">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_coordinates</span><span class="p">(</span><span class="n">coords</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Roi.from_imagejroi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.Roi.from_imagejroi">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_imagejroi</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">roi</span><span class="p">:</span> <span class="n">ImagejRoi</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="n">yx</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">roi</span><span class="o">.</span><span class="n">coordinates</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">position</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">c_position</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">t_position</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">z_position</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="s2">&quot;ptzc&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">yx</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">multi_dims</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d</span><span class="p">))</span></div>
+    
+    <span class="k">def</span> <span class="nf">_slice_by</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        
+        <span class="n">nmdim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span><span class="p">)</span>
+        <span class="n">multi_dims</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+                <span class="n">s0</span><span class="p">,</span> <span class="n">s1</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">step</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nmdim</span><span class="p">:</span>
+                    <span class="n">crds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">multi_dims</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">crds</span> <span class="o">-</span> <span class="n">s0</span><span class="p">)</span> <span class="o">/</span> <span class="n">step</span> <span class="o">+</span> <span class="n">s0</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">multi_dims</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">crds</span> <span class="o">-</span> <span class="n">s1</span><span class="p">)</span> <span class="o">/</span> <span class="n">step</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">crds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[:,</span> <span class="n">i</span> <span class="o">-</span> <span class="n">nmdim</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">data_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">crds</span> <span class="o">-</span> <span class="n">s0</span><span class="p">)</span> <span class="o">/</span> <span class="n">step</span> <span class="o">+</span> <span class="n">s0</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">data_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">crds</span> <span class="o">-</span> <span class="n">s1</span><span class="p">)</span> <span class="o">/</span> <span class="n">step</span><span class="p">)</span>
+                    
+                <span class="n">axes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_list</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">data_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">multi_dims</span><span class="o">=</span><span class="n">multi_dims</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="Roi.copy"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.Roi.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">multi_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_multi_dims</span>
+        <span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_dimension_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="Roi.plot"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.Roi.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="PolygonRoi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.PolygonRoi">[docs]</a><span class="k">class</span> <span class="nc">PolygonRoi</span><span class="p">(</span><span class="n">Roi</span><span class="p">):</span>
+<div class="viewcode-block" id="PolygonRoi.get_coordinates"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.PolygonRoi.get_coordinates">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_coordinates</span><span class="p">(</span><span class="n">coords</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    
+    <span class="k">def</span> <span class="nf">_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">axes</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[:</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ax</span></div>
+
+<div class="viewcode-block" id="RectangleRoi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.RectangleRoi">[docs]</a><span class="k">class</span> <span class="nc">RectangleRoi</span><span class="p">(</span><span class="n">PolygonRoi</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="PolyLineRoi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.PolyLineRoi">[docs]</a><span class="k">class</span> <span class="nc">PolyLineRoi</span><span class="p">(</span><span class="n">Roi</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">axes</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ax</span></div>
+
+<div class="viewcode-block" id="LineRoi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.LineRoi">[docs]</a><span class="k">class</span> <span class="nc">LineRoi</span><span class="p">(</span><span class="n">PolyLineRoi</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="PointRoi"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.PointRoi">[docs]</a><span class="k">class</span> <span class="nc">PointRoi</span><span class="p">(</span><span class="n">Roi</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">axes</span><span class="o">.</span><span class="n">Axes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ax</span></div>
+
+<span class="c1"># class EllipseRoi(Roi):</span>
+<span class="c1">#     ...</span>
+
+<div class="viewcode-block" id="RoiList"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.RoiList">[docs]</a><span class="k">class</span> <span class="nc">RoiList</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">Roi</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rois</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Roi</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rois</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rois</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rois</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">roi</span><span class="p">:</span> <span class="n">Roi</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">roi</span><span class="p">,</span> <span class="n">Roi</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cannot set </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">roi</span><span class="p">)</span><span class="si">}</span><span class="s2"> to a </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">RoiList</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> object.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rois</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">roi</span>
+    
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rois</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rois</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Roi</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rois</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;,</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">roi</span><span class="p">)</span> <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="se">\n\t</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="se">\n</span><span class="s2">)&quot;</span>
+
+<div class="viewcode-block" id="RoiList.insert"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.RoiList.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">roi</span><span class="p">:</span> <span class="n">Roi</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">roi</span><span class="p">,</span> <span class="n">Roi</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot set </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">roi</span><span class="p">)</span><span class="si">}</span><span class="s2"> to a RoiList object.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rois</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">roi</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_slice_by</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Roi</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">_slice_by</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="RoiList.fromfile"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.RoiList.fromfile">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">fromfile</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="n">rois</span> <span class="o">=</span> <span class="n">roiread</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rois</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">rois</span> <span class="o">=</span> <span class="p">[</span><span class="n">rois</span><span class="p">]</span>
+        
+        <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Roi</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="n">rois</span><span class="p">:</span>
+            <span class="n">roicls</span> <span class="o">=</span> <span class="n">_ROI_TYPE_MAP</span><span class="p">[</span><span class="n">roi</span><span class="o">.</span><span class="n">roitype</span><span class="p">,</span> <span class="n">roi</span><span class="o">.</span><span class="n">subtype</span><span class="p">]</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">roicls</span><span class="o">.</span><span class="n">from_imagejroi</span><span class="p">(</span><span class="n">roi</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="RoiList.tofile"><a class="viewcode-back" href="../../apidoc/impy.html#impy.roi.RoiList.tofile">[docs]</a>    <span class="k">def</span> <span class="nf">tofile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ijrois</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ImagejRoi</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">roitype</span><span class="p">,</span> <span class="n">subtype</span> <span class="o">=</span> <span class="n">_ROI_TYPE_INV_MAP</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">roi</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">roi</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;ui&quot;</span><span class="p">:</span>
+                <span class="n">integer_coordinates</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">_data</span>
+                <span class="n">subpixel_coordinates</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">integer_coordinates</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">subpixel_coordinates</span> <span class="o">=</span> <span class="n">roi</span><span class="o">.</span><span class="n">_data</span>
+            <span class="n">ijroi</span> <span class="o">=</span> <span class="n">ImagejRoi</span><span class="p">(</span>
+                <span class="n">roitype</span><span class="o">=</span><span class="n">roitype</span><span class="p">,</span>
+                <span class="n">subtype</span><span class="o">=</span><span class="n">subtype</span><span class="p">,</span>
+                <span class="n">integer_coordinates</span><span class="o">=</span><span class="n">integer_coordinates</span><span class="p">,</span>
+                <span class="n">subpixel_coordinates</span><span class="o">=</span><span class="n">subpixel_coordinates</span><span class="p">,</span>
+                <span class="n">multi_coordinates</span><span class="o">=</span><span class="n">roi</span><span class="o">.</span><span class="n">_multi_dims</span>
+            <span class="p">)</span>
+            <span class="n">ijrois</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ijroi</span><span class="p">)</span>
+        <span class="n">roiwrite</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">ijrois</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<span class="n">_ROI_TYPE_MAP</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">ROI_TYPE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="p">],</span> <span class="nb">type</span><span class="p">[</span><span class="n">Roi</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">POINT</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">):</span> <span class="n">PointRoi</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">LINE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">):</span> <span class="n">LineRoi</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">POLYLINE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">):</span> <span class="n">PolyLineRoi</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">RECT</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">):</span> <span class="n">RectangleRoi</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">POLYGON</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">):</span> <span class="n">PolygonRoi</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_ROI_TYPE_INV_MAP</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Roi</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ROI_TYPE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">PointRoi</span><span class="p">:</span> <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">POINT</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">),</span>
+    <span class="n">LineRoi</span><span class="p">:</span> <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">LINE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">),</span>
+    <span class="n">PolyLineRoi</span><span class="p">:</span> <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">POLYLINE</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">),</span>
+    <span class="n">RectangleRoi</span><span class="p">:</span> <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">RECT</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">),</span>
+    <span class="n">PolygonRoi</span><span class="p">:</span> <span class="p">(</span><span class="n">ROI_TYPE</span><span class="o">.</span><span class="n">POLYGON</span><span class="p">,</span> <span class="n">ROI_SUBTYPE</span><span class="o">.</span><span class="n">UNDEFINED</span><span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -49,7 +49,7 @@ Contents
    tutorial
    tutorial_axes
    tutorial_cmd
-   gallary/
+   ./gallery/index
    api
    
 
