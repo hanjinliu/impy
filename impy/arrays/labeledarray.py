@@ -944,79 +944,18 @@ class LabeledArray(MetaArray):
     def label(
         self,
         ref_image: np.ndarray | None = None,
+        filt: Callable[..., bool] | None = None,
         *,
         dims: Dims = None,
         connectivity: int | None = None
     ) -> Label:
         """
         Label image using skimage's label().
-
-        Parameters
-        ----------
-        ref_image : array, optional
-            Image to make label, by default self is used.
-        {dims}
-        {connectivity}
-
-        Returns
-        -------
-        Label
-            Labeled image.
         
-        Examples
-        --------
-        Label the image with threshold and visualize with napari.
-        
-            >>> thr = img.threshold()
-            >>> img.label(thr)
-            >>> ip.gui.add(img)
-        """        
-        # check the shape of label_image
-        if ref_image is None:
-            ref_image = self
-        else:
-            if not isinstance(ref_image, Label):
-                ref_image = np.asarray(ref_image)
-                ref_image = Label(
-                    ref_image,
-                    axes=self.axes[-ref_image.ndim:]
-                )
-            if not ref_image._dimension_matches(self):
-                raise ImageAxesError("Shape mismatch.")
-        
-        c_axes = complement_axes(dims, self.axes)
-        labels = largest_zeros(ref_image.shape)
-        
-        labels[:] = ref_image._apply_dask(
-            skmes.label, 
-            c_axes=c_axes, 
-            kwargs=dict(background=0, connectivity=connectivity)
-        ).view(np.ndarray)
-    
-        # correct the label numbers of `labels`
-        labels = labels.view(Label)
-        labels._set_info(ref_image)
-        labels = labels.increment_iter(c_axes).optimize()
-        labels.set_scale(self)
-        self.labels = labels
-        return self.labels
-    
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    def label_if(
-        self,
-        ref_image: np.ndarray | None = None,
-        filt: Callable[..., bool] | None = None,
-        *,
-        dims: Dims = None,
-        connectivity: int | None = None,
-    ) -> Label:
-        """
-        Label image if the region satisfies the condition.
-        
-        Label image using `ref_image` as reference image only if certain 
-        condition dictated in `filt` is satisfied. `regionprops_table` is called
-        inside every time image is labeled.
+        Label image using `ref_image` as reference image, or image itself. If 
+        ``filt`` is given, image will be labeled only if certain condition
+        dictated in `filt` is satisfied. `regionprops_table` is called inside
+        every time image is labeled.
         
             .. code-block:: python
             
@@ -1039,78 +978,109 @@ class LabeledArray(MetaArray):
 
         Returns
         -------
-        LabeledArray
-            Labeled image
+        Label
+            Newly created label.
         
-        Example
-        -------
-        1. Label regions if only intensity is high.
+        Examples
+        --------
+        1. Label the image with threshold and visualize with napari.
+            >>> thr = img.threshold()
+            >>> img.label(thr)
+            >>> ip.gui.add(img)
+            
+        2. Label regions if only intensity is high.
             >>> def high_intensity(img, lbl, slice):
             >>>     return np.mean(img[slice]) > 10000
-            >>> img.label_if(lbl, filt)
+            >>> img.label(lbl, filt)
         
-        2. Label regions if no hole exists.
+        3. Label regions if no hole exists.
             >>> def no_hole(img, lbl, euler_number):
             >>>     return euler_number > 0
-            >>> img.label_if(lbl, filt)
+            >>> img.label(lbl, filt)
         
-        3. Label regions if centroids are inside themselves.
+        4. Label regions if centroids are inside themselves.
             >>> def no_hole(img, lbl, centroid):
             >>>     yc, xc = map(int, centroid)
             >>>     return lbl[yc, xc] > 0
-            >>> img.label_if(lbl, filt)
+            >>> img.label(lbl, filt)
+        
         """        
-        import pandas as pd
-        # check the shape of ref_image
+        # check the shape of label_image
         if ref_image is None:
             ref_image = self
-        
         else:
             if not isinstance(ref_image, MetaArray):
-                ref_image = np.ndarray(ref_image)
-                ref_image = Label(
+                ref_image = np.asarray(ref_image)
+                ref_image = MetaArray(
                     ref_image,
-                    axes=self.axes[-ref_image.ndim:],
+                    axes=self.axes[-ref_image.ndim:]
                 )
-            
             if not ref_image._dimension_matches(self):
-                raise ImageAxesError("Shape mismatch.")
+                raise ImageAxesError(
+                    f"Shape mismatch. Image is {self.shape_info} but reference is"
+                    f"{ref_image.shape_info}."
+                )
         
-        # check filter function
-        if filt is None:
-            raise ValueError("`filt` must be given.")
-        if not callable(filt):
-            raise TypeError("`filt` must be callable.")
-        
-        import inspect
-        properties = tuple(inspect.signature(filt).parameters)[2:]
-            
         c_axes = complement_axes(dims, self.axes)
         labels = largest_zeros(ref_image.shape)
-        offset = 1
-        for sl, lbl in ref_image.iter(c_axes):
-            lbl = skmes.label(lbl, background=0, connectivity=connectivity)
-            img = self.value[sl]
-            # Following lines are essentially doing the same thing as 
-            # `skmes.regionprops_table`. However, `skmes.regionprops_table`
-            # returns tuples in the separated columns in DataFrame and rename
-            # property names like "centroid-0" and "centroid-1".
-            props_obj = skmes.regionprops(lbl, img, cache=False)
-            d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
-                 for prop_name in properties}
-            df = pd.DataFrame(d)
-            del_list = [i+1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
-            labels[sl] = skseg.relabel_sequential(
-                np.where(np.isin(lbl, del_list), 0, lbl),
-                offset=offset
-            )[0]
-            offset += labels.max()
         
-        labels = labels.view(Label).optimize()
+        if filt is None:
+            labels[:] = ref_image._apply_dask(
+                skmes.label, 
+                c_axes=c_axes, 
+                kwargs=dict(background=0, connectivity=connectivity)
+            ).view(np.ndarray)
+        else:
+            if not callable(filt):
+                raise TypeError("`filt` must be callable.")
+            
+            import inspect
+            import pandas as pd
+            properties = tuple(inspect.signature(filt).parameters)[2:]
+
+            offset = 1
+            for sl, lbl in ref_image.iter(c_axes):
+                lbl = skmes.label(lbl, background=0, connectivity=connectivity)
+                img = self.value[sl]
+                # Following lines are essentially doing the same thing as 
+                # `skmes.regionprops_table`. However, `skmes.regionprops_table`
+                # returns tuples in the separated columns in DataFrame and rename
+                # property names like "centroid-0" and "centroid-1".
+                props_obj = skmes.regionprops(lbl, img, cache=False)
+                d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
+                    for prop_name in properties}
+                df = pd.DataFrame(d)
+                del_list = [i + 1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
+                labels[sl] = skseg.relabel_sequential(
+                    np.where(np.isin(lbl, del_list), 0, lbl),
+                    offset=offset
+                )[0]
+                offset += labels.max()
+    
+        # correct the label numbers of `labels`
+        labels = labels.view(Label)
         labels._set_info(ref_image)
+        labels = labels.increment_iter(c_axes).optimize()
         labels.set_scale(self)
         self.labels = labels
         return self.labels
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    def label_if(
+        self,
+        ref_image: np.ndarray | None = None,
+        filt: Callable[..., bool] | None = None,
+        *,
+        dims: Dims = None,
+        connectivity: int | None = None,
+    ) -> Label:
+        warn(
+            "`label_if` is deprecated and will be removed soon. `label` method does the "
+            "same function",
+            DeprecationWarning,
+        )
+        return self.label(ref_image, filt, dims=dims, connectivity=connectivity)
     
     @check_input_and_output
     def append_label(self, label_image: np.ndarray, new: bool = False) -> Label:

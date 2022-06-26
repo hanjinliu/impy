@@ -22,12 +22,6 @@ def best_dtype(n:int):
     else:
         return np.uint64
 
-class NotMe:
-    def __eq__(self, other):
-        return False
-
-_NOTME = NotMe()
-
 class Label(MetaArray):
     def __new__(cls, obj, name=None, axes=None, source=None, 
                 metadata=None, dtype=None) -> Label:
@@ -35,14 +29,6 @@ class Label(MetaArray):
             dtype = best_dtype(np.max(obj))
         self = super().__new__(cls, obj, name, axes, source, metadata, dtype)
         return self
-
-    def _dimension_matches(self, array: MetaArray):
-        img_shape = array.shape
-        label_shape = self.shape
-        return all(
-            [getattr(img_shape, str(a), _NOTME) == getattr(label_shape, str(a), _NOTME)
-            for a in self.axes]
-        )
     
     def __getitem__(self, key) -> Self:
         # For compatibility in LabeledArray, Label should not return scalar.

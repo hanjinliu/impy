@@ -21,16 +21,24 @@ class CollectionBase:
     def _such_as(self):
         raise NotImplementedError
     
-    def _repr_(self, _repr_: str = None) -> str:
-        if len(self) == 1:
+    def _repr_(self, _repr_: str | None = None) -> str:
+        l = len(self)
+        if l == 1:
             return (
-            f"{self.__class__.__name__}[{self._type.__name__}] with a component:\n"
-            f"{getattr(self._such_as, _repr_, self.__repr__)()}"
+                f"{self.__class__.__name__}[{self._type.__name__}] with a component:\n"
+                f"{getattr(self._such_as, _repr_, self.__repr__)()}"
             )
-        elif len(self) > 1:
+        elif 1 < l:
+            s0 = []
+            for i, x in enumerate(self):
+                s0.append(getattr(x, _repr_, self.__repr__)())
+                if i > 12:
+                    s0.append("...")
+                    break
+            s = ",\n".join(s0)
             return (
-            f"{self.__class__.__name__}[{self._type.__name__}] with {len(self)} "
-            f"components such as:\n{getattr(self._such_as, _repr_, self.__repr__)()}"
+                f"{self.__class__.__name__}[{self._type.__name__}] with "
+                f"{len(self)} components:\n{s}"
             )
         else:
             return f"{self.__class__.__name__} with no component"
@@ -179,7 +187,15 @@ class DataList(CollectionBase, MutableSequence[_T]):
                 func(data, *args, **kwargs) for data in self
             )
             
-
+    def agg(self, functions: Callable[[_T], Any] | Iterable[Callable[[_T], Any]]):
+        if not hasattr(functions, "__iter__"):
+            functions = [functions]
+        out = {}
+        for f in functions:
+            out[f.__name__] = DataList(map(f, self))
+        return DataDict(out)
+            
+        
 _K = TypeVar("_K", bound=Hashable)
 
 class DataDict(CollectionBase, MutableMapping[_K, _T]):
@@ -217,6 +233,29 @@ class DataDict(CollectionBase, MutableMapping[_K, _T]):
     @property
     def _such_as(self) -> _T:
         return next(iter(self._dict.values()))
+
+    def _repr_(self, _repr_: str | None = None) -> str:
+        l = len(self)
+        if l == 1:
+            return (
+                f"{self.__class__.__name__}[{self._type.__name__}] with a component:\n"
+                f"{getattr(self._such_as, _repr_, self.__repr__)()}"
+            )
+        elif 1 < l:
+            s0 = []
+            for i, (k, v) in enumerate(self.items()):
+                val = getattr(v, _repr_, self.__repr__)()
+                s0.append(f"{k!r} => {val}")
+                if i > 12:
+                    s0.append("...")
+                    break
+            s = ",\n".join(s0)
+            return (
+                f"{self.__class__.__name__}[{self._type.__name__}] with "
+                f"{len(self)} components:\n{s}"
+            )
+        else:
+            return f"{self.__class__.__name__} with no component"
     
     def __getitem__(self, key: _K) -> _T:
         return self._dict[key]
@@ -282,4 +321,3 @@ class DataDict(CollectionBase, MutableMapping[_K, _T]):
             return self.__class__(
                 {k: func(data, *args, **kwargs) for k, data in self.items()}
             )
-

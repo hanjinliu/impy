@@ -536,7 +536,16 @@ class MetaArray(AxesMixin, np.ndarray):
             new_axes = axes
         out._set_info(self, new_axes=new_axes)
         return out
-    
+
+    def _dimension_matches(self, array: MetaArray):
+        """Check if dimension satisfies ``self <: array``."""
+        img_shape = array.shape
+        label_shape = self.shape
+        return all(
+            [getattr(img_shape, str(a), _NOTME) == getattr(label_shape, str(a), _NOTME)
+            for a in self.axes]
+        )
+        
     def __add__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__add__(value)
@@ -654,3 +663,10 @@ def _replace_inputs(img: MetaArray, args: tuple[Any], kwargs: dict[str, Any]):
         kwargs["out"] = tuple(_as_np_ndarray(a) for a in kwargs["out"])
     
     return args, kwargs
+
+
+class NotMe:
+    def __eq__(self, other):
+        return False
+
+_NOTME = NotMe()

@@ -27,7 +27,13 @@ from .._const import Const
 from ..array_api import xp, cupy_dispatcher
 
 if TYPE_CHECKING:
-    from ..frame import MarkerFrame, PathFrame
+    from ..frame import MarkerFrame
+    from typing import Literal, Union
+    ThreasholdMethod = Union[
+        Literal["isodata"], Literal["li"], Literal["local"], Literal["mean"], Literal["min"],
+        Literal["minimum"], Literal["niblack"], Literal["otsu"], Literal["sauvola"], 
+        Literal["triangle"], Literal["yen"]
+    ]
 
 class ImgArray(LabeledArray):
     """
@@ -3127,7 +3133,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def threshold(
         self,
-        thr: float | str = "otsu",
+        thr: float | ThreasholdMethod = "otsu",
         *,
         along: AxisLike | None = None,
         **kwargs
@@ -3165,7 +3171,7 @@ class ImgArray(LabeledArray):
         
         if along is None:
             along = "c" if "c" in self.axes else ""
-            
+
         methods_ = {"isodata": skfil.threshold_isodata,
                     "li": skfil.threshold_li,
                     "local": skfil.threshold_local,
@@ -3633,7 +3639,14 @@ class ImgArray(LabeledArray):
         self.labels._set_info(self)
         return self.labels
     
-    def label_threshold(self, thr: float | str = "otsu", *, dims: Dims = None, **kwargs) -> Label:
+    def label_threshold(
+        self,
+        thr: float | ThreasholdMethod = "otsu",
+        filt: Callable[..., bool] | None = None,
+        *,
+        dims: Dims = None,
+        **kwargs,
+    ) -> Label:
         """
         Make labels with threshold(). Be sure that keyword argument ``dims`` can be
         different (in most cases for >4D images) between threshold() and label().
@@ -3649,12 +3662,11 @@ class ImgArray(LabeledArray):
         
         Returns
         -------
-        ImgArray
-            Same array but labels are updated.
-        
+        Label
+            Newly created label.
         """        
         labels = self.threshold(thr=thr, **kwargs)
-        return self.label(labels, dims=dims)
+        return self.label(labels, filt=filt, dims=dims)
     
     def regionprops(
         self,

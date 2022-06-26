@@ -82,7 +82,7 @@ class PropArray(MetaArray):
         
         return self
     
-    def hist(self, along: str = "p", bins: int = None, cmap: str = "jet", 
+    def hist(self, along: str = "N", bins: int = None, cmap: str = "jet", 
              cmap_range: tuple[float, float] = (0., 1.)) -> PropArray:
         """
         Plot histogram.
