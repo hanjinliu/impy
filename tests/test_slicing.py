@@ -70,16 +70,3 @@ def test_dataframe_slicing():
     assert_equal(df["t=0"].values, np.array([[0, 8, 2], [0, 9, 3]]))
     assert_equal(df["t=1"].values, np.array([[1, 7, 5], [1, 5, 7]]))
     assert_equal(df["t=0:2"].values, np.array([[0, 8, 2], [0, 9, 3], [1, 7, 5], [1, 5, 7]]))
-
-def test_roi_slicing():
-    from impy.roi import LineRoi
-    
-    roi = LineRoi(
-        [[3, 4],
-         [6, 10]],
-        "tyx", 
-        multi_dims=[2]
-    )
-    assert roi._slice_by((0, slice(1, 6, 1), slice(3, 8, 1))) == LineRoi([[2, 1], [5, 7]], "yx", multi_dims=None)
-    assert roi._slice_by((2, slice(1, 6, 2), slice(3, 12, -1))) == LineRoi([[2, 8], [3.5, 2]], "yx", multi_dims=None)
-    

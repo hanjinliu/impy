@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
     from ..frame import PathFrame
     from numpy.typing import ArrayLike, DTypeLike
+    from ..roi import RoiList
 
 
 class SupportAxesSlicing(Protocol):
@@ -98,7 +99,7 @@ class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
                     )
                             
                     if len(label_sl) == 0 or len(label_sl) > len(value.axes):
-                        label_sl = (slice(None),)
+                        label_sl = ()
                 else:
                     label_sl = key
 
@@ -203,6 +204,20 @@ class LabeledArray(MetaArray):
     @labels.deleter
     def labels(self):
         self.covariates.pop("labels", None)
+    
+    @property
+    def rois(self) -> RoiList:
+        """ROIs of the image."""
+        return self.covariates.get("rois")
+    
+    @rois.setter
+    def rois(self, val) -> None:
+        from ..roi import RoiList
+        self.covariates["rois"] = RoiList(self.axes, val)
+    
+    @rois.deleter
+    def rois(self) -> None:
+        self.covariates.pop("rois", None)
     
     def set_scale(self, other=None, **kwargs) -> None:
         super().set_scale(other, **kwargs)

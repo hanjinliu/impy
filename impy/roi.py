@@ -28,6 +28,10 @@ class Roi:
     @property
     def ndim(self) -> int:
         return len(self._multi_dims) + self._data.shape[1]
+    
+    @property
+    def n_spatial_dims(self) -> int:
+        return self._data.shape[1]
 
     @property
     def axes(self) -> Axes:
@@ -41,11 +45,26 @@ class Roi:
         self._axes = _axes
     
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(axes={self.axes!r})"
+        nsdim = self.n_spatial_dims
+        s_multi = ", ".join(
+            f"{a}={d}" for d, a in
+            zip(self._multi_dims, self.axes[:-nsdim])
+        )
+        sp = "yx" if nsdim == 2 else "zyx"
+        s_sp = repr(self._data.tolist())
+        if len(s_sp) > 28:
+            s_sp = s_sp[:26] + " ..."
+        if s_multi:
+            return f"{type(self).__name__}({s_multi}, {sp}={s_sp})"
+        else:
+            return f"{type(self).__name__}({sp}={s_sp})"
     
     def __array__(self, dtype=None) -> np.ndarray:
         arr = np.stack([self._multi_dims] * self._data.shape[0], axis=0)
-        return np.concatenate([arr, self._data], axis=1)
+        out: np.ndarray = np.concatenate([arr, self._data], axis=1)
+        if dtype is not None:
+            out = out.astype(dtype)
+        return out
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, Roi):
@@ -78,35 +97,52 @@ class Roi:
         
         if not isinstance(key, tuple):
             key = (key,)
-        if len(key) < self.ndim:
-            key = key + (slice(None),) * (self.ndim - len(key))
         
         nmdim = len(self._multi_dims)
         multi_dims: list[int] = []
         data_list: list[np.ndarray] = []
         axes = []
+        i = -1
         for i, k in enumerate(key):
             if isinstance(k, slice):
                 s0, s1, step = k.start, k.stop, k.step
                 if i < nmdim:
                     crds = self._multi_dims[i]
                     if step > 0:
-                        multi_dims.append((crds - s0) / step + s0)
+                        multi_dims.append((crds - s0) / step)
                     else:
                         multi_dims.append((crds - s1) / step)
                 else:
                     crds = self._data[:, i - nmdim]
                     if step > 0:
-                        data_list.append((crds - s0) / step + s0)
+                        data_list.append((crds - s0) / step)
                     else:
                         data_list.append((crds - s1) / step)
                     
                 axes.append(self.axes[i])
+            
+            elif isinstance(k, list):
+                if i >= nmdim or self._multi_dims[i] not in k:
+                    return None
+                else:
+                    multi_dims.append(k.index(self._multi_dims[i]))
+                axes.append(self.axes[i])
+
+            elif isinstance(k, int):
+                if i >= nmdim or self._multi_dims[i] != k:
+                    return None
+        
+        for j in range(i + 1, self.ndim):
+            if j < nmdim:
+                multi_dims.append(self._multi_dims[j])
+            else:
+                data_list.append(self._data[:, j - nmdim])
+            axes.append(self.axes[j])
         
         if len(data_list) < 2:
             return None
         data = np.stack(data_list, axis=1)
-        return self.__class__(data, axes=axes, multi_dims=multi_dims)
+        return self.__class__(data=data, axes=axes, multi_dims=multi_dims)
     
     def copy(self) -> Self:
         return self.__class__(
@@ -160,8 +196,22 @@ class PointRoi(Roi):
 #     ...
 
 class RoiList(MutableSequence[Roi]):
-    def __init__(self, rois: Iterable[Roi] = ()) -> None:
-        self._rois = list(rois)
+    """A list of ROIs."""
+    
+    def __init__(self, axes: AxesLike, rois: Iterable[Roi] = ()) -> None:
+        self._axes = Axes(axes)
+        self._rois: list[Roi] = []
+        for roi in rois:
+            if not self._axes.contains(roi.axes):
+                raise ImageAxesError(
+                    f"Cannot add ROI with axes {roi.axes} to {type(self).__name__} with "
+                    f"axes {self.axes}."
+                )
+            self._rois.append(roi)
+    
+    @property
+    def axes(self) -> Axes:
+        return self._axes
     
     def __getitem__(self, key):
         return self._rois[key]
@@ -187,20 +237,63 @@ class RoiList(MutableSequence[Roi]):
         return f"{type(self).__name__}(\n\t{s}\n)"
 
     def insert(self, index: int, roi: Roi):
+        """
+        Insert a ROI at the given index.
+        
+        The axes of the ROI must match the axes of the ROI list.
+
+        Parameters
+        ----------
+        index : int
+            Index at which to insert the ROI.
+        roi : Roi
+            ROI to insert.
+        """
         if not isinstance(roi, Roi):
             raise TypeError(f"Cannot set {type(roi)} to a RoiList object.")
+        elif not self.axes.contains(roi.axes):
+            raise ImageAxesError(
+                f"Cannot add ROI with axes {roi.axes} to {type(self).__name__} with "
+                f"axes {self.axes}."
+            )
         self._rois.insert(index, roi)
     
     def _slice_by(self, key) -> Self:
         data: list[Roi] = []
+        if not isinstance(key, tuple):
+            key = (key,)
+        
         for roi in self:
-            r = roi._slice_by(key)
+            _key = tuple(
+                key[i] for i, a in enumerate(self.axes) 
+                if (a in roi.axes and i < len(key))
+            )
+            r = roi._slice_by(_key)
             if r is not None:
                 data.append(r)
-        return self.__class__(data)
+        if len(data) == 0:
+            return None
+        axes = [self.axes[i] for i, sl in enumerate(key) if not isinstance(sl, int)] + self.axes[len(key):]
+        return self.__class__(axes, data)
+
+    def _dimension_matches(self, arr: MetaArray) -> bool:
+        return all(a in self.axes for a in arr.axes)
     
     @classmethod
     def fromfile(cls, path: str) -> Self:
+        """
+        Construct a RoiList from a file.
+
+        Parameters
+        ----------
+        path : str
+            Path to the ROI file.
+
+        Returns
+        -------
+        RoiList
+            A RoiList object with the ROIs read from the file.
+        """
         rois = roiread(path)
         if not isinstance(rois, list):
             rois = [rois]
@@ -212,6 +305,14 @@ class RoiList(MutableSequence[Roi]):
         return cls(data)
     
     def tofile(self, path: str) -> None:
+        """
+        Save the RoiList to a file.
+
+        Parameters
+        ----------
+        path : str
+            Path to the file.
+        """
         ijrois: list[ImagejRoi] = []
         for roi in self:
             roitype, subtype = _ROI_TYPE_INV_MAP[type(roi)]
