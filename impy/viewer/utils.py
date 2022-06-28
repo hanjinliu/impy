@@ -27,28 +27,31 @@ def iter_layer(viewer:"napari.Viewer", layer_type: str):
     -------
     napari.layers
         Layers specified by layer_type
-    """        
+    """      
+    from napari import layers
     if isinstance(layer_type, str):
         layer_type = [layer_type]
-    layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
+    layer_type = tuple(getattr(layers, t) for t in layer_type)
     
     for layer in viewer.layers:
         if isinstance(layer, layer_type):
             yield layer
 
-def iter_selected_layer(viewer: "napari.Viewer", layer_type:str | list[str]):
+def iter_selected_layer(viewer: "napari.Viewer", layer_type: str | list[str]):
+    """Iterate over selected layers and yield only certain type of layers."""
+    
+    from napari import layers
     if isinstance(layer_type, str):
         layer_type = [layer_type]
-    layer_type = tuple(getattr(napari.layers, t) for t in layer_type)
+    layer_type = tuple(getattr(layers, t) for t in layer_type)
     
     for layer in viewer.layers.selection:
         if isinstance(layer, layer_type):
             yield layer
 
 def front_image(viewer:"napari.Viewer"):
-    """
-    From list of image layers return the most front visible image.
-    """        
+    """From list of image layers return the most front visible image."""        
+    
     front = None
     for img in iter_layer(viewer, "Image"):
         if img.visible:
@@ -57,7 +60,8 @@ def front_image(viewer:"napari.Viewer"):
         raise ValueError("There is no visible image layer.")
     return front
 
-def to_labels(layer: "Shapes", labels_shape, zoom_factor=1):
+def to_labels(layer: "Shapes", labels_shape: tuple[int, ...], zoom_factor: float = 1.):
+    """Convert a Shapes layer to labels, with given zoom factor."""
     return layer._data_view.to_labels(
         labels_shape=labels_shape, zoom_factor=zoom_factor
     )
@@ -247,6 +251,7 @@ def add_paths(viewer: "napari.Viewer", paths: PathFrame, **kwargs):
     return None
 
 def get_viewer_scale(viewer: "napari.Viewer"):
+    """Get the scale of the viewer."""
     return {a: r[2] for a, r in zip(viewer.dims.axis_labels, viewer.dims.range)}
 
 def layer_to_impy_object(viewer: "napari.Viewer", layer):

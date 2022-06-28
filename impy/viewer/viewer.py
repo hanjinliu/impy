@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, NewType, TYPE_CHECKING
+from pathlib import Path
 import napari
 import warnings
 from weakref import WeakValueDictionary
@@ -351,7 +352,7 @@ class napariViewers:
             self._add_image(ip_aslazy(obj))
         
         # Add an image from a path
-        elif isinstance(obj, str):
+        elif isinstance(obj, (str, Path)):
             viewer_imread(self.viewer, obj)
             
         # Add many objects of same type

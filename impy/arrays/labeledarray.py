@@ -56,6 +56,8 @@ def _fmt_slice(k, length: int):
         return k
 
 class ArrayCovariates(MutableMapping[str, SupportAxesSlicing]):
+    """A dictionary of covariate objects for a MetaArray."""
+
     def __init__(self, data: dict[str, SupportAxesSlicing], parent: MetaArray):
         import weakref
         self._data = data

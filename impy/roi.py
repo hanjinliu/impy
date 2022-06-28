@@ -8,7 +8,7 @@ from .axes import Axes, AxesLike, ImageAxesError
 if TYPE_CHECKING:
     from typing_extensions import Self
     from numpy.typing import ArrayLike
-    from matplotlib import axes
+    from matplotlib import axes as plt_axes
     from .arrays.bases import MetaArray
 
 class Roi:
@@ -169,7 +169,7 @@ class PolygonRoi(Roi):
         """Convert coordinates."""
         return coords[:-1, ::-1]
     
-    def _plot(self, ax: axes.Axes, **kwargs):
+    def _plot(self, ax: plt_axes.Axes, **kwargs):
         coords = np.concatenate([self._data, self._data[:1]], axis=0)
         ax.plot(coords[:, 1], coords[:, 0], **kwargs)
         return ax
@@ -178,7 +178,7 @@ class RectangleRoi(PolygonRoi):
     pass
 
 class PolyLineRoi(Roi):
-    def _plot(self, ax: axes.Axes, **kwargs):
+    def _plot(self, ax: plt_axes.Axes, **kwargs):
         coords = self._data
         ax.plot(coords[:, 1], coords[:, 0], **kwargs)
         return ax
@@ -187,7 +187,7 @@ class LineRoi(PolyLineRoi):
     pass
 
 class PointRoi(Roi):
-    def _plot(self, ax: axes.Axes, **kwargs):
+    def _plot(self, ax: plt_axes.Axes, **kwargs):
         coords = self._data
         ax.scatter(coords[:, 1], coords[:, 0], **kwargs)
         return ax
