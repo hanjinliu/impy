@@ -48,9 +48,6 @@ class ImageData(NamedTuple):
 if TYPE_CHECKING:
     from .arrays.bases import MetaArray
     from .arrays import LazyImgArray
-    from .frame import AxesFrame
-    from .axes import Axes
-    from roifile import ImagejRoi
     ImpyArray = Union[MetaArray, LazyImgArray]
     Reader = Callable[[str, bool], ImageData]
     _R = TypeVar("_R", bound=Reader)
@@ -520,8 +517,3 @@ imsave = IO.imsave
 mark_reader = IO.mark_reader
 mark_writer = IO.mark_writer
 
-def roiread(path: str) -> AxesFrame:
-    """Read a Roi.zip file as a DataFrame-like object."""
-    from .roi import RoiList
-    
-    return RoiList.fromfile(path)

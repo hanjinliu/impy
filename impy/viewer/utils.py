@@ -1,6 +1,6 @@
 from __future__ import annotations
 import warnings
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Iterable, TypeVar
 import numpy as np
 import napari
 import os
@@ -11,6 +11,7 @@ from ..core import imread, lazy_imread
 
 if TYPE_CHECKING:
     from ..frame import TrackFrame, PathFrame, AxesFrame
+    from ..roi import Roi
     from napari.layers import Shapes
 
 
@@ -78,6 +79,8 @@ def make_world_scale(obj):
     return scale
 
 def viewer_imread(viewer: "napari.Viewer", path: str):    
+    """Read an image into the viewer."""
+    
     if "*" in path or os.path.getsize(path)/1e9 < Const["MAX_GB"]:
         img = imread(path)
     else:
@@ -86,6 +89,8 @@ def viewer_imread(viewer: "napari.Viewer", path: str):
     return layer
 
 def add_labeledarray(viewer: "napari.Viewer", img: LabeledArray, **kwargs):
+    """Add a LabeledArray to the viewer."""
+    
     if not img.axes.is_sorted() and img.ndim > 2:
         msg = (
             f"Input image has axes that are not correctly sorted: {img.axes}. "
@@ -247,6 +252,29 @@ def add_paths(viewer: "napari.Viewer", paths: PathFrame, **kwargs):
         metadata = {"axes": str(path._axes), "scale": path.scale}
         paths = [single_path.values for single_path in path.split(Const["ID_AXIS"])]
         viewer.add_shapes(paths, scale=scale, metadata=metadata, **kw)
+    
+    return None
+
+def add_rois(viewer: "napari.Viewer", rois: Iterable[Roi], **kwargs):
+    from ..roi import LineRoi, PointRoi, PolygonRoi, PolyLineRoi, RectangleRoi
+    
+    _map = {
+        LineRoi: "line",
+        PolygonRoi: "polygon",
+        PolyLineRoi: "path",
+        RectangleRoi: "rectangle",
+    }
+    
+    shapes = []
+    shape_types = []
+    for roi in rois:
+        if isinstance(roi, PointRoi):
+            raise TypeError("PointRoi is not supported.")
+        else:
+            shape_types.append(_map[type(roi)])
+            shapes.append(np.array(roi))
+    
+    viewer.add_shapes(shapes, shape_type=shape_types, **kwargs)
     
     return None
 

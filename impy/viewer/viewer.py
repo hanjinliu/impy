@@ -14,6 +14,7 @@ from .utils import (
     add_paths,
     add_points,
     add_tracks,
+    add_rois,
     viewer_imread,
     make_world_scale,
 )
@@ -21,7 +22,7 @@ from .utils import (
 from ..collections import *
 from ..arrays import *
 from ..core import array as ip_array, aslazy as ip_aslazy
-from ..axes import ScaleView
+from ..axes import ScaleView, AxisLike, Axes, Axis
 from .._const import Const
 
 if TYPE_CHECKING:
@@ -83,9 +84,10 @@ class napariViewers:
     @property
     def current_slice(self) -> tuple[slice | int, ...]:
         """
-        Return a tuple of slicer that corresponds to current field of view. For instance,
-        when the viewer is displaying yx-plane at t=1, then this property returns 
-        ``(1, slice(None), slice(None))``.
+        Return a tuple of slicer that corresponds to current field of view. 
+        
+        For instance, when the viewer is displaying yx-plane at t=1, then this property 
+        returns ``(1, slice(None), slice(None))``.
         """        
         current_step = list(self.viewer.dims.current_step)
         ndim = min(self.viewer.dims.ndisplay, self.viewer.dims.ndim)
@@ -97,30 +99,38 @@ class napariViewers:
     
     @property
     def selection(self) -> list[ImpyObject]:
-        """
-        Return selected layers' data as a list of impy objects.
-        """        
+        """Return selected layers' data as a list of impy objects."""        
         return [layer_to_impy_object(self.viewer, layer) 
                 for layer in self.viewer.layers.selection]
     
     @property
     def cursor_pos(self) -> np.ndarray:
-        """
-        Return cursor position. Scale is considered.
-        """        
+        """Return cursor position. Scale is considered."""
         return np.array(self.viewer.cursor.position) / self.scale
     
     @property
-    def axes(self) -> str:
+    def axes(self) -> Axes:
         """
-        Axes information of current viewer. Defined to make compatible with ``ImgArray``.
-        """        
-        return "".join(self.viewer.dims.axis_labels)
+        Axes information of current viewer. 
+        
+        Defined to make compatible with ``ImgArray``.
+        """
+        d = self.viewer.dims
+        unit = self.viewer.scale_bar.unit
+        axes: list[Axis] = []
+        for a, r in zip(d.axis_labels, d.range):
+            if a in ["z", "y", "x"]:
+                axis = Axis(a, {"scale": r[2], "unit": unit})
+            else:
+                axis = Axis(a)
+            axes.append(axis)
+        return Axes(axes)
     
     @property
     def scale(self) -> dict[str, float]:
-        """
-        Scale information of current viewer. Defined to make compatible with ``ImgArray``.
+        """Scale information of current viewer.
+        
+        Defined to make compatible with ``ImgArray``.
         """        
         d = self.viewer.dims
         return ScaleView({a: r[2] for a, r in zip(d.axis_labels, d.range)})
@@ -301,7 +311,7 @@ class napariViewers:
         pos = (cursor_coords - layer.translate)/layer.scale
         return (pos + 0.5).astype(np.int64)
         
-    def add(self, obj: ImpyObject = None, **kwargs):
+    def add(self, obj: ImpyObject, **kwargs):
         """
         Add images, points, labels, tracks etc to viewer.
 
@@ -359,8 +369,14 @@ class napariViewers:
         elif isinstance(obj, DataList):
             [self.add(each, **kwargs) for each in obj]
         
-        elif obj is None:
-            pass
+        # Add a RoiList object as a shapes
+        elif type(obj).__name__ == "RoiList":
+            add_rois(self.viewer, obj, **kwargs)
+        
+        # Add a Roi object as a shape
+        elif hasattr(obj, "from_imagejroi"):
+            add_rois(self.viewer, [obj], **kwargs)
+        
         else:
             raise TypeError(f"Could not interpret type: {type(obj)}")
     
@@ -421,19 +437,19 @@ class napariViewers:
         self.viewer.dims.current_step = step
         return step
     
-    def stepof(self, symbol: str) -> int:
+    def stepof(self, symbol: AxisLike) -> int:
         """
         Get the current step of certain axis.
 
         Parameters
         ----------
-        symbol : str
+        symbol : AxisLike
             Axis symbol
         """        
         i = self.axes.find(symbol)
         return self.viewer.dims.current_step[i]
 
-    def axisof(self, symbol: str) -> int:
+    def axisof(self, symbol: AxisLike) -> int:
         return self.axes.find(symbol)
     
     def _add_image(self, img: LabeledArray, **kwargs):

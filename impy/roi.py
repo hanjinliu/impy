@@ -3,13 +3,15 @@ import numpy as np
 from typing import Iterable, Iterator, MutableSequence, TYPE_CHECKING
 from roifile import ImagejRoi, ROI_TYPE, ROI_SUBTYPE, roiread, roiwrite
 
-from .axes import Axes, AxesLike, ImageAxesError
+from .axes import Axis, Axes, AxesLike, ImageAxesError, UndefAxis
 
 if TYPE_CHECKING:
     from typing_extensions import Self
     from numpy.typing import ArrayLike
     from matplotlib import axes as plt_axes
     from .arrays.bases import MetaArray
+
+POS = Axis("position")
 
 class Roi:
     def __init__(
@@ -88,7 +90,7 @@ class Roi:
         t = roi.t_position
         z = roi.z_position
         d = [x - 1 for x in [p, t, z, c] if x > 0]
-        axes = [a for a, x in zip("ptzc", [p, t, z, c]) if x > 0] + ["y", "x"]
+        axes = [a for a, x in zip([POS, "t", "z", "c"], [p, t, z, c]) if x > 0] + ["y", "x"]
         return cls(data=yx, axes=axes, multi_dims=np.array(d))
     
     def _slice_by(self, key) -> Self | None:
@@ -213,6 +215,16 @@ class RoiList(MutableSequence[Roi]):
     def axes(self) -> Axes:
         return self._axes
     
+    @axes.setter
+    def axes(self, val: AxesLike):
+        _axes = Axes(val)
+        if len(_axes) != len(self._axes):
+            raise ImageAxesError(f"Cannot change the length of axes")
+        _old_to_new_map = {k: v for k, v in zip(self.axes, val)}
+        for roi in self:
+            roi.axes = [_old_to_new_map[a] for a in roi.axes]
+        self._axes = Axes(val)
+    
     def __getitem__(self, key):
         return self._rois[key]
     
@@ -294,15 +306,20 @@ class RoiList(MutableSequence[Roi]):
         RoiList
             A RoiList object with the ROIs read from the file.
         """
+        from .axes import broadcast
         rois = roiread(path)
         if not isinstance(rois, list):
             rois = [rois]
         
         data: list[Roi] = []
-        for roi in rois:
-            roicls = _ROI_TYPE_MAP[roi.roitype, roi.subtype]
-            data.append(roicls.from_imagejroi(roi))
-        return cls(data)
+        all_axes = []
+        for ijroi in rois:
+            roicls = _ROI_TYPE_MAP[ijroi.roitype, ijroi.subtype]
+            roi = roicls.from_imagejroi(ijroi)
+            data.append(roi)
+            all_axes.append(roi.axes)
+        
+        return cls(broadcast(*all_axes), data)
     
     def tofile(self, path: str) -> None:
         """

@@ -214,8 +214,16 @@ class LabeledArray(MetaArray):
     
     @rois.setter
     def rois(self, val) -> None:
-        from ..roi import RoiList
-        self.covariates["rois"] = RoiList(self.axes, val)
+        from ..roi import RoiList, POS
+        if isinstance(val, RoiList):
+            if val.axes[0] == POS and val.axes[1:] == self.axes[1:]:
+                import copy
+                val = copy.copy(val)
+                val.axes = self.axes[0] + val.axes[1:]
+            
+            self.covariates["rois"] = val
+        else:
+            self.covariates["rois"] = RoiList(self.axes, val)
     
     @rois.deleter
     def rois(self) -> None:

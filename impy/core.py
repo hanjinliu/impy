@@ -4,6 +4,7 @@ import sys
 import re
 import glob
 import itertools
+from typing import TYPE_CHECKING
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -22,8 +23,10 @@ from .axes import ImageAxesError, broadcast, Axes
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray
-from .frame import AxesFrame
 from ._const import Const
+
+if TYPE_CHECKING:
+    from .roi import RoiList
 
 __all__ = [
     "array", 
@@ -40,6 +43,7 @@ __all__ = [
     "imread_collection", 
     "lazy_imread", 
     "read_meta", 
+    "roiread",
     "sample_image",
     "broadcast_arrays"
 ]
@@ -760,6 +764,8 @@ def read_meta(path: str) -> dict[str]:
         "metadata": image_data.metadata
     }
 
-def roiread(path: str) -> AxesFrame:
-    path = str(path)
-    return io.roiread(path)
+def roiread(path: str) -> RoiList:
+    """Read a Roi.zip file as a RoiList object."""
+    from .roi import RoiList
+    
+    return RoiList.fromfile(path)

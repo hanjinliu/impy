@@ -253,8 +253,10 @@ class Axes(Sequence[Axis]):
         self._axis_list[i] = new_axis
         return None
     
-    def contains(self, chars: AxesLike) -> bool:
+    def contains(self, chars: AxesLike, *, ignore_undef: bool = False) -> bool:
         """True if self contains all the characters in ``chars``."""
+        if ignore_undef:
+            return all(a in self._axis_list for a in chars if not isinstance(a, UndefAxis))
         return all(a in self._axis_list for a in chars)
     
     def drop(self, axes) -> Axes:
@@ -312,9 +314,11 @@ def _broadcast_two(axes0: AxesLike, axes1: AxesLike) -> Axes:
     if not isinstance(axes1, Axes):
         axes1 = Axes(axes1)
     
-    arg_idx = []
+    arg_idx: list[int] = []
     out = list(axes0)
     for a in axes1:
+        if type(a) is UndefAxis:
+            raise TypeError("Cannot broadcast Axes with UndefAxis.")
         arg_idx.append(axes0.find(a, -1))
     
     stack = []
