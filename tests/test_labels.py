@@ -103,3 +103,22 @@ def test_error():
         img.labels = np.zeros((10, 8), dtype=np.uint8)
     with pytest.raises(ImageAxesError):
         img.labels = np.zeros((2, 10, 10, 10), dtype=np.uint8)
+
+def test_changing_axes():
+    img = ip.zeros((10, 10, 10), axes="zyx")
+    labels = np.zeros((10, 10, 10), dtype=np.uint8)
+    img.labels = labels
+    
+    assert img.labels.axes == ["z", "y", "x"]
+    img.axes = "tyx"
+    assert img.labels.axes == ["t", "y", "x"]
+    
+    img = ip.zeros((10, 10, 10), axes="zyx")
+    labels = np.zeros((10, 10), dtype=np.uint8)
+    img.labels = labels
+    
+    assert img.labels.axes == ["y", "x"]
+    img.axes = "tyx"
+    assert img.labels.axes == ["y", "x"]
+    img.axes = "zYx"
+    assert img.labels.axes == ["Y", "x"]

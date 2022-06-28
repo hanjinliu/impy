@@ -159,6 +159,20 @@ class LabeledArray(MetaArray):
         self._covariates = ArrayCovariates({}, self)
         
         return self
+    
+    @MetaArray.axes.setter
+    def axes(self, value: AxesLike):
+        if not hasattr(self, "_axes"):
+            # not initialized yet
+            MetaArray.axes.fset(self, value)
+            return
+        old_axes = self.axes
+        MetaArray.axes.fset(self, value)
+        new_axes = self.axes
+        _old_to_new_map = {k: v for k, v in zip(old_axes, new_axes)}
+
+        for v in self._covariates.values():
+            v.axes = [_old_to_new_map[a] for a in v.axes]
 
     @property
     def range(self) -> tuple[float, float]:
