@@ -1,8 +1,11 @@
 from __future__ import annotations
 import numpy as np
+from typing import Literal
+
 from .arrays import ImgArray
 from .array_api import xp
 from .core import asarray
+from .axes import AxesLike
 
 def wraps(npfunc):
     def _wraps(ipfunc):
@@ -95,5 +98,67 @@ def random_uint16(
     arr = xp.random.randint(0, 65535, size, dtype=np.uint16)
     name = name or "random_uint16"
     return asarray(xp.asnumpy(arr), name=name, axes=axes)
+
+
+def default_rng(seed) -> ImageGenerator:
+    return ImageGenerator(xp.random.default_rng(seed))
+
+class ImageGenerator:
+    def __init__(self, rng: xp.random.Generator):
+        self._rng = rng
+    
+    def standard_normal(
+        self,
+        size: int | tuple[int, ...] | None = None,
+        dtype = None,
+        *,
+        axes: AxesLike | None = None,
+        name: str | None = None,
+    ) -> ImgArray:
+        arr = self._rng.standard_normal(size=size, dtype=dtype)
+        if np.isscalar(arr):
+            return arr
+        return asarray(arr, axes=axes, name=name)
+    
+    def standard_exponential(
+        self,
+        size: int | tuple[int, ...] | None = None, 
+        dtype = None,
+        method: Literal["zig", "inv"] = None,
+        *,
+        axes: AxesLike | None = None,
+        name: str | None = None,
+    ) -> ImgArray:
+        arr = self._rng.standard_exponential(size=size, dtype=dtype, method=method)
+        if np.isscalar(arr):
+            return arr
+        return asarray(arr, axes=axes, name=name)
+    
+    def random(
+        self,
+        size: int | tuple[int, ...] | None = None, 
+        dtype = None,
+        *,
+        axes: AxesLike | None = None,
+        name: str | None = None,
+    ) -> ImgArray:
+        arr = self._rng.random(size=size, dtype=dtype)
+        if np.isscalar(arr):
+            return arr
+        return asarray(arr, axes=axes, name=name)
+    
+    def normal(
+        self,
+        loc: float | np.ndarray = 0.,
+        scale: float | np.ndarray = 1.,
+        size: int | tuple[int, ...] | None = None,
+        *,
+        axes: AxesLike | None = None,
+        name: str | None = None,
+    ) -> ImgArray:
+        arr = self._rng.normal(loc=loc, scale=scale, size=size)
+        if np.isscalar(arr):
+            return arr
+        return asarray(arr, axes=axes, name=name)
 
 del wraps

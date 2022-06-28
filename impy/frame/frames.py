@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import MutableMapping
+from typing import MutableMapping, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 from functools import wraps
@@ -11,7 +11,10 @@ from ..utils.utilcls import ImportOnRequest
 from .._const import Const
 from ..axes import Axes, ImageAxesError
 
-tp = ImportOnRequest("trackpy")
+if TYPE_CHECKING:
+    import trackpy as tp
+else:
+    tp = ImportOnRequest("trackpy")
 
 class AxesFrame(pd.DataFrame):
     _metadata = ["_axes"]

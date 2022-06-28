@@ -104,7 +104,7 @@ def array(
         
     # Automatically determine axes
     if axes is None:
-        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+        axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim]
             
     self = ImgArray(arr, name=name, axes=axes)
     
