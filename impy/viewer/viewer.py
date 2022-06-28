@@ -27,6 +27,8 @@ from .._const import Const
 
 if TYPE_CHECKING:
     from napari.components import LayerList
+    import pandas as pd
+    from numpy.typing import ArrayLike
 
 # TODO: 
 # - Layer does not remember the original data after c-split ... this will be solved after 
@@ -124,21 +126,20 @@ class napariViewers:
             else:
                 axis = Axis(a)
             axes.append(axis)
-        return Axes(axes)
+        self._axes = Axes(axes)  # because scale-view uses a weakref
+        return self._axes
     
     @property
-    def scale(self) -> dict[str, float]:
-        """Scale information of current viewer.
+    def scale(self) -> ScaleView:
+        """
+        Scale information of current viewer.
         
         Defined to make compatible with ``ImgArray``.
         """        
-        d = self.viewer.dims
-        return ScaleView({a: r[2] for a, r in zip(d.axis_labels, d.range)})
+        return self.axes.scale
     
     def start(self, key: str = "impy"):
-        """
-        Create a napari window with name ``key``.
-        """        
+        """Create a napari window with name ``key``."""
         if not isinstance(key, str):
             raise TypeError("`key` must be str.")
         if key in self._viewers.keys():
@@ -462,8 +463,29 @@ class napariViewers:
             add_labels(self.viewer, img.labels, name=name, metadata={"destination_image": img})
         return None
     
-    def add_table(self, obj):
+    def add_table(self, table: pd.DataFrame | dict[str, ArrayLike], **kwargs):
         from magicgui.widgets import Table
-        table = Table(value=obj)
-        self.viewer.window.add_dock_widget(table)
+        table = Table(value=table)
+        self.viewer.window.add_dock_widget(table, **kwargs)
         return table
+    
+    def add_image(self, *args, **kwargs):
+        return self.viewer.add_image(*args, **kwargs)
+    
+    def add_shapes(self, *args, **kwargs):
+        return self.viewer.add_shapes(*args, **kwargs)
+    
+    def add_surface(self, *args, **kwargs):
+        return self.viewer.add_surface(*args, **kwargs)
+    
+    def add_points(self, *args, **kwargs):
+        return self.viewer.add_points(*args, **kwargs)
+    
+    def add_labels(self, *args, **kwargs):
+        return self.viewer.add_labels(*args, **kwargs)
+    
+    def add_vectors(self, *args, **kwargs):
+        return self.viewer.add_vectors(*args, **kwargs)
+    
+    def add_tracks(self, *args, **kwargs):
+        return self.viewer.add_tracks(*args, **kwargs)
