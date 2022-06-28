@@ -22,7 +22,7 @@ def test_axes(axes):
     assert list(img1.scale.keys()) == zyx
     assert img1.axes[axes[1]].scale == 0.3
     
-    img1.axes.replace(axes[1], axes[0])
+    img1.axes = img1.axes.replace(axes[1], axes[0])
     assert img1.axes == tyx
     assert img.axes == zyx
         

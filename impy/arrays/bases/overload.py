@@ -37,8 +37,7 @@ def _(imgs: list[MetaArray], axis: AxisLike = 0, dtype=None):
     else:
         # find where to add new axis
         if imgs[0].axes.is_sorted():
-            new_axes = Axes([axis] + old_axes)
-            new_axes.sort()
+            new_axes = Axes([axis] + old_axes).sorted()
             idx = new_axes.find(axis)
         else:
             new_axes = axis + old_axes
@@ -109,8 +108,7 @@ def _(img: MetaArray, name: str = None):
 @MetaArray.implements(np.expand_dims)
 def _(img: MetaArray, axis):
     if isinstance(axis, str):
-        new_axes = Axes(axis + str(img.axes))
-        new_axes.sort()
+        new_axes = Axes(axis + str(img.axes)).sorted()
         axisint = tuple(new_axes.find(a) for a in axis)
     else:
         axisint = axis

@@ -142,25 +142,13 @@ class Axes(Sequence[Axis]):
         else:
             return self._axis_list[key]
     
-    def __setitem__(self, key: int | str | Axis, value) -> None:
-        if isinstance(key, str):
-            old = key
-        else:
-            old = self[key]
-        self.replace(old, value)
-        return None
-    
-    def __delitem__(self, key: int | str | Axis) -> None:
-        if isinstance(key, str):
-            old = key
-        else:
-            old = self[key]
-        self.drop(old)
-        return None
-    
     def __getattr__(self, key: str) -> Axis:
         """Return an axis with name `key`."""
-        return self._axis_list[self.find(key)]
+        try:
+            idx = self._axis_list.index(key)
+        except:
+            raise AttributeError(f"{type(self).__name__!r} object has no attribute {key!r}.")
+        return self._axis_list[idx]
     
     def __iter__(self):
         return iter(self._axis_list)
@@ -172,7 +160,7 @@ class Axes(Sequence[Axis]):
             return other._axis_list == self._axis_list
         return self._axis_list == other
 
-    def __contains__(self, other):
+    def __contains__(self, other: AxisLike) -> bool:
         return other in self._axis_list
     
     def __repr__(self):
@@ -201,6 +189,7 @@ class Axes(Sequence[Axis]):
         ...
         
     def find(self, axis: str | Axis, *args) -> int:
+        """Find the index of an axis."""
         if len(args) > 1:
             raise TypeError(f"Expected 2 or 3 arguments but got {len(args) + 2}.")
         try:
@@ -213,12 +202,8 @@ class Axes(Sequence[Axis]):
                 f"Image does not have {axis}-axis: {_axes}."
             ) from None
     
-    def sort(self) -> None:
-        self._axis_list = self.sorted()
-        return None
-    
-    def sorted(self)-> list[Axis]:
-        return [self._axis_list[i] for i in self.argsort()]
+    def sorted(self)-> Axes:
+        return self.__class__([self._axis_list[i] for i in self.argsort()])
     
     def argsort(self):
         return np.argsort([ORDER.get(k, 0) for k in self._axis_list])
@@ -230,10 +215,11 @@ class Axes(Sequence[Axis]):
         """Make a copy of Axes object."""
         return self.__class__(self)
 
-    def replace(self, old: AxisLike, new: AxisLike):
+    def replace(self, old: AxisLike, new: AxisLike) -> Axes:
         """
-        Replace axis symbol. To avoid unexpected effect between images, new scale
-        attribute will be copied.
+        Create a new Axes object with `old` axis replaced by `new`.
+        
+        To avoid unexpected effect between images, new scale attribute will be copied.
 
         Parameters
         ----------
@@ -250,8 +236,9 @@ class Axes(Sequence[Axis]):
             new_axis = Axis(new, metadata=self[i].metadata.copy())
         else:
             new_axis = new
-        self._axis_list[i] = new_axis
-        return None
+        axis_list = self._axis_list.copy()
+        axis_list[i] = new_axis
+        return self.__class__(axis_list)
     
     def contains(self, chars: AxesLike, *, ignore_undef: bool = False) -> bool:
         """True if self contains all the characters in ``chars``."""
