@@ -38,6 +38,18 @@ def test_multi_dims():
     assert roi._slice_by((slice(0, 3, 1), slice(0, 3, 1), 3, slice(1, 6, 1), slice(3, 8, 1))) is None
         
 
+def test_drop():
+    roi = LineRoi(
+        [[3, 4],
+         [6, 10]],
+        "tzcyx", 
+        multi_dims=[2, 14, 1]
+    )
+    
+    assert roi.drop(0) == LineRoi([[3, 4], [6, 10]], "zcyx", multi_dims=[14, 1])
+    assert roi.drop(2) == LineRoi([[3, 4], [6, 10]], "tzyx", multi_dims=[2, 14])
+    
+
 def test_covariance():
     img = ip.zeros((5, 10, 10), axes="tyx")
     img.rois = [

@@ -3,7 +3,7 @@ import numpy as np
 from typing import Iterable, Iterator, MutableSequence, TYPE_CHECKING
 from roifile import ImagejRoi, ROI_TYPE, ROI_SUBTYPE, roiread, roiwrite
 
-from .axes import Axis, Axes, AxesLike, ImageAxesError, UndefAxis
+from .axes import Axis, Axes, AxisLike, AxesLike, ImageAxesError
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -163,6 +163,14 @@ class Roi:
 
     def _plot(self, ax, **kwargs):
         raise NotImplementedError
+    
+    def drop(self, axis: int | AxisLike):
+        if not isinstance(axis, int):
+            axis = self.axes.find(axis)
+        multi_dims = [a for i, a in enumerate(self._multi_dims) if i != axis]
+        return self.__class__(
+            data=self._data, axes=self.axes.drop(axis), multi_dims=multi_dims,
+        )
 
 
 class PolygonRoi(Roi):
@@ -289,6 +297,7 @@ class RoiList(MutableSequence[Roi]):
         return self.__class__(axes, data)
 
     def _dimension_matches(self, arr: MetaArray) -> bool:
+        """Check if dimension matches."""
         return all(a in self.axes for a in arr.axes)
     
     @classmethod
@@ -312,7 +321,7 @@ class RoiList(MutableSequence[Roi]):
             rois = [rois]
         
         data: list[Roi] = []
-        all_axes = []
+        all_axes: list[Axes] = []
         for ijroi in rois:
             roicls = _ROI_TYPE_MAP[ijroi.roitype, ijroi.subtype]
             roi = roicls.from_imagejroi(ijroi)
@@ -350,6 +359,15 @@ class RoiList(MutableSequence[Roi]):
         roiwrite(path, ijrois)
         return None
 
+    def plot(self, ax=None, **kwargs):
+        """Plot all the ROIs."""
+        for roi in self:
+            roi.plot(ax, **kwargs)
+        return None
+
+    def drop(self, axis: int | AxisLike):
+        """Drop an axis from all the ROIs."""
+        return self.__class__(self.axes.drop(axis), [roi.drop(axis) for roi in self])
 
 _ROI_TYPE_MAP: dict[tuple[ROI_TYPE, ROI_SUBTYPE], type[Roi]] = {
     (ROI_TYPE.POINT, ROI_SUBTYPE.UNDEFINED): PointRoi,

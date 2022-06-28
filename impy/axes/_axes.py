@@ -259,7 +259,7 @@ class Axes(Sequence[Axis]):
             return all(a in self._axis_list for a in chars if not isinstance(a, UndefAxis))
         return all(a in self._axis_list for a in chars)
     
-    def drop(self, axes) -> Axes:
+    def drop(self, axes: AxisLike | AxesLike | int | Iterable[int]) -> Axes:
         """Drop an axis or a list of axes."""
         if not isinstance(axes, (list, tuple, str)):
             axes = (axes,)
