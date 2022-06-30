@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.bases.overload &mdash; impy 2.1.0.alpha documentation</title>
+  <title>impy.arrays.bases.overload &mdash; impy 2.1.1 documentation</title>
       <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0.alpha
+                2.1.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
@@ -39,7 +39,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API References</a></li>
 </ul>
 
@@ -107,8 +109,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># find where to add new axis</span>
         <span class="k">if</span> <span class="n">imgs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">is_sorted</span><span class="p">():</span>
-            <span class="n">new_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">([</span><span class="n">axis</span><span class="p">]</span> <span class="o">+</span> <span class="n">old_axes</span><span class="p">)</span>
-            <span class="n">new_axes</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">new_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">([</span><span class="n">axis</span><span class="p">]</span> <span class="o">+</span> <span class="n">old_axes</span><span class="p">)</span><span class="o">.</span><span class="n">sorted</span><span class="p">()</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="n">new_axes</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">new_axes</span> <span class="o">=</span> <span class="n">axis</span> <span class="o">+</span> <span class="n">old_axes</span>
@@ -179,8 +180,7 @@
 <span class="nd">@MetaArray</span><span class="o">.</span><span class="n">implements</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">new_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">(</span><span class="n">axis</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">))</span>
-        <span class="n">new_axes</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">new_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">(</span><span class="n">axis</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">))</span><span class="o">.</span><span class="n">sorted</span><span class="p">()</span>
         <span class="n">axisint</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_axes</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">axisint</span> <span class="o">=</span> <span class="n">axis</span>

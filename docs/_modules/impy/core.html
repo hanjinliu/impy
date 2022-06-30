@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.core &mdash; impy 2.1.1.dev1 documentation</title>
+  <title>impy.core &mdash; impy 2.1.1 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.1.dev1
+                2.1.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -41,6 +41,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
 </ul>
 
@@ -75,6 +76,7 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
 <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">ParamSpec</span>
@@ -93,8 +95,10 @@
 <span class="kn">from</span> <span class="nn">.collections</span> <span class="kn">import</span> <span class="n">DataList</span>
 <span class="kn">from</span> <span class="nn">.arrays.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
 <span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">LazyImgArray</span>
-<span class="kn">from</span> <span class="nn">.frame</span> <span class="kn">import</span> <span class="n">AxesFrame</span>
 <span class="kn">from</span> <span class="nn">._const</span> <span class="kn">import</span> <span class="n">Const</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.roi</span> <span class="kn">import</span> <span class="n">RoiList</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;array&quot;</span><span class="p">,</span> 
@@ -111,6 +115,7 @@
     <span class="s2">&quot;imread_collection&quot;</span><span class="p">,</span> 
     <span class="s2">&quot;lazy_imread&quot;</span><span class="p">,</span> 
     <span class="s2">&quot;read_meta&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;roiread&quot;</span><span class="p">,</span>
     <span class="s2">&quot;sample_image&quot;</span><span class="p">,</span>
     <span class="s2">&quot;broadcast_arrays&quot;</span>
 <span class="p">]</span>
@@ -171,7 +176,7 @@
         
     <span class="c1"># Automatically determine axes</span>
     <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;yx&quot;</span><span class="p">,</span> <span class="s2">&quot;tyx&quot;</span><span class="p">,</span> <span class="s2">&quot;tzyx&quot;</span><span class="p">,</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">,</span> <span class="s2">&quot;ptzcyx&quot;</span><span class="p">][</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;yx&quot;</span><span class="p">,</span> <span class="s2">&quot;tyx&quot;</span><span class="p">,</span> <span class="s2">&quot;tzyx&quot;</span><span class="p">,</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">,</span> <span class="s2">&quot;ptzcyx&quot;</span><span class="p">][</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">]</span>
             
     <span class="bp">self</span> <span class="o">=</span> <span class="n">ImgArray</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
     
@@ -831,9 +836,11 @@
         <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">image_data</span><span class="o">.</span><span class="n">metadata</span>
     <span class="p">}</span></div>
 
-<span class="k">def</span> <span class="nf">roiread</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesFrame</span><span class="p">:</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">io</span><span class="o">.</span><span class="n">roiread</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<div class="viewcode-block" id="roiread"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.roiread">[docs]</a><span class="k">def</span> <span class="nf">roiread</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RoiList</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Read a Roi.zip file as a RoiList object.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.roi</span> <span class="kn">import</span> <span class="n">RoiList</span>
+    
+    <span class="k">return</span> <span class="n">RoiList</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

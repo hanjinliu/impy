@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 2.1.1.dev1 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 2.1.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.1.dev1
+                2.1.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -41,6 +41,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -98,6 +99,7 @@
     <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
     <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">PathFrame</span>
     <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span>
+    <span class="kn">from</span> <span class="nn">..roi</span> <span class="kn">import</span> <span class="n">RoiList</span>
 
 
 <div class="viewcode-block" id="SupportAxesSlicing"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing">[docs]</a><span class="k">class</span> <span class="nc">SupportAxesSlicing</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
@@ -126,6 +128,8 @@
         <span class="k">return</span> <span class="n">k</span>
 
 <div class="viewcode-block" id="ArrayCovariates"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates">[docs]</a><span class="k">class</span> <span class="nc">ArrayCovariates</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;A dictionary of covariate objects for a MetaArray.&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">],</span> <span class="n">parent</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">):</span>
         <span class="kn">import</span> <span class="nn">weakref</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
@@ -169,7 +173,7 @@
                     <span class="p">)</span>
                             
                     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_sl</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">axes</span><span class="p">):</span>
-                        <span class="n">label_sl</span> <span class="o">=</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span>
+                        <span class="n">label_sl</span> <span class="o">=</span> <span class="p">()</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">label_sl</span> <span class="o">=</span> <span class="n">key</span>
 
@@ -227,6 +231,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span> <span class="o">=</span> <span class="n">ArrayCovariates</span><span class="p">({},</span> <span class="bp">self</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="bp">self</span>
+    
+    <span class="nd">@MetaArray</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">AxesLike</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_axes&quot;</span><span class="p">):</span>
+            <span class="c1"># not initialized yet</span>
+            <span class="n">MetaArray</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">old_axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span>
+        <span class="n">MetaArray</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">new_axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span>
+        <span class="n">_old_to_new_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">old_axes</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">)}</span>
+
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">v</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">_old_to_new_map</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
@@ -274,6 +292,28 @@
     <span class="nd">@labels</span><span class="o">.</span><span class="n">deleter</span>
     <span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">rois</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RoiList</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;ROIs of the image.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rois&quot;</span><span class="p">)</span>
+    
+    <span class="nd">@rois</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">rois</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">..roi</span> <span class="kn">import</span> <span class="n">RoiList</span><span class="p">,</span> <span class="n">POS</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">RoiList</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">POS</span> <span class="ow">and</span> <span class="n">val</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="kn">import</span> <span class="nn">copy</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="n">val</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">val</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">[</span><span class="s2">&quot;rois&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">[</span><span class="s2">&quot;rois&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RoiList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+    
+    <span class="nd">@rois</span><span class="o">.</span><span class="n">deleter</span>
+    <span class="k">def</span> <span class="nf">rois</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rois&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     
 <div class="viewcode-block" id="LabeledArray.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>

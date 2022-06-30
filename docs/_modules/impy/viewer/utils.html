@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer.utils &mdash; impy 2.1.0.alpha documentation</title>
+  <title>impy.viewer.utils &mdash; impy 2.1.1 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0.alpha
+                2.1.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,7 +39,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -70,7 +72,7 @@
   <h1>Source code for impy.viewer.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">TypeVar</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">napari</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -81,6 +83,7 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">TrackFrame</span><span class="p">,</span> <span class="n">PathFrame</span><span class="p">,</span> <span class="n">AxesFrame</span>
+    <span class="kn">from</span> <span class="nn">..roi</span> <span class="kn">import</span> <span class="n">Roi</span>
     <span class="kn">from</span> <span class="nn">napari.layers</span> <span class="kn">import</span> <span class="n">Shapes</span>
 
 
@@ -97,28 +100,31 @@
 <span class="sd">    -------</span>
 <span class="sd">    napari.layers</span>
 <span class="sd">        Layers specified by layer_type</span>
-<span class="sd">    &quot;&quot;&quot;</span>        
+<span class="sd">    &quot;&quot;&quot;</span>      
+    <span class="kn">from</span> <span class="nn">napari</span> <span class="kn">import</span> <span class="n">layers</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">layer_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_type</span><span class="p">]</span>
-    <span class="n">layer_type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer_type</span><span class="p">)</span>
+    <span class="n">layer_type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer_type</span><span class="p">)</span>
     
     <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">layer</span></div>
 
-<div class="viewcode-block" id="iter_selected_layer"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.iter_selected_layer">[docs]</a><span class="k">def</span> <span class="nf">iter_selected_layer</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">:</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<div class="viewcode-block" id="iter_selected_layer"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.iter_selected_layer">[docs]</a><span class="k">def</span> <span class="nf">iter_selected_layer</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Iterate over selected layers and yield only certain type of layers.&quot;&quot;&quot;</span>
+    
+    <span class="kn">from</span> <span class="nn">napari</span> <span class="kn">import</span> <span class="n">layers</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">layer_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_type</span><span class="p">]</span>
-    <span class="n">layer_type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">napari</span><span class="o">.</span><span class="n">layers</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer_type</span><span class="p">)</span>
+    <span class="n">layer_type</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">layer_type</span><span class="p">)</span>
     
     <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">selection</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">layer</span></div>
 
 <div class="viewcode-block" id="front_image"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.front_image">[docs]</a><span class="k">def</span> <span class="nf">front_image</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span><span class="s2">&quot;napari.Viewer&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    From list of image layers return the most front visible image.</span>
-<span class="sd">    &quot;&quot;&quot;</span>        
+    <span class="sd">&quot;&quot;&quot;From list of image layers return the most front visible image.&quot;&quot;&quot;</span>        
+    
     <span class="n">front</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">iter_layer</span><span class="p">(</span><span class="n">viewer</span><span class="p">,</span> <span class="s2">&quot;Image&quot;</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">visible</span><span class="p">:</span>
@@ -127,7 +133,8 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is no visible image layer.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">front</span></div>
 
-<div class="viewcode-block" id="to_labels"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.to_labels">[docs]</a><span class="k">def</span> <span class="nf">to_labels</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span> <span class="s2">&quot;Shapes&quot;</span><span class="p">,</span> <span class="n">labels_shape</span><span class="p">,</span> <span class="n">zoom_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="to_labels"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.to_labels">[docs]</a><span class="k">def</span> <span class="nf">to_labels</span><span class="p">(</span><span class="n">layer</span><span class="p">:</span> <span class="s2">&quot;Shapes&quot;</span><span class="p">,</span> <span class="n">labels_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">zoom_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert a Shapes layer to labels, with given zoom factor.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">layer</span><span class="o">.</span><span class="n">_data_view</span><span class="o">.</span><span class="n">to_labels</span><span class="p">(</span>
         <span class="n">labels_shape</span><span class="o">=</span><span class="n">labels_shape</span><span class="p">,</span> <span class="n">zoom_factor</span><span class="o">=</span><span class="n">zoom_factor</span>
     <span class="p">)</span></div>
@@ -144,6 +151,8 @@
     <span class="k">return</span> <span class="n">scale</span></div>
 
 <div class="viewcode-block" id="viewer_imread"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.viewer_imread">[docs]</a><span class="k">def</span> <span class="nf">viewer_imread</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>    
+    <span class="sd">&quot;&quot;&quot;Read an image into the viewer.&quot;&quot;&quot;</span>
+    
     <span class="k">if</span> <span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">/</span><span class="mf">1e9</span> <span class="o">&lt;</span> <span class="n">Const</span><span class="p">[</span><span class="s2">&quot;MAX_GB&quot;</span><span class="p">]:</span>
         <span class="n">img</span> <span class="o">=</span> <span class="n">imread</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -152,6 +161,8 @@
     <span class="k">return</span> <span class="n">layer</span></div>
 
 <div class="viewcode-block" id="add_labeledarray"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.add_labeledarray">[docs]</a><span class="k">def</span> <span class="nf">add_labeledarray</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">img</span><span class="p">:</span> <span class="n">LabeledArray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add a LabeledArray to the viewer.&quot;&quot;&quot;</span>
+    
     <span class="k">if</span> <span class="ow">not</span> <span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">is_sorted</span><span class="p">()</span> <span class="ow">and</span> <span class="n">img</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Input image has axes that are not correctly sorted: </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">. &quot;</span>
@@ -316,7 +327,31 @@
     
     <span class="k">return</span> <span class="kc">None</span></div>
 
+<div class="viewcode-block" id="add_rois"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.add_rois">[docs]</a><span class="k">def</span> <span class="nf">add_rois</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">rois</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Roi</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">..roi</span> <span class="kn">import</span> <span class="n">LineRoi</span><span class="p">,</span> <span class="n">PointRoi</span><span class="p">,</span> <span class="n">PolygonRoi</span><span class="p">,</span> <span class="n">PolyLineRoi</span><span class="p">,</span> <span class="n">RectangleRoi</span>
+    
+    <span class="n">_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">LineRoi</span><span class="p">:</span> <span class="s2">&quot;line&quot;</span><span class="p">,</span>
+        <span class="n">PolygonRoi</span><span class="p">:</span> <span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+        <span class="n">PolyLineRoi</span><span class="p">:</span> <span class="s2">&quot;path&quot;</span><span class="p">,</span>
+        <span class="n">RectangleRoi</span><span class="p">:</span> <span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="n">shapes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">shape_types</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="n">rois</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">roi</span><span class="p">,</span> <span class="n">PointRoi</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;PointRoi is not supported.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_map</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">roi</span><span class="p">)])</span>
+            <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">roi</span><span class="p">))</span>
+    
+    <span class="n">viewer</span><span class="o">.</span><span class="n">add_shapes</span><span class="p">(</span><span class="n">shapes</span><span class="p">,</span> <span class="n">shape_type</span><span class="o">=</span><span class="n">shape_types</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="kc">None</span></div>
+
 <div class="viewcode-block" id="get_viewer_scale"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.get_viewer_scale">[docs]</a><span class="k">def</span> <span class="nf">get_viewer_scale</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the scale of the viewer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">axis_labels</span><span class="p">,</span> <span class="n">viewer</span><span class="o">.</span><span class="n">dims</span><span class="o">.</span><span class="n">range</span><span class="p">)}</span></div>
 
 <div class="viewcode-block" id="layer_to_impy_object"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.utils.layer_to_impy_object">[docs]</a><span class="k">def</span> <span class="nf">layer_to_impy_object</span><span class="p">(</span><span class="n">viewer</span><span class="p">:</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>

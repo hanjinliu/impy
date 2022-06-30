@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays package &mdash; impy 2.1.1.dev1 documentation</title>
+  <title>impy.arrays package &mdash; impy 2.1.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -31,7 +31,7 @@
             <a href="../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.1.dev1
+                2.1.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -41,52 +41,12 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_cmd.html">Command Line Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gallery/index.html">Gallery</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API References</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="impy.html">impy package</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="impy.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l4 current"><a class="current reference internal" href="#">impy.arrays package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.axes.html">impy.axes package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.frame.html">impy.frame package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.utils.html">impy.utils package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.array_api">impy.array_api module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.binder">impy.binder module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.collections">impy.collections module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.core">impy.core module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.correlation">impy.correlation module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.io">impy.io module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.random">impy.random module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy.roi">impy.roi module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="impy.html#module-impy">Module contents</a></li>
-</ul>
-</li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">impy.arrays package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="impy.arrays.bases.html">impy.arrays.bases package</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.axesmixin">impy.arrays.axesmixin module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.imgarray">impy.arrays.imgarray module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.label">impy.arrays.label module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.labeledarray">impy.arrays.labeledarray module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.lazy">impy.arrays.lazy module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.phasearray">impy.arrays.phasearray module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays.specials">impy.arrays.specials module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-impy.arrays">Module contents</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="impy.viewer.html">impy.viewer package</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API References</a></li>
 </ul>
 
         </div>
@@ -3255,6 +3215,7 @@ dimension.</p>
 <dt class="sig sig-object py" id="impy.arrays.labeledarray.ArrayCovariates">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">impy.arrays.labeledarray.</span></span><span class="sig-name descname"><span class="pre">ArrayCovariates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#impy.arrays.labeledarray.SupportAxesSlicing" title="impy.arrays.labeledarray.SupportAxesSlicing"><span class="pre">impy.arrays.labeledarray.SupportAxesSlicing</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="impy.arrays.bases.html#impy.arrays.bases.metaarray.MetaArray" title="impy.arrays.bases.metaarray.MetaArray"><span class="pre">impy.arrays.bases.metaarray.MetaArray</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/arrays/labeledarray.html#ArrayCovariates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.ArrayCovariates" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <a class="reference internal" href="#impy.arrays.labeledarray.SupportAxesSlicing" title="impy.arrays.labeledarray.SupportAxesSlicing"><code class="xref py py-class docutils literal notranslate"><span class="pre">impy.arrays.labeledarray.SupportAxesSlicing</span></code></a>]</p>
+<p>A dictionary of covariate objects for a MetaArray.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.arrays.labeledarray.ArrayCovariates.construct_by_copying">
 <span class="sig-name descname"><span class="pre">construct_by_copying</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">MetaArray</span> <span class="p"><span class="pre">|</span></span> <span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../_modules/impy/arrays/labeledarray.html#ArrayCovariates.construct_by_copying"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.ArrayCovariates.construct_by_copying" title="Permalink to this definition">¶</a></dt>
@@ -3327,6 +3288,12 @@ dimension.</p>
 <dt class="sig sig-object py" id="impy.arrays.labeledarray.LabeledArray.as_uint8">
 <span class="sig-name descname"><span class="pre">as_uint8</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../_modules/impy/arrays/labeledarray.html#LabeledArray.as_uint8"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.as_uint8" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.arrays.labeledarray.LabeledArray.axes">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">axes</span></span><em class="property"><span class="pre">:</span> <span class="pre">impy.axes._axes.Axes</span></em><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Axes of the array.</p>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.arrays.labeledarray.LabeledArray.covariates">
@@ -3780,6 +3747,12 @@ For more details see <a class="reference external" href="https://scikit-image.or
 </div>
 </li>
 </ol>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="impy.arrays.labeledarray.LabeledArray.rois">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">rois</span></span><em class="property"><span class="pre">:</span> <span class="pre">RoiList</span></em><a class="headerlink" href="#impy.arrays.labeledarray.LabeledArray.rois" title="Permalink to this definition">¶</a></dt>
+<dd><p>ROIs of the image.</p>
 </dd></dl>
 
 <dl class="py method">
