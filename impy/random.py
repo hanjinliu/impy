@@ -161,4 +161,19 @@ class ImageGenerator:
             return arr
         return asarray(arr, axes=axes, name=name)
 
+    def poisson(
+        self,
+        lam: float,
+        size: int | tuple[int, ...] | None = None,
+        *,
+        axes: AxesLike | None = None,
+        name: str | None = None,
+    ) -> ImgArray:
+        arr = self._rng.poisson(lam=lam, size=size)
+        if np.isscalar(arr):
+            return arr
+        return asarray(arr, axes=axes, name=name)
+        
+        
+
 del wraps
