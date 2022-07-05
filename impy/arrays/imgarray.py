@@ -1560,10 +1560,11 @@ class ImgArray(LabeledArray):
         if matrix.shape != (n_chn, n_chn):
             raise ValueError(f"`map_matrix` must have shape {(n_chn, n_chn)}")
         if bg is None:
-            bg = np.array([self.value[i].min() for i in range(n_chn)])
-        bg = np.asarray(bg, dtype=np.float32).ravel()
-        if bg.size != n_chn:
-            raise ValueError(f"`bg` must have length {n_chn}")
+            bg = np.zeros(n_chn)
+        else:
+            bg = np.asarray(bg, dtype=np.float32).ravel()
+            if bg.size != n_chn:
+                raise ValueError(f"`bg` must have length {n_chn}")
         
         # move channel axis to the last
         input_ = np.moveaxis(np.asarray(self, dtype=np.float32), c_ax, -1)
