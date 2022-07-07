@@ -84,7 +84,7 @@ class Roi:
         
     @classmethod
     def from_imagejroi(cls, roi: ImagejRoi) -> Self:
-        yx: np.ndarray = (cls.get_coordinates(roi.coordinates()) - 1)
+        yx: np.ndarray = cls.get_coordinates(roi.coordinates())
         p = roi.position
         c = roi.c_position
         t = roi.t_position
