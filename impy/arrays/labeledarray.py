@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import os
 from pathlib import Path
 import itertools
 from functools import partial
@@ -268,11 +267,19 @@ class LabeledArray(MetaArray):
         }
     
     
-    def imsave(self, save_path: str, dtype: DTypeLike = None):
+    def imsave(
+        self,
+        save_path: str | Path, 
+        *,
+        dtype: DTypeLike = None,
+        overwrite: bool = True,
+    ) -> None:
         """
-        Save image at the same directory as the original image by default. For tif file format, if the
-        image contains wrong axes for ImageJ (= except for tzcyx), then it will converted automatically 
-        if possible. For mrc file format, only zyx and yx is allowed. zyx-scale is also saved.
+        Save image at the same directory as the original image by default. 
+        
+        For tif file format, if the image contains wrong axes for ImageJ (= except for tzcyx), 
+        then it will converted automatically if possible. For mrc file format, only zyx and yx is 
+        allowed. zyx-scale is also saved.
 
         Parameters
         ----------
@@ -280,22 +287,24 @@ class LabeledArray(MetaArray):
             File name.
         dtype : dtype-like, optional
             In what data type img will be saved.
+        overwrite : bool, default is True
+            Whether to overwrite the file if it already exists.
         
-        Returns
-        -------
-        None
         """        
-        save_path = str(save_path)
-        _, ext = os.path.splitext(save_path)
-        
-        if ext == "":
+        save_path = Path(save_path)
+        if self.ndim < 2:
+            raise ValueError("Cannot save <2D array as an image.")
+
+        if save_path.suffix == "":
             if self.source is not None:
                 ext = self.source.suffix
+                if ext == "":
+                    ext = ".tif"
             else:
                 ext = ".tif"
-            save_path += ext
-    
-        if os.sep not in save_path:
+            save_path = save_path.parent / (save_path.name + ext)
+        
+        if not Path(save_path).is_absolute():
             if self.source is None:
                 raise ValueError(
                     "Image directory path is unknown. Set by \n"
@@ -303,7 +312,10 @@ class LabeledArray(MetaArray):
                     "or specify absolute path like\n"
                     " >>> img.imsave(\"/path/to/XXX.tif\")"
                     )
-            save_path = os.path.join(self.source.parent, save_path)
+            save_path = self.source.parent / save_path
+        
+        if not overwrite and save_path.exists():
+            raise FileExistsError(f"File {save_path!r} already exists.")
         if self.metadata is None:
             self.metadata = {}
         if dtype is None:

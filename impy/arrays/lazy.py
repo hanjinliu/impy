@@ -304,19 +304,32 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(LabeledArray.imsave)
-    def imsave(self, save_path: str, dtype = None):
-        save_path = str(save_path)
-        _, ext = os.path.splitext(save_path)
-        
-        if ext == "":
+    def imsave(self, save_path: str | Path, *, dtype = None, overwrite: bool = True):
+        save_path = Path(save_path)
+        if self.ndim < 2:
+            raise ValueError("Cannot save <2D array as an image.")
+
+        if save_path.suffix == "":
             if self.source is not None:
                 ext = self.source.suffix
+                if ext == "":
+                    ext = ".tif"
             else:
                 ext = ".tif"
-            save_path += ext
+            save_path = save_path.parent / (save_path.name + ext)
         
-        if os.sep not in save_path:
-            save_path = os.path.join(self.source.parent, save_path)
+        if not Path(save_path).is_absolute():
+            if self.source is None:
+                raise ValueError(
+                    "Image directory path is unknown. Set by \n"
+                    " >>> img.source = \"...\"\n"
+                    "or specify absolute path like\n"
+                    " >>> img.imsave(\"/path/to/XXX.tif\")"
+                    )
+            save_path = self.source.parent / save_path
+        
+        if not overwrite and save_path.exists():
+            raise FileExistsError(f"File {save_path!r} already exists.")
         if dtype is None:
             dtype = self.dtype
         

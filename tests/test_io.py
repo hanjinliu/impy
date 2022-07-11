@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.parametrize(
     ["ext", "unit"], 
-    [(".tif", "um"), (".mrc", "nm"), (".zarr", "um")]
+    [(".tif", "μm"), (".mrc", "nm"), (".zarr", "μm")]
 )
 def test_imread_and_imsave(ext, unit):
     img = ip.random.random_uint16((4, 100, 100), axes="zyx")
@@ -39,3 +39,18 @@ def test_imread_key(key):
     assert_equal(img0, img1)
     assert img1.scale_unit == "μm"
     assert img0.scale_unit == "μm"
+
+def test_imsave_safety():
+    img = ip.random.random_uint16((4, 100, 100), axes="zyx")
+    img.set_scale(z=0.4, xy=0.3)
+    img.scale_unit = "μm"
+    assert img.source is None
+    with tempfile.TemporaryDirectory() as path:
+        img.imsave(Path(path) / "test.tif")
+        with pytest.raises(Exception):
+            img.imsave("test.tif")
+        img.source = Path(path) / "dummy.tif"
+        img.imsave("test.tif")
+        img.imsave("test")
+        with pytest.raises(Exception):
+            img.imsave("test.tif", overwrite=False)

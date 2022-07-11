@@ -467,6 +467,9 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         f.array("data", z)
     return None
 
+@IO.mark_writer("")
+def _(path: str, img: ImpyArray, lazy: bool = False):
+    raise ValueError(f"Input path {path!r} does not have file extension.")
 
 _MRC_MODE = {
     np.dtype("int8"): 0,
@@ -519,4 +522,3 @@ imread_dask = IO.imread_dask
 imsave = IO.imsave
 mark_reader = IO.mark_reader
 mark_writer = IO.mark_writer
-
