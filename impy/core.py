@@ -11,7 +11,6 @@ if sys.version_info < (3, 10):
 else:
     from typing import ParamSpec
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike, _ShapeLike
 from functools import wraps
 
 from . import io
@@ -22,15 +21,20 @@ from ._types import *
 from .axes import ImageAxesError, broadcast, Axes
 from .collections import DataList
 from .arrays.bases import MetaArray
-from .arrays import ImgArray, LazyImgArray
+from .arrays import ImgArray, LazyImgArray, Label
 from ._const import Const
 
 if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, DTypeLike
     from .roi import RoiList
+    # NOTE: "_ShapeLike" is not a public type in numpy.typing.
+    from typing import SupportsIndex, Union
+    ShapeLike = Union[SupportsIndex, Sequence[SupportsIndex]]
 
 __all__ = [
     "array", 
-    "asarray", 
+    "asarray",
+    "aslabel", 
     "aslazy", 
     "zeros", 
     "empty", 
@@ -137,6 +141,52 @@ def asarray(
     return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
 
 @write_docs
+def aslabel(
+    arr: ArrayLike,
+    dtype: DTypeLike = None,
+    *, 
+    name: str = None,
+    axes: str = None
+) -> ImgArray:
+    """
+    make an Label object.
+    
+    Parameters
+    ----------
+    arr : array-like
+        Base array.
+    {}
+        
+    Returns
+    -------
+    Label
+    
+    """
+    if isinstance(arr, np.ndarray) and dtype is None:
+        if arr.dtype.kind == "u":
+            dtype = arr.dtype
+        elif arr.dtype.kind == "i":
+            if arr.dtype in ("int8", "int16"):
+                dtype = np.uint8
+            elif arr.dtype == "int32":
+                dtype = np.uint16
+            elif arr.dtype == "int64":
+                dtype = np.uint32
+            else:
+                dtype = np.uint64
+        else:
+            raise ValueError(f"Dtype {arr.dtype} is not supported for a Label.")
+    
+    arr = np.asarray(arr, dtype=dtype)
+        
+    # Automatically determine axes
+    if axes is None:
+        axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim]
+            
+    self = Label(arr, name=name, axes=axes)
+    return self
+
+@write_docs
 def aslazy(
     arr: ArrayLike, 
     dtype: DTypeLike = None,
@@ -214,23 +264,24 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
     return _func
 
 @_inject_numpy_function
-def zeros(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def zeros(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
     
 @_inject_numpy_function
-def empty(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def empty(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
 @_inject_numpy_function
-def ones(shape: _ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def ones(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
 @_inject_numpy_function
-def full(shape: _ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def full(shape: ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
 
 @_inject_numpy_function
 def arange(stop: int, dtype: DTypeLike = ..., like: Any = ...): ...
 
 
+
 def gaussian_kernel(
-    shape: _ShapeLike, 
+    shape: ShapeLike, 
     sigma: nDFloat = 1.0,
     peak: float = 1.0,
 ) -> ImgArray:
@@ -263,7 +314,7 @@ def gaussian_kernel(
 
 def circular_mask(
     radius: nDFloat, 
-    shape: _ShapeLike,
+    shape: ShapeLike,
     center: str | tuple[float, ...] = "center"
 ) -> ImgArray:
     """
