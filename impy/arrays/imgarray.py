@@ -1673,9 +1673,8 @@ class ImgArray(LabeledArray):
         argument because output has total different scale of intensity. 
         
             .. warning::
-                Because in
-                most cases we want to find only bright dots, eigenvalues larger than 0 is
-                ignored before computing determinant.
+                Because in most cases we want to find only bright dots, eigenvalues larger 
+                than 0 is ignored before computing determinant.
 
         Parameters
         ----------
@@ -1808,9 +1807,18 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def wavelet_denoising(self, noise_sigma:float=None, *, wavelet:str="db1", mode:str="soft", 
-                          wavelet_levels:int=None, method:str="BayesShrink", max_shifts:int|tuple=0,
-                          shift_steps:int|tuple=1, dims: Dims = None) -> ImgArray:
+    def wavelet_denoising(
+        self,
+        noise_sigma: float | None = None,
+        *, 
+        wavelet: str = "db1",
+        mode: Literal["soft"] | Literal["hard"] = "soft", 
+        wavelet_levels: int | None = None,
+        method: Literal["BayesShrink"] | Literal["VisuShrink"] = "BayesShrink",
+        max_shifts: int | tuple[int, ...] = 0,
+        shift_steps: int | tuple[int, ...] = 1,
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Wavelet denoising. Because it is not shift invariant, ``cycle_spin`` is called inside the 
         function.
@@ -1838,16 +1846,19 @@ class ImgArray(LabeledArray):
         ImgArray
             Denoised image.
         """        
-        func_kw=dict(sigma=noise_sigma, 
-                     wavelet=wavelet, 
-                     mode=mode, 
-                     wavelet_levels=wavelet_levels,
-                     method=method)
-        return self._apply_dask(skres.cycle_spin, 
-                               c_axes=complement_axes(dims, self.axes), 
-                               args=(skres.denoise_wavelet,),
-                               kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
-                               )
+        func_kw = dict(
+            sigma=noise_sigma, 
+            wavelet=wavelet, 
+            mode=mode, 
+            wavelet_levels=wavelet_levels,
+            method=method
+        )
+        return self._apply_dask(
+            skres.cycle_spin, 
+            c_axes=complement_axes(dims, self.axes), 
+            args=(skres.denoise_wavelet,),
+            kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
+        )
     
     @_docs.write_docs
     def split_pixel_unit(
@@ -1855,7 +1866,7 @@ class ImgArray(LabeledArray):
         center: tuple[float, float] = (0.5, 0.5),
         *, 
         order: int = 1,
-        angle_order: list[int] = None,
+        angle_order: list[int] | None = None,
         newaxis: AxisLike = "a",
     ) -> ImgArray:
         r"""

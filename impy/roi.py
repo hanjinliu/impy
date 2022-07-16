@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import numpy as np
 from typing import Iterable, Iterator, MutableSequence, TYPE_CHECKING
 from roifile import ImagejRoi, ROI_TYPE, ROI_SUBTYPE, roiread, roiwrite
@@ -14,6 +15,13 @@ if TYPE_CHECKING:
 POS = Axis("position")
 
 class Roi:
+    """
+    Base class for ImageJ ROI types.
+    
+    This class adds slice covariancy and axes to the ROI objects. Basically, a
+    Roi object is conposed of a spatial dimensions (stored in ``_data``) and
+    extra-dimensions (stored in ``_multi_dims``).
+    """
     def __init__(
         self,
         data: ArrayLike,
@@ -37,6 +45,7 @@ class Roi:
 
     @property
     def axes(self) -> Axes:
+        """Roi axes."""
         return self._axes
     
     @axes.setter
@@ -80,10 +89,11 @@ class Roi:
     @staticmethod
     def get_coordinates(coords: np.ndarray):
         """Convert coordinates."""
-        return coords[:, ::-1]
+        return coords[:, ::-1] - 1
         
     @classmethod
     def from_imagejroi(cls, roi: ImagejRoi) -> Self:
+        """Construct a Roi from an ``roifile.ImagejRoi`` object."""
         yx: np.ndarray = cls.get_coordinates(roi.coordinates())
         p = roi.position
         c = roi.c_position
@@ -147,6 +157,7 @@ class Roi:
         return self.__class__(data=data, axes=axes, multi_dims=multi_dims)
     
     def copy(self) -> Self:
+        """Make a copy of the ROI."""
         return self.__class__(
             data=self._data, axes=self.axes, multi_dims=self._multi_dims
         )
@@ -165,6 +176,7 @@ class Roi:
         raise NotImplementedError
     
     def drop(self, axis: int | AxisLike):
+        """Drop an axis from the ROI."""
         if not isinstance(axis, int):
             axis = self.axes.find(axis)
         multi_dims = [a for i, a in enumerate(self._multi_dims) if i != axis]
@@ -177,7 +189,7 @@ class PolygonRoi(Roi):
     @staticmethod
     def get_coordinates(coords: np.ndarray):
         """Convert coordinates."""
-        return coords[:-1, ::-1]
+        return coords[:-1, ::-1] - 1
     
     def _plot(self, ax: plt_axes.Axes, **kwargs):
         coords = np.concatenate([self._data, self._data[:1]], axis=0)
@@ -211,6 +223,7 @@ class RoiList(MutableSequence[Roi]):
     def __init__(self, axes: AxesLike, rois: Iterable[Roi] = ()) -> None:
         self._axes = Axes(axes)
         self._rois: list[Roi] = []
+        # check if all rois have the axes that are incluced in the list axes
         for roi in rois:
             if not self._axes.contains(roi.axes):
                 raise ImageAxesError(
@@ -221,6 +234,7 @@ class RoiList(MutableSequence[Roi]):
     
     @property
     def axes(self) -> Axes:
+        """RoiList axes."""
         return self._axes
     
     @axes.setter
@@ -340,20 +354,41 @@ class RoiList(MutableSequence[Roi]):
             Path to the file.
         """
         ijrois: list[ImagejRoi] = []
-        for roi in self:
+        for i, roi in enumerate(self):
             roitype, subtype = _ROI_TYPE_INV_MAP[type(roi)]
             if roi._data.dtype.kind in "ui":
-                integer_coordinates = roi._data
+                integer_coordinates = roi._data[:, ::-1] + 1
                 subpixel_coordinates = None
             else:
-                integer_coordinates = None
-                subpixel_coordinates = roi._data
+                warnings.warn(
+                    "Saving ROIs with subpixel coordinates is not supported yet. "
+                    "Saving ROIs with integer coordinates.",
+                    UserWarning,
+                )
+                integer_coordinates = roi._data[:, ::-1].astype(np.uint16) + 1
+                subpixel_coordinates = roi._data[:, ::-1] + 1
+
+            ymax, xmax = np.max(roi._data, axis=0)
+            
+            dim_kwargs = {
+                f"{l}_position": p + 1
+                for l, p in zip(roi.axes, roi._multi_dims)
+            }
+            edge_kwargs = dict(
+                left=0, 
+                top=0,
+                right=int(np.ceil(xmax)),
+                bottom=int(np.ceil(ymax)),
+                n_coordinates=roi._data.shape[0],
+            )
             ijroi = ImagejRoi(
                 roitype=roitype,
                 subtype=subtype,
                 integer_coordinates=integer_coordinates,
                 subpixel_coordinates=subpixel_coordinates,
-                multi_coordinates=roi._multi_dims
+                name=f"{type(roi).__name__}-{i}",
+                **dim_kwargs,
+                **edge_kwargs,
             )
             ijrois.append(ijroi)
         roiwrite(path, ijrois)

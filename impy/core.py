@@ -149,7 +149,10 @@ def aslabel(
     axes: str = None
 ) -> ImgArray:
     """
-    make an Label object.
+    Make an Label object.
+    
+    This function helps to create a Label object from an array. Dtype check is performed
+    on array creation.
     
     Parameters
     ----------
