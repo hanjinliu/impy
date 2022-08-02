@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 2.1.1 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 2.1.2.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.1
+                2.1.2.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -72,7 +72,6 @@
   <h1>Source code for impy.arrays.labeledarray</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
@@ -340,11 +339,19 @@
         <span class="p">}</span>
     
     
-<div class="viewcode-block" id="LabeledArray.imsave"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imsave">[docs]</a>    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LabeledArray.imsave"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.imsave">[docs]</a>    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> 
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save image at the same directory as the original image by default. For tif file format, if the</span>
-<span class="sd">        image contains wrong axes for ImageJ (= except for tzcyx), then it will converted automatically </span>
-<span class="sd">        if possible. For mrc file format, only zyx and yx is allowed. zyx-scale is also saved.</span>
+<span class="sd">        Save image at the same directory as the original image by default. </span>
+<span class="sd">        </span>
+<span class="sd">        For tif file format, if the image contains wrong axes for ImageJ (= except for tzcyx), </span>
+<span class="sd">        then it will converted automatically if possible. For mrc file format, only zyx and yx is </span>
+<span class="sd">        allowed. zyx-scale is also saved.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -352,22 +359,24 @@
 <span class="sd">            File name.</span>
 <span class="sd">        dtype : dtype-like, optional</span>
 <span class="sd">            In what data type img will be saved.</span>
+<span class="sd">        overwrite : bool, default is True</span>
+<span class="sd">            Whether to overwrite the file if it already exists.</span>
 <span class="sd">        </span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        None</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">save_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot save &lt;2D array as an image.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">suffix</span>
+                <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                    <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;.tif&quot;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;.tif&quot;</span>
-            <span class="n">save_path</span> <span class="o">+=</span> <span class="n">ext</span>
-    
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">save_path</span><span class="p">:</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="n">save_path</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="p">(</span><span class="n">save_path</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="n">ext</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">():</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;Image directory path is unknown. Set by </span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -375,7 +384,10 @@
                     <span class="s2">&quot;or specify absolute path like</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="s2">&quot; &gt;&gt;&gt; img.imsave(</span><span class="se">\&quot;</span><span class="s2">/path/to/XXX.tif</span><span class="se">\&quot;</span><span class="s2">)&quot;</span>
                     <span class="p">)</span>
-            <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">save_path</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">save_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">save_path</span><span class="si">!r}</span><span class="s2"> already exists.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -558,7 +570,7 @@
         <span class="k">if</span> <span class="n">prefilter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">prefilter</span> <span class="o">=</span> <span class="n">order</span> <span class="o">&gt;</span> <span class="mi">1</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
-            <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">,</span>
+            <span class="n">_map_coordinates</span><span class="p">,</span>
             <span class="n">c_axes</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">drop_axis</span><span class="o">=</span><span class="n">drop_axis</span><span class="p">,</span>
@@ -1629,6 +1641,16 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">n</span>
+
+<span class="k">def</span> <span class="nf">_map_coordinates</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="p">,</span> <span class="n">prefilter</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">(</span>
+        <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">input</span><span class="p">),</span>
+        <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">),</span>
+        <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+        <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
+        <span class="n">prefilter</span><span class="o">=</span><span class="n">prefilter</span><span class="p">,</span>
+    <span class="p">)</span>
 </pre></div>
 
            </div>

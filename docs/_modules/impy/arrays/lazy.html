@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.lazy &mdash; impy 2.1.0.alpha documentation</title>
+  <title>impy.arrays.lazy &mdash; impy 2.1.2.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0.alpha
+                2.1.2.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -39,7 +39,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
 </ul>
 
@@ -374,19 +376,32 @@
         <span class="k">return</span> <span class="n">out</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.imsave"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.lazy.LazyImgArray.imsave">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">LabeledArray</span><span class="o">.</span><span class="n">imsave</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="n">save_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">imsave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="n">save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot save &lt;2D array as an image.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">suffix</span>
+                <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                    <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;.tif&quot;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">ext</span> <span class="o">=</span> <span class="s2">&quot;.tif&quot;</span>
-            <span class="n">save_path</span> <span class="o">+=</span> <span class="n">ext</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="n">save_path</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="p">(</span><span class="n">save_path</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="n">ext</span><span class="p">)</span>
         
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">save_path</span><span class="p">:</span>
-            <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Image directory path is unknown. Set by </span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot; &gt;&gt;&gt; img.source = </span><span class="se">\&quot;</span><span class="s2">...</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;or specify absolute path like</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot; &gt;&gt;&gt; img.imsave(</span><span class="se">\&quot;</span><span class="s2">/path/to/XXX.tif</span><span class="se">\&quot;</span><span class="s2">)&quot;</span>
+                    <span class="p">)</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">save_path</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">save_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">save_path</span><span class="si">!r}</span><span class="s2"> already exists.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
         

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.imgarray &mdash; impy 2.1.1.dev1 documentation</title>
+  <title>impy.arrays.imgarray &mdash; impy 2.1.2.dev0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.1.dev1
+                2.1.2.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -1632,10 +1632,11 @@
         <span class="k">if</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n_chn</span><span class="p">,</span> <span class="n">n_chn</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`map_matrix` must have shape </span><span class="si">{</span><span class="p">(</span><span class="n">n_chn</span><span class="p">,</span> <span class="n">n_chn</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">bg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">bg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_chn</span><span class="p">)])</span>
-        <span class="n">bg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">bg</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_chn</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`bg` must have length </span><span class="si">{</span><span class="n">n_chn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">bg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_chn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">bg</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_chn</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`bg` must have length </span><span class="si">{</span><span class="n">n_chn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
         <span class="c1"># move channel axis to the last</span>
         <span class="n">input_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">c_ax</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -1744,9 +1745,8 @@
 <span class="sd">        argument because output has total different scale of intensity. </span>
 <span class="sd">        </span>
 <span class="sd">            .. warning::</span>
-<span class="sd">                Because in</span>
-<span class="sd">                most cases we want to find only bright dots, eigenvalues larger than 0 is</span>
-<span class="sd">                ignored before computing determinant.</span>
+<span class="sd">                Because in most cases we want to find only bright dots, eigenvalues larger </span>
+<span class="sd">                than 0 is ignored before computing determinant.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1879,9 +1879,18 @@
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">wavelet_denoising</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_sigma</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">wavelet</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s2">&quot;db1&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s2">&quot;soft&quot;</span><span class="p">,</span> 
-                          <span class="n">wavelet_levels</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s2">&quot;BayesShrink&quot;</span><span class="p">,</span> <span class="n">max_shifts</span><span class="p">:</span><span class="nb">int</span><span class="o">|</span><span class="nb">tuple</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                          <span class="n">shift_steps</span><span class="p">:</span><span class="nb">int</span><span class="o">|</span><span class="nb">tuple</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">wavelet_denoising</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">noise_sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span> 
+        <span class="n">wavelet</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;db1&quot;</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;soft&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;hard&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;soft&quot;</span><span class="p">,</span> 
+        <span class="n">wavelet_levels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BayesShrink&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;VisuShrink&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;BayesShrink&quot;</span><span class="p">,</span>
+        <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">shift_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Wavelet denoising. Because it is not shift invariant, ``cycle_spin`` is called inside the </span>
 <span class="sd">        function.</span>
@@ -1909,16 +1918,19 @@
 <span class="sd">        ImgArray</span>
 <span class="sd">            Denoised image.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">func_kw</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">noise_sigma</span><span class="p">,</span> 
-                     <span class="n">wavelet</span><span class="o">=</span><span class="n">wavelet</span><span class="p">,</span> 
-                     <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> 
-                     <span class="n">wavelet_levels</span><span class="o">=</span><span class="n">wavelet_levels</span><span class="p">,</span>
-                     <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">skres</span><span class="o">.</span><span class="n">cycle_spin</span><span class="p">,</span> 
-                               <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                               <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">skres</span><span class="o">.</span><span class="n">denoise_wavelet</span><span class="p">,),</span>
-                               <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">func_kw</span><span class="o">=</span><span class="n">func_kw</span><span class="p">,</span> <span class="n">max_shifts</span><span class="o">=</span><span class="n">max_shifts</span><span class="p">,</span> <span class="n">shift_steps</span><span class="o">=</span><span class="n">shift_steps</span><span class="p">)</span>
-                               <span class="p">)</span></div>
+        <span class="n">func_kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">sigma</span><span class="o">=</span><span class="n">noise_sigma</span><span class="p">,</span> 
+            <span class="n">wavelet</span><span class="o">=</span><span class="n">wavelet</span><span class="p">,</span> 
+            <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> 
+            <span class="n">wavelet_levels</span><span class="o">=</span><span class="n">wavelet_levels</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">skres</span><span class="o">.</span><span class="n">cycle_spin</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">skres</span><span class="o">.</span><span class="n">denoise_wavelet</span><span class="p">,),</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">func_kw</span><span class="o">=</span><span class="n">func_kw</span><span class="p">,</span> <span class="n">max_shifts</span><span class="o">=</span><span class="n">max_shifts</span><span class="p">,</span> <span class="n">shift_steps</span><span class="o">=</span><span class="n">shift_steps</span><span class="p">)</span>
+        <span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.split_pixel_unit"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.split_pixel_unit">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="k">def</span> <span class="nf">split_pixel_unit</span><span class="p">(</span>
@@ -1926,7 +1938,7 @@
         <span class="n">center</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
         <span class="o">*</span><span class="p">,</span> 
         <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="n">angle_order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">angle_order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">newaxis</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">=</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>

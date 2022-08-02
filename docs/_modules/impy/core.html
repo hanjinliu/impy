@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.core &mdash; impy 2.1.1 documentation</title>
+  <title>impy.core &mdash; impy 2.1.2.dev0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.1
+                2.1.2.dev0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -83,7 +83,6 @@
 <span class="k">else</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">ParamSpec</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span><span class="p">,</span> <span class="n">_ShapeLike</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">io</span>
@@ -94,15 +93,20 @@
 <span class="kn">from</span> <span class="nn">.axes</span> <span class="kn">import</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">broadcast</span><span class="p">,</span> <span class="n">Axes</span>
 <span class="kn">from</span> <span class="nn">.collections</span> <span class="kn">import</span> <span class="n">DataList</span>
 <span class="kn">from</span> <span class="nn">.arrays.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
-<span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">LazyImgArray</span>
+<span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">LazyImgArray</span><span class="p">,</span> <span class="n">Label</span>
 <span class="kn">from</span> <span class="nn">._const</span> <span class="kn">import</span> <span class="n">Const</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span>
     <span class="kn">from</span> <span class="nn">.roi</span> <span class="kn">import</span> <span class="n">RoiList</span>
+    <span class="c1"># NOTE: &quot;_ShapeLike&quot; is not a public type in numpy.typing.</span>
+    <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">SupportsIndex</span><span class="p">,</span> <span class="n">Union</span>
+    <span class="n">ShapeLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">SupportsIndex</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">SupportsIndex</span><span class="p">]]</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;array&quot;</span><span class="p">,</span> 
-    <span class="s2">&quot;asarray&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;asarray&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;aslabel&quot;</span><span class="p">,</span> 
     <span class="s2">&quot;aslazy&quot;</span><span class="p">,</span> 
     <span class="s2">&quot;zeros&quot;</span><span class="p">,</span> 
     <span class="s2">&quot;empty&quot;</span><span class="p">,</span> 
@@ -208,6 +212,55 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">array</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="aslabel"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.aslabel">[docs]</a><span class="nd">@write_docs</span>
+<span class="k">def</span> <span class="nf">aslabel</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span> 
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make an Label object.</span>
+<span class="sd">    </span>
+<span class="sd">    This function helps to create a Label object from an array. Dtype check is performed</span>
+<span class="sd">    on array creation.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    arr : array-like</span>
+<span class="sd">        Base array.</span>
+<span class="sd">    {}</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Label</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;u&quot;</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;int8&quot;</span><span class="p">,</span> <span class="s2">&quot;int16&quot;</span><span class="p">):</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
+            <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;int32&quot;</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span>
+            <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;int64&quot;</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint32</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dtype </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2"> is not supported for a Label.&quot;</span><span class="p">)</span>
+    
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        
+    <span class="c1"># Automatically determine axes</span>
+    <span class="k">if</span> <span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;yx&quot;</span><span class="p">,</span> <span class="s2">&quot;tyx&quot;</span><span class="p">,</span> <span class="s2">&quot;tzyx&quot;</span><span class="p">,</span> <span class="s2">&quot;tzcyx&quot;</span><span class="p">,</span> <span class="s2">&quot;ptzcyx&quot;</span><span class="p">][</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">]</span>
+            
+    <span class="bp">self</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+
 <div class="viewcode-block" id="aslazy"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.aslazy">[docs]</a><span class="nd">@write_docs</span>
 <span class="k">def</span> <span class="nf">aslazy</span><span class="p">(</span>
     <span class="n">arr</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> 
@@ -286,23 +339,24 @@
     <span class="k">return</span> <span class="n">_func</span>
 
 <div class="viewcode-block" id="zeros"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.zeros">[docs]</a><span class="nd">@_inject_numpy_function</span>
-<span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
+<span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
     
 <div class="viewcode-block" id="empty"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.empty">[docs]</a><span class="nd">@_inject_numpy_function</span>
-<span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
+<span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
 
 <div class="viewcode-block" id="ones"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.ones">[docs]</a><span class="nd">@_inject_numpy_function</span>
-<span class="k">def</span> <span class="nf">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
+<span class="k">def</span> <span class="nf">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">ShapeLike</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
 
 <div class="viewcode-block" id="full"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.full">[docs]</a><span class="nd">@_inject_numpy_function</span>
-<span class="k">def</span> <span class="nf">full</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
+<span class="k">def</span> <span class="nf">full</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">ShapeLike</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span></div>
 
 <div class="viewcode-block" id="arange"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.arange">[docs]</a><span class="nd">@_inject_numpy_function</span>
 <span class="k">def</span> <span class="nf">arange</span><span class="p">(</span><span class="n">stop</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span> <span class="n">like</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="o">...</span><span class="p">):</span> <span class="o">...</span></div>
 
 
+
 <div class="viewcode-block" id="gaussian_kernel"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.gaussian_kernel">[docs]</a><span class="k">def</span> <span class="nf">gaussian_kernel</span><span class="p">(</span>
-    <span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span> 
+    <span class="n">shape</span><span class="p">:</span> <span class="n">ShapeLike</span><span class="p">,</span> 
     <span class="n">sigma</span><span class="p">:</span> <span class="n">nDFloat</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">peak</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
@@ -335,7 +389,7 @@
 
 <div class="viewcode-block" id="circular_mask"><a class="viewcode-back" href="../../apidoc/impy.html#impy.core.circular_mask">[docs]</a><span class="k">def</span> <span class="nf">circular_mask</span><span class="p">(</span>
     <span class="n">radius</span><span class="p">:</span> <span class="n">nDFloat</span><span class="p">,</span> 
-    <span class="n">shape</span><span class="p">:</span> <span class="n">_ShapeLike</span><span class="p">,</span>
+    <span class="n">shape</span><span class="p">:</span> <span class="n">ShapeLike</span><span class="p">,</span>
     <span class="n">center</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;center&quot;</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
