@@ -52,6 +52,9 @@ img_orig = ip.imread(path)
 @pytest.mark.parametrize("f", filters)
 @pytest.mark.parametrize("dtype", dtypes)
 def test_filters(f, dtype, resource):
+    if resource == "cupy" and f in ("entropy_filter", "enhance_contrast",):
+        # Not implemented for GPU yet
+        return
     with ip.SetConst(RESOURCE=resource):
         img = img_orig["c=1;z=2"].astype(dtype)
         assert img.axes == "tyx"
