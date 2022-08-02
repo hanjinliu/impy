@@ -498,7 +498,7 @@ class LabeledArray(MetaArray):
         if prefilter is None:
             prefilter = order > 1
         out = self._apply_dask(
-            xp.ndi.map_coordinates,
+            _map_coordinates,
             c_axes,
             dtype=self.dtype,
             drop_axis=drop_axis,
@@ -1569,3 +1569,13 @@ def _count_list_depth(x) -> int:
         else:
             n += 1
     return n
+
+def _map_coordinates(input, coordinates, order, mode, cval, prefilter):
+    return xp.ndi.map_coordinates(
+        xp.asarray(input),
+        xp.asarray(coordinates),
+        order=order,
+        mode=mode,
+        cval=cval,
+        prefilter=prefilter,
+    )

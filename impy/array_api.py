@@ -1,7 +1,6 @@
 
 from functools import wraps
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
 
 def cupy_dispatcher(function):
     @wraps(function)
@@ -12,9 +11,7 @@ def cupy_dispatcher(function):
         return xp.asnumpy(out)
     return func
 
-from types import ModuleType
 from scipy import ndimage as scipy_ndi, signal as scipy_sig
-from typing import Callable
 
 # CUDA <= ver.8 does not have gradient    
 def _gradient(a, axis=None):
