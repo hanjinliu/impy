@@ -424,6 +424,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         warnings.warn(
             f"Scale unit was {img.scale_unit}. Could not normalize scale."
         )
+        voxel_size = (1.0, 1.0, 1.0)
     
     if lazy:
         mode = _MRC_MODE[img.dtype]

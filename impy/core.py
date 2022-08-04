@@ -104,13 +104,16 @@ def array(
         else:
             dtype = arr.dtype
     
-    arr = np.array(arr, dtype=dtype, copy=copy)
+    _arr = np.asarray(arr, dtype=dtype)
         
     # Automatically determine axes
     if axes is None:
-        axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim]
+        if isinstance(arr, MetaArray):
+            axes = arr.axes
+        else:
+            axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][_arr.ndim]
             
-    self = ImgArray(arr, name=name, axes=axes)
+    self = ImgArray(_arr, name=name, axes=axes)
     
     return self
 
@@ -180,13 +183,16 @@ def aslabel(
         else:
             raise ValueError(f"Dtype {arr.dtype} is not supported for a Label.")
     
-    arr = np.asarray(arr, dtype=dtype)
+    _arr = np.asarray(arr, dtype=dtype)
         
     # Automatically determine axes
     if axes is None:
-        axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim]
+        if isinstance(arr, MetaArray):
+            axes = arr.axes
+        else:
+            axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][_arr.ndim]
             
-    self = Label(arr, name=name, axes=axes)
+    self = Label(_arr, name=name, axes=axes)
     return self
 
 @write_docs
