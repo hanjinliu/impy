@@ -117,3 +117,11 @@ def test_swapaxes():
     out = np.swapaxes(img0, "x", "z")
     assert out.axes == ["t", "x", "y", "z"]
     assert out.shape == np.swapaxes(img0.value, 3, 1).shape
+
+def test_indices():
+    inds = ip.indices((4, 5, 6), axes="zyx")
+    inds_np = np.indices((4, 5, 6))
+    
+    assert_allclose(inds.z , inds_np[0])
+    assert_allclose(inds.y , inds_np[1])
+    assert_allclose(inds.x , inds_np[2])

@@ -173,7 +173,30 @@ class ImageGenerator:
         if np.isscalar(arr):
             return arr
         return asarray(arr, axes=axes, name=name)
-        
+    
+    def random_uint8(
+        self,
+        size: int | tuple[int], 
+        *, 
+        name: str = None,
+        axes: str = None,
+    ) -> ImgArray:
+        arr = self._rng.integers(0, 255, size, dtype=np.uint8)
+        name = name or "random_uint8"
+        return asarray(xp.asnumpy(arr), name=name, axes=axes)
+
+    def random_uint16(
+        self,
+        size,
+        *, 
+        name: str = None,
+        axes: str = None,
+    ) -> ImgArray:
+        arr = self._rng.integers(0, 65535, size, dtype=np.uint16)
+        name = name or "random_uint16"
+        return asarray(xp.asnumpy(arr), name=name, axes=axes)
+
+
         
 
 del wraps

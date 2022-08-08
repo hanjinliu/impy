@@ -18,7 +18,7 @@ from .utils import gauss
 from .utils.slicer import *
 from ._types import *
 
-from .axes import ImageAxesError, broadcast, Axes, AxesLike
+from .axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray, Label
@@ -41,6 +41,7 @@ __all__ = [
     "ones", 
     "full",
     "arange",
+    "indices",
     "gaussian_kernel", 
     "circular_mask", 
     "imread", 
@@ -321,7 +322,7 @@ def indices(
     name: str | None = None,
     axes: AxesLike | None = None,
     like: MetaArray | None = None,
-) -> tuple[ImgArray, ...]:
+) -> AxesTuple[ImgArray]:
     """
     Copy of ``numpy.indices``.
     
