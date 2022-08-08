@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mappin
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
-from ..axesmixin import AxesMixin, get_axes_tuple
+from ..axesmixin import AxesMixin
 from ..._types import *
 from ...axes import ImageAxesError, AxesLike, Axes
 from ...array_api import xp
@@ -111,12 +111,7 @@ class MetaArray(AxesMixin, np.ndarray):
     
     @property
     def shape(self):
-        try:
-            tup = get_axes_tuple(self)
-            return tup(*super().shape)
-        except ImageAxesError:
-            return super().shape
-    
+        return self.axes.tuple(super().shape)
     
     def _set_additional_props(self, other):
         # set additional properties
@@ -303,11 +298,7 @@ class MetaArray(AxesMixin, np.ndarray):
             Argmax of the array.
         """
         argmax = np.unravel_index(np.argmax(self), self.shape)
-        try:
-            tup = get_axes_tuple(self)
-            return tup(*argmax)
-        except ImageAxesError:
-            return argmax
+        return self.axes.tuple(argmax)
     
     def split(self, axis=None) -> DataList[Self]:
         """

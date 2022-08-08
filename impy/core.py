@@ -18,7 +18,7 @@ from .utils import gauss
 from .utils.slicer import *
 from ._types import *
 
-from .axes import ImageAxesError, broadcast, Axes
+from .axes import ImageAxesError, broadcast, Axes, AxesLike
 from .collections import DataList
 from .arrays.bases import MetaArray
 from .arrays import ImgArray, LazyImgArray, Label
@@ -66,19 +66,36 @@ shared_docs = \
         Image axes.
     """    
     
-def write_docs(func):
+def _write_docs(func):
     """Add doc for numpy function."""
     func.__doc__ = re.sub(r"{}", shared_docs, func.__doc__)
     return func
 
-@write_docs
+def _normalize_params(
+    axes: AxesLike | None = None,
+    name: str | None = None,
+    like: MetaArray | None = None
+) -> tuple[AxesLike | None, str | None]:
+    """Normalize input parameters for MetaArray construction."""
+    if like is not None:
+        if not isinstance(like, MetaArray):
+            raise TypeError(f"'like' must be a MetaArray, not {type(like)}")
+        name = name or like.name
+        axes = axes or like.axes
+    return axes, name
+    
+
+@_write_docs
 def array(
     arr: ArrayLike,
+    /,
     dtype: DTypeLike = None, 
     *,
+    copy: bool = True,
     name: str = None,
     axes: str = None,
-    copy: bool = True
+    like: MetaArray | None = None,
+    
 ) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
@@ -87,9 +104,9 @@ def array(
     ----------
     arr : array-like
         Base array.
-    {}
     copy : bool, default is True
         If True, a copy of the original array is made.
+    {}
         
     Returns
     -------
@@ -104,8 +121,10 @@ def array(
         else:
             dtype = arr.dtype
     
-    _arr = np.asarray(arr, dtype=dtype)
+    axes, name = _normalize_params(axes, name, like)
         
+    _arr = np.array(arr, dtype=dtype, copy=copy)
+    
     # Automatically determine axes
     if axes is None:
         if isinstance(arr, MetaArray):
@@ -117,13 +136,14 @@ def array(
     
     return self
 
-@write_docs
+@_write_docs
 def asarray(
     arr: ArrayLike,
     dtype: DTypeLike = None,
     *, 
     name: str = None,
-    axes: str = None
+    axes: str = None,
+    like: MetaArray | None = None,
 ) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
@@ -141,15 +161,16 @@ def asarray(
     ImgArray
     
     """
-    return array(arr, dtype=dtype, name=name, axes=axes, copy=False)
+    return array(arr, dtype=dtype, name=name, axes=axes, copy=False, like=like)
 
-@write_docs
+@_write_docs
 def aslabel(
     arr: ArrayLike,
     dtype: DTypeLike = None,
     *, 
     name: str = None,
-    axes: str = None
+    axes: str = None,
+    like: MetaArray | None = None,
 ) -> ImgArray:
     """
     Make an Label object.
@@ -183,6 +204,8 @@ def aslabel(
         else:
             raise ValueError(f"Dtype {arr.dtype} is not supported for a Label.")
     
+    axes, name = _normalize_params(axes, name, like)
+
     _arr = np.asarray(arr, dtype=dtype)
         
     # Automatically determine axes
@@ -195,14 +218,15 @@ def aslabel(
     self = Label(_arr, name=name, axes=axes)
     return self
 
-@write_docs
+@_write_docs
 def aslazy(
     arr: ArrayLike, 
     dtype: DTypeLike = None,
     *, 
     name: str = None,
     axes: str = None,
-    chunks="auto"
+    chunks="auto",
+    like: MetaArray | None = None,
 ) -> LazyImgArray:
     """
     Make an LazyImgArray object from other types of array.
@@ -236,6 +260,8 @@ def aslazy(
         else:
             dtype = arr.dtype
         
+    axes, name = _normalize_params(axes, name, like)
+
     # Automatically determine axes
     if axes is None:
         axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
@@ -250,9 +276,10 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
     npfunc: Callable = getattr(np, func.__name__)
     @wraps(func)
     def _func(*args, **kwargs):
+        like = kwargs.pop("like", None)
         axes = kwargs.pop("axes", None)
         name = kwargs.pop("name", None)
-        return asarray(npfunc(*args, **kwargs), name=name, axes=axes)
+        return asarray(npfunc(*args, **kwargs), name=name, axes=axes, like=like)
     
     _func.__doc__ = (
         f"""
@@ -273,20 +300,55 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
     return _func
 
 @_inject_numpy_function
-def zeros(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def zeros(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
     
 @_inject_numpy_function
-def empty(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def empty(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
 
 @_inject_numpy_function
-def ones(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def ones(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
 
 @_inject_numpy_function
-def full(shape: ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str = None, axes: str = None): ...
+def full(shape: ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
 
 @_inject_numpy_function
 def arange(stop: int, dtype: DTypeLike = ..., like: Any = ...): ...
+    
+def indices(
+    dimensions: ShapeLike,
+    dtype: DTypeLike = np.uint16,
+    *, 
+    name: str | None = None,
+    axes: AxesLike | None = None,
+    like: MetaArray | None = None,
+) -> tuple[ImgArray, ...]:
+    """
+    Copy of ``numpy.indices``.
+    
+    
 
+    Parameters
+    ----------
+    dimensions : shape-like
+        The shape of the grid.
+    dtype : dtype, optional
+        Data type of the result.
+    name : str, optional
+        Name of the result arrays.
+    axes : AxesLike, optional
+        Axes of the result arrays.
+    like : MetaArray, optional
+        Reference array from which name and axes will be copied.
+
+    Returns
+    -------
+    tuple of ImgArray
+        
+    """
+    out = tuple(
+        asarray(ind, name=name, axes=axes, like=like) for ind in np.indices(dimensions, dtype=dtype)
+    )
+    return out[0].axes.tuple(out)
 
 
 def gaussian_kernel(

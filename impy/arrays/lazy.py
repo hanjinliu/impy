@@ -11,7 +11,7 @@ import tempfile
 
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
-from .axesmixin import AxesMixin, get_axes_tuple
+from .axesmixin import AxesMixin
 from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
@@ -87,12 +87,8 @@ class LazyImgArray(AxesMixin):
     
     @property
     def shape(self):
-        try:
-            tup = get_axes_tuple(self)
-            return tup(*self.value.shape)
-        except ImageAxesError:
-            return self.value.shape
-    
+        return self.axes.tuple(self.value.shape)
+        
     @property
     def dtype(self):
         return self.value.dtype
@@ -107,11 +103,7 @@ class LazyImgArray(AxesMixin):
     
     @property
     def chunksize(self):
-        try:
-            tup = get_axes_tuple(self)
-            return tup(*self.value.chunksize)
-        except ImageAxesError:
-            return self.value.chunksize
+        return self.axes.tuple(self.value.chunksize)
         
     @property
     def GB(self) -> float:

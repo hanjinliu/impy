@@ -1,12 +1,15 @@
 from __future__ import annotations
 from typing import (
-    Any, Mapping, Sequence, Iterable, overload, MutableMapping, TypeVar
+    Any, Mapping, Sequence, Iterable, overload, MutableMapping, TypeVar, TYPE_CHECKING
 )
 import weakref
 import numpy as np
 
 from ._axis import Axis, AxisLike, as_axis, UndefAxis
 from ._slicer import Slicer
+
+if TYPE_CHECKING:
+    from ._axes_tuple import AxesTuple
 
 ORDER = {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6}
 _T = TypeVar("_T")
@@ -294,6 +297,15 @@ class Axes(Sequence[Axis]):
             sl_list[idx] = v
         
         return tuple(sl_list)
+
+    def tuple(self, iterable: Iterable[_T], /) -> AxesTuple[_T] | tuple[_T, ...]:
+        from ._axes_tuple import get_axes_tuple
+        try:
+            out = get_axes_tuple(self)(*iterable)
+        except ImageAxesError:
+            out = tuple(iterable)
+        return out
+
 
 def _broadcast_two(axes0: AxesLike, axes1: AxesLike) -> Axes:
     if not isinstance(axes0, Axes):
