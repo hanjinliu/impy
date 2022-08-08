@@ -298,7 +298,7 @@ class Axes(Sequence[Axis]):
         
         return tuple(sl_list)
 
-    def tuple(self, iterable: Iterable[_T], /) -> AxesTuple[_T] | tuple[_T, ...]:
+    def tuple(self, iterable: Iterable[_T], /) -> AxesTuple[_T]:
         from ._axes_tuple import get_axes_tuple
         try:
             out = get_axes_tuple(self)(*iterable)

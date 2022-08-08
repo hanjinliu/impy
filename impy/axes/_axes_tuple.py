@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import NamedTuple, overload, TYPE_CHECKING, TypeVar
+from typing import Generic, NamedTuple, overload, TYPE_CHECKING, TypeVar
 from collections import namedtuple
 from ._axis import Axis
 
@@ -7,8 +7,11 @@ if TYPE_CHECKING:
     from ._axes import Axes
     _T = TypeVar("_T")
     
-    class AxesTuple(NamedTuple[_T, ...]):
-        def __getattr__(self, axis: str) -> Axis:
+    class AxesTuple(tuple[_T, ...], Generic[_T]):
+        def __init__(self, *iterable: _T):
+            ...
+
+        def __getattr__(self, axis: str) -> _T:
             ...
         
         @overload
@@ -16,7 +19,7 @@ if TYPE_CHECKING:
             ...
 
         @overload
-        def __getitem__(self, key: slice) -> AxesTuple[_T, ...]:
+        def __getitem__(self, key: slice) -> AxesTuple[_T]:
             ...        
         
 else:
