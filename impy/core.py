@@ -326,8 +326,6 @@ def indices(
     """
     Copy of ``numpy.indices``.
     
-    
-
     Parameters
     ----------
     dimensions : shape-like

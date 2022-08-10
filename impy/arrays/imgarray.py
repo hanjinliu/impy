@@ -1129,16 +1129,19 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Smoothen binary mask image at its edges. This is useful to make a "soft mask".
+        
+        This method applies erosion/dilation to a binary image and then smooth its edges by Gaussian.
+        The total value is always larger after Gaussian smoothing.
 
         Parameters
         ----------
         sigma : float, default is 2.0
             Standard deviation of Gaussian blur.
         dilate_radius : float, default is 2.0
-            Radius in pixel that will be used to dilate mask before blurred.
+            Radius in pixel that will be used to dilate mask before smoothing.
         mask_light : bool, default is False
-            If true, mask array is considered to mask other image at its True values. Otherwise mask array plays more like
-            a weight array, that is, False region will be zero.
+            If true, mask array is considered to mask other image at its True values. Otherwise mask array 
+            plays more like a weight array, that is, False region will be zero.
         {dims}
             
         Returns
@@ -1148,12 +1151,21 @@ class ImgArray(LabeledArray):
         """
         if not mask_light:
             self = ~self
+        
         if dilate_radius > 0:
             self = self.erosion(dilate_radius, dims=dims)
-        dist = self.distance_map(dims=dims)
-        blurred_mask = np.exp(-dist**2/2/sigma**2)
+        elif dilate_radius < 0:
+            self = self.dilation(-dilate_radius, dims=dims)
+        
+        if sigma > 0:
+            dist = self.distance_map(dims=dims)
+            blurred_mask = np.exp(-dist**2/2/sigma**2)
+        elif sigma == 0:
+            blurred_mask = 1 - self.astype(np.float32)
+        else:
+            raise ValueError("sigma must be non-negative.")
         if mask_light:
-            blurred_mask = -blurred_mask
+            blurred_mask = 1 - blurred_mask
         return blurred_mask
     
     @_docs.write_docs
