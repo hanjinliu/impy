@@ -1780,7 +1780,7 @@ class ImgArray(LabeledArray):
             kwargs=dict(radius=radius)
         )
         if not return_bg:
-            out = filt.value - back
+            out = self.value - back
             return out
         else:
             return back
