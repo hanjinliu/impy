@@ -9,6 +9,7 @@ def adjust_bin(
     dims: str,
     all_axes: str
 ) -> tuple[np.ndarray, tuple[int, ...], float]:
+    """Adjust bin size of an image prior to calling `binning`."""
     shape = []
     scale = []
     sl = []
@@ -38,12 +39,10 @@ def make_rotated_axis(src, dst):
     dr = dst - src
     d = np.sqrt(sum(dr**2))
     n = int(round(d))
-    return np.linspace(src, src+dr/d*(n-1), n)
+    return np.linspace(src, src + dr / d * (n - 1), n)
 
 def make_pad(pad_width, dims, all_axes, **kwargs):
-    """
-    More flexible padding than `np.pad`.
-    """
+    """More flexible padding than `np.pad`."""
     pad_width_ = []
         
     # for consistency with scipy-format
@@ -71,8 +70,24 @@ def make_pad(pad_width, dims, all_axes, **kwargs):
     return pad_width_
 
 def dft(img: xp.ndarray, exps: list[xp.ndarray] = None):
+    """Discrete Fourier Transform."""
     img = xp.asarray(img)
     for ker in reversed(exps):
         # K_{kx} * I_{zyx}
         img = xp.tensordot(xp.asarray(ker), img, axes=(1, -1))
     return img
+
+def inpaint_mean(img: xp.ndarray, mask: xp.ndarray):
+    """Inpaint missing values with mean of surrounding pixels."""
+    img = xp.asarray(img)
+    mask = xp.asarray(mask)
+    labels, nfeatures = xp.ndi.label(mask)
+    ndim = img.ndim
+    out = img.copy()
+    for i in range(nfeatures):
+        mask_i = labels == i + 1
+        expanded_i = xp.ndi.binary_dilation(mask_i , xp.ones((3,) * ndim))
+        border = expanded_i ^ mask_i
+        out[mask_i] = xp.mean(img[border])
+    return out
+    

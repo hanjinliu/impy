@@ -136,7 +136,7 @@ def test_labeling():
     assert img0.labels is not None
     assert img0.labels.max() == 1
 
-def test_smooth_mast():
+def test_smooth_mask():
     img = ip.circular_mask(4, (19, 19))
     count = np.sum(img)
     assert_allclose(img.smooth_mask(sigma=0, dilate_radius=0), img)

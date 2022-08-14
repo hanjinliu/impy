@@ -2046,6 +2046,46 @@ class ImgArray(LabeledArray):
         
         out = dict(dolp=dolp, aop=aop)
         return out
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def inpaint(
+        self,
+        mask: np.ndarray,
+        *,
+        method: Literal["mean", "biharmonic"] ="biharmonic",
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
+        """
+        Image inpainting.
+
+        Parameters
+        ----------
+        mask : np.ndarray
+            Mask image. The True region will be inpainted.
+        method : "mean" or "biharmonic", default is "biharmonic"
+            Inpainting method.
+        {dims}{update}
+
+        Returns
+        -------
+        ImgArray
+            Inpainted image of same data type.
+        """
+        if method == "biharmonic":
+            func = skres.inpaint.inpaint_biharmonic
+        elif method == "mean":
+            func = _misc.inpaint_mean
+        else:
+            raise ValueError(f"Unknown method: {method}")
+        return self._apply_dask(
+            func, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(mask,),
+        )
         
     @_docs.write_docs
     @dims_to_spatial_axes
