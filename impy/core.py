@@ -553,11 +553,12 @@ def imread(
         
     # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
     # one by one.
-    for k, v in scale.items():
-        if k in self.axes:
-            self.set_scale({k: v})
-            if k in "zyx":
-                self.axes[k].unit = scale_unit[k]
+    if scale is not None:
+        for k, v in scale.items():
+            if k in self.axes:
+                self.set_scale({k: v})
+                if k in "zyx":
+                    self.axes[k].unit = scale_unit[k]
     
     return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
