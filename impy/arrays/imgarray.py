@@ -57,7 +57,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def affine(
         self, matrix=None, *, scale=None, rotation=None, shear=None, translation=None,
-        order: int = 1, mode: str = "constant", cval: float = 0, output_shape = None,
+        order: int = 1, mode: PaddingMode = "constant", cval: float = 0, output_shape = None,
         prefilter: bool | None = None, dims: Dims = None, update: bool = False,
     ) -> ImgArray:
         r"""
@@ -2093,7 +2093,7 @@ class ImgArray(LabeledArray):
             c_axes=complement_axes(dims, self.axes),
             args=(mask,),
         )
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -2215,7 +2215,7 @@ class ImgArray(LabeledArray):
             return value has "t", "c", "y" and "x" columns, and sub-frame at t=0, c=0 contains all
             the coordinates of corners in the slice at t=0, c=0.
         """        
-        
+        warnings.warn("'corner_peaks' is deprecated and will be removed.", DeprecationWarning)
         # separate spatial dimensions and others
         ndim = len(dims)
         dims_list = list(dims)
@@ -2314,6 +2314,7 @@ class ImgArray(LabeledArray):
         MarkerFrame
             Coordinates of corners. For details see ``corner_peaks`` method.
         """        
+        warnings.warn("'find_corners' is deprecated and will be removed.", DeprecationWarning)
         res = self.gaussian_filter(sigma=1).corner_harris(sigma=sigma, k=k, dims=dims)
         out = res.corner_peaks(min_distance=3, percentile=97, dims=dims)
         return out
@@ -3375,6 +3376,7 @@ class ImgArray(LabeledArray):
         MarkerFrame
             Centers of matched templates.
         """        
+        warnings.warn("'track_template' is deprecated and will be removed.", DeprecationWarning)
         template = _check_template(template)
         template_new = template
         t_shape = np.array(template.shape)
@@ -4090,9 +4092,11 @@ class ImgArray(LabeledArray):
         *,
         zero_ave: bool = True,
         along: AxisLike | None = None,
+        order: int = 1,
+        mode: str = "constant",
+        cval: float = 0,
         dims: Dims = 2,
         update: bool = False,
-        **affine_kwargs
     ) -> ImgArray:
         """
         Drift correction using iterative Affine translation. If translation vectors ``shift``
@@ -4144,7 +4148,7 @@ class ImgArray(LabeledArray):
                     sl = fmt[idx]
                     out[sl] = self[sl].drift_correction(
                         ref=ref[sl], zero_ave=zero_ave, along=along, dims=dims,
-                        update=update, **affine_kwargs,
+                        update=update, order=order, mode=mode, cval=cval,
                     )
                 return out
 
@@ -4161,10 +4165,11 @@ class ImgArray(LabeledArray):
         out = xp.empty(self.shape)
         t_index = self.axisof(along)
         ndim = len(dims)
-        mx = np.eye(ndim+1, dtype=np.float32) # Affine transformation matrix
-        for sl, img in self.iter(complement_axes(dims, self.axes)):
+        mx = np.eye(ndim + 1, dtype=np.float32) # Affine transformation matrix
+        input_img = self.spline_filter(mode=mode, order=order)
+        for sl, img in input_img.iter(complement_axes(dims, self.axes)):
             mx[:-1, -1] = -shift[sl[t_index]]
-            out[sl] = _transform.warp(img, mx, **affine_kwargs)
+            out[sl] = _transform.warp(img, mx, mode=mode, cval=cval, order=order, prefilter=False)
         
         return out
 

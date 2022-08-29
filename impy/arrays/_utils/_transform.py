@@ -1,26 +1,29 @@
+from __future__ import annotations
+
+from typing import Iterable
 import numpy as np
-import scipy
-from scipy import ndimage as ndi
 from collections import namedtuple
+
 from ._skimage import sktrans
 from ...array_api import xp
 
-__all__ = ["compose_affine_matrix", 
-           "decompose_affine_matrix",
-           "affinefit", 
-           "check_matrix",
-           "warp"
-           ]
+__all__ = [
+    "compose_affine_matrix", 
+    "decompose_affine_matrix",
+    "affinefit", 
+    "check_matrix",
+    "warp",
+]
 
 AffineTransformationParameters = namedtuple(typename="AffineTransformationParameters", 
                                             field_names=["translation", "rotation", "scale", "shear"]
                                             )
 
-def warp(img: xp.ndarray, matrix: xp.ndarray, cval=0, mode="constant", output_shape=None, order=1):
+def warp(img: xp.ndarray, matrix: xp.ndarray, cval=0, mode="constant", output_shape=None, order=1, prefilter=False):
     img = xp.asarray(img, dtype=img.dtype)
     matrix = xp.asarray(matrix)
     out = xp.ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
-                                  order=order, prefilter=order>1)
+                                  order=order, prefilter=prefilter)
     return out
 
 def shift(img: xp.ndarray, shift: xp.ndarray, cval=0, mode="constant", order=1, prefilter=False):
@@ -79,6 +82,7 @@ def calc_corr(img0, img1, matrix, corr_func):
 def affinefit(img, imgref, bins=256, order=1):
     as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
     from scipy.stats import entropy
+    from scipy.optimize import minimize
     def normalized_mutual_information(img, imgref):
         """
         Y(A,B) = (H(A)+H(B))/H(A,B)
@@ -99,8 +103,9 @@ def affinefit(img, imgref, bins=256, order=1):
     mtx0 = np.array([[1., 0., 0.],
                      [0., 1., 0.]]) # aberration makes little difference
     
-    result = scipy.optimize.minimize(cost_nmi, mtx0, args=(np.asarray(img), np.asarray(imgref)),
-                                     method="Powell")
+    result = minimize(
+        cost_nmi, mtx0, args=(np.asarray(img), np.asarray(imgref)), method="Powell"
+    )
     mtx_opt = as_3x3_matrix(result.x)
     return mtx_opt
 
@@ -141,25 +146,3 @@ def polar2d(
     img = xp.asarray(img, dtype=img.dtype)
     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
-
-# def polar3d(
-#     img: xp.ndarray, 
-#     rmax: int,
-#     dtheta: float = 0.1,
-#     order=1,
-#     mode="constant", 
-#     cval=0
-# ) -> np.ndarray:
-#     centers = np.array(img.shape)/2 - 0.5
-#     r = xp.arange(rmax) + 0.5
-#     theta = xp.arange(0, 2*np.pi, dtheta)
-#     phi = xp.arange(-np.pi/2, np.pi/2, dtheta)
-#     r, theta, phi = xp.meshgrid(r, theta, phi)
-#     z = r * xp.sin(phi) + centers[0]
-#     _yx = r * xp.cos(phi)
-#     y = _yx * xp.sin(theta) + centers[1]
-#     x = _yx * xp.cos(theta) + centers[2]
-#     coords = xp.stack([z, y, x], axis=0)
-#     img = xp.asarray(img, dtype=img.dtype)
-#     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
-#     return out

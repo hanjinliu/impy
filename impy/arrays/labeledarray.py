@@ -735,6 +735,9 @@ class LabeledArray(MetaArray):
         LabeledArray
             Filtered image.
         """
+        if order < 2:
+            # no smoothing
+            return self
         from ._utils import _filters
         return self._apply_dask(
             _filters.spline_filter,
