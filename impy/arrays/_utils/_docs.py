@@ -109,7 +109,6 @@ def write_docs(func):
         for key, value in shared_docs.items():
             value = value.rstrip()
             params = params.replace("{" + key + "}", value)
-            # params = re.sub("{"+key+"}", value, params)
         doc = _merge_doc(summary, params, rest)
         func.__doc__ = doc
     return func

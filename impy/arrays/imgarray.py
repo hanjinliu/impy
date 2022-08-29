@@ -1438,12 +1438,13 @@ class ImgArray(LabeledArray):
         """        
         ndim = len(dims)
         _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
-        return self.as_float()._apply_dask(_filters.convolve, 
-                                          c_axes=complement_axes(dims, self.axes), 
-                                          dtype=self.dtype,
-                                          args=(laplace_op,),
-                                          kwargs=dict(mode="reflect")
-                                          )
+        return self.as_float()._apply_dask(
+            _filters.convolve, 
+            c_axes=complement_axes(dims, self.axes), 
+            dtype=self.dtype,
+            args=(laplace_op,),
+            kwargs=dict(mode="reflect")
+        )
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1734,7 +1735,7 @@ class ImgArray(LabeledArray):
     def rolling_ball(
         self,
         radius: float = 30,
-        prefilter: str = "mean",
+        prefilter: Literal["mean", "median", "none"] = "mean",
         *,
         return_bg: bool = False,
         dims: Dims = None,
@@ -1746,7 +1747,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         {radius}
-        prefilter : str, {"mean", "median", "none"}
+        prefilter : "mean", "median" or "none"
             If apply 3x3 averaging before creating background.
         {dims}{update}
             
@@ -1755,7 +1756,6 @@ class ImgArray(LabeledArray):
         ImgArray
             Background subtracted image.
         """        
-        method = ("mean", "median", "none")
         c_axes = complement_axes(dims, self.axes)
         if prefilter == "mean":
             filt = self._apply_dask(
@@ -1772,7 +1772,7 @@ class ImgArray(LabeledArray):
         elif prefilter == "none":
             filt = self
         else:
-            raise ValueError(f"`prefilter` must be {', '.join(method)}.")
+            raise ValueError("`prefilter` must be 'mean', 'median' or 'none'.")
         filt.axes = self.axes
         back = filt._apply_dask(
             skres.rolling_ball, 
@@ -1789,8 +1789,15 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def rof_filter(self, lmd: float = 0.05, tol: float = 1e-4, max_iter: int = 50, *, 
-                   dims: Dims = None, update: bool = False) -> ImgArray:
+    def rof_filter(
+        self,
+        lmd: float = 0.05,
+        tol: float = 1e-4,
+        max_iter: int = 50, 
+        *, 
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Rudin-Osher-Fatemi's total variation denoising.
 
@@ -1824,9 +1831,9 @@ class ImgArray(LabeledArray):
         noise_sigma: float | None = None,
         *, 
         wavelet: str = "db1",
-        mode: Literal["soft"] | Literal["hard"] = "soft", 
+        mode: Literal["soft", "hard"] = "soft", 
         wavelet_levels: int | None = None,
-        method: Literal["BayesShrink"] | Literal["VisuShrink"] = "BayesShrink",
+        method: Literal["BayesShrink", "VisuShrink"] = "BayesShrink",
         max_shifts: int | tuple[int, ...] = 0,
         shift_steps: int | tuple[int, ...] = 1,
         dims: Dims = None,
@@ -2933,7 +2940,7 @@ class ImgArray(LabeledArray):
     def fft(
         self,
         *, 
-        shape: int | Iterable[int] | Literal["same"] | Literal["square"] = "same",
+        shape: int | Iterable[int] | Literal["same", "square"] = "same",
         shift: bool = True, 
         double_precision: bool = False,
         dims: Dims = None
@@ -3152,7 +3159,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def power_spectra(
         self,
-        shape: int | Iterable[int] | Literal["same"] | Literal["square"] = "same",
+        shape: int | Iterable[int] | Literal["same", "square"] = "same",
         norm: bool = False, 
         zero_norm: bool = False, *,
         double_precision: bool = False,
@@ -3571,7 +3578,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output(only_binary=True)
     def remove_skeleton_structure(
         self,
-        structure: Literal["tip"] | Literal["branch"] | Literal["cross"] = "tip",
+        structure: Literal["tip", "branch", "cross"] = "tip",
         *,
         connectivity: int = None,
         dims: Dims = None,
@@ -3679,11 +3686,18 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(need_labels=True)
-    def random_walker(self, beta: float = 130, mode: str = "cg_j", tol: float = 1e-3, *,
-                      dims: Dims = None) -> Label:
+    def random_walker(
+        self,
+        beta: float = 130,
+        mode: Literal["cg", "cg_j", "cg_mg", "bf"] = "cg_j", 
+        tol: float = 1e-3, 
+        *,
+        dims: Dims = None,
+    ) -> Label:
         """
-        Random walker segmentation. Only wrapped skimage segmentation. ``self.labels`` will be
-        segmented.
+        Random walker segmentation. Only wrapped skimage segmentation. 
+        
+        ``self.labels`` will be segmented and updated inplace.
 
         Parameters
         ----------
@@ -3699,7 +3713,9 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
-            img.labels[:] = skseg.random_walker(img.value, img.labels.value, beta=beta, mode=mode, tol=tol)
+            img.labels[:] = skseg.random_walker(
+                img.value, img.labels.value, beta=beta, mode=mode, tol=tol
+            )
             
         self.labels._set_info(self)
         return self.labels
@@ -3735,10 +3751,13 @@ class ImgArray(LabeledArray):
     
     def regionprops(
         self,
-        properties: Iterable[str] | str = ("mean_intensity",), *, 
-        extra_properties: Iterable[Callable] | None = None
+        properties: Iterable[str] | str = ("mean_intensity",),
+        *, 
+        extra_properties: Iterable[Callable] | None = None,
     ) -> DataDict[str, PropArray]:
         """
+        Multi-dimensional region property quantification.
+        
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
         analyzed with ``properties=("X", "Y")``, then you can get X's time-course profile
@@ -3963,7 +3982,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         in_range : two scalar values, optional
-            range of lower/upper limits, by default (0, 100)
+            range of lower/upper limits, by default (0%, 100%).
 
         Returns
         -------
@@ -4012,7 +4031,8 @@ class ImgArray(LabeledArray):
         upsample_factor: int = 10,
     ) -> MarkerFrame:
         """
-        Calculate yx-directional drift using the method of `skimage.registration.phase_cross_correlation`.
+        Calculate yx-directional drift using the method equivalent to
+        ``skimage.registration.phase_cross_correlation``.
 
         Parameters
         ----------
