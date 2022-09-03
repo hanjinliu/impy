@@ -90,4 +90,3 @@ def inpaint_mean(img: xp.ndarray, mask: xp.ndarray):
         border = expanded_i ^ mask_i
         out[mask_i] = xp.mean(img[border])
     return out
-    

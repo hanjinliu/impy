@@ -20,7 +20,7 @@ from ..utils.misc import check_nd, largest_zeros
 from ..utils.slicer import solve_slicer
 
 from ..collections import DataDict
-from ..axes import AxisLike, slicer, Axes
+from ..axes import AxisLike, slicer, Axes, Axis
 from .._types import nDInt, nDFloat, Dims, Coords, AxesTargetedSlicer, PaddingMode
 from .._const import Const
 from ..array_api import xp, cupy_dispatcher
@@ -2653,11 +2653,11 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def gabor_filter(
         self,
-        lmd:float=5,
-        theta:float=0,
-        sigma:float=2.5,
-        gamma:float=1,
-        phi:float=0, 
+        lmd: float = 5,
+        theta: float = 0,
+        sigma: float = 2.5,
+        gamma: float = 1,
+        phi: float = 0, 
         *,
         return_imag: bool = False,
         dims: Dims = 2
@@ -2980,6 +2980,92 @@ class ImgArray(LabeledArray):
             sl = switch_slice(dims, pw.axes, ifin=np.array(pw.shape)//2, ifnot=slice(None))
             pw[sl] = 0
         return pw
+    
+    @dims_to_spatial_axes
+    def radon(
+        self,
+        degrees: float | Iterable[float], 
+        *,
+        central_axis: AxisLike | Sequence[float] | None = None,
+        order: int = 3,
+        dims: Dims = None,
+    ) -> ImgArray:
+        """
+        Discrete Radon transformation of 2D or 3D image.
+        
+        Radon transformation is a list of projection of a same image from different angles.
+        It generates tomographic n-D image slices from (n+1)-D image.
+
+        Parameters
+        ----------
+        degrees : float or iterable of float
+            Rotation angles around the central axis in degrees.
+        central_axis : axis-like or sequence of float, optional
+            Vector that defines the central axis of rotation.
+        {order}{dims}
+
+        Returns
+        -------
+        ImgArray
+            Tomographic image slices. The first spatial axis ("z" for zyx-image) will be dropped.
+            If sequence of float is given as ``degrees``, "degree" axis will be newly added at
+            the position 0. For instance, if a zyx-image and ``degrees=np.linspace(0, 180, 100)``
+            are given, returned image has axes ["degree", "y", "x"].
+        """        
+        ndim = len(dims)
+        squeeze = not hasattr(degrees, "__iter__")
+        if squeeze:
+            degrees = [degrees]
+        if ndim != self.ndim:
+            raise NotImplementedError("Batch Radon transformation is not implemented yet.")
+        
+        if ndim == 2:
+            if central_axis is not None:
+                raise ValueError("For 2D image, the central_axis of rotation is pre-defined.")
+            func = _transform.radon_2d
+            params = degrees
+        elif ndim == 3:
+            if central_axis is None:
+                raise ValueError("For 3D image, the central_axis of rotation must be specified.")
+            elif isinstance(central_axis, (str, Axis)):
+                idx = dims.index(central_axis)
+                central_axis = np.zeros(ndim, dtype=np.float32)
+                central_axis[idx] = 1.0
+            else:
+                central_axis = np.asarray(central_axis)
+                central_axis /= np.sqrt(np.sum(central_axis ** 2))  # normalize
+                if central_axis.shape != (ndim,):
+                    raise ValueError(f"Image is {ndim}D but central_axis is {central_axis.ndim}D.")
+            
+            # construct Affine transform matrices
+            from scipy.spatial.transform import Rotation
+            func = _transform.radon_3d
+            vec = np.stack([central_axis * np.deg2rad(deg) for deg in degrees], axis=0)
+            rotation = np.zeros((len(vec), 4, 4))
+            rotation[:, :3, :3] = Rotation.from_rotvec(vec).as_matrix()  # (N, 3, 3)
+            rotation[:, 3, 3] = 1.0
+            center = (np.array(self.shape) - 1.) / 2.
+            tr_0 = _transform.compose_affine_matrix(translation=center, ndim=3)
+            tr_1 = _transform.compose_affine_matrix(translation=-center, ndim=3)
+            params = np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
+            
+        else:
+            raise ValueError("Only 2D or 3D input is supported.")
+        from dask import array as da, delayed
+        if order <= 1:
+            input = self.as_float().value
+        else:
+            input = self.as_float().spline_filter(order=order)
+        delayed_func = delayed(func)
+        tasks = [delayed_func(input, p, order=order) for p in params]
+        out = np.stack(da.compute(tasks)[0], axis=0)
+
+        out = out.view(self.__class__)
+        out._set_info(self, self.axes.drop(0).insert(0, "degree"))
+        out.axes[0].labels = list(degrees)
+        if squeeze:
+            out = out[0]
+        return out
     
     @check_input_and_output
     def threshold(
@@ -3541,8 +3627,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def lbp(self, p: int = 12, radius: int = 1, *, method: str = "default",
-            dims: Dims = None) -> ImgArray:
+    def lbp(
+        self,
+        p: int = 12,
+        radius: int = 1,
+        *,
+        method: Literal["default", "ror", "uniform", "var"] = "default",
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Local binary pattern feature extraction.
 

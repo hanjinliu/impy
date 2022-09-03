@@ -154,3 +154,14 @@ def polar2d(
     img = xp.asarray(img, dtype=img.dtype)
     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
+
+def radon_2d(img: xp.ndarray, theta: float, order=3):
+    """Radon transform of 2D image."""
+    img = xp.asarray(img)
+    rot = xp.ndi.rotate(img, theta, reshape=False, order=order, prefilter=False)
+    return xp.sum(rot, axis=0)
+
+def radon_3d(img: xp.ndarray, mtx, order=3):
+    img_rot = warp(img, mtx, order=order, prefilter=False)
+    return xp.sum(img_rot, axis=0)
+    
