@@ -19,7 +19,15 @@ AffineTransformationParameters = namedtuple(typename="AffineTransformationParame
                                             field_names=["translation", "rotation", "scale", "shear"]
                                             )
 
-def warp(img: xp.ndarray, matrix: xp.ndarray, cval=0, mode="constant", output_shape=None, order=1, prefilter=False):
+def warp(
+    img: xp.ndarray,
+    matrix: xp.ndarray,
+    mode="constant",
+    cval=0,
+    output_shape=None,
+    order=1,
+    prefilter=False,
+):
     img = xp.asarray(img, dtype=img.dtype)
     matrix = xp.asarray(matrix)
     out = xp.ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
