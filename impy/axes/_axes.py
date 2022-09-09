@@ -78,13 +78,18 @@ class ScaleView(MutableMapping[str, float]):
         return [self[a] for a in axes]
     
     def __array__(self, dtype=None):
+        """To make this object compatible with the 'scale' argument in napari."""
         return np.array(self.__list__(), dtype=dtype)
     
     def __repr__(self) -> str:
-        kwargs = ", ".join(f"{k}={v}" for k, v in self.items())
+        kwargs = ", ".join(
+            f"{k}={v:.4f}{axis.unit}"
+            for (k, v), axis in zip(self.items(), self.axes)
+        )
         return f"{self.__class__.__name__}({kwargs})"
     
     def copy(self) -> ScaleView:
+        """Make a copy of this ScaleView."""
         return self.__class__(self.axes)
 
 class Axes(Sequence[Axis]):
@@ -114,10 +119,12 @@ class Axes(Sequence[Axis]):
         
     @property
     def scale(self) -> ScaleView:
+        """Physical scale of each axis."""
         return ScaleView(self)
     
     @scale.setter
     def scale(self, value: dict[str, float]) -> None:
+        """Set physical scales of axes."""
         for k, v in value:
             self[k].scale = v
         

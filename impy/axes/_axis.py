@@ -7,6 +7,10 @@ if TYPE_CHECKING:
 
 _T = TypeVar("_T")
 
+_LABELS = "labels"
+_SCALE = "scale"
+_UNIT = "unit"
+
 class Axis:
     """
     An axis object.
@@ -67,19 +71,19 @@ class Axis:
     @property
     def scale(self) -> float:
         """Physical scale of axis."""
-        return self.metadata.get("scale", 1.0)
+        return self.metadata.get(_SCALE, 1.0)
     
     @scale.setter
     def scale(self, value: float) -> None:
         value = float(value)
         if value <= 0:
             raise ValueError(f"Cannot set negative scale: {value!r}.")
-        self.metadata["scale"] = value
+        self.metadata[_SCALE] = value
     
     @property
     def unit(self) -> str:
         """Physical scale unit of axis."""
-        return self.metadata.get("unit", "px")
+        return self.metadata.get(_UNIT, "px")
     
     @unit.setter
     def unit(self, value: str | None):
@@ -88,33 +92,33 @@ class Axis:
         elif value.startswith("\\u00B5") or value.startswith("\\u03BC"):
             value = "μ" + value[6:]
         
-        self.metadata["unit"] = value
+        self.metadata[_UNIT] = value
     
     @property
     def labels(self) -> tuple[_T, ...] | None:
         """Axis labels."""
-        return self.metadata.get("labels", None)
+        return self.metadata.get(_LABELS, None)
     
     @labels.setter
     def labels(self, value: Iterable[_T]) -> None:
-        self.metadata["labels"] = tuple(value)
+        self.metadata[_LABELS] = tuple(value)
         
     def slice_axis(self, sl: Any) -> Self:
         """Return sliced axis."""
         if not isinstance(sl, (slice, list)):
             return self
         metadata = self.metadata.copy()
-        if "scale" in metadata:
+        if _SCALE in metadata:
             if isinstance(sl, slice):
                 step = sl.step or 1
                 if step == 1:
                     return self
-                new_scale = metadata["scale"] * abs(step)
+                new_scale = metadata[_SCALE] * abs(step)
                 metadata.update(scale=new_scale)
             else:
-                metadata.pop("scale")
-        if "labels" in metadata:
-            labels = metadata["labels"]
+                metadata.pop(_SCALE)
+        if _LABELS in metadata:
+            labels = metadata[_LABELS]
             if isinstance(sl, slice):
                 metadata.update(labels=labels[sl])
             else:
