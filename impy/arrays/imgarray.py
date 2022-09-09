@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         Literal["minimum"], Literal["niblack"], Literal["otsu"], Literal["sauvola"], 
         Literal["triangle"], Literal["yen"]
     ]
+    FftShape = Literal["same", "square"]
 
 class ImgArray(LabeledArray):
     """
@@ -2719,7 +2720,7 @@ class ImgArray(LabeledArray):
     def fft(
         self,
         *, 
-        shape: int | Iterable[int] | Literal["same", "square"] = "same",
+        shape: int | Iterable[int] | FftShape = "same",
         shift: bool = True, 
         double_precision: bool = False,
         dims: Dims = None
@@ -2938,7 +2939,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def power_spectra(
         self,
-        shape: int | Iterable[int] | Literal["same", "square"] = "same",
+        shape: int | Iterable[int] | FftShape = "same",
         norm: bool = False, 
         zero_norm: bool = False, *,
         double_precision: bool = False,
@@ -2976,6 +2977,7 @@ class ImgArray(LabeledArray):
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()
+        pw: ImgArray
         if zero_norm:
             sl = switch_slice(dims, pw.axes, ifin=np.array(pw.shape)//2, ifnot=slice(None))
             pw[sl] = 0
@@ -3012,6 +3014,8 @@ class ImgArray(LabeledArray):
             the position 0. For instance, if a zyx-image and ``degrees=np.linspace(0, 180, 100)``
             are given, returned image has axes ["degree", "y", "x"].
         """        
+        from dask import array as da, delayed
+        
         ndim = len(dims)
         squeeze = not hasattr(degrees, "__iter__")
         if squeeze:
@@ -3024,6 +3028,7 @@ class ImgArray(LabeledArray):
                 raise ValueError("For 2D image, the central_axis of rotation is pre-defined.")
             func = _transform.radon_2d
             params = degrees
+
         elif ndim == 3:
             if central_axis is None:
                 raise ValueError("For 3D image, the central_axis of rotation must be specified.")
@@ -3034,24 +3039,17 @@ class ImgArray(LabeledArray):
             else:
                 central_axis = np.asarray(central_axis)
                 central_axis /= np.sqrt(np.sum(central_axis ** 2))  # normalize
+                central_axis: np.ndarray
                 if central_axis.shape != (ndim,):
                     raise ValueError(f"Image is {ndim}D but central_axis is {central_axis.ndim}D.")
             
             # construct Affine transform matrices
-            from scipy.spatial.transform import Rotation
             func = _transform.radon_3d
-            vec = np.stack([central_axis * np.deg2rad(deg) for deg in degrees], axis=0)
-            rotation = np.zeros((len(vec), 4, 4))
-            rotation[:, :3, :3] = Rotation.from_rotvec(vec).as_matrix()  # (N, 3, 3)
-            rotation[:, 3, 3] = 1.0
-            center = (np.array(self.shape) - 1.) / 2.
-            tr_0 = _transform.compose_affine_matrix(translation=center, ndim=3)
-            tr_1 = _transform.compose_affine_matrix(translation=-center, ndim=3)
-            params = np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
+            params = _transform.get_rotation_matrices_for_radon_3d(degrees, central_axis, self.shape)
             
         else:
             raise ValueError("Only 2D or 3D input is supported.")
-        from dask import array as da, delayed
+        
         if order <= 1:
             input = self.as_float().value
         else:
@@ -3066,6 +3064,44 @@ class ImgArray(LabeledArray):
         if squeeze:
             out = out[0]
         return out
+    
+    @dims_to_spatial_axes
+    def iradon(
+        self,
+        degrees: Sequence[float],
+        *,
+        along: AxisLike = "degree",
+        window: str = "hamming",
+        order: int = 3,
+        dims: Dims = None,
+    ) -> ImgArray:
+        from scipy.interpolate import griddata
+        
+        shape = (self.shape["x"],) * 2
+        nx = shape[0]
+        window_img = _transform.get_window_for_iradon(window, (nx,))
+        
+        sino_ft = self.fft(dims="x") * window_img  # axes: deg, x
+        
+        r, a = np.meshgrid(np.arange(nx) - nx / 2, np.deg2rad(degrees))
+        # source coordinates
+        srcx = (nx / 2) + r * np.cos(a)
+        srcy = (nx / 2) + r * np.sin(a)
+        
+        # destination coordinates
+        dstx, dsty = np.meshgrid(np.arange(nx), np.arange(nx))
+        method = {0: "nearest", 1: "linear", 2: "cubic"}[order]
+        out = griddata(
+            (srcy.ravel(), srcx.ravel()),
+            sino_ft.value.ravel(), 
+            (dsty.ravel(), dstx.ravel()),
+            method=method,
+            fill_value=0.0,
+        ).reshape(nx, nx)
+        
+        out: ImgArray = out.view(self.__class__)
+        out._set_info(self, self.axes.drop(0).insert(0, "y"))
+        return out.ifft()
     
     @check_input_and_output
     def threshold(
@@ -3083,7 +3119,7 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        thr: float or str or None, optional
+        thr: float or str, optional
             Threshold value, or thresholding algorithm.
         along : AxisLike, optional
             Dimensions that will not share the same threshold. For instance, if
@@ -3422,7 +3458,7 @@ class ImgArray(LabeledArray):
         coords: MarkerFrame | None = None,
         *,
         connectivity: int = 1,
-        input: Literal["self"] | Literal["distance"] = "distance", 
+        input: Literal["self", "distance"] = "distance", 
         min_distance: float = 2,
         dims: Dims = None,
     ) -> Label:

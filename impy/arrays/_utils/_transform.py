@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, NamedTuple
 import numpy as np
-from collections import namedtuple
 
 from ._skimage import sktrans
 from ...array_api import xp
@@ -15,9 +14,11 @@ __all__ = [
     "warp",
 ]
 
-AffineTransformationParameters = namedtuple(typename="AffineTransformationParameters", 
-                                            field_names=["translation", "rotation", "scale", "shear"]
-                                            )
+class AffineTransformationParameters(NamedTuple):
+    translation: np.ndarray
+    rotation: np.ndarray
+    scale: np.ndarray
+    shear: np.ndarray
 
 def warp(
     img: xp.ndarray,
@@ -40,7 +41,13 @@ def shift(img: xp.ndarray, shift: xp.ndarray, cval=0, mode="constant", order=1, 
                        order=order, prefilter=prefilter)
     return out
 
-def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=None, ndim:int=2):
+def compose_affine_matrix(
+    scale=None,
+    translation=None,
+    rotation=None,
+    shear=None,
+    ndim: int = 2,
+):
     # These two modules returns consistent matrix in the two dimensional case.
     # rotation must be in radian.
     if ndim == 2:
@@ -49,13 +56,13 @@ def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=Non
     else:
         from napari.utils.transforms import Affine
         if scale is None:
-            scale = [1]*ndim
+            scale = [1] * ndim
         elif np.isscalar(scale):
-            scale = [scale]*ndim
+            scale = [scale] * ndim
         if translation is None:
-            translation = [0]*ndim
+            translation = [0] * ndim
         elif np.isscalar(translation):
-            translation = [translation]*ndim
+            translation = [translation] * ndim
         if rotation is not None:
             rotation = np.rad2deg(rotation)
         
@@ -65,7 +72,7 @@ def compose_affine_matrix(scale=None, translation=None, rotation=None, shear=Non
     return mx
 
 
-def decompose_affine_matrix(matrix:np.ndarray):
+def decompose_affine_matrix(matrix: np.ndarray):
     ndim = matrix.shape[0] - 1
     if ndim == 2:
         af = sktrans.AffineTransform(matrix=matrix)
@@ -77,7 +84,6 @@ def decompose_affine_matrix(matrix:np.ndarray):
         out = AffineTransformationParameters(translation=af.translate, rotation=af.rotate, 
                                              scale=af.scale, shear=af.shear)
     return out
-        
 
 
 def calc_corr(img0, img1, matrix, corr_func):
@@ -117,10 +123,9 @@ def affinefit(img, imgref, bins=256, order=1):
     mtx_opt = as_3x3_matrix(result.x)
     return mtx_opt
 
-def check_matrix(matrices):
-    """
-    Check Affine transformation matrix
-    """    
+
+def check_matrix(matrices: list[np.ndarray | float]):
+    """Check Affine transformation matrix."""    
     mtx = []
     for m in matrices:
         if np.isscalar(m): 
@@ -140,9 +145,9 @@ def polar2d(
     img: xp.ndarray,
     rmax: int,
     dtheta: float = 0.1,
-    order=1,
-    mode="constant",
-    cval=0
+    order: int = 1,
+    mode: str = "constant",
+    cval: float = 0,
 ) -> np.ndarray:
     centers = np.array(img.shape)/2 - 0.5
     r = xp.arange(rmax) + 0.5
@@ -155,13 +160,52 @@ def polar2d(
     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
 
-def radon_2d(img: xp.ndarray, theta: float, order=3):
+def radon_2d(img: xp.ndarray, theta: float, order: int = 3):
     """Radon transform of 2D image."""
     img = xp.asarray(img)
     rot = xp.ndi.rotate(img, theta, reshape=False, order=order, prefilter=False)
     return xp.sum(rot, axis=0)
 
-def radon_3d(img: xp.ndarray, mtx, order=3):
+def radon_3d(img: xp.ndarray, mtx: np.ndarray, order: int = 3):
+    """Radon transform of 3D image."""
     img_rot = warp(img, mtx, order=order, prefilter=False)
     return xp.sum(img_rot, axis=0)
-    
+
+def get_rotation_matrices_for_radon_3d(
+    degrees: Iterable[float],
+    central_axis: np.ndarray,
+    shape: tuple[int, int, int],
+) -> Iterable[np.ndarray]:
+    from scipy.spatial.transform import Rotation
+    vec = np.stack([central_axis * np.deg2rad(deg) for deg in degrees], axis=0)
+    rotation = np.zeros((len(vec), 4, 4))
+    rotation[:, :3, :3] = Rotation.from_rotvec(vec).as_matrix()  # (N, 3, 3)
+    rotation[:, 3, 3] = 1.0
+    center = (np.array(shape) - 1.) / 2.
+    tr_0 = compose_affine_matrix(translation=center, ndim=3)
+    tr_1 = compose_affine_matrix(translation=-center, ndim=3)
+    return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
+
+def iradon_2d(sino_ft: xp.ndarray, theta: float, order: int = 3, shape: tuple[int, int] = None):
+    """Interpolate a slice of sinogram into a 2D image at ``theta`` tilt."""
+    out = xp.zeros(shape, dtype=np.complex64)
+    out[0, :] = sino_ft
+    center = np.array(shape) / 2 - 0.5
+    tr_0 = compose_affine_matrix(translation=[0, center[1]], ndim=2)
+    rot = compose_affine_matrix(rotation=np.deg2rad(theta), ndim=2)
+    tr_1 = compose_affine_matrix(translation=-center, ndim=2)
+    mtx = xp.asarray(tr_0 @ rot @ tr_1)
+    return xp.ndi.affine_transform(out, mtx, order=order, prefilter=False)
+
+def get_window_for_iradon(name: str, shape: tuple[int, ...]) -> np.ndarray:
+    if name != "hamming":
+        raise NotImplementedError
+    center = np.array(shape, dtype=np.float32) / 2 - 0.5
+    inds = np.stack(np.indices(shape, dtype=np.float32), axis=0)
+    inds -= center
+    dist = np.sqrt(np.sum(inds ** 2, axis=0))
+    dist /= center
+    return _hamming(dist)
+
+def _hamming(x):
+    return 0.54 - 0.46 * xp.cos(2 * np.pi * x)
