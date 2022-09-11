@@ -3065,44 +3065,6 @@ class ImgArray(LabeledArray):
             out = out[0]
         return out
     
-    @dims_to_spatial_axes
-    def iradon(
-        self,
-        degrees: Sequence[float],
-        *,
-        along: AxisLike = "degree",
-        window: str = "hamming",
-        order: int = 3,
-        dims: Dims = None,
-    ) -> ImgArray:
-        from scipy.interpolate import griddata
-        
-        shape = (self.shape["x"],) * 2
-        nx = shape[0]
-        window_img = _transform.get_window_for_iradon(window, (nx,))
-        
-        sino_ft = self.fft(dims="x") * window_img  # axes: deg, x
-        
-        r, a = np.meshgrid(np.arange(nx) - nx / 2, np.deg2rad(degrees))
-        # source coordinates
-        srcx = (nx / 2) + r * np.cos(a)
-        srcy = (nx / 2) + r * np.sin(a)
-        
-        # destination coordinates
-        dstx, dsty = np.meshgrid(np.arange(nx), np.arange(nx))
-        method = {0: "nearest", 1: "linear", 2: "cubic"}[order]
-        out = griddata(
-            (srcy.ravel(), srcx.ravel()),
-            sino_ft.value.ravel(), 
-            (dsty.ravel(), dstx.ravel()),
-            method=method,
-            fill_value=0.0,
-        ).reshape(nx, nx)
-        
-        out: ImgArray = out.view(self.__class__)
-        out._set_info(self, self.axes.drop(0).insert(0, "y"))
-        return out.ifft()
-    
     @check_input_and_output
     def threshold(
         self,

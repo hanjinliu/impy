@@ -864,7 +864,7 @@ def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArra
     return out
 
 
-def read_meta(path: str) -> dict[str]:
+def read_meta(path: str) -> dict[str, Any]:
     """
     Read the metadata of an image file. 
 
@@ -879,7 +879,7 @@ def read_meta(path: str) -> dict[str]:
         Dictionary of keys {"axes", "scale", "metadata"}        
     """    
     path = str(path)
-    image_data = io.imread_dask(path, chunks="default")
+    image_data = io.imread_dask(path, chunks="auto")
     return {
         "axes": image_data.axes,
         "scale": image_data.scale,

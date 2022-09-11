@@ -163,7 +163,7 @@ def dims_to_spatial_axes(func: Callable[_P, _R]) -> Callable[_P, _R]:
         )
         if dims is None or dims == "":
             dims = len([a for a in "zyx" if a in self.axes])
-            if dims not in (2, 3):
+            if dims not in (1, 2, 3):
                 raise ValueError(
                     f"Image spatial dimension must be 2 or 3, but {dims} was detected. If "
                     "image axes is not a standard one, such as 'tx' in kymograph, specify "

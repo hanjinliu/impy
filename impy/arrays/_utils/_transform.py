@@ -185,27 +185,3 @@ def get_rotation_matrices_for_radon_3d(
     tr_0 = compose_affine_matrix(translation=center, ndim=3)
     tr_1 = compose_affine_matrix(translation=-center, ndim=3)
     return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
-
-def iradon_2d(sino_ft: xp.ndarray, theta: float, order: int = 3, shape: tuple[int, int] = None):
-    """Interpolate a slice of sinogram into a 2D image at ``theta`` tilt."""
-    out = xp.zeros(shape, dtype=np.complex64)
-    out[0, :] = sino_ft
-    center = np.array(shape) / 2 - 0.5
-    tr_0 = compose_affine_matrix(translation=[0, center[1]], ndim=2)
-    rot = compose_affine_matrix(rotation=np.deg2rad(theta), ndim=2)
-    tr_1 = compose_affine_matrix(translation=-center, ndim=2)
-    mtx = xp.asarray(tr_0 @ rot @ tr_1)
-    return xp.ndi.affine_transform(out, mtx, order=order, prefilter=False)
-
-def get_window_for_iradon(name: str, shape: tuple[int, ...]) -> np.ndarray:
-    if name != "hamming":
-        raise NotImplementedError
-    center = np.array(shape, dtype=np.float32) / 2 - 0.5
-    inds = np.stack(np.indices(shape, dtype=np.float32), axis=0)
-    inds -= center
-    dist = np.sqrt(np.sum(inds ** 2, axis=0))
-    dist /= center
-    return _hamming(dist)
-
-def _hamming(x):
-    return 0.54 - 0.46 * xp.cos(2 * np.pi * x)
