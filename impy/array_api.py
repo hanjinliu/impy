@@ -11,7 +11,7 @@ def cupy_dispatcher(function):
         return xp.asnumpy(out)
     return func
 
-from scipy import ndimage as scipy_ndi, signal as scipy_sig
+from scipy import ndimage as scipy_ndi, signal as scipy_sig, fft as scipy_fft
 
 # CUDA <= ver.8 does not have gradient    
 def _gradient(a, axis=None):
@@ -30,7 +30,7 @@ class XP:
         if self.state == "numpy":
             return
         self._module = np
-        self.fft = np.fft
+        self.fft = scipy_fft
         self.linalg = np.linalg
         self.random = np.random
         self.ndi = scipy_ndi
