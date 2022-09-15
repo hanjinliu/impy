@@ -7,6 +7,7 @@ import numpy as np
 
 from ._axis import Axis, AxisLike, as_axis, UndefAxis
 from ._slicer import Slicer
+from ._misc import ImageAxesError
 
 if TYPE_CHECKING:
     from ._axes_tuple import AxesTuple
@@ -14,9 +15,6 @@ if TYPE_CHECKING:
 ORDER = {"p": 1, "t": 2, "z": 3, "c": 4, "y": 5, "x": 6}
 _T = TypeVar("_T")
 AxesLike = Iterable[AxisLike]
-
-class ImageAxesError(RuntimeError):
-    """This error is raised when axes is defined in a wrong way."""
 
 
 class ScaleView(MutableMapping[str, float]):

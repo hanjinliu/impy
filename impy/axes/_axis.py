@@ -1,16 +1,21 @@
 from __future__ import annotations
+import warnings
 from copy import copy
+from numbers import Real
 from typing import Any, Hashable, Sequence, TypeVar, Union, Iterable, TYPE_CHECKING
+import numpy as np
+
+from ._misc import ImageAxesWarning
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    import numpy as np
 
 _T = TypeVar("_T", bound=Hashable)
 
 _LABELS = "labels"
 _SCALE = "scale"
 _UNIT = "unit"
+_COMPONENTS = "components"
 
 class LabelBase(Sequence):
     pass
@@ -125,12 +130,40 @@ class Axis:
     
     def __add__(self, other: str) -> str:
         """Add as a string ans returns a string."""
-        return self._name + other
+        if isinstance(other , str):
+            warnings.warn(
+                "Adding a string to an axis is deprecated. "
+                "This will raise an error in the future.", 
+                DeprecationWarning,
+            )
+            return self._name + other
+        elif isinstance(other, Axis):
+            return TransformedAxis.from_linear_combination([(1., self), (1., other)])
+        else:
+            raise TypeError(f"Cannot add {type(self)} and {type(other)}.")
     
     def __radd__(self, other: str) -> str:
         """Add as a string ans returns a string."""
-        return other + self._name
+        if isinstance(other , str):
+            warnings.warn(
+                "Adding a string to an axis is deprecated. "
+                "This will raise an error in the future.", 
+                DeprecationWarning,
+            )
+            return other + self._name
+        elif isinstance(other, Axis):
+            return TransformedAxis.from_linear_combination([(1., other), (1., self)])
+        else:
+            raise TypeError(f"Cannot add {type(other)} and {type(self)}.")
+
+    def __mul__(self, coef: Real) -> TransformedAxis:
+        """Multiply by a scalar."""
+        return TransformedAxis.from_linear_combination([(coef, self)])
     
+    def __rmul__(self, coef: Real) -> TransformedAxis:
+        """Multiply by a scalar."""
+        return TransformedAxis.from_linear_combination([(coef, self)])        
+            
     def __lt__(self, other) -> bool:
         """To support alphabetic ordering."""
         return str(self) < str(other)
@@ -198,7 +231,6 @@ class Axis:
         """Check if labels are in values."""
         if self.labels is None:
             raise ValueError("Axis has no labels.")
-        import numpy as np
         return np.array([label in values for label in self.labels])
 
     def slice_axis(self, sl: Any) -> Self:
@@ -255,3 +287,52 @@ def as_axis(obj: Any) -> Axis:
     else:
         raise TypeError(f"Cannot use {type(obj)} as an axis.")
     return axis
+
+
+class TransformedAxis(Axis):
+    def __init__(self, name: str, metadata=None):
+        super().__init__(name, metadata=metadata)
+    
+    def __hash__(self) -> int:
+        """Hash as a string."""
+        return hash(tuple(self.components.items()))
+    
+    @classmethod
+    def from_linear_combination(
+        cls: type[TransformedAxis],
+        components: Iterable[tuple[float, Axis]],
+        name: str | None = None,
+    ) -> Self:
+        axis_to_coef: dict[Axis, float] = {}
+        base_scales: list[float] = []
+        base_units: set[str] = set()
+        for k, axis in components:
+            if isinstance(axis, TransformedAxis):
+                axis_to_coef.update(axis.components)
+            elif isinstance(axis, UndefAxis):
+                raise TypeError("Cannot use undefined axis in a linear combination.")
+            else:
+                if axis in axis_to_coef:
+                    axis_to_coef[axis] += k
+                else:
+                    axis_to_coef[axis] = k
+            base_scales.append(axis.scale * k)
+            base_units.add(axis.unit)
+            
+        if name is None:
+            name = "".join(f"{k:+.2g}{axis}" for axis, k in axis_to_coef.items())[1:]
+        
+        metadata = {_COMPONENTS: axis_to_coef}
+        
+        if len(base_units) == 1:
+            scale = np.linalg.norm(np.array(base_scales))
+            unit = base_units.pop()
+            metadata.update({_SCALE: scale, _UNIT: unit})
+        else:
+            warnings.warn("Cannot combine axes with different units.", ImageAxesWarning)
+            
+        return cls(name, metadata=metadata)
+
+    @property
+    def components(self) -> dict[Axis, float]:
+        return self.metadata[_COMPONENTS]
