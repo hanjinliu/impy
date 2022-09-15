@@ -54,6 +54,9 @@ class Labels(LabelBase):
             return Labels(out)
         return out
     
+    def __eq__(self, other: Sequence[_T]) -> bool:
+        return self._labels == other
+    
     @property
     def has_duplicate(self) -> bool:
         """True if self has duplicated labels."""
@@ -69,7 +72,7 @@ class Labels(LabelBase):
 
         if isinstance(key, slice):
             if key.start is None:
-                start = 0
+                start = None
             else:
                 start = self._hash_map[key.start]
             if key.stop is None:

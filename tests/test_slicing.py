@@ -17,6 +17,20 @@ def test_slicer_slicing():
     assert_equal(img[ip.slicer.y[3, 6, 20, 26].x[7, 3, 4, 13]], img.value[:,:,[3,6,20,26],[7,3,4,13]])
     assert_equal(img[ip.slicer.t[::-1].x[2:-1:3]], img.value[::-1,:,:,2:-1:3])
 
+def test_sel_slicing():
+    img = ip.random.normal(size=(10, 2, 30, 40), axes = "tcyx")
+    img.set_axis_label(
+        t=[f"t={i}" for i in range(10)],
+        c=["blue", "red"], 
+        y=[str(i) for i in range(30)],
+        x=[str(i) for i in range(40)],
+    )
+    assert_equal(img.sel(t="t=4", c="blue"), img.value[4,0])
+    assert_equal(img.sel(c="blue", x=slice("10", "30")), img.value[:,0,:,10:30])
+    assert_equal(img.sel(y=["3", "6", "20", "26"], x=["7", "3", "4", "13"]), img.value[:,:,[3,6,20,26],[7,3,4,13]])
+    assert_equal(img.sel(t=slice(None, None, -1), x=slice("2", "39", 3)), img.value[::-1,:,:,2:40:3])
+    
+
 def test_formatter():
     img = ip.random.normal(size=(10, 2, 30, 40))
     fmt = ip.slicer.y[4].get_formatter("tx")
