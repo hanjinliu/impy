@@ -123,10 +123,7 @@ class MetaArray(AxesMixin, np.ndarray):
         
         if isinstance(out, self.__class__):  # cannot set attribution to such as numpy.int32 
             new_axes = axesop.slice_axes(self.axes, key)
-
-            out._getitem_additional_set_info(
-                self, new_axes=new_axes, key=key
-            )
+            out._getitem_additional_set_info(self, new_axes=new_axes, key=key)
 
         return out
     
@@ -142,7 +139,8 @@ class MetaArray(AxesMixin, np.ndarray):
 
         super().__setitem__(key, value)
     
-    def sel(self, indexer=None, **kwargs: dict[str, Any]) -> Self:
+    def sel(self, indexer=None, /, **kwargs: dict[str, Any]) -> Self:
+        """."""
         if indexer is not None:
             kwargs.update(indexer)
         axes = self.axes
@@ -158,6 +156,18 @@ class MetaArray(AxesMixin, np.ndarray):
             else:
                 raise ValueError(f"Cannot select {k} because it has no labels.")
         return self[tuple(slices)]
+    
+    def isel(self, indexer=None, /, **kwargs: dict[str, Any]) -> Self:
+        if indexer is not None:
+            kwargs.update(indexer)
+
+        key = slicer.solve_slicer(kwargs, self.axes)
+        out = super().__getitem__(key)  # get item as np.ndarray
+        
+        if isinstance(out, self.__class__):  # cannot set attribution to such as numpy.int32 
+            new_axes = axesop.slice_axes(self.axes, key)
+            out._getitem_additional_set_info(self, new_axes=new_axes, key=key)
+        return out
     
     def __array_finalize__(self, obj):
         """

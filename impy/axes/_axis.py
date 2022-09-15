@@ -4,6 +4,7 @@ from typing import Any, Hashable, Sequence, TypeVar, Union, Iterable, TYPE_CHECK
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+    import numpy as np
 
 _T = TypeVar("_T", bound=Hashable)
 
@@ -192,6 +193,13 @@ class Axis:
     def labels(self) -> None:
         """Set axis labels."""
         del self.metadata[_LABELS]
+    
+    def isin(self, values: Iterable[Hashable]) -> np.ndarray:
+        """Check if labels are in values."""
+        if self.labels is None:
+            raise ValueError("Axis has no labels.")
+        import numpy as np
+        return np.array([label in values for label in self.labels])
 
     def slice_axis(self, sl: Any) -> Self:
         """Return sliced axis."""
