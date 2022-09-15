@@ -59,6 +59,7 @@ class Axis:
         return len(str(self))
     
     def __iter__(self) -> Iterable[str]:
+        """Iterate as a string."""
         return iter(str(self))
     
     def __copy__(self) -> Self:
@@ -66,6 +67,7 @@ class Axis:
     
     @property
     def metadata(self) -> dict[str, Any]:
+        """Metadata dictionary."""
         return self._metadata
     
     @property
@@ -75,6 +77,7 @@ class Axis:
     
     @scale.setter
     def scale(self, value: float) -> None:
+        """Set physical scale to the axis."""
         value = float(value)
         if value <= 0:
             raise ValueError(f"Cannot set negative scale: {value!r}.")
@@ -87,6 +90,7 @@ class Axis:
     
     @unit.setter
     def unit(self, value: str | None):
+        """Set physical unit to the axis."""
         if value is None:
             value = "px"
         elif value.startswith("\\u00B5") or value.startswith("\\u03BC"):
@@ -101,6 +105,7 @@ class Axis:
     
     @labels.setter
     def labels(self, value: Iterable[_T]) -> None:
+        """Set axis labels."""
         self.metadata[_LABELS] = tuple(value)
         
     def slice_axis(self, sl: Any) -> Self:
