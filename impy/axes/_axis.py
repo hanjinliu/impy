@@ -128,6 +128,10 @@ class Axis:
         """Check equality as a string."""
         return str(self) == other
     
+    def __neg__(self) -> Self:
+        """Invert axis."""
+        return TransformedAxis.from_linear_combination([(-1., self)])
+    
     def __add__(self, other: str) -> str:
         """Add as a string ans returns a string."""
         if isinstance(other , str):
@@ -155,6 +159,10 @@ class Axis:
             return TransformedAxis.from_linear_combination([(1., other), (1., self)])
         else:
             raise TypeError(f"Cannot add {type(other)} and {type(self)}.")
+
+    def __sub__(self, other: Axis) -> TransformedAxis:
+        """Subtract another axis."""
+        return self + (-other)
 
     def __mul__(self, coef: Real) -> TransformedAxis:
         """Multiply by a scalar."""
@@ -290,6 +298,20 @@ def as_axis(obj: Any) -> Axis:
 
 
 class TransformedAxis(Axis):
+    """
+    Axis that is a linear combination of other axes.
+    
+    Examples
+    --------
+    >>> x = Axis("x")
+    >>> y = Axis("y")
+    >>> u = 0.3 * x + 0.4 * y
+    >>> u
+    TransformedAxis['0.3x+0.4y']
+    >>> u - x
+    TransformedAxis['-0.7x+0.4y']
+    """
+
     def __init__(self, name: str, metadata=None):
         super().__init__(name, metadata=metadata)
     
@@ -303,24 +325,35 @@ class TransformedAxis(Axis):
         components: Iterable[tuple[float, Axis]],
         name: str | None = None,
     ) -> Self:
+        """
+        Construct a TransformedAxis from a linear combination of other axes.
+
+        Parameters
+        ----------
+        components : Iterable of (float, Axis)
+            Coefficient and axis.
+        name : str, optional
+            Name of the axis. By default, a simplified expression of the linear combination
+            will be used.
+
+        Returns
+        -------
+        TransformedAxis
+            Axis with the given linear combination of other axes.        
+        """
         axis_to_coef: dict[Axis, float] = {}
         base_scales: list[float] = []
         base_units: set[str] = set()
         for k, axis in components:
-            if isinstance(axis, TransformedAxis):
-                axis_to_coef.update(axis.components)
-            elif isinstance(axis, UndefAxis):
+            if isinstance(axis, UndefAxis):
                 raise TypeError("Cannot use undefined axis in a linear combination.")
             else:
-                if axis in axis_to_coef:
-                    axis_to_coef[axis] += k
-                else:
-                    axis_to_coef[axis] = k
-            base_scales.append(axis.scale * k)
+                _increment_axis_component(axis_to_coef, k, axis)
+            base_scales.append(axis.scale * abs(k))
             base_units.add(axis.unit)
             
         if name is None:
-            name = "".join(f"{k:+.2g}{axis}" for axis, k in axis_to_coef.items())[1:]
+            name = "".join(f"{k:+.2g}{axis}" for axis, k in axis_to_coef.items()).lstrip("+")
         
         metadata = {_COMPONENTS: axis_to_coef}
         
@@ -336,3 +369,15 @@ class TransformedAxis(Axis):
     @property
     def components(self) -> dict[Axis, float]:
         return self.metadata[_COMPONENTS]
+
+def _increment_axis_component(dict_: dict, coef: float, axis: Axis) -> None:
+    """Increment a component of the axis."""
+    if isinstance(axis, TransformedAxis):
+        for _axis, _coef in axis.components.items():
+            _increment_axis_component(dict_, _coef, _axis)
+    else:
+        if axis in dict_:
+            dict_[axis] += coef
+        else:
+            dict_[axis] = coef
+    return None
