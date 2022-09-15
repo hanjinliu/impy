@@ -215,7 +215,7 @@ class AxesMixin:
             if self.sizeof(k) != len(v):
                 raise ValueError(f"Lengths of axis {k} and labels {v} don't match.")
         for k, v in _dict.items():
-            self.axes[k].labels = v
+            self.axes[self.axes.find(k)].labels = v
         return None
     
     @overload

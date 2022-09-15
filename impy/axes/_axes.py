@@ -127,7 +127,18 @@ class Axes(Sequence[Axis]):
         """Set physical scales of axes."""
         for k, v in value:
             self[k].scale = v
-        
+    
+    def update_scales(
+        self,
+        other: Mapping[AxisLike, float] | None = None,
+        **kwargs: dict[str, float],
+    ) -> None:
+        if other is not None:
+            for k, v in other.items():
+                self._axis_list[self.find(k)].scale = v
+        for k, v in kwargs.items():
+            self._axis_list[self.find(k)].scale = v
+
     def __str__(self):
         return "".join(map(str, self._axis_list))
     

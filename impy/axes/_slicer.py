@@ -23,6 +23,7 @@ class Slicer:
         return f"{self.__class__.__name__} of {s}"
 
     def get_formatter(self, axes: Iterable[str]) -> SliceFormatter:
+        """Return a formatter for the given axes."""
         return SliceFormatter(axes, self._dict)
 
 class _AxisSlice:
@@ -77,7 +78,7 @@ def _fmt(s):
         if r.count(":") == 2 and r.endswith(":"):
             r = r[:-1]
     elif isinstance(s, (Number, list)):
-        r = str(s)
+        r = repr(s)
     else:
         r = str(s.__class__)
     return r

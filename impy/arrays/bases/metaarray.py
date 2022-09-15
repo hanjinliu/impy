@@ -113,27 +113,6 @@ class MetaArray(AxesMixin, np.ndarray):
     def shape(self):
         return self.axes.tuple(super().shape)
     
-    def _set_additional_props(self, other):
-        # set additional properties
-        # If `other` does not have it and `self` has, then the property will be inherited.
-        for p in self.__class__.additional_props:
-            setattr(self, p, getattr(other, p, 
-                                     getattr(self, p, 
-                                             None)))
-    
-    def _set_info(self, other: Self, new_axes: Any= AxesMixin._INHERIT):
-        self._set_additional_props(other)
-        # set axes
-        try:
-            if new_axes is not self._INHERIT:
-                self.axes = new_axes
-            else:
-                self.axes = other.axes.copy()
-        except ImageAxesError:
-            self.axes = None
-        
-        return None
-    
     def __getitem__(self, key: SupportSlicing) -> Self:
         key = slicer.solve_slicer(key, self.axes)
 
@@ -151,9 +130,6 @@ class MetaArray(AxesMixin, np.ndarray):
 
         return out
     
-    def _getitem_additional_set_info(self, other: Self, key: Slices, new_axes):
-        self._set_info(other, new_axes=new_axes)
-    
     def __setitem__(self, key: SupportSlicing, value):
         key = slicer.solve_slicer(key, self.axes)
         
@@ -166,6 +142,22 @@ class MetaArray(AxesMixin, np.ndarray):
 
         super().__setitem__(key, value)
     
+    def sel(self, indexer=None, **kwargs: dict[str, Any]) -> Self:
+        if indexer is not None:
+            kwargs.update(indexer)
+        axes = self.axes
+        slices = [slice(None)] * self.ndim
+        for k, v in kwargs.items():
+            idx = axes.find(k)
+            axis = axes[idx]
+            if lbl := axis.labels:
+                if isinstance(v, list):
+                    slices[idx] = [lbl.index(each) for each in v]
+                else:
+                    slices[idx] = lbl.get_slice(v)
+            else:
+                raise ValueError(f"Cannot select {k} because it has no labels.")
+        return self[tuple(slices)]
     
     def __array_finalize__(self, obj):
         """
@@ -205,19 +197,6 @@ class MetaArray(AxesMixin, np.ndarray):
         result._process_output(ufunc, args, kwargs)
         return result
     
-    def _inherit_meta(self, obj: AxesMixin, ufunc, **kwargs):
-        """
-        Copy axis etc. from obj.
-        This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
-        considered because it changes `ndim`.
-        """
-        if "axis" in kwargs.keys():
-            new_axes = obj.axes.drop(kwargs["axis"])
-        else:
-            new_axes = self._INHERIT
-        self._set_info(obj, new_axes=new_axes)
-        return self
-    
     def __array_function__(self, func, types, args, kwargs):
         """
         Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
@@ -247,21 +226,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 result._process_output(func, args, kwargs)
         
         return result
-    
-    def _process_output(self, func, args, kwargs):
-        # find the largest MetaArray. Largest because of broadcasting.
-        arr = None
-        for arg in args:
-            if isinstance(arg, self.__class__):
-                if arr is None or arr.ndim < arg.ndim:
-                    arr = arg
-                    
-        if isinstance(arr, self.__class__):
-            self._inherit_meta(arr, func, **kwargs)
-        
-        return self
-        
-    
+
     @classmethod
     def implements(cls, numpy_function):
         """
@@ -620,6 +585,57 @@ class MetaArray(AxesMixin, np.ndarray):
     def __ifloordiv__(self, value) -> Self:
         value = self._broadcast(value)
         return super().__ifloordiv__(value)
+    
+    
+    def _set_additional_props(self, other):
+        # set additional properties
+        # If `other` does not have it and `self` has, then the property will be inherited.
+        for p in self.__class__.additional_props:
+            setattr(self, p, getattr(other, p, 
+                                     getattr(self, p, 
+                                             None)))
+    
+    def _set_info(self, other: Self, new_axes: Any= AxesMixin._INHERIT):
+        self._set_additional_props(other)
+        # set axes
+        try:
+            if new_axes is not self._INHERIT:
+                self.axes = new_axes
+            else:
+                self.axes = other.axes.copy()
+        except ImageAxesError:
+            self.axes = None
+        
+        return None
+    
+    def _process_output(self, func, args, kwargs):
+        # find the largest MetaArray. Largest because of broadcasting.
+        arr = None
+        for arg in args:
+            if isinstance(arg, self.__class__):
+                if arr is None or arr.ndim < arg.ndim:
+                    arr = arg
+                    
+        if isinstance(arr, self.__class__):
+            self._inherit_meta(arr, func, **kwargs)
+        
+        return self
+    
+    def _getitem_additional_set_info(self, other: Self, key: Slices, new_axes):
+        return self._set_info(other, new_axes=new_axes)
+    
+    def _inherit_meta(self, obj: AxesMixin, ufunc, **kwargs):
+        """
+        Copy axis etc. from obj.
+        This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
+        considered because it changes `ndim`.
+        """
+        if "axis" in kwargs.keys():
+            new_axes = obj.axes.drop(kwargs["axis"])
+        else:
+            new_axes = self._INHERIT
+        self._set_info(obj, new_axes=new_axes)
+        return self
 
     if TYPE_CHECKING:
         def astype(self, dtype) -> Self: ...
