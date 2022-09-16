@@ -115,20 +115,20 @@ It is not always the case if you called certain functions that will change scale
     img[::-3].axes[0].scale == img.axes[0].scale * 3  # True
     img.binning(3) == img.axes[0].scale * 3
 
-Axis Labels
------------
+Axis Coordinates
+----------------
 
-Sometimes an axis is tagged with "labels" that explains what each slice means. ``Axis`` object
-retains labels information and can be referred to as a tuple.
+Sometimes an axis is tagged with "coordinates" that explains what each slice means. ``Axis`` 
+object retains coordinate information and can be referred to as a tuple.
 
 .. code-block:: python
 
     assert img.shape["t"] == 4  # say the length of t-axis is 4
-    img.axes["t"].labels = ["0 sec", "10 sec", "30 sec", "1 min"]
-    img.axes["t"].labels == ("0 sec", "10 sec", "30 sec", "1 min")
+    img.axes["t"].coords = ["0 sec", "10 sec", "30 sec", "1 min"]
+    img.axes["t"].coords == ("0 sec", "10 sec", "30 sec", "1 min")
 
-Because the length of labels must match corresponding shape of an array, it is safer to
-use ``set_axis_label`` method. It checks the new labels.
+Because the length of coordinates must match corresponding shape of an array, it is safer to
+use ``set_axis_label`` method. It checks the new coordinates.
 
 .. code-block:: python
 

@@ -12,21 +12,26 @@ if TYPE_CHECKING:
 
 _T = TypeVar("_T", bound=Hashable)
 _Slicable = Union[SupportsIndex, slice, list[int], np.ndarray]
+_Real = Union[int, float]
 
-_COORDINATES = "labels"
+_COORDINATES = "coordinates"
 _SCALE = "scale"
 _UNIT = "unit"
 _COMPONENTS = "components"
+_SIZE = "size"
 
 class CoordinatesBase(Sequence[_T], ABC):
     @abstractmethod
     def to_indexer(self, coords: _T | slice) -> _Slicable:
         """Convert a coordinate into a slicable object."""
 
+    @abstractmethod
+    def __len__(self) -> int:
+        """Length of the coordinates."""
 
 # TODO: implement this class
 class RangeCoordinates(CoordinatesBase[_T]):
-    def __init__(self, start: int, stop: int, step: int):
+    def __init__(self, start: _Real, stop: _Real, step: _Real):
         self._start = start
         self._stop = stop
         self._step = step
@@ -195,11 +200,11 @@ class Axis:
         """Subtract another axis."""
         return TransformedAxis.from_linear_combination([(1., self), (-1., other)])
 
-    def __mul__(self, coef: int | float) -> TransformedAxis:
+    def __mul__(self, coef: _Real) -> TransformedAxis:
         """Multiply by a scalar."""
         return TransformedAxis.from_linear_combination([(coef, self)])
     
-    def __rmul__(self, coef: int | float) -> TransformedAxis:
+    def __rmul__(self, coef: _Real) -> TransformedAxis:
         """Multiply by a scalar."""
         return TransformedAxis.from_linear_combination([(coef, self)])        
             
@@ -207,19 +212,21 @@ class Axis:
         """To support alphabetic ordering."""
         return str(self) < str(other)
     
-    def __len__(self) -> int:
-        """Length of the string representation."""
-        return len(str(self))
+    # def __len__(self) -> int:
+    #     """Length of the string representation."""
+    #     return len(str(self))
     
-    def __iter__(self) -> Iterable[str]:
-        """Iterate as a string."""
-        return iter(str(self))
+    # def __iter__(self) -> Iterable[str]:
+    #     """Iterate as a string."""
+    #     return iter(str(self))
     
     def __copy__(self) -> Self:
+        """Return a copy of the axis."""
         return self.__class__(self._name, metadata=self._metadata.copy())
     
     @property
     def name(self) -> str:
+        """Name of the axis."""
         return self._name
 
     @property
@@ -233,12 +240,18 @@ class Axis:
         return self.metadata.get(_SCALE, 1.0)
     
     @scale.setter
-    def scale(self, value: float) -> None:
+    def scale(self, value: _Real) -> None:
         """Set physical scale to the axis."""
         value = float(value)
         if value <= 0:
             raise ValueError(f"Cannot set negative scale: {value!r}.")
         self.metadata[_SCALE] = value
+    
+    @scale.deleter
+    def scale(self) -> None:
+        """Delete physical scale."""
+        self.metadata.pop(_SCALE, None)
+        return None
     
     @property
     def unit(self) -> str:
@@ -258,32 +271,47 @@ class Axis:
     @property
     def labels(self) -> Coordinates | None:
         """Axis labels."""
+        warnings.warn("Axis.labels is deprecated. Use Axis.coords instead.", DeprecationWarning)
         return self.metadata[_COORDINATES]
     
     @labels.setter
     def labels(self, value: Iterable[Hashable]) -> None:
         """Set axis labels."""
+        warnings.warn("Axis.labels is deprecated. Use Axis.coords instead.", DeprecationWarning)
         self.metadata[_COORDINATES] = Coordinates(value)
     
     @labels.deleter
     def labels(self) -> None:
         """Set axis labels."""
+        warnings.warn("Axis.labels is deprecated. Use Axis.coords instead.", DeprecationWarning)
         del self.metadata[_COORDINATES]
     
     @property
-    def coords(self) -> Coordinates | None:
+    def coords(self) -> Coordinates:
         """Axis coordinates."""
         return self.metadata[_COORDINATES]
     
     @coords.setter
     def coords(self, value: Iterable[Hashable]) -> None:
         """Set axis coordinates."""
-        self.metadata[_COORDINATES] = Coordinates(value)
+        coords = Coordinates(value)
+        if len(coords) != self.size:
+            raise ValueError(
+                f"Cannot set coordinates of size {len(coords)} to axis of size {self.size}."
+            )
+        self.metadata[_COORDINATES] = coords
     
     @coords.deleter
     def coords(self) -> None:
         """Set axis coordinates."""
         del self.metadata[_COORDINATES]
+    
+    @property
+    def size(self) -> int:
+        return self.metadata[_SIZE]
+    
+    def _set_size(self, size: int) -> None:
+        self.metadata[_SIZE] = size
 
     def isin(self, values: Iterable[Hashable]) -> np.ndarray:
         """Check if labels are in values."""
@@ -291,11 +319,20 @@ class Axis:
             raise ValueError("Axis has no coordinates.")
         return np.array([label in values for label in self.coords])
 
-    def slice_axis(self, sl: Any) -> Self:
-        """Return sliced axis."""
+    def slice_axis(self, sl: _Slicable) -> Self:
+        """
+        Return sliced axis.
+        
+        Parameters
+        ----------
+        sl : slicable object
+            Slice object to apply to the axis.
+        """
         if not isinstance(sl, (slice, list)):
             return self
         metadata = self.metadata.copy()
+        
+        # rescale if needed.
         if _SCALE in metadata:
             if isinstance(sl, slice):
                 step = sl.step or 1
@@ -305,12 +342,15 @@ class Axis:
                 metadata.update(scale=new_scale)
             else:
                 metadata.pop(_SCALE)
+
+        # slice coordinates
         if _COORDINATES in metadata:
             labels: Coordinates = metadata[_COORDINATES]
             if isinstance(sl, slice):
-                metadata.update(labels=labels[sl])
+                metadata.update({_COORDINATES: labels[sl]})
             else:
-                metadata.update(labels=Coordinates([labels[i] for i in sl]))
+                metadata.update({_COORDINATES: Coordinates(labels[i] for i in sl)})
+            
         return self.__class__(self._name, metadata=metadata)
 
     

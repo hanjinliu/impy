@@ -37,10 +37,10 @@ class AxesFrame(pd.DataFrame):
         self._axes = Axes(self.columns)
     
     def _get_coords_cols(self):
-        return [a for a in self.columns if len(a) == 1]
+        return [a for a in self._axes]
     
     def get_coords(self):
-        return self[self.columns[self.columns.isin([a for a in self.columns if len(a) == 1])]]
+        return self[self.columns[self.columns.isin(self._get_coords_cols())]]
     
     
     def __getitem__(self, k):

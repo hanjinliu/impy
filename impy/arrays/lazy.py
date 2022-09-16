@@ -23,12 +23,13 @@ from ..io import imsave
 from ..collections import DataList
 
 from .._types import nDFloat, Coords, Iterable, Dims, PaddingMode
-from ..axes import ImageAxesError
+from ..axes import ImageAxesError, Axes
 from .._const import Const
 from ..array_api import xp
 
 if TYPE_CHECKING:
     from dask import array as da
+    from typing_extensions import Self
 
 
 class LazyImgArray(AxesMixin):
@@ -129,9 +130,7 @@ class LazyImgArray(AxesMixin):
             metadata=self.metadata
         )
         
-        out._getitem_additional_set_info(
-            self, new_axes=new_axes, key=key
-        )
+        out._getitem_additional_set_info(self, new_axes=new_axes, key=key)
         
         return out
     
@@ -1297,11 +1296,11 @@ class LazyImgArray(AxesMixin):
                                              None)))
     
     
-    def _getitem_additional_set_info(self, other, **kwargs):
-        self._set_info(other, kwargs["new_axes"])
-        return None
+    def _getitem_additional_set_info(self, other: Self, key, new_axes: Axes):
+        new_axes._set_shape(self.shape)
+        return self._set_info(other, new_axes)
     
-    def _set_info(self, other: LazyImgArray, new_axes: Any = AxesMixin._INHERIT):
+    def _set_info(self, other: Self, new_axes: Any = AxesMixin._INHERIT):
         self._set_additional_props(other)
         # set axes
         try:

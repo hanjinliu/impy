@@ -148,13 +148,13 @@ class MetaArray(AxesMixin, np.ndarray):
         for k, v in kwargs.items():
             idx = axes.find(k)
             axis = axes[idx]
-            if lbl := axis.labels:
+            if lbl := axis.coords:
                 if isinstance(v, list):
                     slices[idx] = [lbl.index(each) for each in v]
                 else:
                     slices[idx] = lbl.to_indexer(v)
             else:
-                raise ValueError(f"Cannot select {k} because it has no labels.")
+                raise ValueError(f"Cannot select {k} because it has no coordinates.")
         return self[tuple(slices)]
     
     def isel(self, indexer=None, /, **kwargs: dict[str, Any]) -> Self:
@@ -631,7 +631,8 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return self
     
-    def _getitem_additional_set_info(self, other: Self, key: Slices, new_axes):
+    def _getitem_additional_set_info(self, other: Self, key: Slices, new_axes: Axes):
+        new_axes._set_shape(super().shape)
         return self._set_info(other, new_axes=new_axes)
     
     def _inherit_meta(self, obj: AxesMixin, ufunc, **kwargs):

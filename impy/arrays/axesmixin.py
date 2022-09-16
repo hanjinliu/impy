@@ -57,6 +57,7 @@ class AxesMixin:
                     f"array (ndim={self.ndim}) and axes ({value})"
                 )
             self._axes = axes
+        self._axes._set_shape(self.shape)
     
     @property
     def metadata(self) -> dict[str, Any]:

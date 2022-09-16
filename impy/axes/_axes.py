@@ -315,13 +315,20 @@ class Axes(Sequence[Axis]):
         return tuple(sl_list)
 
     def tuple(self, iterable: Iterable[_T], /) -> AxesTuple[_T]:
+        """Convert iterable to AxesTuple."""
         from ._axes_tuple import get_axes_tuple
         try:
             out = get_axes_tuple(self)(*iterable)
         except ImageAxesError:
             out = tuple(iterable)
         return out
-
+    
+    def _set_shape(self, shape: tuple[int, ...]) -> None:
+        if len(self) != len(shape):
+            raise ValueError(f"Shape length mismatch: {len(self)} != {len(shape)}")
+        for axis, size in zip(self, shape):
+            axis._set_size(size)
+        return None
 
 def _broadcast_two(axes0: AxesLike, axes1: AxesLike) -> Axes:
     if not isinstance(axes0, Axes):

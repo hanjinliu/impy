@@ -349,7 +349,7 @@ class LabeledArray(MetaArray):
     
     def _getitem_additional_set_info(self, other: Self, key, new_axes):
         self._covariates = getattr(self, "covariates", ArrayCovariates({}, self))
-        super()._set_info(other, new_axes)
+        super()._getitem_additional_set_info(other, key, new_axes)
         if isinstance(other, LabeledArray):
             self._covariates = other.covariates.construct_by_slicing(key, self)
         
