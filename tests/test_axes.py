@@ -131,11 +131,11 @@ def test_axis_coordinates_str():
     with pytest.raises(ValueError):
         img.set_axis_label(c=["c0", "c1", "c2"])
     img.set_axis_label(c=["c0", "c1", "c2", "c3"])
-    assert img.axes["c"].coordinates == ("c0", "c1", "c2", "c3")
-    assert img[:2].axes["c"].coordinates == ("c0", "c1")
-    assert img[2:].axes["c"].coordinates == ("c2", "c3")
-    assert img[[0, 2]].axes["c"].coordinates == ("c0", "c2")
-    assert img[2::-1].axes["c"].coordinates == ("c2", "c1", "c0")
+    assert img.axes["c"].coords == ("c0", "c1", "c2", "c3")
+    assert img[:2].axes["c"].coords == ("c0", "c1")
+    assert img[2:].axes["c"].coords == ("c2", "c3")
+    assert img[[0, 2]].axes["c"].coords == ("c0", "c2")
+    assert img[2::-1].axes["c"].coords == ("c2", "c1", "c0")
 
 def test_transformed_axis():
     x = Axis("x", scale=2, unit="nm")

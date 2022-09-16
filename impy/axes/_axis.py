@@ -132,7 +132,7 @@ class Axis:
         *,
         scale: float | None = None,
         unit: str | None = None,
-        coordinates: Sequence[Hashable] | None = None,
+        coords: Sequence[Hashable] | None = None,
         metadata: dict[str, Any] | None = None,
     ):
         self._name = str(name)
@@ -141,8 +141,8 @@ class Axis:
             self.scale = scale
         if unit is not None:
             self.unit = unit
-        if coordinates is not None:
-            self.coordinates = coordinates
+        if coords is not None:
+            self.coords = coords
     
     def __str__(self) -> str:
         """String representation of the axis."""
@@ -271,25 +271,25 @@ class Axis:
         del self.metadata[_COORDINATES]
     
     @property
-    def coordinates(self) -> Coordinates | None:
+    def coords(self) -> Coordinates | None:
         """Axis coordinates."""
         return self.metadata[_COORDINATES]
     
-    @coordinates.setter
-    def coordinates(self, value: Iterable[Hashable]) -> None:
+    @coords.setter
+    def coords(self, value: Iterable[Hashable]) -> None:
         """Set axis coordinates."""
         self.metadata[_COORDINATES] = Coordinates(value)
     
-    @coordinates.deleter
-    def coordinates(self) -> None:
+    @coords.deleter
+    def coords(self) -> None:
         """Set axis coordinates."""
         del self.metadata[_COORDINATES]
 
     def isin(self, values: Iterable[Hashable]) -> np.ndarray:
         """Check if labels are in values."""
-        if self.coordinates is None:
+        if self.coords is None:
             raise ValueError("Axis has no coordinates.")
-        return np.array([label in values for label in self.coordinates])
+        return np.array([label in values for label in self.coords])
 
     def slice_axis(self, sl: Any) -> Self:
         """Return sliced axis."""
@@ -392,7 +392,6 @@ class TransformedAxis(Axis):
             Axis with the given linear combination of other axes.        
         """
         axis_to_coef: dict[Axis, float] = {}
-        base_scales: list[float] = []
         base_units: set[str] = set()
         for k, axis in components:
             if isinstance(axis, UndefAxis):
