@@ -1,8 +1,8 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 import warnings
 from copy import copy
-from numbers import Real
-from typing import Any, Hashable, Sequence, TypeVar, Union, Iterable, TYPE_CHECKING
+from typing import Any, Hashable, Sequence, SupportsIndex, TypeVar, Union, Iterable, TYPE_CHECKING
 import numpy as np
 
 from ._misc import ImageAxesWarning
@@ -11,17 +11,21 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
 _T = TypeVar("_T", bound=Hashable)
+_Slicable = Union[SupportsIndex, slice, list[int], np.ndarray]
 
-_LABELS = "labels"
+_COORDINATES = "labels"
 _SCALE = "scale"
 _UNIT = "unit"
 _COMPONENTS = "components"
 
-class LabelBase(Sequence):
-    pass
+class CoordinatesBase(Sequence[_T], ABC):
+    @abstractmethod
+    def to_indexer(self, coords: _T | slice) -> _Slicable:
+        """Convert a coordinate into a slicable object."""
+
 
 # TODO: implement this class
-class RangeLabels(LabelBase[_T]):
+class RangeCoordinates(CoordinatesBase[_T]):
     def __init__(self, start: int, stop: int, step: int):
         self._start = start
         self._stop = stop
@@ -35,9 +39,22 @@ class RangeLabels(LabelBase[_T]):
     
     def __len__(self) -> int:
         return (self._stop - self._start) // self._step
+    
+    def to_indexer(self, coords: _T | slice) -> _Slicable:
+        if isinstance(coords, slice):
+            if coords.step not in (None, 1, -1):
+                raise ValueError("Step size must be 1 or -1.")
+            start = coords.start
+            stop = coords.stop
+            if start is not None:
+                start = int(np.ceil((start - self._start) / self._step))
+            if stop is not None:
+                stop = int((stop - self._start) / self._step)
+            return slice(start, stop, coords.step)
+        else:
+            return int(np.round((coords - self._start) / self._step))
 
-
-class Labels(LabelBase):
+class Coordinates(CoordinatesBase[_T]):
     """A tuple-like object storing label specifiers."""
     
     def __init__(self, seq: Iterable[_T]):
@@ -57,7 +74,7 @@ class Labels(LabelBase):
     def __getitem__(self, key):
         out = self._labels[key]
         if isinstance(key, slice):
-            return Labels(out)
+            return Coordinates(out)
         return out
     
     def __eq__(self, other: Sequence[_T]) -> bool:
@@ -69,25 +86,25 @@ class Labels(LabelBase):
         return len(self._labels) != len(self._hash_map)
         
     def get_item(self, key: _T | slice):
-        idx = self.get_slice(key)
+        idx = self.to_indexer(key)
         return self._labels[idx]
     
-    def get_slice(self, key: _T | slice) -> int | slice:
+    def to_indexer(self, coords: _T | slice) -> int | slice:
         if self.has_duplicate:
             raise ValueError("Labels have duplicate.")
 
-        if isinstance(key, slice):
-            if key.start is None:
+        if isinstance(coords, slice):
+            if coords.start is None:
                 start = None
             else:
-                start = self._hash_map[key.start]
-            if key.stop is None:
+                start = self._hash_map[coords.start]
+            if coords.stop is None:
                 stop = None
             else:
-                stop = self._hash_map[key.stop]
-            idx = slice(start, stop, key.step)
+                stop = self._hash_map[coords.stop]
+            idx = slice(start, stop, coords.step)
         else:
-            idx = self._hash_map[key]
+            idx = self._hash_map[coords]
         return idx
 
     def index(self, val: _T) -> int:
@@ -109,9 +126,23 @@ class Axis:
         Name of axis.
     """
     
-    def __init__(self, name: str, metadata: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        name: str,
+        *,
+        scale: float | None = None,
+        unit: str | None = None,
+        coordinates: Sequence[Hashable] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ):
         self._name = str(name)
         self._metadata = metadata or {}
+        if scale is not None:
+            self.scale = scale
+        if unit is not None:
+            self.unit = unit
+        if coordinates is not None:
+            self.coordinates = coordinates
     
     def __str__(self) -> str:
         """String representation of the axis."""
@@ -132,7 +163,7 @@ class Axis:
         """Invert axis."""
         return TransformedAxis.from_linear_combination([(-1., self)])
     
-    def __add__(self, other: str) -> str:
+    def __add__(self, other: Axis) -> TransformedAxis:
         """Add as a string ans returns a string."""
         if isinstance(other , str):
             warnings.warn(
@@ -146,7 +177,7 @@ class Axis:
         else:
             raise TypeError(f"Cannot add {type(self)} and {type(other)}.")
     
-    def __radd__(self, other: str) -> str:
+    def __radd__(self, other: Axis) -> TransformedAxis:
         """Add as a string ans returns a string."""
         if isinstance(other , str):
             warnings.warn(
@@ -162,13 +193,13 @@ class Axis:
 
     def __sub__(self, other: Axis) -> TransformedAxis:
         """Subtract another axis."""
-        return self + (-other)
+        return TransformedAxis.from_linear_combination([(1., self), (-1., other)])
 
-    def __mul__(self, coef: Real) -> TransformedAxis:
+    def __mul__(self, coef: int | float) -> TransformedAxis:
         """Multiply by a scalar."""
         return TransformedAxis.from_linear_combination([(coef, self)])
     
-    def __rmul__(self, coef: Real) -> TransformedAxis:
+    def __rmul__(self, coef: int | float) -> TransformedAxis:
         """Multiply by a scalar."""
         return TransformedAxis.from_linear_combination([(coef, self)])        
             
@@ -185,8 +216,12 @@ class Axis:
         return iter(str(self))
     
     def __copy__(self) -> Self:
-        return self.__class__(self._name, self._metadata.copy())
+        return self.__class__(self._name, metadata=self._metadata.copy())
     
+    @property
+    def name(self) -> str:
+        return self._name
+
     @property
     def metadata(self) -> dict[str, Any]:
         """Metadata dictionary."""
@@ -221,25 +256,40 @@ class Axis:
         self.metadata[_UNIT] = value
     
     @property
-    def labels(self) -> Labels | None:
+    def labels(self) -> Coordinates | None:
         """Axis labels."""
-        return self.metadata[_LABELS]
+        return self.metadata[_COORDINATES]
     
     @labels.setter
     def labels(self, value: Iterable[Hashable]) -> None:
         """Set axis labels."""
-        self.metadata[_LABELS] = Labels(value)
+        self.metadata[_COORDINATES] = Coordinates(value)
     
     @labels.deleter
     def labels(self) -> None:
         """Set axis labels."""
-        del self.metadata[_LABELS]
+        del self.metadata[_COORDINATES]
     
+    @property
+    def coordinates(self) -> Coordinates | None:
+        """Axis coordinates."""
+        return self.metadata[_COORDINATES]
+    
+    @coordinates.setter
+    def coordinates(self, value: Iterable[Hashable]) -> None:
+        """Set axis coordinates."""
+        self.metadata[_COORDINATES] = Coordinates(value)
+    
+    @coordinates.deleter
+    def coordinates(self) -> None:
+        """Set axis coordinates."""
+        del self.metadata[_COORDINATES]
+
     def isin(self, values: Iterable[Hashable]) -> np.ndarray:
         """Check if labels are in values."""
-        if self.labels is None:
-            raise ValueError("Axis has no labels.")
-        return np.array([label in values for label in self.labels])
+        if self.coordinates is None:
+            raise ValueError("Axis has no coordinates.")
+        return np.array([label in values for label in self.coordinates])
 
     def slice_axis(self, sl: Any) -> Self:
         """Return sliced axis."""
@@ -255,12 +305,12 @@ class Axis:
                 metadata.update(scale=new_scale)
             else:
                 metadata.pop(_SCALE)
-        if _LABELS in metadata:
-            labels: Labels = metadata[_LABELS]
+        if _COORDINATES in metadata:
+            labels: Coordinates = metadata[_COORDINATES]
             if isinstance(sl, slice):
                 metadata.update(labels=labels[sl])
             else:
-                metadata.update(labels=Labels([labels[i] for i in sl]))
+                metadata.update(labels=Coordinates([labels[i] for i in sl]))
         return self.__class__(self._name, metadata=metadata)
 
     
@@ -349,7 +399,6 @@ class TransformedAxis(Axis):
                 raise TypeError("Cannot use undefined axis in a linear combination.")
             else:
                 _increment_axis_component(axis_to_coef, k, axis)
-            base_scales.append(axis.scale * abs(k))
             base_units.add(axis.unit)
             
         if name is None:
@@ -358,7 +407,9 @@ class TransformedAxis(Axis):
         metadata = {_COMPONENTS: axis_to_coef}
         
         if len(base_units) == 1:
-            scale = np.linalg.norm(np.array(base_scales))
+            scale = np.linalg.norm(
+                [axis.scale * abs(coef) for axis, coef in axis_to_coef.items()]
+            )
             unit = base_units.pop()
             metadata.update({_SCALE: scale, _UNIT: unit})
         else:
@@ -369,12 +420,32 @@ class TransformedAxis(Axis):
     @property
     def components(self) -> dict[Axis, float]:
         return self.metadata[_COMPONENTS]
+    
+    @property
+    def vector(self) -> np.ndarray:
+        """Vector representation of the axis."""
+        return np.array(list(self.components.values()), dtype=np.float32)
+    
+    @property
+    def bases(self) -> list[Axis]:
+        """Base axes."""
+        return list(self.components.keys())
+    
+    def transform(self, matrix: np.ndarray) -> Self:
+        """Transform axis by a matrix."""
+        new = self.vector.dot(matrix)
+        return self.from_linear_combination(zip(new, self.components.keys()))
+    
+    def __matmul__(self, matrix: np.ndarray) -> Self:
+        """Transform axis by a matrix."""
+        return self.transform(matrix)
+
 
 def _increment_axis_component(dict_: dict, coef: float, axis: Axis) -> None:
     """Increment a component of the axis."""
     if isinstance(axis, TransformedAxis):
         for _axis, _coef in axis.components.items():
-            _increment_axis_component(dict_, _coef, _axis)
+            _increment_axis_component(dict_, _coef * coef, _axis)
     else:
         if axis in dict_:
             dict_[axis] += coef

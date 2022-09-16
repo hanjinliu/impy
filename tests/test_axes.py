@@ -1,7 +1,7 @@
 import pytest
 import impy as ip
 import numpy as np
-from impy.axes import ImageAxesError, broadcast
+from impy.axes import ImageAxesError, broadcast, Axis
 
 @pytest.mark.parametrize("axes", [["t", "z", "y", "x"], ["time", "z", ":y", ":x"]])
 def test_axes(axes):
@@ -126,16 +126,34 @@ def test_slicing(axes):
     assert img[..., 0, :].axes == tzyx[:2] + tzyx[3:4]
     assert img[0, ..., 0].axes == tzyx[1:3]
 
-def test_axis_labels():
+def test_axis_coordinates_str():
     img = ip.zeros((4, 10, 10), axes="cyx")
     with pytest.raises(ValueError):
         img.set_axis_label(c=["c0", "c1", "c2"])
     img.set_axis_label(c=["c0", "c1", "c2", "c3"])
-    assert img.axes["c"].labels == ("c0", "c1", "c2", "c3")
-    assert img[:2].axes["c"].labels == ("c0", "c1")
-    assert img[2:].axes["c"].labels == ("c2", "c3")
-    assert img[[0, 2]].axes["c"].labels == ("c0", "c2")
-    assert img[2::-1].axes["c"].labels == ("c2", "c1", "c0")
+    assert img.axes["c"].coordinates == ("c0", "c1", "c2", "c3")
+    assert img[:2].axes["c"].coordinates == ("c0", "c1")
+    assert img[2:].axes["c"].coordinates == ("c2", "c3")
+    assert img[[0, 2]].axes["c"].coordinates == ("c0", "c2")
+    assert img[2::-1].axes["c"].coordinates == ("c2", "c1", "c0")
+
+def test_transformed_axis():
+    x = Axis("x", scale=2, unit="nm")
+    y = Axis("y", scale=1, unit="nm")
+    u = 2 * x + y
+    v = x - 2 * y
+    assert u.name == "2x+1y"
+    assert v.name == "1x-2y"
+    a = u + v
+    assert a.name == "3x-1y"
+    
+    assert u.scale == pytest.approx(np.linalg.norm([2*2, 1*1]))
+    assert v.scale == pytest.approx(np.linalg.norm([1*2, 2*1]))
+    assert a.scale == pytest.approx(np.linalg.norm([3*2, 1*1]))
+    
+    assert u.unit == "nm"
+    assert v.unit == "nm"
+    assert a.unit == "nm"
 
 def test_broadcast():
     assert broadcast("zyx", "tzyx") == "tzyx"

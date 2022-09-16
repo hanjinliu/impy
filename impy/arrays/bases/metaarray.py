@@ -152,7 +152,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 if isinstance(v, list):
                     slices[idx] = [lbl.index(each) for each in v]
                 else:
-                    slices[idx] = lbl.get_slice(v)
+                    slices[idx] = lbl.to_indexer(v)
             else:
                 raise ValueError(f"Cannot select {k} because it has no labels.")
         return self[tuple(slices)]
