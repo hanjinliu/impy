@@ -3064,7 +3064,56 @@ class ImgArray(LabeledArray):
         if squeeze:
             out = out[0]
         return out
-    
+
+    @dims_to_spatial_axes
+    def iradon(
+        self,
+        degrees: Sequence[float],
+        *,
+        along: AxisLike = "degree",
+        window: str = "hamming",
+        order: int = 3,
+        dims: Dims = None,
+    ) -> ImgArray:
+        radians = np.deg2rad(degrees)
+        from scipy.interpolate import griddata
+        
+        shape = (self.shape["x"],) * 2
+        nx = shape[0]
+        window_img = _transform.get_window_for_iradon(window, nx)
+        
+        sino_ft = np.fft.ifftshift(self, axes="x").fft(dims="x") * window_img  # axes: deg, x
+        
+        center = np.ceil((nx - 1) / 2)  # to make the center match fftshift
+        _r, _a = np.meshgrid(np.arange(nx) - center, radians)
+        
+        # source coordinates
+        srcy = center + _r * np.sin(_a)
+        srcx = center + _r * np.cos(_a)
+        
+        # destination coordinates
+        output_shape = (nx, nx)
+        dsty, dstx = np.indices(output_shape, dtype=np.float32)
+        method = {0: "nearest", 1: "linear", 3: "cubic"}[order]
+        out = griddata(
+            (srcy.ravel(), srcx.ravel()),
+            sino_ft.value.ravel(), 
+            (dsty.ravel(), dstx.ravel()),
+            method=method,
+            fill_value=0.0,
+        ).reshape(output_shape)
+        
+        # prepare missing wedge mask
+        mask = _transform.get_missing_wedge(output_shape, (radians[0], radians[-1]))
+        out[mask] = 0.0 + 0.0j
+
+        out: ImgArray = out.view(self.__class__)
+        axis = Axis("y")
+        axis.scale = self.axes[-1].scale
+        axis.unit = self.axes[-1].unit
+        out._set_info(self, self.axes.drop(0).insert(0, axis))
+        return np.fft.ifftshift(out.ifft())
+
     @check_input_and_output
     def threshold(
         self,

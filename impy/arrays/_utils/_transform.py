@@ -185,3 +185,37 @@ def get_rotation_matrices_for_radon_3d(
     tr_0 = compose_affine_matrix(translation=center, ndim=3)
     tr_1 = compose_affine_matrix(translation=-center, ndim=3)
     return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
+
+def iradon_2d(sino_ft: xp.ndarray, theta: float, order: int = 3, shape: tuple[int, int] = None):
+    """Interpolate a slice of sinogram into a 2D image at ``theta`` tilt."""
+    out = xp.zeros(shape, dtype=np.complex64)
+    out[0, :] = sino_ft
+    center = np.array(shape) / 2 - 0.5
+    tr_0 = compose_affine_matrix(translation=[0, center[1]], ndim=2)
+    rot = compose_affine_matrix(rotation=np.deg2rad(theta), ndim=2)
+    tr_1 = compose_affine_matrix(translation=-center, ndim=2)
+    mtx = xp.asarray(tr_0 @ rot @ tr_1)
+    return xp.ndi.affine_transform(out, mtx, order=order, prefilter=False)
+
+def get_window_for_iradon(name: str, size: int) -> np.ndarray:
+    if name != "hamming":
+        raise NotImplementedError
+    freq = np.fft.fftshift(np.fft.fftfreq(size))
+    return _hamming(freq)
+
+def get_missing_wedge(output_shape: tuple[int, int], radian_range: tuple[float, float]):
+    yy, xx = np.indices(output_shape, dtype=np.float32)
+    yy -= output_shape[0] // 2
+    xx -= output_shape[1] // 2
+    vectors = np.stack([yy, xx], axis=-1)
+    
+    ang0, ang1 = radian_range
+    normal0 = np.array([np.cos(ang0), -np.sin(ang0)])
+    normal1 = np.array([np.cos(ang1), -np.sin(ang1)])
+    
+    dot0 = vectors.dot(normal0)
+    dot1 = vectors.dot(normal1)
+    return dot0 * dot1 > 0
+
+def _hamming(freq: xp.ndarray):
+    return 0.54 + 0.46 * xp.cos(2 * np.pi * freq)
