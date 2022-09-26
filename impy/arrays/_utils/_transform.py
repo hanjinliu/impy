@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Iterable, NamedTuple
+from typing import Callable, Iterable, NamedTuple
 import numpy as np
+from functools import partial
 
 from ._skimage import sktrans
 from ...array_api import xp
@@ -186,36 +187,66 @@ def get_rotation_matrices_for_radon_3d(
     tr_1 = compose_affine_matrix(translation=-center, ndim=3)
     return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
 
-def iradon_2d(sino_ft: xp.ndarray, theta: float, order: int = 3, shape: tuple[int, int] = None):
-    """Interpolate a slice of sinogram into a 2D image at ``theta`` tilt."""
-    out = xp.zeros(shape, dtype=np.complex64)
-    out[0, :] = sino_ft
-    center = np.array(shape) / 2 - 0.5
-    tr_0 = compose_affine_matrix(translation=[0, center[1]], ndim=2)
-    rot = compose_affine_matrix(rotation=np.deg2rad(theta), ndim=2)
-    tr_1 = compose_affine_matrix(translation=-center, ndim=2)
-    mtx = xp.asarray(tr_0 @ rot @ tr_1)
-    return xp.ndi.affine_transform(out, mtx, order=order, prefilter=False)
+# This function is mostly ported from `skimage.transform`.
+# The most important difference is that this implementation support arbitrary 
+# output shape.
+def iradon(
+    img: xp.ndarray, 
+    degrees: xp.ndarray,
+    output_shape: tuple[int, int],
+    filter_func: Callable,
+    interpolation: str = "linear",
+):
+    angles_count = len(degrees)
+    dtype = img.dtype
+    img_shape = img.shape[0]
 
-def get_window_for_iradon(name: str, size: int) -> np.ndarray:
-    if name != "hamming":
-        raise NotImplementedError
-    freq = np.fft.fftshift(np.fft.fftfreq(size))
-    return _hamming(freq)
+    # Apply filter in Fourier domain
+    projection = xp.fft.fft(img, axis=0) * filter_func
+    radon_filtered = xp.real(xp.fft.ifft(projection, axis=0)[:img_shape, :])
 
-def get_missing_wedge(output_shape: tuple[int, int], radian_range: tuple[float, float]):
-    yy, xx = np.indices(output_shape, dtype=np.float32)
-    yy -= output_shape[0] // 2
-    xx -= output_shape[1] // 2
-    vectors = np.stack([yy, xx], axis=-1)
+    # Reconstruct image by interpolation
+    reconstructed = xp.zeros(output_shape, dtype=dtype)
+    xpr, ypr = xp.indices(output_shape)
+    xpr -= output_shape[0] // 2
+    ypr -= output_shape[1] // 2
     
-    ang0, ang1 = radian_range
-    normal0 = np.array([np.cos(ang0), -np.sin(ang0)])
-    normal1 = np.array([np.cos(ang1), -np.sin(ang1)])
-    
-    dot0 = vectors.dot(normal0)
-    dot1 = vectors.dot(normal1)
-    return dot0 * dot1 > 0
+    from scipy.interpolate import interp1d
+    x = np.arange(img_shape) - img_shape // 2  # NOTE: use CPU!
+    for col, angle in zip(radon_filtered.T, np.deg2rad(degrees)):
+        t = ypr * np.cos(angle) - xpr * np.sin(angle)
+        interpolant = interp1d(x, col, kind=interpolation, bounds_error=False, fill_value=0)
+        reconstructed += xp.asarray(interpolant(t))
 
-def _hamming(freq: xp.ndarray):
-    return 0.54 + 0.46 * xp.cos(2 * np.pi * freq)
+    return reconstructed * np.pi / (2 * angles_count)
+
+# This function is almost ported from `skimage.transform`.
+def get_fourier_filter(size, filter_name):
+    n = np.concatenate(
+        [np.arange(1, size / 2 + 1, 2, dtype=int),
+         np.arange(size / 2 - 1, 0, -2, dtype=int)]
+    )
+    f = np.zeros(size)
+    f[0] = 0.25
+    f[1::2] = -1 / (np.pi * n) ** 2
+    fourier_filter = 2 * np.real(xp.fft.fft(f))  # ramp filter
+    if filter_name == "ramp":
+        pass
+    elif filter_name == "shepp-logan":
+        # Start from first element to avoid divide by zero
+        omega = np.pi * xp.fft.fftfreq(size)[1:]
+        fourier_filter[1:] *= np.sin(omega) / omega
+    elif filter_name == "cosine":
+        freq = np.linspace(0, np.pi, size, endpoint=False)
+        cosine_filter = xp.fft.fftshift(np.sin(freq))
+        fourier_filter *= cosine_filter
+    elif filter_name == "hamming":
+        fourier_filter *= xp.fft.fftshift(np.hamming(size))
+    elif filter_name == "hann":
+        fourier_filter *= xp.fft.fftshift(np.hanning(size))
+    elif filter_name is None:
+        fourier_filter[:] = 1
+    else:
+        raise ValueError(f"Unknown filter: {filter_name}")
+
+    return fourier_filter[:, np.newaxis]

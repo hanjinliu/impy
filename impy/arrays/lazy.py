@@ -1044,18 +1044,23 @@ class LazyImgArray(AxesMixin):
 
         # I don't know the reason why but output dask array's chunk size along t-axis should be 
         # specified to be 1, and rechunk it map_overlap. 
-        result = da.map_overlap(pcc, img_fft, 
-                                depth={0: (1, 0)}, 
-                                trim=False,
-                                boundary="none",
-                                chunks=(1, ndim) + (1,)*(ndim-1),
-                                meta=np.array([], dtype=np.float32)
-                                )
+        result = da.map_overlap(
+            pcc,
+            img_fft, 
+            depth={0: (1, 0)}, 
+            trim=False,
+            boundary="none",
+            chunks=(1, ndim) + (1,)*(ndim-1),
+            meta=np.array([], dtype=np.float32)
+        )
         
         # For cupy, we must call map_blocks (or from_delayed and delayed) here.
-        result = da.map_blocks(np.cumsum, result[..., 0].rechunk((len_t, ndim)), 
-                               axis=0, meta=np.array([], dtype=np.float32)
-                               )
+        result = da.map_blocks(
+            np.cumsum,
+            result[..., 0].rechunk((len_t, ndim)), 
+            axis=0, 
+            meta=np.array([], dtype=np.float32)
+        )
 
         return result
     

@@ -3022,7 +3022,7 @@ class ImgArray(LabeledArray):
             degrees = [degrees]
         if ndim != self.ndim:
             raise NotImplementedError("Batch Radon transformation is not implemented yet.")
-        
+        # TODO: rotation -> projection should be calculated in larger shape
         if ndim == 2:
             if central_axis is not None:
                 raise ValueError("For 2D image, the central_axis of rotation is pre-defined.")
@@ -3050,10 +3050,12 @@ class ImgArray(LabeledArray):
         else:
             raise ValueError("Only 2D or 3D input is supported.")
         
+        # apply spline filter in advance.
         if order <= 1:
             input = self.as_float().value
         else:
             input = self.as_float().spline_filter(order=order)
+            
         delayed_func = delayed(func)
         tasks = [delayed_func(input, p, order=order) for p in params]
         out = np.stack(da.compute(tasks)[0], axis=0)
@@ -3064,55 +3066,43 @@ class ImgArray(LabeledArray):
         if squeeze:
             out = out[0]
         return out
-
-    @dims_to_spatial_axes
+    
     def iradon(
         self,
         degrees: Sequence[float],
         *,
-        along: AxisLike = "degree",
+        central_axis: AxisLike = "y",
+        degree_axis: AxisLike = "degree",
+        output_axis: AxisLike | None = None,
+        output_height: int | None = None,
         window: str = "hamming",
         order: int = 3,
-        dims: Dims = None,
     ) -> ImgArray:
-        radians = np.deg2rad(degrees)
-        from scipy.interpolate import griddata
+        interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
+        if output_height is None:
+            output_height = self.shape[-1]
+        if output_axis is None:
+            output_axis = "y" if self.ndim == 2 else "z"
+        new_axes = self.axes.drop([degree_axis]).insert(0, output_axis)
+        self: ImgArray = np.moveaxis(self, self.axisof(degree_axis), -1)
+        filter_func = _transform.get_fourier_filter(self.shape[-2], window)
+        output_shape = (output_height, self.shape[-2])
+        out = self._apply_dask(
+            _transform.iradon,
+            c_axes=[central_axis],
+            kwargs=dict(
+                degrees=degrees,
+                interpolation=interp,
+                filter_func=filter_func,
+                output_shape=output_shape,
+            )
+        )
         
-        shape = (self.shape["x"],) * 2
-        nx = shape[0]
-        window_img = _transform.get_window_for_iradon(window, nx)
-        
-        sino_ft = np.fft.ifftshift(self, axes="x").fft(dims="x") * window_img  # axes: deg, x
-        
-        center = np.ceil((nx - 1) / 2)  # to make the center match fftshift
-        _r, _a = np.meshgrid(np.arange(nx) - center, radians)
-        
-        # source coordinates
-        srcy = center + _r * np.sin(_a)
-        srcx = center + _r * np.cos(_a)
-        
-        # destination coordinates
-        output_shape = (nx, nx)
-        dsty, dstx = np.indices(output_shape, dtype=np.float32)
-        method = {0: "nearest", 1: "linear", 3: "cubic"}[order]
-        out = griddata(
-            (srcy.ravel(), srcx.ravel()),
-            sino_ft.value.ravel(), 
-            (dsty.ravel(), dstx.ravel()),
-            method=method,
-            fill_value=0.0,
-        ).reshape(output_shape)
-        
-        # prepare missing wedge mask
-        mask = _transform.get_missing_wedge(output_shape, (radians[0], radians[-1]))
-        out[mask] = 0.0 + 0.0j
-
-        out: ImgArray = out.view(self.__class__)
-        axis = Axis("y")
-        axis.scale = self.axes[-1].scale
-        axis.unit = self.axes[-1].unit
-        out._set_info(self, self.axes.drop(0).insert(0, axis))
-        return np.fft.ifftshift(out.ifft())
+        if out.ndim == 3:
+            out = np.moveaxis(out, 0, 1)
+        out = out[::-1]
+        out._set_info(self, new_axes)
+        return out
 
     @check_input_and_output
     def threshold(
