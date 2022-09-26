@@ -3025,7 +3025,10 @@ class ImgArray(LabeledArray):
         # TODO: rotation -> projection should be calculated in larger shape
         if ndim == 2:
             if central_axis is not None:
-                raise ValueError("For 2D image, the central_axis of rotation is pre-defined.")
+                warnings.warn(
+                    "For 2D image, the central_axis of rotation is pre-defined. "
+                    "This parameter will be ignored", UserWarning,
+                )
             func = _transform.radon_2d
             params = degrees
 
@@ -3067,26 +3070,69 @@ class ImgArray(LabeledArray):
             out = out[0]
         return out
     
+    @_docs.write_docs
     def iradon(
         self,
         degrees: Sequence[float],
         *,
         central_axis: AxisLike = "y",
-        degree_axis: AxisLike = "degree",
-        output_axis: AxisLike | None = None,
-        output_height: int | None = None,
+        degree_axis: AxisLike | None = None,
+        height_axis: AxisLike | None = None,
+        height: int | None = None,
         window: str = "hamming",
         order: int = 3,
     ) -> ImgArray:
+        """
+        Inverse Radon transformation (weighted backprojection) of a tile series.
+        
+        Input array must be a tilt series of 1D or 2D images. They are back-
+        projected into a 2D or 3D image with arbitrary height.
+
+        Parameters
+        ----------
+        degrees : sequence of float
+            Projection angles in degree. Length must match the length of the degree
+            axis of the input image.
+        central_axis : AxisLike, optional
+            Axis parallel to the rotation axis.
+        degree_axis : AxisLike, optional
+            Axis of rotation degree. By default, the first axis will be used.
+        height_axis : AxisLike, optional
+            Axis that will be used to label the new axis after reconstruction. For
+            instance, if input image has axes ``["degree", "y", "x"]`` and 
+            ``height_axis="z"`` then reconstructed image will have axes 
+            ``["z", "y", "x"]``. By default, "y" will be used for 2D input or "z" for
+            3D input.
+        height : int, optional
+            Height of reconstruction. By default, size equal to the axis perpendicular
+            to the rotation axis will be used.
+        window : str, default is "hamming"
+            Window function that will be applied to the Fourier domain along the axis
+            perpendicular to the rotation axis.
+        {order}
+
+        Returns
+        -------
+        ImgArray
+            Reconstruction.
+        """        
         interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
-        if output_height is None:
-            output_height = self.shape[-1]
-        if output_axis is None:
-            output_axis = "y" if self.ndim == 2 else "z"
-        new_axes = self.axes.drop([degree_axis]).insert(0, output_axis)
+        is_3d = self.ndim == 3
+        if height is None:
+            height = self.shape[-1]
+        if height_axis is None:
+            height_axis = "z" if is_3d else "y"
+        if degree_axis is None:
+            degree_axis = self.axes[0]
+        if is_3d and central_axis not in self.axes:
+            raise ValueError(
+                f"central_axis={central_axis!r} does not exist in the input image. "
+                f"Input has {self.axes}."
+            )
+        new_axes = self.axes.drop([degree_axis]).insert(0, height_axis)
         self: ImgArray = np.moveaxis(self, self.axisof(degree_axis), -1)
         filter_func = _transform.get_fourier_filter(self.shape[-2], window)
-        output_shape = (output_height, self.shape[-2])
+        output_shape = (height, self.shape[-2])
         out = self._apply_dask(
             _transform.iradon,
             c_axes=[central_axis],
