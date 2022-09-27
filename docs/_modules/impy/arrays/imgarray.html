@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.imgarray &mdash; impy 2.1.2.dev0 documentation</title>
+  <title>impy.arrays.imgarray &mdash; impy 2.1.3 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.2.dev0
+                2.1.3
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -73,7 +73,6 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span> <span class="k">as</span> <span class="n">ndi</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Callable</span>
@@ -83,7 +82,7 @@
 <span class="kn">from</span> <span class="nn">.phasearray</span> <span class="kn">import</span> <span class="n">PhaseArray</span>
 <span class="kn">from</span> <span class="nn">.specials</span> <span class="kn">import</span> <span class="n">PropArray</span>
 
-<span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">skexp</span><span class="p">,</span> <span class="n">skfeat</span><span class="p">,</span> <span class="n">skfil</span><span class="p">,</span> <span class="n">skimage</span><span class="p">,</span> <span class="n">skmes</span><span class="p">,</span> <span class="n">skreg</span><span class="p">,</span> <span class="n">skres</span><span class="p">,</span> <span class="n">skseg</span><span class="p">,</span> <span class="n">sktrans</span>
+<span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">skexp</span><span class="p">,</span> <span class="n">skfeat</span><span class="p">,</span> <span class="n">skfil</span><span class="p">,</span> <span class="n">skimage</span><span class="p">,</span> <span class="n">skmes</span><span class="p">,</span> <span class="n">skres</span><span class="p">,</span> <span class="n">skseg</span><span class="p">,</span> <span class="n">sktrans</span>
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_filters</span><span class="p">,</span> <span class="n">_linalg</span><span class="p">,</span> <span class="n">_deconv</span><span class="p">,</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_glcm</span><span class="p">,</span> <span class="n">_docs</span><span class="p">,</span> <span class="n">_transform</span><span class="p">,</span> <span class="n">_structures</span><span class="p">,</span> <span class="n">_corr</span>
 
 <span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">add_axes</span><span class="p">,</span> <span class="n">switch_slice</span><span class="p">,</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span>
@@ -93,7 +92,7 @@
 <span class="kn">from</span> <span class="nn">..utils.slicer</span> <span class="kn">import</span> <span class="n">solve_slicer</span>
 
 <span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="n">DataDict</span>
-<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">slicer</span><span class="p">,</span> <span class="n">Axes</span>
+<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">slicer</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Axis</span>
 <span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">nDInt</span><span class="p">,</span> <span class="n">nDFloat</span><span class="p">,</span> <span class="n">Dims</span><span class="p">,</span> <span class="n">Coords</span><span class="p">,</span> <span class="n">AxesTargetedSlicer</span><span class="p">,</span> <span class="n">PaddingMode</span>
 <span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
 <span class="kn">from</span> <span class="nn">..array_api</span> <span class="kn">import</span> <span class="n">xp</span><span class="p">,</span> <span class="n">cupy_dispatcher</span>
@@ -106,6 +105,7 @@
         <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;minimum&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;niblack&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;otsu&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;sauvola&quot;</span><span class="p">],</span> 
         <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;triangle&quot;</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;yen&quot;</span><span class="p">]</span>
     <span class="p">]</span>
+    <span class="n">FftShape</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;same&quot;</span><span class="p">,</span> <span class="s2">&quot;square&quot;</span><span class="p">]</span>
 
 <div class="viewcode-block" id="ImgArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray">[docs]</a><span class="k">class</span> <span class="nc">ImgArray</span><span class="p">(</span><span class="n">LabeledArray</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -129,7 +129,7 @@
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">affine</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shear</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">translation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">output_shape</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">PaddingMode</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">output_shape</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prefilter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -1201,16 +1201,19 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Smoothen binary mask image at its edges. This is useful to make a &quot;soft mask&quot;.</span>
+<span class="sd">        </span>
+<span class="sd">        This method applies erosion/dilation to a binary image and then smooth its edges by Gaussian.</span>
+<span class="sd">        The total value is always larger after Gaussian smoothing.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        sigma : float, default is 2.0</span>
 <span class="sd">            Standard deviation of Gaussian blur.</span>
 <span class="sd">        dilate_radius : float, default is 2.0</span>
-<span class="sd">            Radius in pixel that will be used to dilate mask before blurred.</span>
+<span class="sd">            Radius in pixel that will be used to dilate mask before smoothing.</span>
 <span class="sd">        mask_light : bool, default is False</span>
-<span class="sd">            If true, mask array is considered to mask other image at its True values. Otherwise mask array plays more like</span>
-<span class="sd">            a weight array, that is, False region will be zero.</span>
+<span class="sd">            If true, mask array is considered to mask other image at its True values. Otherwise mask array </span>
+<span class="sd">            plays more like a weight array, that is, False region will be zero.</span>
 <span class="sd">        {dims}</span>
 <span class="sd">            </span>
 <span class="sd">        Returns</span>
@@ -1220,12 +1223,21 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">mask_light</span><span class="p">:</span>
             <span class="bp">self</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span>
+        
         <span class="k">if</span> <span class="n">dilate_radius</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">erosion</span><span class="p">(</span><span class="n">dilate_radius</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance_map</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">blurred_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">dist</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">dilate_radius</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">(</span><span class="o">-</span><span class="n">dilate_radius</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">sigma</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance_map</span><span class="p">(</span><span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+            <span class="n">blurred_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">dist</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sigma</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">blurred_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;sigma must be non-negative.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">mask_light</span><span class="p">:</span>
-            <span class="n">blurred_mask</span> <span class="o">=</span> <span class="o">-</span><span class="n">blurred_mask</span>
+            <span class="n">blurred_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">blurred_mask</span>
         <span class="k">return</span> <span class="n">blurred_mask</span></div>
     
 <div class="viewcode-block" id="ImgArray.mean_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.mean_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
@@ -1498,12 +1510,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">laplace_op</span> <span class="o">=</span> <span class="n">skres</span><span class="o">.</span><span class="n">uft</span><span class="o">.</span><span class="n">laplacian</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">radius</span><span class="o">+</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="n">ndim</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span><span class="n">_filters</span><span class="o">.</span><span class="n">convolve</span><span class="p">,</span> 
-                                          <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
-                                          <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                          <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">laplace_op</span><span class="p">,),</span>
-                                          <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">)</span>
-                                          <span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">_filters</span><span class="o">.</span><span class="n">convolve</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">laplace_op</span><span class="p">,),</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">)</span>
+        <span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.kalman_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.kalman_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
@@ -1794,7 +1807,7 @@
     <span class="k">def</span> <span class="nf">rolling_ball</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
-        <span class="n">prefilter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+        <span class="n">prefilter</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">return_bg</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1806,7 +1819,7 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        {radius}</span>
-<span class="sd">        prefilter : str, {&quot;mean&quot;, &quot;median&quot;, &quot;none&quot;}</span>
+<span class="sd">        prefilter : &quot;mean&quot;, &quot;median&quot; or &quot;none&quot;</span>
 <span class="sd">            If apply 3x3 averaging before creating background.</span>
 <span class="sd">        {dims}{update}</span>
 <span class="sd">            </span>
@@ -1815,7 +1828,6 @@
 <span class="sd">        ImgArray</span>
 <span class="sd">            Background subtracted image.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">method</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span>
         <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">prefilter</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
             <span class="n">filt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
@@ -1832,7 +1844,7 @@
         <span class="k">elif</span> <span class="n">prefilter</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
             <span class="n">filt</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`prefilter` must be </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">method</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`prefilter` must be &#39;mean&#39;, &#39;median&#39; or &#39;none&#39;.&quot;</span><span class="p">)</span>
         <span class="n">filt</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span>
         <span class="n">back</span> <span class="o">=</span> <span class="n">filt</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
             <span class="n">skres</span><span class="o">.</span><span class="n">rolling_ball</span><span class="p">,</span> 
@@ -1840,7 +1852,7 @@
             <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">return_bg</span><span class="p">:</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">filt</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">back</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">back</span>
             <span class="k">return</span> <span class="n">out</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">back</span></div>
@@ -1849,8 +1861,15 @@
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">rof_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lmd</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> 
-                   <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">rof_filter</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">lmd</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> 
+        <span class="o">*</span><span class="p">,</span> 
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Rudin-Osher-Fatemi&#39;s total variation denoising.</span>
 
@@ -1884,9 +1903,9 @@
         <span class="n">noise_sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span> 
         <span class="n">wavelet</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;db1&quot;</span><span class="p">,</span>
-        <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;soft&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;hard&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;soft&quot;</span><span class="p">,</span> 
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;soft&quot;</span><span class="p">,</span> <span class="s2">&quot;hard&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;soft&quot;</span><span class="p">,</span> 
         <span class="n">wavelet_levels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BayesShrink&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;VisuShrink&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;BayesShrink&quot;</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;BayesShrink&quot;</span><span class="p">,</span> <span class="s2">&quot;VisuShrink&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;BayesShrink&quot;</span><span class="p">,</span>
         <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">shift_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2106,7 +2125,47 @@
         
         <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dolp</span><span class="o">=</span><span class="n">dolp</span><span class="p">,</span> <span class="n">aop</span><span class="o">=</span><span class="n">aop</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
-        
+    
+<div class="viewcode-block" id="ImgArray.inpaint"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.inpaint">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+    <span class="nd">@dims_to_spatial_axes</span>
+    <span class="nd">@same_dtype</span><span class="p">(</span><span class="n">asfloat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nd">@check_input_and_output</span>
+    <span class="k">def</span> <span class="nf">inpaint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;biharmonic&quot;</span><span class="p">]</span> <span class="o">=</span><span class="s2">&quot;biharmonic&quot;</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Image inpainting.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mask : np.ndarray</span>
+<span class="sd">            Mask image. The True region will be inpainted.</span>
+<span class="sd">        method : &quot;mean&quot; or &quot;biharmonic&quot;, default is &quot;biharmonic&quot;</span>
+<span class="sd">            Inpainting method.</span>
+<span class="sd">        {dims}{update}</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ImgArray</span>
+<span class="sd">            Inpainted image of same data type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;biharmonic&quot;</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">skres</span><span class="o">.</span><span class="n">inpaint</span><span class="o">.</span><span class="n">inpaint_biharmonic</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">_misc</span><span class="o">.</span><span class="n">inpaint_mean</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">func</span><span class="p">,</span> 
+            <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span>
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">mask</span><span class="p">,),</span>
+        <span class="p">)</span></div>
+
 <div class="viewcode-block" id="ImgArray.peak_local_max"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.peak_local_max">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@check_input_and_output</span>
@@ -2188,87 +2247,6 @@
         <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="ImgArray.corner_peaks"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.corner_peaks">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">corner_peaks</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span> 
-        <span class="n">min_distance</span><span class="p">:</span><span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
-        <span class="n">topn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
-        <span class="n">topn_per_label</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
-        <span class="n">exclude_border</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">use_labels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
-        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MarkerFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Find local corner maxima. Slightly different from peak_local_max.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        min_distance : int, default is 1</span>
-<span class="sd">            Minimum distance allowed for each two peaks. This parameter is slightly</span>
-<span class="sd">            different from that in ``skimage.feature.peak_local_max`` because here float</span>
-<span class="sd">            input is allowed and every time footprint is calculated.</span>
-<span class="sd">        percentile : float, optional</span>
-<span class="sd">            Percentile to compute absolute threshold.</span>
-<span class="sd">        topn : int, optional</span>
-<span class="sd">            Maximum number of peaks **for each iteration**.</span>
-<span class="sd">        topn_per_label : int, default is np.inf</span>
-<span class="sd">            Maximum number of peaks per label.</span>
-<span class="sd">        use_labels : bool, default is True</span>
-<span class="sd">            If use self.labels when it exists.</span>
-<span class="sd">        {dims}</span>
-<span class="sd">            </span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        MarkerFrame</span>
-<span class="sd">            DataFrame with columns same as axes of self. For example, if self.axes is &quot;tcyx&quot; then</span>
-<span class="sd">            return value has &quot;t&quot;, &quot;c&quot;, &quot;y&quot; and &quot;x&quot; columns, and sub-frame at t=0, c=0 contains all</span>
-<span class="sd">            the coordinates of corners in the slice at t=0, c=0.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        
-        <span class="c1"># separate spatial dimensions and others</span>
-        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">dims_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
-        <span class="n">c_axes_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">c_axes</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exclude_border</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-            <span class="n">exclude_border</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_distance</span><span class="p">)</span> <span class="k">if</span> <span class="n">exclude_border</span> <span class="k">else</span> <span class="kc">False</span>
-        
-        <span class="n">thr</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">percentile</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span>
-        
-        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
-
-        <span class="n">df_all</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">dims</span><span class="p">):</span>
-            <span class="c1"># skfeat.corner_peaks overwrite something so we need to give copy of img.</span>
-            <span class="k">if</span> <span class="n">use_labels</span> <span class="ow">and</span> <span class="n">img</span><span class="o">.</span><span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">labels</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">labels</span> <span class="o">=</span> <span class="kc">None</span>
-            
-            <span class="n">indices</span> <span class="o">=</span> <span class="n">skfeat</span><span class="o">.</span><span class="n">corner_peaks</span><span class="p">(</span>
-                <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">img</span><span class="p">),</span>
-                <span class="n">footprint</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">_structures</span><span class="o">.</span><span class="n">ball_like</span><span class="p">(</span><span class="n">min_distance</span><span class="p">,</span> <span class="n">ndim</span><span class="p">)),</span>
-                <span class="n">threshold_abs</span><span class="o">=</span><span class="n">thr</span><span class="p">,</span>
-                <span class="n">num_peaks</span><span class="o">=</span><span class="n">topn</span><span class="p">,</span>
-                <span class="n">num_peaks_per_label</span><span class="o">=</span><span class="n">topn_per_label</span><span class="p">,</span>
-                <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
-                <span class="n">exclude_border</span><span class="o">=</span><span class="n">exclude_border</span>
-            <span class="p">)</span>
-            <span class="n">indices</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">dims_list</span><span class="p">)</span>
-            <span class="n">indices</span><span class="p">[</span><span class="n">c_axes_list</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span>
-            <span class="n">df_all</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
-            
-        <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">df_all</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;uint16&quot;</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
-    
 <div class="viewcode-block" id="ImgArray.corner_harris"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.corner_harris">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@check_input_and_output</span>
@@ -2300,36 +2278,6 @@
             <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
             <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
         <span class="p">)</span></div>
-    
-<div class="viewcode-block" id="ImgArray.find_corners"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.find_corners">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">find_corners</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">sigma</span><span class="p">:</span> <span class="n">nDFloat</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span> 
-        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Corner detection using Harris response.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        {sigma}</span>
-<span class="sd">        k : float, optional</span>
-<span class="sd">            Sensitivity factor to separate corners from edges, typically in range [0, 0.2].</span>
-<span class="sd">            Small values of k result in detection of sharp corners.</span>
-<span class="sd">        {dims}</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        MarkerFrame</span>
-<span class="sd">            Coordinates of corners. For details see ``corner_peaks`` method.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">corner_harris</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">corner_peaks</span><span class="p">(</span><span class="n">min_distance</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="mi">97</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
     
 <div class="viewcode-block" id="ImgArray.voronoi"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.voronoi">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
@@ -2606,115 +2554,6 @@
 
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="ImgArray.gauss_sm"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.gauss_sm">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
-    <span class="nd">@dims_to_spatial_axes</span>
-    <span class="k">def</span> <span class="nf">gauss_sm</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">coords</span><span class="p">:</span> <span class="n">Coords</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">radius</span><span class="p">:</span> <span class="n">nDInt</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="n">sigma</span><span class="p">:</span> <span class="n">nDFloat</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span> 
-        <span class="n">filt</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">95</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">return_all</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MarkerFrame</span><span class="o">|</span><span class="n">DataDict</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculate positions of particles in subpixel precision using Gaussian fitting.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        coords : MarkerFrame or (N, 2) array, optional</span>
-<span class="sd">            Coordinates of peaks. If None, this will be determined by find_sm.</span>
-<span class="sd">        radius : int, default is 4.</span>
-<span class="sd">            Fitting range. Rectangular image with size 2r+1 x 2r+1 will be send to Gaussian</span>
-<span class="sd">            fitting function.</span>
-<span class="sd">        sigma : float, default is 1.5</span>
-<span class="sd">            Expected standard deviation of particles.</span>
-<span class="sd">        filt : callable, optional</span>
-<span class="sd">            For every slice `sl`, label is added only when filt(`input`) == True is satisfied.</span>
-<span class="sd">            This discrimination is conducted before Gaussian fitting so that stringent filter</span>
-<span class="sd">            will save time.</span>
-<span class="sd">        percentile, dims :</span>
-<span class="sd">            Passed to peak_local_max()</span>
-<span class="sd">        return_all : bool, default is False</span>
-<span class="sd">            If True, fitting results are all returned as Frame Dict.</span>
-<span class="sd">        {dims}</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        MarkerFrame, if return_all == False</span>
-<span class="sd">            Gaussian centers.</span>
-<span class="sd">        DataDict with keys {means, sigmas, errors}, if return_all == True</span>
-<span class="sd">            Dictionary that contains means, standard deviations and fitting errors.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="c1"># TODO: Whether error is correctly calculated has not been checked yet. For loop should be </span>
-        <span class="c1"># like centroid_sm because currently does not work for zcyx-image</span>
-        
-        <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">pinv</span> <span class="k">as</span> <span class="n">pseudo_inverse</span>
-        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
-        
-        <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sm</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">coords</span> <span class="o">=</span> <span class="n">_check_coordinates</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>    
-        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">filt</span> <span class="o">=</span> <span class="n">check_filter_func</span><span class="p">(</span><span class="n">filt</span><span class="p">)</span>
-        
-        <span class="n">radius</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">check_nd</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">ndim</span><span class="p">))</span>
-        
-        <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sizesof</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        
-        <span class="n">means</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># fitting results of means</span>
-        <span class="n">sigmas</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># fitting results of sigmas</span>
-        <span class="n">errs</span> <span class="o">=</span> <span class="p">[]</span>   <span class="c1"># fitting errors of means</span>
-        <span class="n">ab</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">crd</span> <span class="ow">in</span> <span class="n">coords</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
-            <span class="n">center</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">crd</span><span class="p">[</span><span class="o">-</span><span class="n">ndim</span><span class="p">:])</span>
-            <span class="n">label_sl</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">crd</span><span class="p">[:</span><span class="o">-</span><span class="n">ndim</span><span class="p">])</span>
-            <span class="n">sl</span> <span class="o">=</span> <span class="n">_specify_one</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="c1"># sl = (..., z,y,x)</span>
-            <span class="n">input_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">label_sl</span><span class="p">][</span><span class="n">sl</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">input_img</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">filt</span><span class="p">(</span><span class="n">input_img</span><span class="p">):</span>
-                <span class="k">continue</span>
-            
-            <span class="n">gaussian</span> <span class="o">=</span> <span class="n">GaussianParticle</span><span class="p">(</span><span class="n">initial_sg</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">gaussian</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">input_img</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;BFGS&quot;</span><span class="p">)</span>
-            
-            <span class="k">if</span> <span class="p">(</span><span class="n">gaussian</span><span class="o">.</span><span class="n">mu_inrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">radius</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span> <span class="ow">and</span> 
-                <span class="n">gaussian</span><span class="o">.</span><span class="n">sg_inrange</span><span class="p">(</span><span class="n">sigma</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">sigma</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span> <span class="ow">and</span>
-                <span class="n">gaussian</span><span class="o">.</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
-                <span class="n">gaussian</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">center</span> <span class="o">-</span> <span class="n">radius</span><span class="p">)</span>
-                <span class="c1"># calculate fitting error with Jacobian</span>
-                <span class="k">if</span> <span class="n">return_all</span><span class="p">:</span>
-                    <span class="n">jac</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">jac</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="n">cov</span> <span class="o">=</span> <span class="n">pseudo_inverse</span><span class="p">(</span><span class="n">jac</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">jac</span><span class="p">)</span>
-                    <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
-                    <span class="n">sigmas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label_sl</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">gaussian</span><span class="o">.</span><span class="n">sg</span><span class="p">))</span>
-                    <span class="n">errs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label_sl</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
-                    <span class="n">ab</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label_sl</span> <span class="o">+</span> <span class="p">(</span><span class="n">gaussian</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">gaussian</span><span class="o">.</span><span class="n">b</span><span class="p">))</span>
-                
-                <span class="n">means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label_sl</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">gaussian</span><span class="o">.</span><span class="n">mu</span><span class="p">))</span>
-                
-        <span class="n">kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">col_axes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="n">return_all</span><span class="p">:</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">DataDict</span><span class="p">(</span><span class="n">means</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">(),</span>
-                           <span class="n">sigmas</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">sigmas</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">(),</span>
-                           <span class="n">errors</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">errs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span><span class="o">.</span><span class="n">as_standard_type</span><span class="p">(),</span>
-                           <span class="n">intensities</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">ab</span><span class="p">,</span> 
-                                                     <span class="n">columns</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">col_axes</span><span class="p">)[:</span><span class="o">-</span><span class="n">ndim</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;ab&quot;</span><span class="p">,</span>
-                                                     <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-            
-            <span class="n">out</span><span class="o">.</span><span class="n">means</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">sigmas</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
-                
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
-                            
-        <span class="k">return</span> <span class="n">out</span></div>
-    
 <div class="viewcode-block" id="ImgArray.edge_grad"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.edge_grad">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@check_input_and_output</span>
@@ -2887,11 +2726,11 @@
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">gabor_filter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">lmd</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-        <span class="n">theta</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">sigma</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">gamma</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">phi</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
+        <span class="n">lmd</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">theta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">phi</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> 
         <span class="o">*</span><span class="p">,</span>
         <span class="n">return_imag</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="mi">2</span>
@@ -2953,7 +2792,7 @@
     <span class="k">def</span> <span class="nf">fft</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span> 
-        <span class="n">shape</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;same&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;square&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;same&quot;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">FftShape</span> <span class="o">=</span> <span class="s2">&quot;same&quot;</span><span class="p">,</span>
         <span class="n">shift</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
         <span class="n">double_precision</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
@@ -2994,7 +2833,7 @@
         <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span> <span class="k">if</span> <span class="n">double_precision</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
         <span class="n">freq</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftn</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">s</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">shift</span><span class="p">:</span>
-            <span class="n">freq</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
+            <span class="n">freq</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="ImgArray.local_dft"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.local_dft">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
@@ -3172,7 +3011,7 @@
     <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">power_spectra</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">shape</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;same&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;square&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;same&quot;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">FftShape</span> <span class="o">=</span> <span class="s2">&quot;same&quot;</span><span class="p">,</span>
         <span class="n">norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
         <span class="n">zero_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
         <span class="n">double_precision</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -3210,11 +3049,194 @@
         <span class="n">pw</span> <span class="o">=</span> <span class="n">freq</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">freq</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>
         <span class="k">if</span> <span class="n">norm</span><span class="p">:</span>
             <span class="n">pw</span> <span class="o">/=</span> <span class="n">pw</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">pw</span><span class="p">:</span> <span class="n">ImgArray</span>
         <span class="k">if</span> <span class="n">zero_norm</span><span class="p">:</span>
             <span class="n">sl</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">pw</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">ifin</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pw</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="n">ifnot</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
             <span class="n">pw</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">return</span> <span class="n">pw</span></div>
+
+<div class="viewcode-block" id="ImgArray.radon"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.radon">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+    <span class="nd">@dims_to_spatial_axes</span>
+    <span class="k">def</span> <span class="nf">radon</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">degrees</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> 
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">central_axis</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Discrete Radon transformation of 2D or 3D image.</span>
+<span class="sd">        </span>
+<span class="sd">        Radon transformation is a list of projection of a same image from different angles.</span>
+<span class="sd">        It generates tomographic n-D image slices from (n+1)-D image.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        degrees : float or iterable of float</span>
+<span class="sd">            Rotation angles around the central axis in degrees.</span>
+<span class="sd">        central_axis : axis-like or sequence of float, optional</span>
+<span class="sd">            Vector that defines the central axis of rotation.</span>
+<span class="sd">        {order}{dims}</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ImgArray</span>
+<span class="sd">            Tomographic image slices. The first spatial axis (&quot;z&quot; for zyx-image) will be dropped.</span>
+<span class="sd">            If sequence of float is given as ``degrees``, &quot;degree&quot; axis will be newly added at</span>
+<span class="sd">            the position 0. For instance, if a zyx-image and ``degrees=np.linspace(0, 180, 100)``</span>
+<span class="sd">            are given, returned image has axes [&quot;degree&quot;, &quot;y&quot;, &quot;x&quot;].</span>
+<span class="sd">        </span>
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        iradon</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span><span class="p">,</span> <span class="n">delayed</span>
+        
+        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
+        <span class="n">squeeze</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">degrees</span><span class="p">,</span> <span class="s2">&quot;__iter__&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">squeeze</span><span class="p">:</span>
+            <span class="n">degrees</span> <span class="o">=</span> <span class="p">[</span><span class="n">degrees</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Batch Radon transformation is not implemented yet.&quot;</span><span class="p">)</span>
+        <span class="n">radians</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">degrees</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">central_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;For 2D image, the central_axis of rotation is pre-defined. &quot;</span>
+                    <span class="s2">&quot;This parameter will be ignored&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">iy</span><span class="p">,</span> <span class="n">ix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">iy</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">ix</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+            <span class="n">output_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">_transform</span><span class="o">.</span><span class="n">get_rotation_matrices_for_radon_2d</span><span class="p">(</span><span class="n">radians</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># normalize central axis to a 3D vector</span>
+            <span class="k">if</span> <span class="n">central_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;For 3D image, the central_axis of rotation must be specified.&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">central_axis</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Axis</span><span class="p">)):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">dims</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">central_axis</span><span class="p">)</span>
+                <span class="n">central_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                <span class="n">central_axis</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">central_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">central_axis</span><span class="p">)</span>
+                <span class="n">central_axis</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">central_axis</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>  <span class="c1"># normalize</span>
+                <span class="n">central_axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+                <span class="k">if</span> <span class="n">central_axis</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">ndim</span><span class="p">,):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image is </span><span class="si">{</span><span class="n">ndim</span><span class="si">}</span><span class="s2">D but central_axis is </span><span class="si">{</span><span class="n">central_axis</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">D.&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># construct Affine transform matrices</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+            <span class="n">output_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">_transform</span><span class="o">.</span><span class="n">get_rotation_matrices_for_radon_3d</span><span class="p">(</span>
+                <span class="n">radians</span><span class="p">,</span> <span class="n">central_axis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">output_shape</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only 2D or 3D input is supported.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># apply spline filter in advance.</span>
+        <span class="nb">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span><span class="o">.</span><span class="n">spline_filter</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+        <span class="n">delayed_func</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">(</span><span class="n">_transform</span><span class="o">.</span><span class="n">radon_single</span><span class="p">)</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">delayed_func</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="n">output_shape</span><span class="p">)</span> 
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span>
+        <span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;degree&quot;</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">degrees</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">squeeze</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">out</span></div>
     
+<div class="viewcode-block" id="ImgArray.iradon"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.iradon">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+    <span class="k">def</span> <span class="nf">iradon</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">degrees</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">central_axis</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">=</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span>
+        <span class="n">degree_axis</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">height_axis</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">window</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hamming&quot;</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inverse Radon transformation (weighted back projection) of a tile series.</span>
+<span class="sd">        </span>
+<span class="sd">        Input array must be a tilt series of 1D or 2D images. They are back-</span>
+<span class="sd">        projected into a 2D or 3D image with arbitrary height.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        degrees : sequence of float</span>
+<span class="sd">            Projection angles in degree. Length must match the length of the degree</span>
+<span class="sd">            axis of the input image.</span>
+<span class="sd">        central_axis : AxisLike, optional</span>
+<span class="sd">            Axis parallel to the rotation axis.</span>
+<span class="sd">        degree_axis : AxisLike, optional</span>
+<span class="sd">            Axis of rotation degree. By default, the first axis will be used.</span>
+<span class="sd">        height_axis : AxisLike, optional</span>
+<span class="sd">            Axis that will be used to label the new axis after reconstruction. For</span>
+<span class="sd">            instance, if input image has axes ``[&quot;degree&quot;, &quot;y&quot;, &quot;x&quot;]`` and </span>
+<span class="sd">            ``height_axis=&quot;z&quot;`` then reconstructed image will have axes </span>
+<span class="sd">            ``[&quot;z&quot;, &quot;y&quot;, &quot;x&quot;]``. By default, &quot;y&quot; will be used for 2D input or &quot;z&quot; for</span>
+<span class="sd">            3D input.</span>
+<span class="sd">        height : int, optional</span>
+<span class="sd">            Height of reconstruction. By default, size equal to the axis perpendicular</span>
+<span class="sd">            to the rotation axis will be used.</span>
+<span class="sd">        window : str, default is &quot;hamming&quot;</span>
+<span class="sd">            Window function that will be applied to the Fourier domain along the axis</span>
+<span class="sd">            perpendicular to the rotation axis.</span>
+<span class="sd">        {order}</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ImgArray</span>
+<span class="sd">            Reconstruction.</span>
+<span class="sd">            </span>
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        radon</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="n">interp</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;nearest&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;cubic&quot;</span><span class="p">}[</span><span class="n">order</span><span class="p">]</span>
+        <span class="n">is_3d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">height</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">height_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">height_axis</span> <span class="o">=</span> <span class="s2">&quot;z&quot;</span> <span class="k">if</span> <span class="n">is_3d</span> <span class="k">else</span> <span class="s2">&quot;y&quot;</span>
+        <span class="k">if</span> <span class="n">degree_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">degree_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">is_3d</span> <span class="ow">and</span> <span class="n">central_axis</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;central_axis=</span><span class="si">{</span><span class="n">central_axis</span><span class="si">!r}</span><span class="s2"> does not exist in the input image. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Input has </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">new_axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="n">degree_axis</span><span class="p">])</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">height_axis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">ImgArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">degree_axis</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">filter_func</span> <span class="o">=</span> <span class="n">_transform</span><span class="o">.</span><span class="n">get_fourier_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">window</span><span class="p">)</span>
+        <span class="n">output_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
+            <span class="n">_transform</span><span class="o">.</span><span class="n">iradon</span><span class="p">,</span>
+            <span class="n">c_axes</span><span class="o">=</span><span class="p">[</span><span class="n">central_axis</span><span class="p">],</span>
+            <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">degrees</span><span class="o">=</span><span class="n">degrees</span><span class="p">,</span>
+                <span class="n">interpolation</span><span class="o">=</span><span class="n">interp</span><span class="p">,</span>
+                <span class="n">filter_func</span><span class="o">=</span><span class="n">filter_func</span><span class="p">,</span>
+                <span class="n">output_shape</span><span class="o">=</span><span class="n">output_shape</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
 <div class="viewcode-block" id="ImgArray.threshold"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.threshold">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">threshold</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -3231,7 +3253,7 @@
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        thr: float or str or None, optional</span>
+<span class="sd">        thr: float or str, optional</span>
 <span class="sd">            Threshold value, or thresholding algorithm.</span>
 <span class="sd">        along : AxisLike, optional</span>
 <span class="sd">            Dimensions that will not share the same threshold. For instance, if</span>
@@ -3365,68 +3387,6 @@
             <span class="n">c_axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
             <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">cval</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
         <span class="p">)</span></div>
-    
-<div class="viewcode-block" id="ImgArray.track_template"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.track_template">[docs]</a>    <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">track_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">along</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MarkerFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Tracking using template matching. For every time frame, matched region is interpreted as a</span>
-<span class="sd">        new template and is used for the next template. To avoid slight shifts accumulating to the</span>
-<span class="sd">        template image, new template image will be fitteg to the old one by phase cross correlation.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        template : np.ndarray</span>
-<span class="sd">            Template image. Must be 2 or 3 dimensional. </span>
-<span class="sd">        bg : float, optional</span>
-<span class="sd">            Background intensity. If not given, it will calculated as the minimum value of </span>
-<span class="sd">            the original image.</span>
-<span class="sd">        along : str, default is &quot;t&quot;</span>
-<span class="sd">            Which axis will be the time axis.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        MarkerFrame</span>
-<span class="sd">            Centers of matched templates.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">template</span> <span class="o">=</span> <span class="n">_check_template</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
-        <span class="n">template_new</span> <span class="o">=</span> <span class="n">template</span>
-        <span class="n">t_shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">bg</span> <span class="o">=</span> <span class="n">_check_bg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bg</span><span class="p">)</span>
-        <span class="n">dims</span> <span class="o">=</span> <span class="s2">&quot;yx&quot;</span> <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;zyx&quot;</span>
-        <span class="c1"># check along</span>
-        <span class="k">if</span> <span class="n">along</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">along</span> <span class="o">=</span> <span class="n">find_first_appeared</span><span class="p">(</span><span class="s2">&quot;tpzc&quot;</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">along</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`along` must be single character.&quot;</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> <span class="o">!=</span> <span class="n">along</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image axes do not match along (</span><span class="si">{</span><span class="n">along</span><span class="si">}</span><span class="s2">) and template dimensions (</span><span class="si">{</span><span class="n">dims</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-        
-        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">rem_edge_sl</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">s</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="n">s</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">t_shape</span><span class="p">)</span>
-        <span class="n">pos</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">along</span><span class="p">):</span>
-            <span class="n">template_old</span> <span class="o">=</span> <span class="n">_translate_image</span><span class="p">(</span><span class="n">template_new</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">bg</span><span class="p">)</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">resp</span> <span class="o">=</span> <span class="n">_misc</span><span class="o">.</span><span class="n">ncc</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">template_old</span><span class="p">,</span> <span class="n">bg</span><span class="p">)</span>
-            <span class="n">resp_crop</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="n">rem_edge_sl</span><span class="p">]</span>
-            <span class="n">peak</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">resp_crop</span><span class="p">),</span> <span class="n">resp_crop</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="n">t_shape</span><span class="o">//</span><span class="mi">2</span>
-            <span class="n">pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">peak</span><span class="p">)</span>
-            <span class="n">sl</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">):</span>
-                <span class="n">d0</span> <span class="o">=</span> <span class="n">peak</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">t_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">//</span><span class="mi">2</span>
-                <span class="n">d1</span> <span class="o">=</span> <span class="n">d0</span> <span class="o">+</span> <span class="n">t_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">sl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">d0</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
-            <span class="n">template_new</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">sl</span><span class="p">)]</span>
-            <span class="n">shift</span> <span class="o">=</span> <span class="n">skreg</span><span class="o">.</span><span class="n">phase_cross_correlation</span><span class="p">(</span><span class="n">template_old</span><span class="p">,</span> <span class="n">template_new</span><span class="p">,</span> 
-                                                  <span class="n">return_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">upsample_factor</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-        
-        <span class="kn">from</span> <span class="nn">..frame</span> <span class="kn">import</span> <span class="n">MarkerFrame</span>
-        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
-        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">along</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">pos</span><span class="p">])</span>
-        <span class="n">pos</span> <span class="o">=</span> <span class="n">MarkerFrame</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">along</span><span class="o">+</span><span class="n">dims</span><span class="p">)</span>
-        
-        <span class="k">return</span> <span class="n">pos</span></div>
     
 <div class="viewcode-block" id="ImgArray.remove_large_objects"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.remove_large_objects">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
@@ -3591,7 +3551,7 @@
     <span class="nd">@check_input_and_output</span><span class="p">(</span><span class="n">only_binary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">remove_skeleton_structure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">structure</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;tip&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;branch&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cross&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;tip&quot;</span><span class="p">,</span>
+        <span class="n">structure</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;tip&quot;</span><span class="p">,</span> <span class="s2">&quot;branch&quot;</span><span class="p">,</span> <span class="s2">&quot;cross&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;tip&quot;</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3632,7 +3592,7 @@
         <span class="n">coords</span><span class="p">:</span> <span class="n">MarkerFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="nb">input</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;distance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span><span class="p">,</span> 
+        <span class="nb">input</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;self&quot;</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span><span class="p">,</span> 
         <span class="n">min_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
@@ -3699,11 +3659,18 @@
 <div class="viewcode-block" id="ImgArray.random_walker"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.random_walker">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@check_input_and_output</span><span class="p">(</span><span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">random_walker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">130</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cg_j&quot;</span><span class="p">,</span> <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
-                      <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">random_walker</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">130</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;cg&quot;</span><span class="p">,</span> <span class="s2">&quot;cg_j&quot;</span><span class="p">,</span> <span class="s2">&quot;cg_mg&quot;</span><span class="p">,</span> <span class="s2">&quot;bf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cg_j&quot;</span><span class="p">,</span> 
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span> 
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Random walker segmentation. Only wrapped skimage segmentation. ``self.labels`` will be</span>
-<span class="sd">        segmented.</span>
+<span class="sd">        Random walker segmentation. Only wrapped skimage segmentation. </span>
+<span class="sd">        </span>
+<span class="sd">        ``self.labels`` will be segmented and updated inplace.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -3719,7 +3686,9 @@
         <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
         
         <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">c_axes</span><span class="p">,</span> <span class="n">israw</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-            <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">skseg</span><span class="o">.</span><span class="n">random_walker</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">)</span>
+            <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">skseg</span><span class="o">.</span><span class="n">random_walker</span><span class="p">(</span>
+                <span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span>
+            <span class="p">)</span>
             
         <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
@@ -3755,10 +3724,13 @@
     
 <div class="viewcode-block" id="ImgArray.regionprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.regionprops">[docs]</a>    <span class="k">def</span> <span class="nf">regionprops</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">properties</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mean_intensity&quot;</span><span class="p">,),</span> <span class="o">*</span><span class="p">,</span> 
-        <span class="n">extra_properties</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">properties</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mean_intensity&quot;</span><span class="p">,),</span>
+        <span class="o">*</span><span class="p">,</span> 
+        <span class="n">extra_properties</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Multi-dimensional region property quantification.</span>
+<span class="sd">        </span>
 <span class="sd">        Run skimage&#39;s regionprops() function and return the results as PropArray, so</span>
 <span class="sd">        that you can access using flexible slicing. For example, if a tcyx-image is</span>
 <span class="sd">        analyzed with ``properties=(&quot;X&quot;, &quot;Y&quot;)``, then you can get X&#39;s time-course profile</span>
@@ -3825,8 +3797,14 @@
 <div class="viewcode-block" id="ImgArray.lbp"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.imgarray.ImgArray.lbp">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@check_input_and_output</span>
-    <span class="k">def</span> <span class="nf">lbp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
-            <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">lbp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="n">radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;ror&quot;</span><span class="p">,</span> <span class="s2">&quot;uniform&quot;</span><span class="p">,</span> <span class="s2">&quot;var&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Local binary pattern feature extraction.</span>
 
@@ -3983,7 +3961,7 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        in_range : two scalar values, optional</span>
-<span class="sd">            range of lower/upper limits, by default (0, 100)</span>
+<span class="sd">            range of lower/upper limits, by default (0%, 100%).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -4032,7 +4010,8 @@
         <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MarkerFrame</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculate yx-directional drift using the method of `skimage.registration.phase_cross_correlation`.</span>
+<span class="sd">        Calculate yx-directional drift using the method equivalent to</span>
+<span class="sd">        ``skimage.registration.phase_cross_correlation``.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -4090,9 +4069,11 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">zero_ave</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">along</span><span class="p">:</span> <span class="n">AxisLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
+        <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">affine_kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Drift correction using iterative Affine translation. If translation vectors ``shift``</span>
@@ -4144,7 +4125,7 @@
                     <span class="n">sl</span> <span class="o">=</span> <span class="n">fmt</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
                     <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span><span class="o">.</span><span class="n">drift_correction</span><span class="p">(</span>
                         <span class="n">ref</span><span class="o">=</span><span class="n">ref</span><span class="p">[</span><span class="n">sl</span><span class="p">],</span> <span class="n">zero_ave</span><span class="o">=</span><span class="n">zero_ave</span><span class="p">,</span> <span class="n">along</span><span class="o">=</span><span class="n">along</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
-                        <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span> <span class="o">**</span><span class="n">affine_kwargs</span><span class="p">,</span>
+                        <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="k">return</span> <span class="n">out</span>
 
@@ -4161,10 +4142,11 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="n">t_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">along</span><span class="p">)</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">mx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ndim</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="c1"># Affine transformation matrix</span>
-        <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)):</span>
+        <span class="n">mx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">ndim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="c1"># Affine transformation matrix</span>
+        <span class="n">input_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spline_filter</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">sl</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">input_img</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)):</span>
             <span class="n">mx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">shift</span><span class="p">[</span><span class="n">sl</span><span class="p">[</span><span class="n">t_index</span><span class="p">]]</span>
-            <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">_transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">mx</span><span class="p">,</span> <span class="o">**</span><span class="n">affine_kwargs</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">_transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">mx</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">prefilter</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="n">out</span></div>
 
@@ -4554,11 +4536,6 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`template must be 2 or 3 dimensional.`&quot;</span><span class="p">)</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">template</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">template</span>
-
-<span class="k">def</span> <span class="nf">_translate_image</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
-    <span class="n">mx</span> <span class="o">=</span> <span class="n">_transform</span><span class="o">.</span><span class="n">compose_affine_matrix</span><span class="p">(</span><span class="n">translation</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">shift</span><span class="p">),</span> <span class="n">ndim</span><span class="o">=</span><span class="n">ndim</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">mx</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_calc_centroid</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">ndim</span><span class="p">):</span>
     <span class="n">mom</span> <span class="o">=</span> <span class="n">skmes</span><span class="o">.</span><span class="n">moments</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>

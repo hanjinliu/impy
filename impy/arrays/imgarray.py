@@ -3014,6 +3014,10 @@ class ImgArray(LabeledArray):
             If sequence of float is given as ``degrees``, "degree" axis will be newly added at
             the position 0. For instance, if a zyx-image and ``degrees=np.linspace(0, 180, 100)``
             are given, returned image has axes ["degree", "y", "x"].
+        
+        See Also
+        --------
+        iradon
         """        
         from dask import array as da, delayed
         
@@ -3122,6 +3126,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Reconstruction.
+            
+        See Also
+        --------
+        radon
         """        
         interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
         is_3d = self.ndim == 3
