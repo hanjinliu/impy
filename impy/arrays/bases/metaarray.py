@@ -402,7 +402,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 **kwargs
             )
             
-            out = out.compute()
+            out = xp.asnumpy(out.compute())
             
         out = out.view(self.__class__)
         

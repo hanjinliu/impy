@@ -208,7 +208,7 @@ def iradon(
     img: xp.ndarray, 
     degrees: xp.ndarray,
     output_shape: tuple[int, int],
-    filter_func: Callable,
+    filter_func: xp.ndarray,
     interpolation: str = "linear",
 ):
     angles_count = len(degrees)
@@ -216,12 +216,13 @@ def iradon(
     img_shape = img.shape[0]
 
     # Apply filter in Fourier domain
-    projection = xp.fft.fft(img, axis=0) * filter_func
+    projection = xp.fft.fft(xp.asarray(img), axis=0) * filter_func
     radon_filtered = xp.real(xp.fft.ifft(projection, axis=0)[:img_shape, :])
+    radon_filtered = xp.asnumpy(radon_filtered)
 
     # Reconstruct image by interpolation
-    reconstructed = xp.zeros(output_shape, dtype=dtype)
-    xpr, ypr = xp.indices(output_shape)
+    reconstructed = np.zeros(output_shape, dtype=dtype)
+    xpr, ypr = np.indices(output_shape)
     xpr -= output_shape[0] // 2
     ypr -= output_shape[1] // 2
     
@@ -230,34 +231,34 @@ def iradon(
     for col, angle in zip(radon_filtered.T, np.deg2rad(degrees)):
         t = ypr * np.cos(angle) - xpr * np.sin(angle)
         interpolant = interp1d(x, col, kind=interpolation, bounds_error=False, fill_value=0)
-        reconstructed += xp.asarray(interpolant(t))
+        reconstructed += np.asarray(interpolant(t))
 
     return reconstructed * np.pi / (2 * angles_count)
 
 # This function is almost ported from `skimage.transform`.
 def get_fourier_filter(size: int, filter_name: str):
-    n = np.concatenate(
-        [np.arange(1, size / 2 + 1, 2, dtype=int),
-         np.arange(size / 2 - 1, 0, -2, dtype=int)]
+    n = xp.concatenate(
+        [xp.arange(1, size / 2 + 1, 2, dtype=int),
+         xp.arange(size / 2 - 1, 0, -2, dtype=int)]
     )
-    f = np.zeros(size)
+    f = xp.zeros(size)
     f[0] = 0.25
     f[1::2] = -1 / (np.pi * n[:len(f[1::2])]) ** 2
-    fourier_filter = 2 * np.real(xp.fft.fft(f))  # ramp filter
+    fourier_filter = 2 * xp.real(xp.fft.fft(f))  # ramp filter
     if filter_name == "ramp":
         pass
     elif filter_name == "shepp-logan":
         # Start from first element to avoid divide by zero
         omega = np.pi * xp.fft.fftfreq(size)[1:]
-        fourier_filter[1:] *= np.sin(omega) / omega
+        fourier_filter[1:] *= xp.sin(omega) / omega
     elif filter_name == "cosine":
-        freq = np.linspace(0, np.pi, size, endpoint=False)
-        cosine_filter = xp.fft.fftshift(np.sin(freq))
+        freq = xp.linspace(0, np.pi, size, endpoint=False)
+        cosine_filter = xp.fft.fftshift(xp.sin(freq))
         fourier_filter *= cosine_filter
     elif filter_name == "hamming":
-        fourier_filter *= xp.fft.fftshift(np.hamming(size))
+        fourier_filter *= xp.fft.fftshift(xp.hamming(size))
     elif filter_name == "hann":
-        fourier_filter *= xp.fft.fftshift(np.hanning(size))
+        fourier_filter *= xp.fft.fftshift(xp.hanning(size))
     elif filter_name is None:
         fourier_filter[:] = 1
     else:

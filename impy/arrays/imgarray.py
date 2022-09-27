@@ -3068,9 +3068,9 @@ class ImgArray(LabeledArray):
             delayed_func(input, p, order=order, output_shape=output_shape) 
             for p in params
         ]
-        out = np.stack(da.compute(tasks)[0], axis=0)
+        out = xp.stack(da.compute(tasks)[0], axis=0)
 
-        out = out.view(self.__class__)
+        out = xp.asnumpy(out).view(self.__class__)
         out._set_info(self, self.axes.drop(0).insert(0, "degree"))
         out.axes[0].labels = list(degrees)
         if squeeze:
