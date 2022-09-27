@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, NamedTuple
+from typing import Callable, Iterable, NamedTuple, Sequence
 import numpy as np
 from functools import partial
 
@@ -162,31 +162,43 @@ def polar2d(
     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
 
-def radon_2d(img: xp.ndarray, theta: float, order: int = 3, output_shape=None):
+def radon(img: xp.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
     """Radon transform of 2D image."""
-    img = xp.asarray(img)
-    rot = xp.ndi.rotate(img, theta, reshape=False, order=order, prefilter=False)
-    return xp.sum(rot, axis=0)
-
-def radon_3d(img: xp.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
-    """Radon transform of 3D image."""
     img_rot = warp(img, mtx, order=order, output_shape=output_shape, prefilter=False)
-    proj = xp.sum(img_rot, axis=0)
-    return proj
+    return xp.sum(img_rot, axis=0)
+
+def get_rotation_matrices_for_radon_2d(
+    radians: Sequence[float],
+    in_shape: tuple[int, int],
+    out_shape: tuple[int, int],
+) -> Iterable[np.ndarray]:
+    rotation = np.zeros((len(radians), 3, 3))
+    c, s = np.cos(radians), np.sin(radians)
+    rotation[:, 0, 0] = rotation[:, 1, 1] = c
+    rotation[:, 0, 1] = s
+    rotation[:, 1, 0] = -s
+    rotation[:, 2, 2] = 1.0
+    in_center = (np.array(in_shape) - 1.) / 2.
+    out_center = (np.array(out_shape) - 1.) / 2.
+    tr_0 = compose_affine_matrix(translation=in_center, ndim=2)
+    tr_1 = compose_affine_matrix(translation=-out_center, ndim=2)
+    return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
 
 def get_rotation_matrices_for_radon_3d(
-    degrees: Iterable[float],
+    radians: Sequence[float],
     central_axis: np.ndarray,
-    shape: tuple[int, int, int],
+    in_shape: tuple[int, int, int],
+    out_shape: tuple[int, int, int],
 ) -> Iterable[np.ndarray]:
     from scipy.spatial.transform import Rotation
-    vec = np.stack([central_axis * np.deg2rad(deg) for deg in degrees], axis=0)
+    vec = np.stack([central_axis * rad for rad in radians], axis=0)
     rotation = np.zeros((len(vec), 4, 4))
     rotation[:, :3, :3] = Rotation.from_rotvec(vec).as_matrix()  # (N, 3, 3)
     rotation[:, 3, 3] = 1.0
-    center = (np.array(shape) - 1.) / 2.
-    tr_0 = compose_affine_matrix(translation=center, ndim=3)
-    tr_1 = compose_affine_matrix(translation=-center, ndim=3)
+    in_center = (np.array(in_shape) - 1.) / 2.
+    out_center = (np.array(out_shape) - 1.) / 2.
+    tr_0 = compose_affine_matrix(translation=in_center, ndim=3)
+    tr_1 = compose_affine_matrix(translation=-out_center, ndim=3)
     return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
 
 # This function is mostly ported from `skimage.transform`.

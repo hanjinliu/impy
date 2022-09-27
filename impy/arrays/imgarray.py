@@ -2982,7 +2982,7 @@ class ImgArray(LabeledArray):
             sl = switch_slice(dims, pw.axes, ifin=np.array(pw.shape)//2, ifnot=slice(None))
             pw[sl] = 0
         return pw
-    
+
     @dims_to_spatial_axes
     def radon(
         self,
@@ -3018,19 +3018,23 @@ class ImgArray(LabeledArray):
         
         ndim = len(dims)
         squeeze = not hasattr(degrees, "__iter__")
+        
         if squeeze:
             degrees = [degrees]
         if ndim != self.ndim:
             raise NotImplementedError("Batch Radon transformation is not implemented yet.")
-        # TODO: rotation -> projection should be calculated in larger shape
+        radians = np.deg2rad(list(degrees))
+
         if ndim == 2:
             if central_axis is not None:
                 warnings.warn(
                     "For 2D image, the central_axis of rotation is pre-defined. "
                     "This parameter will be ignored", UserWarning,
                 )
-            func = _transform.radon_2d
-            params = degrees
+            iy, ix = self.shape
+            height = int(np.ceil(np.sqrt(iy ** 2 + ix ** 2)))
+            output_shape = (height, self.shape[1])
+            params = _transform.get_rotation_matrices_for_radon_2d(radians, self.shape, output_shape)
 
         elif ndim == 3:
             if central_axis is None:
@@ -3047,20 +3051,21 @@ class ImgArray(LabeledArray):
                     raise ValueError(f"Image is {ndim}D but central_axis is {central_axis.ndim}D.")
             
             # construct Affine transform matrices
-            func = _transform.radon_3d
-            params = _transform.get_rotation_matrices_for_radon_3d(degrees, central_axis, self.shape)
-            
+            height = int(np.ceil(np.linalg.norm(self.shape)))
+            output_shape = (height, self.shape[1], self.shape[2])
+            params = _transform.get_rotation_matrices_for_radon_3d(
+                radians, central_axis, self.shape, output_shape
+            )
         else:
             raise ValueError("Only 2D or 3D input is supported.")
         
         # apply spline filter in advance.
-        if order <= 1:
-            input = self.as_float().value
-        else:
-            input = self.as_float().spline_filter(order=order)
-            
-        delayed_func = delayed(func)
-        tasks = [delayed_func(input, p, order=order) for p in params]
+        input = self.as_float().spline_filter(order=order)
+        delayed_func = delayed(_transform.radon)
+        tasks = [
+            delayed_func(input, p, order=order, output_shape=output_shape) 
+            for p in params
+        ]
         out = np.stack(da.compute(tasks)[0], axis=0)
 
         out = out.view(self.__class__)
@@ -3083,7 +3088,7 @@ class ImgArray(LabeledArray):
         order: int = 3,
     ) -> ImgArray:
         """
-        Inverse Radon transformation (weighted backprojection) of a tile series.
+        Inverse Radon transformation (weighted back projection) of a tile series.
         
         Input array must be a tilt series of 1D or 2D images. They are back-
         projected into a 2D or 3D image with arbitrary height.
