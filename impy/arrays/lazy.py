@@ -837,7 +837,10 @@ class LazyImgArray(AxesMixin):
                 shear=shear, translation=translation,
                 ndim=len(dims)
             )
-        from dask_image.ndinterp import affine_transform
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            from dask_image.ndinterp import affine_transform
         return self._apply_dask_filter(
             affine_transform,
             c_axes=complement_axes(dims, self.axes),
