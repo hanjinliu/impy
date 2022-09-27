@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Union, Sequence, Callable, Iterable, Tuple, Any, TYPE_CHECKING, Literal
-from .axes import Slicer
+from .axes import Slicer, Axes, AxisLike
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -12,7 +12,10 @@ nDFloat = Union[Sequence[float], float]
 nDInt = Union[Sequence[int], int]
 Coords = Union[np.ndarray, "pd.DataFrame"]
 Slices = Tuple[Union[slice, int], ...]
-Dims = Union[Iterable[str], int, None]
+if TYPE_CHECKING:
+    Dims = list[AxisLike]
+else:
+    Dims = Union[Sequence[AxisLike], int, None]
 AxesTargetedSlicer = Union[str, dict[str, Any], Slicer]
 PaddingMode = Union[
     Literal["reflect"], 

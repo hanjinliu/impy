@@ -354,6 +354,9 @@ def gaussian_kernel(
     shape: ShapeLike, 
     sigma: nDFloat = 1.0,
     peak: float = 1.0,
+    *,
+    name: str | None = None,
+    axes: AxesLike | None = None,
 ) -> ImgArray:
     """
     Make an Gaussian kernel or Gaussian image.
@@ -376,8 +379,8 @@ def gaussian_kernel(
         sigma = (sigma,)*len(shape)
     g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
     ker = g.generate(shape)
-    ker = array(ker, name="Gaussian-Kernel")
-    if ker.ndim == 3:
+    ker = array(ker, name=name or "Gaussian-Kernel", axes=axes)
+    if axes is None and ker.ndim == 3:
         ker.axes = "zyx"
     return ker
 

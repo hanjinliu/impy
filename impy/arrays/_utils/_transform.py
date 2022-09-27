@@ -162,7 +162,7 @@ def polar2d(
     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
 
-def radon(img: xp.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
+def radon_single(img: xp.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
     """Radon transform of 2D image."""
     img_rot = warp(img, mtx, order=order, output_shape=output_shape, prefilter=False)
     return xp.sum(img_rot, axis=0)
@@ -235,14 +235,14 @@ def iradon(
     return reconstructed * np.pi / (2 * angles_count)
 
 # This function is almost ported from `skimage.transform`.
-def get_fourier_filter(size, filter_name):
+def get_fourier_filter(size: int, filter_name: str):
     n = np.concatenate(
         [np.arange(1, size / 2 + 1, 2, dtype=int),
          np.arange(size / 2 - 1, 0, -2, dtype=int)]
     )
     f = np.zeros(size)
     f[0] = 0.25
-    f[1::2] = -1 / (np.pi * n) ** 2
+    f[1::2] = -1 / (np.pi * n[:len(f[1::2])]) ** 2
     fourier_filter = 2 * np.real(xp.fft.fft(f))  # ramp filter
     if filter_name == "ramp":
         pass

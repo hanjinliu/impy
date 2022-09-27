@@ -2983,6 +2983,7 @@ class ImgArray(LabeledArray):
             pw[sl] = 0
         return pw
 
+    @_docs.write_docs
     @dims_to_spatial_axes
     def radon(
         self,
@@ -3037,6 +3038,7 @@ class ImgArray(LabeledArray):
             params = _transform.get_rotation_matrices_for_radon_2d(radians, self.shape, output_shape)
 
         elif ndim == 3:
+            # normalize central axis to a 3D vector
             if central_axis is None:
                 raise ValueError("For 3D image, the central_axis of rotation must be specified.")
             elif isinstance(central_axis, (str, Axis)):
@@ -3058,10 +3060,10 @@ class ImgArray(LabeledArray):
             )
         else:
             raise ValueError("Only 2D or 3D input is supported.")
-        
+
         # apply spline filter in advance.
         input = self.as_float().spline_filter(order=order)
-        delayed_func = delayed(_transform.radon)
+        delayed_func = delayed(_transform.radon_single)
         tasks = [
             delayed_func(input, p, order=order, output_shape=output_shape) 
             for p in params
