@@ -502,6 +502,39 @@ class MetaArray(AxesMixin, np.ndarray):
             new_axes = axes
         out._set_info(self, new_axes=new_axes)
         return out
+    
+    def min(
+        self,
+        axis=None,
+        dtype: DTypeLike = None,
+        out: None = None,
+        keepdims: bool = np._NoValue,
+        *,
+        where: np.ndarray = np._NoValue,
+    ):
+        return np.min(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+    
+    def max(
+        self,
+        axis=None,
+        dtype: DTypeLike = None,
+        out: None = None,
+        keepdims: bool = np._NoValue,
+        *,
+        where: np.ndarray = np._NoValue,
+    ):
+        return np.max(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+    
+    def mean(
+        self,
+        axis=None,
+        dtype: DTypeLike = None,
+        out: None = None,
+        keepdims: bool = np._NoValue,
+        *,
+        where: np.ndarray = np._NoValue,
+    ):
+        return np.mean(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
 
     def _dimension_matches(self, array: MetaArray):
         """Check if dimension satisfies ``self <: array``."""

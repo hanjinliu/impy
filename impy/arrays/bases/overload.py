@@ -167,7 +167,7 @@ def _(img: MetaArray, source, destination):
     return out
 
 @MetaArray.implements(np.swapaxes)
-def _(img: MetaArray, axis1: int | AxisLike, axis2: int = AxisLike):
+def _(img: MetaArray, axis1: int | AxisLike, axis2: int | AxisLike):
     if isinstance(axis1, (str, Axis)):
         axis1 = img.axisof(axis1)
     if isinstance(axis2, (str, Axis)):
@@ -179,6 +179,31 @@ def _(img: MetaArray, axis1: int | AxisLike, axis2: int = AxisLike):
     axes_list[axis1], axes_list[axis2] = axes_list[axis2], axes_list[axis1]
     
     out._set_info(img, new_axes=axes_list)
+    return out
+
+@MetaArray.implements(np.cross)
+def _(
+    img: MetaArray,
+    arr: np.ndarray,
+    axisa: int | AxisLike = -1,
+    axisb: int | AxisLike = -1,
+    axisc: int = -1,
+    axis: int | AxisLike | None = None,
+):
+    if isinstance(axisa, (str, Axis)):
+        axisa = img.axisof(axisa)
+    if isinstance(axisb, (str, Axis)):
+        if isinstance(arr, MetaArray):
+            axisb = arr.axisof(axisb)
+        else:
+            raise TypeError("The second array is not MetaArray so use int for axisb.")
+    if isinstance(axis, (str, Axis)):
+        axis = img.axisof(axis)
+    out: np.ndarray = np.cross(
+        img.value, np.asarray(arr), axisa=axisa, axisb=axisb, axisc=axisc, axis=axis
+    )
+    out = out.view(img.__class__)
+    out._set_info(img, new_axes=img.axes)
     return out
 
 # This function is ported from numpy.core.numeric.normalize_axis_tuple
