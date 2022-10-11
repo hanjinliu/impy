@@ -506,24 +506,22 @@ class MetaArray(AxesMixin, np.ndarray):
     def min(
         self,
         axis=None,
-        dtype: DTypeLike = None,
         out: None = None,
         keepdims: bool = np._NoValue,
         *,
         where: np.ndarray = np._NoValue,
     ):
-        return np.min(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+        return np.min(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
     def max(
         self,
         axis=None,
-        dtype: DTypeLike = None,
         out: None = None,
         keepdims: bool = np._NoValue,
         *,
         where: np.ndarray = np._NoValue,
     ):
-        return np.max(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+        return np.max(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
     def mean(
         self,

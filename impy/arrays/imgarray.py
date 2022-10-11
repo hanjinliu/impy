@@ -3145,6 +3145,8 @@ class ImgArray(LabeledArray):
                 f"Input has {self.axes}."
             )
         new_axes = self.axes.drop([degree_axis]).insert(0, height_axis)
+        new_axes[0].scale = new_axes[-1].scale
+        new_axes[0].unit = new_axes[-1].unit
         self: ImgArray = np.moveaxis(self, self.axisof(degree_axis), -1)
         filter_func = _transform.get_fourier_filter(self.shape[-2], window)
         output_shape = (height, self.shape[-2])
