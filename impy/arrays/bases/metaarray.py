@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mapping
+from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mapping, Any
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
 from ..axesmixin import AxesMixin
-from ..._types import *
+from ..._types import Callable, Slices
 from ...axes import ImageAxesError, AxesLike, Axes
 from ...array_api import xp
 from ...utils import axesop, slicer
@@ -145,7 +145,14 @@ class MetaArray(AxesMixin, np.ndarray):
         super().__setitem__(key, value)
     
     def sel(self, indexer=None, /, **kwargs: dict[str, Any]) -> Self:
-        """."""
+        """
+        A label based indexing method, mimicking ``xarray.sel``.
+        
+        Example
+        -------
+        >>> img.sel(c="Red")
+        >>> img.sel(t=slice("frame 3", "frame, 5"))
+        """
         if indexer is not None:
             kwargs.update(indexer)
         axes = self.axes
@@ -163,6 +170,14 @@ class MetaArray(AxesMixin, np.ndarray):
         return self[tuple(slices)]
     
     def isel(self, indexer=None, /, **kwargs: dict[str, Any]) -> Self:
+        """
+        A index based indexing method, mimicking ``xarray.isel``.
+        
+        Example
+        -------
+        >>> img.isel(c=3)
+        >>> img.isel(t=slice(4, 7))
+        """
         if indexer is not None:
             kwargs.update(indexer)
 
