@@ -41,7 +41,7 @@ def random(
     axes: str = None,
     like: MetaArray | LazyImgArray =None,
 ) -> ImgArray:
-    size, name, like = _normalize_like(size, name, axes, like)
+    size, name, axes = _normalize_like(size, name, axes, like)
     name = name or "random"
     return asarray(xp.asnumpy(xp.random.random(size)), name=name, axes=axes)
 
@@ -135,7 +135,7 @@ class ImageGenerator:
         name: str | None = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
         arr = self._rng.standard_normal(size=size, dtype=dtype)
         if np.isscalar(arr):
             return arr
@@ -151,7 +151,8 @@ class ImageGenerator:
         name: str | None = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
+    
         arr = self._rng.standard_exponential(size=size, dtype=dtype, method=method)
         if np.isscalar(arr):
             return arr
@@ -166,7 +167,8 @@ class ImageGenerator:
         name: str | None = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
+    
         arr = self._rng.random(size=size, dtype=dtype)
         if np.isscalar(arr):
             return arr
@@ -182,7 +184,8 @@ class ImageGenerator:
         name: str | None = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
+    
         arr = self._rng.normal(loc=loc, scale=scale, size=size)
         if np.isscalar(arr):
             return arr
@@ -197,7 +200,8 @@ class ImageGenerator:
         name: str | None = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
+    
         arr = self._rng.poisson(lam=lam, size=size)
         if np.isscalar(arr):
             return arr
@@ -211,7 +215,8 @@ class ImageGenerator:
         axes: str = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
+    
         arr = self._rng.integers(0, 255, size, dtype=np.uint8)
         name = name or "random_uint8"
         return asarray(xp.asnumpy(arr), name=name, axes=axes)
@@ -224,7 +229,8 @@ class ImageGenerator:
         axes: str = None,
         like: MetaArray | LazyImgArray =None,
     ) -> ImgArray:
-        size, name, like = _normalize_like(size, name, axes, like)
+        size, name, axes = _normalize_like(size, name, axes, like)
+    
         arr = self._rng.integers(0, 65535, size, dtype=np.uint16)
         name = name or "random_uint16"
         return asarray(xp.asnumpy(arr), name=name, axes=axes)
