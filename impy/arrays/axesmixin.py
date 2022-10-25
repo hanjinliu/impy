@@ -121,7 +121,7 @@ class AxesMixin:
         </body>
         """
         return html
-        
+
     def axisof(self, symbol) -> int:
         if isinstance(symbol, Number):
             return symbol
@@ -135,8 +135,24 @@ class AxesMixin:
     def sizesof(self, axes: str) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in axes)
     
+    def set_axes(self, axes) -> Self:
+        """
+        Set axes of the array and return the updated one.
 
-    def set_scale(self, other=None, **kwargs) -> None:
+        Parameters
+        ----------
+        axes : AxesLike
+            New axes.
+        
+        Returns
+        -------
+        Self
+            Array with updated axes.
+        """
+        self.axes = axes
+        return self
+
+    def set_scale(self, other=None, unit: str | None = None, **kwargs) -> Self:
         """
         Set scales of each axis.
 
@@ -145,6 +161,8 @@ class AxesMixin:
         other : dict or object with axes
             New scales. If dict, it should be like {"x": 0.1, "y": 0.1}. If MetaArray, only
             scales of common axes are copied.
+        unit : str, optional
+            Scale unit if needs update.
         kwargs : 
             This enables function call like set_scale(x=0.1, y=0.1).
         """        
@@ -187,14 +205,17 @@ class AxesMixin:
                 f"'other' must be str or axes supported object, but got {type(other)}"
             )
         
-        return None
+        if unit is not None:
+            self.scale_unit = unit
+        
+        return self
     
     def set_axis_label(
         self,
         _dict: MutableMapping[str, Iterable[Any]] = None,
         /,
         **kwargs
-    ) -> None:
+    ) -> Self:
         """
         Set labels to an axis (axes).
 
@@ -216,7 +237,7 @@ class AxesMixin:
                 raise ValueError(f"Lengths of axis {k} and labels {v} don't match.")
         for k, v in _dict.items():
             self.axes[self.axes.find(k)].labels = v
-        return None
+        return self
     
     @overload
     def iter(
