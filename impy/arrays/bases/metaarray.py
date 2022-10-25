@@ -13,6 +13,11 @@ from ...collections import DataList
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+try:
+    _NoValue = np._NoValue
+except AttributeError:
+    _NoValue = None  # simply avoid errors.
+
 SupportOneSlicing = Union[SupportsInt, slice]
 SupportSlicing = Union[
     SupportsInt,
@@ -507,9 +512,9 @@ class MetaArray(AxesMixin, np.ndarray):
         self,
         axis=None,
         out: None = None,
-        keepdims: bool = np._NoValue,
+        keepdims: bool = _NoValue,
         *,
-        where: np.ndarray = np._NoValue,
+        where: np.ndarray = _NoValue,
     ):
         return np.min(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
@@ -517,9 +522,9 @@ class MetaArray(AxesMixin, np.ndarray):
         self,
         axis=None,
         out: None = None,
-        keepdims: bool = np._NoValue,
+        keepdims: bool = _NoValue,
         *,
-        where: np.ndarray = np._NoValue,
+        where: np.ndarray = _NoValue,
     ):
         return np.max(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
@@ -528,9 +533,9 @@ class MetaArray(AxesMixin, np.ndarray):
         axis=None,
         dtype: DTypeLike = None,
         out: None = None,
-        keepdims: bool = np._NoValue,
+        keepdims: bool = _NoValue,
         *,
-        where: np.ndarray = np._NoValue,
+        where: np.ndarray = _NoValue,
     ):
         return np.mean(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
 

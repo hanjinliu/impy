@@ -15,3 +15,9 @@ def test_random(size):
 @pytest.mark.parametrize("size", sizes)
 def test_normal(size):
     assert_allclose(rng.normal(size=size), np_rng.normal(size=size))
+
+def test_like_param():
+    img = ip.zeros((3, 4, 5), axes="zyx")
+    out = rng.normal(like=img)
+    assert out.axes == ["z", "y", "x"]
+    assert out.shape == (3, 4, 5)

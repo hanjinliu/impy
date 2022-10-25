@@ -79,8 +79,10 @@ def _normalize_params(
 ) -> tuple[AxesLike | None, str | None]:
     """Normalize input parameters for MetaArray construction."""
     if like is not None:
-        if not isinstance(like, MetaArray):
-            raise TypeError(f"'like' must be a MetaArray, not {type(like)}")
+        if not isinstance(like, (MetaArray, LazyImgArray)):
+            raise TypeError(
+                f"'like' must be a MetaArray or a LazyImgArray, not {type(like)}"
+            )
         name = name or like.name
         axes = axes or like.axes
     return axes, name
