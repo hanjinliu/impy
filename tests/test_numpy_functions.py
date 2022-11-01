@@ -84,6 +84,10 @@ def test_transpose():
     out = np.transpose(img0, "yxz")
     assert out.axes == ["y", "x", "z"]
     assert out.shape == (3, 4, 2)
+    
+    out = np.transpose(img0)
+    assert out.axes == ["x", "y", "z"]
+    assert out.shape == (4, 3, 2)
 
 def test_broadcast_to():
     img0 = ip.zeros((2, 3), axes="yx")

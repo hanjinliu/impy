@@ -121,7 +121,7 @@ def _(img: MetaArray, axis):
     return out
 
 @MetaArray.implements(np.transpose)
-def _(img: MetaArray, axes: AxesLike):
+def _(img: MetaArray, axes: AxesLike | None = None):
     return img.transpose(axes)
 
 @MetaArray.implements(np.split)

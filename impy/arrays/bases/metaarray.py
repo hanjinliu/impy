@@ -428,13 +428,17 @@ class MetaArray(AxesMixin, np.ndarray):
         
         return out
     
-    def transpose(self, axes) -> Self:
+    def transpose(self, axes=None) -> Self:
         """
         change the order of image dimensions.
         'axes' will also be arranged.
         """
-        _axes = [self.axisof(a) for a in axes]
-        new_axes = [self.axes[i] for i in list(axes)]
+        if axes is None:
+            _axes = None
+            new_axes = self.axes[::-1]
+        else:
+            _axes = [self.axisof(a) for a in axes]
+            new_axes = [self.axes[i] for i in list(axes)]
         out: np.ndarray = np.transpose(self.value, _axes)
         out = out.view(self.__class__)
         out._set_info(self, new_axes=new_axes)
