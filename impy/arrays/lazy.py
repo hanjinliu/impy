@@ -1,6 +1,5 @@
 from __future__ import annotations
 from functools import wraps
-import os
 import itertools
 from pathlib import Path
 from typing import Any, Callable, TYPE_CHECKING
@@ -15,20 +14,20 @@ from .axesmixin import AxesMixin
 from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
-from ..utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
-from ..utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
-from ..utils.misc import check_nd
-from ..utils import slicer
-from ..io import imsave
-from ..collections import DataList
+from impy.utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
+from impy.utils.deco import check_input_and_output_lazy, dims_to_spatial_axes, same_dtype
+from impy.utils.misc import check_nd
+from impy.utils import slicer
+from impy.io import imsave
+from impy.collections import DataList
 
-from .._types import nDFloat, Coords, Iterable, Dims, PaddingMode
-from ..axes import ImageAxesError
-from .._const import Const
-from ..array_api import xp
+from impy._types import nDFloat, Coords, Iterable, Dims, PaddingMode
+from impy.axes import ImageAxesError
+from impy._const import Const
+from impy.array_api import xp
 
 if TYPE_CHECKING:
-    from dask import array as da
+    from dask.array.core import Array as DaskArray
 
 
 class LazyImgArray(AxesMixin):
@@ -36,16 +35,16 @@ class LazyImgArray(AxesMixin):
     
     def __init__(
         self,
-        obj: "da.core.Array",
+        obj: "DaskArray",
         name: str = None,
         axes: str = None,
         source: str = None, 
         metadata: dict = None
     ):
-        from dask import array as da
-        if not isinstance(obj, da.core.Array):
+        from dask.array.core import Array as DaskArray
+        if not isinstance(obj, DaskArray):
             raise TypeError(f"The first input must be dask array, got {type(obj)}")
-        self.value: "da.core.Array" = obj
+        self.value: "DaskArray" = obj
         self.source = source
         self._name = name
         self.axes = axes
@@ -53,6 +52,7 @@ class LazyImgArray(AxesMixin):
         
     @property
     def source(self):
+        """The source file path."""
         return self._source
     
     @source.setter
@@ -64,6 +64,7 @@ class LazyImgArray(AxesMixin):
     
     @property
     def name(self) -> str:
+        """Name of the array."""
         if self._name is None:
             source = self.source
             if source is None:
@@ -79,30 +80,37 @@ class LazyImgArray(AxesMixin):
     
     @property
     def metadata(self) -> dict[str, Any]:
+        """Metadata dictionary of the array."""
         return self._metadata
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
+        """Number of dimensions of the array."""
         return self.value.ndim
     
     @property
     def shape(self):
+        """Shape of the array."""
         return self.axes.tuple(self.value.shape)
         
     @property
     def dtype(self):
+        """Data type of the array"""
         return self.value.dtype
     
     @property
-    def size(self):
+    def size(self) -> int:
+        """Total number of elements in the array."""
         return self.value.size
     
     @property
     def itemsize(self):
+        """Size of each element in bytes."""
         return self.value.itemsize
     
     @property
     def chunksize(self):
+        """Chunk size of the array."""
         return self.axes.tuple(self.value.chunksize)
         
     @property
@@ -919,9 +927,14 @@ class LazyImgArray(AxesMixin):
     def chunksizesof(self, axes:str):
         return tuple(self.chunksizeof(a) for a in axes)
         
-    def transpose(self, axes):
-        new_axes = [self.axes[i] for i in list(axes)]
-        out = self.__class__(self.value.transpose(axes))
+    def transpose(self, axes=None):
+        if axes is None:
+            _axes = None
+            new_axes = self.axes[::-1]
+        else:
+            _axes = [self.axisof(a) for a in axes]
+            new_axes = [self.axes[i] for i in list(axes)]
+        out = self.__class__(self.value.transpose(_axes))
         out._set_info(self, new_axes=new_axes)
         return out
     
@@ -1022,7 +1035,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(ImgArray.track_drift)
-    def track_drift(self, along: str = None, upsample_factor: int = 10) -> "da.core.Array":
+    def track_drift(self, along: str = None, upsample_factor: int = 10) -> "DaskArray":
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
         elif len(along) != 1:
@@ -1080,7 +1093,7 @@ class LazyImgArray(AxesMixin):
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         
-        from ..frame import MarkerFrame
+        from impy.frame import MarkerFrame
         
         if shift is None:
             # determine 'ref'
@@ -1177,13 +1190,13 @@ class LazyImgArray(AxesMixin):
         Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy
         function can be overloaded with this method.
         """
-        from dask import array as da
+        from dask.array.core import Array as DaskArray
         args, kwargs = _replace_inputs(self, args, kwargs)
         
         _types = []
         for t in types:
             if t is self.__class__:
-                _types.append(da.core.Array)
+                _types.append(DaskArray)
             else:
                 _types.append(t)
         
@@ -1195,7 +1208,7 @@ class LazyImgArray(AxesMixin):
         if isinstance(result, (tuple, list)):
             out = []
             for r in result:
-                if isinstance(r, da.core.Array):
+                if isinstance(r, DaskArray):
                     out.append(
                         self.__class__(r)._process_output(self, args, kwargs)
                     )
@@ -1203,7 +1216,7 @@ class LazyImgArray(AxesMixin):
                     out.append(r)
             out = DataList(out)
             
-        elif isinstance(result, da.core.Array):
+        elif isinstance(result, DaskArray):
             out = self.__class__(result)
             out._process_output(self, args, kwargs)
             
