@@ -69,18 +69,14 @@ class napariViewers:
     
     @property
     def viewer(self) -> "napari.Viewer":
-        """
-        The most front viewer you're using
-        """
+        """The most front viewer you're using"""
         if self._front_viewer not in self._viewers.keys():
             self.start()
         return self._viewers[self._front_viewer]
         
     @property
     def layers(self) -> "LayerList":
-        """
-        Napari layer list. Identical to ``ip.gui.viewer.layers``.
-        """        
+        """Napari layer list. Identical to ``ip.gui.viewer.layers``."""        
         return self.viewer.layers
     
     @property
@@ -323,7 +319,15 @@ class napariViewers:
         """        
         import pandas as pd
         from dask import array as da
-        from ..frame import MarkerFrame, TrackFrame, PathFrame
+        from impy.frame import MarkerFrame, TrackFrame, PathFrame
+        
+        try:
+            self.viewer.window.activate()
+        except RuntimeError:
+            # Restart viewer
+            viewer = napari.Viewer(title=self._front_viewer)
+            self._viewers[self._front_viewer] = viewer
+        
         # Add image and its labels
         if isinstance(obj, LabeledArray):
             self._add_image(obj, **kwargs)
