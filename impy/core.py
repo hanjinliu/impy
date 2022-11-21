@@ -13,16 +13,15 @@ else:
 import numpy as np
 from functools import wraps
 
-from . import io
-from .utils import gauss
-from .utils.slicer import *
-from ._types import *
-
-from .axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
-from .collections import DataList
-from .arrays.bases import MetaArray
-from .arrays import ImgArray, LazyImgArray, Label
-from ._const import Const
+from impy import io
+from impy.utils import gauss
+from impy.utils.slicer import *
+from impy._types import *
+from impy.axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
+from impy.collections import DataList
+from impy.arrays.bases import MetaArray
+from impy.arrays import ImgArray, LazyImgArray, Label
+from impy._const import Const
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike
@@ -130,7 +129,7 @@ def array(
     
     # Automatically determine axes
     if axes is None:
-        if isinstance(arr, MetaArray):
+        if isinstance(arr, (MetaArray, LazyImgArray)):
             axes = arr.axes
         else:
             axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][_arr.ndim]
@@ -213,7 +212,7 @@ def aslabel(
         
     # Automatically determine axes
     if axes is None:
-        if isinstance(arr, MetaArray):
+        if isinstance(arr, (MetaArray, LazyImgArray)):
             axes = arr.axes
         else:
             axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][_arr.ndim]
@@ -248,12 +247,18 @@ def aslazy(
     
     """
     from dask import array as da
+    from dask.array.core import Array as DaskArray
+
     if isinstance(arr, MetaArray):
         arr = da.from_array(arr.value, chunks=chunks)
-    if isinstance(arr, (np.ndarray, np.memmap)):
+    elif isinstance(arr, (np.ndarray, np.memmap)):
         arr = da.from_array(arr, chunks=chunks)
-    elif not isinstance(arr, da.core.Array):
+    elif isinstance(arr, LazyImgArray):
+        arr = arr.value
+    elif not isinstance(arr, DaskArray):
         arr = da.asarray(arr)
+    else:
+        raise TypeError(f"Unsupported array type {type(arr)}.")
         
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype in (np.uint8, np.uint16, np.float32):
