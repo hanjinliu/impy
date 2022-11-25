@@ -21,10 +21,10 @@ from impy.utils import slicer
 from impy.io import imsave
 from impy.collections import DataList
 
-from impy._types import nDFloat, Coords, Iterable, Dims, PaddingMode
-from impy.axes import ImageAxesError
-from impy._const import Const
+from impy.axes import ImageAxesError, AxisLike, Axis
 from impy.array_api import xp
+from impy._types import nDFloat, Coords, Iterable, Dims, PaddingMode
+from impy._const import Const
 
 if TYPE_CHECKING:
     from dask.array.core import Array as DaskArray
@@ -491,7 +491,7 @@ class LazyImgArray(AxesMixin):
         c_axes: str = None, 
         args: tuple = None,
         kwargs: dict[str, Any] = None
-    ):
+    ) -> DaskArray:
         from dask import array as da
         if args is None:
             args = ()
@@ -515,7 +515,7 @@ class LazyImgArray(AxesMixin):
         dtype: DTypeLike = None,
         args: tuple = None,
         kwargs: dict[str, Any] = None
-    ):
+    ) -> DaskArray:
         from dask import array as da
         if args is None:
             args = ()
@@ -531,8 +531,8 @@ class LazyImgArray(AxesMixin):
             return out
         depth = switch_slice(c_axes, self.axes, 0, depth)
         return da.map_overlap(
-            _func, self.value, depth=depth, boundary=boundary, dtype=dtype,
-            *args, **kwargs
+            _func, self.value, *args, depth=depth, boundary=boundary, dtype=dtype,
+            **kwargs
         )
     
     def _apply_dask_filter(
@@ -697,14 +697,16 @@ class LazyImgArray(AxesMixin):
         *,
         dims: Dims = None,
         update: bool = False,
-    ):
-        # TODO: need test
+    ) -> LazyImgArray:
         depth = order
+        from functools import partial
+        func = partial(
+            _filters.spline_filter, order=order, output=np.float32, mode=mode
+        )
         return self._apply_map_overlap(
-            _filters.spline_filter,
+            func,
             c_axes=complement_axes(dims, self.axes), 
             depth=depth,
-            args=(order, np.float32, mode),
         )
     
     
@@ -1140,6 +1142,80 @@ class LazyImgArray(AxesMixin):
         
         out = da.map_blocks(warp, self.value.rechunk(chunks), shift, meta=np.array([], dtype=self.dtype))
         
+        return out
+    
+    
+    @_docs.copy_docs(ImgArray.radon)
+    @dims_to_spatial_axes
+    def radon(
+        self,
+        degrees: float | Iterable[float], 
+        *,
+        central_axis: AxisLike | Sequence[float] | None = None,
+        order: int = 3,
+        dims: Dims = None,
+    ) -> LazyImgArray:
+        from dask import array as da
+        from dask_image.ndinterp import affine_transform
+        
+        ndim = len(dims)
+        squeeze = not hasattr(degrees, "__iter__")
+        
+        if squeeze:
+            degrees = [degrees]
+        if ndim != self.ndim:
+            raise NotImplementedError("Batch Radon transformation is not implemented yet.")
+        radians = np.deg2rad(list(degrees))
+
+        if ndim == 2:
+            if central_axis is not None:
+                import warnings
+                warnings.warn(
+                    "For 2D image, the central_axis of rotation is pre-defined. "
+                    "This parameter will be ignored", UserWarning,
+                )
+            iy, ix = self.shape
+            height = int(np.ceil(np.sqrt(iy ** 2 + ix ** 2)))
+            output_shape = (height, self.shape[1])
+            params = _transform.get_rotation_matrices_for_radon_2d(radians, self.shape, output_shape)
+
+        elif ndim == 3:
+            # normalize central axis to a 3D vector
+            if central_axis is None:
+                raise ValueError("For 3D image, the central_axis of rotation must be specified.")
+            elif isinstance(central_axis, (str, Axis)):
+                idx = dims.index(central_axis)
+                central_axis = np.zeros(ndim, dtype=np.float32)
+                central_axis[idx] = 1.0
+            else:
+                central_axis = np.asarray(central_axis)
+                central_axis /= np.sqrt(np.sum(central_axis ** 2))  # normalize
+                central_axis: np.ndarray
+                if central_axis.shape != (ndim,):
+                    raise ValueError(f"Image is {ndim}D but central_axis is {central_axis.ndim}D.")
+            
+            # construct Affine transform matrices
+            height = int(np.ceil(np.linalg.norm(self.shape)))
+            output_shape = (height, self.shape[1], self.shape[2])
+            params = _transform.get_rotation_matrices_for_radon_3d(
+                radians, central_axis, self.shape, output_shape
+            )
+        else:
+            raise ValueError("Only 2D or 3D input is supported.")
+
+        # apply spline filter in advance.
+        input = self.as_float().spline_filter(order=order)
+        tasks: list[DaskArray] = [
+            affine_transform(
+                input.value, p, order=order, output_shape=output_shape, prefilter=False
+            ).sum(axis=0)
+            for p in params
+        ]
+        out = LazyImgArray(da.stack(tasks, axis=0))
+        out._set_info(self, self.axes.drop(0).insert(0, "degree"))
+        out.axes[0].labels = list(degrees)
+        if squeeze:
+            out = out[0]
         return out
     
     @_docs.copy_docs(ImgArray.pad)
