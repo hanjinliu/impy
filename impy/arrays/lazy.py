@@ -1158,50 +1158,9 @@ class LazyImgArray(AxesMixin):
         from dask import array as da
         from dask_image.ndinterp import affine_transform
         
-        ndim = len(dims)
-        squeeze = not hasattr(degrees, "__iter__")
-        
-        if squeeze:
-            degrees = [degrees]
-        if ndim != self.ndim:
-            raise NotImplementedError("Batch Radon transformation is not implemented yet.")
-        radians = np.deg2rad(list(degrees))
-
-        if ndim == 2:
-            if central_axis is not None:
-                import warnings
-                warnings.warn(
-                    "For 2D image, the central_axis of rotation is pre-defined. "
-                    "This parameter will be ignored", UserWarning,
-                )
-            iy, ix = self.shape
-            height = int(np.ceil(np.sqrt(iy ** 2 + ix ** 2)))
-            output_shape = (height, self.shape[1])
-            params = _transform.get_rotation_matrices_for_radon_2d(radians, self.shape, output_shape)
-
-        elif ndim == 3:
-            # normalize central axis to a 3D vector
-            if central_axis is None:
-                raise ValueError("For 3D image, the central_axis of rotation must be specified.")
-            elif isinstance(central_axis, (str, Axis)):
-                idx = dims.index(central_axis)
-                central_axis = np.zeros(ndim, dtype=np.float32)
-                central_axis[idx] = 1.0
-            else:
-                central_axis = np.asarray(central_axis)
-                central_axis /= np.sqrt(np.sum(central_axis ** 2))  # normalize
-                central_axis: np.ndarray
-                if central_axis.shape != (ndim,):
-                    raise ValueError(f"Image is {ndim}D but central_axis is {central_axis.ndim}D.")
-            
-            # construct Affine transform matrices
-            height = int(np.ceil(np.linalg.norm(self.shape)))
-            output_shape = (height, self.shape[1], self.shape[2])
-            params = _transform.get_rotation_matrices_for_radon_3d(
-                radians, central_axis, self.shape, output_shape
-            )
-        else:
-            raise ValueError("Only 2D or 3D input is supported.")
+        params, output_shape, squeeze = _transform.normalize_radon_input(
+            self, dims, central_axis, degrees
+        )
 
         # apply spline filter in advance.
         input = self.as_float().spline_filter(order=order)
