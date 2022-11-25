@@ -4120,7 +4120,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def pad(
         self, 
-        pad_width, 
+        pad_width: int | tuple[int, int] | Sequence[tuple[int, int]], 
         *, 
         mode: PaddingMode = "constant", 
         dims: Dims = None, 

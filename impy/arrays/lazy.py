@@ -2,7 +2,7 @@ from __future__ import annotations
 from functools import wraps
 import itertools
 from pathlib import Path
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING, Sequence
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from warnings import warn
@@ -1145,45 +1145,61 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.pad)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
-    def pad(self, pad_width, mode: str = "constant", *, dims: Dims = None, **kwargs) -> LazyImgArray:
+    def pad(
+        self, 
+        pad_width: int | tuple[int, int] | Sequence[tuple[int, int]],
+        mode: str = "constant",
+        *,
+        dims: Dims = None,
+        **kwargs,
+    ) -> LazyImgArray:
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
         padimg = np.pad(self.value, pad_width, mode, **kwargs)
         return padimg
     
-    # @_docs.copy_docs(ImgArray.wiener)
-    # @dims_to_spatial_axes
-    # @same_dtype(asfloat=True)
-    # @record_lazy
-    # def wiener(self, psf: np.ndarray, lmd: float = 0.1, *, depth="auto", dims: Dims = None, update: bool = False) -> LazyImgArray:
-    #     if lmd <= 0:
-    #         raise ValueError(f"lmd must be positive, but got: {lmd}")
+    @_docs.copy_docs(ImgArray.wiener)
+    @same_dtype(asfloat=True)
+    @check_input_and_output_lazy
+    @dims_to_spatial_axes
+    def wiener(
+        self,
+        psf: np.ndarray,
+        lmd: float = 0.1,
+        *,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> LazyImgArray:
+        if lmd <= 0:
+            raise ValueError(f"lmd must be positive, but got: {lmd}")
         
-    #     if depth == "auto":
-    #         depth = 32  # TODO: any better way?
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
         
-    #     psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
-        
-    #     return self._apply_map_overlap
-    #     return self._apply_function(_deconv.wiener, 
-    #                       c_axes=complement_axes(dims, self.axes),
-    #                       rechunk_to="max",
-    #                       args=(psf_ft, psf_ft_conj, lmd)
-    #                       )
+        return self._apply_function(
+            _deconv.wiener, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, lmd)
+        )
     
-    # @_docs.copy_docs(ImgArray.lucy)
-    # @dims_to_spatial_axes
-    # @same_dtype(asfloat=True)
-    # @record_lazy
-    # def lucy(self, psf: np.ndarray, niter: int = 50, eps: float = 1e-5, depth: int = 32, *, dims: Dims = None, 
-    #          update: bool = False) -> LazyImgArray:
-    #     psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+    @_docs.copy_docs(ImgArray.lucy)
+    @same_dtype(asfloat=True)
+    @check_input_and_output_lazy
+    @dims_to_spatial_axes
+    def lucy(
+        self,
+        psf: np.ndarray,
+        niter: int = 50,
+        eps: float = 1e-5,
+        *,
+        dims: Dims = None, 
+        update: bool = False,
+    ) -> LazyImgArray:
+        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
 
-    #     return self._apply_map_overlap(_deconv.richardson_lucy, 
-    #                       c_axes=complement_axes(dims, self.axes),
-    #                       depth=depth,
-    #                       boundary="nearest",
-    #                       args=(psf_ft, psf_ft_conj, niter, eps)
-    #                       )
+        return self._apply_function(
+            _deconv.richardson_lucy, 
+            c_axes=complement_axes(dims, self.axes),
+            args=(psf_ft, psf_ft_conj, niter, eps)
+        )
     
     def __array_function__(self, func, types, args, kwargs):
         """
