@@ -13,6 +13,7 @@ def test_radon_2d(resource):
         assert sino.shape == (ndegs, 18)
         assert sino.dtype == np.float32
         img2 = sino.iradon(degrees, height=15)
+        assert img2.axes == ["y", "x"]
         assert img2.shape == (15, 18)
         assert ip.zncc(img, img2, dims="yx") > 0.85
         assert img2.dtype == np.float32
@@ -32,8 +33,8 @@ def test_radon_3d(resource):
         assert sino.dtype == np.float32
 
         img2 = sino.iradon(degrees, central_axis="y", height=15)
+        assert img2.axes == ["z", "y", "x"]
         assert img2.shape == (15, 18, 21)
         assert ip.zncc(img, img2, dims="zyx") > 0.85
         assert img2.dtype == np.float32
-        assert img2.axes == ["z", "y", "x"]
         assert img2.scale.z == 0.22

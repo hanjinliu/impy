@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Iterable, NamedTuple, Sequence
+from typing import Iterable, NamedTuple, Sequence, TYPE_CHECKING
 import numpy as np
-from functools import partial
 
 from ._skimage import sktrans
-from impy.axes import Axis, Axes
+from impy.axes import Axis, Axes, AxisLike
 from impy.array_api import xp
+
+if TYPE_CHECKING:
+    from impy import ImgArray
 
 __all__ = [
     "compose_affine_matrix", 
@@ -163,8 +165,12 @@ def polar2d(
     out = xp.ndi.map_coordinates(img, coords, order=order, mode=mode, cval=cval, prefilter=order>1)
     return out
 
-def normalize_radon_input(self, dims: Axes, central_axis, degrees):
-    
+def normalize_radon_input(
+    self: ImgArray, 
+    dims: Axes, 
+    central_axis: AxisLike, 
+    degrees: Sequence[float] | float,
+):    
     ndim = len(dims)
     squeeze = not hasattr(degrees, "__iter__")
     
@@ -211,6 +217,31 @@ def normalize_radon_input(self, dims: Axes, central_axis, degrees):
         raise ValueError("Only 2D or 3D input is supported.")
     
     return params, output_shape, squeeze
+
+def normalize_iradon_input(
+    self: ImgArray, 
+    central_axis: AxisLike,
+    height_axis: AxisLike,
+    degree_axis: AxisLike,
+    height: int,
+):
+    is_3d = self.ndim == 3
+    if height is None:
+        height = self.shape[-1]
+    if height_axis is None:
+        height_axis = "z" if is_3d else "y"
+    if degree_axis is None:
+        degree_axis = self.axes[0]
+    if is_3d and central_axis not in self.axes:
+        raise ValueError(
+            f"central_axis={central_axis!r} does not exist in the input image. "
+            f"Input has {self.axes}."
+        )
+    new_axes = self.axes.drop([degree_axis]).insert(0, height_axis)
+    new_axes[0].scale = new_axes[-1].scale
+    new_axes[0].unit = new_axes[-1].unit
+    output_shape = (height, self.shape[-1])
+    return central_axis, degree_axis, output_shape, new_axes
 
 def radon_single(img: xp.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
     """Radon transform of 2D image."""

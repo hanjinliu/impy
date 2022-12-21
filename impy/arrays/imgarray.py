@@ -3090,26 +3090,13 @@ class ImgArray(LabeledArray):
         See Also
         --------
         radon
-        """        
+        """
         interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
-        is_3d = self.ndim == 3
-        if height is None:
-            height = self.shape[-1]
-        if height_axis is None:
-            height_axis = "z" if is_3d else "y"
-        if degree_axis is None:
-            degree_axis = self.axes[0]
-        if is_3d and central_axis not in self.axes:
-            raise ValueError(
-                f"central_axis={central_axis!r} does not exist in the input image. "
-                f"Input has {self.axes}."
-            )
-        new_axes = self.axes.drop([degree_axis]).insert(0, height_axis)
-        new_axes[0].scale = new_axes[-1].scale
-        new_axes[0].unit = new_axes[-1].unit
+        central_axis, degree_axis, output_shape, new_axes = _transform.normalize_iradon_input(
+            self, central_axis, height_axis, degree_axis, height
+        )
         self: ImgArray = np.moveaxis(self, self.axisof(degree_axis), -1)
         filter_func = _transform.get_fourier_filter(self.shape[-2], window)
-        output_shape = (height, self.shape[-2])
         out = self._apply_dask(
             _transform.iradon,
             c_axes=[central_axis],
