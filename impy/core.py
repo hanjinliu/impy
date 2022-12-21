@@ -35,7 +35,7 @@ __all__ = [
     "asarray",
     "aslabel", 
     "aslazy", 
-    "as_bigarray",
+    "asbigarray",
     "zeros", 
     "empty", 
     "ones", 
@@ -279,7 +279,7 @@ def aslazy(
     
     return self
 
-def as_bigarray(
+def asbigarray(
     arr: ArrayLike, 
     dtype: DTypeLike = None,
     *, 
@@ -507,6 +507,7 @@ def sample_image(name: str) -> ImgArray:
     return out
 
 def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
+    """Broadcast input arrays to the same shape and axes"""
     axes_list: list[Axes] = []
     shapes: dict[str, int] = {}
     for arr in arrays:
@@ -531,7 +532,7 @@ def imread(
     name: str | None = None,
     squeeze: bool = False,
 ) -> ImgArray:
-    r"""
+    """
     Load image(s) from a path. You can read list of images from directories with 
     wildcards or ``"$"`` in ``path``.
 
@@ -559,7 +560,7 @@ def imread(
     --------
     Read a part of an image
     
-        >>> path = r"C:\...\Image.mrc"
+        >>> path = "path/to/image.mrc"
         >>> %time ip.imread(path)["x=:10;y=:10"]
         Wall time: 136 ms
         >>> %time ip.imread(path, key="x=:10;y=:10")

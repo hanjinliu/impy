@@ -809,7 +809,7 @@ def _check_dimensions(img0: ImgArray, img1: ImgArray):
 
 def _make_corr_output(corr: np.ndarray, refimg: ImgArray, propname: str, squeeze: bool, dims: str):
     if corr.ndim == 0 and squeeze:
-        corr = corr[()]
+        corr = corr.item()
     else:
         corr = PropArray(corr, name=refimg.name, axes=complement_axes(dims, refimg.axes), 
                         source=refimg.source, metadata=refimg.metadata, 

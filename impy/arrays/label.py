@@ -2,12 +2,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import numpy as np
 
-from ._utils._skimage import skimage, skseg
+from ._utils._skimage import skseg
 from ._utils import _filters, _structures, _docs
 from .bases import MetaArray
 
-from ..utils.axesop import complement_axes
-from ..utils.deco import check_input_and_output, dims_to_spatial_axes
+from impy.utils.axesop import complement_axes
+from impy.utils.deco import check_input_and_output, dims_to_spatial_axes
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -153,8 +153,9 @@ class Label(MetaArray):
         
     def imshow(self, **kwargs):
         import matplotlib.pyplot as plt
+        from skimage.color import label2rgb
         plt.figure()
-        plt.imshow(skimage.color.label2rgb(self.value, bg_label=0), **kwargs)
+        plt.imshow(label2rgb(self.value, bg_label=0), **kwargs)
         return self
     
     def __truediv__(self, value):
