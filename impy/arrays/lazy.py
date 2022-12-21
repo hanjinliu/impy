@@ -777,7 +777,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
-    @same_dtype
+    @same_dtype(asfloat=True)
     @check_input_and_output_lazy
     def edge_filter(
         self,

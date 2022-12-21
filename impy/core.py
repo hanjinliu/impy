@@ -46,7 +46,8 @@ __all__ = [
     "circular_mask", 
     "imread", 
     "imread_collection", 
-    "lazy_imread", 
+    "lazy_imread",
+    "big_imread", 
     "read_meta", 
     "roiread",
     "sample_image",
@@ -925,6 +926,35 @@ def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArra
     
     return out
 
+def big_imread(
+    path: str, 
+    chunks="auto",
+    *, 
+    name: str | None = None,
+    squeeze: bool = False,
+) -> BigImgArray:
+    """
+    Read an image lazily. Image file is first opened as an memory map, and subsequently converted
+    to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file.
+    chunks : optional
+        Specify chunk sizes. By default, yx-axes are assigned to the same chunk for every slice of
+        image, whild chunk sizes of the rest of axes are automatically set with "auto" option.
+    name : str, optional
+        Name of array.
+    squeeze : bool, default is False
+        If True and there is one-sized axis, then call `np.squeeze`.
+        
+    Returns
+    -------
+    BigImgArray
+    """
+    out = lazy_imread(path, chunks=chunks, name=name, squeeze=squeeze)
+    return BigImgArray(out.value, out.name, out.axes, out.source, out.metadata)
 
 def read_meta(path: str) -> dict[str, Any]:
     """

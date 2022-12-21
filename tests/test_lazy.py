@@ -1,7 +1,6 @@
 import impy as ip
 from pathlib import Path
 import numpy as np
-from dask import array as da
 from numpy.testing import assert_allclose
 import pytest
 
@@ -31,11 +30,12 @@ def test_filters(fn, resource):
         
 
 def test_numpy_function():
+    from dask.array.core import Array as DaskArray
     img = ip.aslazy(ip.random.random_uint16((10, 100, 100)))
     assert img.axes == "tyx"
     assert isinstance(np.mean(img).compute(), float)
     proj = np.mean(img, axis="y")
-    assert isinstance(proj.value, da.core.Array)
+    assert isinstance(proj.value, DaskArray)
     assert proj.axes == "tx"
     assert isinstance(proj.compute(), ip.ImgArray)
     
