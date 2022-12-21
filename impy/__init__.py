@@ -11,7 +11,7 @@ from .core import *
 from .binder import bind
 from .viewer import gui
 from .correlation import *
-from .arrays import ImgArray, LazyImgArray, Label  # for typing
+from .arrays import ImgArray, LazyImgArray, BigImgArray, Label  # for typing
 from . import random, io
 from .axes import slicer
 
@@ -19,7 +19,7 @@ r"""
 Inheritance
 -----------
 
-AxesMixin -----> LazyImgArray
+AxesMixin -----> LazyImgArray ------> BigImgArray
     |
     +-----> MetaArray --+--> LabeledArray --+--> ImgArray
     |                   |                   |

@@ -20,7 +20,7 @@ from impy._types import *
 from impy.axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
 from impy.collections import DataList
 from impy.arrays.bases import MetaArray
-from impy.arrays import ImgArray, LazyImgArray, Label
+from impy.arrays import ImgArray, LazyImgArray, Label, BigImgArray
 from impy._const import Const
 
 if TYPE_CHECKING:
@@ -35,6 +35,7 @@ __all__ = [
     "asarray",
     "aslabel", 
     "aslazy", 
+    "asbigarray",
     "zeros", 
     "empty", 
     "ones", 
@@ -45,7 +46,8 @@ __all__ = [
     "circular_mask", 
     "imread", 
     "imread_collection", 
-    "lazy_imread", 
+    "lazy_imread",
+    "big_imread", 
     "read_meta", 
     "roiread",
     "sample_image",
@@ -97,7 +99,6 @@ def array(
     name: str = None,
     axes: str = None,
     like: MetaArray | None = None,
-    
 ) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
@@ -278,6 +279,58 @@ def aslazy(
     
     return self
 
+def asbigarray(
+    arr: ArrayLike, 
+    dtype: DTypeLike = None,
+    *, 
+    name: str = None,
+    axes: str = None,
+    like: MetaArray | None = None,
+) -> BigImgArray:
+    """
+    Make an BigImgArray object from other types of array.
+    
+    Parameters
+    ----------
+    arr : array-like
+        Base array.
+    {}
+        
+    Returns
+    -------
+    BigImgArray
+    
+    """
+    from dask import array as da
+    from dask.array.core import Array as DaskArray
+
+    if isinstance(arr, MetaArray):
+        arr = da.from_array(arr.value)
+    elif isinstance(arr, (np.ndarray, np.memmap)):
+        arr = da.from_array(arr)
+    elif isinstance(arr, BigImgArray):
+        arr = arr.value
+    elif not isinstance(arr, DaskArray):
+        arr = da.asarray(arr)
+        
+    if isinstance(arr, np.ndarray) and dtype is None:
+        if arr.dtype in (np.uint8, np.uint16, np.float32):
+            dtype = arr.dtype
+        elif arr.dtype.kind == "f":
+            dtype = np.float32
+        else:
+            dtype = arr.dtype
+        
+    axes, name = _normalize_params(axes, name, like)
+
+    # Automatically determine axes
+    if axes is None:
+        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+            
+    self = BigImgArray(arr, name=name, axes=axes)
+    
+    return self
+
 _P = ParamSpec("_P")
 
 def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgArray]:
@@ -454,6 +507,7 @@ def sample_image(name: str) -> ImgArray:
     return out
 
 def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
+    """Broadcast input arrays to the same shape and axes"""
     axes_list: list[Axes] = []
     shapes: dict[str, int] = {}
     for arr in arrays:
@@ -478,7 +532,7 @@ def imread(
     name: str | None = None,
     squeeze: bool = False,
 ) -> ImgArray:
-    r"""
+    """
     Load image(s) from a path. You can read list of images from directories with 
     wildcards or ``"$"`` in ``path``.
 
@@ -506,7 +560,7 @@ def imread(
     --------
     Read a part of an image
     
-        >>> path = r"C:\...\Image.mrc"
+        >>> path = "path/to/image.mrc"
         >>> %time ip.imread(path)["x=:10;y=:10"]
         Wall time: 136 ms
         >>> %time ip.imread(path, key="x=:10;y=:10")
@@ -873,6 +927,35 @@ def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArra
     
     return out
 
+def big_imread(
+    path: str, 
+    chunks="auto",
+    *, 
+    name: str | None = None,
+    squeeze: bool = False,
+) -> BigImgArray:
+    """
+    Read an image lazily. Image file is first opened as an memory map, and subsequently converted
+    to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file.
+    chunks : optional
+        Specify chunk sizes. By default, yx-axes are assigned to the same chunk for every slice of
+        image, whild chunk sizes of the rest of axes are automatically set with "auto" option.
+    name : str, optional
+        Name of array.
+    squeeze : bool, default is False
+        If True and there is one-sized axis, then call `np.squeeze`.
+        
+    Returns
+    -------
+    BigImgArray
+    """
+    out = lazy_imread(path, chunks=chunks, name=name, squeeze=squeeze)
+    return BigImgArray(out.value, out.name, out.axes, out.source, out.metadata)
 
 def read_meta(path: str) -> dict[str, Any]:
     """

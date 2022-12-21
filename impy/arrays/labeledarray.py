@@ -13,20 +13,20 @@ from ._utils import _misc, _docs
 from .bases import MetaArray
 from .label import Label
 
-from ..utils.misc import check_nd, largest_zeros
-from ..utils.axesop import complement_axes, find_first_appeared
-from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
-from ..io import imsave
-from ..collections import DataList, DataDict
-from ..axes import ImageAxesError, AxesLike, slicer, Axes
-from .._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable, PaddingMode
-from ..array_api import xp
+from impy.utils.misc import check_nd, largest_zeros
+from impy.utils.axesop import complement_axes, find_first_appeared
+from impy.utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
+from impy.io import imsave
+from impy.collections import DataList, DataDict
+from impy.axes import ImageAxesError, AxesLike, slicer, Axes
+from impy._types import Dims, nDInt, nDFloat, Callable, Coords, Iterable, PaddingMode
+from impy.array_api import xp
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from ..frame import PathFrame
     from numpy.typing import ArrayLike, DTypeLike
-    from ..roi import RoiList
+    from impy.frame import PathFrame
+    from impy.roi import RoiList
 
 
 class SupportAxesSlicing(Protocol):

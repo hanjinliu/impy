@@ -100,7 +100,7 @@ class MetaArray(AxesMixin, np.ndarray):
     def __repr__(self) -> str:
         if self.ndim > 0:
             return super().__repr__()
-        return self.value[()]
+        return self.value.item()
 
     def _repr_dict_(self) -> dict[str, Any]:
         return {

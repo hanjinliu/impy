@@ -4054,7 +4054,7 @@ class ImgArray(LabeledArray):
         )
             
         if out.ndim == 0 and squeeze:
-            out = out[()]
+            out = out.item()
         else:
             out = PropArray(
                 out, dtype=np.float32, name=self.name, axes=c_axes, propname="estimate_sigma"

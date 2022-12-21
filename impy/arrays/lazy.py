@@ -7,11 +7,11 @@ import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from warnings import warn
 import tempfile
+import operator
 
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
 from .axesmixin import AxesMixin
-from ._utils._skimage import skres
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
 from impy.utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
@@ -21,7 +21,7 @@ from impy.utils import slicer
 from impy.io import imsave
 from impy.collections import DataList
 
-from impy.axes import ImageAxesError, AxisLike, Axis
+from impy.axes import ImageAxesError, AxisLike
 from impy.array_api import xp
 from impy._types import nDFloat, Coords, Iterable, Dims, PaddingMode
 from impy._const import Const
@@ -149,15 +149,18 @@ class LazyImgArray(AxesMixin):
         out._set_info(self)
         return out
     
-    @same_dtype(asfloat=True)
-    def __add__(self, other) -> LazyImgArray:
+    def _apply_operator(self, op: Callable[[Any, Any], Any], other: Any) -> LazyImgArray:
         if isinstance(other, self.__class__):
-            out = self.value + other.value
+            out = op(self.value, other.value)
         else:
-            out = self.value + other
+            out = op(self.value, other)
         out = self.__class__(out)
         out._set_info(self)
         return out
+    
+    @same_dtype(asfloat=True)
+    def __add__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.add, other)
     
     @same_dtype(asfloat=True)
     def __iadd__(self, other) -> LazyImgArray:
@@ -169,13 +172,7 @@ class LazyImgArray(AxesMixin):
     
     @same_dtype(asfloat=True)
     def __sub__(self, other) -> LazyImgArray:
-        if isinstance(other, self.__class__):
-            out = self.value - other.value
-        else:
-            out = self.value - other
-        out = self.__class__(out)
-        out._set_info(self)
-        return out
+        return self._apply_operator(operator.sub, other)
     
     @same_dtype(asfloat=True)
     def __isub__(self, other) -> LazyImgArray:
@@ -249,6 +246,30 @@ class LazyImgArray(AxesMixin):
         self.value /= other
         return self
     
+    def __gt__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.gt, other)
+    
+    def __ge__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.ge, other)
+    
+    def __lt__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.lt, other)
+    
+    def __le__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.le, other)
+    
+    def __eq__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.eq, other)
+    
+    def __ne__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.ne, other)
+    
+    def __mod__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.mod, other)
+    
+    def __floordiv__(self, other) -> LazyImgArray:
+        return self._apply_operator(operator.floordiv, other)
+    
     @property
     def chunk_info(self):
         chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
@@ -272,13 +293,13 @@ class LazyImgArray(AxesMixin):
         """        
         if self.gb > Const["MAX_GB"] and not ignore_limit:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
-        arr = self.value.compute()
+        arr: xp.ndarray = self.value.compute()
         if arr.ndim > 0:
             img = xp.asnumpy(arr).view(ImgArray)
             for attr in ["_name", "_source", "axes", "_metadata"]:
                 setattr(img, attr, getattr(self, attr, None))
         else:
-            img = arr
+            img = arr.item()
         return img
     
     def release(self, update: bool = True) -> LazyImgArray:
@@ -289,11 +310,12 @@ class LazyImgArray(AxesMixin):
         from dask import array as da
         with tempfile.NamedTemporaryFile() as ntf:
             mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
-            mmap[:] = self.value[:]
+            da.store(self.value, mmap, compute=True)
+            mmap.flush()
         
         img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
             np.array, meta=np.array([], dtype=self.dtype)
-            )
+        )
         if update:
             self.value = img
             out = self
@@ -524,7 +546,7 @@ class LazyImgArray(AxesMixin):
         if dtype is None:
             dtype = self.dtype
         all_axes = str(self.axes)
-        def _func(input: ArrayLike, *args, **kwargs):
+        def _func(input: xp.ndarray, *args, **kwargs):
             out = xp.empty(input.shape, input.dtype)
             for sl in iter_slice(input.shape, c_axes, all_axes):
                 out[sl] = func(input[sl], *args, **kwargs)
@@ -776,7 +798,7 @@ class LazyImgArray(AxesMixin):
     
     @_docs.copy_docs(ImgArray.edge_filter)
     @dims_to_spatial_axes
-    @same_dtype
+    @same_dtype(asfloat=True)
     @check_input_and_output_lazy
     def edge_filter(
         self,
@@ -813,9 +835,10 @@ class LazyImgArray(AxesMixin):
         *, 
         dims: Dims = None,
         update: bool = False
-    ) -> LazyImgArray:  
+    ) -> LazyImgArray:
+        from skimage.restoration import uft
         ndim = len(dims)
-        _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
+        _, laplace_op = uft.laplacian(ndim, (2*radius+1,) * ndim)
         return self._apply_map_overlap(
             xp.ndi.convolve,
             depth=_ceilint(radius),
@@ -994,6 +1017,7 @@ class LazyImgArray(AxesMixin):
         return out
     
     @_docs.copy_docs(ImgArray.proj)
+    @same_dtype
     def proj(self, axis: str = None, method: str = "mean") -> LazyImgArray:
         from dask import array as da
         if axis is None:
@@ -1014,7 +1038,8 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.binning)
     @dims_to_spatial_axes
     @same_dtype
-    def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, dims: Dims = None) -> LazyImgArray:
+    def binning(self, binsize: int = 2, method = "mean", *, check_edges: bool = True, 
+                dims: Dims = None) -> LazyImgArray:
         if binsize == 1:
             return self
         

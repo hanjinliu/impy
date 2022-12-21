@@ -4,6 +4,7 @@ from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
 from .lazy import LazyImgArray
+from .big import BigImgArray
 
 # install deprecations
 
