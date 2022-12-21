@@ -20,7 +20,7 @@ from impy._types import *
 from impy.axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
 from impy.collections import DataList
 from impy.arrays.bases import MetaArray
-from impy.arrays import ImgArray, LazyImgArray, Label
+from impy.arrays import ImgArray, LazyImgArray, Label, BigImgArray
 from impy._const import Const
 
 if TYPE_CHECKING:
@@ -35,6 +35,7 @@ __all__ = [
     "asarray",
     "aslabel", 
     "aslazy", 
+    "as_bigarray",
     "zeros", 
     "empty", 
     "ones", 
@@ -97,7 +98,6 @@ def array(
     name: str = None,
     axes: str = None,
     like: MetaArray | None = None,
-    
 ) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
@@ -275,6 +275,58 @@ def aslazy(
         axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
             
     self = LazyImgArray(arr, name=name, axes=axes)
+    
+    return self
+
+def as_bigarray(
+    arr: ArrayLike, 
+    dtype: DTypeLike = None,
+    *, 
+    name: str = None,
+    axes: str = None,
+    like: MetaArray | None = None,
+) -> BigImgArray:
+    """
+    Make an BigImgArray object from other types of array.
+    
+    Parameters
+    ----------
+    arr : array-like
+        Base array.
+    {}
+        
+    Returns
+    -------
+    BigImgArray
+    
+    """
+    from dask import array as da
+    from dask.array.core import Array as DaskArray
+
+    if isinstance(arr, MetaArray):
+        arr = da.from_array(arr.value)
+    elif isinstance(arr, (np.ndarray, np.memmap)):
+        arr = da.from_array(arr)
+    elif isinstance(arr, BigImgArray):
+        arr = arr.value
+    elif not isinstance(arr, DaskArray):
+        arr = da.asarray(arr)
+        
+    if isinstance(arr, np.ndarray) and dtype is None:
+        if arr.dtype in (np.uint8, np.uint16, np.float32):
+            dtype = arr.dtype
+        elif arr.dtype.kind == "f":
+            dtype = np.float32
+        else:
+            dtype = arr.dtype
+        
+    axes, name = _normalize_params(axes, name, like)
+
+    # Automatically determine axes
+    if axes is None:
+        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
+            
+    self = BigImgArray(arr, name=name, axes=axes)
     
     return self
 

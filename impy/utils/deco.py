@@ -97,8 +97,8 @@ def check_input_and_output_lazy(func=None, *, only_binary=False):
             
             out = func(self, *args, **kwargs)
             
-            from dask import array as da
-            if isinstance(out, da.core.Array):
+            from dask.array.core import Array as DaskArray
+            if isinstance(out, DaskArray):
                 out = self.__class__(out)
             
             ifupdate = kwargs.pop("update", False)

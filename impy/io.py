@@ -378,9 +378,10 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     """The TIFF writer."""
     if lazy:
         from tifffile import memmap
+        from dask import array as da
         kwargs = _get_ijmeta_from_img(img, update_lut=False)
         mmap = memmap(str(path), shape=img.shape, dtype=img.dtype, **kwargs)
-        mmap[:] = img.value
+        da.store(img.value, mmap, compute=True)
         mmap.flush()
         return
     
@@ -427,10 +428,12 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         voxel_size = (1.0, 1.0, 1.0)
     
     if lazy:
+        from dask import array as da
+        
         mode = _MRC_MODE[img.dtype]
         mrc_mmap = mrcfile.new_mmap(path, img.shape, mrc_mode=mode, overwrite=True)
         mrc_mmap.voxel_size = voxel_size
-        mrc_mmap.data[:] = img.value
+        da.store(img.value, mrc_mmap)
         mrc_mmap.flush()
         return None
 

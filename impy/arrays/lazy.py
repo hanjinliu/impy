@@ -289,11 +289,12 @@ class LazyImgArray(AxesMixin):
         from dask import array as da
         with tempfile.NamedTemporaryFile() as ntf:
             mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
-            mmap[:] = self.value[:]
+            da.store(self.value, mmap, compute=True)
+            mmap.flush()
         
         img = da.from_array(mmap, chunks=self.chunksize).map_blocks(
             np.array, meta=np.array([], dtype=self.dtype)
-            )
+        )
         if update:
             self.value = img
             out = self
@@ -524,7 +525,7 @@ class LazyImgArray(AxesMixin):
         if dtype is None:
             dtype = self.dtype
         all_axes = str(self.axes)
-        def _func(input: ArrayLike, *args, **kwargs):
+        def _func(input: xp.ndarray, *args, **kwargs):
             out = xp.empty(input.shape, input.dtype)
             for sl in iter_slice(input.shape, c_axes, all_axes):
                 out[sl] = func(input[sl], *args, **kwargs)
