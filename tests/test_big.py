@@ -12,7 +12,7 @@ filters = ["median_filter", "mean_filter", "erosion", "dilation", "opening", "cl
 def test_functions_and_slicing(resource):
     with ip.SetConst(RESOURCE=resource):
         path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-        img = ip.lazy_imread(path, chunks=(4, 5, 2, 32, 32))
+        img = ip.big_imread(path, chunks=(4, 5, 2, 32, 32))
         sl = "y=20:40;x=30:50;c=0;z=2,4"
         assert_allclose(img[sl].compute(), img.compute()[sl])
         assert_allclose(
@@ -24,7 +24,7 @@ def test_functions_and_slicing(resource):
 def test_filters(fn, resource):
     with ip.SetConst(RESOURCE=resource):
         path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
-        img = ip.lazy_imread(path, chunks=(4, 5, 2, 32, 32))
+        img = ip.big_imread(path, chunks=(4, 5, 2, 32, 32))
         
         assert_allclose(
             getattr(img, fn)().compute(),
@@ -34,7 +34,7 @@ def test_filters(fn, resource):
 
 def test_numpy_function():
     from dask.array.core import Array as DaskArray
-    img = ip.aslazy(ip.random.random_uint16((2, 3, 4)))
+    img = ip.asbigarray(ip.random.random_uint16((2, 3, 4)))
     assert img.axes == "tyx"
     assert isinstance(np.mean(img).compute(), float)
     proj = np.mean(img, axis="y")
@@ -47,8 +47,8 @@ def test_numpy_function():
 def test_operator(opname):
     op = getattr(operator, opname)
     rng = ip.random.default_rng(0)
-    img1 = ip.aslazy(rng.random_uint16((2, 3, 4)))
-    img2 = ip.aslazy(rng.random_uint16((2, 3, 4)))
+    img1 = ip.asbigarray(rng.random_uint16((2, 3, 4)))
+    img2 = ip.asbigarray(rng.random_uint16((2, 3, 4)))
     assert_allclose(
         op(img1, img2).compute(),
         op(img1.compute(), img2.compute()),
