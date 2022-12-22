@@ -177,7 +177,10 @@ def normalize_radon_input(
     if squeeze:
         degrees = [degrees]
     if ndim != self.ndim:
-        raise NotImplementedError("Batch Radon transformation is not implemented yet.")
+        raise NotImplementedError(
+            f"Image axes is {self.axes}. Batch Radon transformation is not implemented yet. "
+            "If you want to run 3D Radon transformation, convert the axes to 'zyx'."
+        )
     radians = np.deg2rad(list(degrees))
 
     if ndim == 2:

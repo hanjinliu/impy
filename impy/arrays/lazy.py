@@ -1202,48 +1202,62 @@ class LazyImgArray(AxesMixin):
             out = out[0]
         return out
     
-    # TODO: implement this
-    # @_docs.copy_docs(ImgArray.iradon)
-    # def iradon(
-    #     self,
-    #     degrees: Sequence[float],
-    #     *,
-    #     central_axis: AxisLike = "y",
-    #     degree_axis: AxisLike | None = None,
-    #     height_axis: AxisLike | None = None,
-    #     height: int | None = None,
-    #     window: str = "hamming",
-    #     order: int = 3,
-    # ) -> LazyImgArray:
-    #     from dask import delayed
+    @_docs.copy_docs(ImgArray.iradon)
+    def iradon(
+        self,
+        degrees: Sequence[float],
+        *,
+        central_axis: AxisLike = "y",
+        degree_axis: AxisLike | None = None,
+        height_axis: AxisLike | None = None,
+        height: int | None = None,
+        window: str = "hamming",
+        order: int = 3,
+    ) -> LazyImgArray:
+        from dask import delayed, array as da
         
-    #     interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
-    #     central_axis, degree_axis, output_shape, new_axes = _transform.normalize_iradon_input(
-    #         self, central_axis, height_axis, degree_axis, height
-    #     )
-    #     input = np.moveaxis(self.value, self.axisof(degree_axis), -1)
-    #     filter_func = _transform.get_fourier_filter(input.shape[-2], window)
+        interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
+        central_axis, degree_axis, output_shape, new_axes = _transform.normalize_iradon_input(
+            self, central_axis, height_axis, degree_axis, height
+        )
+        input = np.moveaxis(self.value, self.axisof(degree_axis), -1)
+        filter_func = _transform.get_fourier_filter(input.shape[-2], window)
         
-    #     func = delayed(_transform.iradon)
-    #     tasks = [
-    #         func(
-    #             image_slice,
-    #             degrees=degrees,
-    #             interpolation=interp,
-    #             filter_func=filter_func,
-    #             output_shape=output_shape,
-    #         )
-    #         for image_slice in input
-    #     ]
-        
-    #     if self.ndim == 3:
-    #         ...
-        
-    #     if out.ndim == 3:
-    #         out = np.moveaxis(out, 0, 1)
-    #     out = out[::-1]
-    #     out._set_info(self, new_axes)
-    #     return out
+        func = delayed(_transform.iradon)
+        if self.ndim == 3:
+            arrays = [
+                da.from_delayed(
+                    func(
+                        image_slice,
+                        degrees=degrees,
+                        interpolation=interp,
+                        filter_func=filter_func,
+                        output_shape=output_shape,
+                    ),
+                    shape=self.shape[1:],
+                    dtype=self.dtype,
+                )
+                for image_slice in input
+            ]
+            
+            out = da.stack(arrays, axis=0)
+            out = np.moveaxis(out, 0, 1)
+        else:
+            out = da.from_delayed(
+                func(
+                    input,
+                    degrees=degrees,
+                    interpolation=interp,
+                    filter_func=filter_func,
+                    output_shape=output_shape,
+                ),
+                shape=output_shape,
+                dtype=self.dtype,
+            )
+        out = out[::-1]
+        out = self.__class__(out, axes=new_axes, name=self.name, source=self.source)
+        out._set_info(self, new_axes=new_axes)
+        return out
         
     @_docs.copy_docs(ImgArray.pad)
     @dims_to_spatial_axes
