@@ -4369,8 +4369,10 @@ class ImgArray(LabeledArray):
             args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
         )
 
+
 def _check_coordinates(coords, img: ImgArray, dims: Dims = None):
-    from ..frame import MarkerFrame
+    from impy.frame import MarkerFrame
+
     if not isinstance(coords, MarkerFrame):
         coords = np.asarray(coords)
         if coords.ndim == 1:

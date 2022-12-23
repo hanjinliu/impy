@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mappin
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
-from ..axesmixin import AxesMixin
-from ..._types import Callable, Slices
-from ...axes import ImageAxesError, AxesLike, Axes
-from ...array_api import xp
-from ...utils import axesop, slicer
-from ...collections import DataList
+from impy._types import Callable, Slices
+from impy.axes import ImageAxesError, AxesLike, Axes, AxisLike
+from impy.array_api import xp
+from impy.utils import axesop, slicer
+from impy.collections import DataList
+from impy.arrays.axesmixin import AxesMixin
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -566,6 +566,54 @@ class MetaArray(AxesMixin, np.ndarray):
             [getattr(img_shape, str(a), _NOTME) == getattr(label_shape, str(a), _NOTME)
             for a in self.axes]
         )
+        
+    def as_rgba(
+        self, 
+        cmap: str | Callable[[np.ndarray], np.ndarray],
+        *,
+        axis: AxisLike = "c",
+        clim: tuple[float, float] | None = None,
+        alpha: np.ndarray | None = None,
+    ) -> Self:
+        """
+        Convert array to an RGBA image with given colormap.
+
+        Parameters
+        ----------
+        cmap : str or callable
+            Colormap. Can be a string name of a colormap registered in vispy.
+        axis : AxisLike, default is "c"
+            The axis name used for the color axis.
+        clim : (float, float), optional
+            Contrast limits. If not given, the minimum and maximum values of the
+            array will be used.
+
+        Returns
+        -------
+        MetaArray
+            Colored image.
+        """
+        new_axes = self.axes + axis
+        if isinstance(cmap, str):
+            from vispy.color import get_colormap
+            
+            vispy_cmap = get_colormap(cmap)
+            
+            def cmap(arr):
+                out = vispy_cmap.map(arr)
+                return out.reshape(self.shape + (4,))
+            
+        if clim is None:
+            clim = self.min(), self.max()
+            
+        low, high = clim
+        input = (np.clip(self.value, low, high) - low) / (high - low)
+        from impy import asarray
+        output = asarray(cmap(input), axes=new_axes, like=self)
+        
+        if alpha is not None:
+            output["c=3"] = np.clip(alpha / alpha.max(), 0, 1)
+        return output
         
     def __add__(self, value) -> Self:
         value = self._broadcast(value)
