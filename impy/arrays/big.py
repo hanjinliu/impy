@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import wraps
+
 from .lazy import LazyImgArray
 
 
@@ -59,4 +60,3 @@ class BigImgArray(LazyImgArray):
     __ne__ = wrap_method(LazyImgArray.__ne__)
     __mod__ = wrap_method(LazyImgArray.__mod__)
     __floordiv__ = wrap_method(LazyImgArray.__floordiv__)
-    

@@ -313,5 +313,6 @@ And all the methods supported in ``LazyImgArray`` are available.
 
 .. code-block:: python
 
-    img1 = img.gaussian_filter()
-    img2 = img1.
+    img1 = img.gaussian_filter()  # computed and cached here
+    img2 = img1.threshold(img1.mean())  # computed and cached here
+    out = img2.compute()  # convert to ImgArray

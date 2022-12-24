@@ -2147,7 +2147,7 @@ class ImgArray(LabeledArray):
         thr = None if percentile is None else np.percentile(self.value, percentile)
         
         import pandas as pd
-        from ..frame import MarkerFrame
+        from impy.frame import MarkerFrame
 
         df_all: list[pd.DataFrame] = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
@@ -4416,13 +4416,13 @@ def _check_template(template):
     template = np.asarray(template).astype(np.float32, copy=True)
     return template
 
-def _calc_centroid(img, ndim):
+def _calc_centroid(img: np.ndarray, ndim: int) -> np.ndarray:
     mom = skmes.moments(img, order=1)
     centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
                         for i in range(ndim)]) / mom[(0,)*ndim]
     return centroid
 
-def _check_clip_range(in_range, img):
+def _check_clip_range(in_range, img) -> tuple[float, float]:
     """
     Called in clip_outliers() and rescale_intensity().
     """    

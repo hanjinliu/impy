@@ -308,6 +308,7 @@ class LazyImgArray(AxesMixin):
         again.
         """
         from dask import array as da
+
         with tempfile.NamedTemporaryFile() as ntf:
             mmap = np.memmap(ntf, mode="w+", shape=self.shape, dtype=self.dtype)
             da.store(self.value, mmap, compute=True)
