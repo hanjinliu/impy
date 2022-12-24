@@ -535,6 +535,7 @@ class MetaArray(AxesMixin, np.ndarray):
         *,
         where: np.ndarray = _NoValue,
     ):
+        """Minimum value of the array along a given axis."""
         return np.min(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
     def max(
@@ -545,6 +546,7 @@ class MetaArray(AxesMixin, np.ndarray):
         *,
         where: np.ndarray = _NoValue,
     ):
+        """Maximum value of the array along a given axis."""
         return np.max(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
     def mean(
@@ -556,7 +558,33 @@ class MetaArray(AxesMixin, np.ndarray):
         *,
         where: np.ndarray = _NoValue,
     ):
+        """Mean value of the array along a given axis."""
         return np.mean(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+    
+    def sum(
+        self,
+        axis=None,
+        dtype: DTypeLike = None,
+        out: None = None,
+        keepdims: bool = _NoValue,
+        *,
+        where: np.ndarray = _NoValue,
+    ):
+        """Sum value of the array along a given axis."""
+        return np.sum(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+    
+    def std(
+        self,
+        axis=None,
+        dtype: DTypeLike = None,
+        out: None = None,
+        ddof: int = 0,
+        keepdims: bool = _NoValue,
+        *,
+        where: np.ndarray = _NoValue,
+    ):
+        """Standard deviation of the array along a given axis."""
+        return np.std(self, axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims, where=where)
 
     def _dimension_matches(self, array: MetaArray):
         """Check if dimension satisfies ``self <: array``."""
@@ -743,7 +771,7 @@ class MetaArray(AxesMixin, np.ndarray):
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
         considered because it changes `ndim`.
         """
-        if "axis" in kwargs.keys():
+        if "axis" in kwargs and "keepdims" not in kwargs:
             new_axes = obj.axes.drop(kwargs["axis"])
         else:
             new_axes = self._INHERIT

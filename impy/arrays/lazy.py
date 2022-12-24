@@ -1,5 +1,5 @@
 from __future__ import annotations
-from functools import wraps
+from functools import lru_cache, wraps
 import itertools
 from pathlib import Path
 from typing import Any, Callable, TYPE_CHECKING, Sequence
@@ -807,13 +807,11 @@ class LazyImgArray(AxesMixin):
         dims: Dims = None,
         update: bool = False
     ) -> LazyImgArray:
-        # BUG: returns zero array
-        from ._utils._skimage import skfil
+        from skimage.filters.edges import sobel, farid, scharr, prewitt
+
         method_dict = {
-            "sobel": (skfil.sobel, 1),
-            "farid": (skfil.farid, 2),
-            "scharr": (skfil.scharr, 1),
-            "prewitt": (skfil.prewitt, 1)
+            "sobel": (sobel, 1), "farid": (farid, 2), "scharr": (scharr, 1), 
+            "prewitt": (prewitt, 1)
         }
         try:
             filter_func, depth = method_dict[method]
@@ -896,12 +894,44 @@ class LazyImgArray(AxesMixin):
             args=(gain, noise_var)
         )
     
+    @_docs.copy_docs(ImgArray.threshold)
+    @check_input_and_output_lazy
+    def threshold(
+        self,
+        thr: float | str,
+        *,
+        along: AxisLike | None = None,
+    ) -> ImgArray:
+        if self.dtype == bool:
+            return self
+        
+        from dask import array as da
+
+        if along is None:
+            along = "c" if "c" in self.axes else ""
+
+        if isinstance(thr, str) and thr.endswith("%"):
+            p = float(thr[:-1].strip())
+            out = da.zeros(self.shape, dtype=bool)
+            for sl, img in self.iter(along):
+                thr = da.percentile(img, p)
+                out[sl] = img >= thr
+                
+        elif np.isscalar(thr) or (hasattr(thr, "compute") and thr.ndim == 0):
+            out = self >= thr
+        else:
+            raise TypeError(
+                "'thr' must be a scalar or string in 'X%' format."
+            )
+        return out
+    
     @_docs.copy_docs(ImgArray.fft)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
     def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True, 
             dims: Dims = None) -> LazyImgArray:
         from dask import array as da
+
         axes = [self.axisof(a) for a in dims]
         if shape == "square":
             s = 2**int(np.ceil(np.max(self.sizesof(dims))))
@@ -910,7 +940,8 @@ class LazyImgArray(AxesMixin):
             shape = None
         else:
             shape = check_nd(shape, len(dims))
-        freq = da.fft.fftn(self.value.astype(np.float32), s=shape, axes=axes).astype(np.complex64)
+        fft = _get_fft_func(Const["RESOURCE"])
+        freq = fft(self.value.astype(np.float32), s=shape, axes=axes)
         if shift:
             freq[:] = da.fft.fftshift(freq, axes=axes)
         return freq
@@ -918,14 +949,16 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.ifft)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
-    def ifft(self, real:bool=True, *, shift:bool=True, dims=None) -> LazyImgArray:
+    def ifft(self, real: bool = True, *, shift: bool = True, dims: Dims = None) -> LazyImgArray:
         from dask import array as da
+
         axes = [self.axisof(a) for a in dims]
         if shift:
             freq = da.fft.ifftshift(self.value, axes=axes)
         else:
             freq = self.value
-        out = da.fft.ifftn(freq, axes=axes).astype(np.complex64)
+        ifft = _get_ifft_func(Const["RESOURCE"])
+        out = ifft(freq, axes=axes)
         
         if real:
             out = da.real(out)
@@ -938,20 +971,23 @@ class LazyImgArray(AxesMixin):
     def power_spectra(self, shape = "same", norm: bool = False, zero_norm: bool = False, *,
                       dims: Dims = None) -> LazyImgArray:
         freq = self.fft(dims=dims, shape=shape)
-        pw = freq.value.real**2 + freq.value.imag**2
+        pw = freq.value.real ** 2 + freq.value.imag ** 2
         if norm:
             pw /= pw.max()
         if zero_norm:
-            sl = switch_slice(dims, pw.axes, ifin=np.array(pw.shape)//2, ifnot=slice(None))
+            sl = switch_slice(dims, self.axes, ifin=np.array(self.shape)//2, ifnot=slice(None))
             pw[sl] = 0
         return pw
     
     def chunksizeof(self, axis:str):
+        """Get the chunk size of the given axis"""
         return self.value.chunksize[self.axes.find(axis)]
     
     def chunksizesof(self, axes:str):
+        """Get the chunk sizes of the given axes"""
         return tuple(self.chunksizeof(a) for a in axes)
         
+    @_docs.copy_docs(ImgArray.transpose)
     def transpose(self, axes=None):
         if axes is None:
             _axes = None
@@ -963,6 +999,7 @@ class LazyImgArray(AxesMixin):
         out._set_info(self, new_axes=new_axes)
         return out
     
+    @_docs.copy_docs(ImgArray.sort_axes)
     def sort_axes(self):
         order = self.axes.argsort()
         return self.transpose(tuple(order))
@@ -1441,7 +1478,26 @@ class LazyImgArray(AxesMixin):
         else:
             raise ValueError(f"dtype: {dtype}")
     
+    @_docs.copy_docs(ImgArray.mean)
+    def mean(self, axis=None, keepdims=False, **kwargs):
+        return np.mean(self, axis=axis, keepdims=keepdims, **kwargs)
     
+    @_docs.copy_docs(ImgArray.std)
+    def std(self, axis=None, keepdims=False, **kwargs):
+        return np.std(self, axis=axis, keepdims=keepdims, **kwargs)
+    
+    @_docs.copy_docs(ImgArray.sum)
+    def sum(self, axis=None, keepdims=False, **kwargs):
+        return np.sum(self, axis=axis, keepdims=keepdims, **kwargs)
+    
+    @_docs.copy_docs(ImgArray.max)
+    def max(self, axis=None, keepdims=False, **kwargs):
+        return np.max(self, axis=axis, keepdims=keepdims, **kwargs)
+    
+    @_docs.copy_docs(ImgArray.min)
+    def min(self, axis=None, keepdims=False, **kwargs):
+        return np.min(self, axis=axis, keepdims=keepdims, **kwargs)
+
     def _set_additional_props(self, other):
         # set additional properties
         # If `other` does not have it and `self` has, then the property will be inherited.
@@ -1511,3 +1567,24 @@ def iter_slice(shape, iteraxes: str, all_axes: str, exclude: str = ""):
     if c == 0:
         outsl = (slice(None),) * (len(all_axes) - len(exclude))
         yield outsl
+
+# NOTE: following FFT functions needs the "resource" argument to make it work with both
+# numpy and cupy.
+@lru_cache
+def _get_fft_func(resource) -> Callable[[DaskArray], DaskArray]:
+    """Get the scipy FFT function for dask."""
+    from array_api import scipy_fft
+    from dask import array as da
+    
+    return da.fft.fft_wrap(scipy_fft.fftn)
+
+@lru_cache
+def _get_ifft_func(resource) -> Callable[[DaskArray], DaskArray]:
+    """Get the scipy IFFT function for dask."""
+    from array_api import scipy_fft
+    from dask import array as da
+    
+    return da.fft.fft_wrap(scipy_fft.ifftn)
+
+
+    

@@ -288,6 +288,12 @@ When you have to convert it to ``ImgArray``, use ``compute`` function:
 BigImgArray
 ^^^^^^^^^^^
 
+``LazyImgArray`` is useful to process large images. However, it is not suitable for interactive analysis 
+because calculation starts from the beginning for every operation. ``BigImgArray`` is a subclass of 
+``LazyImgArray`` but it stores the cashed data in a temporary file.
+
+You can use :meth:`big_imread` function to open an image file as a ``BigImgArray`` object.
+
 .. code-block:: python
 
     img = ip.big_imread("path/to/image.tif")
@@ -302,3 +308,10 @@ BigImgArray
         dtype     : uint16
         source    : path/to/image.tif
         scale     : ScaleView(t=1.0px, z=0.217μm, y=0.217μm, x=0.217μm)
+
+And all the methods supported in ``LazyImgArray`` are available.
+
+.. code-block:: python
+
+    img1 = img.gaussian_filter()
+    img2 = img1.

@@ -3117,7 +3117,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def threshold(
         self,
-        thr: float | ThreasholdMethod = "otsu",
+        thr: float | str | ThreasholdMethod = "otsu",
         *,
         along: AxisLike | None = None,
         **kwargs
@@ -3131,7 +3131,7 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         thr: float or str, optional
-            Threshold value, or thresholding algorithm.
+            Threshold value, percentage or thresholding algorithm.
         along : AxisLike, optional
             Dimensions that will not share the same threshold. For instance, if
             ``along="c"`` then threshold intensities are determined for every channel.
@@ -3170,7 +3170,7 @@ class ImgArray(LabeledArray):
                     }
         
         if isinstance(thr, str) and thr.endswith("%"):
-            p = float(thr[:-1])
+            p = float(thr[:-1].strip())
             out = np.zeros(self.shape, dtype=bool)
             for sl, img in self.iter(along):
                 thr = np.percentile(img, p)
