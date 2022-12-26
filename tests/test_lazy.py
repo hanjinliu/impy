@@ -22,6 +22,9 @@ def test_functions_and_slicing(resource):
 
 @pytest.mark.parametrize("fn", filters)
 def test_filters(fn, resource):
+    if resource == "cupy" and fn in ("edge_filter",):
+        # not supported on GPU
+        return
     with ip.SetConst(RESOURCE=resource):
         path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
         img = ip.lazy_imread(path, chunks=(4, 5, 2, 32, 32))
