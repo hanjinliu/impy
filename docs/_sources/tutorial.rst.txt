@@ -47,7 +47,7 @@ You can refer to the properties by:
     img.axes       # Out: Axes['t', 'z', 'y', 'x']
     img.source     # Out: such as WindowsPath("path/to/image.tif")
     img.name       # Out: "image.tif"
-    img.scale      # Out: ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)
+    img.scale      # Out: ScaleDict(t=1.0px, z=0.217μm, y=0.217μm, x=0.217μm)
 
 After you finished all the process you want, you can view the results in ``napari`` viewer. Just pass the
 image object to GUI handler object ``gui`` in ``impy``.
@@ -238,8 +238,13 @@ Read Separate Images as an DataList
    img = ip.imread_collection("path/to/image/*.tif")
 
 
-Read Very Large Images
-^^^^^^^^^^^^^^^^^^^^^^
+Large Images
+------------
+
+There are two ways to handle large images.
+
+LazyImgArray
+^^^^^^^^^^^^
 
 If you deal with very large images that exceeds PC memory, you can use ``LazyImgArray``. This object retains
 memory map of the image file that is split into smaller chunks, and passes it to ``dask`` array as "ready to
@@ -251,17 +256,18 @@ To read large images as ``LazyImgArray``, call ``lazy_imread`` instead. You can 
 
 .. code-block:: python
 
-    img = ip.lazy_imread("path/to/image/*.tif", chunks=(1, "auto", "auto", "auto"))
+    img = ip.lazy_imread("path/to/image.tif", chunks=(1, "auto", "auto", "auto"))
     img
 
 .. code-block::
     
+    LazyImgArray of
+         name     : image.tif
         shape     : 300(t), 25(z), 1024(y), 1024(x)
      chunk sizes  : 1(t), 25(z), 1024(y), 1024(x)
         dtype     : uint16
-      directory   : ...\images
-    original image: XXX
-        history   : 
+        source    : path/to/image.tif
+        scale     : ScaleView(t=1.0px, z=0.217μm, y=0.217μm, x=0.217μm)
 
 You can check its size in GB:
 
@@ -273,8 +279,41 @@ You can check its size in GB:
 
     15.72864
 
-When you have to convert it to ``ImgArray``, use ``data`` property:
+When you have to convert it to ``ImgArray``, use ``compute`` function:
 
 .. code-block:: python
 
     img.compute()  # dask's compute() function will be called inside
+
+BigImgArray
+^^^^^^^^^^^
+
+``LazyImgArray`` is useful to process large images. However, it is not suitable for interactive analysis 
+because calculation starts from the beginning for every operation. ``BigImgArray`` is a subclass of 
+``LazyImgArray`` but it stores the cashed data in a temporary file.
+
+You can use :meth:`big_imread` function to open an image file as a ``BigImgArray`` object.
+
+.. code-block:: python
+
+    img = ip.big_imread("path/to/image.tif", chunks=(1, "auto", "auto", "auto"))
+    img
+
+.. code-block::
+    
+    BigImgArray of
+         name     : image.tif
+        shape     : 300(t), 25(z), 1024(y), 1024(x)
+     chunk sizes  : 1(t), 25(z), 1024(y), 1024(x)
+        dtype     : uint16
+        source    : path/to/image.tif
+        scale     : ScaleView(t=1.0px, z=0.217μm, y=0.217μm, x=0.217μm)
+
+A ``BigImgArray`` processes an image out-of-core, but store the result in a temporary 
+file. As ``LazyImgArray``, you can convert it into ``ImgArray`` using ``compute`` function.
+
+.. code-block:: python
+
+    img1 = img.gaussian_filter()  # computed and cached here
+    img2 = img1.threshold(img1.mean())  # computed and cached here
+    out = img2.compute()  # convert to ImgArray

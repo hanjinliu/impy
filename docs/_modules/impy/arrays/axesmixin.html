@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.axesmixin &mdash; impy 2.1.3 documentation</title>
+  <title>impy.arrays.axesmixin &mdash; impy 2.2.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.3
+                2.2.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
@@ -193,7 +193,7 @@
 <span class="s2">        &lt;/body&gt;</span>
 <span class="s2">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">html</span>
-        
+
 <div class="viewcode-block" id="AxesMixin.axisof"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.axisof">[docs]</a>    <span class="k">def</span> <span class="nf">axisof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">symbol</span>
@@ -207,8 +207,24 @@
 <div class="viewcode-block" id="AxesMixin.sizesof"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.sizesof">[docs]</a>    <span class="k">def</span> <span class="nf">sizesof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">)</span></div>
     
+<div class="viewcode-block" id="AxesMixin.set_axes"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.set_axes">[docs]</a>    <span class="k">def</span> <span class="nf">set_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set axes of the array and return the updated one.</span>
 
-<div class="viewcode-block" id="AxesMixin.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axes : AxesLike</span>
+<span class="sd">            New axes.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Self</span>
+<span class="sd">            Array with updated axes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="AxesMixin.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set scales of each axis.</span>
 
@@ -217,6 +233,8 @@
 <span class="sd">        other : dict or object with axes</span>
 <span class="sd">            New scales. If dict, it should be like {&quot;x&quot;: 0.1, &quot;y&quot;: 0.1}. If MetaArray, only</span>
 <span class="sd">            scales of common axes are copied.</span>
+<span class="sd">        unit : str, optional</span>
+<span class="sd">            Scale unit if needs update.</span>
 <span class="sd">        kwargs : </span>
 <span class="sd">            This enables function call like set_scale(x=0.1, y=0.1).</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
@@ -259,14 +277,17 @@
                 <span class="sa">f</span><span class="s2">&quot;&#39;other&#39; must be str or axes supported object, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         
-        <span class="k">return</span> <span class="kc">None</span></div>
+        <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_unit</span> <span class="o">=</span> <span class="n">unit</span>
+        
+        <span class="k">return</span> <span class="bp">self</span></div>
     
 <div class="viewcode-block" id="AxesMixin.set_axis_label"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.set_axis_label">[docs]</a>    <span class="k">def</span> <span class="nf">set_axis_label</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">_dict</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">/</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set labels to an axis (axes).</span>
 
@@ -288,7 +309,7 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Lengths of axis </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> and labels </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> don&#39;t match.&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="k">return</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="bp">self</span></div>
     
     <span class="nd">@overload</span>
     <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorial &mdash; impy 2.1.3 documentation</title>
+  <title>Tutorial &mdash; impy 2.2.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
             <a href="index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.3
+                2.2.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -55,7 +55,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#advanced-reading-options">Advanced Reading Options</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#read-separate-images-as-an-image-stack">Read Separate Images as an Image Stack</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#read-separate-images-as-an-datalist">Read Separate Images as an DataList</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#read-very-large-images">Read Very Large Images</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#large-images">Large Images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#lazyimgarray">LazyImgArray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bigimgarray">BigImgArray</a></li>
 </ul>
 </li>
 </ul>
@@ -110,7 +114,12 @@
 <ul>
 <li><p><a class="reference internal" href="#read-separate-images-as-an-image-stack" id="id10">Read Separate Images as an Image Stack</a></p></li>
 <li><p><a class="reference internal" href="#read-separate-images-as-an-datalist" id="id11">Read Separate Images as an DataList</a></p></li>
-<li><p><a class="reference internal" href="#read-very-large-images" id="id12">Read Very Large Images</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#large-images" id="id12">Large Images</a></p>
+<ul>
+<li><p><a class="reference internal" href="#lazyimgarray" id="id13">LazyImgArray</a></p></li>
+<li><p><a class="reference internal" href="#bigimgarray" id="id14">BigImgArray</a></p></li>
 </ul>
 </li>
 </ul>
@@ -148,7 +157,7 @@ as additional properties of array objects.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span>       <span class="c1"># Out: Axes[&#39;t&#39;, &#39;z&#39;, &#39;y&#39;, &#39;x&#39;]</span>
 <span class="n">img</span><span class="o">.</span><span class="n">source</span>     <span class="c1"># Out: such as WindowsPath(&quot;path/to/image.tif&quot;)</span>
 <span class="n">img</span><span class="o">.</span><span class="n">name</span>       <span class="c1"># Out: &quot;image.tif&quot;</span>
-<span class="n">img</span><span class="o">.</span><span class="n">scale</span>      <span class="c1"># Out: ScaleDict(t=1.0, z=0.217, y=0.217, x=0.217)</span>
+<span class="n">img</span><span class="o">.</span><span class="n">scale</span>      <span class="c1"># Out: ScaleDict(t=1.0px, z=0.217μm, y=0.217μm, x=0.217μm)</span>
 </pre></div>
 </div>
 <p>After you finished all the process you want, you can view the results in <code class="docutils literal notranslate"><span class="pre">napari</span></code> viewer. Just pass the
@@ -299,24 +308,29 @@ You can setup GPU calculation within a context using</p>
 </pre></div>
 </div>
 </section>
-<section id="read-very-large-images">
-<h3><a class="toc-backref" href="#id12">Read Very Large Images</a><a class="headerlink" href="#read-very-large-images" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="large-images">
+<h2><a class="toc-backref" href="#id12">Large Images</a><a class="headerlink" href="#large-images" title="Permalink to this headline">¶</a></h2>
+<p>There are two ways to handle large images.</p>
+<section id="lazyimgarray">
+<h3><a class="toc-backref" href="#id13">LazyImgArray</a><a class="headerlink" href="#lazyimgarray" title="Permalink to this headline">¶</a></h3>
 <p>If you deal with very large images that exceeds PC memory, you can use <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>. This object retains
 memory map of the image file that is split into smaller chunks, and passes it to <code class="docutils literal notranslate"><span class="pre">dask</span></code> array as “ready to
 read” state. The image data is therefore loaded only when it is needed. Many useful functions in <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>
 are also implemented in <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code> so that you can easily handle large datasets.</p>
 <p>To read large images as <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>, call <code class="docutils literal notranslate"><span class="pre">lazy_imread</span></code> instead. You can specify its chunk size using
 <code class="docutils literal notranslate"><span class="pre">chunks</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">lazy_imread</span><span class="p">(</span><span class="s2">&quot;path/to/image/*.tif&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">lazy_imread</span><span class="p">(</span><span class="s2">&quot;path/to/image.tif&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">))</span>
 <span class="n">img</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">shape</span>     <span class="p">:</span> <span class="mi">300</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">25</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">LazyImgArray</span> <span class="n">of</span>
+     <span class="n">name</span>     <span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">tif</span>
+    <span class="n">shape</span>     <span class="p">:</span> <span class="mi">300</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">25</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
  <span class="n">chunk</span> <span class="n">sizes</span>  <span class="p">:</span> <span class="mi">1</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">25</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="n">dtype</span>     <span class="p">:</span> <span class="n">uint16</span>
-  <span class="n">directory</span>   <span class="p">:</span> <span class="o">...</span>\<span class="n">images</span>
-<span class="n">original</span> <span class="n">image</span><span class="p">:</span> <span class="n">XXX</span>
-    <span class="n">history</span>   <span class="p">:</span>
+    <span class="n">source</span>    <span class="p">:</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">image</span><span class="o">.</span><span class="n">tif</span>
+    <span class="n">scale</span>     <span class="p">:</span> <span class="n">ScaleView</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="n">px</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.217</span><span class="n">μm</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.217</span><span class="n">μm</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.217</span><span class="n">μm</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can check its size in GB:</p>
@@ -326,8 +340,35 @@ are also implemented in <code class="docutils literal notranslate"><span class="
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">15.72864</span>
 </pre></div>
 </div>
-<p>When you have to convert it to <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, use <code class="docutils literal notranslate"><span class="pre">data</span></code> property:</p>
+<p>When you have to convert it to <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, use <code class="docutils literal notranslate"><span class="pre">compute</span></code> function:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>  <span class="c1"># dask&#39;s compute() function will be called inside</span>
+</pre></div>
+</div>
+</section>
+<section id="bigimgarray">
+<h3><a class="toc-backref" href="#id14">BigImgArray</a><a class="headerlink" href="#bigimgarray" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code> is useful to process large images. However, it is not suitable for interactive analysis
+because calculation starts from the beginning for every operation. <code class="docutils literal notranslate"><span class="pre">BigImgArray</span></code> is a subclass of
+<code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code> but it stores the cashed data in a temporary file.</p>
+<p>You can use <code class="xref py py-meth docutils literal notranslate"><span class="pre">big_imread()</span></code> function to open an image file as a <code class="docutils literal notranslate"><span class="pre">BigImgArray</span></code> object.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">big_imread</span><span class="p">(</span><span class="s2">&quot;path/to/image.tif&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;auto&quot;</span><span class="p">))</span>
+<span class="n">img</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">BigImgArray</span> <span class="n">of</span>
+     <span class="n">name</span>     <span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">tif</span>
+    <span class="n">shape</span>     <span class="p">:</span> <span class="mi">300</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">25</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+ <span class="n">chunk</span> <span class="n">sizes</span>  <span class="p">:</span> <span class="mi">1</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">25</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">1024</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">dtype</span>     <span class="p">:</span> <span class="n">uint16</span>
+    <span class="n">source</span>    <span class="p">:</span> <span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">image</span><span class="o">.</span><span class="n">tif</span>
+    <span class="n">scale</span>     <span class="p">:</span> <span class="n">ScaleView</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">1.0</span><span class="n">px</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.217</span><span class="n">μm</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.217</span><span class="n">μm</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.217</span><span class="n">μm</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A <code class="docutils literal notranslate"><span class="pre">BigImgArray</span></code> processes an image out-of-core, but store the result in a temporary
+file. As <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>, you can convert it into <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> using <code class="docutils literal notranslate"><span class="pre">compute</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img1</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">()</span>  <span class="c1"># computed and cached here</span>
+<span class="n">img2</span> <span class="o">=</span> <span class="n">img1</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">img1</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>  <span class="c1"># computed and cached here</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">img2</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>  <span class="c1"># convert to ImgArray</span>
 </pre></div>
 </div>
 </section>

@@ -95,14 +95,16 @@ Array-like
    blockdiag {
       orientation = portrait
 
-      AxesMixin -> LazyImgArray;
+      AxesMixin -> LazyImgArray -> BigImgArray;
       LazyImgArray [color = pink];
+      BigImgArray [color = pink];
    }
 
 - ``LazyImgArray``: Array-like object with image processing functions like ``ImgArray``, but evaluated lazily.
+- ``BigImgArray``: Subclass of ``LazyImgArray``, but images will be processed for every method call.
 
 
-Data Frame
+Data Frame  
 ^^^^^^^^^^
 
 .. blockdiag::

@@ -50,9 +50,9 @@ Each axis is a ``Axis`` object. They are available by indexing ``Axes`` object.
 Undefined Axis
 ==============
 
-Some functions and operations creates arrays with unknown axes.
-In this case, ``UndefAxis`` objects are used for these axes and are represented by 
-``"#"``.
+Some functions and operations, such as :meth:`ravel` and :meth:`reshape`, creates arrays 
+with unknown axes. In this case, ``UndefAxis`` objects are used for these axes and are 
+represented by ``"#"``.
 
 .. code-block:: python
 

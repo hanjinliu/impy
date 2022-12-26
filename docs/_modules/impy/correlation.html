@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.correlation &mdash; impy 2.1.0.alpha documentation</title>
+  <title>impy.correlation &mdash; impy 2.2.0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.0.alpha
+                2.2.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -39,7 +39,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_axes.html">Axes in impy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gallery/index.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API References</a></li>
 </ul>
 
@@ -879,7 +881,7 @@
 
 <span class="k">def</span> <span class="nf">_make_corr_output</span><span class="p">(</span><span class="n">corr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">refimg</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">propname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">corr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">squeeze</span><span class="p">:</span>
-        <span class="n">corr</span> <span class="o">=</span> <span class="n">corr</span><span class="p">[()]</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">corr</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">corr</span> <span class="o">=</span> <span class="n">PropArray</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">refimg</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">refimg</span><span class="o">.</span><span class="n">axes</span><span class="p">),</span> 
                         <span class="n">source</span><span class="o">=</span><span class="n">refimg</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">refimg</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span> 

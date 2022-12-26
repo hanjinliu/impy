@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.random &mdash; impy 2.1.3 documentation</title>
+  <title>impy.random &mdash; impy 2.2.0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.3
+                2.2.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -72,9 +72,10 @@
   <h1>Source code for impy.random</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span>
-
-<span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">LazyImgArray</span>
+<span class="kn">from</span> <span class="nn">.arrays.bases</span> <span class="kn">import</span> <span class="n">MetaArray</span>
 <span class="kn">from</span> <span class="nn">.array_api</span> <span class="kn">import</span> <span class="n">xp</span>
 <span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">asarray</span>
 <span class="kn">from</span> <span class="nn">.axes</span> <span class="kn">import</span> <span class="n">AxesLike</span>
@@ -95,13 +96,24 @@
         <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_func</span>
 
+
+<span class="k">def</span> <span class="nf">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">like</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">like</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span> <span class="ow">or</span> <span class="n">like</span><span class="o">.</span><span class="n">axes</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">size</span> <span class="ow">or</span> <span class="n">like</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">return</span> <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span>
+    
+
 <div class="viewcode-block" id="random"><a class="viewcode-back" href="../../apidoc/impy.html#impy.random.random">[docs]</a><span class="nd">@wraps</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">random</span><span class="p">(</span>
     <span class="n">size</span><span class="p">,</span> 
     <span class="o">*</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+    <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="s2">&quot;random&quot;</span>
     <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
 
@@ -113,7 +125,9 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
     <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+    <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">like</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;normal(</span><span class="si">{</span><span class="n">loc</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">scale</span><span class="si">}</span><span class="s2">)&quot;</span>
     <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">size</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
 
@@ -122,6 +136,7 @@
     <span class="o">*</span><span class="p">,</span> 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a random uint8 image, ranging 0-255.</span>
@@ -140,6 +155,7 @@
 <span class="sd">    ImgArray</span>
 <span class="sd">        Random Image in dtype ``np.uint8``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">like</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="s2">&quot;random_uint8&quot;</span>
     <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
@@ -149,6 +165,7 @@
     <span class="o">*</span><span class="p">,</span> 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a random uint16 image, ranging 0-65535.</span>
@@ -167,12 +184,14 @@
 <span class="sd">    ImgArray</span>
 <span class="sd">        Random Image in dtype ``np.uint16``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">like</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">65535</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="s2">&quot;random_uint16&quot;</span>
     <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="default_rng"><a class="viewcode-back" href="../../apidoc/impy.html#impy.random.default_rng">[docs]</a><span class="k">def</span> <span class="nf">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageGenerator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Get the default random number generator.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">ImageGenerator</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="ImageGenerator"><a class="viewcode-back" href="../../apidoc/impy.html#impy.random.ImageGenerator">[docs]</a><span class="k">class</span> <span class="nc">ImageGenerator</span><span class="p">:</span>
@@ -186,7 +205,9 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">arr</span>
@@ -200,7 +221,10 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
+    
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">standard_exponential</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">arr</span>
@@ -213,7 +237,10 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
+    
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">arr</span>
@@ -227,7 +254,10 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
+    
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">arr</span>
@@ -240,7 +270,10 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
+    
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">lam</span><span class="o">=</span><span class="n">lam</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">arr</span>
@@ -252,7 +285,10 @@
         <span class="o">*</span><span class="p">,</span> 
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
+    
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="s2">&quot;random_uint8&quot;</span>
         <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div>
@@ -263,13 +299,14 @@
         <span class="o">*</span><span class="p">,</span> 
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">axes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">like</span><span class="p">:</span> <span class="n">MetaArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span> <span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
+        <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_normalize_like</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">like</span><span class="p">)</span>
+    
         <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">65535</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="s2">&quot;random_uint16&quot;</span>
         <span class="k">return</span> <span class="n">asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span></div></div>
 
-
-        
 
 <span class="k">del</span> <span class="n">wraps</span>
 </pre></div>

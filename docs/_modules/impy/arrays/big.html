@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>impy.arrays.big &mdash; impy 2.2.0 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> impy
+          </a>
+              <div class="version">
+                2.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_axes.html">Axes in impy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_cmd.html">Command Line Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../gallery/index.html">Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">impy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>impy.arrays.big</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for impy.arrays.big</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
+
+<span class="kn">from</span> <span class="nn">.lazy</span> <span class="kn">import</span> <span class="n">LazyImgArray</span>
+
+
+<div class="viewcode-block" id="wrap_method"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.wrap_method">[docs]</a><span class="k">def</span> <span class="nf">wrap_method</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">LazyImgArray</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">LazyImgArray</span><span class="p">):</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">return</span> <span class="n">wrapped</span></div>
+
+<div class="viewcode-block" id="BigImgArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.BigImgArray">[docs]</a><span class="k">class</span> <span class="nc">BigImgArray</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="p">):</span>
+    <span class="n">affine</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">affine</span><span class="p">)</span>
+    <span class="n">erosion</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">erosion</span><span class="p">)</span>
+    <span class="n">dilation</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">dilation</span><span class="p">)</span>
+    <span class="n">opening</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">opening</span><span class="p">)</span>
+    <span class="n">closing</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">closing</span><span class="p">)</span>
+    <span class="n">gaussian_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">)</span>
+    <span class="n">spline_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">spline_filter</span><span class="p">)</span>
+    <span class="n">median_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">median_filter</span><span class="p">)</span>
+    <span class="n">mean_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">mean_filter</span><span class="p">)</span>
+    <span class="n">convolve</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">convolve</span><span class="p">)</span>
+    <span class="n">edge_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">edge_filter</span><span class="p">)</span>
+    <span class="n">laplacian_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">laplacian_filter</span><span class="p">)</span>
+    <span class="n">kalman_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">kalman_filter</span><span class="p">)</span>
+    <span class="n">fft</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">fft</span><span class="p">)</span>
+    <span class="n">ifft</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">ifft</span><span class="p">)</span>
+    <span class="n">power_spectra</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">power_spectra</span><span class="p">)</span>
+    <span class="n">tiled_lowpass_filter</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">tiled_lowpass_filter</span><span class="p">)</span>
+    <span class="n">proj</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">proj</span><span class="p">)</span>
+    <span class="n">binning</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">binning</span><span class="p">)</span>
+    <span class="n">track_drift</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">track_drift</span><span class="p">)</span>
+    <span class="n">drift_correction</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">drift_correction</span><span class="p">)</span>
+    <span class="n">radon</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">radon</span><span class="p">)</span>
+    <span class="n">wiener</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">wiener</span><span class="p">)</span>
+    <span class="n">lucy</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">lucy</span><span class="p">)</span>
+    <span class="n">as_uint8</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">as_uint8</span><span class="p">)</span>
+    <span class="n">as_uint16</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">as_uint16</span><span class="p">)</span>
+    <span class="n">as_float</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">as_float</span><span class="p">)</span>
+    <span class="n">as_img_type</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="n">as_img_type</span><span class="p">)</span>
+    <span class="fm">__neg__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__neg__</span><span class="p">)</span>
+    <span class="fm">__add__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__add__</span><span class="p">)</span>
+    <span class="fm">__iadd__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__iadd__</span><span class="p">)</span>
+    <span class="fm">__sub__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__sub__</span><span class="p">)</span>
+    <span class="fm">__isub__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__isub__</span><span class="p">)</span>
+    <span class="fm">__mul__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">)</span>
+    <span class="fm">__imul__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__imul__</span><span class="p">)</span>
+    <span class="fm">__truediv__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__truediv__</span><span class="p">)</span>
+    <span class="fm">__itruediv__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__itruediv__</span><span class="p">)</span>
+    <span class="fm">__gt__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__gt__</span><span class="p">)</span>
+    <span class="fm">__ge__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__ge__</span><span class="p">)</span>
+    <span class="fm">__lt__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__lt__</span><span class="p">)</span>
+    <span class="fm">__lt__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__lt__</span><span class="p">)</span>
+    <span class="fm">__eq__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">)</span>
+    <span class="fm">__ne__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__ne__</span><span class="p">)</span>
+    <span class="fm">__mod__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__mod__</span><span class="p">)</span>
+    <span class="fm">__floordiv__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__floordiv__</span><span class="p">)</span>
+    <span class="fm">__pow__</span> <span class="o">=</span> <span class="n">wrap_method</span><span class="p">(</span><span class="n">LazyImgArray</span><span class="o">.</span><span class="fm">__pow__</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Hanjin Liu.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

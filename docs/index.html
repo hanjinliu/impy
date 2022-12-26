@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy &mdash; impy 2.1.3 documentation</title>
+  <title>impy &mdash; impy 2.2.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
             <a href="#" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.3
+                2.2.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -178,7 +178,7 @@ so on.</p>
 </section>
 <section id="array-like">
 <h3>Array-like<a class="headerlink" href="#array-like" title="Permalink to this headline">¶</a></h3>
-<div class="align-default"><svg height="200" viewBox="0 0 256 200" width="256" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+<div class="align-default"><svg height="280" viewBox="0 0 256 280" width="256" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs id="defs_block">
     <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
       <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
@@ -188,16 +188,22 @@ so on.</p>
   <desc />
   <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="46" />
   <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="126" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="206" />
   <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="40" />
   <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="54" x="128.0" y="66">AxesMixin</text>
   <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="120" />
   <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="72" x="128.0" y="146">LazyImgArray</text>
+  <rect fill="rgb(255,192,203)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="200" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="11" font-style="normal" font-weight="normal" text-anchor="middle" textLength="66" x="128.0" y="226">BigImgArray</text>
   <path d="M 128 80 L 128 112" fill="none" stroke="rgb(0,0,0)" />
   <polygon fill="rgb(0,0,0)" points="128,119 124,112 132,112 128,119" stroke="rgb(0,0,0)" />
+  <path d="M 128 160 L 128 192" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="128,199 124,192 132,192 128,199" stroke="rgb(0,0,0)" />
 </svg>
 </div>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>: Array-like object with image processing functions like <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>, but evaluated lazily.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BigImgArray</span></code>: Subclass of <code class="docutils literal notranslate"><span class="pre">LazyImgArray</span></code>, but images will be processed for every method call.</p></li>
 </ul>
 </section>
 <section id="data-frame">

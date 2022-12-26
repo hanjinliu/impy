@@ -20,6 +20,14 @@ impy.arrays.axesmixin module
    :undoc-members:
    :show-inheritance:
 
+impy.arrays.big module
+----------------------
+
+.. automodule:: impy.arrays.big
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 impy.arrays.imgarray module
 ---------------------------
 

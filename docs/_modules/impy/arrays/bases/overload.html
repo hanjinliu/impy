@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.bases.overload &mdash; impy 2.1.3 documentation</title>
+  <title>impy.arrays.bases.overload &mdash; impy 2.2.0 documentation</title>
       <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -27,7 +27,7 @@
             <a href="../../../../index.html" class="icon icon-home"> impy
           </a>
               <div class="version">
-                2.1.3
+                2.2.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
@@ -193,7 +193,7 @@
     <span class="k">return</span> <span class="n">out</span>
 
 <span class="nd">@MetaArray</span><span class="o">.</span><span class="n">implements</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span> <span class="n">AxesLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">img</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
 
 <span class="nd">@MetaArray</span><span class="o">.</span><span class="n">implements</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">)</span>
@@ -239,7 +239,7 @@
     <span class="k">return</span> <span class="n">out</span>
 
 <span class="nd">@MetaArray</span><span class="o">.</span><span class="n">implements</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">,</span> <span class="n">axis1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">axis2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">AxisLike</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">,</span> <span class="n">axis1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">axis2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">AxisLike</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis1</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Axis</span><span class="p">)):</span>
         <span class="n">axis1</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">axis1</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis2</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Axis</span><span class="p">)):</span>
@@ -251,6 +251,31 @@
     <span class="n">axes_list</span><span class="p">[</span><span class="n">axis1</span><span class="p">],</span> <span class="n">axes_list</span><span class="p">[</span><span class="n">axis2</span><span class="p">]</span> <span class="o">=</span> <span class="n">axes_list</span><span class="p">[</span><span class="n">axis2</span><span class="p">],</span> <span class="n">axes_list</span><span class="p">[</span><span class="n">axis1</span><span class="p">]</span>
     
     <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">new_axes</span><span class="o">=</span><span class="n">axes_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+<span class="nd">@MetaArray</span><span class="o">.</span><span class="n">implements</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span>
+    <span class="n">img</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">,</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">axisa</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">AxisLike</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">axisb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">AxisLike</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">axisc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">AxisLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axisa</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Axis</span><span class="p">)):</span>
+        <span class="n">axisa</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">axisa</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axisb</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Axis</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">MetaArray</span><span class="p">):</span>
+            <span class="n">axisb</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">axisb</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The second array is not MetaArray so use int for axisb.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Axis</span><span class="p">)):</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span>
+        <span class="n">img</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">axisa</span><span class="o">=</span><span class="n">axisa</span><span class="p">,</span> <span class="n">axisb</span><span class="o">=</span><span class="n">axisb</span><span class="p">,</span> <span class="n">axisc</span><span class="o">=</span><span class="n">axisc</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span>
+    <span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">new_axes</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
 
 <span class="c1"># This function is ported from numpy.core.numeric.normalize_axis_tuple</span>
