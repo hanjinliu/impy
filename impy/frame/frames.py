@@ -219,6 +219,8 @@ class AxesFrame(pd.DataFrame):
             yield (slice(None),), self
         
         else:
+            if len(groupkeys) == 1:
+                groupkeys = groupkeys[0]
             for sl, af in self.groupby(groupkeys):
                 af = af[cols]
                 if isinstance(sl, int):

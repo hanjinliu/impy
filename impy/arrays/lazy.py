@@ -270,6 +270,9 @@ class LazyImgArray(AxesMixin):
     def __floordiv__(self, other) -> LazyImgArray:
         return self._apply_operator(operator.floordiv, other)
     
+    def __pow__(self, power: float) -> LazyImgArray:
+        return self._apply_operator(operator.pow, power)
+
     @property
     def chunk_info(self):
         chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])

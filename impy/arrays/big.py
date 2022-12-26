@@ -60,3 +60,4 @@ class BigImgArray(LazyImgArray):
     __ne__ = wrap_method(LazyImgArray.__ne__)
     __mod__ = wrap_method(LazyImgArray.__mod__)
     __floordiv__ = wrap_method(LazyImgArray.__floordiv__)
+    __pow__ = wrap_method(LazyImgArray.__pow__)

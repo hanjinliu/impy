@@ -296,7 +296,7 @@ You can use :meth:`big_imread` function to open an image file as a ``BigImgArray
 
 .. code-block:: python
 
-    img = ip.big_imread("path/to/image.tif")
+    img = ip.big_imread("path/to/image.tif", chunks=(1, "auto", "auto", "auto"))
     img
 
 .. code-block::
@@ -309,7 +309,8 @@ You can use :meth:`big_imread` function to open an image file as a ``BigImgArray
         source    : path/to/image.tif
         scale     : ScaleView(t=1.0px, z=0.217μm, y=0.217μm, x=0.217μm)
 
-And all the methods supported in ``LazyImgArray`` are available.
+A ``BigImgArray`` processes an image out-of-core, but store the result in a temporary 
+file. As ``LazyImgArray``, you can convert it into ``ImgArray`` using ``compute`` function.
 
 .. code-block:: python
 
