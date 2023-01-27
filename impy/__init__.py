@@ -1,4 +1,4 @@
-__version__ = "2.2.0"
+__version__ = "2.2.1.dev0"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
@@ -6,7 +6,7 @@ import logging
 
 from ._const import Const, SetConst, use
 
-from .collections import *
+from .collections import DataList, DataDict
 from .core import *
 from .binder import bind
 from .viewer import gui

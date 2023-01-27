@@ -21,18 +21,18 @@ __all__ = [
 class _ImageType(Protocol):
     @property
     def ndim(self) -> int:
-        ...
+        """Should return the number of dimensions of the image."""
     
     @property
     def dtype(self) -> np.dtype:
-        ...
+        """Should return the data type of the image."""
     
     @property
     def shape(self) -> tuple[int, ...]:
-        ...
+        """Should return the shape of the image."""
     
     def astype(self, dtype: DTypeLike):
-        ...
+        """Should return an image with the specified data type."""
 
 
 class ImageData(NamedTuple):
@@ -258,9 +258,17 @@ def _(path: str, memmap: bool = False) -> ImageData:
         labels = ijmeta.get("Labels")
         scale = dict()
         dz = ijmeta.get("spacing", 1.0)
+        scale_unit: dict[str, float] = {}
         try:
             # For MicroManager
             info = _load_json(ijmeta["Info"])
+            ijmeta["Info"] = info  # update string to dict
+            # try to read time scale
+            if "t" in axes:
+                dt = info.get("Interval_ms", None)
+                if dt is not None and dt > 0:
+                    scale["t"] = dt
+                    scale_unit["t"] = "ms"
             dx = dy = info["PixelSize_um"]
         except Exception:
             try:
@@ -275,8 +283,9 @@ def _(path: str, memmap: bool = False) -> ImageData:
         # read z scale if needed
         if axes is not None and "z" in axes:
             scale["z"] = dz
-        scale_unit = dict.fromkeys(scale.keys(), ijmeta.pop("unit", None))
-        
+        _unit = ijmeta.pop("unit", None)
+        for k in scale.keys():
+            scale_unit[k] = _unit
         if tif.is_ome:
             try:
                 xml = xml2dict(tif.ome_metadata)
@@ -296,6 +305,8 @@ def _(path: str, memmap: bool = False) -> ImageData:
                     labels = [ch.get("Name") for ch in chn]
                 else:
                     labels = None
+                # get time interval
+                
             except Exception:
                 pass
         
@@ -484,7 +495,7 @@ _MRC_MODE = {
     np.dtype("float16"): 12,
 }
 
-def _load_json(s: str):
+def _load_json(s: str) -> dict[str, Any]:
     return json.loads(re.sub("'", '"', s))
 
 def _get_ijmeta_from_img(img: "MetaArray", update_lut=True):
