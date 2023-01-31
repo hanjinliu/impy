@@ -5,6 +5,7 @@ import re
 import glob
 import itertools
 from typing import TYPE_CHECKING
+from typing_extensions import Literal
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -448,7 +449,9 @@ def gaussian_kernel(
 def circular_mask(
     radius: nDFloat, 
     shape: ShapeLike,
-    center: str | tuple[float, ...] = "center"
+    center: Literal["center"] | tuple[float, ...] = "center",
+    soft: bool = False,
+    out_value: bool = True,
 ) -> ImgArray:
     """
     Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``. 
@@ -473,15 +476,31 @@ def circular_mask(
         raise ValueError("Length of `shape` and `center` must be same.")
     
     if np.isscalar(radius):
-        radius = [radius]*len(shape)
-    elif len(radius) != len(shape):
-        raise ValueError("Length of `shape` and `radius` must be same.")
+        radius = [radius] * len(shape)
+    else:
+        if len(radius) != len(shape):
+            raise ValueError("Length of `shape` and `radius` must be same.")
+        if soft:
+            raise NotImplementedError("Soft mask is not implemented for ellipsoid mask.")
 
     x = np.indices(shape)
-    s = sum(((x0 - c0)/r0)**2 for x0, c0, r0 in zip(x, center, radius))
-    axes = "zyx" if len(shape) == 3 else None # change the default axes in `array`
-    
-    return array(s > 1.0, dtype=bool, axes=axes)
+    s: np.ndarray = sum(((x0 - c0) / r0) ** 2 for x0, c0, r0 in zip(x, center, radius))
+    axes = "zyx" if len(shape) == 3 else None  # change the default axes in `array`
+    val = s > 1.0
+    if soft:
+        pix = 1 / radius[0]
+        val = val.astype(np.float32)
+        sl = (1.0 < s) & (s <= 1.0 + pix)
+        val[sl] = (np.sqrt(s[sl]) - 1.0) / pix
+        out = array(val, dtype=np.float32, axes=axes)
+    else:
+        out = array(val, dtype=bool, axes=axes)
+    if not out_value:
+        if soft:
+            out[:] = 1.0 - out
+        else:
+            out[:] = ~out   
+    return out
 
 
 def sample_image(name: str) -> ImgArray:

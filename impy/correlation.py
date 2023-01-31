@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from warnings import warn
-from .core import asarray as ip_asarray
+from .core import asarray as ip_asarray, circular_mask
 from .arrays import ImgArray, PropArray
 from .arrays._utils import _docs
 from .arrays._utils._transform import polar2d
@@ -620,16 +620,79 @@ def polar_pcc_maximum_with_corr(
     float and float
         Rotation in degree and phase cross correlation
     """    
+    return _polar_corr(pcc_maximum_with_corr, img0, img1, upsample_factor, max_degree)
+
+
+@_docs.write_docs
+def polar_zncc_maximum(
+    img0: ImgArray,
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_degree: int = None,
+) -> float:
+    """
+    Calculate rotational shift between two images using polar Fourier transformation.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating phase cross correlation.
+    max_degree : int, tuple of int, optional
+        Maximum rotation in degree.
+
+    Returns
+    -------
+    float
+        Rotation in degree
+    """    
+    return polar_zncc_maximum_with_corr(img0, img1, upsample_factor, max_degree)[0]
+
+@_docs.write_docs
+def polar_zncc_maximum_with_corr(
+    img0: ImgArray,
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_degree: int = None,
+) -> float:
+    """
+    Calculate rotational shift between two images using polar Fourier transformation.
+
+    Parameters
+    ----------
+    {inputs_of_correlation}
+    upsample_factor : int, default is 10
+        Up-sampling factor when calculating phase cross correlation.
+    max_degree : int, tuple of int, optional
+        Maximum rotation in degree.
+
+    Returns
+    -------
+    float and float
+        Rotation in degree and phase cross correlation
+    """    
+    return _polar_corr(zncc_maximum_with_corr, img0, img1, upsample_factor, max_degree)
+
+
+def _polar_corr(
+    corr_fn,
+    img0: ImgArray,
+    img1: ImgArray,
+    upsample_factor: int = 10,
+    max_degree: int = None,
+) -> float:
+    """Calculate rotational shift between two images using polar Fourier transformation."""    
     img0, img1 = _check_inputs(img0, img1)
     if img0.ndim != 2:
         raise TypeError("Currently only 2D image is supported.")
     if max_degree is None:
         max_degree = 180
-    rmax = min(img0.shape)
-    imgp = ip_asarray(xp.asnumpy(polar2d(img0, rmax, np.pi/180)))
-    imgrotp = ip_asarray(xp.asnumpy(polar2d(img1, rmax, np.pi/180)))
+    rmax = min(img0.shape) // 2
+    mask = circular_mask(rmax, img0.shape, soft=True, out_value=False)
+    imgp = ip_asarray(xp.asnumpy(polar2d(img0 * mask, rmax, np.pi/180)))
+    imgrotp = ip_asarray(xp.asnumpy(polar2d(img1 * mask, rmax, np.pi/180)))
     max_shifts = (max_degree, 1)
-    shift, pcc = pcc_maximum_with_corr(
+    shift, pcc = corr_fn(
         imgp, imgrotp, upsample_factor=upsample_factor, max_shifts=max_shifts
     )
     # Here, `shift` satisfies `img0.rotate(-shift[0]) == img1`

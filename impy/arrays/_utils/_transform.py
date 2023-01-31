@@ -149,7 +149,7 @@ def check_matrix(matrices: list[np.ndarray | float]):
 def polar2d(
     img: xp.ndarray,
     rmax: int,
-    dtheta: float = 0.1,
+    dtheta: float = 0.1,  # radian
     order: int = 1,
     mode: str = "constant",
     cval: float = 0,
