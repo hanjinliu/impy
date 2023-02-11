@@ -129,3 +129,11 @@ def test_indices():
     assert_allclose(inds.z , inds_np[0])
     assert_allclose(inds.y , inds_np[1])
     assert_allclose(inds.x , inds_np[2])
+
+@pytest.mark.parametrize("shape", [(3, 4, 5), (5,)])
+def test_arg(shape):
+    img = ip.zeros(shape)
+    np.argmax(img, axis=0)
+    np.argmax(img, axis="x")
+    np.argmin(img, axis=0)
+    np.argmin(img, axis="x")

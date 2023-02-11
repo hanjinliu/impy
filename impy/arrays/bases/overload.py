@@ -181,6 +181,29 @@ def _(img: MetaArray, axis1: int | AxisLike, axis2: int | AxisLike):
     out._set_info(img, new_axes=axes_list)
     return out
 
+# argmax does not support axis as tuple
+@MetaArray.implements(np.argmax)
+def _(img: MetaArray, axis: int | AxisLike | None = None):
+    if isinstance(axis, (str, Axis)):
+        axis = img.axisof(axis)
+    new_axes = img.axes.drop(axis)
+    out = np.argmax(img.value, axis=axis)
+    if isinstance(out, np.ndarray):
+        out = out.view(img.__class__)
+        out._set_info(img, new_axes=new_axes)
+    return out
+
+@MetaArray.implements(np.argmin)
+def _(img: MetaArray, axis: int | AxisLike | None = None):
+    if isinstance(axis, (str, Axis)):
+        axis = img.axisof(axis)
+    new_axes = img.axes.drop(axis)
+    out = np.argmin(img.value, axis=axis)
+    if isinstance(out, np.ndarray):
+        out = out.view(img.__class__)
+        out._set_info(img, new_axes=new_axes)
+    return out
+
 @MetaArray.implements(np.cross)
 def _(
     img: MetaArray,

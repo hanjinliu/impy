@@ -77,6 +77,7 @@ class XP:
         self.argmax = np.argmax
         self.argmin = np.argmin
         self.pad = np.pad
+        self.isnan = np.isnan
         
         self.state = "numpy"
         from ._const import Const
@@ -146,6 +147,7 @@ class XP:
         self.argmax = cp.argmax
         self.argmin = cp.argmin
         self.pad = cp.pad
+        self.isnan = cp.isnan
         self.state = "cupy"
         
         from ._const import Const

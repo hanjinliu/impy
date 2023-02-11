@@ -461,12 +461,13 @@ class LabeledArray(MetaArray):
     @dims_to_spatial_axes
     def map_coordinates(
         self,
-        coordinates,
+        coordinates: ArrayLike,
         *, 
         mode: PaddingMode = "constant",
         cval: float = 0,
         order: int = 3,
         prefilter: bool | None = None,
+        has_nan: bool = False,
         dims: Dims = None,
     ) -> Self:
         """
@@ -480,6 +481,8 @@ class LabeledArray(MetaArray):
         prefilter : bool, optional
             Spline prefilter applied to the array. By default set to True if ``order`` is larger
             than 1.
+        has_nan : bool, default is False
+            If true, nan values will be masked out.
         {dims}
 
         Returns
@@ -491,14 +494,16 @@ class LabeledArray(MetaArray):
         c_axes = complement_axes(dims, self.axes)
         
         if coords.ndim != 2:
-            drop_axis = []
+            drop_axis: list[int] = []
         else:
             drop_axis = [self.axisof(a) for a in dims[:-1]]
         
         if prefilter is None:
             prefilter = order > 1
+        
+        fn = _map_coordinates_with_nan if has_nan else _map_coordinates
         out = self._apply_dask(
-            _map_coordinates,
+            fn,
             c_axes,
             dtype=self.dtype,
             drop_axis=drop_axis,
@@ -1582,3 +1587,26 @@ def _map_coordinates(input, coordinates, order, mode, cval, prefilter):
         cval=cval,
         prefilter=prefilter,
     )
+
+def _map_coordinates_with_nan(input, coordinates, order, mode, cval, prefilter):
+    nans = xp.isnan(input)
+    input = xp.array(input, copy=True)
+    input[nans] = 0
+    mapped = xp.ndi.map_coordinates(
+        input,
+        xp.asarray(coordinates),
+        order=order,
+        mode=mode,
+        cval=cval,
+        prefilter=prefilter,
+    )
+    mapped_nans = xp.ndi.map_coordinates(
+        nans.astype(xp.float32),
+        xp.asarray(coordinates),
+        order=order,
+        mode=mode,
+        cval=cval,
+        prefilter=prefilter,
+    ) > 0.5
+    mapped[mapped_nans] = np.nan
+    return mapped
