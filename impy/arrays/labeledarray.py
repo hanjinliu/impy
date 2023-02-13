@@ -206,7 +206,7 @@ class LabeledArray(MetaArray):
                 raise TypeError(
                     f"Input label must be unsigned int but has wrong dtype {arr.dtype}."
                 )
-            axes = str(self.axes)[-arr.ndim:]
+            axes = self.axes[-arr.ndim:]
             value = Label(arr, axes=axes).optimize()
         
         if not value._dimension_matches(self):

@@ -1098,7 +1098,7 @@ class LazyImgArray(AxesMixin):
         out = binfunc(reshaped_img, axis=axes_to_reduce)
         out = self.__class__(out)
         out._set_info(self)
-        out.axes = str(self.axes) # _set_info does not pass copy so new axes must be defined here.
+        out.axes = self.axes.copy()  # _set_info does not pass copy so new axes must be defined here.
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
     
