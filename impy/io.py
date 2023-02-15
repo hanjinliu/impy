@@ -43,11 +43,14 @@ class ImageData(NamedTuple):
     scale: dict[str, float] | None
     unit: dict[str, str | None] | str | None
     metadata: dict[str, Any]
-    labels: list[Any]
+    labels: list[Any]  # channel labels
 
 if TYPE_CHECKING:
+    from numpy.lib.npyio import NpzFile
     from .arrays.bases import MetaArray
     from .arrays import LazyImgArray
+    from .axes import Axes
+
     ImpyArray = Union[MetaArray, LazyImgArray]
     Reader = Callable[[str, bool], ImageData]
     _R = TypeVar("_R", bound=Reader)
@@ -325,6 +328,46 @@ def _(path: str, memmap: bool = False) -> ImageData:
         labels=labels,
     )
 
+@IO.mark_writer(".tif", ".tiff")
+def _(path: str, img: ImpyArray, lazy: bool = False):
+    """The TIFF writer."""
+    if lazy:
+        from tifffile import memmap
+        from dask import array as da
+        kwargs = _get_ijmeta_from_img(img, update_lut=False)
+        mmap = memmap(str(path), shape=img.shape, dtype=img.dtype, **kwargs)
+        da.store(img.value, mmap, compute=True)
+        mmap.flush()
+        return
+    
+    from tifffile import imwrite
+    rest_axes = complement_axes(img.axes, "tzcyx")
+    new_axes = ""
+    for a in img.axes:
+        if a in ["t", "z", "c", "y", "x"]:
+            new_axes += a
+        else:
+            if len(rest_axes) == 0:
+                raise ImageAxesError(f"Cannot save image with axes {img.axes}")
+            new_axes += rest_axes[0]
+            rest_axes = rest_axes[1:]
+    
+    # make a copy of the image for saving
+    if new_axes != img.axes:
+        img_new = img.copy()
+        img_new.axes = new_axes
+        img_new.set_scale(img)
+        img = img_new
+        
+        warnings.warn("Image axes changed", UserWarning)
+    
+    img = img.sort_axes()
+    if img.dtype == "bool":
+        img = img.astype(np.uint8)
+    imsave_kwargs = _get_ijmeta_from_img(img, update_lut=True)
+    imwrite(path, img, **imsave_kwargs)
+    return None
+
 @IO.mark_reader(".mrc", ".rec", ".st", ".map", ".gz")
 def _(path: str, memmap: bool = False) -> ImageData:
     """The MRC format reader"""
@@ -362,66 +405,6 @@ def _(path: str, memmap: bool = False) -> ImageData:
     )
 
 
-@IO.mark_reader(".zarr")
-def _(path: str, memmap: bool = False) -> ImageData:
-    """The zarr reader."""
-    import zarr
-    zf = zarr.open(path, mode="r")
-    if memmap:
-        image = zf["data"]
-    else:
-        image = np.asarray(zf["data"])
-    metadata = zf.attrs.get("metadata", {})
-    unit = metadata.pop("unit", None)
-    labels = metadata.pop("labels", None)
-    return ImageData(
-        image=image,
-        axes=zf.attrs.get("axes", None),
-        scale=zf.attrs.get("scale", None),
-        unit=unit,
-        metadata=metadata,
-        labels=labels,
-    )
-
-
-@IO.mark_writer(".tif", ".tiff")
-def _(path: str, img: ImpyArray, lazy: bool = False):
-    """The TIFF writer."""
-    if lazy:
-        from tifffile import memmap
-        from dask import array as da
-        kwargs = _get_ijmeta_from_img(img, update_lut=False)
-        mmap = memmap(str(path), shape=img.shape, dtype=img.dtype, **kwargs)
-        da.store(img.value, mmap, compute=True)
-        mmap.flush()
-        return
-    
-    from tifffile import imwrite
-    rest_axes = complement_axes(img.axes, "tzcyx")
-    new_axes = ""
-    for a in img.axes:
-        if a in ["t", "z", "c", "y", "x"]:
-            new_axes += a
-        else:
-            if len(rest_axes) == 0:
-                raise ImageAxesError(f"Cannot save image with axes {img.axes}")
-            new_axes += rest_axes[0]
-            rest_axes = rest_axes[1:]
-    
-    # make a copy of the image for saving
-    if new_axes != img.axes:
-        img_new = img.copy()
-        img_new.axes = new_axes
-        img_new.set_scale(img)
-        img = img_new
-        
-        warnings.warn("Image axes changed", UserWarning)
-    
-    img = img.sort_axes()
-    imsave_kwargs = _get_ijmeta_from_img(img, update_lut=True)
-    imwrite(path, img, **imsave_kwargs)
-    return None
-
 @IO.mark_writer(".mrc", ".rec", ".st", ".map")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The MRC writer."""
@@ -437,6 +420,9 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
             f"Scale unit was {img.scale_unit}. Could not normalize scale."
         )
         voxel_size = (1.0, 1.0, 1.0)
+    
+    if img.dtype == "bool":
+        img = img.astype(np.int8)
     
     if lazy:
         from dask import array as da
@@ -464,22 +450,106 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
             mrc.voxel_size = voxel_size
     return None
 
+@IO.mark_reader(".zarr")
+def _(path: str, memmap: bool = False) -> ImageData:
+    """The zarr reader."""
+    import zarr
+    zf = zarr.open(path, mode="r")
+    if memmap:
+        image = zf["data"]
+    else:
+        image = np.asarray(zf["data"])
+    return ImageData(
+        image=image,
+        axes=zf.attrs.get("axes", None),
+        scale=zf.attrs.get("scale", None),
+        unit=zf.attrs.get("unit", None),
+        metadata=zf.attrs.get("metadata", {}),
+        labels=zf.attrs.get("labels", None),
+    )
+
+
 @IO.mark_writer(".zarr")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The zarr writer."""
     import zarr
     f = zarr.open(path, mode="w")
     metadata = img.metadata.copy()
-    metadata["unit"] = img.scale_unit
     
     f.attrs["axes"] = str(img.axes)
     f.attrs["scale"] = {str(a): v for a, v in img.scale.items()}
     f.attrs["metadata"] = metadata
+    f.attrs["unit"] = img.scale_unit
+    f.attrs["labels"] = _get_channel_labels(img.axes)
     if lazy:
         img.value.to_zarr(url=os.path.join(path, "data"))
     else:
         z = img.value
         f.array("data", z)
+    return None
+
+
+@IO.mark_reader(".npy")
+def _(path: str, memmap: bool = False) -> ImageData:
+    """The numpy reader."""
+    if memmap:
+        image = np.load(path, mmap_mode="r", allow_pickle=True)
+    else:
+        image = np.load(path, allow_pickle=True)
+    return ImageData(
+        image=image,
+        axes=None,
+        scale=None,
+        unit=None,
+        metadata={},
+        labels=None,
+    )
+
+
+@IO.mark_writer(".npy")
+def _(path: str, img: ImpyArray, lazy: bool = False):
+    """The numpy writer."""
+    if lazy:
+        raise NotImplementedError("Lazy saving is not implemented for npy files.")
+    else:
+        np.save(path, img.value)
+    return None
+
+
+@IO.mark_reader(".npz")
+def _(path: str, memmap: bool = False) -> ImageData:
+    """The numpy reader."""
+    npz: NpzFile = np.load(path, mmap_mode="r", allow_pickle=True)
+    
+    none_scalar = _scalar(None)
+    metadata = npz.get("metadata", none_scalar).item()
+    if metadata is None:
+        metadata = {}
+    return ImageData(
+        image=npz["data"],
+        axes=npz.get("axes", none_scalar).item(),
+        scale=npz.get("scale", none_scalar).item(),
+        unit=npz.get("unit", none_scalar).item(),
+        metadata=metadata,
+        labels=npz.get("labels", none_scalar).item(),
+    )
+
+
+@IO.mark_writer(".npz")
+def _(path: str, img: ImpyArray, lazy: bool = False):
+    """The numpy writer."""
+    if lazy:
+        raise NotImplementedError("Lazy saving is not implemented for npz files.")
+    else:
+        np.savez(
+            path,
+            data=img.value,
+            axes=_scalar(str(img.axes)),
+            scale=_scalar(img.scale.asdict()),
+            metadata=_scalar(img.metadata),
+            unit=_scalar(img.scale_unit),
+            labels=_scalar(_get_channel_labels(img.axes)),
+        )
     return None
 
 @IO.mark_writer("")
@@ -537,3 +607,15 @@ imread_dask = IO.imread_dask
 imsave = IO.imsave
 mark_reader = IO.mark_reader
 mark_writer = IO.mark_writer
+
+def _get_channel_labels(axes: Axes):
+    if "c" in axes:
+        axis = axes["c"]
+        if axis.labels is not None:
+            return axis.labels
+    return None
+
+def _scalar(x: Any) -> np.ndarray:
+    ar = np.array(None, dtype=object)
+    ar[()] = x
+    return ar

@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.parametrize(
     ["ext", "unit"], 
-    [(".tif", "μm"), (".mrc", "nm"), (".zarr", "μm")]
+    [(".tif", "μm"), (".mrc", "nm"), (".zarr", "μm"), (".npz", "µm")]
 )
 def test_imread_and_imsave(ext, unit):
     img = ip.random.random_uint16((4, 100, 100), axes="zyx")

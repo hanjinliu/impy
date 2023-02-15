@@ -182,7 +182,7 @@ class Axis:
     @property
     def labels(self) -> Labels | None:
         """Axis labels."""
-        return self.metadata[_LABELS]
+        return self.metadata.get(_LABELS, None)
     
     @labels.setter
     def labels(self, value: Iterable[Hashable]) -> None:

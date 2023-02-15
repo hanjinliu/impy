@@ -92,6 +92,9 @@ class ScaleView(MutableMapping[str, float]):
         """Make a copy of this ScaleView."""
         return self.__class__(self.axes)
 
+    def asdict(self) -> dict[str, float]:
+        return {str(k): v for k, v in self.items()}
+
 class Axes(Sequence[Axis]):
     """
     A sequence of axes.
