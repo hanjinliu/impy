@@ -871,11 +871,10 @@ def lazy_imread(
     LazyImgArray
     """    
     path = str(path)
-    if not os.path.exists(path):
-        raise ValueError(f"Path does not exist: {path}.")
-    
     if "*" in path:
         return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
+    if not os.path.exists(path):
+        raise ValueError(f"Path does not exist: {path}.")
     
     # read as a dask array
     image_data = io.imread_dask(path, chunks)

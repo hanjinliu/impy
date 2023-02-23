@@ -72,6 +72,7 @@ class XP:
         self.round = np.round
         self.gradient = np.gradient
         self.tensordot = np.tensordot
+        self.concatenate = np.concatenate
         self.stack = np.stack
         self.unravel_index = np.unravel_index
         self.argmax = np.argmax
@@ -142,6 +143,7 @@ class XP:
         except AttributeError:
             self.gradient = _gradient
         self.tensordot = cp.tensordot
+        self.concatenate = cp.concatenate
         self.stack = cp.stack
         self.unravel_index = cp.unravel_index
         self.argmax = cp.argmax
