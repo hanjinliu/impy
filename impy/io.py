@@ -430,7 +430,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         mode = _MRC_MODE[img.dtype]
         mrc_mmap = mrcfile.new_mmap(path, img.shape, mrc_mode=mode, overwrite=True)
         mrc_mmap.voxel_size = voxel_size
-        da.store(img.value, mrc_mmap)
+        da.store(img.value, mrc_mmap.data)
         mrc_mmap.flush()
         return None
 
