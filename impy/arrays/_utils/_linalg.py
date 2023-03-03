@@ -3,11 +3,11 @@ import numpy as np
 from typing import TYPE_CHECKING
 from skimage.feature.corner import _symmetric_image
 from ._skimage import skfeat
-from ...array_api import xp
+from impy.array_api import xp
 
 if TYPE_CHECKING:
-    from ..imgarray import ImgArray
-    from ...axes import Axes
+    from impy.arrays.imgarray import ImgArray
+    from impy.axes import Axes
 
 def eigh(a: np.ndarray):
     a = xp.asarray(a, dtype=a.dtype)
@@ -20,33 +20,35 @@ def eigvalsh(a: np.ndarray):
     return val
 
 def structure_tensor_eigval(img: np.ndarray, sigma: float, pxsize: float):
-    tensor_elements = skfeat.structure_tensor(img, sigma, order="xy",
-                                              mode="reflect")
+    tensor_elements = skfeat.structure_tensor(
+        img, sigma, mode="reflect"
+    )
     return _solve_hermitian_eigval(tensor_elements, pxsize)
 
 def structure_tensor_eigh(img: np.ndarray, sigma: float, pxsize: float):
-    tensor_elements = skfeat.structure_tensor(img, sigma, order="xy",
-                                              mode="reflect")
+    tensor_elements = skfeat.structure_tensor(
+        img, sigma, mode="reflect"
+    )
     return _solve_hermitian_eigs(tensor_elements, pxsize)
 
 def hessian_eigval(img: np.ndarray, sigma: float, pxsize: float):
     hessian_elements = skfeat.hessian_matrix(
-        img, sigma=sigma, order="xy", mode="reflect"
+        img, sigma=sigma, mode="reflect", use_gaussian_derivatives=False,
     )
     return _solve_hermitian_eigval(hessian_elements, pxsize)
 
 def hessian_eigh(img: np.ndarray, sigma: float, pxsize: float):
     hessian_elements = skfeat.hessian_matrix(
-        img, sigma=sigma, order="xy", mode="reflect"
+        img, sigma=sigma, mode="reflect", use_gaussian_derivatives=False,
     )
     return _solve_hermitian_eigs(hessian_elements, pxsize)
 
 
-def _solve_hermitian_eigval(elems, pxsize):
+def _solve_hermitian_eigval(elems, pxsize) -> np.ndarray:
     # Correct for scale
     pxsize = np.asarray(pxsize)
     hessian = _symmetric_image(elems)
-    hessian *= (pxsize.reshape(-1,1) * pxsize.reshape(1,-1))
+    hessian *= (pxsize.reshape(-1, 1) * pxsize.reshape(1, -1))
     eigval = eigvalsh(hessian)
     return eigval
 

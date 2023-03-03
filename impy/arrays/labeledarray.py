@@ -242,8 +242,8 @@ class LabeledArray(MetaArray):
     def rois(self) -> None:
         self.covariates.pop("rois", None)
     
-    def set_scale(self, other=None, **kwargs) -> Self:
-        out = super().set_scale(other, **kwargs)
+    def set_scale(self, other=None, unit: str | None = None, **kwargs) -> Self:
+        out = super().set_scale(other, unit=unit, **kwargs)
         for cov in self.covariates.values():
             if hasattr(cov, "set_scale"):
                 cov.set_scale(other, **kwargs)
