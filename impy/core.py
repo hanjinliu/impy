@@ -43,6 +43,7 @@ __all__ = [
     "full",
     "arange",
     "indices",
+    "stack",
     "gaussian_kernel", 
     "circular_mask", 
     "imread", 
@@ -143,10 +144,10 @@ def array(
 @_write_docs
 def asarray(
     arr: ArrayLike,
-    dtype: DTypeLike = None,
+    dtype: DTypeLike | None = None,
     *, 
-    name: str = None,
-    axes: str = None,
+    name: str | None = None,
+    axes: str | None = None,
     like: MetaArray | None = None,
 ) -> ImgArray:
     """
@@ -172,8 +173,8 @@ def aslabel(
     arr: ArrayLike,
     dtype: DTypeLike = None,
     *, 
-    name: str = None,
-    axes: str = None,
+    name: str | None = None,
+    axes: str | None = None,
     like: MetaArray | None = None,
 ) -> ImgArray:
     """
@@ -227,8 +228,8 @@ def aslazy(
     arr: ArrayLike, 
     dtype: DTypeLike = None,
     *, 
-    name: str = None,
-    axes: str = None,
+    name: str | None = None,
+    axes: str | None = None,
     chunks="auto",
     like: MetaArray | None = None,
 ) -> LazyImgArray:
@@ -284,8 +285,8 @@ def asbigarray(
     arr: ArrayLike, 
     dtype: DTypeLike = None,
     *, 
-    name: str = None,
-    axes: str = None,
+    name: str | None = None,
+    axes: str | None = None,
     like: MetaArray | None = None,
 ) -> BigImgArray:
     """

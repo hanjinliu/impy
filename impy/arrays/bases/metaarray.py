@@ -27,7 +27,7 @@ SupportSlicing = Union[
     Mapping[str, SupportOneSlicing],
 ]
 
-class MetaArray(AxesMixin, np.ndarray):
+class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
     additional_props = ["_source", "_metadata", "_name"]
     NP_DISPATCH = {}
     _name: str

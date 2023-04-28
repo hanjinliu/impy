@@ -1,4 +1,4 @@
-__version__ = "2.2.1"
+__version__ = "2.2.2"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
@@ -15,19 +15,17 @@ from .arrays import ImgArray, LazyImgArray, BigImgArray, Label  # for typing
 from . import random, io
 from .axes import slicer
 
-r"""
-Inheritance
------------
+# Inheritance
+# -----------
+#
+# AxesMixin -----> LazyImgArray ------> BigImgArray
+#     |
+#     +-----> MetaArray --+--> LabeledArray --+--> ImgArray
+#     |                   |                   |
+# np.ndarray              +--> Label          +--> PhaseArray
+#                         |
+#                         +--> PropArray
 
-AxesMixin -----> LazyImgArray ------> BigImgArray
-    |
-    +-----> MetaArray --+--> LabeledArray --+--> ImgArray
-    |                   |                   |
-np.ndarray              +--> Label          +--> PhaseArray
-                        |
-                        +--> PropArray
-
-"""
 
 logging.getLogger("skimage").setLevel(logging.ERROR)
 logging.getLogger("tifffile").setLevel(logging.ERROR)

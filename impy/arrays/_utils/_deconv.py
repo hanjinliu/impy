@@ -1,7 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from functools import partial
 import numpy as np
-from ...array_api import xp
+from impy.array_api import xp
 
+if TYPE_CHECKING:
+    from impy.arrays import ImgArray
+    
 try:
     gradient = xp.gradient
 except AttributeError:
@@ -11,11 +17,7 @@ except AttributeError:
         out = numpy.gradient(a.get(), axis=axis)
         return xp.asarray(out)
 
-__all__ = ["wiener", 
-           "lucy",
-           "lucy_tv",
-           "check_psf",
-           ]
+__all__ = ["wiener", "lucy", "lucy_tv", "check_psf"]
 
 def wiener(obs, psf_ft, psf_ft_conj, lmd):
     obs = xp.asarray(obs)
@@ -67,20 +69,23 @@ def richardson_lucy_tv(obs, psf_ft, psf_ft_conj, max_iter, lmd, tol, eps):
     return xp.fft.fftshift(est_new)
 
 
-def _safe_div(a, b, eps=1e-8):
+def _safe_div(a: np.ndarray, b: np.ndarray, eps: float = 1e-8):
     out = xp.zeros(a.shape, dtype=np.float32)
     mask = b > eps
-    out[mask] = a[mask]/b[mask]
+    out[mask] = a[mask] / b[mask]
     return out
 
 
-def check_psf(img, psf, dims):
+def check_psf(img_shape: tuple[int, ...], img_scale: tuple[float, ...], psf):
+    if callable(psf):
+        psf = psf(img_shape, img_scale)
     psf = xp.asarray(psf, dtype=np.float32)
     psf /= xp.sum(psf)
     
-    if img.sizesof(dims) != psf.shape:
-        raise ValueError("observation and PSF have different shape: "
-                        f"{img.sizesof(dims)} and {psf.shape}")
+    if img_shape != psf.shape:
+        raise ValueError(
+            f"observation and PSF have different shape: {img_shape} and {psf.shape}"
+        )
     psf_ft = xp.fft.rfftn(psf)
     psf_ft_conj = xp.conjugate(psf_ft)
     return psf_ft, psf_ft_conj

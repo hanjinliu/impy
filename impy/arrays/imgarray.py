@@ -4195,7 +4195,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def wiener(
         self,
-        psf: np.ndarray,
+        psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
         lmd: float = 0.1,
         *, 
         dims: Dims = None, 
@@ -4213,8 +4213,9 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        psf : np.ndarray
-            Point spread function.
+        psf : ndarray or callable
+            Point spread function. If a function is given, `psf(shape)` will be
+            called to generate the PSF.
         lmd : float, default is 0.1
             Constant value used in the deconvolution. See Formulation below.
         {dims}{update}
@@ -4233,22 +4234,23 @@ class ImgArray(LabeledArray):
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
         
-        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+        psf_ft, psf_ft_conj = _deconv.check_psf(
+            self.sizesof(dims), tuple(self.scale[axis] for axis in dims), psf,
+        )
         
         return self._apply_dask(
             _deconv.wiener, 
             c_axes=complement_axes(dims, self.axes),
             args=(psf_ft, psf_ft_conj, lmd)
-        )
-        
-    
+        )    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
     def lucy(
         self,
-        psf: np.ndarray,
+        psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
         niter: int = 50,
         eps: float = 1e-5,
         *, 
@@ -4260,14 +4262,15 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        psf : np.ndarray
-            Point spread function.
+        psf : ndarray or callable
+            Point spread function. If a function is given, `psf(shape)` will be
+            called to generate the PSF.
         niter : int, default is 50.
             Number of iterations.
         eps : float, default is 1e-5
-            During deconvolution, division by small values in the convolve image of estimation and 
-            PSF may cause divergence. Therefore, division by values under `eps` is substituted
-            to zero.
+            During deconvolution, division by small values in the convolve image 
+            of estimation and PSF may cause divergence. Therefore, division by 
+            values under `eps` is substituted to zero.
         {dims}{update}
         
         Returns
@@ -4281,7 +4284,9 @@ class ImgArray(LabeledArray):
         wiener
         """
         
-        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+        psf_ft, psf_ft_conj = _deconv.check_psf(
+            self.sizesof(dims), tuple(self.scale[axis] for axis in dims), psf,
+        )
 
         return self._apply_dask(
             _deconv.richardson_lucy, 
@@ -4295,7 +4300,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def lucy_tv(
         self,
-        psf: np.ndarray,
+        psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
         max_iter: int = 50,
         lmd: float = 1e-3,
         tol: float = 1e-3,
@@ -4319,8 +4324,9 @@ class ImgArray(LabeledArray):
         
         Parameters
         ----------
-        psf : np.ndarray
-            Point spread function.
+        psf : ndarray or callable
+            Point spread function. If a function is given, `psf(shape)` will be
+            called to generate the PSF.
         max_iter : int, default is 50.
             Maximum number of iterations.
         lmd : float, default is 1e-3
@@ -4361,7 +4367,9 @@ class ImgArray(LabeledArray):
                 "In Richadson-Lucy with total-variance-regularization, "
                 "parameter `lmd` must be positive."
             )
-        psf_ft, psf_ft_conj = _deconv.check_psf(self, psf, dims)
+        psf_ft, psf_ft_conj = _deconv.check_psf(
+            self.sizesof(dims), tuple(self.scale[axis] for axis in dims), psf
+        )
 
         return self._apply_dask(
             _deconv.richardson_lucy_tv, 
@@ -4369,6 +4377,39 @@ class ImgArray(LabeledArray):
             args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
         )
 
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def tiled_lucy(
+        self,
+        psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
+        niter: int = 50,
+        eps: float = 1e-5,
+        chunks = "auto",
+        overlap: int = 32,
+        *, 
+        dims: Dims = None, 
+        update: bool = False
+    ) -> ImgArray:
+        from dask import array as da
+
+        input = da.from_array(self.value, chunks=chunks)
+        depth = switch_slice(dims, self.axes, overlap, 0)
+        scale = tuple(self.scale[axis] for axis in dims)
+        
+        def func(arr: np.ndarray):
+            psf_ft, psf_ft_conj = _deconv.check_psf(arr.shape, scale, psf)
+            return _deconv.richardson_lucy(arr, psf_ft, psf_ft_conj, niter, eps)
+            
+        out = da.map_overlap(
+            func, 
+            input,
+            depth=depth,
+            boundary="reflect",
+            dtype=self.dtype,
+        ).compute()
+        return out
 
 def _check_coordinates(coords, img: ImgArray, dims: Dims = None):
     from impy.frame import MarkerFrame
