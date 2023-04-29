@@ -43,7 +43,6 @@ __all__ = [
     "full",
     "arange",
     "indices",
-    "stack",
     "gaussian_kernel", 
     "circular_mask", 
     "imread", 
