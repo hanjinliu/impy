@@ -354,7 +354,9 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
             Image axes. Must be same length as image dimension.
         name: str, optional
             Image name.
-        
+        like: MetaArray, optional
+            Reference array from which name and axes will be copied.
+
         {npfunc.__doc__}
         """
         )
@@ -374,7 +376,11 @@ def ones(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str | None = N
 def full(shape: ShapeLike, fill_value: Any, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
 
 @_inject_numpy_function
-def arange(stop: int, dtype: DTypeLike = ..., like: Any = ...): ...
+def arange(stop: int, dtype: DTypeLike = None): ...
+
+@_inject_numpy_function
+def fromiter(iterable: Iterable, dtype: DTypeLike, count: int = -1): ...
+
     
 def indices(
     dimensions: ShapeLike,

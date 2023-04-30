@@ -200,6 +200,9 @@ class AxesMixin:
                 {a: s for a, s in other.scale.items() if a in self.axes}  # type: ignore
             )
         
+        elif isinstance(other, (list, tuple)):
+            for a, s in zip(self.axes, other):
+                a.scale = s
         else:
             raise TypeError(
                 f"'other' must be str or axes supported object, but got {type(other)}"
