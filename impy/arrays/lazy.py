@@ -1526,7 +1526,7 @@ class LazyImgArray(AxesMixin):
         except ImageAxesError:
             self.axes = None
         
-        return None
+        return self
     
 
 def _replace_inputs(img: LazyImgArray, args, kwargs):

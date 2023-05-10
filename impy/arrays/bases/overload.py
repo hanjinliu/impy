@@ -229,6 +229,41 @@ def _(
     out._set_info(img, new_axes=img.axes)
     return out
 
+@MetaArray.implements(np.diff)
+def _(
+    img: MetaArray,
+    n: int = 1,
+    axis: int | AxisLike = -1,
+    prepend=None,
+    append=None,
+):
+    if isinstance(axis, (str, Axis)):
+        axis = img.axisof(axis)
+    kwargs = dict(n=n, axis=axis)
+    if prepend is not None:
+        kwargs["prepend"] = prepend
+    if append is not None:
+        kwargs["append"] = append
+    out = np.diff(img.value, **kwargs)
+    out = out.view(img.__class__)
+    out._set_info(img, new_axes=img.axes)
+    return out
+
+@MetaArray.implements(np.gradient)
+def _(img: MetaArray, *varargs, axis=None, edge_order=1):
+    if isinstance(axis, (str, Axis)):
+        axis = img.axisof(axis)
+    elif isinstance(axis, Axes):
+        axis = tuple(img.axisof(ax) for ax in axis)
+    out = np.gradient(img.value, *varargs, axis=axis, edge_order=edge_order)
+    if isinstance(out, np.ndarray):
+        out = out.view(img.__class__)._set_info(img, new_axes=img.axes)
+    else:
+        out = [arr.view(img.__class__)._set_info(img, new_axes=img.axes) for arr in out]
+        out = DataList(out)
+    return out
+
+
 # This function is ported from numpy.core.numeric.normalize_axis_tuple
 def np_normalize_axis_tuple(axis, ndim, argname=None, allow_duplicate=False):
     # Optimization to speed-up the most common cases.

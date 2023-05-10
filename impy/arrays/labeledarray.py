@@ -337,6 +337,7 @@ class LabeledArray(MetaArray):
     def _set_info(self, other: Self, new_axes: Any = MetaArray._INHERIT):
         super()._set_info(other, new_axes)
         self._inherit_covariates(other)
+        return self
     
     def _inherit_covariates(self, other: Self):
         if isinstance(other, LabeledArray):

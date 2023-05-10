@@ -747,7 +747,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         except ImageAxesError:
             self.axes = None
         
-        return None
+        return self
     
     def _process_output(self, func, args, kwargs):
         # find the largest MetaArray. Largest because of broadcasting.
