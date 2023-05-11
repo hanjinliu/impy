@@ -219,7 +219,7 @@ class ImgArray(LabeledArray):
     @same_dtype(asfloat=True)
     def rescale(
         self,
-        scale: float = 1/16,
+        scale: nDFloat = 1/16,
         *,
         order: int = None,
         mode: PaddingMode = "reflect",
@@ -227,31 +227,45 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
     ) -> ImgArray:
         """
-        Rescale image.
+        Rescale image by applying the diagonal component of Affine matrix.
 
         Parameters
         ----------
         scale : float, optional
-            scale of the new image.
+            Relative scale of the new image. scale 1/2 means that the shape of
+            the output image will be (N/2, ...).
         {order}{mode}{cval}{dims}
         
         Returns
         -------
         ImgArray
             Rescaled image.
-        """        
-        outshape = switch_slice(
-            dims, self.axes, ifin=np.array(self.shape)*scale, ifnot=self.shape
-        )
-        gb = np.prod(outshape) * 4/1e9
+        """
+        scale_is_seq = hasattr(scale, "__iter__")
+        
+        # Check if output is too large.
+        gb = -1
+        if not scale_is_seq and scale > 1:
+            gb = np.prod(self.shape) * (scale ** len(dims)) / 1e9
+        elif scale_is_seq and np.prod(list(scale)) > 1:
+            gb = np.prod(self.shape) * np.prod(list(scale)) / 1e9
         if gb > Const["MAX_GB"]:
-            raise MemoryError(f"Too large: {gb} GB")
-        scale_ = [scale if a in dims else 1 for a in self.axes]
+            raise MemoryError(f"Output image is too large: {gb} GB")
+        
+        if scale_is_seq:
+            scale = list(scale)
+            if len(scale) != len(dims):
+                raise ValueError(
+                    "scale must have the same length as the spatial dimensions."
+                )
+            it = iter(scale)
+            scale_ = [next(it) if a in dims else 1 for a in self.axes]
+        else:
+            scale_ = [scale if a in dims else 1 for a in self.axes]
         out = sktrans.rescale(
             self.value, scale_, order=order, mode=mode, cval=cval, anti_aliasing=False
         )
-        out: ImgArray = out.view(self.__class__)
-        out._set_info(self)
+        out = out.view(self.__class__)._set_info(self)
         out.axes = self.axes.copy()
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
