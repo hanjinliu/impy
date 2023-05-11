@@ -1,30 +1,31 @@
-from setuptools import setup, find_packages
+import sys
 
-with open("impy/__init__.py", encoding="utf-8") as f:
-    line = next(iter(f))
-    VERSION = line.strip().split()[-1][1:-1]
-      
-with open("README.md", "r") as f:
-    readme = f.read()
-    
+sys.stderr.write(
+    """
+    ===============================================================
+    impy does not support `python setup.py install`. Please use
+
+        $ python -m pip install .
+
+    instead.
+    ===============================================================
+    """
+)
+sys.exit(1)
+
 setup(
     name="impy-array",
-    version=VERSION,
-    description="Speed up coding/extending image analysis in Python.",
     author="Hanjin Liu",
     author_email="liuhanjin-sc@g.ecc.u-tokyo.ac.jp",
-    long_description=readme,
     long_description_content_type="text/markdown",
     license="BSD 3-Clause",
     download_url="https://github.com/hanjinliu/impy",
-    packages=find_packages(exclude=["docs", "tests"]),
     install_requires=[
         "numpy>=1.22",
         "scikit-image>=0.20.0",
         "pandas>=1.3",
         "dask>=2021.6.0",
         "napari>=0.4.17",
-        "qtpy>=1.10.0",
     ],
     python_requires=">=3.8",
     entry_points={"console_scripts": ["impy=impy.__main__:main",],},

@@ -92,7 +92,7 @@ and it's ready for batch processing!
 img.imfilter(param=1.0)
 ```
 
-### Commaind line usage
+### Command line usage
 
 `impy` also supports command line based image analysis. All method of `ImgArray` is available
 from commad line, such as
@@ -117,10 +117,4 @@ impy path/to/image.tif -i
 ```
 ```python
 thr = img.gaussian_filter().threshold()
-```
-
-or to `napari`
-
-```
-impy path/to/image.tif -n
 ```
