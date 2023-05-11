@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterable, NamedTuple, Sequence, TYPE_CHECKING
+import math
 import numpy as np
 
 from ._skimage import sktrans
@@ -307,8 +308,8 @@ def iradon(
     # Reconstruct image by interpolation
     reconstructed = np.zeros(output_shape, dtype=dtype)
     xpr, ypr = np.indices(output_shape)
-    xpr -= output_shape[0] // 2
-    ypr -= output_shape[1] // 2
+    xpr = xpr - output_shape[0] // 2
+    ypr = ypr - output_shape[1] // 2
     
     from scipy.interpolate import interp1d
     x = np.arange(img_shape) - img_shape // 2  # NOTE: use CPU!
@@ -322,12 +323,13 @@ def iradon(
 # This function is almost ported from `skimage.transform`.
 def get_fourier_filter(size: int, filter_name: str):
     n = xp.concatenate(
-        [xp.arange(1, size / 2 + 1, 2, dtype=int),
-         xp.arange(size / 2 - 1, 0, -2, dtype=int)]
+        [xp.arange(1, size // 2 + 1, 2, dtype=np.float32),
+         xp.arange(size // 2 - 1, 0, -2, dtype=np.float32)]
     )
     f = xp.zeros(size)
     f[0] = 0.25
     f[1::2] = -1 / (np.pi * n[:len(f[1::2])]) ** 2
+
     fourier_filter = 2 * xp.real(xp.fft.fft(f))  # ramp filter
     if filter_name == "ramp":
         pass

@@ -13,25 +13,24 @@ from .specials import PropArray
 from ._utils._skimage import skexp, skfeat, skfil, skimage, skmes, skres, skseg, sktrans
 from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
-from ..utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
-from ..utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
-from ..utils.gauss import GaussianBackground, GaussianParticle
-from ..utils.misc import check_nd, largest_zeros
-from ..utils.slicer import solve_slicer
+from impy.utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
+from impy.utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
+from impy.utils.gauss import GaussianBackground, GaussianParticle
+from impy.utils.misc import check_nd, largest_zeros
+from impy.utils.slicer import solve_slicer
 
-from ..collections import DataDict
-from ..axes import AxisLike, slicer, Axes, Axis
-from .._types import nDInt, nDFloat, Dims, Coords, AxesTargetedSlicer, PaddingMode
-from .._const import Const
-from ..array_api import xp, cupy_dispatcher
+from impy.collections import DataDict
+from impy.axes import AxisLike, slicer, Axes, Axis
+from impy._types import nDInt, nDFloat, Dims, Coords, AxesTargetedSlicer, PaddingMode
+from impy._const import Const
+from impy.array_api import xp, cupy_dispatcher
 
 if TYPE_CHECKING:
     from ..frame import MarkerFrame
     from typing import Literal, Union
-    ThreasholdMethod = Union[
-        Literal["isodata"], Literal["li"], Literal["local"], Literal["mean"], Literal["min"],
-        Literal["minimum"], Literal["niblack"], Literal["otsu"], Literal["sauvola"], 
-        Literal["triangle"], Literal["yen"]
+    ThreasholdMethod = Literal[
+        "isodata", "li", "local", "mean", "min", "minimum", "niblack", "otsu", "sauvola",
+        "triangle", "yen"
     ]
     FftShape = Literal["same", "square"]
 
@@ -303,7 +302,7 @@ class ImgArray(LabeledArray):
         )
         
         reshaped_img = img_to_reshape.reshape(shape)
-        axes_to_reduce = tuple(i*2+1 for i in range(self.ndim))
+        axes_to_reduce = tuple(i * 2 + 1 for i in range(self.ndim))
         out: np.ndarray = binfunc(reshaped_img, axis=axes_to_reduce)
         out: ImgArray = out.view(self.__class__)
         out._set_info(self)
@@ -318,7 +317,7 @@ class ImgArray(LabeledArray):
     def radial_profile(
         self,
         nbin: int = 32,
-        center: Iterable[float] = None,
+        center: Iterable[float] | None = None,
         r_max: float = None, 
         *, 
         method: str = "mean",
@@ -3111,8 +3110,7 @@ class ImgArray(LabeledArray):
         if out.ndim == 3:
             out = np.moveaxis(out, 0, 1)
         out = out[::-1]
-        out._set_info(self, new_axes)
-        return out
+        return out._set_info(self, new_axes)
 
     @check_input_and_output
     def threshold(
