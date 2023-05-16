@@ -7,7 +7,7 @@ name = "impy-array"
 dynamic = ["version"]
 description = "Speed up coding/extending image analysis in Python."
 readme = "README.md"
-license = "BSD 3-Clause"
+license = { file = "LICENSE" }
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
