@@ -1577,7 +1577,7 @@ def iter_slice(shape, iteraxes: str, all_axes: str, exclude: str = ""):
 @lru_cache
 def _get_fft_func(resource) -> Callable[[DaskArray], DaskArray]:
     """Get the scipy FFT function for dask."""
-    from array_api import scipy_fft
+    from impy.array_api import scipy_fft
     from dask import array as da
     
     return da.fft.fft_wrap(scipy_fft.fftn)
@@ -1585,7 +1585,7 @@ def _get_fft_func(resource) -> Callable[[DaskArray], DaskArray]:
 @lru_cache
 def _get_ifft_func(resource) -> Callable[[DaskArray], DaskArray]:
     """Get the scipy IFFT function for dask."""
-    from array_api import scipy_fft
+    from impy.array_api import scipy_fft
     from dask import array as da
     
     return da.fft.fft_wrap(scipy_fft.ifftn)
