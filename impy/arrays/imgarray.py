@@ -9,6 +9,7 @@ from .labeledarray import LabeledArray
 from .label import Label
 from .phasearray import PhaseArray
 from .specials import PropArray
+from .tiled import TiledAccessor
 
 from ._utils._skimage import skexp, skfeat, skfil, skimage, skmes, skres, skseg, sktrans
 from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
@@ -27,7 +28,7 @@ from impy.array_api import xp, cupy_dispatcher
 
 if TYPE_CHECKING:
     from ..frame import MarkerFrame
-    from typing import Literal, Union
+    from typing import Literal
     ThreasholdMethod = Literal[
         "isodata", "li", "local", "mean", "min", "minimum", "niblack", "otsu", "sauvola",
         "triangle", "yen"
@@ -50,6 +51,8 @@ class ImgArray(LabeledArray):
     source : Path
         Source file of the image.
     """
+    tiled = TiledAccessor()
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -796,67 +799,21 @@ class ImgArray(LabeledArray):
         ker = ker_all[tuple(sl)]
         return self.convolve(ker)
     
-    @_docs.write_docs
-    @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    @check_input_and_output
     def tiled_lowpass_filter(
         self,
         cutoff: float = 0.2,
         chunks = "auto",
         order: int = 2, 
         overlap: int = 16,
-        *,
-        dims: Dims = None,
-        update: bool = False
+        **kwargs,
     ) -> ImgArray:
-        """
-        Tile-by-tile Butterworth low-pass filter. This method is an approximation of the standard
-        low-pass filter, which would be useful when the image is large.
-
-        Parameters
-        ----------
-        cutoff : float or array-like, default is 0.2
-            Cutoff frequency.
-        chunks : str or sequence of int
-            Chunk size of each lowpass filter task.
-        order : float, default is 2
-            Steepness of cutoff.
-        overlap : int, default is 16
-            Overlapping pixels at the edges of tiles.
-        {dims}{update}
-
-        Returns
-        -------
-        ImgArray
-            Filtered image.
-        """        
-        if dims != self.axes:
-            raise NotImplementedError("batch processing not implemented yet.")
-        from ._utils._skimage import _get_ND_butterworth_filter
-        from dask import array as da
-
-        ndims = len(dims)
-        cutoff = check_nd(cutoff, ndims)
-        if all((c >= 0.5*np.sqrt(ndims) or c <= 0) for c in cutoff):
-            return self
-        
-        depth = switch_slice(dims, self.axes, overlap, 0)
-        
-        def func(arr):
-            arr = xp.asarray(arr)
-            shape = arr.shape
-            weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = xp.asarray(weight) * xp.fft.rfftn(arr)
-            ift = xp.fft.irfftn(ft, s=shape)
-            return xp.asnumpy(ift)
-        
-        input = da.from_array(self.value, chunks=chunks)
-        out = da.map_overlap(
-            func, input, depth=depth, boundary="reflect", dtype=self.dtype
-        ).compute()
-        
-        return out
+        warnings.warn(
+            "`tiled_lowpass_filter` is deprecated. Please use "
+            f"`img.tiled({chunks=}, {overlap=}).lowpass_filter({cutoff=}, {order=})` instead.",
+            DeprecationWarning,
+        )
+        return self.tiled(chunks, overlap).lowpass_filter(cutoff, order)
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -4415,28 +4372,14 @@ class ImgArray(LabeledArray):
         eps: float = 1e-5,
         chunks = "auto",
         overlap: int = 32,
-        *, 
-        dims: Dims = None, 
-        update: bool = False
+        **kwargs,
     ) -> ImgArray:
-        from dask import array as da
-
-        input = da.from_array(self.value, chunks=chunks)
-        depth = switch_slice(dims, self.axes, overlap, 0)
-        scale = tuple(self.scale[axis] for axis in dims)
-        
-        def func(arr: np.ndarray):
-            psf_ft, psf_ft_conj = _deconv.check_psf(arr.shape, scale, psf)
-            return _deconv.richardson_lucy(arr, psf_ft, psf_ft_conj, niter, eps)
-            
-        out = da.map_overlap(
-            func, 
-            input,
-            depth=depth,
-            boundary="reflect",
-            dtype=self.dtype,
-        ).compute()
-        return out
+        warnings.warn(
+            "`tiled_lucy` is deprecated Please use "
+            f"`img.tiled({chunks=}, {overlap=}).lucy(...)` instead.",
+            DeprecationWarning,
+        )
+        return self.tiled(chunks, overlap).lucy(psf, niter, eps)
 
 def _check_coordinates(coords, img: ImgArray, dims: Dims = None):
     from impy.frame import MarkerFrame

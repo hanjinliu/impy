@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 @dims_to_spatial_axes
 def gauss_sm(
-    self,
+    self: ImgArray,
     coords = None,
     radius = 4,
     sigma = 1.5, 
@@ -130,7 +130,7 @@ def gauss_sm(
 @dims_to_spatial_axes
 @check_input_and_output
 def corner_peaks(
-    self,
+    self: ImgArray,
     *, 
     min_distance:int = 1,
     percentile: float | None = None, 
@@ -239,7 +239,7 @@ def find_corners(
     return out
 
 @check_input_and_output
-def track_template(self, template:np.ndarray, bg=None, along: AxisLike = "t") -> MarkerFrame:
+def track_template(self: ImgArray, template:np.ndarray, bg=None, along: AxisLike = "t") -> MarkerFrame:
     """
     Tracking using template matching. For every time frame, matched region is interpreted as a
     new template and is used for the next template. To avoid slight shifts accumulating to the
@@ -300,6 +300,7 @@ def track_template(self, template:np.ndarray, bg=None, along: AxisLike = "t") ->
     pos = MarkerFrame(pos, columns=along+dims)
     
     return pos
+
 
 def _translate_image(img, shift, order=1, cval=0):
     ndim = len(shift)
