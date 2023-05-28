@@ -1638,21 +1638,29 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def gaussian_filter(self, sigma: nDFloat = 1, *, dims: Dims = None, update: bool = False) -> ImgArray:
+    def gaussian_filter(
+        self,
+        sigma: nDFloat = 1,
+        *,
+        fourier: bool = False,
+        dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
         
         Parameters
         ----------
-        {sigma}{dims}{update}
+        {sigma}{fourier}{dims}{update}
             
         Returns
         -------
         ImgArray
             Filtered image.
         """
+        filter_func = _filters.gaussian_filter_fourier if fourier else _filters.gaussian_filter
         return self._apply_dask(
-            _filters.gaussian_filter, 
+            filter_func, 
             c_axes=complement_axes(dims, self.axes), 
             args=(sigma,), 
             dtype=np.float32
@@ -1662,7 +1670,14 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def dog_filter(self, low_sigma: nDFloat = 1, high_sigma: nDFloat = None, *, dims: Dims = None) -> ImgArray:
+    def dog_filter(
+        self,
+        low_sigma: nDFloat = 1,
+        high_sigma: nDFloat = None,
+        *,
+        fourier: bool = False,
+        dims: Dims = None,
+    ) -> ImgArray:
         """
         Run Difference of Gaussian filter. This function does not support `update`
         argument because intensity can be negative.
@@ -1673,7 +1688,7 @@ class ImgArray(LabeledArray):
             lower standard deviation(s) of Gaussian.
         high_sigma : scalar or array of scalars, default is x1.6 of low_sigma.
             higher standard deviation(s) of Gaussian.
-        {dims}
+        {fourier}{dims}
             
         Returns
         -------
@@ -1683,9 +1698,9 @@ class ImgArray(LabeledArray):
         
         low_sigma = np.array(check_nd(low_sigma, len(dims)))
         high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
-        
+        filter_func = _filters.dog_filter_fourier if fourier else _filters.dog_filter
         return self.as_float()._apply_dask(
-            _filters.dog_filter, 
+            filter_func, 
             c_axes=complement_axes(dims, self.axes),
             args=(low_sigma, high_sigma)
         )

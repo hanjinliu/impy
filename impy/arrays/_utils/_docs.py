@@ -10,13 +10,21 @@ shared_docs = dict(
             For instance, ``dims="yx"`` means axes ``"y"`` and ``"x"`` are spatial dimensions and function is applied to other axes, say, ``"t"`` and/or ``"c"``. ``dims=3`` is equivalent to ``dims="zyx"``.
             """
     ,
+    
+    fourier = \
+        """
+        fourier : bool, default is False
+            Whether to run the convolution in Fourier space. This option is useful when the kernel or the image is large.
+            Note that discrete Fourier transform assumes that the image is periodic, so that if intensities of the input image are not consecutive at img[0] and img[-1], you may get some artifacts at the boundary.
+        """
+    ,
         
     update = \
         """
         update : bool, default is False
             If True, input itself is updated to the output.
             """
-        ,
+    ,
         
     radius = \
         """
@@ -39,7 +47,7 @@ shared_docs = dict(
                      [0, 1, 1, 0]]
             
             """
-        ,
+    ,
         
     sigma = \
         """
@@ -47,7 +55,7 @@ shared_docs = dict(
             Standard deviation(s) of Gaussian filter. 
             If a scalar value is given, same standard deviation will applied to all the spatial dimensions.
             """
-        ,
+    ,
         
     order = \
         """
@@ -55,7 +63,7 @@ shared_docs = dict(
             Spline interpolation order. 
             For more details see `here <https://scikit-image.org/docs/dev/api/skimage.transform.html#skimage.transform.warp>`_.
             """
-        ,
+    ,
         
     squeeze = \
         """

@@ -2,37 +2,39 @@ from typing import Callable, TYPE_CHECKING
 import numpy as np
 from ._skimage import *
 from ._linalg import hessian_eigval
-from ...array_api import xp, cupy_dispatcher
+from impy.array_api import xp, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
 
                
 __all__ = ["binary_erosion",
-           "erosion"
-           "binary_dilation",
-           "dilation",
-           "binary_opening",
-           "opening",
-           "binary_closing",
-           "closing",
-           "gaussian_filter", 
-           "median_filter",
-           "convolve",
-           "white_tophat",
-           "gaussian_laplace",
-           "spline_filter",
-           "kalman_filter",
-           "fill_hole",
-           "mean_filter",
-           "phase_mean_filter",
-           "std_filter",
-           "coef_filter",
-           "dog_filter",
-           "doh_filter",
-           "gabor_filter",
-           "skeletonize",
-           "population",
-           "ncc_filter",
-           ]
+    "erosion"
+    "binary_dilation",
+    "dilation",
+    "binary_opening",
+    "opening",
+    "binary_closing",
+    "closing",
+    "gaussian_filter", 
+    "gaussian_filter_fourier",
+    "median_filter",
+    "convolve",
+    "white_tophat",
+    "gaussian_laplace",
+    "spline_filter",
+    "kalman_filter",
+    "fill_hole",
+    "mean_filter",
+    "phase_mean_filter",
+    "std_filter",
+    "coef_filter",
+    "dog_filter",
+    "dog_filter_fourier",
+    "doh_filter",
+    "gabor_filter",
+    "skeletonize",
+    "population",
+    "ncc_filter",
+]
 
 def get_func(function_name) -> Callable[..., np.ndarray]:
     def func(*args, **kwargs):
@@ -55,6 +57,7 @@ spline_filter = get_func("spline_filter")
 convolve = get_func("convolve")
 white_tophat = get_func("white_tophat")
 gaussian_laplace = get_func("gaussian_laplace")
+_fourier_gaussian = get_func("fourier_gaussian")
 
 if TYPE_CHECKING:
     binary_erosion = scipy_ndi.binary_erosion
@@ -71,6 +74,7 @@ if TYPE_CHECKING:
     convolve = scipy_ndi.convolve
     white_tophat = scipy_ndi.white_tophat
     gaussian_laplace = scipy_ndi.gaussian_laplace
+    _fourier_gaussian = scipy_ndi.fourier_gaussian
 
 def kalman_filter(img_stack, gain, noise_var):
     # data is 3D or 4D
@@ -87,6 +91,11 @@ def kalman_filter(img_stack, gain, noise_var):
             predicted_var *= 1 - kalman_gain
         out[t] = estimate
     return out
+
+def gaussian_filter_fourier(img: np.ndarray, sigma: float):
+    img_ft = xp.fft.fftn(img)
+    out_ft = _fourier_gaussian(img_ft, sigma)
+    return xp.fft.ifftn(out_ft).real
 
 def fill_hole(img: np.ndarray, mask: np.ndarray):
     from skimage.morphology import reconstruction
@@ -121,6 +130,12 @@ def dog_filter(img, low_sigma, high_sigma, mode="reflect", cval=0.0):
     filt_l = gaussian_filter(img, low_sigma, mode=mode, cval=cval)
     filt_h = gaussian_filter(img, high_sigma, mode=mode, cval=cval)
     return filt_l - filt_h
+
+def dog_filter_fourier(img: np.ndarray, low_sigma: float, high_sigma: float):
+    img_ft = xp.fft.fftn(img)
+    filt_l = _fourier_gaussian(img_ft, low_sigma)
+    filt_h = _fourier_gaussian(img_ft, high_sigma)
+    return xp.fft.ifftn(filt_l).real - xp.fft.ifftn(filt_h).real
 
 def doh_filter(img, sigma, pxsize):
     eigval = hessian_eigval(img, sigma, pxsize)
