@@ -92,9 +92,9 @@ def kalman_filter(img_stack, gain, noise_var):
         out[t] = estimate
     return out
 
-def gaussian_filter_fourier(img: np.ndarray, sigma: float):
-    img_ft = xp.fft.fftn(img)
-    out_ft = _fourier_gaussian(img_ft, sigma)
+def gaussian_filter_fourier(img, sigma: float):
+    img_ft = xp.fft.fftn(xp.asarray(img))
+    out_ft = xp.ndi.fourier_gaussian(img_ft, sigma)
     return xp.fft.ifftn(out_ft).real
 
 def fill_hole(img: np.ndarray, mask: np.ndarray):
@@ -131,10 +131,10 @@ def dog_filter(img, low_sigma, high_sigma, mode="reflect", cval=0.0):
     filt_h = gaussian_filter(img, high_sigma, mode=mode, cval=cval)
     return filt_l - filt_h
 
-def dog_filter_fourier(img: np.ndarray, low_sigma: float, high_sigma: float):
-    img_ft = xp.fft.fftn(img)
-    filt_l = _fourier_gaussian(img_ft, low_sigma)
-    filt_h = _fourier_gaussian(img_ft, high_sigma)
+def dog_filter_fourier(img, low_sigma: float, high_sigma: float):
+    img_ft = xp.fft.fftn(xp.asarray(img))
+    filt_l = xp.ndi.fourier_gaussian(img_ft, low_sigma)
+    filt_h = xp.ndi.fourier_gaussian(img_ft, high_sigma)
     return xp.fft.ifftn(filt_l - filt_h).real
 
 def doh_filter(img, sigma, pxsize):

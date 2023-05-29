@@ -55,7 +55,8 @@ class TiledImage:
 
     @property
     def chunks(self) -> tuple[int, ...]:
-        return self.chunks
+        """Chunksize of the tiled image."""
+        return self._chunks
 
     @property
     def depth(self) -> tuple[int, ...]:
@@ -82,15 +83,18 @@ class TiledImage:
     def _map_overlap(self, func: Callable[[np.ndarray], np.ndarray], *args, **kwargs) -> np.ndarray:
         img = self._deref_image()
         input = da.from_array(img.value, chunks=self._chunks)
-        out: np.ndarray = da.map_overlap(
-            func, 
-            input,
-            *args,
-            depth=self.depth,
-            boundary=self.boundary,
-            dtype=img.dtype,
-            **kwargs,
-        ).compute()
+        out: np.ndarray = xp.asnumpy(
+            da.map_overlap(
+                func, 
+                input,
+                *args,
+                depth=self.depth,
+                boundary=self.boundary,
+                dtype=img.dtype,
+                **kwargs,
+            ).compute()
+        )
+        
         return out.view(img.__class__)._set_info(img, img.axes)
 
     def lowpass_filter(self, cutoff: float = 0.2, order: int = 2) -> ImgArray:
