@@ -135,7 +135,7 @@ def dog_filter_fourier(img: np.ndarray, low_sigma: float, high_sigma: float):
     img_ft = xp.fft.fftn(img)
     filt_l = _fourier_gaussian(img_ft, low_sigma)
     filt_h = _fourier_gaussian(img_ft, high_sigma)
-    return xp.fft.ifftn(filt_l).real - xp.fft.ifftn(filt_h).real
+    return xp.fft.ifftn(filt_l - filt_h).real
 
 def doh_filter(img, sigma, pxsize):
     eigval = hessian_eigval(img, sigma, pxsize)

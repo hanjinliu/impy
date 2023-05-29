@@ -1031,7 +1031,6 @@ class LazyImgArray(AxesMixin):
         
         return out
     
-    @_docs.copy_docs(ImgArray.tiled_lowpass_filter)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
     def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
