@@ -111,8 +111,9 @@ class TiledImage:
             
         return self._map_overlap(func)
     
-    def gaussian_filter(self, sigma: float, fourier: bool = False) -> ImgArray:
-        return self._map_overlap(_filters.gaussian_filter, sigma=sigma, fourier=fourier)
+    def gaussian_filter(self, sigma: float = 1.0, fourier: bool = False) -> ImgArray:
+        filter_func = _filters.gaussian_filter_fourier if fourier else _filters.gaussian_filter
+        return self._map_overlap(filter_func, sigma=sigma)
     
     def dog_filter(
         self,

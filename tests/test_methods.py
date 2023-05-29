@@ -76,13 +76,13 @@ def test_sm(method):
 
 
 def test_binning():
-    np.random.seed(1111)
+    rng = ip.random.default_rng(1111)
     
-    img = ip.random.normal(size=(120, 120, 120), axes="zyx")
+    img = rng.normal(size=(120, 120, 120), axes="zyx")
     assert img.binning(4).shape == (30, 30, 30)
     assert img.binning(4, dims="yx").shape == (120, 30, 30)
     
-    img = ip.random.normal(size=(120, 122, 123), axes="zyx")
+    img = rng.normal(size=(120, 122, 123), axes="zyx")
     with pytest.raises(ValueError):
         img.binning(4)
     imgb = img.binning(4, check_edges=False)
@@ -92,10 +92,13 @@ def test_binning():
     np.random.seed()
 
 def test_tiled():
-    np.random.seed(1111)
+    rng = ip.random.default_rng(1111)
     
-    img = ip.random.normal(size=(120, 120, 120), axes="zyx")
-    img.tiled_lowpass_filter(chunks=(40, 50, 50))
+    img = rng.normal(size=(120, 120, 120), axes="zyx")
+    img.tiled(chunks=(40, 50, 50)).lowpass_filter()
+    img.tiled(chunks=(40, 50, 50)).gaussian_filter(sigma=1.0)
+    img.tiled(chunks=(40, 50, 50)).dog_filter(low_sigma=1.0)
+    img.tiled(chunks=(40, 50, 50)).log_filter(sigma=1.0)
 
 @pytest.mark.parametrize("order", [1, 3])
 def test_drift_correction(order: int):
