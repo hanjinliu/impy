@@ -1,7 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from typing import Callable, Literal, TypeVar
-import functools
+from typing import Literal
 from .arrays import ImgArray, LazyImgArray
 from .arrays.bases import MetaArray
 from .array_api import xp
@@ -139,7 +138,7 @@ class ImageGenerator:
         arr = self._rng.standard_normal(size=size, dtype=dtype)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(xp.asnumpy(arr), axes=axes, name=name)
     
     def standard_exponential(
         self,
@@ -156,7 +155,7 @@ class ImageGenerator:
         arr = self._rng.standard_exponential(size=size, dtype=dtype, method=method)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(xp.asnumpy(arr), axes=axes, name=name)
     
     def random(
         self,
@@ -172,7 +171,7 @@ class ImageGenerator:
         arr = self._rng.random(size=size, dtype=dtype)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(xp.asnumpy(arr), axes=axes, name=name)
     
     def normal(
         self,
@@ -189,7 +188,7 @@ class ImageGenerator:
         arr = self._rng.normal(loc=loc, scale=scale, size=size)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(xp.asnumpy(arr), axes=axes, name=name)
 
     def poisson(
         self,
@@ -205,7 +204,7 @@ class ImageGenerator:
         arr = self._rng.poisson(lam=lam, size=size)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(xp.asnumpy(arr), axes=axes, name=name)
     
     def random_uint8(
         self,

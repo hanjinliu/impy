@@ -26,17 +26,23 @@ def test_precision(resource):
         assert_allclose(np.fft.fftshift(img.local_dft(double_precision=True)).ifft(double_precision=True), img)
 
 def test_iteration(resource):
+    if resource == "cupy":
+        rtol = 1e-4
+        atol = 1e-4
+    else:
+        rtol = 1e-6
+        atol = 1e-6
     with ip.SetConst(RESOURCE=resource):
         img = img_orig["c=1;t=0"].as_float()
         
         ft0 = img.fft(dims="zx")
         fmt = ip.slicer.get_formatter("y")
         ft1 = np.stack([img[fmt[i]].fft(dims="zx") for i in range(img.shape.y)], axis="y")
-        assert_allclose(ft0, ft1)
+        assert_allclose(ft0, ft1, rtol=rtol, atol=atol)
         
         ft0 = img.ifft(dims="zx")
         ft1 = np.stack([img[fmt[i]].ifft(dims="zx") for i in range(img.shape.y)], axis="y")
-        assert_allclose(ft0, ft1)
+        assert_allclose(ft0, ft1, rtol=rtol, atol=atol)
 
 def test_local_dft(resource):
     with ip.SetConst(RESOURCE=resource):

@@ -54,11 +54,18 @@ img_orig = ip.imread(path)
 def test_filters(f, dtype, resource):
     if resource == "cupy" and f in ("entropy_filter", "enhance_contrast",):
         # Not implemented for GPU yet
-        return
+        pytest.skip(reason="Not implemented for GPU yet")
     with ip.SetConst(RESOURCE=resource):
         img = img_orig["c=1;z=2"].astype(dtype)
         assert img.axes == "tyx"
         getattr(img, f)()
+
+def test_fourier_filter(resource):
+    with ip.SetConst(RESOURCE=resource):
+        img = img_orig["c=1;z=2"]
+        assert img.axes == "tyx"
+        img.gaussian_filter(fourier=True)
+        img.dog_filter(fourier=True)
 
 @pytest.mark.parametrize("f", binary_filters)
 def test_binary_filters(f, resource):
@@ -76,13 +83,13 @@ def test_sm(method):
 
 
 def test_binning():
-    np.random.seed(1111)
+    rng = ip.random.default_rng(1111)
     
-    img = ip.random.normal(size=(120, 120, 120), axes="zyx")
+    img = rng.normal(size=(120, 120, 120), axes="zyx")
     assert img.binning(4).shape == (30, 30, 30)
     assert img.binning(4, dims="yx").shape == (120, 30, 30)
     
-    img = ip.random.normal(size=(120, 122, 123), axes="zyx")
+    img = rng.normal(size=(120, 122, 123), axes="zyx")
     with pytest.raises(ValueError):
         img.binning(4)
     imgb = img.binning(4, check_edges=False)
@@ -91,11 +98,17 @@ def test_binning():
     
     np.random.seed()
 
-def test_tiled():
-    np.random.seed(1111)
-    
-    img = ip.random.normal(size=(120, 120, 120), axes="zyx")
-    img.tiled_lowpass_filter(chunks=(40, 50, 50))
+def test_tiled(resource):
+    with ip.SetConst(RESOURCE=resource):
+        rng = ip.random.default_rng(1111)
+        
+        img = rng.random(size=(120, 120, 120), axes="zyx")
+        img.tiled(chunks=(40, 50, 50)).lowpass_filter()
+        img.tiled(chunks=(40, 50, 50)).gaussian_filter(sigma=1.0)
+        img.tiled(chunks=(40, 50, 50)).gaussian_filter(sigma=1.0, fourier=True)
+        img.tiled(chunks=(40, 50, 50)).dog_filter(low_sigma=1.0)
+        img.tiled(chunks=(40, 50, 50)).dog_filter(low_sigma=1.0, fourier=True)
+        img.tiled(chunks=(40, 50, 50)).log_filter(sigma=1.0)
 
 @pytest.mark.parametrize("order", [1, 3])
 def test_drift_correction(order: int):
