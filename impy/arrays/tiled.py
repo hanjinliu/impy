@@ -131,7 +131,7 @@ class TiledImage:
         return self._map_overlap(filter_func, low_sigma=low_sigma, high_sigma=high_sigma)
 
     def log_filter(self, sigma: float) -> ImgArray:
-        return self._map_overlap(_filters.gaussian_laplace, sigma=sigma)
+        return -self._map_overlap(_filters.gaussian_laplace, sigma=sigma)
 
 def _lowpass(arr, cutoff, order=2):
     arr = xp.asarray(arr)
