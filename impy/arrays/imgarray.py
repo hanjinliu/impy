@@ -2926,7 +2926,9 @@ class ImgArray(LabeledArray):
         self,
         shape: int | Iterable[int] | FftShape = "same",
         norm: bool = False, 
-        zero_norm: bool = False, *,
+        zero_norm: bool = False, 
+        *,
+        shift: bool = True,
         double_precision: bool = False,
         dims: Dims = None
     ) -> ImgArray:
@@ -2947,6 +2949,8 @@ class ImgArray(LabeledArray):
         norm : bool, default is False
             If True, maximum value of power spectra is adjusted to 1.
         {double_precision}
+        shift : bool, default is True
+            If True, call ``np.fft.fftshift`` at the first.
         {dims}
 
         Returns
@@ -2958,7 +2962,7 @@ class ImgArray(LabeledArray):
         --------
         local_power_spectra
         """        
-        freq = self.fft(dims=dims, shape=shape, double_precision=double_precision)
+        freq = self.fft(dims=dims, shape=shape, shift=shift, double_precision=double_precision)
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()

@@ -28,7 +28,7 @@ from impy._const import Const
 
 if TYPE_CHECKING:
     from dask.array.core import Array as DaskArray
-
+    from impy.axes import AxesTuple
 
 class LazyImgArray(AxesMixin):
     additional_props = ["_source", "_metadata", "_name"]
@@ -89,7 +89,7 @@ class LazyImgArray(AxesMixin):
         return self.value.ndim
     
     @property
-    def shape(self):
+    def shape(self) -> AxesTuple[int]:
         """Shape of the array."""
         return self.axes.tuple(self.value.shape)
         
@@ -109,7 +109,7 @@ class LazyImgArray(AxesMixin):
         return self.value.itemsize
     
     @property
-    def chunksize(self):
+    def chunksize(self) -> AxesTuple[int]:
         """Chunk size of the array."""
         return self.axes.tuple(self.value.chunksize)
         
