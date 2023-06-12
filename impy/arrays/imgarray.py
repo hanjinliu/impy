@@ -4017,7 +4017,6 @@ class ImgArray(LabeledArray):
 
     @_docs.write_docs
     @dims_to_spatial_axes
-    @check_input_and_output
     def estimate_sigma(self, *, squeeze: bool = True, dims: Dims = None) -> PropArray | float:
         """
         Wavelet-based estimation of Gaussian noise.
@@ -4049,7 +4048,37 @@ class ImgArray(LabeledArray):
             )
             out._set_info(self, new_axes=c_axes)
         return out       
-        
+
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    def center_of_mass(self, dims: Dims = None) -> PropArray:
+        """
+        Calculate the center of mass of the image.
+
+        Parameters
+        ----------
+        {dims}
+
+        Returns
+        -------
+        PropArray
+            Center of mass. Axes will be the input axes minus ``dims``, plus a new axis
+            ``dim`` at the first position, which represents the dimensions of the
+            results.
+        """        
+        c_axes = complement_axes(dims, self.axes)
+        out_shape = (len(dims), ) + self.sizesof(c_axes)
+        axis = Axis("dim")
+        axis.labels = dims
+        out_axes = [axis] + c_axes
+        out = np.empty(out_shape, dtype=np.float32)
+        for sl, img in self.iter(c_axes, israw=True, exclude=dims):
+            out[(slice(None),) + sl] = ndi.center_of_mass(img)
+        out = PropArray(
+            out, dtype=np.float32, name=self.name, axes=out_axes, propname="center_of_mass"
+        )
+        out._set_info(self, new_axes=out_axes)
+        return out
     
     @dims_to_spatial_axes
     @check_input_and_output
