@@ -531,7 +531,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         self,
         axis=None,
         out: None = None,
-        keepdims: bool = _NoValue,
+        keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
     ):
@@ -542,7 +542,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         self,
         axis=None,
         out: None = None,
-        keepdims: bool = _NoValue,
+        keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
     ):
@@ -554,7 +554,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         axis=None,
         dtype: DTypeLike = None,
         out: None = None,
-        keepdims: bool = _NoValue,
+        keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
     ):
@@ -566,7 +566,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         axis=None,
         dtype: DTypeLike = None,
         out: None = None,
-        keepdims: bool = _NoValue,
+        keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
     ):
@@ -579,7 +579,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         dtype: DTypeLike = None,
         out: None = None,
         ddof: int = 0,
-        keepdims: bool = _NoValue,
+        keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
     ):
@@ -771,7 +771,7 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         This is called in __array_ufunc__(). Unlike _set_info(), keyword `axis` must be
         considered because it changes `ndim`.
         """
-        if "axis" in kwargs and "keepdims" not in kwargs:
+        if "axis" in kwargs and not kwargs.get("keepdims", False):
             new_axes = obj.axes.drop(kwargs["axis"])
         else:
             new_axes = self._INHERIT
