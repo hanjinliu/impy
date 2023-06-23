@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Callable
 import numpy as np
 
-from .labeledarray import LabeledArray
-from ..utils.axesop import find_first_appeared, complement_axes
-from ..axes import slicer
+from impy.arrays.labeledarray import LabeledArray
+from impy.utils.axesop import find_first_appeared, complement_axes
+from impy.axes import slicer
 
 __all__ = ["imshow", "register"]
 
@@ -31,9 +31,9 @@ MANAGER = ImshowManager()
 imshow = MANAGER.call
 register = MANAGER.register
 
-# ##############
+# ################################################################################
 #   magicgui
-# ##############
+# ################################################################################
 
 @register("magicgui")
 def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:

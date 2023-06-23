@@ -6,7 +6,7 @@ import numpy as np
 from impy.utils.axesop import switch_slice
 from impy.utils.misc import check_nd
 from impy.array_api import xp
-from impy._types import nDFloat, Dims
+from impy._types import Dims
 from ._utils import _deconv, _filters
 from ._utils._skimage import _get_ND_butterworth_filter
 
