@@ -37,7 +37,8 @@ register = MANAGER.register
 
 @register("magicgui")
 def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
-    from magicgui import  widgets as wdt
+    from magicgui import widgets as wdt
+
     h, w = arr.sizesof(dims)
     if h > w:
         min_height = 400
@@ -66,24 +67,8 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
             vals = tuple(sl.value for sl in sliders)
             img_slice = arr[fmt[vals]]
             img.value = img_slice
-    
-    min_slider = wdt.FloatSlider(min=min_, max=max_, value=min_, name="min")
-    max_slider = wdt.FloatSlider(min=min_, max=max_, value=max_, name="max")
-    clim = wdt.Container(
-        widgets=[min_slider, max_slider],
-    )
-    clim.margins = (0, 0, 0, 0)
-    
-    @min_slider.changed.connect
-    def _on_contrast_min_change():
-        if min_slider.value > max_slider.value:
-            max_slider.value = min_slider.value
 
-    @max_slider.changed.connect
-    def _on_contrast_max_change():
-        if min_slider.value > max_slider.value:
-            min_slider.value = max_slider.value
-    
+    clim = wdt.FloatRangeSlider(min=min_, max=max_, value=(min_, max_), step=(max_ - min_) / 1000, name="clim")
     imgc = wdt.Container(widgets=[img])
     imgc.min_height = min_height
     imgc.min_width = min_width
@@ -96,15 +81,14 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
         @cbox.changed.connect
         @alpha.changed.connect
         @sliders.changed.connect
-        @min_slider.changed.connect
-        @max_slider.changed.connect
+        @clim.changed.connect
         def _on_slider_change():
             vals = tuple(sl.value for sl in sliders)
             img_slice = arr[fmt[vals]]
             if cbox.value:
                 from skimage.color import label2rgb
-                vmin = min_slider.value
-                vmax = max_slider.value
+
+                vmin, vmax = clim.value
                 image = (np.clip(img_slice, vmin, vmax) - vmin)/(vmax - vmin)
                 img.value = label2rgb(
                     img_slice.labels, image, alpha=alpha.value, bg_label=0, image_alpha=1,
@@ -112,7 +96,7 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
                 )
             else:
                 img.value = img_slice
-            img.set_clim(min_slider.value, max_slider.value)
+            img.set_clim(*clim.value)
 
     else:
         label_wdt = wdt.EmptyWidget()
@@ -123,10 +107,9 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
             img_slice = arr[fmt[vals]]
             img.value = img_slice
         
-        @min_slider.changed.connect
-        @max_slider.changed.connect
+        @clim.changed.connect
         def _on_clim_change():
-            img.set_clim(min_slider.value, max_slider.value)
+            img.set_clim(*clim.value)
     
     widget = wdt.Container(
         widgets=[imgc, sliders, clim, label_wdt], 
@@ -138,9 +121,9 @@ def _imshow_magicgui(arr: LabeledArray, dims, **kwargs) -> LabeledArray:
     widget.show(kwargs.get("run", False))
     return arr
 
-# ################
+# ################################################################################
 #   matplotlib
-# ################
+# ################################################################################
 
 @register("matplotlib")
 def _imshow_matplotlib(self: LabeledArray, label, dims, **kwargs) -> LabeledArray:
@@ -155,7 +138,6 @@ def _imshow_matplotlib(self: LabeledArray, label, dims, **kwargs) -> LabeledArra
             _plt.plot_2d_label(self.value, self.labels.value, alpha, **kwargs)
         else:
             _plt.plot_2d(self.value, **kwargs)
-        self.hist()
         
     elif self.ndim == 3:
         if "c" not in self.axes:
