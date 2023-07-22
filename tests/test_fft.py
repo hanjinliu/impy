@@ -44,7 +44,7 @@ def test_iteration(resource):
         ft1 = np.stack([img[fmt[i]].ifft(dims="zx") for i in range(img.shape.y)], axis="y")
         assert_allclose(ft0, ft1, rtol=rtol, atol=atol)
 
-def test_local_dft(resource):
+def test_local_dft_works(resource):
     with ip.SetConst(RESOURCE=resource):
         img = img_orig["c=1"].as_float()
         img.local_dft(key="y=2:5", upsample_factor=8)

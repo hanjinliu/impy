@@ -1,11 +1,11 @@
 from __future__ import annotations
 import numpy as np
 from typing import Literal
-from .arrays import ImgArray, LazyImgArray
-from .arrays.bases import MetaArray
-from .array_api import xp
-from .core import asarray
-from .axes import AxesLike
+from dask import array as da
+from impy.arrays import LazyImgArray
+from impy.arrays.bases import MetaArray
+from impy.lazy.core import asarray
+from impy.axes import AxesLike
 
 def wraps(npfunc):
     def _wraps(ipfunc):
@@ -14,17 +14,17 @@ def wraps(npfunc):
     return _wraps
 
 def __getattr__(name: str):
-    xpfunc = getattr(xp.random, name)
-    @wraps(xpfunc)
-    def _func(*args, **kwargs) -> ImgArray:
-        name = kwargs.pop("name", xpfunc.__name__)
+    rndfunc = getattr(da.random, name)
+    @wraps(rndfunc)
+    def _func(*args, **kwargs) -> LazyImgArray:
+        name = kwargs.pop("name", rndfunc.__name__)
         axes = kwargs.pop("axes", None)
-        out = xp.asnumpy(xpfunc(*args, **kwargs))
+        out = rndfunc(*args, **kwargs)
         return asarray(out, name=name, axes=axes)
     return _func
 
 
-def _normalize_like(size, name, axes, like: MetaArray | LazyImgArray | None):
+def _normalize_like(size, name: str, axes, like: MetaArray | LazyImgArray | None):
     if like is not None:
         name = name or like.name
         axes = axes or like.axes
@@ -39,10 +39,11 @@ def random(
     name: str = None,
     axes: str = None,
     like: MetaArray | LazyImgArray = None,
-) -> ImgArray:
+    chunks="auto",
+) -> LazyImgArray:
     size, name, axes = _normalize_like(size, name, axes, like)
     name = name or "random"
-    return asarray(xp.asnumpy(xp.random.random(size)), name=name, axes=axes)
+    return asarray(da.random.random(size, chunks=chunks), name=name, axes=axes)
 
 @wraps(np.random.normal)
 def normal(
@@ -53,10 +54,11 @@ def normal(
     name: str = None, 
     axes: str = None,
     like: MetaArray | LazyImgArray | None = None,
-) -> ImgArray:
+    chunks="auto",
+) -> LazyImgArray:
     size, name, like = _normalize_like(size, name, axes, like)
     name = name or f"normal({loc}, {scale})"
-    return asarray(xp.asnumpy(xp.random.normal(loc, scale, size)), name=name, axes=axes)
+    return asarray(da.random.normal(loc, scale, size, chunks=chunks), name=name, axes=axes)
 
 def random_uint8(
     size: int | tuple[int], 
@@ -64,7 +66,8 @@ def random_uint8(
     name: str = None,
     axes: str = None,
     like: MetaArray | LazyImgArray = None,
-) -> ImgArray:
+    chunks="auto",
+) -> LazyImgArray:
     """
     Return a random uint8 image, ranging 0-255.
 
@@ -83,9 +86,9 @@ def random_uint8(
         Random Image in dtype ``np.uint8``.
     """
     size, name, like = _normalize_like(size, name, axes, like)
-    arr = xp.random.randint(0, 255, size, dtype=np.uint8)
+    arr = da.random.randint(0, 255, size, dtype=np.uint8, chunks=chunks)
     name = name or "random_uint8"
-    return asarray(xp.asnumpy(arr), name=name, axes=axes)
+    return asarray(arr, name=name, axes=axes)
 
 def random_uint16(
     size,
@@ -93,7 +96,8 @@ def random_uint16(
     name: str = None,
     axes: str = None,
     like: MetaArray | LazyImgArray = None,
-) -> ImgArray:
+    chunks="auto",
+) -> LazyImgArray:
     """
     Return a random uint16 image, ranging 0-65535.
 
@@ -112,17 +116,17 @@ def random_uint16(
         Random Image in dtype ``np.uint16``.
     """
     size, name, like = _normalize_like(size, name, axes, like)
-    arr = xp.random.randint(0, 65535, size, dtype=np.uint16)
+    arr = da.random.randint(0, 65535, size, dtype=np.uint16, chunks=chunks)
     name = name or "random_uint16"
-    return asarray(xp.asnumpy(arr), name=name, axes=axes)
+    return asarray(arr, name=name, axes=axes)
 
 
 def default_rng(seed) -> ImageGenerator:
     """Get the default random number generator."""
-    return ImageGenerator(xp.random.default_rng(seed))
+    return ImageGenerator(da.random.default_rng(seed))
 
 class ImageGenerator:
-    def __init__(self, rng: xp.random.Generator):
+    def __init__(self, rng: da.random.Generator):
         self._rng = rng
     
     def standard_normal(
@@ -133,12 +137,13 @@ class ImageGenerator:
         axes: AxesLike | None = None,
         name: str | None = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
-        arr = self._rng.standard_normal(size=size, dtype=dtype)
+        arr = self._rng.standard_normal(size=size, dtype=dtype, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(xp.asnumpy(arr), axes=axes, name=name)
+        return asarray(arr, axes=axes, name=name)
     
     def standard_exponential(
         self,
@@ -149,13 +154,14 @@ class ImageGenerator:
         axes: AxesLike | None = None,
         name: str | None = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.standard_exponential(size=size, dtype=dtype, method=method)
+        arr = self._rng.standard_exponential(size=size, dtype=dtype, method=method, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(xp.asnumpy(arr), axes=axes, name=name)
+        return asarray(arr, axes=axes, name=name)
     
     def random(
         self,
@@ -165,13 +171,14 @@ class ImageGenerator:
         axes: AxesLike | None = None,
         name: str | None = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.random(size=size, dtype=dtype)
+        arr = self._rng.random(size=size, dtype=dtype, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(xp.asnumpy(arr), axes=axes, name=name)
+        return asarray(arr, axes=axes, name=name)
     
     def normal(
         self,
@@ -182,13 +189,14 @@ class ImageGenerator:
         axes: AxesLike | None = None,
         name: str | None = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.normal(loc=loc, scale=scale, size=size)
+        arr = self._rng.normal(loc=loc, scale=scale, size=size, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(xp.asnumpy(arr), axes=axes, name=name)
+        return asarray(arr, axes=axes, name=name)
 
     def poisson(
         self,
@@ -198,13 +206,14 @@ class ImageGenerator:
         axes: AxesLike | None = None,
         name: str | None = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.poisson(lam=lam, size=size)
+        arr = self._rng.poisson(lam=lam, size=size, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(xp.asnumpy(arr), axes=axes, name=name)
+        return asarray(arr, axes=axes, name=name)
     
     def random_uint8(
         self,
@@ -213,12 +222,13 @@ class ImageGenerator:
         name: str = None,
         axes: str = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.integers(0, 255, size, dtype=np.uint8)
+        arr = self._rng.integers(0, 255, size, dtype=np.uint8, chunks=chunks)
         name = name or "random_uint8"
-        return asarray(xp.asnumpy(arr), name=name, axes=axes)
+        return asarray(arr, name=name, axes=axes)
 
     def random_uint16(
         self,
@@ -227,12 +237,13 @@ class ImageGenerator:
         name: str = None,
         axes: str = None,
         like: MetaArray | LazyImgArray = None,
-    ) -> ImgArray:
+        chunks="auto",
+    ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.integers(0, 65535, size, dtype=np.uint16)
+        arr = self._rng.integers(0, 65535, size, dtype=np.uint16, chunks=chunks)
         name = name or "random_uint16"
-        return asarray(xp.asnumpy(arr), name=name, axes=axes)
+        return asarray(arr, name=name, axes=axes)
 
 
 del wraps

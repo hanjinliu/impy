@@ -60,10 +60,12 @@ class TiledImage:
 
     @property
     def depth(self) -> tuple[int, ...]:
+        """Depth of overlaps"""
         return self._depth
 
     @property
     def boundary(self) -> str:
+        """How to handle the boundary of the image."""
         return self._boundary
 
     def __repr__(self) -> str:

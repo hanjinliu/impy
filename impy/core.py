@@ -4,8 +4,9 @@ import sys
 import re
 import glob
 import itertools
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
 from typing_extensions import Literal
+import warnings
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -16,8 +17,8 @@ from functools import wraps
 
 from impy import io
 from impy.utils import gauss
-from impy.utils.slicer import *
-from impy._types import *
+from impy.utils.slicer import solve_slicer
+from impy._types import AxesTargetedSlicer, nDFloat
 from impy.axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
 from impy.collections import DataList
 from impy.arrays.bases import MetaArray
@@ -222,63 +223,14 @@ def aslabel(
     self = Label(_arr, name=name, axes=axes)
     return self
 
-@_write_docs
-def aslazy(
-    arr: ArrayLike, 
-    dtype: DTypeLike = None,
-    *, 
-    name: str | None = None,
-    axes: str | None = None,
-    chunks="auto",
-    like: MetaArray | None = None,
-) -> LazyImgArray:
-    """
-    Make an LazyImgArray object from other types of array.
+def aslazy(*args, **kwargs) -> LazyImgArray:
+    from impy.lazy import asarray as lazy_asarray
     
-    Parameters
-    ----------
-    arr : array-like
-        Base array.
-    {}
-    chunks : int, tuple
-        How to chunk the array. For details see ``dask.array.from_array``.
-        
-    Returns
-    -------
-    LazyImgArray
-    
-    """
-    from dask import array as da
-    from dask.array.core import Array as DaskArray
-
-    if isinstance(arr, MetaArray):
-        arr = da.from_array(arr.value, chunks=chunks)
-    elif isinstance(arr, (np.ndarray, np.memmap)):
-        arr = da.from_array(arr, chunks=chunks)
-    elif isinstance(arr, LazyImgArray):
-        arr = arr.value
-    elif not isinstance(arr, DaskArray):
-        arr = da.asarray(arr)
-    else:
-        raise TypeError(f"Unsupported array type {type(arr)}.")
-        
-    if isinstance(arr, np.ndarray) and dtype is None:
-        if arr.dtype in (np.uint8, np.uint16, np.float32):
-            dtype = arr.dtype
-        elif arr.dtype.kind == "f":
-            dtype = np.float32
-        else:
-            dtype = arr.dtype
-        
-    axes, name = _normalize_params(axes, name, like)
-
-    # Automatically determine axes
-    if axes is None:
-        axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
-            
-    self = LazyImgArray(arr, name=name, axes=axes)
-    
-    return self
+    warnings.warn(
+        "impy.aslazy is deprecated. Please use impy.lazy.asarray instead.", 
+        DeprecationWarning,
+    )
+    return lazy_asarray(*args, **kwargs)
 
 def asbigarray(
     arr: ArrayLike, 
@@ -849,107 +801,15 @@ def imread_collection(
     return arrlist
 
 
-def lazy_imread(
-    path: str, 
-    chunks="auto",
-    *, 
-    name: str | None = None,
-    squeeze: bool = False,
-) -> LazyImgArray:
-    """
-    Read an image lazily. Image file is first opened as an memory map, and subsequently converted
-    to `numpy.ndarray` or `cupy.ndarray` chunkwise by `dask.array.map_blocks`.
+def lazy_imread(*args, **kwargs) -> LazyImgArray:
+    from impy.lazy import imread as lazy_imread_
 
-    Parameters
-    ----------
-    path : str
-        Path to the file.
-    chunks : optional
-        Specify chunk sizes. By default, yx-axes are assigned to the same chunk for every slice of
-        image, whild chunk sizes of the rest of axes are automatically set with "auto" option.
-    name : str, optional
-        Name of array.
-    squeeze : bool, default is False
-        If True and there is one-sized axis, then call `np.squeeze`.
-        
-    Returns
-    -------
-    LazyImgArray
-    """    
-    path = str(path)
-    if "*" in path:
-        return _lazy_imread_glob(path, chunks=chunks, squeeze=squeeze)
-    if not os.path.exists(path):
-        raise ValueError(f"Path does not exist: {path}.")
-    
-    # read as a dask array
-    image_data = io.imread_dask(path, chunks)
-    img = image_data.image
-    axes = image_data.axes
-    scale = image_data.scale
-    spatial_scale_unit = image_data.unit
-    metadata = image_data.metadata
-    labels = image_data.labels
-    
-    if squeeze:
-        axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
-        img = np.squeeze(img)
-    
-    self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
+    warnings.warn(
+        "impy.lazy_imread is deprecated. Please use `impy.lazy.imread`", 
+        DeprecationWarning
+    )
+    return lazy_imread_(*args, **kwargs)
 
-    # read scale if possible
-    self.set_scale(**scale)
-    
-    
-    if "c" in self.axes and labels is not None:
-        self.set_axis_label(c=labels)
-    
-    for k, v in scale.items():
-        if k in self.axes:
-            self.set_scale({k: v})
-            if k in "zyx":
-                self.axes[k].unit = spatial_scale_unit.get(k)
-    
-    return self.sort_axes()
-
-
-def _lazy_imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArray:
-    """
-    Read images recursively from a directory, and stack them into one LazyImgArray.
-
-    Parameters
-    ----------
-    path : str
-        Path with wildcard.
-        
-    """    
-    path = str(path)
-    paths = glob.glob(path, recursive=True)
-        
-    imgs: list[LazyImgArray] = []
-    for path in paths:
-        imgl = lazy_imread(path, **kwargs)
-        imgs.append(imgl)
-    
-    if len(imgs) == 0:
-        raise RuntimeError("Could not read any images.")
-    
-    from dask import array as da
-    out = da.stack([i.value for i in imgs], axis=0)
-    out = LazyImgArray(out)
-    out._set_info(imgs[0], new_axes="p"+str(imgs[0].axes))
-    
-    if squeeze:
-        axes = "".join(a for i, a in enumerate(out.axes) if out.shape[i] > 1)
-        img = da.squeeze(out.value)
-        out = LazyImgArray(img)
-        out._set_info(imgs[0], new_axes=axes)
-    try:
-        out.source = os.path.split(path.split("*")[0])[0]
-    except Exception:
-        pass
-    
-    return out
 
 def big_imread(
     path: str, 

@@ -1,4 +1,4 @@
-__version__ = "2.2.6"
+__version__ = "2.3.0"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
@@ -12,7 +12,7 @@ from .binder import bind
 from .viewer import gui
 from .correlation import *
 from .arrays import ImgArray, LazyImgArray, BigImgArray, Label  # for typing
-from . import random, io
+from . import random, io, lazy
 from .axes import slicer
 
 # Inheritance
