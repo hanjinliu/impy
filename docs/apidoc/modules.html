@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy &mdash; impy 2.2.0 documentation</title>
+  <title>impy &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -25,14 +24,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -59,8 +62,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>impy</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">impy</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/apidoc/modules.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -71,7 +74,7 @@
            <div itemprop="articleBody">
              
   <section id="impy">
-<h1>impy<a class="headerlink" href="#impy" title="Permalink to this headline">¶</a></h1>
+<h1>impy<a class="headerlink" href="#impy" title="Permalink to this heading">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="impy.html">impy package</a><ul>
@@ -87,6 +90,7 @@
 <li class="toctree-l4"><a class="reference internal" href="impy.arrays.html#module-impy.arrays.lazy">impy.arrays.lazy module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="impy.arrays.html#module-impy.arrays.phasearray">impy.arrays.phasearray module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="impy.arrays.html#module-impy.arrays.specials">impy.arrays.specials module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.arrays.html#module-impy.arrays.tiled">impy.arrays.tiled module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="impy.arrays.html#module-impy.arrays">Module contents</a></li>
 </ul>
 </li>
@@ -98,6 +102,13 @@
 <li class="toctree-l4"><a class="reference internal" href="impy.frame.html#submodules">Submodules</a></li>
 <li class="toctree-l4"><a class="reference internal" href="impy.frame.html#module-impy.frame.frames">impy.frame.frames module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="impy.frame.html#module-impy.frame">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="impy.lazy.html">impy.lazy package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.lazy.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.lazy.html#module-impy.lazy.core">impy.lazy.core module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.lazy.html#module-impy.lazy.random">impy.lazy.random module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.lazy.html#module-impy.lazy">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="impy.utils.html">impy.utils package</a><ul>
@@ -121,14 +132,140 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="impy.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.array_api">impy.array_api module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.binder">impy.binder module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.collections">impy.collections module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.core">impy.core module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.correlation">impy.correlation module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.io">impy.io module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.random">impy.random module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.roi">impy.roi module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.array_api">impy.array_api module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.array_api.XP"><code class="docutils literal notranslate"><span class="pre">XP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.array_api.XP.setCupy"><code class="docutils literal notranslate"><span class="pre">XP.setCupy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.array_api.XP.setNumpy"><code class="docutils literal notranslate"><span class="pre">XP.setNumpy()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.array_api.cupy_dispatcher"><code class="docutils literal notranslate"><span class="pre">cupy_dispatcher()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.binder">impy.binder module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.binder.bind"><code class="docutils literal notranslate"><span class="pre">bind</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.binder.bind.bound"><code class="docutils literal notranslate"><span class="pre">bind.bound</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.binder.bind.last_added"><code class="docutils literal notranslate"><span class="pre">bind.last_added</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.collections">impy.collections module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.collections.DataDict"><code class="docutils literal notranslate"><span class="pre">DataDict</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.collections.DataDict.apply"><code class="docutils literal notranslate"><span class="pre">DataDict.apply()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.collections.DataList"><code class="docutils literal notranslate"><span class="pre">DataList</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.collections.DataList.agg"><code class="docutils literal notranslate"><span class="pre">DataList.agg()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.collections.DataList.apply"><code class="docutils literal notranslate"><span class="pre">DataList.apply()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.collections.DataList.insert"><code class="docutils literal notranslate"><span class="pre">DataList.insert()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.core">impy.core module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.arange"><code class="docutils literal notranslate"><span class="pre">arange()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.array"><code class="docutils literal notranslate"><span class="pre">array()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.asarray"><code class="docutils literal notranslate"><span class="pre">asarray()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.asbigarray"><code class="docutils literal notranslate"><span class="pre">asbigarray()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.aslabel"><code class="docutils literal notranslate"><span class="pre">aslabel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.aslazy"><code class="docutils literal notranslate"><span class="pre">aslazy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.big_imread"><code class="docutils literal notranslate"><span class="pre">big_imread()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.broadcast_arrays"><code class="docutils literal notranslate"><span class="pre">broadcast_arrays()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.circular_mask"><code class="docutils literal notranslate"><span class="pre">circular_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.empty"><code class="docutils literal notranslate"><span class="pre">empty()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.full"><code class="docutils literal notranslate"><span class="pre">full()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.gaussian_kernel"><code class="docutils literal notranslate"><span class="pre">gaussian_kernel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.imread"><code class="docutils literal notranslate"><span class="pre">imread()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.imread_collection"><code class="docutils literal notranslate"><span class="pre">imread_collection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.indices"><code class="docutils literal notranslate"><span class="pre">indices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.lazy_imread"><code class="docutils literal notranslate"><span class="pre">lazy_imread()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.ones"><code class="docutils literal notranslate"><span class="pre">ones()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.read_meta"><code class="docutils literal notranslate"><span class="pre">read_meta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.roiread"><code class="docutils literal notranslate"><span class="pre">roiread()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.sample_image"><code class="docutils literal notranslate"><span class="pre">sample_image()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.core.zeros"><code class="docutils literal notranslate"><span class="pre">zeros()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.correlation">impy.correlation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.fourier_ncc"><code class="docutils literal notranslate"><span class="pre">fourier_ncc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.fourier_shell_correlation"><code class="docutils literal notranslate"><span class="pre">fourier_shell_correlation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.fourier_zncc"><code class="docutils literal notranslate"><span class="pre">fourier_zncc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.fsc"><code class="docutils literal notranslate"><span class="pre">fsc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.ft_pcc_landscape"><code class="docutils literal notranslate"><span class="pre">ft_pcc_landscape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.ft_pcc_maximum"><code class="docutils literal notranslate"><span class="pre">ft_pcc_maximum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.ft_pcc_maximum_with_corr"><code class="docutils literal notranslate"><span class="pre">ft_pcc_maximum_with_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.manders_coloc"><code class="docutils literal notranslate"><span class="pre">manders_coloc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.ncc"><code class="docutils literal notranslate"><span class="pre">ncc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.nmi"><code class="docutils literal notranslate"><span class="pre">nmi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.pcc_landscape"><code class="docutils literal notranslate"><span class="pre">pcc_landscape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.pcc_maximum"><code class="docutils literal notranslate"><span class="pre">pcc_maximum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.pcc_maximum_with_corr"><code class="docutils literal notranslate"><span class="pre">pcc_maximum_with_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.pearson_coloc"><code class="docutils literal notranslate"><span class="pre">pearson_coloc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.polar_pcc_maximum"><code class="docutils literal notranslate"><span class="pre">polar_pcc_maximum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.polar_pcc_maximum_with_corr"><code class="docutils literal notranslate"><span class="pre">polar_pcc_maximum_with_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.zncc"><code class="docutils literal notranslate"><span class="pre">zncc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.zncc_landscape"><code class="docutils literal notranslate"><span class="pre">zncc_landscape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.zncc_maximum"><code class="docutils literal notranslate"><span class="pre">zncc_maximum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.correlation.zncc_maximum_with_corr"><code class="docutils literal notranslate"><span class="pre">zncc_maximum_with_corr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.io">impy.io module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.io.imread"><code class="docutils literal notranslate"><span class="pre">imread()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.io.imread_dask"><code class="docutils literal notranslate"><span class="pre">imread_dask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.io.imsave"><code class="docutils literal notranslate"><span class="pre">imsave()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.io.mark_reader"><code class="docutils literal notranslate"><span class="pre">mark_reader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.io.mark_writer"><code class="docutils literal notranslate"><span class="pre">mark_writer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.random">impy.random module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.random.ImageGenerator"><code class="docutils literal notranslate"><span class="pre">ImageGenerator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.normal"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.normal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.poisson"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.poisson()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.random"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.random()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.random_uint16"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.random_uint16()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.random_uint8"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.random_uint8()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.standard_exponential"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.standard_exponential()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.random.ImageGenerator.standard_normal"><code class="docutils literal notranslate"><span class="pre">ImageGenerator.standard_normal()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.random.default_rng"><code class="docutils literal notranslate"><span class="pre">default_rng()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.random.normal"><code class="docutils literal notranslate"><span class="pre">normal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.random.random"><code class="docutils literal notranslate"><span class="pre">random()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.random.random_uint16"><code class="docutils literal notranslate"><span class="pre">random_uint16()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.random.random_uint8"><code class="docutils literal notranslate"><span class="pre">random_uint8()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy.roi">impy.roi module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.LineRoi"><code class="docutils literal notranslate"><span class="pre">LineRoi</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.PointRoi"><code class="docutils literal notranslate"><span class="pre">PointRoi</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.PolyLineRoi"><code class="docutils literal notranslate"><span class="pre">PolyLineRoi</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.PolygonRoi"><code class="docutils literal notranslate"><span class="pre">PolygonRoi</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.PolygonRoi.get_coordinates"><code class="docutils literal notranslate"><span class="pre">PolygonRoi.get_coordinates()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.RectangleRoi"><code class="docutils literal notranslate"><span class="pre">RectangleRoi</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.Roi"><code class="docutils literal notranslate"><span class="pre">Roi</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.axes"><code class="docutils literal notranslate"><span class="pre">Roi.axes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.copy"><code class="docutils literal notranslate"><span class="pre">Roi.copy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.drop"><code class="docutils literal notranslate"><span class="pre">Roi.drop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.from_imagejroi"><code class="docutils literal notranslate"><span class="pre">Roi.from_imagejroi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.get_coordinates"><code class="docutils literal notranslate"><span class="pre">Roi.get_coordinates()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.n_spatial_dims"><code class="docutils literal notranslate"><span class="pre">Roi.n_spatial_dims</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.ndim"><code class="docutils literal notranslate"><span class="pre">Roi.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.Roi.plot"><code class="docutils literal notranslate"><span class="pre">Roi.plot()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="impy.html#impy.roi.RoiList"><code class="docutils literal notranslate"><span class="pre">RoiList</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.RoiList.axes"><code class="docutils literal notranslate"><span class="pre">RoiList.axes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.RoiList.drop"><code class="docutils literal notranslate"><span class="pre">RoiList.drop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.RoiList.fromfile"><code class="docutils literal notranslate"><span class="pre">RoiList.fromfile()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.RoiList.insert"><code class="docutils literal notranslate"><span class="pre">RoiList.insert()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.RoiList.plot"><code class="docutils literal notranslate"><span class="pre">RoiList.plot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="impy.html#impy.roi.RoiList.tofile"><code class="docutils literal notranslate"><span class="pre">RoiList.tofile()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="impy.html#module-impy">Module contents</a></li>
 </ul>
 </li>

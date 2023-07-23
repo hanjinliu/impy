@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Labeling and Measurement &mdash; impy 2.2.0 documentation</title>
+  <title>Labeling and Measurement &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -27,14 +26,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -71,9 +74,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="index.html">Gallery</a> &raquo;</li>
-      <li>Labeling and Measurement</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Gallery</a></li>
+      <li class="breadcrumb-item active">Labeling and Measurement</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/gallery/regionprops.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -84,9 +87,9 @@
            <div itemprop="articleBody">
              
   <section id="labeling-and-measurement">
-<h1>Labeling and Measurement<a class="headerlink" href="#labeling-and-measurement" title="Permalink to this headline">¶</a></h1>
+<h1>Labeling and Measurement<a class="headerlink" href="#labeling-and-measurement" title="Permalink to this heading">¶</a></h1>
 <p>Here we’re going to label a image and measure some features for each label.</p>
-<div class="contents local topic" id="contents">
+<nav class="contents local" id="contents">
 <p class="topic-title">Contents</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#basics" id="id1">Basics</a></p></li>
@@ -94,9 +97,9 @@
 <li><p><a class="reference internal" href="#measurement" id="id3">Measurement</a></p></li>
 <li><p><a class="reference internal" href="#conditional-labeling" id="id4">Conditional Labeling</a></p></li>
 </ul>
-</div>
+</nav>
 <section id="basics">
-<h2><a class="toc-backref" href="#id1">Basics</a><a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Basics</a><a class="headerlink" href="#basics" title="Permalink to this heading">¶</a></h2>
 <p>Get the sample image.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">impy</span> <span class="k">as</span> <span class="nn">ip</span>
 <span class="n">img</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">sample_image</span><span class="p">(</span><span class="s2">&quot;coins&quot;</span><span class="p">)</span>
@@ -111,7 +114,7 @@ considered as a shortcut of <code class="docutils literal notranslate"><span cla
 <p>Both method returns a <code class="docutils literal notranslate"><span class="pre">Label</span></code> array, a subclass of <code class="docutils literal notranslate"><span class="pre">MetaArray</span></code>.</p>
 </section>
 <section id="simple-labeling">
-<h2><a class="toc-backref" href="#id2">Simple labeling</a><a class="headerlink" href="#simple-labeling" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Simple labeling</a><a class="headerlink" href="#simple-labeling" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">label_threshold</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -154,7 +157,7 @@ considered as a shortcut of <code class="docutils literal notranslate"><span cla
 </div>
 </section>
 <section id="measurement">
-<h2><a class="toc-backref" href="#id3">Measurement</a><a class="headerlink" href="#measurement" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Measurement</a><a class="headerlink" href="#measurement" title="Permalink to this heading">¶</a></h2>
 <p>After labeling, <code class="docutils literal notranslate"><span class="pre">regionprops</span></code> method is useful for image measurement. This method runs
 <code class="docutils literal notranslate"><span class="pre">skimage.measure.regionprops</span></code> inside.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">props</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">regionprops</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;mean_intensity&quot;</span><span class="p">,</span> <span class="s2">&quot;area&quot;</span><span class="p">,</span> <span class="s2">&quot;major_axis_length&quot;</span><span class="p">))</span>
@@ -207,13 +210,13 @@ that is specialized in storing properties.</p>
 </div>
 </section>
 <section id="conditional-labeling">
-<h2><a class="toc-backref" href="#id4">Conditional Labeling</a><a class="headerlink" href="#conditional-labeling" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Conditional Labeling</a><a class="headerlink" href="#conditional-labeling" title="Permalink to this heading">¶</a></h2>
 <p>Simple labeling based on thresholding always yields in insufficient results.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">filt</span></code> argument can filter labels based on properties of image and labels.
 Basic usage is following. Filter function must take at least two argument, image itself and
 newly created label region.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">filt</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">lbl</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return true if label passes a criterion you set.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return true if label passes a criterion you set.&quot;&quot;&quot;</span>
 
 <span class="n">img</span><span class="o">.</span><span class="n">label_threshold</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="n">filt</span><span class="p">)</span>
 </pre></div>

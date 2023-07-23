@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.axesmixin &mdash; impy 2.2.0 documentation</title>
+  <title>impy.arrays.axesmixin &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -11,9 +11,8 @@
   <![endif]-->
   
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
         <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -24,14 +23,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -58,9 +61,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>impy.arrays.axesmixin</li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">impy.arrays.axesmixin</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -87,20 +90,21 @@
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 
-<span class="kn">from</span> <span class="nn">..utils.axesop</span> <span class="kn">import</span> <span class="n">switch_slice</span>
-<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">ScaleView</span><span class="p">,</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">AxesLike</span><span class="p">,</span> <span class="n">Axis</span>
-<span class="kn">from</span> <span class="nn">.._types</span> <span class="kn">import</span> <span class="n">Slices</span><span class="p">,</span> <span class="n">Dims</span>
+<span class="kn">from</span> <span class="nn">impy.utils.axesop</span> <span class="kn">import</span> <span class="n">switch_slice</span>
+<span class="kn">from</span> <span class="nn">impy.axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">ImageAxesError</span><span class="p">,</span> <span class="n">ScaleView</span><span class="p">,</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">AxesLike</span><span class="p">,</span> <span class="n">Axis</span>
+<span class="kn">from</span> <span class="nn">impy._types</span> <span class="kn">import</span> <span class="n">Slices</span><span class="p">,</span> <span class="n">Dims</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span><span class="p">,</span> <span class="n">Literal</span>
 
 <div class="viewcode-block" id="AxesMixin"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin">[docs]</a><span class="k">class</span> <span class="nc">AxesMixin</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Abstract class with shape, ndim and axes are defined.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract class with shape, ndim and axes are defined.&quot;&quot;&quot;</span>
     
     <span class="n">_INHERIT</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
     <span class="n">_axes</span><span class="p">:</span> <span class="n">Axes</span>
     <span class="n">ndim</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span>
     <span class="n">value</span><span class="p">:</span> <span class="n">Any</span>
     
     <span class="nd">@property</span>
@@ -114,7 +118,7 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Axes</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Axes of the array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Axes of the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span>
     
     <span class="nd">@axes</span><span class="o">.</span><span class="n">setter</span>
@@ -133,7 +137,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
-    
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScaleView</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">scale</span>
@@ -178,17 +182,17 @@
         <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">        &lt;head&gt;</span>
 <span class="s2">            &lt;style&gt;</span>
-<span class="s2">                #wrapper </span><span class="se">{{</span><span class="s2"></span>
+<span class="s2">                #wrapper </span><span class="se">{{</span>
 <span class="s2">                    height: 140px;</span>
 <span class="s2">                    width: 500px;</span>
 <span class="s2">                    overflow-y: scroll;</span>
-<span class="s2">                </span><span class="se">}}</span><span class="s2"></span>
+<span class="s2">                </span><span class="se">}}</span>
 <span class="s2">            &lt;/style&gt;</span>
 <span class="s2">        &lt;/head&gt;</span>
 
 <span class="s2">        &lt;body&gt;</span>
 <span class="s2">            &lt;div id=&quot;wrapper&quot;&gt;</span>
-<span class="s2">                </span><span class="si">{</span><span class="n">main</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                </span><span class="si">{</span><span class="n">main</span><span class="si">}</span>
 <span class="s2">            &lt;/div&gt;</span>
 <span class="s2">        &lt;/body&gt;</span>
 <span class="s2">        &quot;&quot;&quot;</span>
@@ -208,7 +212,7 @@
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="AxesMixin.set_axes"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.set_axes">[docs]</a>    <span class="k">def</span> <span class="nf">set_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set axes of the array and return the updated one.</span>
 
 <span class="sd">        Parameters</span>
@@ -225,7 +229,7 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 <div class="viewcode-block" id="AxesMixin.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set scales of each axis.</span>
 
 <span class="sd">        Parameters</span>
@@ -272,6 +276,9 @@
                 <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="n">s</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">}</span>  <span class="c1"># type: ignore</span>
             <span class="p">)</span>
         
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">s</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;&#39;other&#39; must be str or axes supported object, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -288,7 +295,7 @@
         <span class="o">/</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set labels to an axis (axes).</span>
 
 <span class="sd">        Parameters</span>
@@ -330,7 +337,7 @@
         <span class="o">...</span>
     
 <div class="viewcode-block" id="AxesMixin.iter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.axesmixin.AxesMixin.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">israw</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">exclude</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iteration along axes. If axes=&quot;tzc&quot;, then equivalent to following pseudo code:</span>
 <span class="sd">        </span>
 <span class="sd">            .. code-block::</span>

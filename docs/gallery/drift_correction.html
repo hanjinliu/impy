@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Drift Correction &mdash; impy 2.2.0 documentation</title>
+  <title>Drift Correction &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -25,14 +24,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -59,8 +62,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Drift Correction</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Drift Correction</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/gallery/drift_correction.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -71,10 +74,10 @@
            <div itemprop="articleBody">
              
   <section id="drift-correction">
-<h1>Drift Correction<a class="headerlink" href="#drift-correction" title="Permalink to this headline">¶</a></h1>
+<h1>Drift Correction<a class="headerlink" href="#drift-correction" title="Permalink to this heading">¶</a></h1>
 <p>Stage shift during image acquisition is a general problem of microscopy.
 Here shows how to correct the shift using <code class="docutils literal notranslate"><span class="pre">drift_correction</span></code> method.</p>
-<div class="contents local topic" id="contents">
+<nav class="contents local" id="contents">
 <p class="topic-title">Contents</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#simplest-correction" id="id1">Simplest Correction</a></p></li>
@@ -82,9 +85,9 @@ Here shows how to correct the shift using <code class="docutils literal notransl
 <li><p><a class="reference internal" href="#correction-with-reference" id="id3">Correction with Reference</a></p></li>
 <li><p><a class="reference internal" href="#correct-large-images" id="id4">Correct Large Images</a></p></li>
 </ul>
-</div>
+</nav>
 <section id="simplest-correction">
-<h2><a class="toc-backref" href="#id1">Simplest Correction</a><a class="headerlink" href="#simplest-correction" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Simplest Correction</a><a class="headerlink" href="#simplest-correction" title="Permalink to this heading">¶</a></h2>
 <p>We’ll create a sample image stack by applying random shifts to an image using <code class="docutils literal notranslate"><span class="pre">affine</span></code> method
 and Gaussian noise using <code class="docutils literal notranslate"><span class="pre">ip.random.normal</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -116,7 +119,7 @@ image by Affine transformation. Relative shift between neighbors are calculated.
 </div>
 </section>
 <section id="multi-dimensional-correction">
-<h2><a class="toc-backref" href="#id2">Multi-dimensional Correction</a><a class="headerlink" href="#multi-dimensional-correction" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Multi-dimensional Correction</a><a class="headerlink" href="#multi-dimensional-correction" title="Permalink to this heading">¶</a></h2>
 <p>By default, <code class="docutils literal notranslate"><span class="pre">drift_correction</span></code> consider <code class="docutils literal notranslate"><span class="pre">&quot;y&quot;,</span> <span class="pre">&quot;x&quot;</span></code> axes as the spatial dimensions and conduct
 2-D correction unlike many of other methods. This is because image drift usually occurs in XY
 direction. The example below:</p>
@@ -138,7 +141,7 @@ you should specify <code class="docutils literal notranslate"><span class="pre">
 </div>
 </section>
 <section id="correction-with-reference">
-<h2><a class="toc-backref" href="#id3">Correction with Reference</a><a class="headerlink" href="#correction-with-reference" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Correction with Reference</a><a class="headerlink" href="#correction-with-reference" title="Permalink to this heading">¶</a></h2>
 <p>Sometimes you may want to supply a “reference” image stack to determine drift, instead of using
 the image itself. There are many occasions that you should think of this.</p>
 <ul class="simple">
@@ -167,7 +170,7 @@ tracking and correction.</p>
 </div>
 </section>
 <section id="correct-large-images">
-<h2><a class="toc-backref" href="#id4">Correct Large Images</a><a class="headerlink" href="#correct-large-images" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Correct Large Images</a><a class="headerlink" href="#correct-large-images" title="Permalink to this heading">¶</a></h2>
 <p>TODO</p>
 </section>
 </section>

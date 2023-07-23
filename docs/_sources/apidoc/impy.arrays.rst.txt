@@ -76,6 +76,14 @@ impy.arrays.specials module
    :undoc-members:
    :show-inheritance:
 
+impy.arrays.tiled module
+------------------------
+
+.. automodule:: impy.arrays.tiled
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

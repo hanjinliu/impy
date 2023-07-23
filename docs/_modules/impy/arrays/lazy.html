@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.lazy &mdash; impy 2.2.0 documentation</title>
+  <title>impy.arrays.lazy &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -11,9 +11,8 @@
   <![endif]-->
   
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
         <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -24,14 +23,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -58,9 +61,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>impy.arrays.lazy</li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">impy.arrays.lazy</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -75,6 +78,7 @@
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">DTypeLike</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
@@ -84,6 +88,7 @@
 <span class="kn">from</span> <span class="nn">.labeledarray</span> <span class="kn">import</span> <span class="n">LabeledArray</span>
 <span class="kn">from</span> <span class="nn">.imgarray</span> <span class="kn">import</span> <span class="n">ImgArray</span>
 <span class="kn">from</span> <span class="nn">.axesmixin</span> <span class="kn">import</span> <span class="n">AxesMixin</span>
+<span class="kn">from</span> <span class="nn">.tiled</span> <span class="kn">import</span> <span class="n">TiledAccessor</span>
 <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_misc</span><span class="p">,</span> <span class="n">_transform</span><span class="p">,</span> <span class="n">_structures</span><span class="p">,</span> <span class="n">_filters</span><span class="p">,</span> <span class="n">_deconv</span><span class="p">,</span> <span class="n">_corr</span><span class="p">,</span> <span class="n">_docs</span>
 
 <span class="kn">from</span> <span class="nn">impy.utils.axesop</span> <span class="kn">import</span> <span class="n">slice_axes</span><span class="p">,</span> <span class="n">switch_slice</span><span class="p">,</span> <span class="n">complement_axes</span><span class="p">,</span> <span class="n">find_first_appeared</span>
@@ -100,10 +105,11 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">dask.array.core</span> <span class="kn">import</span> <span class="n">Array</span> <span class="k">as</span> <span class="n">DaskArray</span>
-
+    <span class="kn">from</span> <span class="nn">impy.axes</span> <span class="kn">import</span> <span class="n">AxesTuple</span>
 
 <div class="viewcode-block" id="LazyImgArray"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray">[docs]</a><span class="k">class</span> <span class="nc">LazyImgArray</span><span class="p">(</span><span class="n">AxesMixin</span><span class="p">):</span>
     <span class="n">additional_props</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;_source&quot;</span><span class="p">,</span> <span class="s2">&quot;_metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;_name&quot;</span><span class="p">]</span>
+    <span class="n">tiled</span><span class="p">:</span> <span class="n">TiledAccessor</span><span class="p">[</span><span class="n">LazyImgArray</span><span class="p">]</span> <span class="o">=</span> <span class="n">TiledAccessor</span><span class="p">()</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -124,7 +130,7 @@
         
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The source file path.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The source file path.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span>
     
     <span class="nd">@source</span><span class="o">.</span><span class="n">setter</span>
@@ -136,7 +142,7 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Name of the array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Name of the array.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span>
             <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -152,42 +158,42 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Metadata dictionary of the array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Metadata dictionary of the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ndim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of dimensions of the array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of dimensions of the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">ndim</span>
     
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Shape of the array.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesTuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shape of the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Data type of the array&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data type of the array&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Total number of elements in the array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Total number of elements in the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">size</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">itemsize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Size of each element in bytes.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Size of each element in bytes.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">itemsize</span>
     
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">chunksize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Chunk size of the array.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">chunksize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxesTuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Chunk size of the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">chunksize</span><span class="p">)</span>
         
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">GB</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return the array size in GB.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the array size in GB.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">/</span> <span class="mf">1e9</span>
     
     <span class="n">gb</span> <span class="o">=</span> <span class="n">GB</span>  <span class="c1"># alias</span>
@@ -216,7 +222,7 @@
         <span class="k">return</span> <span class="n">out</span>
     
     <span class="k">def</span> <span class="fm">__neg__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Invert array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Invert array.&quot;&quot;&quot;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span>
@@ -362,7 +368,7 @@
     
     
 <div class="viewcode-block" id="LazyImgArray.compute"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignore_limit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute all the task and convert the result into ImgArray. If image size overwhelms MAX_GB</span>
 <span class="sd">        then MemoryError is raised.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
@@ -378,7 +384,7 @@
         <span class="k">return</span> <span class="n">img</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.release"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.release">[docs]</a>    <span class="k">def</span> <span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute all the tasks and store the data in memory map, and read it as a dask array</span>
 <span class="sd">        again.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -386,11 +392,11 @@
 
         <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span> <span class="k">as</span> <span class="n">ntf</span><span class="p">:</span>
             <span class="n">mmap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span><span class="n">ntf</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w+&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-            <span class="n">da</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">mmap</span><span class="p">,</span> <span class="n">compute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">da</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">),</span> <span class="n">mmap</span><span class="p">,</span> <span class="n">compute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">mmap</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         
         <span class="n">img</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span><span class="n">mmap</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span><span class="p">)</span><span class="o">.</span><span class="n">map_blocks</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">update</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">img</span>
@@ -445,7 +451,7 @@
         <span class="n">balance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
         <span class="n">update</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Rechunk the bound dask array.</span>
 
 <span class="sd">        Parameters</span>
@@ -471,7 +477,7 @@
             <span class="k">return</span> <span class="n">out</span></div>
         
 <div class="viewcode-block" id="LazyImgArray.apply_dask_func"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.apply_dask_func">[docs]</a>    <span class="k">def</span> <span class="nf">apply_dask_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">funcname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply dask array function to the connected dask array.</span>
 
 <span class="sd">        Parameters</span>
@@ -504,7 +510,7 @@
         <span class="n">dask_wrap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Rechunk array in a correct shape and apply function using `map_blocks`. This function is similar</span>
 <span class="sd">        to the `apply_dask` function in `MetaArray` while returns dask array bound LazyImgArray.</span>
 
@@ -611,10 +617,11 @@
         <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
         <span class="n">boundary</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DaskArray</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
+
         <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">args</span> <span class="o">=</span> <span class="p">()</span>
         <span class="k">if</span> <span class="n">kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1056,11 +1063,11 @@
         <span class="k">return</span> <span class="n">pw</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.chunksizeof"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.chunksizeof">[docs]</a>    <span class="k">def</span> <span class="nf">chunksizeof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get the chunk size of the given axis&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the chunk size of the given axis&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">chunksize</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">axis</span><span class="p">)]</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.chunksizesof"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.chunksizesof">[docs]</a>    <span class="k">def</span> <span class="nf">chunksizesof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axes</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get the chunk sizes of the given axes&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the chunk sizes of the given axes&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunksizeof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">)</span></div>
         
 <div class="viewcode-block" id="LazyImgArray.transpose"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.transpose">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">transpose</span><span class="p">)</span>
@@ -1103,31 +1110,18 @@
         
         <span class="k">return</span> <span class="n">out</span></div>
     
-<div class="viewcode-block" id="LazyImgArray.tiled_lowpass_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.tiled_lowpass_filter">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">tiled_lowpass_filter</span><span class="p">)</span>
-    <span class="nd">@dims_to_spatial_axes</span>
+<div class="viewcode-block" id="LazyImgArray.tiled_lowpass_filter"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.tiled_lowpass_filter">[docs]</a>    <span class="nd">@dims_to_spatial_axes</span>
     <span class="nd">@check_input_and_output_lazy</span>
     <span class="k">def</span> <span class="nf">tiled_lowpass_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
                              <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyImgArray</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">._utils._skimage</span> <span class="kn">import</span> <span class="n">_get_ND_butterworth_filter</span>
-        <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_float</span><span class="p">()</span>
-        <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
-        <span class="n">ndims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="n">cutoff</span> <span class="o">=</span> <span class="n">check_nd</span><span class="p">(</span><span class="n">cutoff</span><span class="p">,</span> <span class="n">ndims</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">all</span><span class="p">((</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ndims</span><span class="p">)</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cutoff</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">self</span>
-        
-        <span class="n">depth</span> <span class="o">=</span> <span class="n">switch_slice</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">overlap</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        
-        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-            <span class="n">arr</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
-            <span class="n">shape</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span>
-            <span class="n">weight</span> <span class="o">=</span> <span class="n">_get_ND_butterworth_filter</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-            <span class="n">ft</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
-            <span class="n">ift</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfftn</span><span class="p">(</span><span class="n">ft</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">ift</span>
-        
-        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_map_overlap</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">c_axes</span><span class="o">=</span><span class="n">c_axes</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;`tiled_lowpass_filter` is deprecated. Please use &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;`img.tiled(</span><span class="si">{</span><span class="n">overlap</span><span class="si">=}</span><span class="s2">).lowpass_filter(</span><span class="si">{</span><span class="n">cutoff</span><span class="si">=}</span><span class="s2">, </span><span class="si">{</span><span class="n">order</span><span class="si">=}</span><span class="s2">)` instead.&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiled</span><span class="p">(</span>
+            <span class="n">chunks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chunksizesof</span><span class="p">(</span><span class="n">dims</span><span class="p">),</span> <span class="n">overlap</span><span class="o">=</span><span class="n">overlap</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">lowpass_filter</span><span class="p">(</span><span class="n">cutoff</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span></div>
     
 <div class="viewcode-block" id="LazyImgArray.proj"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.big.LazyImgArray.proj">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">copy_docs</span><span class="p">(</span><span class="n">ImgArray</span><span class="o">.</span><span class="n">proj</span><span class="p">)</span>
     <span class="nd">@same_dtype</span>
@@ -1138,7 +1132,7 @@
         <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`axis` must be str.&quot;</span><span class="p">)</span>
         <span class="n">axisint</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">]</span>
-        
+
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
             <span class="n">projection</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">method</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">axisint</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1170,7 +1164,7 @@
         <span class="n">out</span> <span class="o">=</span> <span class="n">binfunc</span><span class="p">(</span><span class="n">reshaped_img</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axes_to_reduce</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span> <span class="c1"># _set_info does not pass copy so new axes must be defined here.</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># _set_info does not pass copy so new axes must be defined here.</span>
         <span class="n">out</span><span class="o">.</span><span class="n">set_scale</span><span class="p">({</span><span class="n">a</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">/</span><span class="n">scale</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">scale</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span> <span class="n">scale_</span><span class="p">)})</span>
         <span class="k">return</span> <span class="n">out</span></div>
     
@@ -1432,7 +1426,7 @@
         <span class="p">)</span></div>
     
     <span class="k">def</span> <span class="nf">__array_function__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Every time a numpy function (np.mean...) is called, this function will be called. Essentially numpy</span>
 <span class="sd">        function can be overloaded with this method.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1598,7 +1592,7 @@
         <span class="k">except</span> <span class="n">ImageAxesError</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="kc">None</span>
         
-        <span class="k">return</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="bp">self</span></div>
     
 
 <span class="k">def</span> <span class="nf">_replace_inputs</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">LazyImgArray</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
@@ -1648,16 +1642,16 @@
 <span class="c1"># numpy and cupy.</span>
 <span class="nd">@lru_cache</span>
 <span class="k">def</span> <span class="nf">_get_fft_func</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">DaskArray</span><span class="p">],</span> <span class="n">DaskArray</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Get the scipy FFT function for dask.&quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">array_api</span> <span class="kn">import</span> <span class="n">scipy_fft</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the scipy FFT function for dask.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">impy.array_api</span> <span class="kn">import</span> <span class="n">scipy_fft</span>
     <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
     
     <span class="k">return</span> <span class="n">da</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft_wrap</span><span class="p">(</span><span class="n">scipy_fft</span><span class="o">.</span><span class="n">fftn</span><span class="p">)</span>
 
 <span class="nd">@lru_cache</span>
 <span class="k">def</span> <span class="nf">_get_ifft_func</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">DaskArray</span><span class="p">],</span> <span class="n">DaskArray</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Get the scipy IFFT function for dask.&quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">array_api</span> <span class="kn">import</span> <span class="n">scipy_fft</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the scipy IFFT function for dask.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">impy.array_api</span> <span class="kn">import</span> <span class="n">scipy_fft</span>
     <span class="kn">from</span> <span class="nn">dask</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">da</span>
     
     <span class="k">return</span> <span class="n">da</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft_wrap</span><span class="p">(</span><span class="n">scipy_fft</span><span class="o">.</span><span class="n">ifftn</span><span class="p">)</span>

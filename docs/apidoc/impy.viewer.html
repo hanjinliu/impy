@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer package &mdash; impy 2.2.0 documentation</title>
+  <title>impy.viewer package &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -26,14 +25,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -60,10 +63,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../api.html">API References</a> &raquo;</li>
-          <li><a href="impy.html">impy package</a> &raquo;</li>
-      <li>impy.viewer package</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API References</a></li>
+          <li class="breadcrumb-item"><a href="impy.html">impy package</a></li>
+      <li class="breadcrumb-item active">impy.viewer package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/apidoc/impy.viewer.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -74,26 +77,26 @@
            <div itemprop="articleBody">
              
   <section id="impy-viewer-package">
-<h1>impy.viewer package<a class="headerlink" href="#impy-viewer-package" title="Permalink to this headline">¶</a></h1>
+<h1>impy.viewer package<a class="headerlink" href="#impy-viewer-package" title="Permalink to this heading">¶</a></h1>
 <section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
 </section>
 <section id="module-impy.viewer.utils">
-<span id="impy-viewer-utils-module"></span><h2>impy.viewer.utils module<a class="headerlink" href="#module-impy.viewer.utils" title="Permalink to this headline">¶</a></h2>
+<span id="impy-viewer-utils-module"></span><h2>impy.viewer.utils module<a class="headerlink" href="#module-impy.viewer.utils" title="Permalink to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">ComplexArrayView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">impy.viewer.utils._A</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#ComplexArrayView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">ComplexArrayView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_A</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#ComplexArrayView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>View a complex array in napari.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.data_raw">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data_raw</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">impy.viewer.utils._A</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.data_raw" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data_raw</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">_A</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.data_raw" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the raw data.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.utils.ComplexArrayView.dtype">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtype</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.dtype</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.dtype" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dtype</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dtype</span></em><a class="headerlink" href="#impy.viewer.utils.ComplexArrayView.dtype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Data type of array.</p>
 </dd></dl>
 
@@ -119,18 +122,18 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.add_dask">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray"><span class="pre">impy.arrays.lazy.LazyImgArray</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_dask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_dask" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_dask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray"><span class="pre">LazyImgArray</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_dask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_dask" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.add_labeledarray">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_labeledarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.labeledarray.LabeledArray" title="impy.arrays.labeledarray.LabeledArray"><span class="pre">impy.arrays.labeledarray.LabeledArray</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_labeledarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_labeledarray" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_labeledarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.labeledarray.LabeledArray" title="impy.arrays.labeledarray.LabeledArray"><span class="pre">LabeledArray</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_labeledarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_labeledarray" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a LabeledArray to the viewer.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.add_labels">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.label.Label" title="impy.arrays.label.Label"><span class="pre">Label</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opacity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_labels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_labels" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">add_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="impy.arrays.html#impy.arrays.label.Label" title="impy.arrays.label.Label"><span class="pre">Label</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opacity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#add_labels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.add_labels" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -155,30 +158,30 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.front_image">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">front_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#front_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.front_image" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">front_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#front_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.front_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>From list of image layers return the most front visible image.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.get_a_selected_layer">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">get_a_selected_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#get_a_selected_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.get_a_selected_layer" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">get_a_selected_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#get_a_selected_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.get_a_selected_layer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.get_viewer_scale">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">get_viewer_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#get_viewer_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.get_viewer_scale" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">get_viewer_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#get_viewer_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.get_viewer_scale" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the scale of the viewer.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.iter_layer">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">iter_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#iter_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.iter_layer" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">iter_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#iter_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.iter_layer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Iterate over layers and yield only certain type of layers.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>layer_type</strong> (<em>str</em><em>, </em><em>{&quot;shape&quot;</em><em>, </em><em>&quot;image&quot;</em><em>, </em><em>&quot;point&quot;}</em>) – Type of layer.</p>
 </dd>
-<dt class="field-even">Yields</dt>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>napari.layers</em> – Layers specified by layer_type</p>
 </dd>
 </dl>
@@ -186,19 +189,19 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.iter_selected_layer">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">iter_selected_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#iter_selected_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.iter_selected_layer" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">iter_selected_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#iter_selected_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.iter_selected_layer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Iterate over selected layers and yield only certain type of layers.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.layer_to_impy_object">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">layer_to_impy_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#layer_to_impy_object"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.layer_to_impy_object" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">layer_to_impy_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#layer_to_impy_object"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.layer_to_impy_object" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert layer to real data.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>layer</strong> (<em>napari.layers.Layer</em>) – Input layer.</p>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray">ImgArray</a>, <a class="reference internal" href="impy.arrays.html#impy.arrays.label.Label" title="impy.arrays.label.Label">Label</a>, <a class="reference internal" href="impy.frame.html#impy.frame.frames.MarkerFrame" title="impy.frame.frames.MarkerFrame">MarkerFrame</a> or <a class="reference internal" href="impy.frame.html#impy.frame.frames.TrackFrame" title="impy.frame.frames.TrackFrame">TrackFrame</a>, or Shape features.</p>
 </dd>
 </dl>
@@ -217,13 +220,13 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="impy.viewer.utils.viewer_imread">
-<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">viewer_imread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">napari.viewer.Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#viewer_imread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.viewer_imread" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">impy.viewer.utils.</span></span><span class="sig-name descname"><span class="pre">viewer_imread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">viewer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Viewer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/utils.html#viewer_imread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.utils.viewer_imread" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read an image into the viewer.</p>
 </dd></dl>
 
 </section>
 <section id="module-impy.viewer.viewer">
-<span id="impy-viewer-viewer-module"></span><h2>impy.viewer.viewer module<a class="headerlink" href="#module-impy.viewer.viewer" title="Permalink to this headline">¶</a></h2>
+<span id="impy-viewer-viewer-module"></span><h2>impy.viewer.viewer module<a class="headerlink" href="#module-impy.viewer.viewer" title="Permalink to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">impy.viewer.viewer.</span></span><span class="sig-name descname"><span class="pre">napariViewers</span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers" title="Permalink to this definition">¶</a></dt>
@@ -234,7 +237,7 @@
 <span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ImpyObject</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add images, points, labels, tracks etc to viewer.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>obj</strong> (<em>ImpyObject</em>) – Object to add.</p>
 </dd>
 </dl>
@@ -282,14 +285,14 @@
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.axes">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">axes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">impy.axes._axes.Axes</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.axes" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">axes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Axes</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.axes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Axes information of current viewer.</p>
 <p>Defined to make compatible with <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.axisof">
-<span class="sig-name descname"><span class="pre">axisof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">impy.axes._axis.Axis</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.axisof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.axisof" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">axisof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Axis</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.axisof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.axisof" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
@@ -302,7 +305,7 @@ returns <code class="docutils literal notranslate"><span class="pre">(1,</span> 
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.cursor_pos">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cursor_pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.cursor_pos" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cursor_pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.cursor_pos" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return cursor position. Scale is considered.</p>
 </dd></dl>
 
@@ -312,7 +315,7 @@ returns <code class="docutils literal notranslate"><span class="pre">(1,</span> 
 <dd><p>With cursor position and a layer as inputs, this function returns the cursor “pixel” coordinates on the given
 layer. This function is useful when you want to get such as pixel value at the cursor position.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ref</strong> (<em>napari.layers.Image</em><em>, </em><em>int</em><em>, </em><em>str</em><em>, </em><a class="reference internal" href="impy.arrays.html#impy.arrays.labeledarray.LabeledArray" title="impy.arrays.labeledarray.LabeledArray"><em>LabeledArray</em></a><em> or </em><a class="reference internal" href="impy.arrays.html#impy.arrays.lazy.LazyImgArray" title="impy.arrays.lazy.LazyImgArray"><em>LazyImgArray</em></a>) – <p>Reference layer or its identifier. To determine the reference layer, this parameter is interpreted in
 different ways depending on its type:</p>
@@ -326,10 +329,10 @@ different ways depending on its type:</p>
 <li><p><strong>ndim</strong> (<em>int</em><em>, </em><em>optional</em>) – If specified, the last ndim coordinates will be returned.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>1-D, int64 array of cursor position along each dimension.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
@@ -337,10 +340,10 @@ different ways depending on its type:</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.get">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'image'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'visible'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'last'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ImpyObject</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ImpyObject</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.get" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'image'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'visible'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'last'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ImpyObject</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">impy.viewer.viewer.ImpyObject</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simple way to get impy object from viewer.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>kind</strong> (<em>str</em><em>, </em><em>optional</em>) – <p>Kind of layers/shapes to return.</p>
 <blockquote>
@@ -380,10 +383,10 @@ different ways depending on its type:</p>
 </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>impy object(s) that satisfies the options.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="impy.arrays.html#impy.arrays.imgarray.ImgArray" title="impy.arrays.imgarray.ImgArray">ImgArray</a>, <a class="reference internal" href="impy.arrays.html#impy.arrays.label.Label" title="impy.arrays.label.Label">Label</a>, <a class="reference internal" href="impy.frame.html#impy.frame.frames.MarkerFrame" title="impy.frame.frames.MarkerFrame">MarkerFrame</a> or <a class="reference internal" href="impy.frame.html#impy.frame.frames.TrackFrame" title="impy.frame.frames.TrackFrame">TrackFrame</a>, np.ndarray, or list of one of them.</p>
 </dd>
 </dl>
@@ -434,14 +437,14 @@ different ways depending on its type:</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.scale">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scale</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">impy.axes._axes.ScaleView</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.scale" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scale</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ScaleView</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.scale" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scale information of current viewer.</p>
 <p>Defined to make compatible with <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code>.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.selection">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">selection</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list[typing.NewType.&lt;locals&gt;.new_type]</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.selection" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">selection</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">impy.viewer.viewer.ImpyObject</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.selection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return selected layers’ data as a list of impy objects.</p>
 </dd></dl>
 
@@ -453,10 +456,10 @@ different ways depending on its type:</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.stepof">
-<span class="sig-name descname"><span class="pre">stepof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">impy.axes._axis.Axis</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.stepof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.stepof" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">stepof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Axis</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/impy/viewer/viewer.html#napariViewers.stepof"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#impy.viewer.viewer.napariViewers.stepof" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the current step of certain axis.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>symbol</strong> (<em>AxisLike</em>) – Axis symbol</p>
 </dd>
 </dl>
@@ -464,7 +467,7 @@ different ways depending on its type:</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="impy.viewer.viewer.napariViewers.viewer">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">viewer</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">napari.viewer.Viewer</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.viewer" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">viewer</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Viewer</span></em><a class="headerlink" href="#impy.viewer.viewer.napariViewers.viewer" title="Permalink to this definition">¶</a></dt>
 <dd><p>The most front viewer you’re using</p>
 </dd></dl>
 
@@ -472,7 +475,7 @@ different ways depending on its type:</p>
 
 </section>
 <section id="module-impy.viewer">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-impy.viewer" title="Permalink to this headline">¶</a></h2>
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-impy.viewer" title="Permalink to this heading">¶</a></h2>
 </section>
 </section>
 

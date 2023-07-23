@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Axes in impy &mdash; impy 2.2.0 documentation</title>
+  <title>Axes in impy &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +26,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -79,8 +82,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Axes in impy</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Axes in impy</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/tutorial_axes.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -91,8 +94,8 @@
            <div itemprop="articleBody">
              
   <section id="axes-in-impy">
-<h1>Axes in impy<a class="headerlink" href="#axes-in-impy" title="Permalink to this headline">¶</a></h1>
-<div class="contents local topic" id="contents-of-tutorial">
+<h1>Axes in impy<a class="headerlink" href="#axes-in-impy" title="Permalink to this heading">¶</a></h1>
+<nav class="contents local" id="contents-of-tutorial">
 <p class="topic-title">Contents of Tutorial</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#basics" id="id1">Basics</a></p></li>
@@ -110,9 +113,9 @@
 </ul>
 </li>
 </ul>
-</div>
+</nav>
 <section id="basics">
-<h2><a class="toc-backref" href="#id1">Basics</a><a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Basics</a><a class="headerlink" href="#basics" title="Permalink to this heading">¶</a></h2>
 <p>Understanding the concept of axes is important to use multi-dimensional arrays.</p>
 <p>Each dimension of an array has its own meaning. A 3-D array can be composed of
 three spatial axes or two spatial axes and a time axis.</p>
@@ -144,7 +147,7 @@ itself is an iterable of <code class="docutils literal notranslate"><span class=
 </div>
 </section>
 <section id="undefined-axis">
-<h2><a class="toc-backref" href="#id2">Undefined Axis</a><a class="headerlink" href="#undefined-axis" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Undefined Axis</a><a class="headerlink" href="#undefined-axis" title="Permalink to this heading">¶</a></h2>
 <p>Some functions and operations, such as <code class="xref py py-meth docutils literal notranslate"><span class="pre">ravel()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">reshape()</span></code>, creates arrays
 with unknown axes. In this case, <code class="docutils literal notranslate"><span class="pre">UndefAxis</span></code> objects are used for these axes and are
 represented by <code class="docutils literal notranslate"><span class="pre">&quot;#&quot;</span></code>.</p>
@@ -158,7 +161,7 @@ represented by <code class="docutils literal notranslate"><span class="pre">&quo
 </div>
 </section>
 <section id="axis-metadata">
-<h2><a class="toc-backref" href="#id3">Axis Metadata</a><a class="headerlink" href="#axis-metadata" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Axis Metadata</a><a class="headerlink" href="#axis-metadata" title="Permalink to this heading">¶</a></h2>
 <p>Each axis could be tagged with some metadata. The major ones are physical scale,
 physical scale unit and labels.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>  <span class="c1"># scale of the first axis</span>
@@ -169,7 +172,7 @@ physical scale unit and labels.</p>
 </pre></div>
 </div>
 <section id="physical-scale">
-<h3><a class="toc-backref" href="#id4">Physical scale</a><a class="headerlink" href="#physical-scale" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Physical scale</a><a class="headerlink" href="#physical-scale" title="Permalink to this heading">¶</a></h3>
 <p>Physical scale is the length of value between <code class="docutils literal notranslate"><span class="pre">a[i]</span></code> and <code class="docutils literal notranslate"><span class="pre">a[i+1]</span></code>. In image analysis,
 this value is usually represented as “µm/pixel” or “nm/pixel” for spatial axes and “sec” for
 time axis.</p>
@@ -199,7 +202,7 @@ filtering or any other operations.</p>
 </div>
 </section>
 <section id="axis-labels">
-<h3><a class="toc-backref" href="#id5">Axis Labels</a><a class="headerlink" href="#axis-labels" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Axis Labels</a><a class="headerlink" href="#axis-labels" title="Permalink to this heading">¶</a></h3>
 <p>Sometimes an axis is tagged with “labels” that explains what each slice means. <code class="docutils literal notranslate"><span class="pre">Axis</span></code> object
 retains labels information and can be referred to as a tuple.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="s2">&quot;t&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span>  <span class="c1"># say the length of t-axis is 4</span>
@@ -222,12 +225,12 @@ use <code class="docutils literal notranslate"><span class="pre">set_axis_label<
 </section>
 </section>
 <section id="practical-usage-of-axes">
-<h2><a class="toc-backref" href="#id6">Practical Usage of Axes</a><a class="headerlink" href="#practical-usage-of-axes" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Practical Usage of Axes</a><a class="headerlink" href="#practical-usage-of-axes" title="Permalink to this heading">¶</a></h2>
 <section id="slicing-and-formatting">
-<h3><a class="toc-backref" href="#id7">Slicing and Formatting</a><a class="headerlink" href="#slicing-and-formatting" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">Slicing and Formatting</a><a class="headerlink" href="#slicing-and-formatting" title="Permalink to this heading">¶</a></h3>
 <p>Axes object is very useful in slicing multi-dimensional arrays.</p>
 <section id="axis-targeted-slicing">
-<h4>Axis-targeted slicing<a class="headerlink" href="#axis-targeted-slicing" title="Permalink to this headline">¶</a></h4>
+<h4>Axis-targeted slicing<a class="headerlink" href="#axis-targeted-slicing" title="Permalink to this heading">¶</a></h4>
 <p>As shown in tutorial, the easiest way to slice an array is to use axis axis-targeted slicing.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="s2">&quot;t=1&quot;</span><span class="p">]</span>
 <span class="n">img</span><span class="p">[</span><span class="s2">&quot;t=3:5&quot;</span><span class="p">]</span>
@@ -253,7 +256,7 @@ any wrong slicing grammar in the string until you run the code.</p>
 </div>
 </section>
 <section id="slice-formatting">
-<h4>Slice Formatting<a class="headerlink" href="#slice-formatting" title="Permalink to this headline">¶</a></h4>
+<h4>Slice Formatting<a class="headerlink" href="#slice-formatting" title="Permalink to this heading">¶</a></h4>
 <p>Sometimes you would slice many times at the same axes.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
 <span class="n">img</span><span class="p">[</span><span class="n">ip</span><span class="o">.</span><span class="n">slicer</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
@@ -287,7 +290,7 @@ any wrong slicing grammar in the string until you run the code.</p>
 </section>
 </section>
 <section id="broadcasting">
-<h3><a class="toc-backref" href="#id8">Broadcasting</a><a class="headerlink" href="#broadcasting" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">Broadcasting</a><a class="headerlink" href="#broadcasting" title="Permalink to this heading">¶</a></h3>
 <p>By using axes information, arrays can be broadcasted in a more flexible but strict way.</p>
 <ul>
 <li><p>Examples</p>

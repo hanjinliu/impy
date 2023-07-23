@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.arrays.labeledarray &mdash; impy 2.2.0 documentation</title>
+  <title>impy.arrays.labeledarray &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -11,9 +11,8 @@
   <![endif]-->
   
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
         <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -24,14 +23,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -58,9 +61,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>impy.arrays.labeledarray</li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">impy.arrays.labeledarray</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -102,23 +105,23 @@
 
 
 <div class="viewcode-block" id="SupportAxesSlicing"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing">[docs]</a><span class="k">class</span> <span class="nc">SupportAxesSlicing</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A protocol that covariate objects must follow.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A protocol that covariate objects must follow.&quot;&quot;&quot;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Axes</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Axes object bound to the object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Axes object bound to the object.&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="nf">_dimension_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Check if self matches array&#39;s shape and axes.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if self matches array&#39;s shape and axes.&quot;&quot;&quot;</span>
     
 <div class="viewcode-block" id="SupportAxesSlicing.copy"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.SupportAxesSlicing.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Shallow copy of the object.&quot;&quot;&quot;</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shallow copy of the object.&quot;&quot;&quot;</span></div>
     
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SupportAxesSlicing</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Slice object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Slice object.&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="nf">_slice_by</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SupportAxesSlicing</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Slice object.&quot;&quot;&quot;</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Slice object.&quot;&quot;&quot;</span></div>
 
 <span class="k">def</span> <span class="nf">_fmt_slice</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
@@ -127,7 +130,7 @@
         <span class="k">return</span> <span class="n">k</span>
 
 <div class="viewcode-block" id="ArrayCovariates"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.ArrayCovariates">[docs]</a><span class="k">class</span> <span class="nc">ArrayCovariates</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">]):</span>
-    <span class="sd">&quot;&quot;&quot;A dictionary of covariate objects for a MetaArray.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A dictionary of covariate objects for a MetaArray.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SupportAxesSlicing</span><span class="p">],</span> <span class="n">parent</span><span class="p">:</span> <span class="n">MetaArray</span><span class="p">):</span>
         <span class="kn">import</span> <span class="nn">weakref</span>
@@ -136,7 +139,7 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return the parent MetaArray object&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the parent MetaArray object&quot;&quot;&quot;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent_ref</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parent LabeledArray is deleted.&quot;</span><span class="p">)</span>
@@ -247,17 +250,17 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return min/max range of the array.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return min/max range of the array.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">covariates</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArrayCovariates</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get all the covariates.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all the covariates.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_covariates</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;The label of the image.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The label of the image.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">)</span>
     
     <span class="nd">@labels</span><span class="o">.</span><span class="n">setter</span>
@@ -278,7 +281,7 @@
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Input label must be unsigned int but has wrong dtype </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
-            <span class="n">axes</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)[</span><span class="o">-</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
+            <span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">:]</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">Label</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">)</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
         
         <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">_dimension_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -294,7 +297,7 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">rois</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RoiList</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;ROIs of the image.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;ROIs of the image.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rois&quot;</span><span class="p">)</span>
     
     <span class="nd">@rois</span><span class="o">.</span><span class="n">setter</span>
@@ -314,12 +317,12 @@
     <span class="k">def</span> <span class="nf">rois</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rois&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     
-<div class="viewcode-block" id="LabeledArray.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<div class="viewcode-block" id="LabeledArray.set_scale"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.set_scale">[docs]</a>    <span class="k">def</span> <span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">cov</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cov</span><span class="p">,</span> <span class="s2">&quot;set_scale&quot;</span><span class="p">):</span>
                 <span class="n">cov</span><span class="o">.</span><span class="n">set_scale</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="n">out</span></div>
         
         
     <span class="k">def</span> <span class="nf">_repr_dict_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -346,7 +349,7 @@
         <span class="n">dtype</span><span class="p">:</span> <span class="n">DTypeLike</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save image at the same directory as the original image by default. </span>
 <span class="sd">        </span>
 <span class="sd">        For tif file format, if the image contains wrong axes for ImageJ (= except for tzcyx), </span>
@@ -409,6 +412,7 @@
     <span class="k">def</span> <span class="nf">_set_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">MetaArray</span><span class="o">.</span><span class="n">_INHERIT</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_set_info</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">new_axes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_inherit_covariates</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
     
     <span class="k">def</span> <span class="nf">_inherit_covariates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">LabeledArray</span><span class="p">):</span>
@@ -513,7 +517,7 @@
     <span class="c1"># # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #</span>
 
 <div class="viewcode-block" id="LabeledArray.hist"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.hist">[docs]</a>    <span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contrast</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Show intensity profile.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show intensity profile.&quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">._utils</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plt</span>
         <span class="n">_plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">contrast</span><span class="p">)</span>
 
@@ -533,15 +537,16 @@
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">map_coordinates</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">coordinates</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span> 
         <span class="n">mode</span><span class="p">:</span> <span class="n">PaddingMode</span> <span class="o">=</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span>
         <span class="n">cval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">prefilter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">has_nan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Coordinate mapping in the image. See ``scipy.ndimage.map_coordinates``.</span>
 
 <span class="sd">        Parameters</span>
@@ -552,6 +557,8 @@
 <span class="sd">        prefilter : bool, optional</span>
 <span class="sd">            Spline prefilter applied to the array. By default set to True if ``order`` is larger</span>
 <span class="sd">            than 1.</span>
+<span class="sd">        has_nan : bool, default is False</span>
+<span class="sd">            If true, nan values will be masked out.</span>
 <span class="sd">        {dims}</span>
 
 <span class="sd">        Returns</span>
@@ -563,14 +570,16 @@
         <span class="n">c_axes</span> <span class="o">=</span> <span class="n">complement_axes</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">)</span>
         
         <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">drop_axis</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">drop_axis</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">drop_axis</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axisof</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         
         <span class="k">if</span> <span class="n">prefilter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">prefilter</span> <span class="o">=</span> <span class="n">order</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">_map_coordinates_with_nan</span> <span class="k">if</span> <span class="n">has_nan</span> <span class="k">else</span> <span class="n">_map_coordinates</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dask</span><span class="p">(</span>
-            <span class="n">_map_coordinates</span><span class="p">,</span>
+            <span class="n">fn</span><span class="p">,</span>
             <span class="n">c_axes</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">drop_axis</span><span class="o">=</span><span class="n">drop_axis</span><span class="p">,</span>
@@ -595,7 +604,7 @@
 
 <div class="viewcode-block" id="LabeledArray.pointprops"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.pointprops">[docs]</a>    <span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
     <span class="k">def</span> <span class="nf">pointprops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Measure interpolated intensity at points with float coordinates.</span>
 <span class="sd">        </span>
 <span class="sd">        This method is essentially identical to :func:`map_coordinates` but is</span>
@@ -644,7 +653,7 @@
         <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">prefilter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Measure line profile (kymograph) iteratively for every slice of image. This </span>
 <span class="sd">        function is almost same as `skimage.measure.profile_line`, but can reslice</span>
 <span class="sd">        3D-images. The argument `linewidth` is not implemented here because it is</span>
@@ -711,7 +720,7 @@
         <span class="o">*</span><span class="p">,</span> 
         <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PropArray</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Measure line property using func(line_scan) for each functions in properties.</span>
 
 <span class="sd">        Parameters</span>
@@ -795,7 +804,7 @@
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">update</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run spline filter.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
@@ -825,7 +834,7 @@
     <span class="nd">@check_input_and_output</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">crop_center</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="n">nDFloat</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Crop out the center of an image. </span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
@@ -877,7 +886,7 @@
     
 <div class="viewcode-block" id="LabeledArray.crop_kernel"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.crop_kernel">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">crop_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="n">nDInt</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make a kernel from an image by cropping out the center region. </span>
 <span class="sd">        This function is useful especially in `ImgArray.defocus()`.</span>
 
@@ -909,7 +918,7 @@
     <span class="nd">@check_input_and_output</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">remove_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel</span><span class="p">:</span> <span class="n">nDInt</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Remove pixels from the edges.</span>
 
 <span class="sd">        Parameters</span>
@@ -940,7 +949,7 @@
     <span class="nd">@check_input_and_output</span>
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">rotated_crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">dst1</span><span class="p">,</span> <span class="n">dst2</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Crop the image at four courners of an rotated rectangle. Currently only supports rotation within </span>
 <span class="sd">        yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`</span>
 <span class="sd">        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle. Let </span>
@@ -995,7 +1004,7 @@
     <span class="nd">@dims_to_spatial_axes</span>
     <span class="k">def</span> <span class="nf">specify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">center</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
                 <span class="n">labeltype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;square&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make rectangle or ellipse labels from points.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
@@ -1075,7 +1084,7 @@
         <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Label image using skimage&#39;s label().</span>
 <span class="sd">        </span>
 <span class="sd">        Label image using `ref_image` as reference image, or image itself. If </span>
@@ -1210,7 +1219,7 @@
     
 <div class="viewcode-block" id="LabeledArray.append_label"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.append_label">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">append_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Append new labels from an array. This function works for boolean or signed int arrays.</span>
 
 <span class="sd">        Parameters</span>
@@ -1288,7 +1297,7 @@
     
 <div class="viewcode-block" id="LabeledArray.proj_labels"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.proj_labels">[docs]</a>    <span class="nd">@check_input_and_output</span><span class="p">(</span><span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">proj_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forbid_overlap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Label</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Label projection. This function is useful when zyx-labels are drawn but you want to reduce the </span>
 <span class="sd">        dimension.</span>
 
@@ -1308,7 +1317,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span></div>
     
 <div class="viewcode-block" id="LabeledArray.split"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.split">[docs]</a>    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataList</span><span class="p">[</span><span class="n">Self</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Split n-dimensional image into (n-1)-dimensional images. This function is different from</span>
 <span class="sd">        `np.split`, which split an array into smaller pieces (n-D to n-D).</span>
 
@@ -1343,7 +1352,7 @@
         <span class="n">along</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tile images in a certain order.</span>
 
 <span class="sd">        Parameters</span>
@@ -1426,7 +1435,7 @@
     
 <div class="viewcode-block" id="LabeledArray.for_each_channel"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.for_each_channel">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">for_each_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">along</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply same function with different parameters for each channel. This function will be useful</span>
 <span class="sd">        when the parameters are dependent on channels, like wave length.</span>
 
@@ -1453,7 +1462,7 @@
     
 <div class="viewcode-block" id="LabeledArray.for_params"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.for_params">[docs]</a>    <span class="nd">@check_input_and_output</span>
     <span class="k">def</span> <span class="nf">for_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="o">|</span><span class="nb">str</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataList</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Apply same function with different parameters with same input. This function will be useful</span>
 <span class="sd">        when you want to try different conditions to the same image.</span>
 
@@ -1511,7 +1520,7 @@
     
 <div class="viewcode-block" id="LabeledArray.extract"><a class="viewcode-back" href="../../../apidoc/impy.arrays.html#impy.arrays.labeledarray.LabeledArray.extract">[docs]</a>    <span class="nd">@check_input_and_output</span><span class="p">(</span><span class="n">need_labels</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cval</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataList</span><span class="p">[</span><span class="n">Self</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extract certain regions of the image and substitute others to `cval`.</span>
 
 <span class="sd">        Parameters</span>
@@ -1569,7 +1578,7 @@
 
 
 <span class="k">def</span> <span class="nf">_iter_tile_yx</span><span class="p">(</span><span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">imgy</span><span class="p">,</span> <span class="n">imgx</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    +--+--+--+</span>
 <span class="sd">    | 0| 1| 2|</span>
 <span class="sd">    +--+--+--+</span>
@@ -1584,7 +1593,7 @@
         <span class="k">yield</span> <span class="o">...</span><span class="p">,</span> <span class="n">sly</span><span class="p">,</span> <span class="n">slx</span>
 
 <span class="k">def</span> <span class="nf">_iter_tile_xy</span><span class="p">(</span><span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">imgy</span><span class="p">,</span> <span class="n">imgx</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    +--+--+--+</span>
 <span class="sd">    | 0| 3| 6|</span>
 <span class="sd">    +--+--+--+</span>
@@ -1654,6 +1663,29 @@
         <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
         <span class="n">prefilter</span><span class="o">=</span><span class="n">prefilter</span><span class="p">,</span>
     <span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_map_coordinates_with_nan</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="p">,</span> <span class="n">prefilter</span><span class="p">):</span>
+    <span class="n">nans</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">mapped</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">(</span>
+        <span class="nb">input</span><span class="p">,</span>
+        <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">),</span>
+        <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+        <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
+        <span class="n">prefilter</span><span class="o">=</span><span class="n">prefilter</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">mapped_nans</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">ndi</span><span class="o">.</span><span class="n">map_coordinates</span><span class="p">(</span>
+        <span class="n">nans</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">xp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">),</span>
+        <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+        <span class="n">cval</span><span class="o">=</span><span class="n">cval</span><span class="p">,</span>
+        <span class="n">prefilter</span><span class="o">=</span><span class="n">prefilter</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.5</span>
+    <span class="n">mapped</span><span class="p">[</span><span class="n">mapped_nans</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="n">mapped</span>
 </pre></div>
 
            </div>

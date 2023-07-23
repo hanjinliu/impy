@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.correlation &mdash; impy 2.2.0 documentation</title>
+  <title>impy.correlation &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -11,9 +11,8 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -24,14 +23,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -58,9 +61,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-      <li>impy.correlation</li>
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">impy.correlation</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -73,7 +76,7 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
-<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">asarray</span> <span class="k">as</span> <span class="n">ip_asarray</span>
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">asarray</span> <span class="k">as</span> <span class="n">ip_asarray</span><span class="p">,</span> <span class="n">circular_mask</span>
 <span class="kn">from</span> <span class="nn">.arrays</span> <span class="kn">import</span> <span class="n">ImgArray</span><span class="p">,</span> <span class="n">PropArray</span>
 <span class="kn">from</span> <span class="nn">.arrays._utils</span> <span class="kn">import</span> <span class="n">_docs</span>
 <span class="kn">from</span> <span class="nn">.arrays._utils._transform</span> <span class="kn">import</span> <span class="n">polar2d</span>
@@ -112,7 +115,7 @@
     <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span> 
     <span class="n">dfreq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) </span>
 <span class="sd">    between two images. FSC is defined as:</span>
 <span class="sd">    </span>
@@ -224,7 +227,7 @@
     <span class="o">*</span><span class="p">,</span> 
     <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalized Cross Correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    Parameters</span>
@@ -260,7 +263,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Zero-mean Normalized Cross Correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    Parameters</span>
@@ -305,7 +308,7 @@
     <span class="o">*</span><span class="p">,</span> 
     <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalized Mutual Information.</span>
 <span class="sd">    </span>
 <span class="sd">    :math:`Y(A, B) = \frac{H(A) + H(B)}{H(A, B)}`</span>
@@ -356,7 +359,7 @@
     <span class="o">*</span><span class="p">,</span> 
     <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalized Cross Correlation in Fourier space.</span>
 <span class="sd">    </span>
 <span class="sd">    Parameters</span>
@@ -394,7 +397,7 @@
     <span class="o">*</span><span class="p">,</span> 
     <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Zero-mean Normalized Cross Correlation in Fourier space.</span>
 <span class="sd">    </span>
 <span class="sd">    Parameters</span>
@@ -436,7 +439,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images using phase cross correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters </span>
@@ -466,7 +469,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images using phase cross correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters </span>
@@ -511,7 +514,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images using phase cross correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    This function takes Fourier transformed images as input. If you have to repetitively</span>
@@ -541,7 +544,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images using phase cross correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    This function takes Fourier transformed images as input. If you have to repetitively</span>
@@ -581,7 +584,7 @@
     <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create landscape of phase cross correlation.</span>
 
 <span class="sd">    Parameters</span>
@@ -615,7 +618,7 @@
     <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create landscape of phase cross correlation.</span>
 
 <span class="sd">    This function takes Fourier transformed images as input. If you have to repetitively</span>
@@ -651,7 +654,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate rotational shift between two images using polar Fourier transformation.</span>
 
 <span class="sd">    Parameters</span>
@@ -676,7 +679,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate rotational shift between two images using polar Fourier transformation.</span>
 
 <span class="sd">    Parameters</span>
@@ -692,20 +695,83 @@
 <span class="sd">    float and float</span>
 <span class="sd">        Rotation in degree and phase cross correlation</span>
 <span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">return</span> <span class="n">_polar_corr</span><span class="p">(</span><span class="n">pcc_maximum_with_corr</span><span class="p">,</span> <span class="n">img0</span><span class="p">,</span> <span class="n">img1</span><span class="p">,</span> <span class="n">upsample_factor</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">)</span></div>
+
+
+<span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+<span class="k">def</span> <span class="nf">polar_zncc_maximum</span><span class="p">(</span>
+    <span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+    <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+    <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate rotational shift between two images using polar Fourier transformation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    {inputs_of_correlation}</span>
+<span class="sd">    upsample_factor : int, default is 10</span>
+<span class="sd">        Up-sampling factor when calculating phase cross correlation.</span>
+<span class="sd">    max_degree : int, tuple of int, optional</span>
+<span class="sd">        Maximum rotation in degree.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Rotation in degree</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">return</span> <span class="n">polar_zncc_maximum_with_corr</span><span class="p">(</span><span class="n">img0</span><span class="p">,</span> <span class="n">img1</span><span class="p">,</span> <span class="n">upsample_factor</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
+<span class="k">def</span> <span class="nf">polar_zncc_maximum_with_corr</span><span class="p">(</span>
+    <span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+    <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+    <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate rotational shift between two images using polar Fourier transformation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    {inputs_of_correlation}</span>
+<span class="sd">    upsample_factor : int, default is 10</span>
+<span class="sd">        Up-sampling factor when calculating phase cross correlation.</span>
+<span class="sd">    max_degree : int, tuple of int, optional</span>
+<span class="sd">        Maximum rotation in degree.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float and float</span>
+<span class="sd">        Rotation in degree and phase cross correlation</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">return</span> <span class="n">_polar_corr</span><span class="p">(</span><span class="n">zncc_maximum_with_corr</span><span class="p">,</span> <span class="n">img0</span><span class="p">,</span> <span class="n">img1</span><span class="p">,</span> <span class="n">upsample_factor</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_polar_corr</span><span class="p">(</span>
+    <span class="n">corr_fn</span><span class="p">,</span>
+    <span class="n">img0</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+    <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
+    <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate rotational shift between two images using polar Fourier transformation.&quot;&quot;&quot;</span>    
     <span class="n">img0</span><span class="p">,</span> <span class="n">img1</span> <span class="o">=</span> <span class="n">_check_inputs</span><span class="p">(</span><span class="n">img0</span><span class="p">,</span> <span class="n">img1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">img0</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Currently only 2D image is supported.&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">max_degree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">max_degree</span> <span class="o">=</span> <span class="mi">180</span>
-    <span class="n">rmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="n">imgp</span> <span class="o">=</span> <span class="n">ip_asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">polar2d</span><span class="p">(</span><span class="n">img0</span><span class="p">,</span> <span class="n">rmax</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)))</span>
-    <span class="n">imgrotp</span> <span class="o">=</span> <span class="n">ip_asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">polar2d</span><span class="p">(</span><span class="n">img1</span><span class="p">,</span> <span class="n">rmax</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)))</span>
+    <span class="n">rmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">img0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">circular_mask</span><span class="p">(</span><span class="n">rmax</span><span class="p">,</span> <span class="n">img0</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">soft</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">out_value</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">imgp</span> <span class="o">=</span> <span class="n">ip_asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">polar2d</span><span class="p">(</span><span class="n">img0</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span> <span class="n">rmax</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)))</span>
+    <span class="n">imgrotp</span> <span class="o">=</span> <span class="n">ip_asarray</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">polar2d</span><span class="p">(</span><span class="n">img1</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span> <span class="n">rmax</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)))</span>
     <span class="n">max_shifts</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_degree</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">shift</span><span class="p">,</span> <span class="n">pcc</span> <span class="o">=</span> <span class="n">pcc_maximum_with_corr</span><span class="p">(</span>
+    <span class="n">shift</span><span class="p">,</span> <span class="n">pcc</span> <span class="o">=</span> <span class="n">corr_fn</span><span class="p">(</span>
         <span class="n">imgp</span><span class="p">,</span> <span class="n">imgrotp</span><span class="p">,</span> <span class="n">upsample_factor</span><span class="o">=</span><span class="n">upsample_factor</span><span class="p">,</span> <span class="n">max_shifts</span><span class="o">=</span><span class="n">max_shifts</span>
     <span class="p">)</span>
     <span class="c1"># Here, `shift` satisfies `img0.rotate(-shift[0]) == img1`</span>
-    <span class="k">return</span> <span class="n">shift</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pcc</span></div>
+    <span class="k">return</span> <span class="n">shift</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pcc</span>
 
 <div class="viewcode-block" id="zncc_maximum"><a class="viewcode-back" href="../../apidoc/impy.html#impy.correlation.zncc_maximum">[docs]</a><span class="nd">@_docs</span><span class="o">.</span><span class="n">write_docs</span>
 <span class="k">def</span> <span class="nf">zncc_maximum</span><span class="p">(</span>
@@ -714,7 +780,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images using zero-mean normalized cross correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.</span>
@@ -744,7 +810,7 @@
     <span class="n">upsample_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate lateral shift between two images using zero-mean normalized cross correlation.</span>
 <span class="sd">    </span>
 <span class="sd">    Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.</span>
@@ -785,7 +851,7 @@
     <span class="n">img1</span><span class="p">:</span> <span class="n">ImgArray</span><span class="p">,</span>
     <span class="n">max_shifts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create landscape of zero-mean normalized cross correlation.</span>
 
 <span class="sd">    Parameters</span>
@@ -821,7 +887,7 @@
     <span class="n">squeeze</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">dims</span><span class="p">:</span> <span class="n">Dims</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropArray</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manders&#39; correlation coefficient. This is defined as following:</span>
 <span class="sd">    </span>
 <span class="sd">    :math:`r = \frac{\sum_{i \in I_{ref}} I_i}{\sum_{i} I_i}`</span>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Command Line Usage &mdash; impy 2.2.0 documentation</title>
+  <title>Command Line Usage &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +26,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -65,8 +68,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Command Line Usage</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Command Line Usage</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/tutorial_cmd.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -77,18 +80,18 @@
            <div itemprop="articleBody">
              
   <section id="command-line-usage">
-<h1>Command Line Usage<a class="headerlink" href="#command-line-usage" title="Permalink to this headline">¶</a></h1>
+<h1>Command Line Usage<a class="headerlink" href="#command-line-usage" title="Permalink to this heading">¶</a></h1>
 <p>Image analysis usually relies on different softwares in different platform.
 The traditional command line based interface is still useful in this purpose.</p>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code> also supports command line usage.</p>
 <section id="basic-usage">
-<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this heading">¶</a></h2>
 <p>The most basic one is:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy --input path/to/image.tif --output path/to/output.tif --method gaussian_filter --sigma <span class="m">2</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy<span class="w"> </span>--input<span class="w"> </span>path/to/image.tif<span class="w"> </span>--output<span class="w"> </span>path/to/output.tif<span class="w"> </span>--method<span class="w"> </span>gaussian_filter<span class="w"> </span>--sigma<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>or <code class="docutils literal notranslate"><span class="pre">--input</span></code> and <code class="docutils literal notranslate"><span class="pre">--output</span></code> can be omitted like:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy path/to/image.tif path/to/output.tif --method gaussian_filter --sigma <span class="m">2</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy<span class="w"> </span>path/to/image.tif<span class="w"> </span>path/to/output.tif<span class="w"> </span>--method<span class="w"> </span>gaussian_filter<span class="w"> </span>--sigma<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>You have to specify <code class="docutils literal notranslate"><span class="pre">--method</span></code> or <code class="docutils literal notranslate"><span class="pre">-m</span></code> to let <code class="docutils literal notranslate"><span class="pre">impy</span></code> know what method you’d like to run.
@@ -103,13 +106,13 @@ Those commands above are equivalent to following Python code.</p>
 </div>
 </section>
 <section id="advanced-usage">
-<h2>Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permalink to this headline">¶</a></h2>
+<h2>Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permalink to this heading">¶</a></h2>
 <p>Sometimes you may want to apply multiple filters in tandem to an image. Classically it was
 usually done by saving intermediate files, but here we should take advantage of IPython.</p>
 <p>Instead of parsing <code class="docutils literal notranslate"><span class="pre">--output</span></code>, you can use <code class="docutils literal notranslate"><span class="pre">-i</span></code> flag to launch IPython interpreter with
 namespace <code class="docutils literal notranslate"><span class="pre">ip</span></code> and <code class="docutils literal notranslate"><span class="pre">img</span></code>. <code class="docutils literal notranslate"><span class="pre">ip</span></code> is an alias of <code class="docutils literal notranslate"><span class="pre">impy</span></code> as usual, and <code class="docutils literal notranslate"><span class="pre">img</span></code> is an
 <code class="docutils literal notranslate"><span class="pre">ImgArray</span></code> object that is created by reading the <code class="docutils literal notranslate"><span class="pre">--input</span></code> argument.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy path/to/image.tif -i
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy<span class="w"> </span>path/to/image.tif<span class="w"> </span>-i
 </pre></div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">ip</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span> <span class="mi">120</span><span class="p">))</span>  <span class="c1"># &quot;ip&quot; is already available</span>
@@ -119,7 +122,7 @@ namespace <code class="docutils literal notranslate"><span class="pre">ip</span>
 </div>
 <p>Another option is <code class="docutils literal notranslate"><span class="pre">-n</span></code>, which send namespace including input image to <code class="docutils literal notranslate"><span class="pre">napari</span></code> viewer
 and console.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy path/to/image.tif -n
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>impy<span class="w"> </span>path/to/image.tif<span class="w"> </span>-n
 </pre></div>
 </div>
 </section>

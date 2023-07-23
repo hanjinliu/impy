@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy.viewer.viewer &mdash; impy 2.2.0 documentation</title>
+  <title>impy.viewer.viewer &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -11,9 +11,8 @@
   <![endif]-->
   
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
         <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -24,14 +23,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> impy
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -58,9 +61,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>impy.viewer.viewer</li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">impy.viewer.viewer</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -91,11 +94,12 @@
     <span class="n">make_world_scale</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">..collections</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">..arrays</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">..core</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">ip_array</span><span class="p">,</span> <span class="n">aslazy</span> <span class="k">as</span> <span class="n">ip_aslazy</span>
-<span class="kn">from</span> <span class="nn">..axes</span> <span class="kn">import</span> <span class="n">ScaleView</span><span class="p">,</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Axis</span>
-<span class="kn">from</span> <span class="nn">.._const</span> <span class="kn">import</span> <span class="n">Const</span>
+<span class="kn">from</span> <span class="nn">impy.collections</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">impy.arrays</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">impy.core</span> <span class="kn">import</span> <span class="n">array</span> <span class="k">as</span> <span class="n">ip_array</span>
+<span class="kn">from</span> <span class="nn">impy.lazy</span> <span class="kn">import</span> <span class="n">asarray</span> <span class="k">as</span> <span class="n">ip_aslazy</span>
+<span class="kn">from</span> <span class="nn">impy.axes</span> <span class="kn">import</span> <span class="n">ScaleView</span><span class="p">,</span> <span class="n">AxisLike</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Axis</span>
+<span class="kn">from</span> <span class="nn">impy._const</span> <span class="kn">import</span> <span class="n">Const</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">napari.components</span> <span class="kn">import</span> <span class="n">LayerList</span>
@@ -110,19 +114,20 @@
 <span class="n">ImpyObject</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;ImpyObject&quot;</span><span class="p">,</span> <span class="n">Any</span><span class="p">)</span>
 
 <div class="viewcode-block" id="napariViewers"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.viewer.napariViewers">[docs]</a><span class="k">class</span> <span class="nc">napariViewers</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The controller of ``napari.Viewer``s from ``impy``. Always access by ``ip.gui``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>    
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="p">:</span> <span class="n">WeakValueDictionary</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">WeakValueDictionary</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_axes</span><span class="p">:</span> <span class="n">Axes</span> <span class="o">=</span> <span class="kc">None</span>
     
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">w</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&gt;&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}{</span><span class="n">w</span><span class="si">}</span><span class="s2">&quot;</span>
     
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">napariViewers</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method looks strange but intuitive because you can access the last viewer by</span>
 <span class="sd">        &gt;&gt;&gt; ip.gui.add(...)</span>
 <span class="sd">        while turn to another by</span>
@@ -141,19 +146,19 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">viewer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;napari.Viewer&quot;</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;The most front viewer you&#39;re using&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The most front viewer you&#39;re using&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_front_viewer</span><span class="p">]</span>
         
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">layers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LayerList&quot;</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Napari layer list. Identical to ``ip.gui.viewer.layers``.&quot;&quot;&quot;</span>        
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Napari layer list. Identical to ``ip.gui.viewer.layers``.&quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">current_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">slice</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a tuple of slicer that corresponds to current field of view. </span>
 <span class="sd">        </span>
 <span class="sd">        For instance, when the viewer is displaying yx-plane at t=1, then this property </span>
@@ -169,18 +174,18 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">selection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ImpyObject</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return selected layers&#39; data as a list of impy objects.&quot;&quot;&quot;</span>        
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return selected layers&#39; data as a list of impy objects.&quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="p">[</span><span class="n">layer_to_impy_object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span> 
                 <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">selection</span><span class="p">]</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">cursor_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return cursor position. Scale is considered.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return cursor position. Scale is considered.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">position</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">axes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Axes</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Axes information of current viewer. </span>
 <span class="sd">        </span>
 <span class="sd">        Defined to make compatible with ``ImgArray``.</span>
@@ -199,7 +204,7 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScaleView</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Scale information of current viewer.</span>
 <span class="sd">        </span>
 <span class="sd">        Defined to make compatible with ``ImgArray``.</span>
@@ -207,7 +212,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">scale</span>
     
 <div class="viewcode-block" id="napariViewers.start"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.viewer.napariViewers.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;impy&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a napari window with name ``key``.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a napari window with name ``key``.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`key` must be str.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_viewers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -224,7 +229,7 @@
         <span class="n">layer_state</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;visible&quot;</span><span class="p">,</span>
         <span class="n">returns</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;last&quot;</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImpyObject</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">ImpyObject</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Simple way to get impy object from viewer.</span>
 
 <span class="sd">        Parameters</span>
@@ -332,7 +337,7 @@
         <span class="n">ref</span><span class="p">:</span> <span class="s2">&quot;napari.layers.Image&quot;</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">LabeledArray</span> <span class="o">|</span> <span class="n">LazyImgArray</span><span class="p">,</span> 
         <span class="n">ndim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        With cursor position and a layer as inputs, this function returns the cursor &quot;pixel&quot; coordinates on the given</span>
 <span class="sd">        layer. This function is useful when you want to get such as pixel value at the cursor position.</span>
 
@@ -381,7 +386,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">pos</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span></div>
         
 <div class="viewcode-block" id="napariViewers.add"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.viewer.napariViewers.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">ImpyObject</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add images, points, labels, tracks etc to viewer.</span>
 
 <span class="sd">        Parameters</span>
@@ -466,7 +471,7 @@
         <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add a surface layer from a 3D image.</span>
 
 <span class="sd">        Parameters</span>
@@ -490,7 +495,7 @@
     
     
 <div class="viewcode-block" id="napariViewers.goto"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.viewer.napariViewers.goto">[docs]</a>    <span class="k">def</span> <span class="nf">goto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Change the current step of the viewer.</span>
 
 <span class="sd">        Examples</span>
@@ -515,7 +520,7 @@
         <span class="k">return</span> <span class="n">step</span></div>
     
 <div class="viewcode-block" id="napariViewers.stepof"><a class="viewcode-back" href="../../../apidoc/impy.viewer.html#impy.viewer.viewer.napariViewers.stepof">[docs]</a>    <span class="k">def</span> <span class="nf">stepof</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">:</span> <span class="n">AxisLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the current step of certain axis.</span>
 
 <span class="sd">        Parameters</span>

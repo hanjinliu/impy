@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>impy &mdash; impy 2.2.0 documentation</title>
+  <title>impy &mdash; impy 2.3.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -12,9 +12,8 @@
   <![endif]-->
   
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -26,14 +25,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="#" class="icon icon-home"> impy
+
+          
+          
+          <a href="#" class="icon icon-home">
+            impy
           </a>
               <div class="version">
-                2.2.0
+                2.3.0
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -60,8 +63,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>impy</li>
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">impy</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -72,12 +75,12 @@
            <div itemprop="articleBody">
              
   <section id="impy">
-<h1>impy<a class="headerlink" href="#impy" title="Permalink to this headline">¶</a></h1>
+<h1>impy<a class="headerlink" href="#impy" title="Permalink to this heading">¶</a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">impy</span></code> is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and
 so on.</p>
 <p><a class="reference external" href="https://github.com/hanjinliu/impy">Source code</a></p>
 <section id="highlights">
-<h2>Highlights<a class="headerlink" href="#highlights" title="Permalink to this headline">¶</a></h2>
+<h2>Highlights<a class="headerlink" href="#highlights" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Automatic parallel batch processing using <code class="docutils literal notranslate"><span class="pre">dask</span></code>.</p></li>
 <li><p>You don’t have to care about <code class="docutils literal notranslate"><span class="pre">numpy</span></code> / <code class="docutils literal notranslate"><span class="pre">scipy</span></code> on CPU, or <code class="docutils literal notranslate"><span class="pre">cupy</span></code> on GPU. Same code works for both processors.</p></li>
@@ -87,17 +90,17 @@ so on.</p>
 </ul>
 </section>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/hanjinliu/impy
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/hanjinliu/impy
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/hanjinliu/impy
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/hanjinliu/impy
 </pre></div>
 </div>
 </section>
 <section id="contents">
-<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -109,9 +112,9 @@ so on.</p>
 </div>
 </section>
 <section id="major-classes">
-<h2>Major Classes<a class="headerlink" href="#major-classes" title="Permalink to this headline">¶</a></h2>
+<h2>Major Classes<a class="headerlink" href="#major-classes" title="Permalink to this heading">¶</a></h2>
 <section id="array">
-<h3>Array<a class="headerlink" href="#array" title="Permalink to this headline">¶</a></h3>
+<h3>Array<a class="headerlink" href="#array" title="Permalink to this heading">¶</a></h3>
 <div class="align-default"><svg height="360" viewBox="0 0 832 360" width="832" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs id="defs_block">
     <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
@@ -177,7 +180,7 @@ so on.</p>
 </ul>
 </section>
 <section id="array-like">
-<h3>Array-like<a class="headerlink" href="#array-like" title="Permalink to this headline">¶</a></h3>
+<h3>Array-like<a class="headerlink" href="#array-like" title="Permalink to this heading">¶</a></h3>
 <div class="align-default"><svg height="280" viewBox="0 0 256 280" width="256" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs id="defs_block">
     <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
@@ -207,7 +210,7 @@ so on.</p>
 </ul>
 </section>
 <section id="data-frame">
-<h3>Data Frame<a class="headerlink" href="#data-frame" title="Permalink to this headline">¶</a></h3>
+<h3>Data Frame<a class="headerlink" href="#data-frame" title="Permalink to this heading">¶</a></h3>
 <div class="align-default"><svg height="280" viewBox="0 0 640 280" width="640" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs id="defs_block">
     <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
@@ -255,7 +258,7 @@ so on.</p>
 </section>
 </section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>

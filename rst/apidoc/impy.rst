@@ -10,6 +10,7 @@ Subpackages
    impy.arrays
    impy.axes
    impy.frame
+   impy.lazy
    impy.utils
    impy.viewer
 
