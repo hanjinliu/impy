@@ -3,6 +3,7 @@ from functools import lru_cache, wraps
 import itertools
 from pathlib import Path
 from typing import Any, Callable, TYPE_CHECKING, Sequence
+import warnings
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 from warnings import warn
@@ -1038,6 +1039,11 @@ class LazyImgArray(AxesMixin):
     @check_input_and_output_lazy
     def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
                              dims: Dims = None, update: bool = False) -> LazyImgArray:
+        warnings.warn(
+            "`tiled_lowpass_filter` is deprecated. Please use "
+            f"`img.tiled({overlap=}).lowpass_filter({cutoff=}, {order=})` instead.",
+            DeprecationWarning,
+        )
         return self.tiled(
             chunks=self.chunksizesof(dims), overlap=overlap, dims=dims,
         ).lowpass_filter(cutoff, order)
