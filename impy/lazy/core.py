@@ -4,25 +4,15 @@ import os
 import sys
 import re
 import glob
-import itertools
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
-
-if sys.version_info < (3, 10):
-    from typing_extensions import ParamSpec
-else:
-    from typing import ParamSpec
+from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing_extensions import ParamSpec
 import numpy as np
 from functools import wraps
 
 from impy import io
-from impy.utils import gauss
-from impy.utils.slicer import solve_slicer
-from impy._types import AxesTargetedSlicer, nDFloat
-from impy.axes import ImageAxesError, broadcast, Axes, AxesLike, AxesTuple
-from impy.collections import DataList
+from impy.axes import AxesLike, AxesTuple
 from impy.arrays.bases import MetaArray
-from impy.arrays import LazyImgArray, Label, BigImgArray
-from impy._const import Const
+from impy.arrays import LazyImgArray
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike

@@ -51,7 +51,7 @@ class ImgArray(LabeledArray):
     source : Path
         Source file of the image.
     """
-    tiled = TiledAccessor()
+    tiled: TiledAccessor[ImgArray] = TiledAccessor()
 
     @_docs.write_docs
     @dims_to_spatial_axes

@@ -7,11 +7,7 @@ import itertools
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Sequence
 from typing_extensions import Literal
 import warnings
-
-if sys.version_info < (3, 10):
-    from typing_extensions import ParamSpec
-else:
-    from typing import ParamSpec
+from typing_extensions import ParamSpec
 import numpy as np
 from functools import wraps
 
@@ -27,7 +23,7 @@ from impy._const import Const
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike
-    from .roi import RoiList
+    from impy.roi import RoiList
     # NOTE: "_ShapeLike" is not a public type in numpy.typing.
     from typing import SupportsIndex, Union
     ShapeLike = Union[SupportsIndex, Sequence[SupportsIndex]]

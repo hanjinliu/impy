@@ -15,9 +15,9 @@ from warnings import warn
 from collections import namedtuple
 from numbers import Number
 
-from ..utils.axesop import switch_slice
-from ..axes import Axes, ImageAxesError, ScaleView, AxisLike, AxesLike, Axis
-from .._types import Slices, Dims
+from impy.utils.axesop import switch_slice
+from impy.axes import Axes, ImageAxesError, ScaleView, AxisLike, AxesLike, Axis
+from impy._types import Slices, Dims
 
 if TYPE_CHECKING:
     from typing_extensions import Self, Literal
@@ -29,6 +29,7 @@ class AxesMixin:
     _axes: Axes
     ndim: int
     shape: tuple[int, ...]
+    dtype: np.dtype
     value: Any
     
     @property
@@ -61,7 +62,7 @@ class AxesMixin:
     @property
     def metadata(self) -> dict[str, Any]:
         raise NotImplementedError()
-    
+
     @property
     def scale(self) -> ScaleView:
         return self.axes.scale

@@ -12,6 +12,7 @@ import operator
 from .labeledarray import LabeledArray
 from .imgarray import ImgArray
 from .axesmixin import AxesMixin
+from .tiled import TiledAccessor
 from ._utils import _misc, _transform, _structures, _filters, _deconv, _corr, _docs
 
 from impy.utils.axesop import slice_axes, switch_slice, complement_axes, find_first_appeared
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 
 class LazyImgArray(AxesMixin):
     additional_props = ["_source", "_metadata", "_name"]
+    tiled: TiledAccessor[LazyImgArray] = TiledAccessor()
     
     def __init__(
         self,
@@ -539,10 +541,11 @@ class LazyImgArray(AxesMixin):
         depth: int = 16,
         boundary="reflect",
         dtype: DTypeLike = None,
-        args: tuple = None,
-        kwargs: dict[str, Any] = None
+        args: tuple | None = None,
+        kwargs: dict[str, Any] | None = None
     ) -> DaskArray:
         from dask import array as da
+
         if args is None:
             args = ()
         if kwargs is None:
@@ -1035,26 +1038,9 @@ class LazyImgArray(AxesMixin):
     @check_input_and_output_lazy
     def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
                              dims: Dims = None, update: bool = False) -> LazyImgArray:
-        from ._utils._skimage import _get_ND_butterworth_filter
-        self = self.as_float()
-        c_axes = complement_axes(dims, self.axes)
-        ndims = len(dims)
-        cutoff = check_nd(cutoff, ndims)
-        if all((c >= 0.5*np.sqrt(ndims) or c <= 0) for c in cutoff):
-            return self
-        
-        depth = switch_slice(dims, self.axes, overlap, 0)
-        
-        def func(arr):
-            arr = xp.asarray(arr)
-            shape = arr.shape
-            weight = _get_ND_butterworth_filter(shape, cutoff, order, False, True)
-            ft = xp.asarray(weight) * xp.fft.rfftn(arr)
-            ift = xp.fft.irfftn(ft, s=shape)
-            return ift
-        
-        out = self._apply_map_overlap(func, c_axes=c_axes, depth=depth, boundary="reflect")
-        return out
+        return self.tiled(
+            chunks=self.chunksizesof(dims), overlap=overlap, dims=dims,
+        ).lowpass_filter(cutoff, order)
     
     @_docs.copy_docs(ImgArray.proj)
     @same_dtype
@@ -1065,7 +1051,7 @@ class LazyImgArray(AxesMixin):
         elif not isinstance(axis, str):
             raise TypeError("`axis` must be str.")
         axisint = [self.axisof(a) for a in axis]
-        
+
         if method == "mean":
             projection = getattr(da, method)(self.value, axis=tuple(axisint), dtype=np.float32)
         else:
