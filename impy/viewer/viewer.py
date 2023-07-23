@@ -19,11 +19,12 @@ from .utils import (
     make_world_scale,
 )
 
-from ..collections import *
-from ..arrays import *
-from ..core import array as ip_array, aslazy as ip_aslazy
-from ..axes import ScaleView, AxisLike, Axes, Axis
-from .._const import Const
+from impy.collections import *
+from impy.arrays import *
+from impy.core import array as ip_array
+from impy.lazy import asarray as ip_aslazy
+from impy.axes import ScaleView, AxisLike, Axes, Axis
+from impy._const import Const
 
 if TYPE_CHECKING:
     from napari.components import LayerList
@@ -44,6 +45,7 @@ class napariViewers:
     def __init__(self):
         self._viewers: WeakValueDictionary[str, "napari.Viewer"] = WeakValueDictionary()
         self._front_viewer: str = None
+        self._axes: Axes = None
     
     def __repr__(self):
         w = "".join([f"<{k}>" for k in self._viewers.keys()])

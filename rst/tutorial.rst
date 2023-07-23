@@ -251,12 +251,12 @@ memory map of the image file that is split into smaller chunks, and passes it to
 read" state. The image data is therefore loaded only when it is needed. Many useful functions in ``ImgArray`` 
 are also implemented in ``LazyImgArray`` so that you can easily handle large datasets.
 
-To read large images as ``LazyImgArray``, call ``lazy_imread`` instead. You can specify its chunk size using
+To read large images as ``LazyImgArray``, call ``impy.lazy.imread`` instead. You can specify its chunk size using
 ``chunks`` parameter.
 
 .. code-block:: python
 
-    img = ip.lazy_imread("path/to/image.tif", chunks=(1, "auto", "auto", "auto"))
+    img = ip.lazy.imread("path/to/image.tif", chunks=(1, "auto", "auto", "auto"))
     img
 
 .. code-block::

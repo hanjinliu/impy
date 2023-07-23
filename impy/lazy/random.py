@@ -166,7 +166,7 @@ class ImageGenerator:
     def random(
         self,
         size: int | tuple[int, ...] | None = None, 
-        dtype = None,
+        dtype = np.float32,
         *,
         axes: AxesLike | None = None,
         name: str | None = None,
@@ -175,10 +175,10 @@ class ImageGenerator:
     ) -> LazyImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
     
-        arr = self._rng.random(size=size, dtype=dtype, chunks=chunks)
+        arr = self._rng.random(size=size, dtype=np.float64, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(arr.astype(dtype, copy=False), axes=axes, name=name)
     
     def normal(
         self,
@@ -196,7 +196,7 @@ class ImageGenerator:
         arr = self._rng.normal(loc=loc, scale=scale, size=size, chunks=chunks)
         if np.isscalar(arr):
             return arr
-        return asarray(arr, axes=axes, name=name)
+        return asarray(arr.astype(np.float32), axes=axes, name=name)
 
     def poisson(
         self,

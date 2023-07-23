@@ -834,7 +834,9 @@ def big_imread(
     -------
     BigImgArray
     """
-    out = lazy_imread(path, chunks=chunks, name=name, squeeze=squeeze)
+    from impy.lazy import imread as lazy_imread_
+
+    out = lazy_imread_(path, chunks=chunks, name=name, squeeze=squeeze)
     return BigImgArray(out.value, out.name, out.axes, out.source, out.metadata)
 
 def read_meta(path: str) -> dict[str, Any]:

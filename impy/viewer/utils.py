@@ -5,13 +5,14 @@ import numpy as np
 import napari
 import os
 
-from ..arrays import *
-from .._const import Const
-from ..core import imread, lazy_imread
+from impy.arrays import *
+from impy._const import Const
+from impy.core import imread
+from impy.lazy import imread as lazy_imread
 
 if TYPE_CHECKING:
-    from ..frame import TrackFrame, PathFrame, AxesFrame
-    from ..roi import Roi
+    from impy.frame import TrackFrame, PathFrame, AxesFrame
+    from impy.roi import Roi
     from napari.layers import Shapes
 
 
