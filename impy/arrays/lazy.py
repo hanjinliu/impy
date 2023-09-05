@@ -1465,8 +1465,8 @@ class LazyImgArray(AxesMixin):
             out = self.__class__(out)
             out._set_info(self)
             return out
-        elif dtype == "int8":
-            out = self.value.astype(np.int8)
+        elif dtype in ("int8", "int16", "int32", "uint32"):
+            out = self.value.astype(dtype)
             out = self.__class__(out)
             out._set_info(self)
             return out

@@ -432,7 +432,7 @@ class LabeledArray(MetaArray):
             warn("Data type complex128 is not valid for images. It was converted to complex64 instead",
                  UserWarning)
             return self.astype(np.complex64)
-        elif dtype in ("int8", "int16"):
+        elif dtype in ("int8", "int16", "int32", "uint32"):
             return self.astype(dtype)
         else:
             raise ValueError(f"dtype: {dtype}")
@@ -1381,7 +1381,7 @@ class LabeledArray(MetaArray):
         imgs = self.split(along)
         outs = []
         for img, kw in zip(imgs, _iter_dict(kwargs, len(imgs))):
-            outs.append(out)
+            outs.append(getattr(img, func)(**kw))
         out = np.stack(outs, axis=along)
         return out
     
