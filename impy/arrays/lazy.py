@@ -1497,10 +1497,7 @@ class LazyImgArray(AxesMixin):
         # set additional properties
         # If `other` does not have it and `self` has, then the property will be inherited.
         for p in self.__class__.additional_props:
-            setattr(self, p, getattr(other, p, 
-                                     getattr(self, p, 
-                                             None)))
-    
+            setattr(self, p, getattr(other, p, getattr(self, p, None)))
     
     def _getitem_additional_set_info(self, other, **kwargs):
         self._set_info(other, kwargs["new_axes"])

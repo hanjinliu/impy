@@ -17,7 +17,7 @@ _T = TypeVar("_T", bound=AxesMixin)
 Boundary = Literal["reflect", "periodic", "nearest", "none"]
 
 class TiledAccessor(Generic[_T]):
-    def __get__(self, instance: _T, owner: type[_T]) -> _PartialTiledImage[_T]:
+    def __get__(self, instance: _T, owner: type[_T] | None = None) -> _PartialTiledImage[_T]:
         if instance is None:
             return self
         return _PartialTiledImage(instance)
@@ -33,7 +33,7 @@ class _PartialTiledImage(Generic[_T]):
         overlap: int | tuple[int, ...] = 32,
         boundary: Boundary | list[Boundary] = "reflect",
         dims: Dims = None,
-    ) -> TiledImage:
+    ) -> TiledImage[_T]:
         img = self._img()
         if img is None:
             raise RuntimeError("Image has been deleted")
