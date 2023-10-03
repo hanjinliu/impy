@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Iterable, NamedTuple, Sequence, TYPE_CHECKING
-import math
 import numpy as np
 
 from ._skimage import sktrans

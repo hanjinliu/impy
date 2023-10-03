@@ -1302,8 +1302,9 @@ class LazyImgArray(AxesMixin):
         dims: Dims = None,
         **kwargs,
     ) -> LazyImgArray:
+        import dask.array as da
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
-        padimg = np.pad(self.value, pad_width, mode, **kwargs)
+        padimg = da.pad(self.value, pad_width, mode, **kwargs)
         return padimg
     
     @_docs.copy_docs(ImgArray.wiener)

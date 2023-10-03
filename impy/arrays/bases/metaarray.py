@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Hashable, Union, SupportsInt, Mapping, Any
+from typing import TYPE_CHECKING, Iterable, Hashable, Literal, Union, SupportsInt, Mapping, Any, overload
 from pathlib import Path
 import numpy as np
 from numpy.typing import DTypeLike
@@ -27,7 +27,7 @@ SupportSlicing = Union[
     Mapping[str, SupportOneSlicing],
 ]
 
-class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
+class MetaArray(AxesMixin, np.ndarray):
     additional_props = ["_source", "_metadata", "_name"]
     NP_DISPATCH = {}
     _name: str
@@ -527,10 +527,32 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         out._set_info(self, new_axes=new_axes)
         return out
     
+    @overload
+    def min(
+        self,
+        axis: Literal[None] = None,
+        out: Any | None = None,
+        keepdims: Literal[False] = False,
+        *,
+        where: Any = _NoValue,
+    ) -> np.number:
+        ...
+    
+    @overload
+    def min(
+        self,
+        axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        out: Any | None = None,
+        keepdims: bool = False,
+        *,
+        where: Any = _NoValue,
+    ) -> Self:
+        ...
+
     def min(
         self,
         axis=None,
-        out: None = None,
+        out: Any | None = None,
         keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
@@ -538,10 +560,32 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         """Minimum value of the array along a given axis."""
         return np.min(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
+    @overload
+    def max(
+        self,
+        axis: Literal[None] = None,
+        out: Any | None = None,
+        keepdims: Literal[False] = False,
+        *,
+        where: Any = _NoValue,
+    ) -> np.number:
+        ...
+    
+    @overload
+    def max(
+        self,
+        axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        out: Any | None = None,
+        keepdims: bool = False,
+        *,
+        where: Any = _NoValue,
+    ) -> Self:
+        ...
+
     def max(
         self,
         axis=None,
-        out: None = None,
+        out: Any | None = None,
         keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
@@ -549,11 +593,36 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         """Maximum value of the array along a given axis."""
         return np.max(self, axis=axis, out=out, keepdims=keepdims, where=where)
     
+    
+    @overload
+    def mean(
+        self,
+        axis: Literal[None] = None,
+        dtype: DTypeLike | None = None,
+        out: Any = None,
+        keepdims: Literal[False] = False,
+        *,
+        where: Any = _NoValue,
+    ) -> np.number:
+        ...
+    
+    @overload
+    def mean(
+        self,
+        axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        dtype: DTypeLike | None = None,
+        out: Any = None,
+        keepdims: bool = False,
+        *,
+        where: Any = _NoValue,
+    ) -> Self:
+        ...
+
     def mean(
         self,
         axis=None,
-        dtype: DTypeLike = None,
-        out: None = None,
+        dtype: DTypeLike | None = None,
+        out: Any | None = None,
         keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
@@ -561,11 +630,35 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         """Mean value of the array along a given axis."""
         return np.mean(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
     
+    @overload
+    def sum(
+        self,
+        axis: Literal[None] = None,
+        dtype: DTypeLike | None = None,
+        out: Any | None = None,
+        keepdims: Literal[False] = False,
+        *,
+        where: Any = _NoValue,
+    ) -> np.number:
+        ...
+    
+    @overload
+    def sum(
+        self,
+        axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        dtype: DTypeLike | None = None,
+        out: Any | None = None,
+        keepdims: bool = False,
+        *,
+        where: Any = _NoValue,
+    ) -> Self:
+        ...
+
     def sum(
         self,
         axis=None,
         dtype: DTypeLike = None,
-        out: None = None,
+        out: Any | None = None,
         keepdims: bool = False,
         *,
         where: np.ndarray = _NoValue,
@@ -573,6 +666,30 @@ class MetaArray(AxesMixin, np.ndarray[Any, np.dtype[np.number]]):
         """Sum value of the array along a given axis."""
         return np.sum(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
     
+    @overload
+    def std(
+        self,
+        axis: Literal[None] = None,
+        dtype: DTypeLike | None = None,
+        out: Any | None = None,
+        keepdims: Literal[False] = False,
+        *,
+        where: Any = _NoValue,
+    ) -> np.number:
+        ...
+    
+    @overload
+    def std(
+        self,
+        axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        dtype: DTypeLike | None = None,
+        out: Any | None = None,
+        keepdims: bool = False,
+        *,
+        where: Any = _NoValue,
+    ) -> Self:
+        ...
+
     def std(
         self,
         axis=None,
