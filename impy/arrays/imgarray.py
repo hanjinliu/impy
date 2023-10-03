@@ -249,9 +249,9 @@ class ImgArray(LabeledArray):
         # Check if output is too large.
         gb = -1
         if not scale_is_seq and scale > 1:
-            gb = np.prod(self.shape) * (scale ** len(dims)) / 1e9
+            gb = np.prod(self.shape) * (scale ** len(dims)) / 2**30
         elif scale_is_seq and np.prod(list(scale)) > 1:
-            gb = np.prod(self.shape) * np.prod(list(scale)) / 1e9
+            gb = np.prod(self.shape) * np.prod(list(scale)) / 2**30
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Output image is too large: {gb} GB")
         

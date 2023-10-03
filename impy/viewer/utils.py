@@ -82,7 +82,7 @@ def make_world_scale(obj):
 def viewer_imread(viewer: "napari.Viewer", path: str):    
     """Read an image into the viewer."""
     
-    if "*" in path or os.path.getsize(path)/1e9 < Const["MAX_GB"]:
+    if "*" in path or os.path.getsize(path)/2**30 < Const["MAX_GB"]:
         img = imread(path)
     else:
         img = lazy_imread(path)

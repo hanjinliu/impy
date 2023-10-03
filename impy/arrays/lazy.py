@@ -119,7 +119,7 @@ class LazyImgArray(AxesMixin):
     @property
     def GB(self) -> float:
         """Return the array size in GB."""
-        return self.value.nbytes / 1e9
+        return self.value.nbytes / 2**30
     
     gb = GB  # alias
     

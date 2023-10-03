@@ -552,7 +552,7 @@ def imread(
     
     # read tif metadata
     if not is_memmap:
-        size = os.path.getsize(path) / 1e9
+        size = os.path.getsize(path) / 2**30
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
 
