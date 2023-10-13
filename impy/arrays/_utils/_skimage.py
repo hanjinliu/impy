@@ -1,16 +1,5 @@
 from __future__ import annotations
-# skimage.morphology takes very long time to import if <0.19.
-import skimage
-from skimage import transform as sktrans
-from skimage import filters as skfil
-from skimage import exposure as skexp
-from skimage import measure as skmes
-from skimage import segmentation as skseg
-from skimage import restoration as skres
-from skimage import feature as skfeat
-from skimage import registration as skreg
-from skimage import graph as skgraph
-from skimage import util as skutil
+
 import numpy as np
 
 from functools import reduce, lru_cache

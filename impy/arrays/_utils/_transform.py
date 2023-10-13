@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Iterable, NamedTuple, Sequence, TYPE_CHECKING
 import numpy as np
 
-from ._skimage import sktrans
 from impy.axes import Axis, Axes, AxisLike
 from impy.array_api import xp
 
@@ -53,10 +52,12 @@ def compose_affine_matrix(
     shear=None,
     ndim: int = 2,
 ):
+    from skimage.transform import AffineTransform
+
     # These two modules returns consistent matrix in the two dimensional case.
     # rotation must be in radian.
     if ndim == 2:
-        af = sktrans.AffineTransform(scale=scale, translation=translation, rotation=rotation, shear=shear)
+        af = AffineTransform(scale=scale, translation=translation, rotation=rotation, shear=shear)
         mx = af.params
     else:
         from napari.utils.transforms import Affine
@@ -80,7 +81,8 @@ def compose_affine_matrix(
 def decompose_affine_matrix(matrix: np.ndarray):
     ndim = matrix.shape[0] - 1
     if ndim == 2:
-        af = sktrans.AffineTransform(matrix=matrix)
+        from skimage.transform import AffineTransform
+        af = AffineTransform(matrix=matrix)
         out = AffineTransformationParameters(translation=af.translation, rotation=af.rotation, 
                                              scale=af.scale, shear=af.shear)
     else:
@@ -91,7 +93,7 @@ def decompose_affine_matrix(matrix: np.ndarray):
     return out
 
 
-def calc_corr(img0, img1, matrix, corr_func):
+def calc_corr(img0: np.ndarray, img1: np.ndarray, matrix, corr_func):
     """
     Calculate value of corr_func(img0, matrix(img1)).
     """
@@ -99,9 +101,11 @@ def calc_corr(img0, img1, matrix, corr_func):
     return corr_func(img0, img1_transformed)
 
 def affinefit(img, imgref, bins=256, order=1):
-    as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
     from scipy.stats import entropy
     from scipy.optimize import minimize
+    from skimage.transform import warp
+    
+    as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
     def normalized_mutual_information(img, imgref):
         """
         Y(A,B) = (H(A)+H(B))/H(A,B)
@@ -116,7 +120,7 @@ def affinefit(img, imgref, bins=256, order=1):
     
     def cost_nmi(mtx, img, imgref):
         mtx = as_3x3_matrix(mtx)
-        img_transformed = sktrans.warp(img, mtx, order=order)
+        img_transformed = warp(img, mtx, order=order)
         return -normalized_mutual_information(img_transformed, imgref)
     
     mtx0 = np.array([[1., 0., 0.],

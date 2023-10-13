@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from ._utils import _filters, _structures
-from ._utils._skimage import skmes
 from .specials import PropArray
 from .labeledarray import LabeledArray
 from .bases import MetaArray
@@ -251,7 +250,8 @@ class PhaseArray(LabeledArray):
             >>> coords = reference_img.centroid_sm()
             >>> img.specify(coords, 3, labeltype="circle")
             >>> props = img.regionprops()
-        """        
+        """
+        from skimage.measure import regionprops
         def phase_mean(sl, img):
             return _calc_phase_mean(sl, img, self.periodicity)
         def phase_std(sl, img):
@@ -292,8 +292,12 @@ class PhaseArray(LabeledArray):
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
-            props = skmes.regionprops(self.labels, img, cache=False,
-                                      extra_properties=extra_properties)
+            props = regionprops(
+                self.labels,
+                img,
+                cache=False,
+                extra_properties=extra_properties,
+            )
             label_sl = (slice(None),) + sl
             for prop_name in properties:
                 # Both sides have length of p-axis (number of labels) so that values

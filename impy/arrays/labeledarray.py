@@ -8,7 +8,6 @@ from warnings import warn
 from scipy import ndimage as ndi
 
 from .specials import PropArray
-from ._utils._skimage import skmes, skseg
 from ._utils import _misc, _docs
 from .bases import MetaArray
 from .label import Label
@@ -1064,7 +1063,10 @@ class LabeledArray(MetaArray):
             >>>     return lbl[yc, xc] > 0
             >>> img.label(lbl, filt)
         
-        """        
+        """
+        from skimage.segmentation import relabel_sequential
+        from skimage.measure import label as skmes_label 
+        from skimage.measure import regionprops
         # check the shape of label_image
         if ref_image is None:
             ref_image = self
@@ -1086,7 +1088,7 @@ class LabeledArray(MetaArray):
         
         if filt is None:
             labels[:] = ref_image._apply_dask(
-                skmes.label, 
+                skmes_label, 
                 c_axes=c_axes, 
                 kwargs=dict(background=0, connectivity=connectivity)
             ).view(np.ndarray)
@@ -1100,18 +1102,18 @@ class LabeledArray(MetaArray):
 
             offset = 1
             for sl, lbl in ref_image.iter(c_axes):
-                lbl = skmes.label(lbl, background=0, connectivity=connectivity)
+                lbl = skmes_label(lbl, background=0, connectivity=connectivity)
                 img = self.value[sl]
                 # Following lines are essentially doing the same thing as 
                 # `skmes.regionprops_table`. However, `skmes.regionprops_table`
                 # returns tuples in the separated columns in DataFrame and rename
                 # property names like "centroid-0" and "centroid-1".
-                props_obj = skmes.regionprops(lbl, img, cache=False)
+                props_obj = regionprops(lbl, img, cache=False)
                 d = {prop_name: [getattr(prop, prop_name) for prop in props_obj]
                     for prop_name in properties}
                 df = pd.DataFrame(d)
                 del_list = [i + 1 for i, r in df.iterrows() if not filt(img, lbl, **r)]
-                labels[sl] = skseg.relabel_sequential(
+                labels[sl] = relabel_sequential(
                     np.where(np.isin(lbl, del_list), 0, lbl),
                     offset=offset
                 )[0]
@@ -1124,24 +1126,7 @@ class LabeledArray(MetaArray):
         labels.set_scale(self)
         self.labels = labels
         return self.labels
-    
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    def label_if(
-        self,
-        ref_image: np.ndarray | None = None,
-        filt: Callable[..., bool] | None = None,
-        *,
-        dims: Dims = None,
-        connectivity: int | None = None,
-    ) -> Label:
-        warn(
-            "`label_if` is deprecated and will be removed soon. `label` method does the "
-            "same function",
-            DeprecationWarning,
-        )
-        return self.label(ref_image, filt, dims=dims, connectivity=connectivity)
-    
+
     @check_input_and_output
     def append_label(self, label_image: np.ndarray, new: bool = False) -> Label:
         """

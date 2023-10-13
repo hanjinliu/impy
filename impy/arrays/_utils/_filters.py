@@ -1,6 +1,5 @@
 from typing import Callable, TYPE_CHECKING
 import numpy as np
-from ._skimage import *
 from ._linalg import hessian_eigval
 from impy.array_api import xp, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
@@ -165,8 +164,9 @@ def population(img, selem):
 # See skimage/feature/template.py
 def ncc_filter(img: np.ndarray, template: np.ndarray, bg=0, mode="constant"):
     from scipy.signal import fftconvolve
+    from skimage import feature
     ndim = template.ndim
-    _win_sum = skfeat.template._window_sum_2d if ndim == 2 else skfeat.template._window_sum_3d
+    _win_sum = feature.template._window_sum_2d if ndim == 2 else feature.template._window_sum_3d
     pad_width = [(w, w) for w in template.shape]
     padimg = np.pad(img, pad_width=pad_width, mode=mode, constant_values=bg)
     

@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import numpy as np
 
-from ._utils._skimage import skseg
 from ._utils import _filters, _structures, _docs
 from .bases import MetaArray
 
@@ -83,7 +82,8 @@ class Label(MetaArray):
             return self
     
     def relabel(self) -> Label:
-        self.value[:] = skseg.relabel_sequential(self.value)[0]
+        from skimage.segmentation import relabel_sequential
+        self.value[:] = relabel_sequential(self.value)[0]
         return self
     
     
@@ -103,12 +103,14 @@ class Label(MetaArray):
         -------
         Label
             Same array but labels are updated.
-        """        
-        labels = self._apply_dask(skseg.expand_labels,
-                                c_axes=complement_axes(dims, self.axes),
-                                dtype=self.dtype,
-                                kwargs=dict(distance=distance)
-                                )
+        """
+        from skimage.segmentation import expand_labels
+        labels = self._apply_dask(
+            expand_labels,
+            c_axes=complement_axes(dims, self.axes),
+            dtype=self.dtype,
+            kwargs=dict(distance=distance)
+        )
         self.value[:] = labels
         
         return self

@@ -1,5 +1,5 @@
 import numpy as np
-from ._skimage import skimage, skexp
+import skimage
 
 def plot_drift(result):
     import matplotlib.pyplot as plt
@@ -66,6 +66,7 @@ def plot_3d(imglist, **kwargs):
 
 def plot_2d_label(img, label, alpha, ax=None, **kwargs):
     import matplotlib.pyplot as plt
+    from skimage.color import label2rgb
     vmax, vmin = _determine_range(img)
     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
     imshow_kwargs.update(kwargs)
@@ -75,7 +76,7 @@ def plot_2d_label(img, label, alpha, ax=None, **kwargs):
         image = (np.clip(img, vmin, vmax) - vmin)/(vmax - vmin)
     else:
         image = img
-    overlay = skimage.color.label2rgb(label, image=image, bg_label=0, alpha=alpha, image_alpha=1)
+    overlay = label2rgb(label, image=image, bg_label=0, alpha=alpha, image_alpha=1)
 
     if ax is None:
         plt.imshow(overlay, **imshow_kwargs)
@@ -112,11 +113,12 @@ def plot_3d_label(imglist, labellist, alpha, **kwargs):
 
 def hist(img, contrast):
     import matplotlib.pyplot as plt
+    from skimage.exposure import histogram
     plt.figure(figsize=(4, 1.7))
 
     nbin = min(int(np.sqrt(img.size / 3)), 256)
     d = img.astype(np.uint8).ravel() if img.dtype==bool else img.ravel()
-    y, x = skexp.histogram(d, nbins=nbin)
+    y, x = histogram(d, nbins=nbin)
     plt.plot(x, y, color="gray")
     plt.fill_between(x, y, np.zeros(len(y)), facecolor="gray", alpha=0.4)
     

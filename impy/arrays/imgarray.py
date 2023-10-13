@@ -4,6 +4,7 @@ import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable
+import skimage
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -11,7 +12,6 @@ from .phasearray import PhaseArray
 from .specials import PropArray
 from .tiled import TiledAccessor
 
-from ._utils._skimage import skexp, skfeat, skfil, skimage, skmes, skres, skseg, sktrans
 from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
 from impy.utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
@@ -244,6 +244,7 @@ class ImgArray(LabeledArray):
         ImgArray
             Rescaled image.
         """
+        from skimage.transform import rescale
         scale_is_seq = hasattr(scale, "__iter__")
         
         # Check if output is too large.
@@ -265,7 +266,7 @@ class ImgArray(LabeledArray):
             scale_ = [next(it) if a in dims else 1 for a in self.axes]
         else:
             scale_ = [scale if a in dims else 1 for a in self.axes]
-        out = sktrans.rescale(
+        out = rescale(
             self.value, scale_, order=order, mode=mode, cval=cval, anti_aliasing=False
         )
         out = out.view(self.__class__)._set_info(self)
@@ -696,11 +697,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
+        from skimage.filters import sobel, farid, scharr, prewitt
         # Get operator
-        method_dict = {"sobel": skfil.sobel,
-                       "farid": skfil.farid,
-                       "scharr": skfil.scharr,
-                       "prewitt": skfil.prewitt}
+        method_dict = {"sobel": sobel, "farid": farid, "scharr": scharr, "prewitt": prewitt}
         try:
             f = method_dict[method]
         except KeyError:
@@ -1347,14 +1346,16 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
+        from skimage.filters.rank import entropy
         disk = _structures.ball_like(radius, len(dims))
         
         self = self.as_uint8()
-        return self._apply_dask(skfil.rank.entropy, 
-                               c_axes=complement_axes(dims, self.axes),
-                               kwargs=dict(footprint=disk)
-                               ).as_float()
+        return self._apply_dask(
+            entropy, 
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(footprint=disk),
+        ).as_float()
     
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -1371,18 +1372,21 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Contrast enhanced image.
-        """        
+        """
+        from skimage.filters.rank import enhance_contrast
+
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == np.float32:
             amp = max(np.abs(self.range))
             self.value[:] /= amp
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            out = self._apply_dask(skfil.rank.enhance_contrast, 
-                                  c_axes=complement_axes(dims, self.axes), 
-                                  dtype=self.dtype,
-                                  args=(disk,)
-                                  )
+            out = self._apply_dask(
+                enhance_contrast, 
+                c_axes=complement_axes(dims, self.axes), 
+                dtype=self.dtype,
+                args=(disk,)
+            )
         if self.dtype == np.float32:
             self.value[:] *= amp
         
@@ -1406,8 +1410,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Filtered image.
         """        
+        from skimage.restoration.uft import laplacian
         ndim = len(dims)
-        _, laplace_op = skres.uft.laplacian(ndim, (2*radius+1,) * ndim)
+        _, laplace_op = laplacian(ndim, (2 * radius + 1,) * ndim)
         return self.as_float()._apply_dask(
             _filters.convolve, 
             c_axes=complement_axes(dims, self.axes), 
@@ -1740,7 +1745,8 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Background subtracted image.
-        """        
+        """
+        from skimage.restoration import rolling_ball
         c_axes = complement_axes(dims, self.axes)
         if prefilter == "mean":
             filt = self._apply_dask(
@@ -1760,7 +1766,7 @@ class ImgArray(LabeledArray):
             raise ValueError("`prefilter` must be 'mean', 'median' or 'none'.")
         filt.axes = self.axes
         back = filt._apply_dask(
-            skres.rolling_ball, 
+            rolling_ball, 
             c_axes=c_axes, 
             kwargs=dict(radius=radius)
         )
@@ -1800,9 +1806,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """     
+        """
+        from skimage.restoration._denoise import _denoise_tv_chambolle_nd
         return self._apply_dask(
-            skres._denoise._denoise_tv_chambolle_nd, 
+            _denoise_tv_chambolle_nd, 
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(weight=lmd, eps=tol, max_num_iter=max_iter)
         )
@@ -1849,7 +1856,8 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Denoised image.
-        """        
+        """
+        from skimage.restoration import cycle_spin, denoise_wavelet
         func_kw = dict(
             sigma=noise_sigma, 
             wavelet=wavelet, 
@@ -1858,9 +1866,9 @@ class ImgArray(LabeledArray):
             method=method
         )
         return self._apply_dask(
-            skres.cycle_spin, 
+            cycle_spin, 
             c_axes=complement_axes(dims, self.axes), 
-            args=(skres.denoise_wavelet,),
+            args=(denoise_wavelet,),
             kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
         )
     
@@ -2068,7 +2076,8 @@ class ImgArray(LabeledArray):
             Inpainted image of same data type.
         """
         if method == "biharmonic":
-            func = skres.inpaint.inpaint_biharmonic
+            from skimage.restoration.inpaint import inpaint_biharmonic
+            func = inpaint_biharmonic
         elif method == "mean":
             func = _misc.inpaint_mean
         else:
@@ -2133,6 +2142,7 @@ class ImgArray(LabeledArray):
         
         import pandas as pd
         from impy.frame import MarkerFrame
+        from skimage.feature import peak_local_max
 
         df_all: list[pd.DataFrame] = []
         for sl, img in self.iter(c_axes, israw=True, exclude=dims):
@@ -2142,7 +2152,7 @@ class ImgArray(LabeledArray):
             else:
                 labels = None
             
-            indices = skfeat.peak_local_max(
+            indices = peak_local_max(
                 xp.asnumpy(img),
                 footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
                 threshold_abs=thr,
@@ -2185,9 +2195,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Harris response
-        """        
+        """
+        from skimage.feature import corner_harris
         return self._apply_dask(
-            skfeat.corner_harris, 
+            corner_harris, 
             c_axes=complement_axes(dims, self.axes), 
             kwargs=dict(k=k, sigma=sigma)
         )
@@ -2223,6 +2234,7 @@ class ImgArray(LabeledArray):
             Segmentation labels of image.
         """        
         from scipy.spatial import Voronoi
+        from skimage.measure import grid_points_in_poly
         coords = _check_coordinates(coords, self, dims=self.axes)
         
         ny, nx = self.sizesof(dims)
@@ -2251,7 +2263,7 @@ class ImgArray(LabeledArray):
             for r in vor.regions:
                 if all(r0 > 0 for r0 in r):
                     poly = vor.vertices[r]
-                    grids = skmes.grid_points_in_poly(self.sizesof(dims), poly)
+                    grids = grid_points_in_poly(self.sizesof(dims), poly)
                     labels[sl][grids] = n_label
                     n_label += 1
         self.labels = Label(
@@ -2503,10 +2515,12 @@ class ImgArray(LabeledArray):
             >>> plt.hist(grad.ravel(), bins=100)
         """        
         # Get operator
-        method_dict = {"sobel": (skfil.sobel_h, skfil.sobel_v),
-                       "farid": (skfil.farid_h, skfil.farid_v),
-                       "scharr": (skfil.scharr_h, skfil.scharr_v),
-                       "prewitt": (skfil.prewitt_h, skfil.prewitt_v)}
+        method_dict = {
+            "sobel": (skimage.filters.sobel_h, skimage.filters.sobel_v),
+            "farid": (skimage.filters.farid_h, skimage.filters.farid_v),
+            "scharr": (skimage.filters.scharr_h, skimage.filters.scharr_v),
+            "prewitt": (skimage.filters.prewitt_h, skimage.filters.prewitt_v)
+        }
         try:
             op_h, op_v = method_dict[method]
         except KeyError:
@@ -2608,18 +2622,20 @@ class ImgArray(LabeledArray):
         See Also
         --------
         hessian_angle
-        """        
+        """
+        from skimage.filters import gabor_kernel
         thetas = np.linspace(0, np.pi, n_sample, False)
         max_ = np.empty(self.shape, dtype=np.float32)
         argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle array.
         
         c_axes = complement_axes(dims, self.axes)
         for i, theta in enumerate(thetas):
-            ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
-            out_ = self.as_float()._apply_dask(_filters.convolve, 
-                                              c_axes=c_axes, 
-                                              args=(ker.real,)
-                                              )
+            ker = gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi, dtype=np.complex64)
+            out_ = self.as_float()._apply_dask(
+                _filters.convolve, 
+                c_axes=c_axes, 
+                args=(ker.real,)
+            )
             if i > 0:
                 where_update = out_ > max_
                 max_[where_update] = out_[where_update]
@@ -2680,9 +2696,10 @@ class ImgArray(LabeledArray):
             >>> for i, theta in enumerate(thetas):
             >>>     out[i] = img.gabor_filter(theta=theta)
             >>> out = np.max(out, axis=0)
-        """        
+        """
+        from skimage.filters import gabor_kernel
         # TODO: 3D Gabor filter
-        ker = skfil.gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
+        ker = gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
             out = self.as_float()._apply_dask(
                 _filters.gabor_filter, 
@@ -3144,18 +3161,7 @@ class ImgArray(LabeledArray):
         if along is None:
             along = "c" if "c" in self.axes else ""
 
-        methods_ = {"isodata": skfil.threshold_isodata,
-                    "li": skfil.threshold_li,
-                    "local": skfil.threshold_local,
-                    "mean": skfil.threshold_mean,
-                    "min": skfil.threshold_minimum,
-                    "minimum": skfil.threshold_minimum,
-                    "niblack": skfil.threshold_niblack,
-                    "otsu": skfil.threshold_otsu,
-                    "sauvola": skfil.threshold_sauvola,
-                    "triangle": skfil.threshold_triangle,
-                    "yen": skfil.threshold_yen
-                    }
+        methods_ = ["isodata", "li", "local", "mean", "min", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen"]
         
         if isinstance(thr, str) and thr.endswith("%"):
             p = float(thr[:-1].strip())
@@ -3166,17 +3172,13 @@ class ImgArray(LabeledArray):
                 
         elif isinstance(thr, str):
             method = thr.lower()
-            try:
-                func = methods_[method]
-            except KeyError:
-                s = ", ".join(list(methods_.keys()))
-                raise KeyError(f"{method}\nmethod must be: {s}")
-            
+            if method not in methods_:
+                raise KeyError(f"{method}\nmethod must be in: {methods_!r}")
+            func = getattr(skimage.filters, "threshold_" + method)    
             out = np.zeros(self.shape, dtype=bool)
             for sl, img in self.iter(along):
                 thr = func(img, **kwargs)
-                out[sl] = img >= thr
-            
+                out[sl] = img >= thr    
 
         elif np.isscalar(thr):
             out = self >= thr
@@ -3482,7 +3484,7 @@ class ImgArray(LabeledArray):
         Label
             Updated labels.
         """
-        
+        from skimage.segmentation import watershed
         # Prepare the input image.
         if input == "self":
             input_img = self.copy()
@@ -3508,9 +3510,12 @@ class ImgArray(LabeledArray):
             # crd.values is (N, 2) array so tuple(crd.values.T.tolist()) is two (N,) list.
             crd = crd.values.T.tolist()
             markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
-            labels[sl] = skseg.watershed(-input_img.value[sl], markers, 
-                                        mask=input_img.labels.value[sl], 
-                                        connectivity=connectivity)
+            labels[sl] = watershed(
+                -input_img.value[sl],
+                markers, 
+                mask=input_img.labels.value[sl], 
+                connectivity=connectivity
+            )
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
             markers[:] = 0 # reset placeholder
@@ -3548,10 +3553,11 @@ class ImgArray(LabeledArray):
         ImgArray
             Relabeled image.
         """        
+        from skimage.segmentation import random_walker
         c_axes = complement_axes(dims, self.axes)
         
         for sl, img in self.iter(c_axes, israw=True):
-            img.labels[:] = skseg.random_walker(
+            img.labels[:] = random_walker(
                 img.value, img.labels.value, beta=beta, mode=mode, tol=tol
             )
             
@@ -3622,6 +3628,7 @@ class ImgArray(LabeledArray):
             >>> img.specify(coords, 3, labeltype="circle")
             >>> props = img.regionprops()
         """        
+        from skimage.measure import regionprops
         id_axis = "N"
         if isinstance(properties, str):
             properties = (properties,)
@@ -3647,7 +3654,7 @@ class ImgArray(LabeledArray):
         
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
-            props = skmes.regionprops(self.labels.value, img, cache=False,
+            props = regionprops(self.labels.value, img, cache=False,
                                       extra_properties=extra_properties)
             label_sl = (slice(None),) + sl
             for prop_name in properties:
@@ -3688,9 +3695,9 @@ class ImgArray(LabeledArray):
         ImgArray
             Local binary pattern image.
         """        
-        
+        from skimage.feature import local_binary_pattern
         return self._apply_dask(
-            skfeat.local_binary_pattern,
+            local_binary_pattern,
             c_axes=complement_axes(dims), 
             args=(p, radius, method)
         )
@@ -3862,7 +3869,7 @@ class ImgArray(LabeledArray):
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
             
-        out = skexp.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
+        out = skimage.exposure.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
         
         out = out.view(self.__class__)
         return out
@@ -4032,10 +4039,11 @@ class ImgArray(LabeledArray):
         PropArray or float
             Estimated standard deviation. sigma["t=0;c=1"] means the estimated value of
             image slice at t=0 and c=1.
-        """        
+        """
+        from skimage.restoration import estimate_sigma
         c_axes = complement_axes(dims, self.axes)
         out = self._apply_dask(
-            skres.estimate_sigma,
+            estimate_sigma,
             c_axes=c_axes,
             drop_axis=dims
         )
@@ -4461,7 +4469,8 @@ def _check_template(template):
     return template
 
 def _calc_centroid(img: np.ndarray, ndim: int) -> np.ndarray:
-    mom = skmes.moments(img, order=1)
+    from skimage.measure import moments
+    mom = moments(img, order=1)
     centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
                         for i in range(ndim)]) / mom[(0,)*ndim]
     return centroid

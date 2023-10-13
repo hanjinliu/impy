@@ -2,7 +2,6 @@ from __future__ import annotations
 import numpy as np
 from typing import TYPE_CHECKING
 from skimage.feature.corner import _symmetric_image
-from ._skimage import skfeat
 from impy.array_api import xp
 
 if TYPE_CHECKING:
@@ -20,25 +19,33 @@ def eigvalsh(a: np.ndarray):
     return val
 
 def structure_tensor_eigval(img: np.ndarray, sigma: float, pxsize: float):
-    tensor_elements = skfeat.structure_tensor(
+    from skimage.feature import structure_tensor
+
+    tensor_elements = structure_tensor(
         img, sigma, mode="reflect"
     )
     return _solve_hermitian_eigval(tensor_elements, pxsize)
 
 def structure_tensor_eigh(img: np.ndarray, sigma: float, pxsize: float):
-    tensor_elements = skfeat.structure_tensor(
+    from skimage.feature import structure_tensor
+
+    tensor_elements = structure_tensor(
         img, sigma, mode="reflect"
     )
     return _solve_hermitian_eigs(tensor_elements, pxsize)
 
 def hessian_eigval(img: np.ndarray, sigma: float, pxsize: float):
-    hessian_elements = skfeat.hessian_matrix(
+    from skimage.feature import hessian_matrix
+    
+    hessian_elements = hessian_matrix(
         img, sigma=sigma, mode="reflect", use_gaussian_derivatives=False,
     )
     return _solve_hermitian_eigval(hessian_elements, pxsize)
 
 def hessian_eigh(img: np.ndarray, sigma: float, pxsize: float):
-    hessian_elements = skfeat.hessian_matrix(
+    from skimage.feature import hessian_matrix
+    
+    hessian_elements = hessian_matrix(
         img, sigma=sigma, mode="reflect", use_gaussian_derivatives=False,
     )
     return _solve_hermitian_eigs(hessian_elements, pxsize)
