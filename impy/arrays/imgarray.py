@@ -2513,19 +2513,14 @@ class ImgArray(LabeledArray):
         1. Profile filament orientation distribution using histogram of edge gradient.
             >>> grad = img.edge_grad(deg=True)
             >>> plt.hist(grad.ravel(), bins=100)
-        """        
+        """
         # Get operator
-        method_dict = {
-            "sobel": (skimage.filters.sobel_h, skimage.filters.sobel_v),
-            "farid": (skimage.filters.farid_h, skimage.filters.farid_v),
-            "scharr": (skimage.filters.scharr_h, skimage.filters.scharr_v),
-            "prewitt": (skimage.filters.prewitt_h, skimage.filters.prewitt_v)
-        }
-        try:
-            op_h, op_v = method_dict[method]
-        except KeyError:
-            raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
-        
+        methods_ = ["sobel", "farid", "scharr", "prewitt"]
+        if method not in methods_:
+            raise ValueError(f"`method` must be one of {methods_!r}.")
+        op_h = getattr(skimage.filters, method+"_h")
+        op_v = getattr(skimage.filters, method+"_v")
+
         # Start
         c_axes = complement_axes(dims, self.axes)
         if sigma > 0:

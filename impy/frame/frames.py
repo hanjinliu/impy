@@ -21,14 +21,14 @@ class AxesFrame(pd.DataFrame):
     
     @property
     def _constructor(self):
-        return self.__class__
+        return AxesFrame
     
     def __init__(self, data=None, columns=None, **kwargs):
         if isinstance(columns, (str, Axes)):
             kwargs["columns"] = [a for a in columns]
         elif isinstance(data, AxesFrame):
             kwargs["columns"] = data.columns.tolist()
-            if columns is None:
+            if columns is None and hasattr(data, "_axes"):
                 columns = str(data._axes)
         else:
             kwargs["columns"] = columns
@@ -251,6 +251,10 @@ def tp_no_verbose(func):
     return wrapper
 
 class MarkerFrame(AxesFrame):
+    @property
+    def _constructor(self):
+        return MarkerFrame
+
     @tp_no_verbose
     @dims_to_spatial_axes
     def link(self, search_range:float|tuple[float, ...], *, memory:int=0, min_dwell:int=0, dims=None,
