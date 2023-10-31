@@ -325,6 +325,8 @@ def iradon(
 
 # This function is almost ported from `skimage.transform`.
 def get_fourier_filter(size: int, filter_name: str):
+    if size % 2 != 0:
+        return get_fourier_filter(size + 1, filter_name)[1:]
     n = xp.concatenate(
         [xp.arange(1, size // 2 + 1, 2, dtype=np.float32),
          xp.arange(size // 2 - 1, 0, -2, dtype=np.float32)]
