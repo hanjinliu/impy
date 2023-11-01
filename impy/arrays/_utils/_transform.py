@@ -318,24 +318,21 @@ def iradon(
     x = np.arange(img_shape) - img_shape // 2  # NOTE: use CPU!
     for col, angle in zip(radon_filtered.T, np.deg2rad(degrees)):
         t = ypr * np.cos(angle) - xpr * np.sin(angle)
-        interpolant = interp1d(x, col, kind=interpolation, bounds_error=False, fill_value=0)
+        interpolant = interp1d(
+            x, col, kind=interpolation, bounds_error=False, fill_value=0, assume_sorted=True
+        )
         reconstructed += np.asarray(interpolant(t))
 
     return reconstructed * np.pi / (2 * angles_count)
 
-# This function is almost ported from `skimage.transform`.
+# This function is almost ported from `skimage.transform`, but create a ramp 
+# filter in a simpler way.
 def get_fourier_filter(size: int, filter_name: str):
-    if size % 2 != 0:
-        return get_fourier_filter(size + 1, filter_name)[1:]
-    n = xp.concatenate(
-        [xp.arange(1, size // 2 + 1, 2, dtype=np.float32),
-         xp.arange(size // 2 - 1, 0, -2, dtype=np.float32)]
-    )
-    f = xp.zeros(size)
-    f[0] = 0.25
-    f[1::2] = -1 / (np.pi * n[:len(f[1::2])]) ** 2
-
-    fourier_filter = 2 * xp.real(xp.fft.fft(f))  # ramp filter
+    # ramp filter
+    fourier_filter = xp.zeros(size)
+    split = (size + 1) // 2
+    fourier_filter[:split] = np.linspace(0, 1, split)
+    fourier_filter[split:] = np.linspace(1, 0, size - split)
     if filter_name == "ramp":
         pass
     elif filter_name == "shepp-logan":
