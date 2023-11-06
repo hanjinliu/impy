@@ -11,8 +11,6 @@ from impy._types import Dims
 from ._utils import _deconv, _filters
 from ._utils._skimage import _get_ND_butterworth_filter
 
-from dask import array as da
-
 _T = TypeVar("_T", bound=AxesMixin)
 Boundary = Literal["reflect", "periodic", "nearest", "none"]
 
@@ -93,6 +91,8 @@ class TiledImage(Generic[_T]):
 
         img = self._deref_image()
         if isinstance(img, ImgArray):
+            from dask import array as da
+            
             input = da.from_array(img.value, chunks=self._chunks)
             out: np.ndarray = xp.asnumpy(
                 da.map_overlap(

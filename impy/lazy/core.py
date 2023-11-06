@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import re
 import glob
 from typing import TYPE_CHECKING, Any, Callable, Sequence
@@ -50,14 +49,16 @@ def _write_docs(func):
     return func
 
 def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, LazyImgArray]:
-    from dask import array as da
 
-    dafunc: Callable = getattr(da, func.__name__)
+    numpy_func = getattr(np, func.__name__)
     @wraps(func)
     def _func(*args, **kwargs):
+        from dask import array as da
+
         like = kwargs.pop("like", None)
         axes = kwargs.pop("axes", None)
         name = kwargs.pop("name", None)
+        dafunc: Callable = getattr(da, func.__name__)
         return asarray(dafunc(*args, **kwargs), name=name, axes=axes, like=like)
     
     _func.__doc__ = (
@@ -74,7 +75,7 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, LazyI
         like: MetaArray, optional
             Reference array from which name and axes will be copied.
 
-        {dafunc.__doc__}
+        {numpy_func.__doc__}
         """
         )
     _func.__annotations__.update({"return": LazyImgArray})

@@ -1,11 +1,13 @@
 from __future__ import annotations
 import numpy as np
-from typing import Literal
-from dask import array as da
+from typing import Literal, TYPE_CHECKING
 from impy.arrays import LazyImgArray
 from impy.arrays.bases import MetaArray
 from impy.lazy.core import asarray
 from impy.axes import AxesLike
+
+if TYPE_CHECKING:
+    from dask import array as da
 
 def wraps(npfunc):
     def _wraps(ipfunc):
@@ -14,6 +16,8 @@ def wraps(npfunc):
     return _wraps
 
 def __getattr__(name: str):
+    from dask import array as da
+
     rndfunc = getattr(da.random, name)
     @wraps(rndfunc)
     def _func(*args, **kwargs) -> LazyImgArray:
@@ -41,6 +45,7 @@ def random(
     like: MetaArray | LazyImgArray = None,
     chunks="auto",
 ) -> LazyImgArray:
+    from dask import array as da
     size, name, axes = _normalize_like(size, name, axes, like)
     name = name or "random"
     return asarray(da.random.random(size, chunks=chunks), name=name, axes=axes)
@@ -56,6 +61,7 @@ def normal(
     like: MetaArray | LazyImgArray | None = None,
     chunks="auto",
 ) -> LazyImgArray:
+    from dask import array as da
     size, name, like = _normalize_like(size, name, axes, like)
     name = name or f"normal({loc}, {scale})"
     return asarray(da.random.normal(loc, scale, size, chunks=chunks), name=name, axes=axes)
@@ -85,6 +91,7 @@ def random_uint8(
     ImgArray
         Random Image in dtype ``np.uint8``.
     """
+    from dask import array as da
     size, name, like = _normalize_like(size, name, axes, like)
     arr = da.random.randint(0, 255, size, dtype=np.uint8, chunks=chunks)
     name = name or "random_uint8"
@@ -115,6 +122,7 @@ def random_uint16(
     ImgArray
         Random Image in dtype ``np.uint16``.
     """
+    from dask import array as da
     size, name, like = _normalize_like(size, name, axes, like)
     arr = da.random.randint(0, 65535, size, dtype=np.uint16, chunks=chunks)
     name = name or "random_uint16"
@@ -123,6 +131,8 @@ def random_uint16(
 
 def default_rng(seed) -> ImageGenerator:
     """Get the default random number generator."""
+    from dask import array as da
+
     return ImageGenerator(da.random.default_rng(seed))
 
 class ImageGenerator:
