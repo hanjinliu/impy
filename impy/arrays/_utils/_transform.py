@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, NamedTuple, Sequence, TYPE_CHECKING
+from typing import Callable, Iterable, NamedTuple, Sequence, TYPE_CHECKING
 import numpy as np
 
 from impy.axes import Axis, Axes, AxisLike
@@ -297,7 +297,7 @@ def iradon(
     degrees: xp.ndarray,
     output_shape: tuple[int, int],
     filter_func: xp.ndarray,
-    interpolation: str = "linear",
+    interp: Callable[[np.ndarray, np.ndarray], np.ndarray],
 ):
     angles_count = len(degrees)
     dtype = img.dtype
@@ -313,14 +313,11 @@ def iradon(
     xpr, ypr = np.indices(output_shape)
     xpr = xpr - output_shape[0] // 2
     ypr = ypr - output_shape[1] // 2
-    
-    from scipy.interpolate import interp1d
+
     x = np.arange(img_shape) - img_shape // 2  # NOTE: use CPU!
     for col, angle in zip(radon_filtered.T, np.deg2rad(degrees)):
         t = ypr * np.cos(angle) - xpr * np.sin(angle)
-        interpolant = interp1d(
-            x, col, kind=interpolation, bounds_error=False, fill_value=0, assume_sorted=True
-        )
+        interpolant = interp(x, col)
         reconstructed += np.asarray(interpolant(t))
 
     return reconstructed * np.pi / (2 * angles_count)
