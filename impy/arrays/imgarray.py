@@ -3094,18 +3094,22 @@ class ImgArray(LabeledArray):
         --------
         radon
         """
-        interp = {0: "nearest", 1: "linear", 3: "cubic"}[order]
+        from scipy.interpolate import interp1d
+
+        kind = {0: "nearest", 1: "linear", 3: "cubic"}[order]
         central_axis, degree_axis, output_shape, new_axes = _transform.normalize_iradon_input(
             self, central_axis, height_axis, degree_axis, height
         )
         self: ImgArray = np.moveaxis(self, self.axisof(degree_axis), -1)
         filter_func = _transform.get_fourier_filter(self.shape[-2], window)
+        
+        interp = partial(interp1d, kind=kind, bounds_error=False, fill_value=0, assume_sorted=True)
         out = self._apply_dask(
             _transform.iradon,
             c_axes=[central_axis],
             kwargs=dict(
                 degrees=degrees,
-                interpolation=interp,
+                interp=interp,
                 filter_func=filter_func,
                 output_shape=output_shape,
             )
