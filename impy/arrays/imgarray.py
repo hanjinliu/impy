@@ -4,7 +4,7 @@ import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable
-import skimage
+# import skimage
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -2514,6 +2514,8 @@ class ImgArray(LabeledArray):
             >>> grad = img.edge_grad(deg=True)
             >>> plt.hist(grad.ravel(), bins=100)
         """
+        import skimage.filters
+
         # Get operator
         methods_ = ["sobel", "farid", "scharr", "prewitt"]
         if method not in methods_:
@@ -3153,6 +3155,8 @@ class ImgArray(LabeledArray):
         if self.dtype == bool:
             return self
         
+        import skimage.filters
+
         if along is None:
             along = "c" if "c" in self.axes else ""
 
@@ -3323,9 +3327,10 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Convex hull image.
-        """        
+        """
+        from skimage.morphology import convex_hull_image
         return self._apply_dask(
-            skimage.morphology.convex_hull_image, 
+            convex_hull_image, 
             c_axes=complement_axes(dims, self.axes), 
             dtype=bool,
         ).astype(bool)
@@ -3860,12 +3865,12 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Rescaled image with temporal attribute
-        """        
+        """
+        from skimage.exposure import rescale_intensity
+
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
-            
-        out = skimage.exposure.rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
-        
+        out = rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
         out = out.view(self.__class__)
         return out
     

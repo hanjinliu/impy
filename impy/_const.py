@@ -42,7 +42,7 @@ class GlobalConstant(MutableMapping[str, Any]):
             else:
                 raise ValueError("RESOURCES must be either 'numpy' or 'cupy'.")
         elif k == "SCHEDULER":
-            if k != self["SCHEDULER"]:
+            if v != self["SCHEDULER"]:
                 import dask
                 dask.config.set(scheduler=v)
         else:

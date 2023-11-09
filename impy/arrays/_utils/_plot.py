@@ -1,5 +1,4 @@
 import numpy as np
-import skimage
 
 def plot_drift(result):
     import matplotlib.pyplot as plt
@@ -85,6 +84,7 @@ def plot_2d_label(img, label, alpha, ax=None, **kwargs):
 
 def plot_3d_label(imglist, labellist, alpha, **kwargs):
     import matplotlib.pyplot as plt
+    from skimage.color import label2rgb
     vmax, vmin = _determine_range(np.stack(imglist))
 
     imshow_kwargs = {"vmax": vmax, "vmin": vmin, "interpolation": "none"}
@@ -105,8 +105,7 @@ def plot_3d_label(imglist, labellist, alpha, **kwargs):
             image = (np.clip(img, vmin, vmax) - vmin)/(vmax - vmin)
         else:
             image = img
-        overlay = skimage.color.label2rgb(labellist[i], image=image, bg_label=0, 
-                                          alpha=alpha, image_alpha=1)
+        overlay = label2rgb(labellist[i], image=image, bg_label=0, alpha=alpha, image_alpha=1)
         ax[i].imshow(overlay, **imshow_kwargs)
         ax[i].axis("off")
         ax[i].set_title(f"Image-{i+1}")
@@ -136,7 +135,7 @@ def hist(img, contrast):
     plt.yticks([])
 
 
-def _determine_range(arr: np.ndarray):
+def _determine_range(arr: np.ndarray) -> tuple[float, float]:
     """Called in imshow()"""
     if arr.dtype == bool:
         vmax = 1

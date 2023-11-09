@@ -1,6 +1,11 @@
 
 from functools import wraps
 import numpy as np
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from scipy import ndimage as scipy_ndi, fft as scipy_fft
+    from types import ModuleType
 
 def cupy_dispatcher(function):
     @wraps(function)
@@ -11,8 +16,6 @@ def cupy_dispatcher(function):
         return xp.asnumpy(out)
     return func
 
-from scipy import ndimage as scipy_ndi, signal as scipy_sig, fft as scipy_fft
-
 # CUDA <= ver.8 does not have gradient    
 def _gradient(a, axis=None):
     out = np.gradient(a.get(), axis=axis)
@@ -21,20 +24,55 @@ def _gradient(a, axis=None):
 class XP:    
     def __init__(self):
         self.state = ""
+        self._reset_namespace()
         self.setNumpy()
     
     def __getattr__(self, key: str):
         return getattr(self._module, key)
     
+    def _reset_namespace(self):
+        self._signal = None
+        self._fft = None
+    
+    @property
+    def signal(self):
+        if self._signal is not None:
+            return self._signal
+        if self.state == "numpy":
+            import scipy.signal as scipy_sig
+            self._signal = scipy_sig
+        elif self.state == "cupy":
+            import cupyx.scipy.signal as cp_sig
+            self._signal = cp_sig
+        else:
+            raise ValueError(self.state)
+        return self._signal
+    
+    @property
+    def fft(self):
+        if self._fft is not None:
+            return self._fft
+        if self.state == "numpy":
+            import scipy.fft as scipy_fft
+            self._fft = scipy_fft
+        elif self.state == "cupy":
+            import cupyx.scipy.fft as cp_fft
+            self._fft = cp_fft
+        else:
+            raise ValueError(self.state)
+        return self._fft
+    
     def setNumpy(self) -> None:
+        from scipy import ndimage as scipy_ndi
+
         if self.state == "numpy":
             return
+        
+        self._reset_namespace()
         self._module = np
-        self.fft = scipy_fft
         self.linalg = np.linalg
         self.random = np.random
         self.ndi = scipy_ndi
-        self.signal = scipy_sig
         self.asnumpy = np.asarray
         self.asarray = np.asarray
         self.ndarray = np.ndarray
@@ -93,16 +131,15 @@ class XP:
             if dtype is None:
                 return out
             return out.astype(dtype)
-        from cupyx.scipy import fft as cp_fft
-        from cupyx.scipy import ndimage as cp_ndi, signal as cp_sig
+        
+        from cupyx.scipy import ndimage as cp_ndi
         from cupy import linalg as cp_linalg
         
+        self._reset_namespace()
         self._module = cp
-        self.fft = cp_fft
         self.linalg = cp_linalg
         self.random = cp.random
         self.ndi = cp_ndi
-        self.signal = cp_sig
         self.asnumpy = cp_asnumpy
         self.asarray = cp.asarray
         self.ndarray = cp.ndarray

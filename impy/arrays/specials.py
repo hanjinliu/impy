@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 import numpy as np
 from inspect import signature
-from scipy import optimize as opt
 from .bases import MetaArray
 from ..axes import ImageAxesError
 from ..utils.axesop import complement_axes, find_first_appeared
@@ -146,6 +145,8 @@ class PropArray(MetaArray):
             covs : Covariances
             fit : fitting trajectories (if return_fit==True)
         """        
+        from scipy import optimize as opt
+
         c_axes = complement_axes(dims, all_axes=self.axes)
         
         if len(dims)!=1:

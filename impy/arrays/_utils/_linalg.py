@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from typing import TYPE_CHECKING
-from skimage.feature.corner import _symmetric_image
+from itertools import combinations_with_replacement as CwR
 from impy.array_api import xp
 
 if TYPE_CHECKING:
@@ -80,3 +80,13 @@ def eigs_post_process(eigs: ImgArray, axes: Axes, self: ImgArray):
     eigvec._set_info(self, new_axes=vec_axes)
     eigvec.axes["dim"].labels = tuple(map(str, eigvec.axes[-nspatial:]))
     return eigval, eigvec
+
+# copied from skimage.feature.corner
+def _symmetric_image(elems: np.ndarray):
+    image: np.ndarray = elems[0]
+    shape = image.shape + (image.ndim, image.ndim)
+    symmetric_image = np.zeros(shape, dtype=image.dtype)
+    for idx, (row, col) in enumerate(CwR(range(image.ndim), 2)):
+        symmetric_image[..., row, col] = elems[idx]
+        symmetric_image[..., col, row] = elems[idx]
+    return symmetric_image
