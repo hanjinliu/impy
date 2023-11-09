@@ -4,7 +4,6 @@ import numpy as np
 from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable
-# import skimage
 
 from .labeledarray import LabeledArray
 from .label import Label
