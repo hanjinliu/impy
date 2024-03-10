@@ -4,7 +4,7 @@ from ._linalg import hessian_eigval
 from impy.array_api import xp, cupy_dispatcher
 from scipy import ndimage as scipy_ndi
 
-               
+
 __all__ = ["binary_erosion",
     "erosion"
     "binary_dilation",
@@ -13,7 +13,7 @@ __all__ = ["binary_erosion",
     "opening",
     "binary_closing",
     "closing",
-    "gaussian_filter", 
+    "gaussian_filter",
     "gaussian_filter_fourier",
     "median_filter",
     "convolve",
@@ -124,7 +124,7 @@ def coef_filter(data, selem, mode="reflect", cval=0.0):
     x2 = convolve(data**2, selem, mode=mode, cval=cval)
     out = _safe_sqrt(xp.asnumpy(x2 - x1**2), fill=0)/xp.asnumpy(x1)
     return out
-    
+
 def dog_filter(img, low_sigma, high_sigma, mode="reflect", cval=0.0):
     filt_l = gaussian_filter(img, low_sigma, mode=mode, cval=cval)
     filt_h = gaussian_filter(img, high_sigma, mode=mode, cval=cval)
@@ -164,23 +164,23 @@ def population(img, selem):
 # See skimage/feature/template.py
 def ncc_filter(img: np.ndarray, template: np.ndarray, bg=0, mode="constant"):
     from scipy.signal import fftconvolve
-    from skimage import feature
+    from skimage.feature import template as skimage_template
     ndim = template.ndim
-    _win_sum = feature.template._window_sum_2d if ndim == 2 else feature.template._window_sum_3d
+    _win_sum = skimage_template._window_sum_2d if ndim == 2 else skimage_template._window_sum_3d
     pad_width = [(w, w) for w in template.shape]
     padimg = np.pad(img, pad_width=pad_width, mode=mode, constant_values=bg)
-    
+
     corr = fftconvolve(padimg, template[(slice(None,None,-1),)*ndim], mode="valid")[(slice(1,-1,None),)*ndim]
-    
+
     win_sum1 = _win_sum(padimg, template.shape)
     win_sum2 = _win_sum(padimg**2, template.shape)
-    
+
     template_mean = np.mean(template)
     template_volume = np.prod(template.shape)
     template_ssd = np.sum((template - template_mean)**2)
-    
+
     var = (win_sum2 - win_sum1**2/template_volume) * template_ssd
-    
+
     # zero division happens when perfectly matched
     response = np.ones_like(corr)
     mask = var > np.finfo(np.float32).eps
@@ -192,7 +192,7 @@ def ncc_filter(img: np.ndarray, template: np.ndarray, bg=0, mode="constant"):
         slices.append(slice(d0, d1))
     out = response[tuple(slices)]
     return out
-    
+
 def _safe_sqrt(a: np.ndarray, fill=0):
     out = np.full(a.shape, fill, dtype=np.float32)
     out = np.zeros_like(a)

@@ -31,7 +31,8 @@ dependencies = [
 
 [project.optional-dependencies]
 all = [
-    "tiff",
+    "tifffile",
+    "roifile",
     "mrcfile",
     "napari>=0.4.17",
     "zarr",
@@ -46,6 +47,14 @@ mrc = [
     "mrcfile",
 ]
 zarr = [
+    "zarr",
+]
+testing = [
+    "pytest",
+    "dask_image",
+    "tifffile",
+    "roifile",
+    "mrcfile",
     "zarr",
 ]
 
