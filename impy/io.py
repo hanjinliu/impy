@@ -22,22 +22,22 @@ class _ImageType(Protocol):
     @property
     def ndim(self) -> int:
         """Should return the number of dimensions of the image."""
-    
+
     @property
     def dtype(self) -> np.dtype:
         """Should return the data type of the image."""
-    
+
     @property
     def shape(self) -> tuple[int, ...]:
         """Should return the shape of the image."""
-    
+
     def astype(self, dtype: DTypeLike):
         """Should return an image with the specified data type."""
 
 
 class ImageData(NamedTuple):
     """Tuple of image info."""
-    
+
     image: _ImageType
     axes: str | None
     scale: dict[str, float] | None
@@ -60,17 +60,17 @@ if TYPE_CHECKING:
 
 class ImageIO:
     """A I/O class for image data."""
-    
+
     def __init__(self):
         self._reader: dict[str, Reader] = {}
         self._default_reader: Reader | None = None
         self._writer: dict[str, Writer] = {}
         self._default_writer: Writer | None = None
-    
+
     def set_default_reader(self, f: _R) -> _R:
         self._default_reader = f
         return f
-    
+
     def set_default_writer(self, f: _W) -> _W:
         self._default_writer = f
         return f
@@ -78,7 +78,7 @@ class ImageIO:
     def mark_reader(self, *ext: str) -> Callable[[_R], _R]:
         """
         Mark a function as a reader function.
-        
+
         Examples
         --------
         >>> @IO.mark_reader(".tif")
@@ -108,7 +108,7 @@ class ImageIO:
         >>> @IO.mark_writer(".tif")
         >>> def save_tif(path, img, lazy=False):
         >>>     ...
-        """        
+        """
         ext_list: list[str] = []
         for _ext in ext:
             if not _ext.startswith("."):
@@ -122,11 +122,11 @@ class ImageIO:
             return f
 
         return _register
-    
+
     def imread(self, path: str, memmap: bool = False) -> ImageData:
         """
         Read an image file.
-        
+
         The reader is chosen according to the file extension.
 
         Parameters
@@ -144,13 +144,13 @@ class ImageIO:
         _, ext = os.path.splitext(path)
         reader = self._reader.get(ext, self._default_reader)
         return reader(path, memmap)
-    
+
     def imread_dask(self, path: str, chunks: Any) -> ImageData:
         """
         Read an image file as a dask array.
 
         The reader is chosen according to the file extension.
-        
+
         Parameters
         ----------
         path : str
@@ -167,10 +167,10 @@ class ImageIO:
         from .array_api import xp
         image_data = self.imread(path, memmap=True)
         img = image_data.image
-        
+
         if img.dtype == ">u2":
             img = img.astype(np.uint16)
-        
+
         from dask import array as da
         if str(type(img)) == "<class 'zarr.core.Array'>":
             dask = da.from_zarr(img, chunks=chunks).map_blocks(
@@ -181,14 +181,14 @@ class ImageIO:
                 xp.asarray, dtype=img.dtype
             )
         return ImageData(
-            image=dask, 
+            image=dask,
             axes=image_data.axes,
             scale=image_data.scale,
             unit=image_data.unit,
             metadata=image_data.metadata,
             labels=image_data.labels,
         )
-    
+
     def imsave(
         self,
         path: str,
@@ -243,21 +243,21 @@ def _(path: str, memmap: bool = False) -> ImageData:
     with TiffFile(path) as tif:
         ijmeta = tif.imagej_metadata
         series0 = tif.series[0]
-    
+
         pagetag = series0.pages[0].tags
-        
+
         if ijmeta is None:
             ijmeta = {}
-        
+
         ijmeta.pop("ROI", None)
-        
+
         try:
             axes = series0.axes.lower()
-        except:
+        except Exception:
             axes = None
-        
+
         tags = {v.name: v.value for v in pagetag.values()}
-    
+
         labels = ijmeta.get("Labels")
         scale = dict()
         dz = ijmeta.get("spacing", 1.0)
@@ -298,7 +298,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
                 pix_info: dict[str, Any] = meta_data.get("Pixels", {})
                 # get scale
                 scale_unit = {x.lower(): pix_info.get(f"PhysicalSize{x}Unit") for x in "ZYX"}
-                dz, dy, dx = [pix_info.get(f"PhysicalSize{x}", 1.0) for x in "ZYX"]
+                dz, dy, dx = (pix_info.get(f"PhysicalSize{x}", 1.0) for x in "ZYX")
                 scale["z"] = dz
                 scale["y"] = dy
                 scale["x"] = dx
@@ -309,15 +309,15 @@ def _(path: str, memmap: bool = False) -> ImageData:
                 else:
                     labels = None
                 # get time interval
-                
+
             except Exception:
                 pass
-        
+
         if memmap:
             image = tif.asarray(out="memmap")
         else:
             image = tif.asarray()
-    
+
 
     return ImageData(
         image=image,
@@ -339,7 +339,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         da.store(img.value, mmap, compute=True)
         mmap.flush()
         return
-    
+
     from tifffile import imwrite
     rest_axes = complement_axes(img.axes, "tzcyx")
     new_axes = ""
@@ -351,16 +351,16 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
                 raise ImageAxesError(f"Cannot save image with axes {img.axes}")
             new_axes += rest_axes[0]
             rest_axes = rest_axes[1:]
-    
+
     # make a copy of the image for saving
     if new_axes != img.axes:
         img_new = img.copy()
         img_new.axes = new_axes
         img_new.set_scale(img)
         img = img_new
-        
+
         warnings.warn("Image axes changed", UserWarning)
-    
+
     img = img.sort_axes()
     if img.dtype == "bool":
         img = img.astype(np.uint8)
@@ -372,6 +372,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 def _(path: str, memmap: bool = False) -> ImageData:
     """The MRC format reader"""
     import mrcfile
+
     if path.endswith(".gz") and not path.endswith(".map.gz"):
         raise ValueError("Only .map.gz file is supported.")
 
@@ -379,8 +380,8 @@ def _(path: str, memmap: bool = False) -> ImageData:
         open_func = mrcfile.mmap
     else:
         open_func = mrcfile.open
-    
-    with open_func(path, mode="r") as mrc:
+
+    with open_func(path, permissive=True, mode="r") as mrc:
         ndim = len(mrc.voxel_size.item())
         if ndim == 3:
             axes = "zyx"
@@ -388,13 +389,13 @@ def _(path: str, memmap: bool = False) -> ImageData:
             axes = "yx"
         else:
             raise RuntimeError(f"ndim = {ndim} not supported")
-        
+
         scale = dict.fromkeys(axes, 1.0)
         for a in axes:
             scale[a] = mrc.voxel_size[a] / 10
-        
+
         image = mrc.data
-    
+
     return ImageData(
         image=image,
         axes=axes,
@@ -408,9 +409,9 @@ def _(path: str, memmap: bool = False) -> ImageData:
 @IO.mark_writer(".mrc", ".rec", ".st", ".map")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The MRC writer."""
-    
+
     import mrcfile
-    
+
     if img.scale_unit == "nm":
         voxel_size = tuple(np.array(img.scale)[::-1] * 10)
     elif img.scale_unit in ("ang", "Å", "angstrom"):
@@ -420,13 +421,13 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
             f"Scale unit was {img.scale_unit}. Could not normalize scale."
         )
         voxel_size = (1.0, 1.0, 1.0)
-    
+
     if img.dtype == "bool":
         img = img.astype(np.int8)
-    
+
     if lazy:
         from dask import array as da
-        
+
         mode = _MRC_MODE[img.dtype]
         mrc_mmap = mrcfile.new_mmap(path, img.shape, mrc_mode=mode, overwrite=True)
         mrc_mmap.voxel_size = voxel_size
@@ -443,7 +444,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         with mrcfile.open(path, mode="r+") as mrc:
             mrc.set_data(img.value)
             mrc.voxel_size = voxel_size
-            
+
     else:
         with mrcfile.new(path) as mrc:
             mrc.set_data(img.value)
@@ -454,6 +455,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 def _(path: str, memmap: bool = False) -> ImageData:
     """The zarr reader."""
     import zarr
+
     zf = zarr.open(path, mode="r")
     if memmap:
         image = zf["data"]
@@ -473,9 +475,10 @@ def _(path: str, memmap: bool = False) -> ImageData:
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The zarr writer."""
     import zarr
+
     f = zarr.open(path, mode="w")
     metadata = img.metadata.copy()
-    
+
     f.attrs["axes"] = str(img.axes)
     f.attrs["scale"] = {str(a): v for a, v in img.scale.items()}
     f.attrs["metadata"] = metadata
@@ -520,7 +523,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 def _(path: str, memmap: bool = False) -> ImageData:
     """The numpy reader."""
     npz: NpzFile = np.load(path, mmap_mode="r", allow_pickle=True)
-    
+
     none_scalar = _scalar(None)
     metadata = npz.get("metadata", none_scalar).item()
     if metadata is None:
@@ -576,7 +579,7 @@ def _(path: str, memmap: bool = False):
                 pass
         if is_dataclass(metadata):
             metadata = asdict(metadata)
-        
+
     return ImageData(
         image=image,
         axes=axes,
@@ -602,7 +605,7 @@ _MRC_MODE = {
 def _load_json(s: str) -> dict[str, Any]:
     return json.loads(re.sub("'", '"', s))
 
-def _get_ijmeta_from_img(img: "MetaArray", update_lut=True):
+def _get_ijmeta_from_img(img: MetaArray, update_lut=True):
     metadata = img.metadata.copy()
     scale_view = img.scale
     if update_lut:
@@ -618,22 +621,22 @@ def _get_ijmeta_from_img(img: "MetaArray", update_lut=True):
         metadata["spacing"] = scale_view["z"]
     else:
         metadata["spacing"] = scale_view["x"]
-        
+
     try:
         info = _load_json(metadata["Info"])
-    except:
+    except Exception:
         info = {}
     metadata["Info"] = str(info)
     scale_unit = img.scale_unit
     if scale_unit[0] == "μ":
         scale_unit = "\\u00B5" + scale_unit[1:]
     metadata["unit"] = scale_unit
-        
+
     # set axes in tiff metadata
     metadata["axes"] = str(img.axes).upper()
     if img.ndim > 3:
         metadata["hyperstack"] = True
-    
+
     return dict(imagej=True, resolution=res, metadata=metadata)
 
 imread = IO.imread

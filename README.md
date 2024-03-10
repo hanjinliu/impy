@@ -5,7 +5,7 @@
 
 `impy` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and so on.
 
-The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with information such as 
+The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with information such as
 
 - image axes
 - scale of each axis
@@ -20,8 +20,12 @@ Documentation is available [here](https://hanjinliu.github.io/impy/).
 
 - use pip
 
-```
+``` sh
 pip install impy-array
+pip install impy-array[tiff]    # with supports for reading/writing .tif files
+pip install impy-array[mrc]     # with supports for reading/writing .mrc files
+pip install impy-array[napari]  # viewer support
+pip install impy-array[all]     # install everything
 ```
 
 - from source
@@ -68,7 +72,7 @@ ip.Const["RESOURCE"] = "cupy"  # <- globally use GPU
 
 ### Seamless interface between `napari`
 
-[napari](https://github.com/napari/napari) is an interactive viewer for multi-dimensional images. `impy` has a **simple and efficient interface** with it, via the object `ip.gui`. Since `ImgArray` is tagged with image metadata, you don't have to care about axes or scales. Just run 
+[napari](https://github.com/napari/napari) is an interactive viewer for multi-dimensional images. `impy` has a **simple and efficient interface** with it, via the object `ip.gui`. Since `ImgArray` is tagged with image metadata, you don't have to care about axes or scales. Just run
 
 ```python
 ip.gui.add(img)
