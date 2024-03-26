@@ -1,5 +1,5 @@
 import numpy as np
-from ...array_api import xp
+from impy.array_api import xp
 
 def circle(radius, shape, dtype="bool"):
     x = xp.arange(-(shape[0] - 1) / 2, (shape[0] - 1) / 2 + 1)
@@ -10,7 +10,7 @@ def circle(radius, shape, dtype="bool"):
 def ball_like(radius, ndim:int):
     half_int = int(2*radius)/2
     L = xp.arange(-half_int, half_int + 1)
-    
+
     if ndim == 1:
         return xp.ones(int(radius)*2+1, dtype=np.uint8)
     elif ndim == 2:
@@ -32,7 +32,7 @@ def ball_like_odd(radius, ndim):
      [1, 1, 1, 1],
      [0, 1, 1, 0]]
     This is not suitable for specify().
-    """    
+    """
     xc = int(radius)
     l = xc*2 + 1
     coords = xp.indices((l,)*ndim)

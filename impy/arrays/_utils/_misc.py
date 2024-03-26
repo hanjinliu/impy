@@ -1,6 +1,6 @@
 from __future__ import annotations
 import numpy as np
-from ...array_api import xp
+from impy.array_api import xp
 
 def adjust_bin(
     img: np.ndarray,
@@ -44,12 +44,12 @@ def make_rotated_axis(src, dst):
 def make_pad(pad_width, dims, all_axes, **kwargs):
     """More flexible padding than `np.pad`."""
     pad_width_ = []
-        
+
     # for consistency with scipy-format
     if "cval" in kwargs.keys():
         kwargs["constant_values"] = kwargs["cval"]
         kwargs.pop("cval")
-        
+
     if hasattr(pad_width, "__iter__") and len(pad_width) == len(dims):
         pad_iter = iter(pad_width)
         for a in all_axes:
@@ -57,7 +57,7 @@ def make_pad(pad_width, dims, all_axes, **kwargs):
                 pad_width_.append(next(pad_iter))
             else:
                 pad_width_.append((0, 0))
-        
+
     elif isinstance(pad_width, int):
         for a in all_axes:
             if a in dims:
@@ -66,7 +66,7 @@ def make_pad(pad_width, dims, all_axes, **kwargs):
                 pad_width_.append((0, 0))
     else:
         raise TypeError(f"pad_width must be iterable or int, but got {type(pad_width)}")
-    
+
     return pad_width_
 
 def dft(img: xp.ndarray, exps: list[xp.ndarray] = None):

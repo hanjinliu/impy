@@ -1,9 +1,10 @@
 from __future__ import annotations
 import warnings
 import numpy as np
+from numpy.typing import DTypeLike
 from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable
+from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable, overload, Any
 
 from .labeledarray import LabeledArray
 from .label import Label
@@ -13,6 +14,7 @@ from .tiled import TiledAccessor
 
 from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
+from impy.arrays.bases.metaarray import _NoValue
 from impy.utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
 from impy.utils.deco import check_input_and_output, dims_to_spatial_axes, same_dtype
 from impy.utils.gauss import GaussianBackground, GaussianParticle
@@ -37,13 +39,13 @@ if TYPE_CHECKING:
 class ImgArray(LabeledArray):
     """
     An n-D array for image analysis.
-    
+
     Attributes
     ----------
     axes : str
         Image axes, such as "zyx" or "tcyx".
     scale : ScaleDict
-        Physical scale along each axis. For instance, scale of x-axis can be referred 
+        Physical scale along each axis. For instance, scale of x-axis can be referred
         to by ``img.scale["x"]`` or ``img.scale.x
     metadata : dict
         Metadata tagged to the image.
@@ -63,16 +65,16 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         r"""
         Convert image by Affine transformation. 2D Affine transformation is written as:
-        
+
         .. math::
-        
+
             \begin{bmatrix} y'\\ x' \\1 \end{bmatrix} =
             \begin{bmatrix} A_{00} & A_{01} & A_{02} \\
                             A_{10} & A_{11} & A_{12} \\
                                 0 &      0 &      1  \end{bmatrix}
                             \begin{bmatrix} y \\x\\ 1 \end{bmatrix}
-           
-          
+
+
         and similarly, n-D Affine transformation can be described as (n+1)-D matrix.
 
         Parameters
@@ -95,9 +97,9 @@ class ImgArray(LabeledArray):
             cval = getattr(np, cval)(self.value)
         elif callable(cval):
             cval = cval(self.value)
-        
+
         prefilter = prefilter or order > 1
-        
+
         if translation is not None and all(a is None for a in [matrix, scale, rotation, shear]):
             shift = -np.asarray(translation)
             return self._apply_dask(
@@ -116,7 +118,7 @@ class ImgArray(LabeledArray):
             kwargs=dict(matrix=matrix, order=order, mode=mode, cval=cval,
                         output_shape=output_shape, prefilter=prefilter)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -148,16 +150,16 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Rotated image.
-        """        
+        """
         if center == "center":
             center = np.array(self.sizesof(dims))/2. - 0.5
         else:
             center = np.asarray(center)
-            
+
         translation_0 = _transform.compose_affine_matrix(translation=center)
         rotation = _transform.compose_affine_matrix(rotation=np.deg2rad(degree))
         translation_1 = _transform.compose_affine_matrix(translation=-center)
-        
+
         mx = translation_0 @ rotation @ translation_1
         mx[-1, :] = [0] * len(dims) + [1]
         return self._apply_dask(
@@ -165,7 +167,7 @@ class ImgArray(LabeledArray):
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval),
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -175,8 +177,8 @@ class ImgArray(LabeledArray):
         scale: nDFloat,
         center: Sequence[float] | Literal["center"] = "center",
         *,
-        mode: PaddingMode = "constant", 
-        cval: float = 0, 
+        mode: PaddingMode = "constant",
+        cval: float = 0,
         dims: Dims = None,
         order: int = 1,
     ) -> ImgArray:
@@ -195,21 +197,21 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Stretched image.
-        """        
+        """
         if center == "center":
             center = np.array(self.sizesof(dims))/2. - 0.5
         else:
             center = np.asarray(center)
-        
+
         scale = check_nd(scale, len(dims))
-        
+
         translation_0 = _transform.compose_affine_matrix(translation=center)
         stretch = _transform.compose_affine_matrix(scale=1/np.asarray(scale))
         translation_1 = _transform.compose_affine_matrix(translation=-center)
-        
+
         mx = translation_0 @ stretch @ translation_1
         mx[-1, :] = [0] * len(dims) + [1]
-        
+
         return self._apply_dask(
             _transform.warp,
             c_axes=complement_axes(dims, self.axes),
@@ -237,7 +239,7 @@ class ImgArray(LabeledArray):
             Relative scale of the new image. scale 1/2 means that the shape of
             the output image will be (N/2, ...).
         {order}{mode}{cval}{dims}
-        
+
         Returns
         -------
         ImgArray
@@ -245,7 +247,7 @@ class ImgArray(LabeledArray):
         """
         from skimage.transform import rescale
         scale_is_seq = hasattr(scale, "__iter__")
-        
+
         # Check if output is too large.
         gb = -1
         if not scale_is_seq and scale > 1:
@@ -254,7 +256,7 @@ class ImgArray(LabeledArray):
             gb = np.prod(self.shape) * np.prod(list(scale)) / 2**30
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Output image is too large: {gb} GB")
-        
+
         if scale_is_seq:
             scale = list(scale)
             if len(scale) != len(dims):
@@ -272,21 +274,21 @@ class ImgArray(LabeledArray):
         out.axes = self.axes.copy()
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype
     def binning(
         self,
         binsize: int = 2,
-        method = "mean", 
-        *, 
+        method = "mean",
+        *,
         check_edges: bool = True,
         dims: Dims = None
     ) -> ImgArray:
         r"""
-        Binning of images. This function is similar to ``rescale`` but is strictly 
-        binned by :math:`N \times N` blocks. Also, any numpy functions that accept 
+        Binning of images. This function is similar to ``rescale`` but is strictly
+        binned by :math:`N \times N` blocks. Also, any numpy functions that accept
         "axis" argument are supported for reduce functions.
 
         Parameters
@@ -304,20 +306,20 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Binned image
-        """ 
+        """
         if isinstance(method, str):
             binfunc = getattr(np, method)
         elif callable(method):
             binfunc = method
         else:
             raise TypeError("`method` must be a numpy function or callable object.")
-        
+
         if binsize == 1:
             return self
         img_to_reshape, shape, scale_ = _misc.adjust_bin(
             self.value, binsize, check_edges, dims, self.axes
         )
-        
+
         reshaped_img = img_to_reshape.reshape(shape)
         axes_to_reduce = tuple(i * 2 + 1 for i in range(self.ndim))
         out: np.ndarray = binfunc(reshaped_img, axis=axes_to_reduce)
@@ -328,20 +330,20 @@ class ImgArray(LabeledArray):
             {a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)}
         )
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     def radial_profile(
         self,
         nbin: int = 32,
         center: Iterable[float] | None = None,
-        r_max: float = None, 
-        *, 
+        r_max: float = None,
+        *,
         method: str = "mean",
         dims: Dims = None
     ) -> PropArray:
         """
-        Calculate radial profile of images. Scale along each axis will be considered, 
+        Calculate radial profile of images. Scale along each axis will be considered,
         i.e., rather ellipsoidal profile will be calculated instead if scales are
         different between axes.
 
@@ -353,8 +355,8 @@ class ImgArray(LabeledArray):
             The coordinate of center of radial profile. By default, the center of image
             is used.
         r_max : float, optional
-            Maximum radius to make profile. Region 0 <= r < r_max will be split into 
-            ``nbin`` rings (or shells). **Scale must be considered** because scales of 
+            Maximum radius to make profile. Region 0 <= r < r_max will be split into
+            ``nbin`` rings (or shells). **Scale must be considered** because scales of
             each axis may vary.
         method : str, default is "mean"
             Reduce function. Basic statistics functions are supported in ``scipy.ndimage``
@@ -365,9 +367,9 @@ class ImgArray(LabeledArray):
         Returns
         -------
         PropArray
-            Radial profile stored in x-axis by default. If input image has tzcyx-axes, then an array 
+            Radial profile stored in x-axis by default. If input image has tzcyx-axes, then an array
             with tcx-axes will be returned.
-        """        
+        """
         func = {"mean": xp.ndi.mean,
                 "sum": xp.ndi.sum_labels,
                 "median": xp.ndi.median,
@@ -375,10 +377,10 @@ class ImgArray(LabeledArray):
                 "min": xp.ndi.minimum,
                 "std": xp.ndi.standard_deviation,
                 "var": xp.ndi.variance}[method]
-        
+
         spatial_shape = self.sizesof(dims)
         inds = xp.indices(spatial_shape)
-        
+
         # check center
         if center is None:
             center = [s/2 for s in spatial_shape]
@@ -386,12 +388,12 @@ class ImgArray(LabeledArray):
             raise ValueError(
                 f"Length of `center` must match input dimensionality '{dims}'."
             )
-        
+
         r = xp.sqrt(
             sum(((x - c)*self.scale[a])**2 for x, c, a in zip(inds, center, dims))
         )
         r_lim = r.max()
-        
+
         # check r_max
         if r_max is None:
             r_max = r_lim
@@ -399,27 +401,27 @@ class ImgArray(LabeledArray):
             raise ValueError(
                 f"`r_max` must be in range of 0 < r_max <= {r_lim} with this image."
             )
-        
+
         # make radially separated labels
         r_rel = r/r_max
         labels = (nbin * r_rel).astype(np.uint16) + 1
         labels[r_rel >= 1] = 0
-        
+
         c_axes = complement_axes(dims, self.axes)
-        
+
         out = PropArray(
             np.empty(self.sizesof(c_axes)+(int(labels.max()),)),
             dtype=np.float32,
-            axes=c_axes + [dims[-1]], 
-            source=self.source, 
-            metadata=self.metadata, 
+            axes=c_axes + [dims[-1]],
+            source=self.source,
+            metadata=self.metadata,
             propname="radial_profile"
         )
         radial_func = partial(cupy_dispatcher(func), labels=labels, index=xp.arange(1, labels.max()+1))
         for sl, img in self.iter(c_axes, exclude=dims):
             out[sl] = xp.asnumpy(radial_func(img))
         return out
-    
+
     @dims_to_spatial_axes
     def gaussfit(
         self,
@@ -462,7 +464,7 @@ class ImgArray(LabeledArray):
             out.metadata = out.metadata.copy()
             out.metadata["GaussianParameters"] = params
             return out
-        
+
         rough = self.rescale(scale).value.astype(np.float32)
         if mask is not None:
             from ..core import asarray as ip_asarray
@@ -475,7 +477,7 @@ class ImgArray(LabeledArray):
         fit.metadata = fit.metadata.copy()
         fit.metadata["GaussianParameters"] = gaussian.asdict()
         return fit
-    
+
     @same_dtype(asfloat=True)
     @check_input_and_output
     def gauss_correction(self, ref: ImgArray=None, scale: float = 1/16, median_radius: float = 15):
@@ -498,24 +500,24 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Corrected and background subtracted image.
-        
+
         Examples
         --------
         1. When input image has "ptcyx"-axes, and you want to estimate the background intensity
         for each channel by averaging all the positions and times.
-        
+
             >>> img_cor = img.gauss_correction(ref=img.proj("pt"))
-        
+
         2. When input image has "ptcyx"-axes, and you want to estimate the background intensity
         for each channel and time point by averaging all the positions.
-        
+
             >>> img_cor = img.gauss_correction(ref=img.proj("p"))
         """
         if ref is None:
             ref = self
         elif not isinstance(ref, self.__class__):
             raise TypeError(f"`ref` must be None or ImgArray, but got {type(ref)}")
-        
+
         self_loop_axes = complement_axes(ref.axes, self.axes)
         ref_loop_axes = complement_axes("yx", ref.axes)
         out = np.empty(self.shape, dtype=np.float32)
@@ -527,16 +529,16 @@ class ImgArray(LabeledArray):
             a = fit.max()
             for sl, img in self.iter(self_loop_axes, israw=True):
                 out[sl][sl0] = (img[sl0] / fit * a - a).value
-        
+
         return out.view(self.__class__)
 
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     def hessian_eigval(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
-        Calculate Hessian's eigenvalues for each image. 
-        
+        Calculate Hessian's eigenvalues for each image.
+
         Parameters
         ----------
         {sigma}
@@ -547,31 +549,31 @@ class ImgArray(LabeledArray):
         ImgArray
             Array of eigenvalues. The axis ``"base"`` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
-        
+
         Examples
         --------
         Extract filament
             >>> eig = -img.hessian_eigval()[ip.slicer.base[0]]
             >>> eig[eig<0] = 0
-        """        
+        """
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        
+
         eigval = self.as_float()._apply_dask(
-            _linalg.hessian_eigval, 
-            c_axes=complement_axes(dims, self.axes), 
+            _linalg.hessian_eigval,
+            c_axes=complement_axes(dims, self.axes),
             new_axis=-1,
             args=(sigma, pxsize)
         )
-        
+
         eigval: ImgArray = np.moveaxis(eigval, -1, 0)
-        
+
         new_axes = ["base"] + self.axes
         eigval._set_info(self, new_axes=new_axes)
-        
+
         return eigval
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     def hessian_eig(self, sigma: nDFloat = 1, *, dims: Dims = None) -> tuple[ImgArray, ImgArray]:
@@ -585,24 +587,24 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray and ImgArray
-            Arrays of eigenvalues and eigenvectors. The axis ``"base"`` denotes the index of 
+            Arrays of eigenvalues and eigenvectors. The axis ``"base"`` denotes the index of
             eigenvalues. l=0 means the smallest eigenvalue. ``"dim"`` denotes the index of
             spatial dimensions. For 3D image, dim=0 means z-element of an eigenvector.
-        """                
+        """
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        
+
         eigs = self.as_float()._apply_dask(
-            _linalg.hessian_eigh, 
+            _linalg.hessian_eigh,
             c_axes=complement_axes(dims, self.axes),
             new_axis=[-2, -1],
             args=(sigma, pxsize)
         )
-        
+
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes, self)
         return eigval, eigvec
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -620,23 +622,23 @@ class ImgArray(LabeledArray):
         ImgArray
             Array of eigenvalues. The axis ``"l"`` denotes the index of eigenvalues.
             l=0 means the smallest eigenvalue.
-        """          
+        """
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        
+
         eigval = self.as_float()._apply_dask(
-            _linalg.structure_tensor_eigval, 
-            c_axes=complement_axes(dims, self.axes), 
+            _linalg.structure_tensor_eigval,
+            c_axes=complement_axes(dims, self.axes),
             new_axis=-1,
             args=(sigma, pxsize),
         )
-        
+
         new_axes = ["base"] + self.axes
         eigval._set_info(self, new_axes=new_axes)
-        
+
         return eigval
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -652,25 +654,25 @@ class ImgArray(LabeledArray):
         Returns
         -------
         ImgArray and ImgArray
-            Arrays of eigenvalues and eigenvectors. The axis ``"l"`` denotes the index of 
+            Arrays of eigenvalues and eigenvectors. The axis ``"l"`` denotes the index of
             eigenvalues. l=0 means the smallest eigenvalue. ``"r"`` denotes the index of
             spatial dimensions. For 3D image, r=0 means z-element of an eigenvector.
-        """                
+        """
         ndim = len(dims)
         sigma = check_nd(sigma, ndim)
         pxsize = np.array([self.scale[a] for a in dims])
-        
+
         eigs = self.as_float()._apply_dask(
             _linalg.structure_tensor_eigh,
             c_axes=complement_axes(dims, self.axes),
             new_axis=[-2, -1],
             args=(sigma, pxsize)
         )
-        
+
         eigval, eigvec = _linalg.eigs_post_process(eigs, self.axes, self)
 
         return eigval, eigvec
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -695,7 +697,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         from skimage.filters import sobel, farid, scharr, prewitt
         # Get operator
         method_dict = {"sobel": sobel, "farid": farid, "scharr": scharr, "prewitt": prewitt}
@@ -703,9 +705,9 @@ class ImgArray(LabeledArray):
             f = method_dict[method]
         except KeyError:
             raise ValueError("`method` must be 'sobel', 'farid' 'scharr', or 'prewitt'.")
-        
+
         return self._apply_dask(f, c_axes=complement_axes(dims, self.axes))
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -714,8 +716,8 @@ class ImgArray(LabeledArray):
         self,
         cutoff: nDFloat = 0.2,
         order: float = 2,
-        *, 
-        dims: Dims = None, 
+        *,
+        dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
         """
@@ -733,7 +735,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """         
+        """
         from ._utils._skimage import _get_ND_butterworth_filter
         ndims = len(dims)
         cutoff = check_nd(cutoff, ndims)
@@ -746,12 +748,12 @@ class ImgArray(LabeledArray):
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
         out = xp.fft.irfftn(
-            xp.asarray(weight) * xp.fft.rfftn(input, axes=spatial_axes), 
-            s=spatial_shape, 
+            xp.asarray(weight) * xp.fft.rfftn(input, axes=spatial_axes),
+            s=spatial_shape,
             axes=spatial_axes,
         )
         return xp.asnumpy(out)
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -760,7 +762,7 @@ class ImgArray(LabeledArray):
         self,
         cutoff: nDFloat = 0.2,
         order: float = 2,
-        *, 
+        *,
         dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
@@ -780,7 +782,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """       
+        """
         from ._utils._skimage import _get_ND_butterworth_filter
         ndims = len(dims)
         cutoff = check_nd(cutoff, ndims)
@@ -796,23 +798,7 @@ class ImgArray(LabeledArray):
             sl.append(slice(s//2 - radius, s//2 + radius + 1))
         ker = ker_all[tuple(sl)]
         return self.convolve(ker)
-    
-    @same_dtype(asfloat=True)
-    def tiled_lowpass_filter(
-        self,
-        cutoff: float = 0.2,
-        chunks = "auto",
-        order: int = 2, 
-        overlap: int = 16,
-        **kwargs,
-    ) -> ImgArray:
-        warnings.warn(
-            "`tiled_lowpass_filter` is deprecated. Please use "
-            f"`img.tiled({chunks=}, {overlap=}).lowpass_filter({cutoff=}, {order=})` instead.",
-            DeprecationWarning,
-        )
-        return self.tiled(chunks, overlap).lowpass_filter(cutoff, order)
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -821,8 +807,8 @@ class ImgArray(LabeledArray):
         self,
         cutoff: nDFloat = 0.2,
         order: float = 2,
-        *, 
-        dims: Dims = None, 
+        *,
+        dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
         """
@@ -840,7 +826,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """         
+        """
         from ._utils._skimage import _get_ND_butterworth_filter
         cutoff = check_nd(cutoff, len(dims))
         spatial_shape = self.sizesof(dims)
@@ -849,22 +835,22 @@ class ImgArray(LabeledArray):
         input = xp.asarray(self.value)
         if len(dims) < self.ndim:
             weight = add_axes(self.axes, self.shape, weight, dims)
-        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes), 
+        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes),
                             s=spatial_shape, axes=spatial_axes)
         return xp.asnumpy(out)
-    
-    
+
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
     def convolve(
         self,
-        kernel, 
+        kernel,
         *,
-        mode: PaddingMode = "reflect", 
+        mode: PaddingMode = "reflect",
         cval: float = 0,
-        dims: Dims = None, 
+        dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
         """
@@ -880,31 +866,31 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Convolved image.
-        """        
+        """
         kernel = np.asarray(kernel, dtype=np.float32)
         return self._apply_dask(
-            _filters.convolve, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.convolve,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             args=(kernel,),
             kwargs=dict(mode=mode, cval=cval)
         )
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def erosion(
         self,
         radius: float = 1.,
-        *, 
+        *,
         mode: PaddingMode = "reflect",
         cval: float = 0.0,
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
         """
-        Morphological erosion. 
-        
+        Morphological erosion.
+
         If input is binary image, the running function will automatically switched to
         ``binary_erosion`` to speed up calculation.
 
@@ -916,7 +902,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_erosion
@@ -925,19 +911,19 @@ class ImgArray(LabeledArray):
             f = _filters.erosion
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
-            f, 
-            c_axes=complement_axes(dims, self.axes), 
+            f,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             kwargs=kwargs
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def dilation(
         self,
         radius: float = 1,
-        *, 
+        *,
         mode: PaddingMode = "reflect",
         cval: float = 0.0,
         dims: Dims = None,
@@ -955,7 +941,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_dilation
@@ -964,12 +950,12 @@ class ImgArray(LabeledArray):
             f = _filters.dilation
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
-            f, 
-            c_axes=complement_axes(dims, self.axes), 
+            f,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             kwargs=kwargs
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -994,7 +980,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_opening
@@ -1003,27 +989,27 @@ class ImgArray(LabeledArray):
             f = _filters.opening
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
-            f, 
-            c_axes=complement_axes(dims, self.axes), 
+            f,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             kwargs=kwargs
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def closing(
         self,
         radius: float = 1,
-        *, 
+        *,
         mode: PaddingMode = "reflect",
         cval: float = 0.0,
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
         """
-        Morphological closing. 
-        
+        Morphological closing.
+
         If input is binary image, the running function will automatically switched to
         ``binary_closing`` to speed up calculation.
 
@@ -1035,7 +1021,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         if self.dtype == bool:
             f = _filters.binary_closing
@@ -1044,12 +1030,12 @@ class ImgArray(LabeledArray):
             f = _filters.closing
             kwargs = dict(footprint=disk, mode=mode, cval=cval)
         return self._apply_dask(
-            f, 
-            c_axes=complement_axes(dims, self.axes), 
+            f,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             kwargs=kwargs
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1073,17 +1059,17 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
-        
+        """
+
         disk = _structures.ball_like(radius, len(dims))
         return self._apply_dask(
-            _filters.white_tophat, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.white_tophat,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             kwargs=dict(footprint=disk, mode=mode, cval=cval)
         )
-    
-    
+
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -1097,7 +1083,7 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Smoothen binary mask image at its edges. This is useful to make a "soft mask".
-        
+
         This method applies erosion/dilation to a binary image and then smooth its edges by Gaussian.
         The total value is always larger after Gaussian smoothing.
 
@@ -1108,10 +1094,10 @@ class ImgArray(LabeledArray):
         dilate_radius : float, default is 2.0
             Radius in pixel that will be used to dilate mask before smoothing.
         mask_light : bool, default is False
-            If true, mask array is considered to mask other image at its True values. Otherwise mask array 
+            If true, mask array is considered to mask other image at its True values. Otherwise mask array
             plays more like a weight array, that is, False region will be zero.
         {dims}
-            
+
         Returns
         -------
         ImgArray
@@ -1119,12 +1105,12 @@ class ImgArray(LabeledArray):
         """
         if not mask_light:
             self = ~self
-        
+
         if dilate_radius > 0:
             self = self.erosion(dilate_radius, dims=dims)
         elif dilate_radius < 0:
             self = self.dilation(-dilate_radius, dims=dims)
-        
+
         if sigma > 0:
             dist = self.distance_map(dims=dims)
             blurred_mask = np.exp(-dist**2/2/sigma**2)
@@ -1135,7 +1121,7 @@ class ImgArray(LabeledArray):
         if mask_light:
             blurred_mask = 1 - blurred_mask
         return blurred_mask
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -1154,28 +1140,28 @@ class ImgArray(LabeledArray):
         Parameters
         ----------
         {radius}{mode}{cval}{dims}{update}
-            
+
         Returns
         -------
         ImgArray
             Filtered image
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         return self._apply_dask(
-            _filters.mean_filter, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.mean_filter,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             args=(disk,),
             kwargs=dict(mode=mode, cval=cval),
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def std_filter(
         self,
-        radius: float = 1, 
-        *, 
+        radius: float = 1,
+        *,
         mode: PaddingMode = "reflect",
         cval: float = 0.0,
         dims: Dims = None,
@@ -1191,15 +1177,15 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         return self.as_float()._apply_dask(
-            _filters.std_filter, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.std_filter,
+            c_axes=complement_axes(dims, self.axes),
             args=(disk,),
             kwargs=dict(mode=mode, cval=cval),
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1212,28 +1198,28 @@ class ImgArray(LabeledArray):
         dims: Dims = None
     ) -> ImgArray:
         r"""
-        Coefficient of variance filter. 
-        
+        Coefficient of variance filter.
+
         For kernel area X, :math:`\frac{\sqrt{V[X]}}{E[X]}` is calculated. This filter
         is useful for feature extraction from images with uneven background intensity.
 
         Parameters
         ----------
         {radius}{mode}{cval}{dims}
-        
+
         Returns
         -------
         ImgArray
             Filtered image
-        """        
+        """
         disk = _structures.ball_like(radius, len(dims))
         return self.as_float()._apply_dask(
-            _filters.coef_filter, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.coef_filter,
+            c_axes=complement_axes(dims, self.axes),
             args=(disk,),
             kwargs=dict(mode=mode, cval=cval),
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1247,39 +1233,39 @@ class ImgArray(LabeledArray):
         update: bool = False,
     ) -> ImgArray:
         """
-        Running multi-dimensional median filter. 
-        
+        Running multi-dimensional median filter.
+
         This filter is useful for deleting outliers generated by noise.
 
         Parameters
         ----------
         {radius}{mode}{cval}{dims}{update}
-        
+
         Returns
         -------
         ImgArray
             Filtered image.
-        """     
+        """
         disk = _structures.ball_like(radius, len(dims))
         return self._apply_dask(
-            _filters.median_filter, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.median_filter,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             kwargs=dict(footprint=disk, mode=mode, cval=cval),
         )
-    
+
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
-    def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims: Dims = None, 
+    def diameter_opening(self, diameter:int=8, *, connectivity:int=1, dims: Dims = None,
                          update: bool = False) -> ImgArray:
         from skimage.morphology import diameter_opening
         return self._apply_dask(
-            diameter_opening, 
-            c_axes=complement_axes(dims, self.axes), 
+            diameter_opening,
+            c_axes=complement_axes(dims, self.axes),
             kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
         )
-        
+
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
@@ -1287,49 +1273,49 @@ class ImgArray(LabeledArray):
                          update: bool = False) -> ImgArray:
         from skimage.morphology import diameter_closing
         return self._apply_dask(
-            diameter_closing, 
-            c_axes=complement_axes(dims, self.axes), 
+            diameter_closing,
+            c_axes=complement_axes(dims, self.axes),
             kwargs=dict(diameter_threshold=diameter, connectivity=connectivity)
         )
-    
+
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
-    def area_opening(self, area:int=64, *, connectivity:int=1, dims: Dims = None, 
+    def area_opening(self, area:int=64, *, connectivity:int=1, dims: Dims = None,
                      update: bool = False) -> ImgArray:
         from skimage.morphology import remove_small_holes, area_opening
         if self.dtype == bool:
             return self._apply_dask(
                 remove_small_holes,
-                c_axes=complement_axes(dims, self.axes), 
+                c_axes=complement_axes(dims, self.axes),
                 kwargs=dict(area_threshold=area, connectivity=connectivity)
             )
         else:
             return self._apply_dask(
-                area_opening, 
-                c_axes=complement_axes(dims, self.axes), 
+                area_opening,
+                c_axes=complement_axes(dims, self.axes),
                 kwargs=dict(area_threshold=area, connectivity=connectivity)
             )
-        
+
     @dims_to_spatial_axes
     @same_dtype
     @check_input_and_output
-    def area_closing(self, area:int=64, *, connectivity:int=1, dims: Dims = None, 
+    def area_closing(self, area:int=64, *, connectivity:int=1, dims: Dims = None,
                      update: bool = False) -> ImgArray:
         from skimage.morphology import remove_small_holes, area_closing
         if self.dtype == bool:
             return self._apply_dask(
                 remove_small_holes,
-                c_axes=complement_axes(dims, self.axes), 
+                c_axes=complement_axes(dims, self.axes),
                 kwargs=dict(area_threshold=area, connectivity=connectivity)
             )
         else:
             return self._apply_dask(
-                area_closing, 
-                c_axes=complement_axes(dims, self.axes), 
+                area_closing,
+                c_axes=complement_axes(dims, self.axes),
                 kwargs=dict(area_threshold=area, connectivity=connectivity)
             )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1348,14 +1334,14 @@ class ImgArray(LabeledArray):
         """
         from skimage.filters.rank import entropy
         disk = _structures.ball_like(radius, len(dims))
-        
+
         self = self.as_uint8()
         return self._apply_dask(
-            entropy, 
+            entropy,
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(footprint=disk),
         ).as_float()
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1381,16 +1367,16 @@ class ImgArray(LabeledArray):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             out = self._apply_dask(
-                enhance_contrast, 
-                c_axes=complement_axes(dims, self.axes), 
+                enhance_contrast,
+                c_axes=complement_axes(dims, self.axes),
                 dtype=self.dtype,
                 args=(disk,)
             )
         if self.dtype == np.float32:
             self.value[:] *= amp
-        
+
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1408,23 +1394,23 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """        
+        """
         from skimage.restoration.uft import laplacian
         ndim = len(dims)
         _, laplace_op = laplacian(ndim, (2 * radius + 1,) * ndim)
         return self.as_float()._apply_dask(
-            _filters.convolve, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.convolve,
+            c_axes=complement_axes(dims, self.axes),
             dtype=self.dtype,
             args=(laplace_op,),
             kwargs=dict(mode="reflect")
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t", 
+    def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t",
                       dims: Dims = None, update: bool = False) -> ImgArray:
         """
         Kalman filter for image smoothing. This function is same as "Kalman Stack Filter" in ImageJ but support
@@ -1444,22 +1430,22 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image
-        """        
+        """
         t_axis = self.axisof(along)
         min_a = min(self.axisof(a) for a in dims)
         if t_axis > min_a:
             self = np.swapaxes(self, t_axis, min_a)
         out = self._apply_dask(
-            _filters.kalman_filter, 
-            c_axes=complement_axes([along] + dims, self.axes), 
+            _filters.kalman_filter,
+            c_axes=complement_axes([along] + dims, self.axes),
             args=(gain, noise_var)
         )
-        
+
         if t_axis > min_a:
             out = np.swapaxes(out, min_a, t_axis)
 
         return out
-    
+
     @dims_to_spatial_axes
     @check_input_and_output
     def focus_map(self, radius: int = 1, *, dims: Dims = 2) -> PropArray:
@@ -1477,7 +1463,7 @@ class ImgArray(LabeledArray):
         -------
         PropArray
             Array of variance of Laplacian
-        
+
         Examples
         --------
         Get the focus plane from a 3D image.
@@ -1485,14 +1471,14 @@ class ImgArray(LabeledArray):
             >>> score.plot()               # plot the variation of laplacian focus
             >>> z_focus = np.argmax(score) # determine the focus plane
             >>> img[z_focus]               # get the focus plane
-        """        
+        """
         c_axes = complement_axes(dims, self.axes)
         laplace_img = self.as_float().laplacian_filter(radius, dims=dims)
         out = np.var(laplace_img, axis=dims)
-        out = PropArray(out.value, dtype=np.float32, name=self.name, 
+        out = PropArray(out.value, dtype=np.float32, name=self.name,
                         axes=c_axes, propname="variance_of_laplacian")
         return out
-    
+
     @_docs.write_docs
     @same_dtype(asfloat=True)
     @check_input_and_output
@@ -1500,20 +1486,20 @@ class ImgArray(LabeledArray):
         r"""
         Unmix fluorescence leakage between channels in a linear way. For example, a blue/green image,
         fluorescent leakage can be written as following equation:
-        
+
             :math:`\left\{\begin{array}{ll} B_{obs} = B_{real} + a \cdot G_{real} & \\G_{obs} = b \cdot B_{real} + G_{real} & \end{array} \right.`
-            
-        where "obs" means observed intensities, "real" means the real intensity. In this linear case, 
+
+        where "obs" means observed intensities, "real" means the real intensity. In this linear case,
         leakage matrix:
-        
+
             :math:`M = \begin{bmatrix} 1 & a \\b & 1 \end{bmatrix} \\`
-                                    
+
             :math:`V_{obs} = M \cdot V_{real}`
-            
+
         must be predefined. If M is given, then real intensities can be restored by:
-            
+
             :math:`V_{real} = M^{-1} \cdot V_{obs}`
-        
+
         Parameters
         ----------
         matrix : array-like
@@ -1525,12 +1511,12 @@ class ImgArray(LabeledArray):
         along : str, default is "c"
             The axis of channel.
         {update}
-        
+
         Returns
         -------
         ImgArray
             Unmixed image.
-        
+
         Examples
         --------
         Complement the channel-0 to channel-1 leakage.
@@ -1538,10 +1524,10 @@ class ImgArray(LabeledArray):
             >>>        [0.0, 1.0]]
             >>> bg = [1500, 1200]
             >>> unmixed_img = img.unmix(mtx, bg)
-        """        
+        """
         n_chn = self.sizeof(along)
         c_ax = self.axisof(along)
-        
+
         # check matrix and bg
         matrix = np.asarray(matrix, dtype=np.float32)
         if matrix.shape != (n_chn, n_chn):
@@ -1552,24 +1538,24 @@ class ImgArray(LabeledArray):
             bg = np.asarray(bg, dtype=np.float32).ravel()
             if bg.size != n_chn:
                 raise ValueError(f"`bg` must have length {n_chn}")
-        
+
         # move channel axis to the last
         input_ = np.moveaxis(np.asarray(self, dtype=np.float32), c_ax, -1)
         # multiply inverse matrix
         out = (input_ - bg) @ np.linalg.inv(matrix) + bg
         # restore the axes order
         out = np.moveaxis(out, -1, c_ax)
-        
+
         return out.view(self.__class__)
-        
-    
+
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
     def fill_hole(self, thr: float|str = "otsu", *, dims: Dims = None, update: bool = False) -> ImgArray:
         """
-        Filling holes. See skimage's documents 
+        Filling holes. See skimage's documents
         `here <https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_holes_and_peaks.html>`_.
 
         Parameters
@@ -1577,20 +1563,20 @@ class ImgArray(LabeledArray):
         thr : scalar or str, optional
             Threshold (value or method) to apply if image is not binary.
         {dims}{update}
-        
+
         Returns
         -------
         ImgArray
             Hole-filled image.
-        """        
+        """
         if self.dtype != bool:
             mask = self.threshold(thr=thr).value
         else:
             mask = self.value
-                    
+
         return self._apply_dask(
-            _filters.fill_hole, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.fill_hole,
+            c_axes=complement_axes(dims, self.axes),
             args=(mask,),
             dtype=self.dtype
         )
@@ -1609,11 +1595,11 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Run Gaussian filter (Gaussian blur).
-        
+
         Parameters
         ----------
         {sigma}{fourier}{dims}{update}
-            
+
         Returns
         -------
         ImgArray
@@ -1621,9 +1607,9 @@ class ImgArray(LabeledArray):
         """
         filter_func = _filters.gaussian_filter_fourier if fourier else _filters.gaussian_filter
         return self._apply_dask(
-            filter_func, 
-            c_axes=complement_axes(dims, self.axes), 
-            args=(sigma,), 
+            filter_func,
+            c_axes=complement_axes(dims, self.axes),
+            args=(sigma,),
             dtype=np.float32
         )
 
@@ -1642,7 +1628,7 @@ class ImgArray(LabeledArray):
         """
         Run Difference of Gaussian filter. This function does not support `update`
         argument because intensity can be negative.
-        
+
         Parameters
         ----------
         low_sigma : scalar or array of scalars, default is 1.
@@ -1650,32 +1636,32 @@ class ImgArray(LabeledArray):
         high_sigma : scalar or array of scalars, default is x1.6 of low_sigma.
             higher standard deviation(s) of Gaussian.
         {fourier}{dims}
-            
+
         Returns
         -------
         ImgArray
             Filtered image.
-        """        
-        
+        """
+
         low_sigma = np.array(check_nd(low_sigma, len(dims)))
         high_sigma = low_sigma * 1.6 if high_sigma is None else high_sigma
         filter_func = _filters.dog_filter_fourier if fourier else _filters.dog_filter
         return self.as_float()._apply_dask(
-            filter_func, 
+            filter_func,
             c_axes=complement_axes(dims, self.axes),
             args=(low_sigma, high_sigma)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def doh_filter(self, sigma: nDFloat = 1, *, dims: Dims = None) -> ImgArray:
         """
         Determinant of Hessian filter. This function does not support `update`
-        argument because output has total different scale of intensity. 
-        
+        argument because output has total different scale of intensity.
+
             .. warning::
-                Because in most cases we want to find only bright dots, eigenvalues larger 
+                Because in most cases we want to find only bright dots, eigenvalues larger
                 than 0 is ignored before computing determinant.
 
         Parameters
@@ -1686,15 +1672,15 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Filtered image.
-        """    
+        """
         sigma = check_nd(sigma, len(dims))
         pxsize = np.array([self.scale[a] for a in dims])
         return self.as_float()._apply_dask(
-            _filters.doh_filter, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.doh_filter,
+            c_axes=complement_axes(dims, self.axes),
             args=(sigma, pxsize)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -1713,10 +1699,10 @@ class ImgArray(LabeledArray):
         """
         return -self.as_float()._apply_dask(
             _filters.gaussian_laplace,
-            c_axes=complement_axes(dims, self.axes), 
+            c_axes=complement_axes(dims, self.axes),
             args=(sigma,)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -1739,7 +1725,7 @@ class ImgArray(LabeledArray):
         prefilter : "mean", "median" or "none"
             If apply 3x3 averaging before creating background.
         {dims}{update}
-            
+
         Returns
         -------
         ImgArray
@@ -1749,14 +1735,14 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(dims, self.axes)
         if prefilter == "mean":
             filt = self._apply_dask(
-                _filters.mean_filter, 
-                c_axes=c_axes, 
+                _filters.mean_filter,
+                c_axes=c_axes,
                 kwargs=dict(selem=np.ones((3,)*len(dims)))
             )
         elif prefilter == "median":
             filt = self._apply_dask(
-                _filters.median_filter, 
-                c_axes=c_axes, 
+                _filters.median_filter,
+                c_axes=c_axes,
                 kwargs=dict(footprint=np.ones((3,)*len(dims)))
             )
         elif prefilter == "none":
@@ -1765,8 +1751,8 @@ class ImgArray(LabeledArray):
             raise ValueError("`prefilter` must be 'mean', 'median' or 'none'.")
         filt.axes = self.axes
         back = filt._apply_dask(
-            rolling_ball, 
-            c_axes=c_axes, 
+            rolling_ball,
+            c_axes=c_axes,
             kwargs=dict(radius=radius)
         )
         if not return_bg:
@@ -1774,7 +1760,7 @@ class ImgArray(LabeledArray):
             return out
         else:
             return back
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -1783,8 +1769,8 @@ class ImgArray(LabeledArray):
         self,
         lmd: float = 0.05,
         tol: float = 1e-4,
-        max_iter: int = 50, 
-        *, 
+        max_iter: int = 50,
+        *,
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
@@ -1800,7 +1786,7 @@ class ImgArray(LabeledArray):
         max_iter : int, default is 50
             Maximum number of iterations.
         {dims}{update}
-        
+
         Returns
         -------
         ImgArray
@@ -1808,11 +1794,11 @@ class ImgArray(LabeledArray):
         """
         from skimage.restoration._denoise import _denoise_tv_chambolle_nd
         return self._apply_dask(
-            _denoise_tv_chambolle_nd, 
+            _denoise_tv_chambolle_nd,
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(weight=lmd, eps=tol, max_num_iter=max_iter)
         )
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -1820,9 +1806,9 @@ class ImgArray(LabeledArray):
     def wavelet_denoising(
         self,
         noise_sigma: float | None = None,
-        *, 
+        *,
         wavelet: str = "db1",
-        mode: Literal["soft", "hard"] = "soft", 
+        mode: Literal["soft", "hard"] = "soft",
         wavelet_levels: int | None = None,
         method: Literal["BayesShrink", "VisuShrink"] = "BayesShrink",
         max_shifts: int | tuple[int, ...] = 0,
@@ -1830,7 +1816,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
     ) -> ImgArray:
         """
-        Wavelet denoising. Because it is not shift invariant, ``cycle_spin`` is called inside the 
+        Wavelet denoising. Because it is not shift invariant, ``cycle_spin`` is called inside the
         function.
 
         Parameters
@@ -1858,34 +1844,34 @@ class ImgArray(LabeledArray):
         """
         from skimage.restoration import cycle_spin, denoise_wavelet
         func_kw = dict(
-            sigma=noise_sigma, 
-            wavelet=wavelet, 
-            mode=mode, 
+            sigma=noise_sigma,
+            wavelet=wavelet,
+            mode=mode,
             wavelet_levels=wavelet_levels,
             method=method
         )
         return self._apply_dask(
-            cycle_spin, 
-            c_axes=complement_axes(dims, self.axes), 
+            cycle_spin,
+            c_axes=complement_axes(dims, self.axes),
             args=(denoise_wavelet,),
             kwargs=dict(func_kw=func_kw, max_shifts=max_shifts, shift_steps=shift_steps)
         )
-    
+
     @_docs.write_docs
     def split_pixel_unit(
         self,
         center: tuple[float, float] = (0.5, 0.5),
-        *, 
+        *,
         order: int = 1,
         angle_order: list[int] | None = None,
         newaxis: AxisLike = "a",
     ) -> ImgArray:
         r"""
         Split a (2N, 2M)-image into four (N, M)-images for each other pixels.
-        
-        Generally, image acquisition with a polarization camera will output 
+
+        Generally, image acquisition with a polarization camera will output
         :math:`(2N, 2M)`-image with :math:`N \times M` pixel units:
-        
+
         +-+-+-+-+-+-+
         |0|1|0|1|0|1|
         +-+-+-+-+-+-+
@@ -1895,56 +1881,56 @@ class ImgArray(LabeledArray):
         +-+-+-+-+-+-+
         |3|2|3|2|3|2|
         +-+-+-+-+-+-+
-        
-        This function generates images only consist of positions of [0], [1], 
-        [2] or [3]. Strictly, each image is acquired from different position 
-        (the pixel (i, j) in [0]-image and the pixel (i, j) in [1]-image are 
+
+        This function generates images only consist of positions of [0], [1],
+        [2] or [3]. Strictly, each image is acquired from different position
+        (the pixel (i, j) in [0]-image and the pixel (i, j) in [1]-image are
         acquired from different positions). This function also complements for
         this difference by interpolation.
-         
+
         Parameters
         ----------
         center : tuple, default is (0, 0)
-            Coordinate that will be considered as the center of the returned 
+            Coordinate that will be considered as the center of the returned
             image. Input (a, b) must satisfy 0 < a < 1 and 0 < b < 1. For example,
             center=(0, 0) means the most upper left pixel, and center=(0.5, 0.5)
             means the middle point of a pixel unit. `[[0, 1], [3, 2]]` becomes
             `[[(0, 0), (0, 1)], [(1, 0), (1, 1)]]`.
-                    
+
         {order}
         angle_order : list of int, default is [2, 1, 0, 3]
-            Specify which pixels correspond to which polarization angles. 0, 1, 2 
+            Specify which pixels correspond to which polarization angles. 0, 1, 2
             and 3 corresponds to polarization of 0, 45, 90 and 135 degree
             respectively. This list will be directly passed to ``np.ndarray`` like
-            ``arr[angle_order]`` to sort it. For example, if a pixel unit receives 
+            ``arr[angle_order]`` to sort it. For example, if a pixel unit receives
             polarized light like below:
-            
+
                 .. code-block::
-            
+
                     [0] [1]    [ 90] [ 45]    [|] [/]
                     [2] [3] -> [135] [  0] or [\] [-]
-                
+
             then ``angle_order`` should be [2, 1, 0, 3].
-            
+
         Returns
         -------
         ImgArray
             Axis "a" is added in the first dimension. For example, If input is
             "tyx"-axes, then output will be "atyx"-axes.
-        
+
         Examples
         --------
-        Extract polarization in 0-, 45-, 90- and 135-degree directions from an 
-        image that is acquired from a polarization camera, and calculate total 
+        Extract polarization in 0-, 45-, 90- and 135-degree directions from an
+        image that is acquired from a polarization camera, and calculate total
         intensity of light by averaging.
-        
+
             >>> img_pol = img.split_pixel_unit()
             >>> img_total = img_pol.proj(axis="a")
-        """        
+        """
         yc, xc = center
         if angle_order is None:
             angle_order = [2, 1, 0, 3]
-            
+
         if not self.shape.x % 2 == self.shape.y % 2 == 0:
             raise ValueError(
                 f"Image pixel sizes must be even numbers, got {self.sizesof('yx')}"
@@ -1970,53 +1956,53 @@ class ImgArray(LabeledArray):
         out._set_info(self, new_axes=out.axes)
         out.set_scale(y=self.scale.y*2, x=self.scale.x*2)
         return out
-        
+
     def stokes(self, *, along: AxisLike = "a") -> dict:
         """
-        Generate stocks images from an image stack with polarized images. 
-        
-        Currently, Degree of Linear Polarization (DoLP) and Angle of 
-        Polarization (AoP) will be calculated. Those irregular values 
+        Generate stocks images from an image stack with polarized images.
+
+        Currently, Degree of Linear Polarization (DoLP) and Angle of
+        Polarization (AoP) will be calculated. Those irregular values
         (np.nan, np.inf) will be replaced with 0. Be sure that to calculate
-        DoPL correctly background subtraction must be applied beforehand because 
+        DoPL correctly background subtraction must be applied beforehand because
         stokes parameter ``s0`` is affected by absolute intensities.
 
         Parameters
         ----------
         along : AxisLike, default is "a"
-            To define which axis is polarization angle axis. Along this axis 
+            To define which axis is polarization angle axis. Along this axis
             the angle of polarizer must be in order of 0, 45, 90, 135 degree.
 
         Returns
         -------
         dict
-            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and 
+            Dictionaly with keys "dolp" and "aop", which correspond to DoPL and
             AoP respectively.
-        
+
         Examples
         --------
         Calculate AoP image from the raw image and display them.
-        
+
             >>> img_pol = img.split_polarization()
             >>> dpol = img_pol.stokes()
             >>> ip.gui.add(img_pol.proj())
             >>> ip.gui.add(dpol.aop.rad2deg())
-        
+
         References
         ----------
         - https://mavic.ne.jp/indutrialcamera-polarization-inline/
-        - Yang, J., Qiu, S., Jin, W., Wang, X., & Xue, F. (2020). Polarization imaging model considering the 
+        - Yang, J., Qiu, S., Jin, W., Wang, X., & Xue, F. (2020). Polarization imaging model considering the
           non-ideality of polarizers. Applied optics, 59(2), 306-314.
-        - Feng, B., Guo, R., Zhang, F., Zhao, F., & Dong, Y. (2021). Calculation and hue mapping of AoP in 
+        - Feng, B., Guo, R., Zhang, F., Zhao, F., & Dong, Y. (2021). Calculation and hue mapping of AoP in
           polarization imaging. May. https://doi.org/10.1117/12.2523643
         """
         new_axes = complement_axes(along, self.axes)
-        img0, img45, img90, img135 = [a.as_float().value for a in self.split(along)]
+        img0, img45, img90, img135 = (a.as_float().value for a in self.split(along))
         # Stokes parameters
         s0 = (img0 + img45 + img90 + img135)/2
         s1 = img0 - img90
         s2 = img45 - img135
-        
+
         # Degree of Linear Polarization (DoLP)
         # DoLP is defined as:
         # DoLP = sqrt(s1^2 + s2^2)/s0
@@ -2025,15 +2011,15 @@ class ImgArray(LabeledArray):
         dolp = dolp.view(self.__class__)
         dolp._set_info(self, new_axes=new_axes)
         dolp.set_scale(self)
-        
+
         # Angle of Polarization (AoP)
-        # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because 
+        # AoP is usually calculated as psi = 1/2argtan(s1/s2), but this is wrong because
         # left side has range of [0, pi) while right side has range of [-pi/4, pi/4). The
         # correct formulation is:
         #       { 1/2argtan(s2/s1)          (s1>0 and s2>0)
         # AoP = { 1/2argtan(s2/s1) + pi/2   (s1<0)
         #       { 1/2argtan(s2/s1) + pi     (s1>0 and s2<0)
-        # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns 
+        # But here, np.arctan2 can detect the signs of inputs s1 and s2, so that it returns
         # correct values.
         aop = np.arctan2(s2, s1)/2
         aop: PhaseArray = aop.view(PhaseArray)
@@ -2042,10 +2028,10 @@ class ImgArray(LabeledArray):
         aop.border = (-np.pi/2, np.pi/2)
         aop._fix_border()
         aop.set_scale(self)
-        
+
         out = dict(dolp=dolp, aop=aop)
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -2082,7 +2068,7 @@ class ImgArray(LabeledArray):
         else:
             raise ValueError(f"Unknown method: {method}")
         return self._apply_dask(
-            func, 
+            func,
             c_axes=complement_axes(dims, self.axes),
             args=(mask,),
         )
@@ -2092,9 +2078,9 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def peak_local_max(
         self,
-        *, 
+        *,
         min_distance: float = 1.0,
-        percentile: float | None = None, 
+        percentile: float | None = None,
         topn: int = np.inf,
         topn_per_label: int = np.inf,
         exclude_border: bool =True,
@@ -2119,26 +2105,26 @@ class ImgArray(LabeledArray):
         use_labels : bool, default is True
             If use self.labels when it exists.
         {dims}
-            
+
         Returns
         -------
         MarkerFrame
             DataFrame with columns same as axes of self. For example, if self.axes is "tcyx" then
             return value has "t", "c", "y" and "x" columns, and sub-frame at t=0, c=0 contains all
             the coordinates of peaks in the slice at t=0, c=0.
-        """        
-        
+        """
+
         # separate spatial dimensions and others
         ndim = len(dims)
         dims_list = list(dims)
         c_axes = complement_axes(dims, self.axes)
         c_axes_list = list(c_axes)
-        
+
         if isinstance(exclude_border, bool):
             exclude_border = int(min_distance) if exclude_border else False
-        
+
         thr = None if percentile is None else np.percentile(self.value, percentile)
-        
+
         import pandas as pd
         from impy.frame import MarkerFrame
         from skimage.feature import peak_local_max
@@ -2150,7 +2136,7 @@ class ImgArray(LabeledArray):
                 labels = xp.asnumpy(img.labels)
             else:
                 labels = None
-            
+
             indices = peak_local_max(
                 xp.asnumpy(img),
                 footprint=xp.asnumpy(_structures.ball_like(min_distance, ndim)),
@@ -2163,20 +2149,20 @@ class ImgArray(LabeledArray):
             indices = pd.DataFrame(indices, columns=dims_list)
             indices[c_axes_list] = sl
             df_all.append(indices)
-            
+
         out = pd.concat(df_all, axis=0)
         out = MarkerFrame(out, columns=self.axes, dtype=np.uint16)
         out.set_scale(self)
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def corner_harris(
         self,
         sigma: nDFloat = 1,
-        k: float = 0.05, 
-        *, 
+        k: float = 0.05,
+        *,
         dims: Dims = None
     ) -> ImgArray:
         """
@@ -2197,24 +2183,24 @@ class ImgArray(LabeledArray):
         """
         from skimage.feature import corner_harris
         return self._apply_dask(
-            corner_harris, 
-            c_axes=complement_axes(dims, self.axes), 
+            corner_harris,
+            c_axes=complement_axes(dims, self.axes),
             kwargs=dict(k=k, sigma=sigma)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def voronoi(
         self,
         coords: Coords,
-        *, 
+        *,
         inf: nDInt | None = None,
         dims: Dims = 2
     ) -> ImgArray:
         """
-        Voronoi segmentation of an image. 
-        
+        Voronoi segmentation of an image.
+
         Image region labeled with $i$ means that all the points in the region are
         closer to the $i$-th point than any other points.
 
@@ -2223,7 +2209,7 @@ class ImgArray(LabeledArray):
         coords : MarkerFrame or (N, 2) array-like
             Coordinates of points.
         inf : int, array of int, optional
-            Distance to infinity points. If not provided, infinity points are 
+            Distance to infinity points. If not provided, infinity points are
             placed at 100 times further positions relative to the image shape.
         {dims}
 
@@ -2231,13 +2217,13 @@ class ImgArray(LabeledArray):
         -------
         Label
             Segmentation labels of image.
-        """        
+        """
         from scipy.spatial import Voronoi
         from skimage.measure import grid_points_in_poly
         coords = _check_coordinates(coords, self, dims=self.axes)
-        
+
         ny, nx = self.sizesof(dims)
-        
+
         if inf is None:
             infy = ny * 100
             infx = nx * 100
@@ -2245,7 +2231,7 @@ class ImgArray(LabeledArray):
             infy = infx = inf
         else:
             infy, infx = inf
-        
+
         infpoints = np.array(
             [[-infy, -infx],
              [-infy, nx + infx],
@@ -2253,7 +2239,7 @@ class ImgArray(LabeledArray):
              [ny + infy, nx + infx]],
             dtype=np.float32,
         )
-        
+
         labels = largest_zeros(self.shape)
         n_label = 1
         for sl, crds in coords.iter(complement_axes(dims, self.axes)):
@@ -2270,13 +2256,13 @@ class ImgArray(LabeledArray):
         ).optimize()
         self.labels.set_scale(self)
         return self.labels
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def flood(
         self,
-        seeds: Coords, 
+        seeds: Coords,
         *,
         connectivity: int = 1,
         tolerance: float = None,
@@ -2313,13 +2299,13 @@ class ImgArray(LabeledArray):
                     n_label = n_label_next
                     n_label_next += 1
                 fill_area = flood(
-                    self.value[sl], 
+                    self.value[sl],
                     seed_point=crd,
-                    connectivity=connectivity, 
+                    connectivity=connectivity,
                     tolerance=tolerance
                 )
                 labels[sl][fill_area] = n_label
-        
+
         self.labels = Label(
             labels, name=self.name+"-label", axes=self.axes, source=self.source
         ).optimize()
@@ -2330,7 +2316,7 @@ class ImgArray(LabeledArray):
     def find_sm(
         self,
         sigma: nDFloat = 1.5,
-        *, 
+        *,
         method: str = "dog",
         cutoff: float = None,
         percentile: float = 95,
@@ -2339,7 +2325,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None
     ) -> MarkerFrame:
         """
-        Single molecule detection using difference of Gaussian, determinant of Hessian, Laplacian of 
+        Single molecule detection using difference of Gaussian, determinant of Hessian, Laplacian of
         Gaussian or normalized cross correlation method.
 
         Parameters
@@ -2358,21 +2344,21 @@ class ImgArray(LabeledArray):
         -------
         MarkerFrame
             Peaks in uint16 type.
-        
+
         Examples
         --------
         Track single molecules and view the tracks with napari.
-        
+
             >>> coords = img.find_sm()
             >>> lnk = coords.link(3, min_dwell=10)
             >>> ip.gui.add(img)
             >>> ip.gui.add(lnk)
-        
+
         See Also
         --------
         centroid_sm
         refine_sm
-        """        
+        """
         method = method.lower()
         if method in ("dog", "doh", "log"):
             cutoff = 0.0 if cutoff is None else cutoff
@@ -2391,18 +2377,18 @@ class ImgArray(LabeledArray):
             fil_img = self.ncc_filter(template)
         else:
             raise ValueError("`method` must be 'dog', 'doh', 'log', 'gaussian' or 'ncc'.")
-        
+
         fil_img[fil_img<cutoff] = cutoff
-        
+
         if np.isscalar(sigma):
             min_d = sigma*2
         else:
             min_d = max(sigma)*2
-        coords = fil_img.peak_local_max(min_distance=min_d, percentile=percentile, 
+        coords = fil_img.peak_local_max(min_distance=min_d, percentile=percentile,
                                         topn=topn, dims=dims, exclude_border=exclude_border)
         return coords
-    
-    
+
+
     @_docs.write_docs
     @dims_to_spatial_axes
     def centroid_sm(
@@ -2422,30 +2408,30 @@ class ImgArray(LabeledArray):
         coords : MarkerFrame or (N, 2) array, optional
             Coordinates of peaks. If None, this will be determined by find_sm.
         radius : int, default is 4.
-            Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send 
+            Range to calculate centroids. Rectangular image with size 2r+1 x 2r+1 will be send
             to calculate moments.
         filt : callable, optional
             For every slice ``sl``, label is added only when filt(`input`) == True is satisfied.
         find_sm_kwargs : keyword arguments
             Parameters passed to :func:`find_sm`.
-        
+
         Returns
         -------
         MarkerFrame
             Coordinates of peaks.
-        
+
         See Also
         --------
         find_sm
         refine_sm
-        """     
+        """
         import pandas as pd
         from ..frame import MarkerFrame
         if coords is None:
             coords = self.find_sm(dims=dims, **find_sm_kwargs)
         else:
             coords = _check_coordinates(coords, self)
-            
+
         ndim = len(dims)
         filt = check_filter_func(filt)
         radius = np.array(check_nd(radius, ndim))
@@ -2460,10 +2446,10 @@ class ImgArray(LabeledArray):
                 input_img = self.value[sl][bbox]
                 if input_img.size == 0 or not filt(input_img):
                     continue
-                
+
                 shift = center - radius
                 centroid = _calc_centroid(input_img, ndim) + shift
-                
+
                 centroids.append(centroid.tolist())
             df = pd.DataFrame(centroids, columns=columns)
             df[list(c_axes)] = sl[:-ndim]
@@ -2471,27 +2457,27 @@ class ImgArray(LabeledArray):
         if len(out) == 0:
             raise ValueError("No molecule found.")
         out = pd.concat(out, axis=0)
-        
+
         out = MarkerFrame(out.reindex(columns=list(coords._axes)),
                             columns=str(coords._axes), dtype=np.float32).as_standard_type()
         out.set_scale(coords.scale)
 
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def edge_grad(
         self,
         sigma: nDFloat = 1.0,
-        method: str = "sobel", 
-        *, 
+        method: str = "sobel",
+        *,
         deg: bool = False,
         dims: Dims = 2
     ) -> PhaseArray:
         """
         Calculate gradient direction using horizontal and vertical edge operation. Gradient direction
-        is the direction with maximum gradient, i.e., intensity increase is largest. 
+        is the direction with maximum gradient, i.e., intensity increase is largest.
 
         Parameters
         ----------
@@ -2506,7 +2492,7 @@ class ImgArray(LabeledArray):
         -------
         PhaseArray
             Phase image with range [-180, 180) if deg==True, otherwise [-pi, pi).
-            
+
         Examples
         --------
         1. Profile filament orientation distribution using histogram of edge gradient.
@@ -2529,19 +2515,19 @@ class ImgArray(LabeledArray):
         grad_h = self._apply_dask(op_h, c_axes=c_axes)
         grad_v = self._apply_dask(op_v, c_axes=c_axes)
         grad = np.arctan2(-grad_h, grad_v)
-        
+
         grad = PhaseArray(grad, border=(-np.pi, np.pi))
         grad._fix_border()
         deg and grad.rad2deg()
         return grad
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def hessian_angle(
         self,
         sigma: nDFloat = 1.,
-        *, 
+        *,
         deg: bool = False,
         dims: Dims = 2,
     ) -> PhaseArray:
@@ -2560,21 +2546,21 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Phase image with range [-90, 90] if ``deg==True``, otherwise [-pi/2, pi/2].
-        
+
         See Also
         --------
         gabor_angle
-        """        
+        """
         _, eigvec = self.hessian_eig(sigma=sigma, dims=dims)
-        
+
         fmt = slicer.get_formatter(["dim", "base"])
-        
+
         arg = -np.arctan2(eigvec[fmt[0, 1]], eigvec[fmt[1, 1]])
         arg = PhaseArray(arg, border=(-np.pi/2, np.pi/2))
         arg._fix_border()
         deg and arg.rad2deg()
         return arg
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -2583,10 +2569,10 @@ class ImgArray(LabeledArray):
         n_sample: int = 180,
         lmd: float = 5,
         sigma: float = 2.5,
-        gamma: float = 1, 
+        gamma: float = 1,
         phi: float = 0,
-        *, 
-        deg: bool = False, 
+        *,
+        deg: bool = False,
         dims: Dims = 2
     ) -> PhaseArray:
         """
@@ -2609,12 +2595,12 @@ class ImgArray(LabeledArray):
         deg : bool, default is False
             If True, degree rather than radian is returned.
         {dims}
-            
+
         Returns
         -------
         ImgArray
             Phase image with range [-90, 90) if deg==True, otherwise [-pi/2, pi/2).
-        
+
         See Also
         --------
         hessian_angle
@@ -2623,13 +2609,13 @@ class ImgArray(LabeledArray):
         thetas = np.linspace(0, np.pi, n_sample, False)
         max_ = np.empty(self.shape, dtype=np.float32)
         argmax_ = np.zeros(self.shape, dtype=np.float32) # This is float32 because finally this becomes angle array.
-        
+
         c_axes = complement_axes(dims, self.axes)
         for i, theta in enumerate(thetas):
             ker = gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi, dtype=np.complex64)
             out_ = self.as_float()._apply_dask(
-                _filters.convolve, 
-                c_axes=c_axes, 
+                _filters.convolve,
+                c_axes=c_axes,
                 args=(ker.real,)
             )
             if i > 0:
@@ -2640,12 +2626,12 @@ class ImgArray(LabeledArray):
                 max_ = out_
         argmax_ *= (thetas[1] - thetas[0])
         argmax_[:] = np.pi/2 - argmax_
-        
+
         argmax_ = PhaseArray(argmax_, border=(-np.pi/2, np.pi/2))
         argmax_._fix_border()
         deg and argmax_.rad2deg()
         return argmax_
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -2655,7 +2641,7 @@ class ImgArray(LabeledArray):
         theta: float = 0,
         sigma: float = 2.5,
         gamma: float = 1,
-        phi: float = 0, 
+        phi: float = 0,
         *,
         return_imag: bool = False,
         dims: Dims = 2
@@ -2683,7 +2669,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray (dtype is float32 or complex64)
             Filtered image.
-        
+
         Examples
         --------
         Edge Detection using multi-angle Gabor filtering.
@@ -2698,35 +2684,35 @@ class ImgArray(LabeledArray):
         ker = gabor_kernel(1/lmd, theta, 0, sigma, sigma/gamma, 3, phi).astype(np.complex64)
         if return_imag:
             out = self.as_float()._apply_dask(
-                _filters.gabor_filter, 
-                c_axes=complement_axes(dims, self.axes), 
-                args=(ker,), 
+                _filters.gabor_filter,
+                c_axes=complement_axes(dims, self.axes),
+                args=(ker,),
                 dtype=np.complex64
             )
         else:
             out = self.as_float()._apply_dask(
-                _filters.convolve, 
+                _filters.convolve,
                 c_axes=complement_axes(dims, self.axes),
-                args=(ker.real,), 
+                args=(ker.real,),
                 dtype=np.float32
             )
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def fft(
         self,
-        *, 
+        *,
         shape: int | Iterable[int] | FftShape = "same",
-        shift: bool = True, 
+        shift: bool = True,
         double_precision: bool = False,
         dims: Dims = None
     ) -> ImgArray:
         """
         Fast Fourier transformation. This function returns complex array, which is
         inconpatible with some ImgArray functions.
-        
+
         Parameters
         ----------
         shape : int, iterable of int, "square" or "same"
@@ -2738,12 +2724,12 @@ class ImgArray(LabeledArray):
             If True, call ``np.fft.fftshift`` in the end.
         {double_precision}
         {dims}
-            
+
         Returns
         -------
         ImgArray
             FFT image.
-        
+
         See Also
         --------
         local_dft
@@ -2761,7 +2747,7 @@ class ImgArray(LabeledArray):
         if shift:
             freq[:] = xp.fft.fftshift(freq, axes=axes)
         return xp.asnumpy(freq, dtype=np.complex64)
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -2770,32 +2756,32 @@ class ImgArray(LabeledArray):
         key: AxesTargetedSlicer | None = None,
         upsample_factor: nDInt = 1,
         *,
-        double_precision: bool = False, 
+        double_precision: bool = False,
         dims: Dims = None
     ) -> ImgArray:
         r"""
-        Local discrete Fourier transformation (DFT). This function will be useful 
+        Local discrete Fourier transformation (DFT). This function will be useful
         for Fourier transformation of small region of an image with a certain
         factor of up-sampling. In general FFT takes :math:`O(N\log{N})` time, much
-        faster compared to normal DFT (:math:`O(N^2)`). However, If you are 
-        interested in certain region of Fourier space, you don't have to calculate 
+        faster compared to normal DFT (:math:`O(N^2)`). However, If you are
+        interested in certain region of Fourier space, you don't have to calculate
         all the spectra. In this case DFT is faster and less memory comsuming.
-        
+
             .. warning::
-                The result of ``local_dft`` will **NOT** be shifted with 
+                The result of ``local_dft`` will **NOT** be shifted with
                 ``np.fft.fftshift`` because in general the center of arrays are
                 unknown. Also, it is easier to understand `x=0` corresponds to the
                 center.
-        
-        Even whole spectrum is returned, ``local_dft`` may be faster than FFT with 
+
+        Even whole spectrum is returned, ``local_dft`` may be faster than FFT with
         small and/or non-FFT-friendly shaped image.
 
         Parameters
         ----------
         key : str
             Key string that specify region to DFT, such as "y=-50:10;x=:80". With
-            upsampled spectra, keys corresponds to the coordinate **before** 
-            up-sampling. If you want certain region, say "x=10:20", this value 
+            upsampled spectra, keys corresponds to the coordinate **before**
+            up-sampling. If you want certain region, say "x=10:20", this value
             will not change with different ``upsample_factor``.
         upsample_factor : int or array of int, default is 1
             Up-sampling factor. For instance, when ``upsample_factor=10`` a single
@@ -2807,43 +2793,43 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             DFT output.
-        
+
         See Also
         --------
         fft
         """
         ndim = len(dims)
         upsample_factor = check_nd(upsample_factor, ndim)
-        
+
         # determine how to slice the result of FFT
         if key is None:
-            slices = (slice(None), ) * ndim
+            slices = (slice(None),) * ndim
         else:
             slices = solve_slicer(key, Axes(dims))
         dtype = np.complex128 if double_precision else np.complex64
-        
+
         # Calculate exp(-ikx)
-        # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of 
+        # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of
         # 0 <= A < 1.
         exps: list[xp.ndarray] = \
             [xp.exp(-2j * np.pi * xp.mod(wave_num(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
              for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
-        
+
         # Calculate chunk size for proper output shapes
         out_chunks = np.ones(self.ndim, dtype=np.int64)
         for i, a in enumerate(dims):
             ind = self.axisof(a)
             out_chunks[ind] = exps[i].shape[0]
         out_chunks = tuple(out_chunks)
-        
+
         return self.as_float()._apply_dask(
-            _misc.dft, 
+            _misc.dft,
             complement_axes(dims, self.axes),
-            dtype=np.complex64, 
+            dtype=np.complex64,
             out_chunks=out_chunks,
             kwargs=dict(exps=exps)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -2852,7 +2838,7 @@ class ImgArray(LabeledArray):
         key: AxesTargetedSlicer | None = None,
         upsample_factor: nDInt = 1,
         norm: bool = False,
-        *, 
+        *,
         double_precision: bool = False,
         dims: Dims = None
     ) -> ImgArray:
@@ -2877,18 +2863,18 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Power spectra
-        
+
         See Also
         --------
         power_spectra
-        """        
-        freq = self.local_dft(key, upsample_factor=upsample_factor, 
+        """
+        freq = self.local_dft(key, upsample_factor=upsample_factor,
                               double_precision=double_precision, dims=dims)
         pw = freq.real**2 + freq.imag**2
         if norm:
             pw /= pw.max()
         return pw
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -2897,12 +2883,12 @@ class ImgArray(LabeledArray):
         real: bool = True,
         *,
         shift: bool = True,
-        double_precision = False, 
+        double_precision = False,
         dims: Dims = None
     ) -> ImgArray:
         """
         Fast Inverse Fourier transformation. Complementary function with `fft()`.
-        
+
         Parameters
         ----------
         real : bool, default is True
@@ -2911,7 +2897,7 @@ class ImgArray(LabeledArray):
             If True, call ``np.fft.ifftshift`` at the first.
         {double_precision}
         {dims}
-            
+
         Returns
         -------
         ImgArray
@@ -2924,22 +2910,22 @@ class ImgArray(LabeledArray):
             freq = self.value
         dtype = np.complex128 if double_precision else np.complex64
         out = xp.fft.ifftn(
-            xp.asarray(freq, dtype=dtype), 
+            xp.asarray(freq, dtype=dtype),
             axes=axes
         ).astype(np.complex64)
-        
+
         if real:
             out = np.real(out)
         return xp.asnumpy(out)
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
     def power_spectra(
         self,
         shape: int | Iterable[int] | FftShape = "same",
-        norm: bool = False, 
-        zero_norm: bool = False, 
+        norm: bool = False,
+        zero_norm: bool = False,
         *,
         shift: bool = True,
         double_precision: bool = False,
@@ -2947,9 +2933,9 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Return n-D power spectra of images, which is defined as:
-        
+
         .. math::
-        
+
             P = Re(F[I_{img}])^2 + Im(F[I_{img}])^2
 
         Parameters
@@ -2970,11 +2956,11 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Power spectra
-        
+
         See Also
         --------
         local_power_spectra
-        """        
+        """
         freq = self.fft(dims=dims, shape=shape, shift=shift, double_precision=double_precision)
         pw = freq.real**2 + freq.imag**2
         if norm:
@@ -2989,7 +2975,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     def radon(
         self,
-        degrees: float | Iterable[float], 
+        degrees: float | Iterable[float],
         *,
         central_axis: AxisLike | Sequence[float] | None = None,
         order: int = 3,
@@ -2997,7 +2983,7 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Discrete Radon transformation of 2D or 3D image.
-        
+
         Radon transformation is a list of projection of a same image from different angles.
         It generates tomographic n-D image slices from (n+1)-D image.
 
@@ -3016,22 +3002,22 @@ class ImgArray(LabeledArray):
             If sequence of float is given as ``degrees``, "degree" axis will be newly added at
             the position 0. For instance, if a zyx-image and ``degrees=np.linspace(0, 180, 100)``
             are given, returned image has axes ["degree", "y", "x"].
-        
+
         See Also
         --------
         iradon
-        """        
+        """
         from dask import array as da, delayed
-        
+
         params, output_shape, squeeze = _transform.normalize_radon_input(
             self, dims, central_axis, degrees
         )
-        
+
         # apply spline filter in advance.
         input = self.as_float().spline_filter(order=order)
         delayed_func = delayed(_transform.radon_single)
         tasks = [
-            delayed_func(input, p, order=order, output_shape=output_shape) 
+            delayed_func(input, p, order=order, output_shape=output_shape)
             for p in params
         ]
         out = xp.stack(da.compute(tasks)[0], axis=0)
@@ -3042,7 +3028,7 @@ class ImgArray(LabeledArray):
         if squeeze:
             out = out[0]
         return out
-    
+
     @_docs.write_docs
     def iradon(
         self,
@@ -3057,7 +3043,7 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Inverse Radon transformation (weighted back projection) of a tile series.
-        
+
         Input array must be a tilt series of 1D or 2D images. They are back-
         projected into a 2D or 3D image with arbitrary height.
 
@@ -3072,8 +3058,8 @@ class ImgArray(LabeledArray):
             Axis of rotation degree. By default, the first axis will be used.
         height_axis : AxisLike, optional
             Axis that will be used to label the new axis after reconstruction. For
-            instance, if input image has axes ``["degree", "y", "x"]`` and 
-            ``height_axis="z"`` then reconstructed image will have axes 
+            instance, if input image has axes ``["degree", "y", "x"]`` and
+            ``height_axis="z"`` then reconstructed image will have axes
             ``["z", "y", "x"]``. By default, "y" will be used for 2D input or "z" for
             3D input.
         height : int, optional
@@ -3088,7 +3074,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Reconstruction.
-            
+
         See Also
         --------
         radon
@@ -3101,7 +3087,7 @@ class ImgArray(LabeledArray):
         )
         self: ImgArray = np.moveaxis(self, self.axisof(degree_axis), -1)
         filter_func = _transform.get_fourier_filter(self.shape[-2], window)
-        
+
         interp = partial(interp1d, kind=kind, bounds_error=False, fill_value=0, assume_sorted=True)
         out = self._apply_dask(
             _transform.iradon,
@@ -3113,7 +3099,7 @@ class ImgArray(LabeledArray):
                 output_shape=output_shape,
             )
         )
-        
+
         if out.ndim == 3:
             out = np.moveaxis(out, 0, 1)
         out = out[::-1]
@@ -3129,10 +3115,10 @@ class ImgArray(LabeledArray):
     ) -> ImgArray:
         """
         Apply thresholding to the image and create a binary image.
-        
+
         The threshold value can be given with a float or a string that indicates what
         thresholding method will be used.
-        
+
         Parameters
         ----------
         thr: float or str, optional
@@ -3148,7 +3134,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Boolian array.
-        
+
         Examples
         --------
         Substitute outliers to 0.
@@ -3157,30 +3143,30 @@ class ImgArray(LabeledArray):
         """
         if self.dtype == bool:
             return self
-        
+
         import skimage.filters
 
         if along is None:
             along = "c" if "c" in self.axes else ""
 
         methods_ = ["isodata", "li", "local", "mean", "min", "minimum", "niblack", "otsu", "sauvola", "triangle", "yen"]
-        
+
         if isinstance(thr, str) and thr.endswith("%"):
             p = float(thr[:-1].strip())
             out = np.zeros(self.shape, dtype=bool)
             for sl, img in self.iter(along):
                 thr = np.percentile(img, p)
                 out[sl] = img >= thr
-                
+
         elif isinstance(thr, str):
             method = thr.lower()
             if method not in methods_:
                 raise KeyError(f"{method}\nmethod must be in: {methods_!r}")
-            func = getattr(skimage.filters, "threshold_" + method)    
+            func = getattr(skimage.filters, "threshold_" + method)
             out = np.zeros(self.shape, dtype=bool)
             for sl, img in self.iter(along):
                 thr = func(img, **kwargs)
-                out[sl] = img >= thr    
+                out[sl] = img >= thr
 
         elif np.isscalar(thr):
             out = self >= thr
@@ -3188,17 +3174,17 @@ class ImgArray(LabeledArray):
             raise TypeError(
                 "'thr' must be numeric, or str specifying a thresholding method."
             )
-        
+
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
     def distance_map(self, *, dims: Dims = None) -> ImgArray:
         """
         Calculate distance map from binary images.
-        For instance, ``[1, 1, 1, 0, 0, 0, 1, 1, 1]`` will be converted to 
-        ``[3, 2, 1, 0, 0, 0, 1, 2, 3]``. Note that returned array will be float in n-D 
+        For instance, ``[1, 1, 1, 0, 0, 0, 1, 1, 1]`` will be converted to
+        ``[3, 2, 1, 0, 0, 0, 1, 2, 3]``. Note that returned array will be float in n-D
         images.
 
         Parameters
@@ -3209,33 +3195,33 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Distance map, the further the brighter
-        """        
-        return self._apply_dask(ndi.distance_transform_edt, 
+        """
+        return self._apply_dask(ndi.distance_transform_edt,
                                c_axes=complement_axes(dims, self.axes)
                                )
-        
+
     @dims_to_spatial_axes
     @check_input_and_output
     def ncc_filter(
         self,
         template: np.ndarray,
-        mode: str = "constant", 
-        cval: float | str | Callable[[np.ndarray], float] = np.mean, 
-        *, 
+        mode: str = "constant",
+        cval: float | str | Callable[[np.ndarray], float] = np.mean,
+        *,
         dims: Dims = None
     ) -> ImgArray:
         """
         Template matching using normalized cross correlation (NCC) method. This function is basically
-        identical to that in `skimage.feature`, but is optimized for batch processing and improved 
+        identical to that in `skimage.feature`, but is optimized for batch processing and improved
         readability.
 
         Parameters
         ----------
         template : np.ndarray
-            Template image. Must be 2 or 3 dimensional. 
+            Template image. Must be 2 or 3 dimensional.
         {mode}
         cval : float, optional
-            Background intensity. If not given, it will calculated as the mean value of 
+            Background intensity. If not given, it will calculated as the mean value of
             the original image.
         {dims}
 
@@ -3243,20 +3229,20 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Response image with values between -1 and 1.
-        """        
+        """
         template = _check_template(template)
         if callable(cval):
             cval = cval(self)
         cval = _check_bg(self, cval)
         if len(dims) != template.ndim:
             raise ValueError("dims and the number of template dimension don't match.")
-        
+
         return self.as_float()._apply_dask(
             _filters.ncc_filter,
-            c_axes=complement_axes(dims, self.axes), 
+            c_axes=complement_axes(dims, self.axes),
             args=(template, cval, mode)
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -3279,13 +3265,13 @@ class ImgArray(LabeledArray):
         See Also
         --------
         remove_fine_objects
-        """        
+        """
         out = self.copy()
         large_obj = self.opening(radius, dims=dims)
         out.value[large_obj] = 0
-            
+
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -3303,18 +3289,18 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Image with large objects removed.
-        
+
         See Also
         --------
         remove_large_objects
-        """        
+        """
         out = self.copy()
         fine_obj = self.diameter_opening(length, connectivity=len(dims))
         large_obj = self.opening(length//2)
         out.value[~large_obj & fine_obj] = 0
-            
+
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -3333,11 +3319,11 @@ class ImgArray(LabeledArray):
         """
         from skimage.morphology import convex_hull_image
         return self._apply_dask(
-            convex_hull_image, 
-            c_axes=complement_axes(dims, self.axes), 
+            convex_hull_image,
+            c_axes=complement_axes(dims, self.axes),
             dtype=bool,
         ).astype(bool)
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -3355,25 +3341,25 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Skeletonized image.
-        """        
+        """
         if radius >= 1:
             selem = xp.asnumpy(_structures.ball_like(radius, len(dims)))
         else:
             selem = None
-        
+
         return self._apply_dask(
-            _filters.skeletonize, 
+            _filters.skeletonize,
             c_axes=complement_axes(dims, self.axes),
             args=(selem,),
             dtype=bool
         ).astype(bool)
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
     def count_neighbors(
         self,
-        *, 
+        *,
         connectivity: int | None = None,
         mask: bool = True,
         dims: Dims = None,
@@ -3393,29 +3379,29 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             uint8 array of the number of neighbors.
-            
+
         Examples
         --------
             >>> skl = img.threshold().skeletonize()
             >>> edge = skl.count_neighbors()
             >>> np.argwhere(edge == 1) # get coordinates of filament edges.
             >>> np.argwhere(edge >= 3) # get coordinates of filament cross sections.
-        
-        """        
+
+        """
         ndim = len(dims)
         connectivity = ndim if connectivity is None else connectivity
         selem = ndi.morphology.generate_binary_structure(ndim, connectivity)
         selem[(1,)*ndim] = 0
         out = self.as_uint8()._apply_dask(
-            _filters.population, 
-            c_axes=complement_axes(dims, self.axes), 
+            _filters.population,
+            c_axes=complement_axes(dims, self.axes),
             args=(selem,)
         )
         if mask:
             out[~self.value] = 0
-            
+
         return out.astype(np.uint8)
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -3441,7 +3427,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Processed image.
-        """        
+        """
         out = self.copy()
         neighbor = self.count_neighbors(connectivity=connectivity, dims=dims)
         if structure == "tip":
@@ -3454,7 +3440,7 @@ class ImgArray(LabeledArray):
             raise ValueError("`mode` must be one of {'tip', 'branch', 'cross'}.")
         out.value[sl] = 0
         return out
-    
+
     @dims_to_spatial_axes
     @check_input_and_output(need_labels=True)
     def watershed(
@@ -3462,7 +3448,7 @@ class ImgArray(LabeledArray):
         coords: MarkerFrame | None = None,
         *,
         connectivity: int = 1,
-        input: Literal["self", "distance"] = "distance", 
+        input: Literal["self", "distance"] = "distance",
         min_distance: float = 2,
         dims: Dims = None,
     ) -> Label:
@@ -3475,13 +3461,13 @@ class ImgArray(LabeledArray):
             Returned by such as `peak_local_max()`. Array of coordinates of peaks.
         {connectivity}
         input : str, optional
-            What image will be the input of watershed algorithm.            
-            
+            What image will be the input of watershed algorithm.
+
             - "self" ... self is used.
             - "distance" ... distance map of self.labels is used.
-            
+
         {dims}
-            
+
         Returns
         -------
         Label
@@ -3495,15 +3481,15 @@ class ImgArray(LabeledArray):
             input_img = self.__class__(self.labels>0, axes=self.axes).distance_map(dims=dims)
         else:
             raise ValueError("'input_' must be either 'self' or 'distance'.")
-                
+
         if input_img.dtype == bool:
             input_img = input_img.astype(np.uint8)
-            
+
         input_img.labels = self.labels
-        
+
         if coords is None:
             coords = input_img.peak_local_max(min_distance=min_distance, dims=dims)
-        
+
         labels = largest_zeros(input_img.shape)
         shape = self.sizesof(dims)
         n_labels = 0
@@ -3515,34 +3501,34 @@ class ImgArray(LabeledArray):
             markers[tuple(crd)] = np.arange(1, len(crd[0])+1, dtype=labels.dtype)
             labels[sl] = watershed(
                 -input_img.value[sl],
-                markers, 
-                mask=input_img.labels.value[sl], 
+                markers,
+                mask=input_img.labels.value[sl],
                 connectivity=connectivity
             )
             labels[sl][labels[sl]>0] += n_labels
             n_labels = labels[sl].max()
             markers[:] = 0 # reset placeholder
-        
+
         labels = labels.view(Label)
         self.labels = labels.optimize()
         self.labels._set_info(self)
         self.labels.set_scale(self)
         return self.labels
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(need_labels=True)
     def random_walker(
         self,
         beta: float = 130,
-        mode: Literal["cg", "cg_j", "cg_mg", "bf"] = "cg_j", 
-        tol: float = 1e-3, 
+        mode: Literal["cg", "cg_j", "cg_mg", "bf"] = "cg_j",
+        tol: float = 1e-3,
         *,
         dims: Dims = None,
     ) -> Label:
         """
-        Random walker segmentation. Only wrapped skimage segmentation. 
-        
+        Random walker segmentation. Only wrapped skimage segmentation.
+
         ``self.labels`` will be segmented and updated inplace.
 
         Parameters
@@ -3555,18 +3541,18 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Relabeled image.
-        """        
+        """
         from skimage.segmentation import random_walker
         c_axes = complement_axes(dims, self.axes)
-        
+
         for sl, img in self.iter(c_axes, israw=True):
             img.labels[:] = random_walker(
                 img.value, img.labels.value, beta=beta, mode=mode, tol=tol
             )
-            
+
         self.labels._set_info(self)
         return self.labels
-    
+
     def label_threshold(
         self,
         thr: float | ThreasholdMethod = "otsu",
@@ -3587,24 +3573,24 @@ class ImgArray(LabeledArray):
         {dims}
         **kwargs:
             Keyword arguments that will passed to function indicated in 'method'.
-        
+
         Returns
         -------
         Label
             Newly created label.
-        """        
+        """
         labels = self.threshold(thr=thr, **kwargs)
         return self.label(labels, filt=filt, dims=dims)
-    
+
     def regionprops(
         self,
         properties: Iterable[str] | str = ("mean_intensity",),
-        *, 
+        *,
         extra_properties: Iterable[Callable] | None = None,
     ) -> DataDict[str, PropArray]:
         """
         Multi-dimensional region property quantification.
-        
+
         Run skimage's regionprops() function and return the results as PropArray, so
         that you can access using flexible slicing. For example, if a tcyx-image is
         analyzed with ``properties=("X", "Y")``, then you can get X's time-course profile
@@ -3622,15 +3608,15 @@ class ImgArray(LabeledArray):
         DataDict of PropArray
             Dictionary has keys of properties that are specified by `properties`. Each value
             has the array of properties.
-            
+
         Examples
         --------
         Measure region properties around single molecules.
-        
+
             >>> coords = img.centroid_sm()
             >>> img.specify(coords, 3, labeltype="circle")
             >>> props = img.regionprops()
-        """        
+        """
         from skimage.measure import regionprops
         id_axis = "N"
         if isinstance(properties, str):
@@ -3641,20 +3627,20 @@ class ImgArray(LabeledArray):
         if id_axis in self.axes:
             # this dimension will be label
             raise ValueError(f"axis '{id_axis}' is used for label ID in DataFrames.")
-        
+
         prop_axes = complement_axes(self.labels.axes, self.axes)
         shape = self.sizesof(prop_axes)
 
         out = DataDict({p: PropArray(
                 np.empty((self.labels.max(),) + shape, dtype=np.float32),
-                name=self.name+"-prop", 
+                name=self.name+"-prop",
                 axes=[id_axis]+prop_axes,
                 source=self.source,
                 propname=p
                 )
                 for p in properties
             })
-        
+
         # calculate property value for each slice
         for sl, img in self.iter(prop_axes, exclude=self.labels.axes):
             props = regionprops(self.labels.value, img, cache=False,
@@ -3664,11 +3650,11 @@ class ImgArray(LabeledArray):
                 # Both sides have length of id_axis (number of labels) so that values
                 # can be correctly substituted.
                 out[prop_name][label_sl] = [getattr(prop, prop_name) for prop in props]
-        
+
         for parr in out.values():
             parr.set_scale(self)
         return out
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
@@ -3697,18 +3683,18 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Local binary pattern image.
-        """        
+        """
         from skimage.feature import local_binary_pattern
         return self._apply_dask(
             local_binary_pattern,
-            c_axes=complement_axes(dims), 
+            c_axes=complement_axes(dims),
             args=(p, radius, method)
         )
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output
-    def glcm_props(self, distances, angles, radius:int, properties:tuple=None, 
+    def glcm_props(self, distances, angles, radius:int, properties:tuple=None,
                    *, bins:int=None, rescale_max:bool=False, dims: Dims = None) -> ImgArray:
         """
         Compute properties of "Gray Level Coocurrence Matrix". This will take long time
@@ -3735,17 +3721,17 @@ class ImgArray(LabeledArray):
         DataDict of ImgArray
             GLCM with additional axes "da", where "d" means distance and "a" means angle.
             If input image has "tzyx" axes then output will have "tzd<yx" axes.
-        
+
         Examples
         --------
         Plot GLCM's IDM and ASM images
             >>> out = img.glcm_props([1], [0], 3, properties=("idm","asm"))
             >>> out.idm["d=0;<=0"].imshow()
             >>> out.asm["d=0;<=0"].imshow()
-        """        
+        """
         self, bins, rescale_max = _glcm.check_glcm(self, bins, rescale_max)
         if properties is None:
-            properties = ("contrast", "dissimilarity", "idm", 
+            properties = ("contrast", "dissimilarity", "idm",
                           "asm", "max", "entropy", "correlation")
         c_axes = complement_axes(dims, self.axes)
         distances = np.asarray(distances, dtype=np.uint8)
@@ -3765,12 +3751,12 @@ class ImgArray(LabeledArray):
             propout = _glcm.glcm_props_(img, distances, angles, bins, radius, properties)
             for prop in properties:
                 out[prop].value[sl] = propout[prop]
-            
+
         for k, v in out.items():
             v._set_info(self, new_axes=c_axes+"da"+dims)
         return out
-    
-    
+
+
     @same_dtype
     def proj(
         self,
@@ -3798,7 +3784,7 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Projected image.
-        """        
+        """
         # determine function
         if mask is not None:
             if isinstance(method, str):
@@ -3807,7 +3793,7 @@ class ImgArray(LabeledArray):
                 func = method
         else:
             func = _check_function(method)
-        
+
         if axis is None:
             axis = find_first_appeared("ztpiac", include=self.axes, exclude="yx")
         elif not hasattr(axis, "__iter__"):
@@ -3823,7 +3809,7 @@ class ImgArray(LabeledArray):
             out = func(self.value, axis=axisint, dtype=np.float32, **kwargs)
         else:
             out = func(self.value, axis=axisint, **kwargs)
-        
+
         out = out.view(self.__class__)
         out._set_info(self, self.axes.drop(axisint))
         return out
@@ -3842,16 +3828,16 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Clipped image with temporal attribute
-        """        
+        """
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
         out = np.clip(self.value, lowerlim, upperlim)
         out = out.view(self.__class__)
         return out
-    
+
     @check_input_and_output
     def rescale_intensity(
         self,
-        in_range: tuple[int | str, int | str] = ("0%", "100%"), 
+        in_range: tuple[int | str, int | str] = ("0%", "100%"),
         dtype = np.uint16
     ) -> ImgArray:
         """
@@ -3876,12 +3862,12 @@ class ImgArray(LabeledArray):
         out = rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
         out = out.view(self.__class__)
         return out
-    
+
     @check_input_and_output
     def track_drift(
         self,
         along: AxisLike | None = None,
-        show_drift: bool = False, 
+        show_drift: bool = False,
         upsample_factor: int = 10,
     ) -> MarkerFrame:
         """
@@ -3896,21 +3882,21 @@ class ImgArray(LabeledArray):
             If True, plot the result.
         upsample_factor : int, default is 10
             Up-sampling factor when calculating phase cross correlation.
-            
+
         Returns
         -------
         MarkerFrame
             DataFrame structure with x,y columns
-        """        
+        """
         from ..frame import MarkerFrame
-        
+
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
         if not isinstance(upsample_factor, int):
             raise TypeError(f"upsample-factor must be integer but got {type(upsample_factor)}")
-                    
+
         result = np.zeros((self.sizeof(along), self.ndim-1), dtype=np.float32)
         c_axes = complement_axes(along, self.axes)
         last_img = None
@@ -3924,15 +3910,15 @@ class ImgArray(LabeledArray):
                 last_img = img
             else:
                 last_img = img
-        
+
         result = MarkerFrame(np.cumsum(result, axis=0), columns=c_axes)
         if show_drift:
             from ._utils import _plot as _plt
             _plt.plot_drift(result)
-        
+
         result.index.name = str(along)
         return result
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -3973,18 +3959,18 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Corrected image.
-            
+
         Examples
         --------
         Drift correction of multichannel image using the first channel as the reference.
             >>> img.drift_correction(ref=img["c=0"])
-        """        
-        
+        """
+
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
         elif len(along) != 1:
             raise ValueError("`along` must be single character.")
-        
+
         if shift is None:
             # determine 'ref'
             if ref is None:
@@ -4005,7 +3991,7 @@ class ImgArray(LabeledArray):
                 return out
 
             shift = ref.track_drift(along=along).values
-            
+
         else:
             shift = np.asarray(shift, dtype=np.float32)
             if (self.sizeof(along), self.ndim) != shift.shape:
@@ -4013,7 +3999,7 @@ class ImgArray(LabeledArray):
 
         if zero_ave:
             shift = shift - np.mean(shift, axis=0)
-            
+
         out = xp.empty(self.shape)
         t_index = self.axisof(along)
         ndim = len(dims)
@@ -4022,7 +4008,7 @@ class ImgArray(LabeledArray):
         for sl, img in input_img.iter(complement_axes(dims, self.axes)):
             mx[:-1, -1] = -shift[sl[t_index]]
             out[sl] = _transform.warp(img, mx, mode=mode, cval=cval, order=order, prefilter=False)
-        
+
         return out
 
     @_docs.write_docs
@@ -4050,7 +4036,7 @@ class ImgArray(LabeledArray):
             c_axes=c_axes,
             drop_axis=dims
         )
-            
+
         if out.ndim == 0 and squeeze:
             out = out.item()
         else:
@@ -4058,7 +4044,7 @@ class ImgArray(LabeledArray):
                 out, dtype=np.float32, name=self.name, axes=c_axes, propname="estimate_sigma"
             )
             out._set_info(self, new_axes=c_axes)
-        return out       
+        return out
 
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -4076,7 +4062,7 @@ class ImgArray(LabeledArray):
             Center of mass. Axes will be the input axes minus ``dims``, plus a new axis
             ``dim`` at the first position, which represents the dimensions of the
             results.
-        """        
+        """
         c_axes = complement_axes(dims, self.axes)
         out_shape = (len(dims), ) + self.sizesof(c_axes)
         axis = Axis("dim")
@@ -4090,15 +4076,15 @@ class ImgArray(LabeledArray):
         )
         out._set_info(self, new_axes=out_axes)
         return out
-    
+
     @dims_to_spatial_axes
     @check_input_and_output
     def pad(
-        self, 
-        pad_width: int | tuple[int, int] | Sequence[tuple[int, int]], 
-        *, 
-        mode: PaddingMode = "constant", 
-        dims: Dims = None, 
+        self,
+        pad_width: int | tuple[int, int] | Sequence[tuple[int, int]],
+        *,
+        mode: PaddingMode = "constant",
+        dims: Dims = None,
         **kwargs
     ) -> ImgArray:
         """
@@ -4106,7 +4092,7 @@ class ImgArray(LabeledArray):
 
         Parameters
         ----------
-        pad_width, mode, **kwargs : 
+        pad_width, mode, **kwargs :
             See documentation of np.pad().
         dims : int or str, optional
             Which dimension to pad.
@@ -4115,11 +4101,11 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Padded image.
-        
+
         Examples
         --------
         Suppose ``img`` has zyx-axes.
-        
+
         1. Padding 5 pixels in zyx-direction:
             >>> img.pad(5)
         2. Padding 5 pixels in yx-direction:
@@ -4128,18 +4114,18 @@ class ImgArray(LabeledArray):
             >>> img.pad([(5,5), (4,4), (4,4)])
         4. Padding 10 pixels in z-(-)-direction and 5 pixels in z-(+)-direction.
             >>> img.pad([(10, 5)], dims="z")
-        """        
+        """
         pad_width = _misc.make_pad(pad_width, dims, self.axes, **kwargs)
         padimg = np.pad(self.value, pad_width, mode, **kwargs).view(self.__class__)
         return padimg
-    
+
     @same_dtype(asfloat=True)
     @check_input_and_output
     def pad_defocus(self, kernel, *, depth: int = 3, width: int = 6, bg: float = None) -> ImgArray:
         """
         Make a z-directional padded image by defocusing the original image. This padding is
         useful when applying FFT to a 3D image.
-        
+
         Parameters
         ----------
         kernel : 0-, 1- or 3-dimensional array.
@@ -4153,38 +4139,38 @@ class ImgArray(LabeledArray):
             Width of defocusing. For an image with yx-shape (M, N), then output image will have
             shape (M * 2*width, N + 2*width).
         bg : float, optional
-            Background intensity. If not given, it will calculated as the minimum value of 
+            Background intensity. If not given, it will calculated as the minimum value of
             the original image.
 
         Returns
         -------
         ImgArray
             Padded image.
-            
+
         Examples
         --------
         depth = 2
-        
+
         .. code-block::
-        
+
             ----|   |----| o |--     o ... center of kernel
             ----| o |----|   |--
-            ++++|   |++++|___|++  <- the upper edge of original image 
+            ++++|   |++++|___|++  <- the upper edge of original image
             ++++|___|+++++++++++
 
         """
         bg = _check_bg(self, bg)
-        
+
         if np.isscalar(kernel):
             kernel = np.array([kernel]*3)
         else:
             kernel = np.asarray(kernel)
-        
+
         if kernel.ndim <= 1:
             def filter_func(img):
                 return xp.asnumpy(_filters.gaussian_filter(img, kernel, mode="constant", cval=bg))
             dz, dy, dx = kernel*3 # 3-sigma
-            
+
         elif kernel.ndim == 3:
             kernel = kernel.astype(np.float32)
             kernel = kernel / np.sum(kernel)
@@ -4193,7 +4179,7 @@ class ImgArray(LabeledArray):
             dz, dy, dx = np.array(kernel.shape)//2
         else:
             raise ValueError("`kernel` only take 0, 1, 3 dimensional array as an input.")
-        
+
         pad_width = [(depth, depth), (width, width), (width, width)]
         padimg = self.pad(pad_width, mode="constant", constant_values=bg, dims="zyx")
         out = np.copy(padimg.value)
@@ -4204,7 +4190,7 @@ class ImgArray(LabeledArray):
         y_edge0 = x_edge0 = slice(None, width, None)
         y_mid = slice(width, -width, None)
         y_edge1 = x_edge1 = slice(-width, None, None)
-        
+
         for sl, img in padimg.iter(complement_axes("zyx", self.axes)):
             out_ = out[sl]
             out_[z_edge0] = filter_func(img[:depth+dz ])[z_edge0]
@@ -4213,10 +4199,10 @@ class ImgArray(LabeledArray):
             out_[z_mid, y_edge1] = filter_func(img[:, -width-dy:])[z_mid, y_edge1]
             out_[z_mid, y_mid, x_edge0] = filter_func(img[:, :, :width+dx ])[z_mid, y_mid, x_edge0]
             out_[z_mid, y_mid, x_edge1] = filter_func(img[:, :, -width-dx:])[z_mid, y_mid, x_edge1]
-            
+
         return out.view(self.__class__)
-    
-    
+
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -4225,16 +4211,16 @@ class ImgArray(LabeledArray):
         self,
         psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
         lmd: float = 0.1,
-        *, 
-        dims: Dims = None, 
+        *,
+        dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
         r"""
         Classical wiener deconvolution. This algorithm has the serious ringing problem
         if parameters are set to wrong values.
-        
+
         :math:`F[Y_{res}] = \frac{F[Y_{obs}] \cdot \bar{H}}{|H|^2 + \lambda}`
-            
+
         :math:`Y_{obs}`: observed image;
         :math:`Y_{res}`: restored image;
         :math:`H` : FFT of point spread function (PSF);
@@ -4252,25 +4238,25 @@ class ImgArray(LabeledArray):
         -------
         ImgArray
             Deconvolved image.
-        
-        
+
+
         See Also
         --------
         lucy
         lucy_tv
-        """        
+        """
         if lmd <= 0:
             raise ValueError(f"lmd must be positive, but got: {lmd}")
-        
+
         psf_ft, psf_ft_conj = _deconv.check_psf(
             self.sizesof(dims), tuple(self.scale[axis] for axis in dims), psf,
         )
-        
+
         return self._apply_dask(
-            _deconv.wiener, 
+            _deconv.wiener,
             c_axes=complement_axes(dims, self.axes),
             args=(psf_ft, psf_ft_conj, lmd)
-        )    
+        )
 
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -4281,13 +4267,13 @@ class ImgArray(LabeledArray):
         psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
         niter: int = 50,
         eps: float = 1e-5,
-        *, 
-        dims: Dims = None, 
+        *,
+        dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
-        
+
         Parameters
         ----------
         psf : ndarray or callable
@@ -4296,32 +4282,32 @@ class ImgArray(LabeledArray):
         niter : int, default is 50.
             Number of iterations.
         eps : float, default is 1e-5
-            During deconvolution, division by small values in the convolve image 
-            of estimation and PSF may cause divergence. Therefore, division by 
+            During deconvolution, division by small values in the convolve image
+            of estimation and PSF may cause divergence. Therefore, division by
             values under `eps` is substituted to zero.
         {dims}{update}
-        
+
         Returns
         -------
         ImgArray
             Deconvolved image.
-        
+
         See Also
         --------
         lucy_tv
         wiener
         """
-        
+
         psf_ft, psf_ft_conj = _deconv.check_psf(
             self.sizesof(dims), tuple(self.scale[axis] for axis in dims), psf,
         )
 
         return self._apply_dask(
-            _deconv.richardson_lucy, 
+            _deconv.richardson_lucy,
             c_axes=complement_axes(dims, self.axes),
             args=(psf_ft, psf_ft_conj, niter, eps)
         )
-        
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -4341,15 +4327,15 @@ class ImgArray(LabeledArray):
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm with
         total variance regularization (so called RL-TV algorithm). The TV regularization
         factor at pixel position :math:`x`, :math:`F_{reg}(x)`, is calculated as:
-        
+
         .. math::
-            
+
             F_{reg}(x) = \frac{1}{1-\lambda \cdot div(\frac{grad(I(x)}{|grad(I(x))|})}
-        
+
         (:math:`I(x)`: image, :math:`\lambda`: constant)
-        
+
         and this factor is multiplied for every estimation made in each iteration.
-        
+
         Parameters
         ----------
         psf : ndarray or callable
@@ -4360,31 +4346,31 @@ class ImgArray(LabeledArray):
         lmd : float, default is 1e-3
             The constant lambda of TV regularization factor.
         tol : float, default is 1e-3
-            Iteration stops if regularized absolute summation is lower than this 
+            Iteration stops if regularized absolute summation is lower than this
             value.
-            
+
             :math:`\frac{\sum_{x}|I'(x) - I(x)|}{\sum_{x}|I(x)|}`
-            
-            (:math:`I'(x)`: estimation of :math:`k+1`-th iteration, :math:`I(x)`: 
+
+            (:math:`I'(x)`: estimation of :math:`k+1`-th iteration, :math:`I(x)`:
             estimation of :math:`k`-th iteration)
-        
+
         eps : float, default is 1e-5
             During deconvolution, division by small values in the convolve image of
-            estimation and PSF may cause divergence. Therefore, division by values 
+            estimation and PSF may cause divergence. Therefore, division by values
             under ``eps`` is substituted to zero.
         {dims}{update}
-        
+
         Returns
         -------
         ImgArray
             Deconvolved image.
-        
+
         References
         ----------
-        - Dey, N., Blanc-Féraud, L., Zimmer, C., Roux, P., Kam, Z., Olivo-Marin, J. C., 
-          & Zerubia, J. (2004). 3D microscopy deconvolution using Richardson-Lucy algorithm 
+        - Dey, N., Blanc-Féraud, L., Zimmer, C., Roux, P., Kam, Z., Olivo-Marin, J. C.,
+          & Zerubia, J. (2004). 3D microscopy deconvolution using Richardson-Lucy algorithm
           with total variation regularization (Doctoral dissertation, INRIA).
-        
+
         See Also
         --------
         lucy
@@ -4400,30 +4386,71 @@ class ImgArray(LabeledArray):
         )
 
         return self._apply_dask(
-            _deconv.richardson_lucy_tv, 
+            _deconv.richardson_lucy_tv,
             c_axes=complement_axes(dims, self.axes),
             args=(psf_ft, psf_ft_conj, max_iter, lmd, tol, eps)
         )
 
-    @_docs.write_docs
-    @dims_to_spatial_axes
-    @same_dtype(asfloat=True)
-    @check_input_and_output
-    def tiled_lucy(
-        self,
-        psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
-        niter: int = 50,
-        eps: float = 1e-5,
-        chunks = "auto",
-        overlap: int = 32,
-        **kwargs,
+
+    @overload
+    def mean(
+        self, axis: Literal[None] = None, dtype: DTypeLike | None = None,
+        out: Any = None, keepdims: Literal[False] = False, *, where: Any = _NoValue,
+    ) -> np.number:
+        ...
+
+    @overload
+    def mean(
+        self, axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        dtype: DTypeLike | None = None, out: Any = None, keepdims: bool = False,
+        *, where: Any = _NoValue,
     ) -> ImgArray:
-        warnings.warn(
-            "`tiled_lucy` is deprecated Please use "
-            f"`img.tiled({chunks=}, {overlap=}).lucy(...)` instead.",
-            DeprecationWarning,
-        )
-        return self.tiled(chunks, overlap).lucy(psf, niter, eps)
+        ...
+
+    def mean(
+        self,
+        axis=None,
+        dtype: DTypeLike | None = None,
+        out: Any | None = None,
+        keepdims: bool = False,
+        *,
+        where: np.ndarray = _NoValue,
+    ):
+        """Mean value of the array along a given axis."""
+        if self.dtype.kind in "ui" and dtype is None:
+            dtype = np.float32  # to avoid using np.float64
+        return super().mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+
+    @overload
+    def std(
+        self, axis: Literal[None] = None, dtype: DTypeLike | None = None,
+        out: Any | None = None, keepdims: Literal[False] = False, *, where: Any = _NoValue,
+    ) -> np.number:
+        ...
+
+    @overload
+    def std(
+        self, axis: int | AxisLike | Iterable[int] | Iterable[AxisLike],
+        dtype: DTypeLike | None = None, out: Any | None = None, keepdims: bool = False,
+        *, where: Any = _NoValue,
+    ) -> ImgArray:
+        ...
+
+    def std(
+        self,
+        axis=None,
+        dtype: DTypeLike = None,
+        out: None = None,
+        ddof: int = 0,
+        keepdims: bool = False,
+        *,
+        where: np.ndarray = _NoValue,
+    ):
+        """Standard deviation of the array along a given axis."""
+        if self.dtype.kind in "ui" and dtype is None:
+            dtype = np.float32  # to avoid using np.float64
+        return super().std(axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims, where=where)
+
 
 def _check_coordinates(coords, img: ImgArray, dims: Dims = None):
     from impy.frame import MarkerFrame
@@ -4442,7 +4469,7 @@ def _check_coordinates(coords, img: ImgArray, dims: Dims = None):
                 dims = complement_axes("c", img.axes)[-ndim:]
         coords = MarkerFrame(coords, columns=dims, dtype=np.uint16)
         coords.set_scale(img)
-    
+
     return coords
 
 def _check_function(func):
@@ -4452,7 +4479,7 @@ def _check_function(func):
         return func
     else:
         raise TypeError("Must be one of numpy methods or callable object.")
-    
+
 def _check_bg(img: ImgArray, bg):
     # determine bg
     if bg is None:
@@ -4474,14 +4501,14 @@ def _check_template(template):
 def _calc_centroid(img: np.ndarray, ndim: int) -> np.ndarray:
     from skimage.measure import moments
     mom = moments(img, order=1)
-    centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)] 
+    centroid = np.array([mom[(0,)*i + (1,) + (0,)*(ndim-i-1)]
                         for i in range(ndim)]) / mom[(0,)*ndim]
     return centroid
 
 def _check_clip_range(in_range, img) -> tuple[float, float]:
     """
     Called in clip_outliers() and rescale_intensity().
-    """    
+    """
     lower, upper = in_range
     if isinstance(lower, str) and lower.endswith("%"):
         lower = float(lower[:-1])
@@ -4490,7 +4517,7 @@ def _check_clip_range(in_range, img) -> tuple[float, float]:
         lowerlim = np.min(img)
     else:
         lowerlim = float(lower)
-    
+
     if isinstance(upper, str) and upper.endswith("%"):
         upper = float(upper[:-1])
         upperlim = np.percentile(img, upper)
@@ -4498,14 +4525,14 @@ def _check_clip_range(in_range, img) -> tuple[float, float]:
         upperlim = np.max(img)
     else:
         upperlim = float(upper)
-    
+
     if lowerlim >= upperlim:
         raise ValueError(f"lowerlim is larger than upperlim: {lowerlim} >= {upperlim}")
-    
+
     return lowerlim, upperlim
 
 def _specify_one(center, radius, shape:tuple) -> tuple[slice]:
-    sl = tuple(slice(max(0, xc-r), min(xc+r+1, sh), None) 
+    sl = tuple(slice(max(0, xc-r), min(xc+r+1, sh), None)
                         for xc, r, sh in zip(center, radius, shape))
     return sl
 
@@ -4533,7 +4560,7 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
     """
     start = 0 if sl.start is None else sl.start
     stop = s if sl.stop is None else sl.stop
-    
+
     if sl.start and sl.stop and start < 0 and stop > 0:
         # like "x=-5:5"
         pass
@@ -4546,6 +4573,6 @@ def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
             stop += s
         elif not 0 < stop <= s:
             raise ValueError(f"Invalid value encountered in slice {sl}.")
-        
+
     n = stop - start
     return xp.linspace(start, stop, n*uf, endpoint=False)[:, np.newaxis]
