@@ -1,4 +1,5 @@
-[![Downloads](https://pepy.tech/badge/impy-array/month)](https://pepy.tech/project/impy-array)
+[![BSD 3-Clause License](https://img.shields.io/pypi/l/impy-array.svg?color=green)](https://github.com/hanjinliu/impy-array/raw/main/LICENSE)
+[![Python package index download statistics](https://img.shields.io/pypi/dm/impy-array.svg)](https://pypistats.org/packages/impy-array)
 [![PyPI version](https://badge.fury.io/py/impy-array.svg)](https://badge.fury.io/py/impy-array)
 
 # A numpy extension for efficient and powerful image analysis workflow
@@ -49,7 +50,7 @@ img_prj = np.max(img_fil, axis="z")    # Z-projection (numpy is aware of image a
 img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend time on searching for the directory!
 ```
 
-### Supported file formats
+### Supports many file formats
 
 `impy` automatically chooses proper reader/writer according to the extension.
 
@@ -58,10 +59,22 @@ img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend tim
 - Zarr file (".zarr")
 - Other image file (".png", ".jpg")
 
+### Lazy loading
+
+With the `lazy` submodule, you can easily make image processing workflows for large
+images.
+
+```python
+import impy as ip
+
+img = ip.lazy.imread("path/to/very-large-image.tif")
+out = img.gaussian_filter()
+out.imsave("image_filtered.tif")
+```
+
 ### Switch between CPU and GPU
 
 `impy` can internally switches the functions between `numpy` and `cupy`.
-You can use GPU for calculation very easily.
 
 ```python
 img.gaussian_filter()  # <- CPU
@@ -101,7 +114,7 @@ img.imfilter(param=1.0)
 `impy` also supports command line based image analysis. All method of `ImgArray` is available
 from commad line, such as
 
-```powershell
+```shell
 impy path/to/image.tif ./output.tif --method gaussian_filter --sigma 2.0
 ```
 
