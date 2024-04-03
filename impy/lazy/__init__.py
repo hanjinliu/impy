@@ -1,2 +1,2 @@
-from .core import *
-from . import random
+from .core import *  # noqa
+from . import random  # noqa
