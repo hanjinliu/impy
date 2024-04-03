@@ -6,7 +6,7 @@ from scipy import ndimage as scipy_ndi
 
 
 __all__ = ["binary_erosion",
-    "erosion"
+    "erosion",
     "binary_dilation",
     "dilation",
     "binary_opening",

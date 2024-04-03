@@ -1,3 +1,4 @@
+import tempfile
 import impy as ip
 from pathlib import Path
 import numpy as np
@@ -28,12 +29,12 @@ def test_filters(fn, resource):
     with ip.SetConst(RESOURCE=resource):
         path = Path(__file__).parent / "_test_images" / "image_tzcyx.tif"
         img = ip.lazy.imread(path, chunks=(4, 5, 2, 32, 32))
-        
+
         assert_allclose(
             getattr(img, fn)().compute(),
             getattr(img.compute(), fn)()
         )
-        
+
 
 def test_numpy_function():
     from dask.array.core import Array as DaskArray
@@ -57,3 +58,18 @@ def test_operator(opname):
         op(img1, img2).compute(),
         op(img1.compute(), img2.compute()),
     )
+
+@pytest.mark.parametrize("ext", [".tif", ".mrc"])
+def test_lazy_imsave(ext: str):
+    rng = ip.random.default_rng(1234)
+    img = rng.random_uint16((4, 8, 80), axes="zyx")
+    img_lazy = ip.lazy.asarray(img, chunks=(1, 2, 80))
+    img_lazy.scale_unit = "nm"
+    with tempfile.TemporaryDirectory() as path:
+        fp = Path(path) / f"test{ext}"
+        img_lazy.imsave(fp)
+        img0 = ip.imread(fp)
+        assert img_lazy.shape == img0.shape
+        assert img_lazy.dtype == img0.dtype
+        assert img_lazy.axes == img0.axes
+        assert_allclose(img, img0)
