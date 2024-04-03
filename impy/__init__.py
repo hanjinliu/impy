@@ -1,19 +1,19 @@
-__version__ = "2.3.3"
+__version__ = "2.4.0"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
 import logging
 
-from ._const import Const, SetConst, use
+from ._const import Const, SetConst, use  # noqa
 
-from .collections import DataList, DataDict
-from .core import *
-from .binder import bind
-from .viewer import gui
-from .correlation import *
-from .arrays import ImgArray, LazyImgArray, BigImgArray, Label  # for typing
-from . import random, io, lazy
-from .axes import slicer
+from .collections import DataList, DataDict  # noqa
+from .core import *  # noqa
+from .binder import bind  # noqa
+from .viewer import gui  # noqa
+from .correlation import *  # noqa
+from .arrays import ImgArray, LazyImgArray, BigImgArray, Label  # noqa
+from . import random, io, lazy  # noqa
+from .axes import slicer  # noqa
 
 # Inheritance
 # -----------
@@ -34,7 +34,7 @@ logging.getLogger("tifffile").setLevel(logging.ERROR)
 del logging
 
 # dtypes
-from numpy import (
+from numpy import (  # noqa
     uint8, uint16, uint32, uint64,
     int8, int16, int32, int64,
     float16, float32, float64,
