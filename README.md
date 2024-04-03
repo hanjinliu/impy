@@ -1,4 +1,4 @@
-[![BSD 3-Clause License](https://img.shields.io/pypi/l/impy-array.svg?color=green)](https://github.com/hanjinliu/impy-array/raw/main/LICENSE)
+[![BSD 3-Clause License](https://img.shields.io/pypi/l/impy-array.svg?color=green)](https://github.com/hanjinliu/impy/blob/main/LICENSE)
 [![Python package index download statistics](https://img.shields.io/pypi/dm/impy-array.svg)](https://pypistats.org/packages/impy-array)
 [![PyPI version](https://badge.fury.io/py/impy-array.svg)](https://badge.fury.io/py/impy-array)
 
