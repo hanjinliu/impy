@@ -221,59 +221,77 @@ class ImgArray(LabeledArray):
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
-    def rescale(
+    def zoom(
         self,
-        scale: nDFloat = 1/16,
+        zoom: nDFloat,
         *,
-        order: int = None,
-        mode: PaddingMode = "reflect",
+        order: int = 3,
+        mode: PaddingMode = "constant",
         cval: float = 0.0,
+        same_shape: bool = False,
         dims: Dims = None,
     ) -> ImgArray:
         """
-        Rescale image by applying the diagonal component of Affine matrix.
+        Zoom image by applying the diagonal component of Affine matrix.
 
         Parameters
         ----------
-        scale : float, optional
+        scale : float
             Relative scale of the new image. scale 1/2 means that the shape of
             the output image will be (N/2, ...).
         {order}{mode}{cval}{dims}
+        same_shape : bool, default is False
+            If True, the output image will have the same shape as the input image.
 
         Returns
         -------
         ImgArray
             Rescaled image.
         """
-        from skimage.transform import rescale
-        scale_is_seq = hasattr(scale, "__iter__")
+        zoom_is_seq = hasattr(zoom, "__iter__")
 
         # Check if output is too large.
         gb = -1
-        if not scale_is_seq and scale > 1:
-            gb = np.prod(self.shape) * (scale ** len(dims)) / 2**30
-        elif scale_is_seq and np.prod(list(scale)) > 1:
-            gb = np.prod(self.shape) * np.prod(list(scale)) / 2**30
+        if not zoom_is_seq and zoom > 1:
+            gb = np.prod(self.shape) * (zoom ** len(dims)) / 2**30 * self.itemsize
+        elif zoom_is_seq and np.prod(list(zoom)) > 1:
+            gb = np.prod(self.shape) * np.prod(list(zoom)) / 2**30 * self.itemsize
         if gb > Const["MAX_GB"]:
             raise MemoryError(f"Output image is too large: {gb} GB")
 
-        if scale_is_seq:
-            scale = list(scale)
-            if len(scale) != len(dims):
+        if zoom_is_seq:
+            zoom = list(zoom)
+            if len(zoom) != len(dims):
                 raise ValueError(
                     "scale must have the same length as the spatial dimensions."
                 )
-            it = iter(scale)
-            scale_ = [next(it) if a in dims else 1 for a in self.axes]
+            it = iter(zoom)
+            zoom_ = [next(it) if a in dims else 1 for a in self.axes]
         else:
-            scale_ = [scale if a in dims else 1 for a in self.axes]
-        out = rescale(
-            self.value, scale_, order=order, mode=mode, cval=cval, anti_aliasing=False
-        )
-        out = out.view(self.__class__)._set_info(self)
+            zoom_ = [zoom if a in dims else 1 for a in self.axes]
+
+        if not same_shape:
+            if mode == "constant":
+                mode = "grid-constant"
+            out = ndi.zoom(
+                self.value, zoom_, order=order, mode=mode, cval=cval,
+                prefilter=order > 1, grid_mode=True,
+            ).view(self.__class__)._set_info(self)
+        else:
+            center = [(s - 1) / 2 for s in self.sizesof(dims)]
+            mesh = np.meshgrid(
+                *[
+                    (np.arange(_s) - _c) / _z + _c
+                    for _s, _z, _c in zip(self.sizesof(dims), zoom_, center)
+                ],
+                indexing="ij",
+            )
+            out = self.map_coordinates(mesh, order=order, mode=mode, cval=cval, dims=dims)
         out.axes = self.axes.copy()
-        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)})
+        out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, zoom_)})
         return out
+
+    rescale = zoom  # backward compatibility
 
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -465,10 +483,10 @@ class ImgArray(LabeledArray):
             out.metadata["GaussianParameters"] = params
             return out
 
-        rough = self.rescale(scale).value.astype(np.float32)
+        rough = self.zoom(scale, mode="reflect", order=1).value.astype(np.float32)
         if mask is not None:
-            from ..core import asarray as ip_asarray
-            mask = ip_asarray(mask).rescale(scale) > 0
+            from impy.core import asarray as ip_asarray
+            mask = ip_asarray(mask).zoom(scale, mode="reflect", order=1) > 0
         gaussian = GaussianBackground(p0)
         gaussian.fit(rough, method=method, mask=mask)
         gaussian.rescale(1/scale)
@@ -480,12 +498,18 @@ class ImgArray(LabeledArray):
 
     @same_dtype(asfloat=True)
     @check_input_and_output
-    def gauss_correction(self, ref: ImgArray=None, scale: float = 1/16, median_radius: float = 15):
+    def gauss_correction(
+        self,
+        ref: ImgArray | None = None,
+        scale: float = 1/16,
+        median_radius: float = 15,
+    ):
         """
-        Correct unevenly distributed excitation light using Gaussian fitting. This method subtracts
-        background intensity at the same time. If input image is uint, then output value under 0 will
-        replaced with 0. If you want to quantify background, it is necessary to first convert input
-        image to float image.
+        Correct unevenly distributed excitation light using Gaussian fitting.
+
+        This method subtracts background intensity at the same time. If input image is
+        uint, then output value under 0 will replaced with 0. If you want to quantify
+        background, it is necessary to first convert input image to float image.
 
         Parameters
         ----------
@@ -1069,7 +1093,6 @@ class ImgArray(LabeledArray):
             kwargs=dict(footprint=disk, mode=mode, cval=cval)
         )
 
-
     @_docs.write_docs
     @dims_to_spatial_axes
     @check_input_and_output(only_binary=True)
@@ -1321,7 +1344,9 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def entropy_filter(self, radius: nDFloat = 5, *, dims: Dims = None) -> ImgArray:
         """
-        Running entropy filter. This filter is useful for detecting change in background distribution.
+        Running entropy filter.
+
+        This filter is useful for detecting change in background distribution.
 
         Parameters
         ----------
@@ -1413,8 +1438,10 @@ class ImgArray(LabeledArray):
     def kalman_filter(self, gain: float = 0.8, noise_var: float = 0.05, *, along: str = "t",
                       dims: Dims = None, update: bool = False) -> ImgArray:
         """
-        Kalman filter for image smoothing. This function is same as "Kalman Stack Filter" in ImageJ but support
-        batch processing. This filter is useful for preprocessing of particle tracking.
+        Kalman filter for image smoothing.
+
+        This function is same as "Kalman Stack Filter" in ImageJ but support batch
+        processing. This filter is useful for preprocessing of particle tracking.
 
         Parameters
         ----------
@@ -1450,8 +1477,10 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def focus_map(self, radius: int = 1, *, dims: Dims = 2) -> PropArray:
         """
-        Compute focus map using variance of Laplacian method. yx-plane with higher variance is likely a
-        focal plane because sharper image causes higher value of Laplacian on the edges.
+        Compute focus map using variance of Laplacian method.
+
+        yx-plane with higher variance is likely a focal plane because sharper image
+        causes higher value of Laplacian on the edges.
 
         Parameters
         ----------
@@ -1626,8 +1655,10 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
     ) -> ImgArray:
         """
-        Run Difference of Gaussian filter. This function does not support `update`
-        argument because intensity can be negative.
+        Run Difference of Gaussian filter.
+
+        This function does not support `update` argument because intensity can be
+        negative.
 
         Parameters
         ----------
@@ -2809,11 +2840,12 @@ class ImgArray(LabeledArray):
         dtype = np.complex128 if double_precision else np.complex64
 
         # Calculate exp(-ikx)
-        # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the range of
-        # 0 <= A < 1.
-        exps: list[xp.ndarray] = \
-            [xp.exp(-2j * np.pi * xp.mod(wave_num(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
-             for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)]
+        # To minimize floating error, the A term in exp(-2*pi*i*A) should be in the
+        # range of 0 <= A < 1.
+        exps: list[np.ndarray] = [
+            xp.exp(-2j * np.pi * xp.mod(wave_num(sl, s, uf) * xp.arange(s)/s, 1.), dtype=dtype)
+            for sl, s, uf in zip(slices, self.sizesof(dims), upsample_factor)
+        ]
 
         # Calculate chunk size for proper output shapes
         out_chunks = np.ones(self.ndim, dtype=np.int64)
@@ -3859,7 +3891,7 @@ class ImgArray(LabeledArray):
 
         out = self.view(np.ndarray).astype(np.float32)
         lowerlim, upperlim = _check_clip_range(in_range, self.value)
-        out = rescale_intensity(out, in_range=(lowerlim, upperlim), out_range="dtype")
+        out = rescale_intensity(out, in_range=(lowerlim, upperlim), out_range=dtype)
         out = out.view(self.__class__)
         return out
 
@@ -4538,13 +4570,13 @@ def _specify_one(center, radius, shape:tuple) -> tuple[slice]:
 
 def check_filter_func(f):
     if f is None:
-        f = lambda x: True
+        return lambda x: True
     elif not callable(f):
         raise TypeError("`filt` must be callable.")
     return f
 
 
-def wave_num(sl: slice, s: int, uf: int) -> xp.ndarray:
+def wave_num(sl: slice, s: int, uf: int) -> np.ndarray:
     """
     A function that makes wave number vertical vector. Returned vector will
     be [k/s, (k + 1/uf)/s, (k + 2/uf)/s, ...] (where k = sl.start)

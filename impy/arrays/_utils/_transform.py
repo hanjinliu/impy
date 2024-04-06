@@ -10,9 +10,9 @@ if TYPE_CHECKING:
     from impy import ImgArray
 
 __all__ = [
-    "compose_affine_matrix", 
+    "compose_affine_matrix",
     "decompose_affine_matrix",
-    "affinefit", 
+    "affinefit",
     "check_matrix",
     "warp",
 ]
@@ -24,8 +24,8 @@ class AffineTransformationParameters(NamedTuple):
     shear: np.ndarray
 
 def warp(
-    img: xp.ndarray,
-    matrix: xp.ndarray,
+    img: np.ndarray,
+    matrix: np.ndarray,
     mode="constant",
     cval=0,
     output_shape=None,
@@ -35,13 +35,13 @@ def warp(
 ):
     img = xp.asarray(img, dtype=img.dtype)
     matrix = xp.asarray(matrix)
-    out = xp.ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape, 
+    out = xp.ndi.affine_transform(img, matrix, cval=cval, mode=mode, output_shape=output_shape,
                                   offset=offset, order=order, prefilter=prefilter)
     return out
 
-def shift(img: xp.ndarray, shift: xp.ndarray, cval=0, mode="constant", order=1, prefilter=False):
+def shift(img: np.ndarray, shift: np.ndarray, cval=0, mode="constant", order=1, prefilter=False):
     img = xp.asarray(img, dtype=img.dtype)
-    out = xp.ndi.shift(img, shift, cval=cval, mode=mode, 
+    out = xp.ndi.shift(img, shift, cval=cval, mode=mode,
                        order=order, prefilter=prefilter)
     return out
 
@@ -71,10 +71,10 @@ def compose_affine_matrix(
             translation = [translation] * ndim
         if rotation is not None:
             rotation = np.rad2deg(rotation)
-        
+
         af = Affine(scale=scale, translate=translation, rotate=rotation, shear=shear)
         mx = af.affine_matrix
-    
+
     return mx
 
 
@@ -83,12 +83,12 @@ def decompose_affine_matrix(matrix: np.ndarray):
     if ndim == 2:
         from skimage.transform import AffineTransform
         af = AffineTransform(matrix=matrix)
-        out = AffineTransformationParameters(translation=af.translation, rotation=af.rotation, 
+        out = AffineTransformationParameters(translation=af.translation, rotation=af.rotation,
                                              scale=af.scale, shear=af.shear)
     else:
         from napari.utils.transforms import Affine
         af = Affine(affine_matrix=matrix)
-        out = AffineTransformationParameters(translation=af.translate, rotation=af.rotate, 
+        out = AffineTransformationParameters(translation=af.translate, rotation=af.rotate,
                                              scale=af.scale, shear=af.shear)
     return out
 
@@ -104,8 +104,10 @@ def affinefit(img, imgref, bins=256, order=1):
     from scipy.stats import entropy
     from scipy.optimize import minimize
     from skimage.transform import warp
-    
-    as_3x3_matrix = lambda mtx: np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
+
+    def as_3x3_matrix(mtx: np.ndarray):
+        return np.vstack((mtx.reshape(2,3), [0., 0., 1.]))
+
     def normalized_mutual_information(img, imgref):
         """
         Y(A,B) = (H(A)+H(B))/H(A,B)
@@ -117,15 +119,15 @@ def affinefit(img, imgref, bins=256, order=1):
         e2 = entropy(np.sum(hist, axis=1))
         e12 = entropy(np.ravel(hist)) # mutual entropy
         return (e1 + e2)/e12
-    
+
     def cost_nmi(mtx, img, imgref):
         mtx = as_3x3_matrix(mtx)
         img_transformed = warp(img, mtx, order=order)
         return -normalized_mutual_information(img_transformed, imgref)
-    
+
     mtx0 = np.array([[1., 0., 0.],
                      [0., 1., 0.]]) # aberration makes little difference
-    
+
     result = minimize(
         cost_nmi, mtx0, args=(np.asarray(img), np.asarray(imgref)), method="Powell"
     )
@@ -134,24 +136,24 @@ def affinefit(img, imgref, bins=256, order=1):
 
 
 def check_matrix(matrices: list[np.ndarray | float]):
-    """Check Affine transformation matrix."""    
+    """Check Affine transformation matrix."""
     mtx = []
     for m in matrices:
-        if np.isscalar(m): 
+        if np.isscalar(m):
             if m == 1:
                 mtx.append(m)
             else:
                 raise ValueError(f"Only `1` is ok, but got {m}")
-            
+
         elif m.shape != (3, 3) or not np.allclose(m[2,:2], 0):
             raise ValueError(f"Wrong Affine transformation matrix:\n{m}")
-        
+
         else:
             mtx.append(m)
     return mtx
 
 def polar2d(
-    img: xp.ndarray,
+    img: np.ndarray,
     rmax: int,
     dtheta: float = 0.1,  # radian
     order: int = 1,
@@ -170,14 +172,14 @@ def polar2d(
     return out
 
 def normalize_radon_input(
-    self: ImgArray, 
-    dims: Axes, 
-    central_axis: AxisLike, 
+    self: ImgArray,
+    dims: Axes,
+    central_axis: AxisLike,
     degrees: Sequence[float] | float,
-):    
+):
     ndim = len(dims)
     squeeze = not hasattr(degrees, "__iter__")
-    
+
     if squeeze:
         degrees = [degrees]
     if ndim != self.ndim:
@@ -213,7 +215,7 @@ def normalize_radon_input(
             central_axis: np.ndarray
             if central_axis.shape != (ndim,):
                 raise ValueError(f"Image is {ndim}D but central_axis is {central_axis.ndim}D.")
-        
+
         # construct Affine transform matrices
         height = int(np.ceil(np.linalg.norm(self.shape)))
         output_shape = (height, self.shape[1], self.shape[2])
@@ -222,11 +224,11 @@ def normalize_radon_input(
         )
     else:
         raise ValueError("Only 2D or 3D input is supported.")
-    
+
     return params, output_shape, squeeze
 
 def normalize_iradon_input(
-    self: ImgArray, 
+    self: ImgArray,
     central_axis: AxisLike,
     height_axis: AxisLike,
     degree_axis: AxisLike,
@@ -250,7 +252,7 @@ def normalize_iradon_input(
     output_shape = (height, self.shape[-1])
     return central_axis, degree_axis, output_shape, new_axes
 
-def radon_single(img: xp.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
+def radon_single(img: np.ndarray, mtx: np.ndarray, order: int = 3, output_shape=None):
     """Radon transform of 2D image."""
     img_rot = warp(img, mtx, order=order, output_shape=output_shape, prefilter=False)
     return xp.sum(img_rot, axis=0)
@@ -290,13 +292,13 @@ def _get_rotation_matrices_for_radon_3d(
     return np.einsum("ij,njk,kl->nil", tr_0, rotation, tr_1)
 
 # This function is mostly ported from `skimage.transform`.
-# The most important difference is that this implementation support arbitrary 
+# The most important difference is that this implementation support arbitrary
 # output shape.
 def iradon(
-    img: xp.ndarray, 
-    degrees: xp.ndarray,
+    img: np.ndarray,
+    degrees: np.ndarray,
     output_shape: tuple[int, int],
-    filter_func: xp.ndarray,
+    filter_func: np.ndarray,
     interp: Callable[[np.ndarray, np.ndarray], np.ndarray],
 ):
     angles_count = len(degrees)
@@ -322,7 +324,7 @@ def iradon(
 
     return reconstructed * np.pi / (2 * angles_count)
 
-# This function is almost ported from `skimage.transform`, but create a ramp 
+# This function is almost ported from `skimage.transform`, but create a ramp
 # filter in a simpler way.
 def get_fourier_filter(size: int, filter_name: str):
     # ramp filter

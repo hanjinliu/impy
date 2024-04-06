@@ -373,7 +373,6 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         img_dask = _rechunk_to_ones(img.value)
         writer = _MemmapArrayWriter(path, mmap.offset, img.shape, img_dask.chunksize)
         da.store(img_dask, writer)
-        mmap.flush()
         return
 
     from tifffile import imwrite
@@ -471,7 +470,6 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         img_dask = _rechunk_to_ones(img.value)
         writer = _MemmapArrayWriter(path, mrc_mmap.data.offset, img.shape, img_dask.chunksize)
         da.store(img_dask, writer)
-        mrc_mmap.flush()
         return None
 
     # get voxel_size
@@ -739,12 +737,13 @@ class _MemmapArrayWriter:
         # sl = (0:1, 16:32, 0:1000, 0:1000)
 
         offset = np.sum([sl[i].start * arr.strides[i] for i in range(self._border + 1)])
+        arr_ravel = arr.ravel()
         mmap = np.memmap(
             self._path,
             mode="r+",
             offset=self._offset + offset,
+            shape=arr_ravel.shape,
             dtype=arr.dtype,
         )
-        arr_ravel = arr.ravel()
         mmap[:arr_ravel.size] = arr_ravel
         mmap.flush()

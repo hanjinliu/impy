@@ -60,9 +60,13 @@ def test_operator(opname):
     )
 
 @pytest.mark.parametrize("ext", [".tif", ".mrc"])
-def test_lazy_imsave(ext: str):
+@pytest.mark.parametrize("dtype", [np.uint16, np.float32])
+def test_lazy_imsave(ext: str, dtype):
     rng = ip.random.default_rng(1234)
-    img = rng.random_uint16((4, 8, 80), axes="zyx")
+    if dtype == np.uint16:
+        img = rng.random_uint16((4, 8, 80), axes="zyx")
+    else:
+        img = rng.random((4, 8, 80), axes="zyx")
     img_lazy = ip.lazy.asarray(img, chunks=(1, 2, 80))
     img_lazy.scale_unit = "nm"
     with tempfile.TemporaryDirectory() as path:
