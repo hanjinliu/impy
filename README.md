@@ -4,9 +4,11 @@
 
 # A numpy extension for efficient and powerful image analysis workflow
 
-`impy` is an all-in-one image analysis library, equipped with parallel processing, GPU support, GUI based tools and so on.
+`impy` is an all-in-one image analysis library, equipped with parallel processing, GPU
+support, GUI-based tools and so on.
 
-The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with information such as
+The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with information
+such as:
 
 - image axes
 - scale of each axis
@@ -37,7 +39,10 @@ git clone https://github.com/hanjinliu/impy
 
 ### Code as fast as you speak
 
-Almost all the functions, such as filtering, deconvolution, labeling, single molecule detection, and even those pure `numpy` functions, are aware of image metadata. They "know" which dimension corresponds to `"z"` axis, which axes they should iterate along or where to save the image. As a result, **your code will be very concise**:
+Almost all the functions, such as filtering, deconvolution, labeling, single molecule
+detection, and even those pure `numpy` functions, are aware of image metadata. They
+"know" which dimension corresponds to `"z"` axis, which axes they should iterate along
+or where to save the image. As a result, **your code will be very concise**:
 
 ```python
 import impy as ip
@@ -52,7 +57,7 @@ img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend tim
 
 ### Supports many file formats
 
-`impy` automatically chooses proper reader/writer according to the extension.
+`impy` automatically chooses the proper reader/writer according to the extension.
 
 - Tiff file (".tif", ".tiff")
 - MRC file (".mrc", ".rec", ".st", ".map", ".map.gz")
@@ -111,8 +116,8 @@ img.imfilter(param=1.0)
 
 ### Command line usage
 
-`impy` also supports command line based image analysis. All method of `ImgArray` is available
-from commad line, such as
+`impy` also supports command-line-based image analysis. All methods of `ImgArray` are
+available from the command line, such as
 
 ```shell
 impy path/to/image.tif ./output.tif --method gaussian_filter --sigma 2.0
@@ -127,7 +132,7 @@ out = img.gaussian_filter(sigma=2.0)
 out.imsave("./output.tif")
 ```
 
-For more complex procedure, it is possible to send image directly to `IPython`
+For more complex procedures, it is possible to send images directly to `IPython`
 
 ```
 impy path/to/image.tif -i
