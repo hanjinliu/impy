@@ -121,8 +121,11 @@ def array(
             dtype = arr.dtype
     
     axes, name = _normalize_params(axes, name, like)
-        
-    _arr = np.array(arr, dtype=dtype, copy=copy)
+    
+    if copy:
+        _arr = np.array(arr, dtype=dtype)
+    else:
+        _arr = np.asarray(arr, dtype=dtype)
     
     # Automatically determine axes
     if axes is None:
