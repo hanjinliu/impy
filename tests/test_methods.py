@@ -122,6 +122,22 @@ def test_lazy_tiled(resource):
         img.tiled(chunks=(40, 50, 50)).dog_filter(low_sigma=1.0, fourier=True)
         img.tiled(chunks=(40, 50, 50)).log_filter(sigma=1.0)
 
+@pytest.mark.parametrize("dtype", [np.float32, np.int8, np.int16, np.uint8, np.uint16])
+def test_tiled_dtype(resource, dtype):
+    with ip.SetConst(RESOURCE=resource):
+        rng = ip.random.default_rng(1111)
+        
+        img = rng.random(size=(120, 120, 120), axes="zyx").astype(dtype)
+        out = img.tiled(chunks=(40, 50, 50)).lowpass_filter()
+        assert out.dtype == dtype
+        
+        rng = ip.lazy.random.default_rng(1111)
+        
+        img = rng.random(size=(120, 120, 120), axes="zyx").astype(dtype)
+        out = img.tiled(chunks=(40, 50, 50)).lowpass_filter()
+        assert out.dtype == dtype
+        
+
 @pytest.mark.parametrize("order", [1, 3])
 def test_drift_correction(order: int):
     img = ip.random.normal(size=(5, 10, 3, 120, 120), axes="tzcyx")
