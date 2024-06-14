@@ -281,6 +281,12 @@ class LazyImgArray(AxesMixin):
         chunk_info = ", ".join([f"{s}({o})" for s, o in zip(self.chunksize, self.axes)])
         return chunk_info
     
+    def astype(self, dtype: DTypeLike, copy: bool = True) -> LazyImgArray:
+        """Convert the array to the specified data type."""
+        out = self.__class__(self.value.astype(dtype, copy=copy))
+        out._set_info(self)
+        return out
+    
     def _repr_dict_(self):
         return {
             "name": self.name,
@@ -555,9 +561,9 @@ class LazyImgArray(AxesMixin):
             dtype = self.dtype
         all_axes = str(self.axes)
         def _func(input: xp.ndarray, *args, **kwargs):
-            out = xp.empty(input.shape, input.dtype)
+            out = xp.empty(input.shape, dtype=dtype)
             for sl in iter_slice(input.shape, c_axes, all_axes):
-                out[sl] = func(input[sl], *args, **kwargs)
+                out[sl] = func(input[sl], *args, **kwargs).astype(dtype, copy=False)
             return out
         depth = switch_slice(c_axes, self.axes, 0, depth)
         return da.map_overlap(

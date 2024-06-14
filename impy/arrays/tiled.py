@@ -94,9 +94,12 @@ class TiledImage(Generic[_T]):
             from dask import array as da
             
             input = da.from_array(img.value, chunks=self._chunks)
+            
+            def _func(arr: np.ndarray, *args, **kwargs) -> np.ndarray:
+                return func(arr, *args, **kwargs).astype(arr.dtype, copy=False)
             out: np.ndarray = xp.asnumpy(
                 da.map_overlap(
-                    func, 
+                    _func, 
                     input,
                     *args,
                     depth=self.depth,
@@ -114,6 +117,7 @@ class TiledImage(Generic[_T]):
                 c_axes="",
                 depth=self.depth,
                 boundary=self.boundary, 
+                dtype=img.dtype,
                 args=args,
                 kwargs=kwargs,
             )
