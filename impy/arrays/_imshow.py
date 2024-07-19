@@ -178,3 +178,32 @@ def _imshow_ipywidgets(arr: LabeledArray, label: bool, dims, **kwargs) -> Labele
     from ipywidgets import interact
     
     raise NotImplementedError()
+
+@register("ndv")
+def _imshow_ndv(self: LabeledArray, label: bool, dims, **kwargs) -> LabeledArray:
+    from ndv import NDViewer
+    
+    app, should_exec = _get_app()
+    if "c" in self.axes:
+        channel_axis = self.axes.index("c")
+    else:
+        channel_axis = None
+    viewer = NDViewer(self, channel_axis=channel_axis)
+    viewer.show()
+    if should_exec:
+        app.exec()
+    return self
+
+def _get_app():
+    # ported from ndv
+    import sys
+    from qtpy.QtWidgets import QApplication
+
+    is_ipython = False
+    if (app := QApplication.instance()) is None:
+        app = QApplication([])
+        app.setApplicationName("ndv")
+    elif (ipy := sys.modules.get("IPython")) and (shell := ipy.get_ipython()):
+        is_ipython = str(shell.active_eventloop).startswith("qt")
+
+    return app, not is_ipython
