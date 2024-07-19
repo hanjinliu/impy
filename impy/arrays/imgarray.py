@@ -3996,7 +3996,7 @@ class ImgArray(LabeledArray):
     def drift_correction(
         self,
         shift: Coords = None,
-        ref: ImgArray = None,
+        ref: ImgArray | Any | None = None,
         *,
         zero_ave: bool = True,
         along: AxisLike | None = None,
@@ -4015,8 +4015,10 @@ class ImgArray(LabeledArray):
         shift : DataFrame or (N, D) array, optional
             Translation vectors. If DataFrame, it must have columns named with all the symbols
             contained in ``dims``.
-        ref : ImgArray, optional
-            The reference n-D image to determine drift, if ``shift`` was not given.
+        ref : ImgArray or slicer, optional
+            The reference n-D image to determine drift, if ``shift`` was not given. This
+            parameter can be a slicer, which will be used to slice the image to make a
+            reference.
         zero_ave : bool, default is True
             If True, average shift will be zero.
         along : AxisLike, optional
@@ -4046,7 +4048,7 @@ class ImgArray(LabeledArray):
             if ref is None:
                 ref = self
             elif not isinstance(ref, ImgArray):
-                raise TypeError(f"'ref' must be an ImgArray object, but got {type(ref)}")
+                ref = self[ref]
             if ref.axes != [along] + dims:
                 from itertools import product
                 _c_axes = complement_axes([along] + dims, str(ref.axes))

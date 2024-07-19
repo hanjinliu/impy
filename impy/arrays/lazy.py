@@ -1149,10 +1149,11 @@ class LazyImgArray(AxesMixin):
     @same_dtype(asfloat=True)
     @check_input_and_output_lazy
     @dims_to_spatial_axes
-    def drift_correction(self, shift: Coords = None, ref: ImgArray = None, *, 
-                         zero_ave: bool = True, along: str = None, dims: Dims = 2, 
-                         update: bool = False, **affine_kwargs) -> LazyImgArray:
-        
+    def drift_correction(
+        self, shift: Coords | None = None, ref: ImgArray | Any | None = None, *, 
+        zero_ave: bool = True, along: str = None, dims: Dims = 2, 
+        update: bool = False, **affine_kwargs,
+    ) -> LazyImgArray:
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
         elif len(along) != 1:
@@ -1171,8 +1172,8 @@ class LazyImgArray(AxesMixin):
                          UserWarning)
                     dims = _dims
             elif not isinstance(ref, self.__class__):
-                raise TypeError(f"'ref' must be LazyImgArray object, but got {type(ref)}")
-            elif ref.axes != along + dims:
+                ref = self[ref]
+            if ref.axes != along + dims:
                 raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
                                  f"axes of `ref`({ref.axes})")
 
