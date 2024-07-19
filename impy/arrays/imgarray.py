@@ -6,13 +6,13 @@ from functools import partial
 from scipy import ndimage as ndi
 from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable, overload, Any
 
-from .labeledarray import LabeledArray
-from .label import Label
-from .phasearray import PhaseArray
-from .specials import PropArray
-from .tiled import TiledAccessor
+from impy.arrays.labeledarray import LabeledArray
+from impy.arrays.label import Label
+from impy.arrays.phasearray import PhaseArray
+from impy.arrays.specials import PropArray
+from impy.arrays.tiled import TiledAccessor
 
-from ._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
+from impy.arrays._utils import _filters, _linalg, _deconv, _misc, _glcm, _docs, _transform, _structures, _corr
 
 from impy.arrays.bases.metaarray import _NoValue
 from impy.utils.axesop import add_axes, switch_slice, complement_axes, find_first_appeared
@@ -216,6 +216,44 @@ class ImgArray(LabeledArray):
             _transform.warp,
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval),
+        )
+    
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def shift(
+        self, translation, order: int = 3, mode: PaddingMode = "constant", 
+        cval: float = 0, prefilter: bool | None = None, dims: Dims = None,
+        update: bool = False,
+    ) -> ImgArray:
+        """
+        2D stretching of an image from a point.
+
+        Parameters
+        ----------
+        translation : array-like
+            Translation in pixels. Must match the length of spatial dimensions.
+        {mode}{cval}{dims}{order}
+
+        Returns
+        -------
+        ImgArray
+            Stretched image.
+        """
+        if isinstance(cval, str) and hasattr(np, cval):
+            cval = getattr(np, cval)(self.value)
+        elif callable(cval):
+            cval = cval(self.value)
+
+        prefilter = prefilter or order > 1
+        mtx = _transform.compose_affine_matrix(translation=translation)
+
+        return self._apply_dask(
+            _transform.warp,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(matrix=mtx, order=order, mode=mode, cval=cval,
+                        prefilter=prefilter)
         )
 
     @_docs.write_docs

@@ -817,8 +817,8 @@ def manders_coloc(
     
     :math:`r = \frac{\sum_{i \in I_{ref}} I_i}{\sum_{i} I_i}`
     
-    This value is NOT independent of background intensity. You need to correctly subtract
-    background from self. This value is NOT interchangable between channels.
+    This value is NOT independent of background intensity. You need to correctly 
+    subtract background from self. This value is NOT interchangable between channels.
     
     Parameters
     ----------
@@ -832,13 +832,19 @@ def manders_coloc(
         Correlation coefficient(s).
     """        
     if img1.dtype != bool:
-        raise TypeError("`ref` must be a binary image.")
+        raise TypeError("`img1` must be a binary image.")
     if img0.shape != img1.shape:
         raise ValueError(f"Shape mismatch. `img0` has shape {img0.shape} but `img1` "
                          f"has shape {img1.shape}")
-    if img0.axes != img1.axes:
-        warn(f"Axes mismatch. `img0` has axes {img0.axes} but `img1` has axes {img1.axes}. "
-              "Result may be wrong due to this mismatch.", UserWarning)
+    if not isinstance(img1, ImgArray):
+        img1 = ip_asarray(img1, axes=img0.axes)
+    elif img0.axes != img1.axes:
+        warn(
+            f"Axes mismatch. `img0` has axes {img0.axes} but `img1` has axes "
+            f"{img1.axes}. Result may be wrong due to this mismatch.",
+            UserWarning,
+            stacklevel=2,
+        )
     img0 = img0.as_float()
     total = np.sum(img0, axis=dims)
     img0 = img0.copy()
