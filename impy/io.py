@@ -365,8 +365,9 @@ def _(path: str, memmap: bool = False) -> ImageData:
 @IO.mark_writer(".tif", ".tiff")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The TIFF writer."""
+    from tifffile import imwrite, memmap
+
     if lazy:
-        from tifffile import memmap
         from dask import array as da
         kwargs = _get_ijmeta_from_img(img, update_lut=False)
         mmap = memmap(str(path), shape=img.shape, dtype=img.dtype, **kwargs)
@@ -375,7 +376,6 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         da.store(img_dask, writer)
         return
 
-    from tifffile import imwrite
     rest_axes = complement_axes(img.axes, "tzcyx")
     new_axes = ""
     for a in img.axes:
@@ -394,11 +394,11 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         img_new.set_scale(img)
         img = img_new
 
-        warnings.warn("Image axes changed", UserWarning, stacklevel=2)
+        warnings.warn(f"Image axes changed", UserWarning, stacklevel=2)
 
     img = img.sort_axes()
     if img.dtype == "bool":
-        img = img.astype(np.uint8)
+        img = img.astype(np.uint8)  # tif does not support bool
     imsave_kwargs = _get_ijmeta_from_img(img, update_lut=True)
     imwrite(path, img, **imsave_kwargs)
     return None
