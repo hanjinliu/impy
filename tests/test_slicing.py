@@ -5,10 +5,10 @@ import pytest
 
 def test_str_slicing():
     img = ip.random.normal(size=(10, 2, 30, 40), axes = "tcyx")
-    assert_equal(img["t=4;c=0"], img.value[4,0])
-    assert_equal(img["c=0;x=10:30"], img.value[:,0,:,10:30])
-    assert_equal(img["y=3,6,20,26;x=7,3,4,13"], img.value[:,:,[3,6,20,26],[7,3,4,13]])
-    assert_equal(img["t=::-1;x=2:-1:3"], img.value[::-1,:,:,2:-1:3])
+    assert_equal(img["t=4;c=0"], img.value[4, 0])
+    assert_equal(img["c=0;x=10:30"], img.value[:, 0, :, 10:30])
+    assert_equal(img["y=3,6,20,26;x=7,3,4,13"], img.value[:, :, [3, 6, 20, 26], [7, 3, 4, 13]])
+    assert_equal(img["t=::-1;x=2:-1:3"], img.value[::-1, :, :, 2:-1:3])
 
 def test_slicer_slicing():
     img = ip.random.normal(size=(10, 2, 30, 40), axes = "tcyx")
@@ -29,7 +29,12 @@ def test_sel_slicing():
     assert_equal(img.sel(c="blue", x=slice("10", "30")), img.value[:,0,:,10:30])
     assert_equal(img.sel(y=["3", "6", "20", "26"], x=["7", "3", "4", "13"]), img.value[:,:,[3,6,20,26],[7,3,4,13]])
     assert_equal(img.sel(t=slice(None, None, -1), x=slice("2", "39", 3)), img.value[::-1,:,:,2:40:3])
-    
+
+def test_eval_slicing():
+    img = ip.random.normal(size=(10, 2, 30, 40), axes = "tcyx")
+    assert_equal(img["t=N//2;c=N-1"], img.value[5, 1])
+    assert_equal(img["c=0;x=ceil(N/2):N"], img.value[:, 0, :, 20:40])
+    assert_equal(img["y=ceil(N/10), floor(N/5)"], img.value[:, :, [3, 6], :])
 
 def test_formatter():
     img = ip.random.normal(size=(10, 2, 30, 40))

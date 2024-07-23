@@ -119,7 +119,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return self.axes.tuple(super().shape)
     
     def __getitem__(self, key: SupportSlicing) -> Self:
-        key = slicer.solve_slicer(key, self.axes)
+        key = slicer.solve_slicer(key, self.axes, self.shape)
 
         if isinstance(key, np.ndarray):
             key = self._broadcast(key)
@@ -133,7 +133,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return out
     
     def __setitem__(self, key: SupportSlicing, value):
-        key = slicer.solve_slicer(key, self.axes)
+        key = slicer.solve_slicer(key, self.axes, self.shape)
         
         if isinstance(key, MetaArray) and key.dtype == bool:
             key = axesop.add_axes(self.axes, self.shape, key, key.axes)
@@ -181,7 +181,7 @@ class MetaArray(AxesMixin, np.ndarray):
         if indexer is not None:
             kwargs.update(indexer)
 
-        key = slicer.solve_slicer(kwargs, self.axes)
+        key = slicer.solve_slicer(kwargs, self.axes, self.shape)
         out = super().__getitem__(key)  # get item as np.ndarray
         
         if isinstance(out, self.__class__):  # cannot set attribution to such as numpy.int32 

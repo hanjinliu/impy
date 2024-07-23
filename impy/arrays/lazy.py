@@ -129,7 +129,7 @@ class LazyImgArray(AxesMixin):
         return xp.asnumpy(self.value.compute())
     
     def __getitem__(self, key):
-        key = slicer.solve_slicer(key, self.axes)
+        key = slicer.solve_slicer(key, self.axes, self.shape)
             
         new_axes = slice_axes(self.axes, key)
         out = self.__class__(

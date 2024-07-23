@@ -2874,7 +2874,7 @@ class ImgArray(LabeledArray):
         if key is None:
             slices = (slice(None),) * ndim
         else:
-            slices = solve_slicer(key, Axes(dims))
+            slices = solve_slicer(key, Axes(dims), self.shape)
         dtype = np.complex128 if double_precision else np.complex64
 
         # Calculate exp(-ikx)
@@ -3995,7 +3995,7 @@ class ImgArray(LabeledArray):
     @check_input_and_output
     def drift_correction(
         self,
-        shift: Coords = None,
+        shift: Coords | None = None,
         ref: ImgArray | Any | None = None,
         *,
         zero_ave: bool = True,
