@@ -77,9 +77,9 @@ class ScaleView(MutableMapping[str, float]):
         axes = sorted(self.keys(), key=lambda a: ORDER.get(a, 0))
         return [self[a] for a in axes]
     
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=True) -> np.ndarray:
         """To make this object compatible with the 'scale' argument in napari."""
-        return np.array(self.__list__(), dtype=dtype)
+        return np.array(self.__list__(), dtype=dtype, copy=copy)
     
     def __repr__(self) -> str:
         kwargs = ", ".join(

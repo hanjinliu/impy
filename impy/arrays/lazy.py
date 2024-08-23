@@ -123,10 +123,10 @@ class LazyImgArray(AxesMixin):
     
     gb = GB  # alias
     
-    def __array__(self):
-        # Should not be `self.compute` because in napari Viewer this function is called every time
-        # sliders are moved.
-        return xp.asnumpy(self.value.compute())
+    def __array__(self, dtype=None, copy=True):
+        # Should not be `self.compute` because in napari Viewer this function is called 
+        # every time sliders are moved.
+        return xp.asnumpy(self.value.compute()).astype(dtype, copy=False)
     
     def __getitem__(self, key):
         key = slicer.solve_slicer(key, self.axes, self.shape)

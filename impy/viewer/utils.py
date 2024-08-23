@@ -353,7 +353,7 @@ class ComplexArrayView:
             raise TypeError("Input was not a complex array.")
         self._data = data
     
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype=None, copy=False) -> np.ndarray:
         return np.abs(self._data)
     
     @property
