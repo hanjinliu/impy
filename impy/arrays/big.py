@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import wraps
 
-from .lazy import LazyImgArray
+from impy.arrays.lazy import LazyImgArray
 
 
 def wrap_method(method):

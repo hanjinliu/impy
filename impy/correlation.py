@@ -22,13 +22,13 @@ __all__ = [
     "pcc_maximum",
     "pcc_maximum_with_corr",
     "ft_pcc_maximum",
-    "ft_pcc_maximum_with_corr", 
+    "ft_pcc_maximum_with_corr",
     "polar_pcc_maximum",
     "polar_pcc_maximum_with_corr",
     "zncc_maximum",
     "zncc_maximum_with_corr",
-    "pcc_landscape", 
-    "ft_pcc_landscape", 
+    "pcc_landscape",
+    "ft_pcc_landscape",
     "zncc_landscape",
     "pearson_coloc",
     "manders_coloc",
@@ -36,51 +36,51 @@ __all__ = [
 
 @_docs.write_docs
 def fsc(
-    img0: ImgArray, 
-    img1: ImgArray, 
+    img0: ImgArray,
+    img1: ImgArray,
     dfreq: float = 0.02,
 ) -> tuple[np.ndarray, np.ndarray]:
     r"""
-    Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images) 
+    Calculate Fourier Shell Correlation (FSC; or Fourier Ring Correlation, FRC, for 2-D images)
     between two images. FSC is defined as:
-    
+
     .. math::
-    
+
         FSC(r) = \frac{Re(\sum_{r<r'<r+dr}[F_0(r') \cdot \bar{F_1}(r)])}
         {\sqrt{\sum_{r<r'<r+dr}|F_0(r')|^2 \cdot \sum_{r<r'<r+dr}|F_1(r')|^2}}
-    
+
     In this function, frequency domain will be binned like this:
-    
+
     .. code-block::
 
         |---|---|---|---|---|
         0  0.1 0.2 0.3 0.4 0.5
-    
+
     and frequencies calculated in each bin will be 0.05, 0.15, ..., 0.45.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
     dfreq : float, default is 0.02
         Difference of frequencies. This value will be the width of bins.
-                
+
     Returns
     -------
     Two np.ndarray
         The first array is frequency, and the second array is FSC.
-    """    
+    """
     img0, img1 = _check_inputs(img0, img1)
-    
+
     shape = img0.shape
     dims = img0.axes
-    
+
     freqs = xp.meshgrid(*[xp.fft.fftshift(xp.fft.fftfreq(s)) for s in shape], indexing="ij")
     r = xp.sqrt(sum(f**2 for f in freqs))
 
     # make radially separated labels
     labels = (r/dfreq).astype(np.uint16)
     nlabels = int(xp.asnumpy(labels.max()))
-    
+
     out = xp.empty(nlabels, dtype=np.float32)
     def radial_sum(arr):
         arr = xp.asarray(arr)
@@ -88,7 +88,7 @@ def fsc(
 
     f0 = img0.fft(dims=dims)
     f1 = img1.fft(dims=dims)
-    
+
     cov = f0.real*f1.real + f0.imag*f1.imag
     pw0 = f0.real**2 + f0.imag**2
     pw1 = f1.real**2 + f1.imag**2
@@ -112,7 +112,7 @@ def _ncc(img0: ImgArray, img1: ImgArray, dims: Dims):
     return xp.asnumpy(corr)
 
 
-def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: xp.ndarray):
+def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: np.ndarray):
     n = np.prod(img0.sizesof(dims))
     img0ma = np.ma.array(img0.value, mask=mask)
     img1ma = np.ma.array(img1.value, mask=mask)
@@ -121,7 +121,7 @@ def _masked_ncc(img0: ImgArray, img1: ImgArray, dims: Dims, mask: xp.ndarray):
         np.ma.std(img0ma, axis=axis)*np.ma.std(img1ma, axis=axis)) / n
 
 
-def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
+def _zncc(img0: np.ndarray, img1: np.ndarray, dims: tuple[int, ...]):
     # Basic Zero-mean Normalized Cross Correlation with batch processing.
     # Inputs must be already zero-normalized.
     corr = xp.sum(img0 * img1, axis=dims) / (
@@ -129,7 +129,7 @@ def _zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...]):
     return corr
 
 
-def _masked_zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...], mask: ImgArray):
+def _masked_zncc(img0: np.ndarray, img1: np.ndarray, dims: tuple[int, ...], mask: ImgArray):
     if xp.state == "cupy":
         img0 = img0*mask
         img1 = img1*mask
@@ -145,21 +145,21 @@ def _masked_zncc(img0: xp.ndarray, img1: xp.ndarray, dims: tuple[int, ...], mask
 @_docs.write_docs
 @dims_to_spatial_axes
 def ncc(
-    img0: ImgArray, 
-    img1: ImgArray, 
-    mask: ImgArray | None = None, 
-    squeeze: bool = True, 
-    *, 
+    img0: ImgArray,
+    img1: ImgArray,
+    mask: ImgArray | None = None,
+    squeeze: bool = True,
+    *,
     dims: Dims = None
 ) -> PropArray | float:
     """
     Normalized Cross Correlation.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate 
+        If provided, True regions will be masked and will not be taken into account when calculate
         correlation.
     {squeeze}
     {dims}
@@ -168,7 +168,7 @@ def ncc(
     -------
     PropArray or float
         Correlation value(s).
-    """    
+    """
     img0, img1 = _check_inputs(img0, img1)
     if mask is None:
         corr = _ncc(img0, img1, dims)
@@ -181,8 +181,8 @@ def ncc(
 @_docs.write_docs
 @dims_to_spatial_axes
 def zncc(
-    img0: ImgArray, 
-    img1: ImgArray, 
+    img0: ImgArray,
+    img1: ImgArray,
     mask: ImgArray | None = None,
     squeeze: bool = True,
     *,
@@ -190,12 +190,12 @@ def zncc(
 ) -> PropArray | float:
     """
     Zero-mean Normalized Cross Correlation.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate 
+        If provided, True regions will be masked and will not be taken into account when calculate
         correlation.
     {squeeze}
     {dims}
@@ -204,7 +204,7 @@ def zncc(
     -------
     PropArray or float
         Correlation value(s).
-    """    
+    """
     img0, img1 = _check_inputs(img0, img1)
     _dims = tuple(img0.axisof(a) for a in dims)
     _img0 = xp.asarray(img0.value)
@@ -225,26 +225,26 @@ pearson_coloc = zncc
 @_docs.write_docs
 @dims_to_spatial_axes
 def nmi(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
     mask: ImgArray | None = None,
-    bins: int = 100, 
+    bins: int = 100,
     squeeze: bool = True,
-    *, 
+    *,
     dims: Dims = None
 ) -> PropArray | float:
     r"""
     Normalized Mutual Information.
-    
+
     :math:`Y(A, B) = \frac{H(A) + H(B)}{H(A, B)}`
-                   
+
     See "Elegant SciPy"
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account when calculate 
+        If provided, True regions will be masked and will not be taken into account when calculate
         correlation.
     bins : int, default is 100
         Number of bins to construct histograms.
@@ -277,16 +277,16 @@ def nmi(
 @_docs.write_docs
 @dims_to_spatial_axes
 def fourier_ncc(
-    img0: ImgArray, 
-    img1: ImgArray, 
-    mask: ImgArray | None = None, 
-    squeeze: bool = True, 
-    *, 
+    img0: ImgArray,
+    img1: ImgArray,
+    mask: ImgArray | None = None,
+    squeeze: bool = True,
+    *,
     dims: Dims = None
 ) -> PropArray | float:
     """
     Normalized Cross Correlation in Fourier space.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
@@ -300,7 +300,7 @@ def fourier_ncc(
     -------
     PropArray or float
         Correlation value(s).
-    """    
+    """
     img0, img1 = _check_inputs(img0, img1)
     f0 = np.sqrt(img0.power_spectra(dims=dims, zero_norm=True))
     f1 = np.sqrt(img1.power_spectra(dims=dims, zero_norm=True))
@@ -315,21 +315,21 @@ def fourier_ncc(
 @_docs.write_docs
 @dims_to_spatial_axes
 def fourier_zncc(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
-    mask: ImgArray | None = None, 
-    squeeze: bool = True, 
-    *, 
+    mask: ImgArray | None = None,
+    squeeze: bool = True,
+    *,
     dims: Dims = None
 ) -> PropArray | float:
     """
     Zero-mean Normalized Cross Correlation in Fourier space.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
     mask : boolean ImgArray, optional
-        If provided, True regions will be masked and will not be taken into account 
+        If provided, True regions will be masked and will not be taken into account
         when calculate correlation.
     {squeeze}
     {dims}
@@ -338,11 +338,11 @@ def fourier_zncc(
     -------
     PropArray or float
         Correlation value(s).
-    """    
+    """
     img0, img1 = _check_inputs(img0, img1)
     pw0 = xp.asarray(img0.power_spectra(dims=dims, zero_norm=True).value)
     pw1 = xp.asarray(img1.power_spectra(dims=dims, zero_norm=True).value)
-    
+
     _dims = tuple(img0.axisof(a) for a in dims)
     f0 = xp.sqrt(pw0)
     f1 = xp.sqrt(pw1)
@@ -358,16 +358,16 @@ def fourier_zncc(
 
 @_docs.write_docs
 def pcc_maximum(
-    img0: ImgArray, 
-    img1: ImgArray, 
-    mask: ImgArray | None = None, 
+    img0: ImgArray,
+    img1: ImgArray,
+    mask: ImgArray | None = None,
     upsample_factor: int = 10,
     max_shifts: int | tuple[int, ...] | None = None
 ) -> np.ndarray:
     """
     Calculate lateral shift between two images using phase cross correlation.
-    
-    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters 
+
+    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters
     are supported.
 
     Parameters
@@ -376,28 +376,28 @@ def pcc_maximum(
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
     max_shifts : int, tuple of int, optional
-        Maximum shifts in each dimension. If a single integer is given, it is interpreted 
+        Maximum shifts in each dimension. If a single integer is given, it is interpreted
         as maximum shifts in all dimensions. No upper bound of shifts if not given.
-    
+
     Returns
     -------
     np.ndarray
         Shift in pixel.
-    """    
+    """
     return pcc_maximum_with_corr(img0, img1, mask, upsample_factor, max_shifts)[0]
 
 @_docs.write_docs
 def pcc_maximum_with_corr(
-    img0: ImgArray, 
-    img1: ImgArray, 
-    mask: ImgArray | None = None, 
+    img0: ImgArray,
+    img1: ImgArray,
+    mask: ImgArray | None = None,
     upsample_factor: int = 10,
     max_shifts: int | tuple[int, ...] | None = None
 ) -> np.ndarray:
     """
     Calculate lateral shift between two images using phase cross correlation.
-    
-    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters 
+
+    Same as ``skimage.registration.phase_cross_correlation`` but some additional parameters
     are supported.
 
     Parameters
@@ -406,14 +406,14 @@ def pcc_maximum_with_corr(
     upsample_factor : int, default is 10
         Up-sampling factor when calculating phase cross correlation.
     max_shifts : int, tuple of int, optional
-        Maximum shifts in each dimension. If a single integer is given, it is interpreted 
+        Maximum shifts in each dimension. If a single integer is given, it is interpreted
         as maximum shifts in all dimensions. No upper bound of shifts if not given.
-    
+
     Returns
     -------
     np.ndarray and float
         Shift in pixel and phase cross correlation
-    """    
+    """
     if img0 is img1:
         return np.zeros(img0.ndim)
     img0, img1 = _check_inputs(img0, img1)
@@ -424,9 +424,9 @@ def pcc_maximum_with_corr(
     if isinstance(max_shifts, (int, float)):
         max_shifts = (max_shifts,) * img0.ndim
     shift, pcc = subpixel_pcc(
-        xp.asarray(ft0.value), 
+        xp.asarray(ft0.value),
         xp.asarray(ft1.value),
-        upsample_factor, 
+        upsample_factor,
         max_shifts=max_shifts
     )
     return xp.asnumpy(shift), float(pcc)
@@ -434,14 +434,14 @@ def pcc_maximum_with_corr(
 @_docs.write_docs
 def ft_pcc_maximum(
     img0: ImgArray,
-    img1: ImgArray, 
-    mask: ImgArray | None = None, 
+    img1: ImgArray,
+    mask: ImgArray | None = None,
     upsample_factor: int = 10,
     max_shifts: float | tuple[float, ...] | None = None
 ) -> np.ndarray:
     """
     Calculate lateral shift between two images using phase cross correlation.
-    
+
     This function takes Fourier transformed images as input. If you have to repetitively
     use a same template image, this function is faster.
 
@@ -458,20 +458,20 @@ def ft_pcc_maximum(
     -------
     np.ndarray
         Shift in pixel.
-    """    
+    """
     return ft_pcc_maximum_with_corr(img0, img1, mask, upsample_factor, max_shifts)[0]
 
 @_docs.write_docs
 def ft_pcc_maximum_with_corr(
     img0: ImgArray,
-    img1: ImgArray, 
-    mask: ImgArray | None = None, 
+    img1: ImgArray,
+    mask: ImgArray | None = None,
     upsample_factor: int = 10,
     max_shifts: float | tuple[float, ...] | None = None
 ) -> np.ndarray:
     """
     Calculate lateral shift between two images using phase cross correlation.
-    
+
     This function takes Fourier transformed images as input. If you have to repetitively
     use a same template image, this function is faster.
 
@@ -488,7 +488,7 @@ def ft_pcc_maximum_with_corr(
     -------
     np.ndarray and float
         Shift in pixel and phase cross correlation.
-    """    
+    """
     _check_dimensions(img0, img1)
     if mask is not None:
         img0 = img0.copy()
@@ -496,7 +496,7 @@ def ft_pcc_maximum_with_corr(
     if isinstance(max_shifts, (int, float)):
         max_shifts = (max_shifts,) * img0.ndim
     shift, pcc = subpixel_pcc(
-        xp.asarray(img0.value), 
+        xp.asarray(img0.value),
         xp.asarray(img1.value),
         upsample_factor,
         max_shifts=max_shifts,
@@ -505,7 +505,7 @@ def ft_pcc_maximum_with_corr(
 
 @_docs.write_docs
 def pcc_landscape(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
     max_shifts: int | tuple[int, ...] | None = None,
 ):
@@ -523,15 +523,15 @@ def pcc_landscape(
     -------
     ImgArray
         Landscape image.
-    """    
+    """
     _check_dimensions(img0, img1)
     if isinstance(max_shifts, (int, float)):
         max_shifts = (max_shifts,) * img0.ndim
-    
+
     ft0 = img0.fft(dims=img0.axes)
     ft1 = img1.fft(dims=img1.axes)
     landscape = draw_pcc_landscape(
-        xp.asarray(ft0.value), 
+        xp.asarray(ft0.value),
         xp.asarray(ft1.value),
         max_shifts=max_shifts
     )
@@ -539,7 +539,7 @@ def pcc_landscape(
 
 @_docs.write_docs
 def ft_pcc_landscape(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
     max_shifts: int | tuple[int, ...] | None = None,
 ):
@@ -548,7 +548,7 @@ def ft_pcc_landscape(
 
     This function takes Fourier transformed images as input. If you have to repetitively
     use a same template image, this function is faster.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
@@ -560,13 +560,13 @@ def ft_pcc_landscape(
     -------
     ImgArray
         Landscape image.
-    """    
+    """
     _check_dimensions(img0, img1)
     if isinstance(max_shifts, (int, float)):
         max_shifts = (max_shifts,) * img0.ndim
 
     landscape = draw_pcc_landscape(
-        xp.asarray(img0.value), 
+        xp.asarray(img0.value),
         xp.asarray(img1.value),
         max_shifts=max_shifts
     )
@@ -594,7 +594,7 @@ def polar_pcc_maximum(
     -------
     float
         Rotation in degree
-    """    
+    """
     return polar_pcc_maximum_with_corr(img0, img1, upsample_factor, max_degree)[0]
 
 @_docs.write_docs
@@ -619,7 +619,7 @@ def polar_pcc_maximum_with_corr(
     -------
     float and float
         Rotation in degree and phase cross correlation
-    """    
+    """
     return _polar_corr(pcc_maximum_with_corr, img0, img1, upsample_factor, max_degree)
 
 
@@ -645,7 +645,7 @@ def polar_zncc_maximum(
     -------
     float
         Rotation in degree
-    """    
+    """
     return polar_zncc_maximum_with_corr(img0, img1, upsample_factor, max_degree)[0]
 
 @_docs.write_docs
@@ -670,7 +670,7 @@ def polar_zncc_maximum_with_corr(
     -------
     float and float
         Rotation in degree and phase cross correlation
-    """    
+    """
     return _polar_corr(zncc_maximum_with_corr, img0, img1, upsample_factor, max_degree)
 
 
@@ -681,7 +681,7 @@ def _polar_corr(
     upsample_factor: int = 10,
     max_degree: int = None,
 ) -> float:
-    """Calculate rotational shift between two images using polar Fourier transformation."""    
+    """Calculate rotational shift between two images using polar Fourier transformation."""
     img0, img1 = _check_inputs(img0, img1)
     if img0.ndim != 2:
         raise TypeError("Currently only 2D image is supported.")
@@ -700,14 +700,14 @@ def _polar_corr(
 
 @_docs.write_docs
 def zncc_maximum(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
     upsample_factor: int = 10,
     max_shifts: int | tuple[int, ...] | None = None
 ) -> np.ndarray:
     """
     Calculate lateral shift between two images using zero-mean normalized cross correlation.
-    
+
     Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.
     Since ZNCC uses real space, this function performs better than PCC when the input images
     have frequency loss.
@@ -725,19 +725,19 @@ def zncc_maximum(
     -------
     np.ndarray
         Shift in pixel .
-    """    
+    """
     return zncc_maximum_with_corr(img0, img1, upsample_factor, max_shifts)[0]
 
 @_docs.write_docs
 def zncc_maximum_with_corr(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
     upsample_factor: int = 10,
     max_shifts: int | tuple[int, ...] | None = None
 ) -> tuple[np.ndarray, float]:
     """
     Calculate lateral shift between two images using zero-mean normalized cross correlation.
-    
+
     Similar to :func:`pcc_maximum`, this function can determine shift at sub-pixel precision.
     Since ZNCC uses real space, this function performs better than PCC when the input images
     have frequency loss.
@@ -754,7 +754,7 @@ def zncc_maximum_with_corr(
     -------
     np.ndarray and float
         Shift in pixel and ZNCC value.
-    """    
+    """
     if img0 is img1:
         return np.zeros(img0.ndim), 1.
     img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
@@ -763,16 +763,16 @@ def zncc_maximum_with_corr(
     if isinstance(max_shifts, (int, float)):
         max_shifts = (max_shifts,) * img0.ndim
     shift, zncc = subpixel_ncc(
-        xp.asarray(np.asarray(img0z)), 
+        xp.asarray(np.asarray(img0z)),
         xp.asarray(np.asarray(img1z)),
-        upsample_factor, 
+        upsample_factor,
         max_shifts=max_shifts
     )
     return xp.asnumpy(shift), float(zncc)
 
 @_docs.write_docs
 def zncc_landscape(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: ImgArray,
     max_shifts: int | tuple[int, ...] | None = None,
 ):
@@ -790,14 +790,14 @@ def zncc_landscape(
     -------
     ImgArray
         Landscape image.
-    """    
+    """
     img0, img1 = img0.astype(np.float32), img1.astype(np.float32)
     img0z = img0 - img0.mean()
     img1z = img1 - img1.mean()
     if isinstance(max_shifts, (int, float)):
         max_shifts = (max_shifts,) * img0.ndim
     landscape = draw_ncc_landscape(
-        xp.asarray(np.asarray(img0z)), 
+        xp.asarray(np.asarray(img0z)),
         xp.asarray(np.asarray(img1z)),
         max_shifts=max_shifts
     )
@@ -806,7 +806,7 @@ def zncc_landscape(
 @_docs.write_docs
 @dims_to_spatial_axes
 def manders_coloc(
-    img0: ImgArray, 
+    img0: ImgArray,
     img1: np.ndarray,
     *,
     squeeze: bool = True,
@@ -814,12 +814,12 @@ def manders_coloc(
 ) -> PropArray | float:
     r"""
     Manders' correlation coefficient. This is defined as following:
-    
+
     :math:`r = \frac{\sum_{i \in I_{ref}} I_i}{\sum_{i} I_i}`
-    
-    This value is NOT independent of background intensity. You need to correctly 
+
+    This value is NOT independent of background intensity. You need to correctly
     subtract background from self. This value is NOT interchangable between channels.
-    
+
     Parameters
     ----------
     {inputs_of_correlation}
@@ -830,7 +830,7 @@ def manders_coloc(
     -------
     PropArray or float
         Correlation coefficient(s).
-    """        
+    """
     if img1.dtype != bool:
         raise TypeError("`img1` must be a binary image.")
     if img0.shape != img1.shape:
@@ -849,22 +849,22 @@ def manders_coloc(
     total = np.sum(img0, axis=dims)
     img0 = img0.copy()
     img0[~img1] = 0
-    
+
     coeff = np.sum(img0, axis=dims) / total
     return _make_corr_output(coeff, img0, "manders_coloc", squeeze, dims)
-    
+
 
 def iter2(img0: ImgArray, img1: ImgArray, axes: str, israw: bool = False, exclude: str = ""):
     for (sl, i0), (sl, i1) in zip(img0.iter(axes, israw=israw, exclude=exclude),
                                   img1.iter(axes, israw=israw, exclude=exclude)):
         yield sl, i0, i1
-        
+
 def _check_inputs(img0: ImgArray, img1: ImgArray):
     _check_dimensions(img0, img1)
 
     img0 = img0.as_float()
     img1 = img1.as_float()
-        
+
     return img0, img1
 
 def _check_dimensions(img0: ImgArray, img1: ImgArray):
@@ -880,7 +880,7 @@ def _make_corr_output(corr: np.ndarray, refimg: ImgArray, propname: str, squeeze
     if corr.ndim == 0 and squeeze:
         corr = corr.item()
     else:
-        corr = PropArray(corr, name=refimg.name, axes=complement_axes(dims, refimg.axes), 
-                        source=refimg.source, metadata=refimg.metadata, 
+        corr = PropArray(corr, name=refimg.name, axes=complement_axes(dims, refimg.axes),
+                        source=refimg.source, metadata=refimg.metadata,
                         propname=propname, dtype=np.float32)
     return corr

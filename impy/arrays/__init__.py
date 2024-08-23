@@ -1,10 +1,10 @@
-from .imgarray import ImgArray
-from .labeledarray import LabeledArray
-from .label import Label
-from .phasearray import PhaseArray
-from .specials import PropArray
-from .lazy import LazyImgArray
-from .big import BigImgArray
+from impy.arrays.imgarray import ImgArray
+from impy.arrays.labeledarray import LabeledArray
+from impy.arrays.label import Label
+from impy.arrays.phasearray import PhaseArray
+from impy.arrays.specials import PropArray
+from impy.arrays.lazy import LazyImgArray
+from impy.arrays.big import BigImgArray
 
 __all__ = [
     "ImgArray",

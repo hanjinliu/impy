@@ -1,11 +1,5 @@
-
 from functools import wraps
 import numpy as np
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from scipy import ndimage as scipy_ndi, fft as scipy_fft
-    from types import ModuleType
 
 def cupy_dispatcher(function):
     @wraps(function)
@@ -16,24 +10,24 @@ def cupy_dispatcher(function):
         return xp.asnumpy(out)
     return func
 
-# CUDA <= ver.8 does not have gradient    
+# CUDA <= ver.8 does not have gradient
 def _gradient(a, axis=None):
     out = np.gradient(a.get(), axis=axis)
     return xp.asarray(out)
 
-class XP:    
+class XP:
     def __init__(self):
         self.state = ""
         self._reset_namespace()
         self.setNumpy()
-    
+
     def __getattr__(self, key: str):
         return getattr(self._module, key)
-    
+
     def _reset_namespace(self):
         self._signal = None
         self._fft = None
-    
+
     @property
     def signal(self):
         if self._signal is not None:
@@ -47,7 +41,7 @@ class XP:
         else:
             raise ValueError(self.state)
         return self._signal
-    
+
     @property
     def fft(self):
         if self._fft is not None:
@@ -61,13 +55,13 @@ class XP:
         else:
             raise ValueError(self.state)
         return self._fft
-    
+
     def setNumpy(self) -> None:
         from scipy import ndimage as scipy_ndi
 
         if self.state == "numpy":
             return
-        
+
         self._reset_namespace()
         self._module = np
         self.linalg = np.linalg
@@ -117,11 +111,11 @@ class XP:
         self.argmin = np.argmin
         self.pad = np.pad
         self.isnan = np.isnan
-        
+
         self.state = "numpy"
         from ._const import Const
         Const["SCHEDULER"] = "threads"
-    
+
     def setCupy(self) -> None:
         if self.state == "cupy":
             return
@@ -131,10 +125,10 @@ class XP:
             if dtype is None:
                 return out
             return out.astype(dtype)
-        
+
         from cupyx.scipy import ndimage as cp_ndi
         from cupy import linalg as cp_linalg
-        
+
         self._reset_namespace()
         self._module = cp
         self.linalg = cp_linalg
@@ -188,9 +182,8 @@ class XP:
         self.pad = cp.pad
         self.isnan = cp.isnan
         self.state = "cupy"
-        
+
         from ._const import Const
         Const["SCHEDULER"] = "single-threaded"
 
 xp = XP()
-    

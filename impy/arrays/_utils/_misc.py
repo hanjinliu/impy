@@ -69,7 +69,7 @@ def make_pad(pad_width, dims, all_axes, **kwargs):
 
     return pad_width_
 
-def dft(img: xp.ndarray, exps: list[xp.ndarray] = None):
+def dft(img: np.ndarray, exps: list[np.ndarray] = None):
     """Discrete Fourier Transform."""
     img = xp.asarray(img)
     for ker in reversed(exps):
@@ -77,7 +77,7 @@ def dft(img: xp.ndarray, exps: list[xp.ndarray] = None):
         img = xp.tensordot(xp.asarray(ker), img, axes=(1, -1))
     return img
 
-def inpaint_mean(img: xp.ndarray, mask: xp.ndarray):
+def inpaint_mean(img: np.ndarray, mask: np.ndarray):
     """Inpaint missing values with mean of surrounding pixels."""
     img = xp.asarray(img)
     mask = xp.asarray(mask)

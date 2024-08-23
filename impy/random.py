@@ -121,7 +121,7 @@ def default_rng(seed) -> ImageGenerator:
     return ImageGenerator(xp.random.default_rng(seed))
 
 class ImageGenerator:
-    def __init__(self, rng: xp.random.Generator):
+    def __init__(self, rng: np.random.Generator):
         self._rng = rng
 
     def standard_normal(

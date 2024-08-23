@@ -1,9 +1,9 @@
 from __future__ import annotations
 import numpy as np
 import operator
-from .metaarray import MetaArray
-from ...axes import Axis, Axes, AxisLike, AxesLike, UndefAxis
-from ...collections import DataList
+from impy.arrays.bases.metaarray import MetaArray
+from impy.axes import Axis, Axes, AxisLike, AxesLike, UndefAxis
+from impy.collections import DataList
 
 # Overloading numpy functions using __array_function__.
 # https://numpy.org/devdocs/reference/arrays.classes.html
@@ -29,7 +29,7 @@ def _(a: MetaArray, indices, axis=None, out=None, mode="raise"):
 @MetaArray.implements(np.stack)
 def _(imgs: list[MetaArray], axis: AxisLike = 0, dtype=None):
     old_axes = imgs[0].axes
-    
+
     if isinstance(axis, int):
         idx = axis
         axis = "#"
@@ -42,7 +42,7 @@ def _(imgs: list[MetaArray], axis: AxisLike = 0, dtype=None):
         else:
             new_axes = axis + old_axes
             idx = 0
-        
+
     if dtype is None:
         dtype = imgs[0].dtype
 
@@ -73,16 +73,16 @@ def _(imgs: list[MetaArray]):
             return obj.value
         else:
             return [_recursive_view(a) for a in obj]
-    
+
     def _recursive_get0(obj):
         first = obj[0]
         if isinstance(first, MetaArray):
             return first
         else:
             return _recursive_get0(first)
-    
+
     img0 = _recursive_get0(imgs)
-    
+
     imgs = _recursive_view(imgs)
     out = np.block(imgs).view(img0.__class__)
     out._set_info(img0, img0.axes)
@@ -114,7 +114,7 @@ def _(img: MetaArray, axis):
         axisint = axis
         new_axes = list(img.axes)
         new_axes.insert(axis, UndefAxis())
-    
+
     out: np.ndarray = np.expand_dims(img.value, axisint)
     out = out.view(img.__class__)
     out._set_info(img, new_axes)
@@ -129,7 +129,7 @@ def _(img: MetaArray, indices_or_sections, axis=0):
     if not isinstance(axis, (int, str)):
         raise TypeError(f"`axis` must be int or str, but got {type(axis)}")
     axis = img.axisof(axis)
-    
+
     imgs: list[MetaArray] = np.split(img.value, indices_or_sections, axis=axis)
     out = []
     for each in imgs:
@@ -150,12 +150,12 @@ def _(img: MetaArray, shape: tuple[int, ...]):
 @MetaArray.implements(np.moveaxis)
 def _(img: MetaArray, source, destination):
     out = np.moveaxis(img.value, source, destination)
-    
+
     if not hasattr(source, "__iter__"):
         source = [source]
     if not hasattr(destination, "__iter__"):
         destination = [destination]
-    
+
     order = [n for n in range(img.ndim) if n not in source]
 
     for dest, src in sorted(zip(destination, source)):
@@ -174,10 +174,10 @@ def _(img: MetaArray, axis1: int | AxisLike, axis2: int | AxisLike):
         axis2 = img.axisof(axis2)
     out = np.swapaxes(img.value, axis1, axis2)
     out = out.view(img.__class__)
-    
+
     axes_list = list(img.axes)
     axes_list[axis1], axes_list[axis2] = axes_list[axis2], axes_list[axis1]
-    
+
     out._set_info(img, new_axes=axes_list)
     return out
 
