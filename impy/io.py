@@ -665,7 +665,7 @@ def _get_ijmeta_from_img(img: MetaArray, update_lut=True):
         info = {}
     metadata["Info"] = str(info)
     scale_unit = img.scale_unit
-    if scale_unit[0] == "μ":
+    if scale_unit[0] in ("μ", "\xb5", "\xc2"):
         scale_unit = "\\u00B5" + scale_unit[1:]
     metadata["unit"] = scale_unit
 
