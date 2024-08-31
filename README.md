@@ -2,13 +2,10 @@
 [![Python package index download statistics](https://img.shields.io/pypi/dm/impy-array.svg)](https://pypistats.org/packages/impy-array)
 [![PyPI version](https://badge.fury.io/py/impy-array.svg)](https://badge.fury.io/py/impy-array)
 
-# A numpy extension for efficient and powerful image analysis workflow
+# impy
 
-`impy` is an all-in-one image analysis library, equipped with parallel processing, GPU
-support, GUI-based tools and so on.
-
-The core array, `ImgArray`, is a subclass of `numpy.ndarray`, tagged with information
-such as:
+`impy` is an all-in-one multi-dimensional image analysis library. The core array,
+`ImgArray`, is a subclass of `numpy.ndarray`, tagged with information such as:
 
 - image axes
 - scale of each axis
@@ -53,7 +50,7 @@ img["z=3;t=0"].imshow()                # Plot image slice at z=3 and t=0.
 img["y=N//4:N//4*3"].imshow()          # `N` for the size of the axis.
 img_fil = img.gaussian_filter(sigma=2) # Paralell batch denoising. No more for loop!
 img_prj = np.max(img_fil, axis="z")    # Z-projection (numpy is aware of image axes!).
-img_prj.imsave(f"Max-{img.name}")      # Save in the same place. Don't spend time on searching for the directory!
+img_prj.imsave("image_max.tif")        # Save in the same place. Don't spend time on searching for the directory!
 ```
 
 ### Supports many file formats
@@ -93,8 +90,8 @@ ip.Const["RESOURCE"] = "cupy"  # <- globally use GPU
 ### Seamless interface between `napari`
 
 [napari](https://github.com/napari/napari) is an interactive viewer for multi-dimensional
-images. `impy` has a **simple and efficient interface** with it, via the object `ip.gui`. 
-Since `ImgArray` is tagged with image metadata, you don't have to care about axes or 
+images. `impy` has a **simple and efficient interface** with it, via the object `ip.gui`.
+Since `ImgArray` is tagged with image metadata, you don't have to care about axes or
 scales. Just run
 
 ```python
@@ -142,6 +139,7 @@ For more complex procedures, it is possible to send images directly to `IPython`
 ```
 impy path/to/image.tif -i
 ```
+
 ```python
 thr = img.gaussian_filter().threshold()
 ```
