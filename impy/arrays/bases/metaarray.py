@@ -329,8 +329,8 @@ class MetaArray(AxesMixin, np.ndarray):
         new_axis: Iterable[int] = None,
         dtype = np.float32,
         out_chunks: tuple[int, ...] = None,
-        args: tuple[Any] = None,
-        kwargs: dict[str, Any] = None
+        args: tuple[Any] | None = None,
+        kwargs: dict[str, Any] | None = None
     ) -> Self:
         """
         Convert array into dask array and run a batch process in parallel. In many cases batch process
@@ -403,15 +403,7 @@ class MetaArray(AxesMixin, np.ndarray):
                 else:
                     _args.append(arg)
 
-            def _func(*args, **kwargs):
-                args = list(args)
-                for i in img_idx:
-                    if args[i].ndim < len(slice_in):
-                        continue
-                    args[i] = args[i][slice_in]
-                out = func(*args, **kwargs)
-                return xp.asnumpy(out[slice_out])
-
+            _func = _make_func(func, img_idx, slice_in, slice_out, xp.asnumpy)
             out = da.map_blocks(
                 _func,
                 *_args,
@@ -935,3 +927,14 @@ class NotMe:
         return False
 
 _NOTME = NotMe()
+
+def _make_func(func, img_idx, slice_in, slice_out, as_numpy):
+    def _func(*args, **kwargs):
+        args = list(args)
+        for i in img_idx:
+            if args[i].ndim < len(slice_in):
+                continue
+            args[i] = args[i][slice_in]
+        out = func(*args, **kwargs)
+        return as_numpy(out[slice_out])
+    return _func

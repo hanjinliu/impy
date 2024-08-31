@@ -21,9 +21,6 @@ class XP:
         self._reset_namespace()
         self.setNumpy()
 
-    def __getattr__(self, key: str):
-        return getattr(self._module, key)
-
     def _reset_namespace(self):
         self._signal = None
         self._fft = None
@@ -111,6 +108,7 @@ class XP:
         self.argmin = np.argmin
         self.pad = np.pad
         self.isnan = np.isnan
+        self.eye = np.eye
 
         self.state = "numpy"
         from ._const import Const
@@ -181,6 +179,7 @@ class XP:
         self.argmin = cp.argmin
         self.pad = cp.pad
         self.isnan = cp.isnan
+        self.eye = cp.eye
         self.state = "cupy"
 
         from ._const import Const

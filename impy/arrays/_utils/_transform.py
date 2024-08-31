@@ -343,9 +343,9 @@ def get_fourier_filter(size: int, filter_name: str):
         cosine_filter = xp.fft.fftshift(xp.sin(freq))
         fourier_filter *= cosine_filter
     elif filter_name == "hamming":
-        fourier_filter *= xp.fft.fftshift(xp.hamming(size))
+        fourier_filter *= xp.fft.fftshift(xp._module.hamming(size))
     elif filter_name == "hann":
-        fourier_filter *= xp.fft.fftshift(xp.hanning(size))
+        fourier_filter *= xp.fft.fftshift(xp._module.hanning(size))
     elif filter_name is None:
         fourier_filter[:] = 1
     else:
