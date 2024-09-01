@@ -254,7 +254,7 @@ def imread(
     path = str(path)
     if "*" in path:
         return _imread_glob(path, chunks=chunks, squeeze=squeeze)
-    if not os.path.exists(path):
+    elif not path.startswith("http") and not os.path.exists(path):
         raise ValueError(f"Path does not exist: {path}.")
 
     # read as a dask array
@@ -269,6 +269,12 @@ def imread(
     if squeeze:
         axes = "".join(a for i, a in enumerate(axes) if img.shape[i] > 1)
         img = np.squeeze(img)
+    if scale is None:
+        scale = {a: 1.0 for a in axes}
+    if spatial_scale_unit is None:
+        spatial_scale_unit = "px"
+    if isinstance(spatial_scale_unit, str):
+        spatial_scale_unit = {a: spatial_scale_unit for a in axes}
 
     self = LazyImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
 
