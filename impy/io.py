@@ -173,14 +173,13 @@ class ImageIO:
         """
         from .array_api import xp
 
-        path = Path(path)
         image_data = self.imread(path, memmap=True)
         img = image_data.image
 
         from dask import array as da, delayed
         from dask.array.core import normalize_chunks
 
-        if path.suffix == ".zarr":
+        if Path(path).suffix == ".zarr":
             if img.dtype == ">u2":
                 img = img.astype(np.uint16)
             dask = da.from_zarr(img, chunks=chunks).map_blocks(
@@ -493,6 +492,22 @@ def _(path: str, memmap: bool = False) -> ImageData:
     """The zarr reader."""
     import zarr
 
+    if path.startswith(("https://", "http://")):
+        zf = zarr.open(path, mode="r")
+        omero = zf.attrs.get("omero", {})
+        if channels := omero.get("channels", None):
+            labels = [ch.get("label", "") for ch in channels]
+        else:
+            labels = None
+        return ImageData(
+            image=zf[0],
+            axes="tczyx",
+            scale=None,
+            unit=None,
+            metadata=omero,
+            labels=labels,
+        )
+
     zf = zarr.open(path, mode="r")
     if memmap:
         image = zf["data"]
@@ -594,10 +609,10 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 
 @IO.mark_reader(".nd2")
 def _(path: str, memmap: bool = False):
-    import nd2
+    from nd2 import ND2File
     from dataclasses import is_dataclass, asdict
 
-    with nd2.ND2File(path) as f:
+    with ND2File(path) as f:
         if not memmap:
             image = f.asarray()
         else:
