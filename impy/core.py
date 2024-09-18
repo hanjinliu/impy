@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+from pathlib import Path
 import re
 import glob
 import itertools
@@ -22,35 +23,36 @@ from impy._const import Const
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike
     from impy.roi import RoiList
+    from impy.io._utils import ImageMetadata
     # NOTE: "_ShapeLike" is not a public type in numpy.typing.
     from typing import SupportsIndex, Union
     ShapeLike = Union[SupportsIndex, Sequence[SupportsIndex]]
 
 __all__ = [
-    "array", 
+    "array",
     "asarray",
-    "aslabel", 
-    "aslazy", 
+    "aslabel",
+    "aslazy",
     "asbigarray",
-    "zeros", 
-    "empty", 
-    "ones", 
+    "zeros",
+    "empty",
+    "ones",
     "full",
     "arange",
     "indices",
-    "gaussian_kernel", 
-    "circular_mask", 
-    "imread", 
-    "imread_collection", 
-    "lazy_imread",
-    "big_imread", 
-    "read_meta", 
+    "gaussian_kernel",
+    "circular_mask",
+    "imread",
+    "imread_collection",
+    "big_imread",
+    "read_meta",
+    "read_header",
     "roiread",
     "sample_image",
     "broadcast_arrays"
 ]
 
-# TODO: 
+# TODO:
 # - ip.imread("...\$i$j.tif", key="i=2:"), ip.imread("...\*.tif", key="p=0") will raise error.
 
 
@@ -62,8 +64,8 @@ shared_docs = \
         Name of image.
     axes : str, optional
         Image axes.
-    """    
-    
+    """
+
 def _write_docs(func):
     """Add doc for numpy function."""
     func.__doc__ = re.sub(r"{}", shared_docs, func.__doc__)
@@ -83,13 +85,13 @@ def _normalize_params(
         name = name or like.name
         axes = axes or like.axes
     return axes, name
-    
+
 
 @_write_docs
 def array(
     arr: ArrayLike,
     /,
-    dtype: DTypeLike = None, 
+    dtype: DTypeLike = None,
     *,
     copy: bool = True,
     name: str = None,
@@ -98,7 +100,7 @@ def array(
 ) -> ImgArray:
     """
     make an ImgArray object, like ``np.array(x)``
-    
+
     Parameters
     ----------
     arr : array-like
@@ -106,11 +108,11 @@ def array(
     copy : bool, default is True
         If True, a copy of the original array is made.
     {}
-        
+
     Returns
     -------
     ImgArray
-    
+
     """
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype in (np.uint8, np.uint16, np.float32):
@@ -119,37 +121,37 @@ def array(
             dtype = np.float32
         else:
             dtype = arr.dtype
-    
+
     axes, name = _normalize_params(axes, name, like)
-    
+
     if copy:
         _arr = np.array(arr, dtype=dtype)
     else:
         _arr = np.asarray(arr, dtype=dtype)
-    
+
     # Automatically determine axes
     if axes is None:
         if isinstance(arr, (MetaArray, LazyImgArray)):
             axes = arr.axes
         else:
             axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][_arr.ndim]
-            
+
     self = ImgArray(_arr, name=name, axes=axes)
-    
+
     return self
 
 @_write_docs
 def asarray(
     arr: ArrayLike,
     dtype: DTypeLike | None = None,
-    *, 
+    *,
     name: str | None = None,
     axes: str | None = None,
     like: MetaArray | None = None,
 ) -> ImgArray:
     """
     make an ImgArray object, like ``np.asarray(x)``
-    
+
     Parameters
     ----------
     arr : array-like
@@ -157,11 +159,11 @@ def asarray(
     {}
     copy : bool, default is True
         If True, a copy of the original array is made.
-        
+
     Returns
     -------
     ImgArray
-    
+
     """
     return array(arr, dtype=dtype, name=name, axes=axes, copy=False, like=like)
 
@@ -169,27 +171,27 @@ def asarray(
 def aslabel(
     arr: ArrayLike,
     dtype: DTypeLike = None,
-    *, 
+    *,
     name: str | None = None,
     axes: str | None = None,
     like: MetaArray | None = None,
 ) -> ImgArray:
     """
     Make an Label object.
-    
+
     This function helps to create a Label object from an array. Dtype check is performed
     on array creation.
-    
+
     Parameters
     ----------
     arr : array-like
         Base array.
     {}
-        
+
     Returns
     -------
     Label
-    
+
     """
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype.kind == "u":
@@ -205,51 +207,51 @@ def aslabel(
                 dtype = np.uint64
         else:
             raise ValueError(f"Dtype {arr.dtype} is not supported for a Label.")
-    
+
     axes, name = _normalize_params(axes, name, like)
 
     _arr = np.asarray(arr, dtype=dtype)
-        
+
     # Automatically determine axes
     if axes is None:
         if isinstance(arr, (MetaArray, LazyImgArray)):
             axes = arr.axes
         else:
             axes = ["", "x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][_arr.ndim]
-            
+
     self = Label(_arr, name=name, axes=axes)
     return self
 
 def aslazy(*args, **kwargs) -> LazyImgArray:
     from impy.lazy import asarray as lazy_asarray
-    
+
     warnings.warn(
-        "impy.aslazy is deprecated. Please use impy.lazy.asarray instead.", 
+        "impy.aslazy is deprecated. Please use impy.lazy.asarray instead.",
         DeprecationWarning,
     )
     return lazy_asarray(*args, **kwargs)
 
 def asbigarray(
-    arr: ArrayLike, 
+    arr: ArrayLike,
     dtype: DTypeLike = None,
-    *, 
+    *,
     name: str | None = None,
     axes: str | None = None,
     like: MetaArray | None = None,
 ) -> BigImgArray:
     """
     Make an BigImgArray object from other types of array.
-    
+
     Parameters
     ----------
     arr : array-like
         Base array.
     {}
-        
+
     Returns
     -------
     BigImgArray
-    
+
     """
     from dask import array as da
     from dask.array.core import Array as DaskArray
@@ -262,7 +264,7 @@ def asbigarray(
         arr = arr.value
     elif not isinstance(arr, DaskArray):
         arr = da.asarray(arr)
-        
+
     if isinstance(arr, np.ndarray) and dtype is None:
         if arr.dtype in (np.uint8, np.uint16, np.float32):
             dtype = arr.dtype
@@ -270,15 +272,15 @@ def asbigarray(
             dtype = np.float32
         else:
             dtype = arr.dtype
-        
+
     axes, name = _normalize_params(axes, name, like)
 
     # Automatically determine axes
     if axes is None:
         axes = ["x", "yx", "tyx", "tzyx", "tzcyx", "ptzcyx"][arr.ndim-1]
-            
+
     self = BigImgArray(arr, name=name, axes=axes)
-    
+
     return self
 
 _P = ParamSpec("_P")
@@ -291,12 +293,12 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
         axes = kwargs.pop("axes", None)
         name = kwargs.pop("name", None)
         return asarray(npfunc(*args, **kwargs), name=name, axes=axes, like=like)
-    
+
     _func.__doc__ = (
         f"""
         impy version of numpy.{func.__name__}. This function has additional parameters ``axes``
         and ``name``. Original docstring follows.
-        
+
         Additional Parameters
         ---------------------
         axes : str, optional
@@ -314,7 +316,7 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
 
 @_inject_numpy_function
 def zeros(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
-    
+
 @_inject_numpy_function
 def empty(shape: ShapeLike, dtype: DTypeLike = np.uint16, *, name: str | None = None, axes: AxesLike | None = None, like: MetaArray | None = None): ...
 
@@ -330,18 +332,18 @@ def arange(stop: int, dtype: DTypeLike = None): ...
 @_inject_numpy_function
 def fromiter(iterable: Iterable, dtype: DTypeLike, count: int = -1): ...
 
-    
+
 def indices(
     dimensions: ShapeLike,
     dtype: DTypeLike = np.uint16,
-    *, 
+    *,
     name: str | None = None,
     axes: AxesLike | None = None,
     like: MetaArray | None = None,
 ) -> AxesTuple[ImgArray]:
     """
     Copy of ``numpy.indices``.
-    
+
     Parameters
     ----------
     dimensions : shape-like
@@ -358,7 +360,7 @@ def indices(
     Returns
     -------
     tuple of ImgArray
-        
+
     """
     out = tuple(
         asarray(ind, name=name, axes=axes, like=like) for ind in np.indices(dimensions, dtype=dtype)
@@ -367,7 +369,7 @@ def indices(
 
 
 def gaussian_kernel(
-    shape: ShapeLike, 
+    shape: ShapeLike,
     sigma: nDFloat = 1.0,
     peak: float = 1.0,
     *,
@@ -390,7 +392,7 @@ def gaussian_kernel(
     -------
     ImgArray
         Gaussian image
-    """    
+    """
     if np.isscalar(sigma):
         sigma = (sigma,)*len(shape)
     g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
@@ -402,14 +404,14 @@ def gaussian_kernel(
 
 
 def circular_mask(
-    radius: nDFloat, 
+    radius: nDFloat,
     shape: ShapeLike,
     center: Literal["center"] | tuple[float, ...] = "center",
     soft: bool = False,
     out_value: bool = True,
 ) -> ImgArray:
     """
-    Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``. 
+    Make a circular or ellipsoid shaped mask. Region close to center will be filled with ``False``.
 
     Parameters
     ----------
@@ -424,12 +426,12 @@ def circular_mask(
     -------
     ImgArray
         Boolean image with zyx or yx axes
-    """    
+    """
     if center == "center":
         center = np.array(shape)/2. - 0.5
     elif len(shape) != len(center):
         raise ValueError("Length of `shape` and `center` must be same.")
-    
+
     if np.isscalar(radius):
         radius = [radius] * len(shape)
     else:
@@ -454,7 +456,7 @@ def circular_mask(
         if soft:
             out[:] = 1.0 - out
         else:
-            out[:] = ~out   
+            out[:] = ~out
     return out
 
 
@@ -471,7 +473,7 @@ def sample_image(name: str) -> ImgArray:
     -------
     ImgArray
         Sample image.
-    """    
+    """
     from skimage import data as skdata
     img = getattr(skdata, name)()
     out = array(img, name=name)
@@ -490,24 +492,24 @@ def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
             shapes[a] = s
     axes = broadcast(*axes_list)
     shape = tuple(shapes[a] for a in axes)
-    
+
     out = [a.broadcast_to(shape, axes) for a in arrays]
     return out
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Imread functions
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def imread(
     path: str,
     dtype: DTypeLike = None,
     key: AxesTargetedSlicer | None = None,
-    *, 
+    *,
     name: str | None = None,
     squeeze: bool = False,
 ) -> ImgArray:
     """
-    Load image(s) from a path. You can read list of images from directories with 
+    Load image(s) from a path. You can read list of images from directories with
     wildcards or ``"$"`` in ``path``.
 
     Parameters
@@ -517,7 +519,7 @@ def imread(
     dtype : Any type that np.dtype accepts
         Data type of images.
     key : AxesTargetedSlicer, optional
-        If not None, image is read in a memory-mapped array first, and only 
+        If not None, image is read in a memory-mapped array first, and only
         ``img[key]`` is returned. Only axis-targeted slicing is supported. This
         argument is important when reading a large file.
     name : str, optional
@@ -529,28 +531,28 @@ def imread(
     -------
     ImgArray
         Image data read from the file.
-    
+
     Examples
     --------
     Read a part of an image
-    
+
         >>> path = "path/to/image.mrc"
         >>> %time ip.imread(path)["x=:10;y=:10"]
         Wall time: 136 ms
         >>> %time ip.imread(path, key="x=:10;y=:10")
         Wall time: 3.01 ms
-        
-    """    
+
+    """
     path = str(path)
     is_memmap = (key is not None)
-    
+
     if "$" in path:
         return _imread_stack(path, dtype=dtype, key=key, squeeze=squeeze)
     elif "*" in path:
         return _imread_glob(path, dtype=dtype, key=key, squeeze=squeeze)
     elif not os.path.exists(path):
         raise FileNotFoundError(f"No such file or directory: {path}")
-    
+
     # read tif metadata
     if not is_memmap:
         size = os.path.getsize(path) / 2**30
@@ -565,30 +567,30 @@ def imread(
     scale_unit = image_data.unit
     metadata = image_data.metadata
     labels = image_data.labels
-    
+
     if not isinstance(scale_unit, dict):
         scale_unit = {a: scale_unit for a in "zyx"}
-        
+
     if is_memmap and axes is not None:
         sl = solve_slicer(key, Axes(axes), img.shape)
         axes = "".join(a for a, k in zip(axes, sl) if not isinstance(k, int))
         img = np.asarray(img[sl], dtype=dtype)
-    
+
     self = ImgArray(img, name=name, axes=axes, source=path, metadata=metadata)
-        
+
     if "c" in self.axes:
         if self.shape.c > self.shape.x:
             # In case the image is in yxc-order. This sometimes happens.
             self: ImgArray = np.moveaxis(self, -1, -3)
         if labels is not None:
             self.set_axis_label(c=labels)
-    
+
     if dtype is None:
         dtype = self.dtype
-    
+
     if squeeze:
         self = np.squeeze(self)
-        
+
     # if key="y=0", ImageAxisError happens here because image loses y-axis. We have to set scale
     # one by one.
     if scale is not None:
@@ -597,7 +599,7 @@ def imread(
                 self.set_scale({k: v})
                 if k in "zyx":
                     self.axes[k].unit = scale_unit[k]
-    
+
     return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
@@ -610,19 +612,19 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
         Path with wildcard.
     axis : str, default is "p"
         To specify which axis will be the new one.
-        
-    """    
+
+    """
     path = str(path)
     paths = glob.glob(path, recursive=True)
-        
+
     imgs = []
     for path in paths:
         img = imread(path, **kwargs)
         imgs.append(img)
-    
+
     if len(imgs) == 0:
         raise RuntimeError("Could not read any images.")
-    
+
     out: ImgArray = np.stack(imgs, axis="p")
     if squeeze:
         out = np.squeeze(out)
@@ -635,7 +637,7 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     return out
 
 def _imread_stack(
-    path: str, 
+    path: str,
     dtype: DTypeLike = None,
     key: AxesTargetedSlicer | None = None,
     squeeze: bool = False
@@ -650,12 +652,12 @@ def _imread_stack(
         Formated path string.
     dtype : Any type that np.dtype accepts
         dtype of the images.
-    
+
     Returns
     -------
     ImgArray
         Image stack
-    
+
     Example
     -------
     (1) For following file structure, read pos0, pos1, ... as p-stack.
@@ -665,7 +667,7 @@ def _imread_stack(
         |- pos2.tif
         :
         >>> img = ip.imread_stack(r"C:\...\Base\pos$p.tif")
-    
+
     (2) For following file structure, read xxx0, xxx1, ... as z-stack, and read yyy0, yyy1, ...
     as t-stack.
         Base
@@ -683,14 +685,14 @@ def _imread_stack(
     path = str(path)
     if "$" not in path:
         raise ValueError("`path` must contain '$' to specify variables in the string.")
-    
+
     FORMAT = r"\$[a-z]"
     new_axes = list(map(lambda x: x[1:], re.findall(r"\$[a-z]", path)))
-    
+
     # To convert input path string into that for glob.glob, replace $X with wildcard
     # e.g.) ~\XX$t_YY$z -> ~\XX*_YY*
     finder_path = re.sub(FORMAT, "*", path)
-    
+
     # To convert input path string into file-finding regex pattern.
     # e.g.) ~\XX$t_YY$z\*.tif -> ~\\XX(\d)_YY(\d)\\.*\.tif
     path_ = repr(path)[1:-1]
@@ -698,16 +700,16 @@ def _imread_stack(
     pattern = re.sub(r"\*", ".*", pattern)       # asters to non-escape
     pattern = re.sub(FORMAT, r"(\\d+)", pattern) # make number finders
     pattern = re.compile(pattern)
-    
+
     # To convert input path string into format string to execute imread.
     # e.g.) ~\XX$t_YY$z -> ~\XX{}_YY{}
     fpath = re.sub(FORMAT, "{}", path_)
-    
+
     paths = glob.glob(finder_path)
     indices = [pattern.findall(p) for p in paths]
     ranges = [list(np.unique(ind)) for ind in np.array(indices).T]
     ranges_sorted = [[r[i] for i in np.argsort(list(map(int, r)))] for r in ranges]
-    
+
     # read all the images
     img0 = None
     imgs = []
@@ -719,9 +721,9 @@ def _imread_stack(
             raise ValueError(f"{n_found} paths found at {fpath.format(*i)}.")
         elif n_found == 0:
             raise FileNotFoundError(f"No path found at {fpath.format(*i)}.")
-        
+
         img = imread(found_paths[0], dtype=dtype, key=key)
-        
+
         # To speed up error handling, check shape and axes here.
         if img0 is None:
             img0 = img
@@ -732,9 +734,9 @@ def _imread_stack(
             if img.shape != img0.shape:
                 raise ValueError(f"Shape mismatch at {fpath.format(*i)}. Make sure all "
                                   "the input images have exactly the same shapes.")
-                
+
         imgs.append(img)
-    
+
     # reshape image and set metadata
     new_shape = tuple(len(r) for r in ranges) + imgs[0].shape
     self = np.array(imgs, dtype=dtype).reshape(*new_shape).view(ImgArray)
@@ -752,14 +754,14 @@ def _imread_stack(
         self.source = os.path.join(*name_list)
     else:
         self.source = None
-        
+
     if squeeze:
         self = np.squeeze(self)
     return self.sort_axes()
 
 
 def imread_collection(
-    path: str | list[str], 
+    path: str | list[str],
     filt: Callable[[np.ndarray], bool] | None = None,
 ) -> DataList:
     """
@@ -768,22 +770,22 @@ def imread_collection(
     Parameters
     ----------
     path : str or list of str
-        Path than can be passed to ``glob.glob``. If a list of path is given, all the matched 
+        Path than can be passed to ``glob.glob``. If a list of path is given, all the matched
         images will be read and concatenated into a DataList.
     filt : callable, optional
-        If specified, only images that satisfies filt(img)==True will be stored in the returned 
+        If specified, only images that satisfies filt(img)==True will be stored in the returned
         DataList.
 
     Returns
     -------
     DataList
-    """    
+    """
     if isinstance(path, list):
         arrlist = DataList()
         for p in path:
             arrlist += imread_collection(p, filt=filt)
         return arrlist
-    
+
     path = str(path)
     if os.path.isdir(path):
         path = os.path.join(path, "*.tif")
@@ -797,21 +799,10 @@ def imread_collection(
             arrlist.append(img)
     return arrlist
 
-
-def lazy_imread(*args, **kwargs) -> LazyImgArray:
-    from impy.lazy import imread as lazy_imread_
-
-    warnings.warn(
-        "impy.lazy_imread is deprecated. Please use `impy.lazy.imread`", 
-        DeprecationWarning
-    )
-    return lazy_imread_(*args, **kwargs)
-
-
 def big_imread(
-    path: str, 
+    path: str,
     chunks="auto",
-    *, 
+    *,
     name: str | None = None,
     squeeze: bool = False,
 ) -> BigImgArray:
@@ -830,7 +821,7 @@ def big_imread(
         Name of array.
     squeeze : bool, default is False
         If True and there is one-sized axis, then call `np.squeeze`.
-        
+
     Returns
     -------
     BigImgArray
@@ -842,7 +833,7 @@ def big_imread(
 
 def read_meta(path: str) -> dict[str, Any]:
     """
-    Read the metadata of an image file. 
+    Read the metadata of an image file.
 
     Parameters
     ----------
@@ -852,18 +843,33 @@ def read_meta(path: str) -> dict[str, Any]:
     Returns
     -------
     dict
-        Dictionary of keys {"axes", "scale", "metadata"}        
-    """    
-    path = str(path)
-    image_data = io.imread_dask(path, chunks="auto")
+        Dictionary of keys {"axes", "scale", "metadata"}
+    """
+    meta = read_header(path)
     return {
-        "axes": image_data.axes,
-        "scale": image_data.scale,
-        "metadata": image_data.metadata
+        "axes": meta.axes,
+        "scale": meta.scale,
+        "metadata": meta.metadata
     }
+
+def read_header(path: str | Path) -> ImageMetadata:
+    """
+    Read the header of an image file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the image file.
+
+    Returns
+    -------
+    ImageMetadata
+        Tuple of the metadata.
+    """
+    return io.read_header(path)
 
 def roiread(path: str) -> RoiList:
     """Read a Roi.zip file as a RoiList object."""
     from .roi import RoiList
-    
+
     return RoiList.fromfile(path)
