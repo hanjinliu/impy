@@ -12,13 +12,10 @@ from impy.axes import ImageAxesError
 if TYPE_CHECKING:
     from mrcfile.mrcobject import MrcObject
 
-@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".gz")
+@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".mrc.gz", ".map.gz")
 def _(path: str, memmap: bool = False) -> ImageData:
     """The MRC format reader"""
     import mrcfile
-
-    if path.endswith(".gz") and not path.endswith(".map.gz"):
-        raise ValueError("Only .map.gz file is supported.")
 
     if memmap:
         open_func = mrcfile.mmap
@@ -32,13 +29,10 @@ def _(path: str, memmap: bool = False) -> ImageData:
     return ImageData.from_metadata(image, meta)
 
 
-@IO.mark_header_reader(".mrc", ".rec", ".st", ".map", ".gz")
+@IO.mark_header_reader(".mrc", ".rec", ".st", ".map", ".mrc.gz", ".map.gz")
 def _(path: str) -> ImageData:
     """The MRC header reader"""
     import mrcfile
-
-    if path.endswith(".gz") and not path.endswith(".map.gz"):
-        raise ValueError("Only .map.gz file is supported.")
 
     with mrcfile.mmap(path, permissive=True, mode="r") as mrc:
         meta = _parse_mrcfile(mrc)

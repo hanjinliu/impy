@@ -1,17 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, NamedTuple, Callable, Sequence, TypeVar, Union, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Sequence, TypeVar, Union
 from pathlib import Path
-import json
 import re
-import warnings
 import os
 import numpy as np
-from numpy.typing import DTypeLike
 from impy.io._utils import ImageData
-
-from impy.axes import ImageAxesError
-from impy.utils.axesop import complement_axes
 
 __all__ = [
     "imread",
@@ -22,10 +16,8 @@ __all__ = [
 ]
 
 if TYPE_CHECKING:
-    from numpy.lib.npyio import NpzFile
     from impy.arrays.bases import MetaArray
     from impy.arrays import LazyImgArray
-    from impy.axes import Axes
 
     ImpyArray = Union[MetaArray, LazyImgArray]
     Reader = Callable[[str, bool], ImageData]
@@ -37,6 +29,7 @@ if TYPE_CHECKING:
     HeaderWriter = Callable[[str, dict[str, Any]], None]
     _HW = TypeVar("_HW", bound=HeaderWriter)
 
+    _T = TypeVar("_T")
 
 class ImageIO:
     """A I/O class for image data."""
@@ -171,8 +164,7 @@ class ImageIO:
         ImageData
             Image data tuple.
         """
-        ext = Path(path).suffix
-        reader = self._reader.get(ext, self._default_reader)
+        reader = _get_ext(self._reader, path) or self._default_reader
         return reader(str(path), memmap)
 
     def _imread_slice(self, path, sl: tuple[slice, ...]) -> np.memmap:
@@ -247,8 +239,7 @@ class ImageIO:
         img: ImpyArray,
         lazy: bool = False
     ) -> None:
-        _, ext = os.path.splitext(path)
-        writer = self._writer.get(ext, self._default_writer)
+        writer = _get_ext(self._writer, path) or self._default_writer
         return writer(path, img, lazy)
 
     def read_header(self, path: str | Path) -> dict[str, Any]:
@@ -267,10 +258,9 @@ class ImageIO:
         dict
             Image header.
         """
-        ext = Path(path).suffix
-        reader = self._header_reader.get(ext)
+        reader = _get_ext(self._header_reader, path)
         if reader is None:
-            raise ValueError(f"Reader for {ext} is not found.")
+            raise ValueError(f"Reader for {path} is not found.")
         return reader(str(path))
 
     def write_header(self, path: str | Path, header: dict[str, Any]) -> None:
@@ -286,10 +276,9 @@ class ImageIO:
         header : dict
             Image header.
         """
-        ext = Path(path).suffix
-        writer = self._header_writer.get(ext)
+        writer = _get_ext(self._header_writer, path)
         if writer is None:
-            raise ValueError(f"Writer for {ext} is not found.")
+            raise ValueError(f"Writer for {path} is not found.")
         writer(str(path), header)
 
 
@@ -302,6 +291,17 @@ def _chunk_to_slice(chunk: Sequence[int]) -> list[slice]:
         out.append(slice(start, _next))
         start = _next
     return out
+
+def _get_ext(reg: dict[str, _T], path: str) -> _T | None:
+    sufs = Path(path).suffixes
+    if sufs:
+        for i in range(len(sufs)):
+            ext = "".join(sufs[i:])
+            if ext in reg:
+                return reg[ext]
+        return None
+    else:
+        return reg.get("", None)
 
 IO = ImageIO()
 
