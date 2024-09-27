@@ -1,4 +1,4 @@
-__version__ = "2.4.4"
+__version__ = "2.4.5"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
