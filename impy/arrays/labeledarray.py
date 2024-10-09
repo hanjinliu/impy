@@ -848,8 +848,8 @@ class LabeledArray(MetaArray):
         Parameters
         ----------
         pixel : int or array-like, default is 1
-            Number of pixels to remove. If an array is given, each axis will be cropped with different pixels,
-            using each value respectively.
+            Number of pixels to remove. If an array is given, each axis will be cropped
+            with different pixels, using each value respectively.
         {dims}
 
         Returns
@@ -869,16 +869,65 @@ class LabeledArray(MetaArray):
         out = self[fmt[sl]]
         return out
 
+    def crop_subregion(
+        self,
+        centers: Coords,
+        shape: tuple[int, int],
+        angles: float | Sequence[float] = 0,
+        *,
+        order=3,
+    ) -> Self:
+        """
+        Crop a subragion of an image.
+
+        Parameters
+        ----------
+        centers : sequence of (float, float)
+            Center coordinates in pixels.
+        shape : (int, int)
+            Shape of the subregion.
+        angles : float or sequence of float, default is 0
+            Clockwise angle of the subregion.
+        {dims}
+        """
+        if order > 1:
+            self_filt = self.spline_filter(order).value
+        else:
+            self_filt = self.value
+        centers = np.asarray(centers)
+        if np.isscalar(angles):
+            angles = [angles] * len(centers)
+        else:
+            if len(centers) != len(angles):
+                raise ValueError("Length of centers and angles must be the same.")
+        cropped_imgs = []
+        for center, angle in zip(centers, angles, strict=True):
+            center = np.asarray(center)
+            rad = np.deg2rad(angle)
+            ey = np.array([np.sin(rad), np.cos(rad)])
+            ex = np.array([np.cos(rad), -np.sin(rad)])
+            ny, nx = shape
+            origin = center - ey * (nx - 1) / 2 - ex * (ny - 1) / 2
+            ax0 = _misc.make_rotated_axis_by_vec(origin, ex, nx)
+            ax1 = _misc.make_rotated_axis_by_vec(origin, ey, ny)
+            all_coords = ax0[:, np.newaxis] + ax1[np.newaxis] - origin
+            all_coords = np.moveaxis(all_coords, -1, 0)
+            cropped_img = ndi.map_coordinates(self_filt, all_coords, prefilter=False, order=order)
+            cropped_imgs.append(cropped_img)
+        cropped_imgs = np.stack(cropped_imgs, axis=0).view(self.__class__)
+        return cropped_imgs._set_info(self, new_axes="p" + self.axes)
+
     @_docs.write_docs
     @check_input_and_output
     @dims_to_spatial_axes
-    def rotated_crop(self, origin, dst1, dst2, dims=2) -> Self:
+    def rotated_crop(self, origin, dst1, dst2, *, crop_labels: bool = True, dims=2) -> Self:
         """
-        Crop the image at four courners of an rotated rectangle. Currently only supports rotation within
-        yx-plane. An rotated rectangle is specified with positions of a origin and two destinations `dst1`
-        and `dst2`, i.e., vectors (dst1-origin) and (dst2-origin) represent a rotated rectangle. Let
-        origin be the origin of a xy-plane, the rotation direction from dst1 to dst2 must be counter-
-        clockwise, or the cropped image will be reversed.
+        Crop the image at four courners of an rotated rectangle. Currently only supports
+        rotation within yx-plane. An rotated rectangle is specified with positions of a
+        origin and two destinations `dst1` and `dst2`, i.e., vectors (dst1-origin) and
+        (dst2-origin) represent a rotated rectangle. Let origin be the origin of a
+        xy-plane, the rotation direction from dst1 to dst2 must be counter-clockwise,
+        or the cropped image will be reversed.
 
         Parameters
         ----------
@@ -907,7 +956,7 @@ class LabeledArray(MetaArray):
         )
         cropped_img = cropped_img.view(self.__class__)
         cropped_img.axes = self.axes
-        if self.labels is not None:
+        if crop_labels and self.labels is not None:
             try:
                 lbl = self.labels
                 cropped_labels = np.empty(lbl.shape[:-2] + all_coords.shape[1:], dtype=lbl.dtype)

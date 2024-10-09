@@ -217,13 +217,13 @@ class ImgArray(LabeledArray):
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval),
         )
-    
+
     @_docs.write_docs
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
     @check_input_and_output
     def shift(
-        self, translation, order: int = 3, mode: PaddingMode = "constant", 
+        self, translation, order: int = 3, mode: PaddingMode = "constant",
         cval: float = 0, prefilter: bool | None = None, dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
@@ -329,7 +329,9 @@ class ImgArray(LabeledArray):
         out.set_scale({a: self.scale[a]/scale for a, scale in zip(self.axes, zoom_)})
         return out
 
-    rescale = zoom  # backward compatibility
+    def log(self, eps: float = 1e-8) -> ImgArray:
+        """Calculate natural logarithm of the image, with a small epsilon."""
+        return np.log(self.as_float() + eps)
 
     @_docs.write_docs
     @dims_to_spatial_axes
@@ -901,6 +903,51 @@ class ImgArray(LabeledArray):
                             s=spatial_shape, axes=spatial_axes)
         return xp.asnumpy(out)
 
+
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype(asfloat=True)
+    @check_input_and_output
+    def bandpass_filter(
+        self,
+        cuton: nDFloat = 0.02,
+        cutoff: nDFloat = 0.2,
+        order: float = 2,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ):
+        """
+        Butterworth band-pass filter.
+
+        Parameters
+        ----------
+        cuton, cutoff : float or array-like
+            Cuton and Cutoff frequency. Fequency domain between these two values will be
+            passed.
+        order : float, default is 2
+            Steepness of cutoff.
+        {dims}{update}
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """
+        from ._utils._skimage import _get_ND_butterworth_filter
+        cuton = check_nd(cuton, len(dims))
+        cutoff = check_nd(cutoff, len(dims))
+        spatial_shape = self.sizesof(dims)
+        spatial_axes = [self.axisof(a) for a in dims]
+        weight_on = _get_ND_butterworth_filter(spatial_shape, cuton, order, True, True)
+        weight_off = _get_ND_butterworth_filter(spatial_shape, cutoff, order, False, True)
+        weight = weight_off * weight_on
+        input = xp.asarray(self.value)
+        if len(dims) < self.ndim:
+            weight = add_axes(self.axes, self.shape, weight, dims)
+        out = xp.fft.irfftn(xp.asarray(weight)*xp.fft.rfftn(input, axes=spatial_axes),
+                            s=spatial_shape, axes=spatial_axes)
+        return xp.asnumpy(out)
 
     @_docs.write_docs
     @dims_to_spatial_axes

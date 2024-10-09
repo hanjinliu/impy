@@ -54,6 +54,8 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
             f"Scale unit was {img.scale_unit}. Could not normalize scale."
         )
         voxel_size = (1.0, 1.0, 1.0)
+    if len(voxel_size) == 2:
+        voxel_size = (1.0,) + voxel_size
 
     if img.dtype == "bool":
         img = img.astype(np.int8)

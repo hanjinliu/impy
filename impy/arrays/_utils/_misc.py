@@ -41,6 +41,9 @@ def make_rotated_axis(src, dst):
     n = int(round(d))
     return np.linspace(src, src + dr / d * (n - 1), n)
 
+def make_rotated_axis_by_vec(src, unit_vec, n: int):
+    return np.linspace(src, src + unit_vec * (n - 1), n)
+
 def make_pad(pad_width, dims, all_axes, **kwargs):
     """More flexible padding than `np.pad`."""
     pad_width_ = []

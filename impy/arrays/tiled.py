@@ -24,10 +24,10 @@ class TiledAccessor(Generic[_T]):
 class _PartialTiledImage(Generic[_T]):
     def __init__(self, img: _T):
         self._img = weakref.ref(img)
-    
+
     def __call__(
-        self, 
-        chunks: tuple[int, ...] | Literal["auto"] = "auto", 
+        self,
+        chunks: tuple[int, ...] | Literal["auto"] = "auto",
         overlap: int | tuple[int, ...] = 32,
         boundary: Boundary | list[Boundary] = "reflect",
         dims: Dims = None,
@@ -78,13 +78,13 @@ class TiledImage(Generic[_T]):
         else:
             img_repr = repr(img)
         return f"TiledImage<chunks={self.chunks}, depth={self.depth}, boundary={self.boundary}> of \n{img_repr}"
-    
+
     def _deref_image(self) -> _T:
         img = self._img()
         if img is None:
             raise RuntimeError("Image has been deleted")
         return img
-    
+
     def _map_overlap(self, func: Callable[[np.ndarray], np.ndarray], *args, **kwargs) -> np.ndarray:
         from .imgarray import ImgArray
         from .lazy import LazyImgArray
@@ -92,14 +92,14 @@ class TiledImage(Generic[_T]):
         img = self._deref_image()
         if isinstance(img, ImgArray):
             from dask import array as da
-            
+
             input = da.from_array(img.value, chunks=self._chunks)
-            
+
             def _func(arr: np.ndarray, *args, **kwargs) -> np.ndarray:
                 return func(arr, *args, **kwargs).astype(arr.dtype, copy=False)
             out: np.ndarray = xp.asnumpy(
                 da.map_overlap(
-                    _func, 
+                    _func,
                     input,
                     *args,
                     depth=self.depth,
@@ -116,7 +116,7 @@ class TiledImage(Generic[_T]):
                 func,
                 c_axes="",
                 depth=self.depth,
-                boundary=self.boundary, 
+                boundary=self.boundary,
                 dtype=img.dtype,
                 args=args,
                 kwargs=kwargs,
@@ -138,7 +138,33 @@ class TiledImage(Generic[_T]):
             Steepness of cutoff.
         """
         return self._map_overlap(_lowpass, cutoff=cutoff, order=order)
-    
+
+    def highpass_filter(self, cutoff: float = 0.2, order: int = 2) -> _T:
+        """
+        Tile-wise butterworth highpass filter.
+
+        Parameters
+        ----------
+        cutoff : float or array-like, default is 0.2
+            Cutoff frequency.
+        order : float, default is 2
+            Steepness of cutoff.
+        """
+        return self._map_overlap(_highpass, cutoff=cutoff, order=order)
+
+    def bandpass_filter(self, cuton: float, cutoff: float, order: int = 2) -> _T:
+        """
+        Tile-wise butterworth bandpass filter.
+
+        Parameters
+        ----------
+        cuton, cutoff : float or array-like
+            Cuton and cutoff frequency.
+        order : float, default is 2
+            Steepness of cutoff.
+        """
+        return self._map_overlap(_bandpass, low_cutoff=cuton, high_cutoff=cutoff, order=order)
+
     def lucy(
         self,
         psf: np.ndarray | Callable[[tuple[int, ...]], np.ndarray],
@@ -147,7 +173,7 @@ class TiledImage(Generic[_T]):
     ) -> _T:
         """
         Deconvolution of N-dimensional image, using Richardson-Lucy's algorithm.
-        
+
         Parameters
         ----------
         psf : ndarray or callable
@@ -156,30 +182,30 @@ class TiledImage(Generic[_T]):
         niter : int, default is 50.
             Number of iterations.
         eps : float, default is 1e-5
-            During deconvolution, division by small values in the convolve image 
-            of estimation and PSF may cause divergence. Therefore, division by 
+            During deconvolution, division by small values in the convolve image
+            of estimation and PSF may cause divergence. Therefore, division by
             values under `eps` is substituted to zero.
         """
         img = self._deref_image()
         scale = tuple(img.scale.values())
-        
+
         def func(arr: np.ndarray):
             psf_ft, psf_ft_conj = _deconv.check_psf(arr.shape, scale, psf)
             return _deconv.richardson_lucy(arr, psf_ft, psf_ft_conj, niter, eps)
-            
+
         return self._map_overlap(func)
-    
+
     def gaussian_filter(self, sigma: float = 1.0, fourier: bool = False) -> _T:
         """
         Run Gaussian filter (Gaussian blur).
-        
+
         Parameters
         ----------
         {sigma}{fourier}
         """
         filter_func = _filters.gaussian_filter_fourier if fourier else _filters.gaussian_filter
         return self._map_overlap(filter_func, sigma=sigma)
-    
+
     def dog_filter(
         self,
         low_sigma: float = 1.0,
@@ -189,7 +215,7 @@ class TiledImage(Generic[_T]):
         """
         Run Difference of Gaussian filter. This function does not support `update`
         argument because intensity can be negative.
-        
+
         Parameters
         ----------
         low_sigma : scalar or array of scalars, default is 1.
@@ -197,7 +223,7 @@ class TiledImage(Generic[_T]):
         high_sigma : scalar or array of scalars, default is x1.6 of low_sigma.
             higher standard deviation(s) of Gaussian.
         {fourier}
-        """        
+        """
         if high_sigma is None:
             high_sigma = low_sigma * 1.6
         filter_func = _filters.dog_filter_fourier if fourier else _filters.dog_filter
@@ -219,6 +245,27 @@ def _lowpass(arr, cutoff, order=2):
     shape = arr.shape
     _cutoff = check_nd(cutoff, len(shape))
     weight = _get_ND_butterworth_filter(shape, _cutoff, order, False, True)
+    ft = xp.asarray(weight) * xp.fft.rfftn(arr)
+    ift = xp.fft.irfftn(ft, s=shape)
+    return xp.asnumpy(ift)
+
+def _highpass(arr, cutoff, order=2):
+    arr = xp.asarray(arr)
+    shape = arr.shape
+    _cutoff = check_nd(cutoff, len(shape))
+    weight = _get_ND_butterworth_filter(shape, _cutoff, order, True, True)
+    ft = xp.asarray(weight) * xp.fft.rfftn(arr)
+    ift = xp.fft.irfftn(ft, s=shape)
+    return xp.asnumpy(ift)
+
+def _bandpass(arr, low_cutoff, high_cutoff, order=2):
+    arr = xp.asarray(arr)
+    shape = arr.shape
+    _low_cutoff = check_nd(low_cutoff, len(shape))
+    _high_cutoff = check_nd(high_cutoff, len(shape))
+    low_weight = _get_ND_butterworth_filter(shape, _low_cutoff, order, False, True)
+    high_weight = _get_ND_butterworth_filter(shape, _high_cutoff, order, True, True)
+    weight = low_weight * high_weight
     ft = xp.asarray(weight) * xp.fft.rfftn(arr)
     ift = xp.fft.irfftn(ft, s=shape)
     return xp.asnumpy(ift)

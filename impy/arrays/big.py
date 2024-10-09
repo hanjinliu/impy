@@ -31,7 +31,6 @@ class BigImgArray(LazyImgArray):
     fft = wrap_method(LazyImgArray.fft)
     ifft = wrap_method(LazyImgArray.ifft)
     power_spectra = wrap_method(LazyImgArray.power_spectra)
-    tiled_lowpass_filter = wrap_method(LazyImgArray.tiled_lowpass_filter)
     proj = wrap_method(LazyImgArray.proj)
     binning = wrap_method(LazyImgArray.binning)
     track_drift = wrap_method(LazyImgArray.track_drift)

@@ -1041,19 +1041,6 @@ class LazyImgArray(AxesMixin):
 
         return out
 
-    @dims_to_spatial_axes
-    @check_input_and_output_lazy
-    def tiled_lowpass_filter(self, cutoff: float = 0.2, order: int = 2, overlap: int = 16, *,
-                             dims: Dims = None, update: bool = False) -> LazyImgArray:
-        warnings.warn(
-            "`tiled_lowpass_filter` is deprecated. Please use "
-            f"`img.tiled({overlap=}).lowpass_filter({cutoff=}, {order=})` instead.",
-            DeprecationWarning,
-        )
-        return self.tiled(
-            chunks=self.chunksizesof(dims), overlap=overlap, dims=dims,
-        ).lowpass_filter(cutoff, order)
-
     @_docs.copy_docs(ImgArray.proj)
     @same_dtype
     def proj(self, axis: str = None, method: str = "mean") -> LazyImgArray:
