@@ -21,7 +21,7 @@ def test_sel_slicing():
     img = ip.random.normal(size=(10, 2, 30, 40), axes = "tcyx")
     img.set_axis_label(
         t=[f"t={i}" for i in range(10)],
-        c=["blue", "red"], 
+        c=["blue", "red"],
         y=[str(i) for i in range(30)],
         x=[str(i) for i in range(40)],
     )
@@ -39,26 +39,26 @@ def test_eval_slicing():
 def test_formatter():
     img = ip.random.normal(size=(10, 2, 30, 40))
     fmt = ip.slicer.y[4].get_formatter("tx")
-    
+
     with pytest.raises(Exception):
         img[fmt]
-    
+
     # test repr
     repr(ip.slicer)
     repr(fmt)
-    
+
     assert_equal(img[fmt[0, 0]], img["t=0;y=4;x=0"])
     assert_equal(img[fmt[0, 3:6]], img["t=0;y=4;x=3:6"])
     assert_equal(img[fmt[:5][:6]], img["t=:5;y=4;x=:6"])
-    
+
     fmt = ip.slicer.get_formatter("tx")
     with pytest.raises(Exception):
         img[fmt]
-    
+
     # test repr
     repr(ip.slicer)
     repr(fmt)
-    
+
     assert_equal(img[fmt[0, 0]], img["t=0;x=0"])
     assert_equal(img[fmt[0, 3:6]], img["t=0;x=3:6"])
     assert_equal(img[fmt[:5][:6]], img["t=:5;x=:6"])
@@ -72,17 +72,17 @@ def test_scale():
     assert img[0, ::2].axes[-1].scale == img.axes[-1].scale * 2
     assert img[0, ::-3].axes[-1].scale == img.axes[-1].scale * 3
     assert img.binning(2).axes[-1].scale == img.axes[-1].scale * 2
-    assert img.rescale(1/4).axes[-1].scale == img.axes[-1].scale * 4    
+    assert img.zoom(1/4).axes[-1].scale == img.axes[-1].scale * 4
 
 def test_dataframe_slicing():
     from impy.frame import AxesFrame
-    
+
     df = AxesFrame({
-        "t": [0, 0, 1, 1, 2], 
+        "t": [0, 0, 1, 1, 2],
         "y": [8, 9, 7, 5, 3],
         "x": [2, 3, 5 ,7 ,10],
     })
-    
+
     assert df.col_axes == ["t", "y", "x"]
     assert (df["t=0"]["t"] == 0).all()
     assert (df["t=1"]["t"] == 1).all()
