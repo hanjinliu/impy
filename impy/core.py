@@ -49,7 +49,8 @@ __all__ = [
     "read_header",
     "roiread",
     "sample_image",
-    "broadcast_arrays"
+    "broadcast_arrays",
+    "stack_relaxed",
 ]
 
 # TODO:
@@ -873,3 +874,17 @@ def roiread(path: str) -> RoiList:
     from .roi import RoiList
 
     return RoiList.fromfile(path)
+
+def stack_relaxed(imgs: Sequence[ImgArray], axis=0) -> ImgArray:
+    if len({img.ndim for img in imgs}) != 1:
+        raise ValueError("All the arrays should have the same number of dimensions.")
+    shapes = np.array([img.shape for img in imgs], dtype=int)
+    shape_max = shapes.max(axis=0)
+    arrays = []
+    for img, shape in zip(imgs, shapes):
+        arr = zeros(shape_max, dtype=img.dtype)
+        sl = tuple(slice(0, s) for s in shape)
+        arr[sl] = img
+        arrays.append(arr)
+    out = np.stack(arrays, axis=axis)
+    return out

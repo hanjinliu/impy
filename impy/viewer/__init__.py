@@ -7,4 +7,4 @@ except ImportError:
                 "napari viewer could not be constructed due to ImportError."
             )
 
-gui = napariViewers()
+__all__ = ["napariViewers"]

@@ -1,19 +1,19 @@
-__version__ = "2.4.5"
+__version__ = "2.4.6"
 __author__ = "Hanjin Liu"
 __email__ = "liuhanjin-sc@g.ecc.u-tokyo.ac.jp"
 
 import logging
+from typing import TYPE_CHECKING
 
-from ._const import Const, SetConst, use  # noqa
+from impy._const import Const, SetConst, use  # noqa
 
-from .collections import DataList, DataDict  # noqa
-from .core import *  # noqa
-from .binder import bind  # noqa
-from .viewer import gui  # noqa
-from .correlation import *  # noqa
-from .arrays import ImgArray, LazyImgArray, BigImgArray, Label  # noqa
-from . import random, io, lazy  # noqa
-from .axes import slicer  # noqa
+from impy.collections import DataList, DataDict  # noqa
+from impy.core import *  # noqa
+from impy.binder import bind  # noqa
+from impy.correlation import *  # noqa
+from impy.arrays import ImgArray, LazyImgArray, BigImgArray, Label  # noqa
+from impy import random, io, lazy  # noqa
+from impy.axes import slicer  # noqa
 
 # Inheritance
 # -----------
@@ -41,3 +41,23 @@ from numpy import (  # noqa
     complex64, complex128,
     bool_,
 )
+
+# lazy loading
+
+_VIEWER_CACHE = None
+if TYPE_CHECKING:
+    from impy.viewer import napariViewers
+
+    gui: "napariViewers"
+
+def __getattr__(key):
+    global _VIEWER_CACHE
+
+    if key == "gui":
+        from impy.viewer import napariViewers
+
+        if _VIEWER_CACHE is None:
+            _VIEWER_CACHE = napariViewers()
+        return _VIEWER_CACHE
+    else:
+        raise AttributeError(f"module 'impy' has no attribute '{key}'")
