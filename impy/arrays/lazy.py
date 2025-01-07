@@ -2,10 +2,9 @@ from __future__ import annotations
 from functools import lru_cache, wraps
 import itertools
 from pathlib import Path
-from typing import Any, Callable, TYPE_CHECKING, Sequence
-import warnings
+from typing import Any, Callable, TYPE_CHECKING, Literal, Sequence
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
+from numpy.typing import DTypeLike
 from warnings import warn
 import tempfile
 import operator
@@ -300,8 +299,8 @@ class LazyImgArray(AxesMixin):
 
     def compute(self, ignore_limit: bool = False) -> ImgArray:
         """
-        Compute all the task and convert the result into ImgArray. If image size overwhelms MAX_GB
-        then MemoryError is raised.
+        Compute all the task and convert the result into ImgArray. If image size
+        overwhelms MAX_GB then MemoryError is raised.
         """
         if self.gb > Const["MAX_GB"] and not ignore_limit:
             raise MemoryError(f"Too large: {self.gb:.2f} GB")
@@ -316,8 +315,8 @@ class LazyImgArray(AxesMixin):
 
     def release(self, update: bool = True) -> LazyImgArray:
         """
-        Compute all the tasks and store the data in memory map, and read it as a dask array
-        again.
+        Compute all the tasks and store the data in memory map, and read it as a dask
+        array again.
         """
         from dask import array as da
 
@@ -528,17 +527,13 @@ class LazyImgArray(AxesMixin):
         kwargs: dict[str, Any] = None
     ) -> DaskArray:
         from dask import array as da
+
         if args is None:
             args = ()
         if kwargs is None:
             kwargs = {}
         all_axes = str(self.axes)
-        def _func(input: ArrayLike, *args, **kwargs):
-            out = xp.empty(input.shape, input.dtype)
-            for sl in iter_slice(input.shape, c_axes, all_axes):
-                out[sl] = func(input[sl], *args, **kwargs)
-            return out
-
+        _func = _make_map_blocks_func(func, self.dtype, c_axes, all_axes)
         return da.map_blocks(_func, self.value, dtype=self.dtype, *args, **kwargs)
 
     def _apply_map_overlap(
@@ -552,6 +547,7 @@ class LazyImgArray(AxesMixin):
         kwargs: dict[str, Any] | None = None
     ) -> DaskArray:
         from dask import array as da
+        from dask.array.overlap import overlap
 
         if args is None:
             args = ()
@@ -560,16 +556,15 @@ class LazyImgArray(AxesMixin):
         if dtype is None:
             dtype = self.dtype
         all_axes = str(self.axes)
-        def _func(input: np.ndarray, *args, **kwargs):
-            out = xp.empty(input.shape, dtype=dtype)
-            for sl in iter_slice(input.shape, c_axes, all_axes):
-                out[sl] = func(input[sl], *args, **kwargs).astype(dtype, copy=False)
-            return out
+        _func = _make_map_overlap_func(func, dtype, c_axes, all_axes)
         depth = switch_slice(c_axes, self.axes, 0, depth)
-        return da.map_overlap(
-            _func, self.value, *args, depth=depth, boundary=boundary, dtype=dtype,
-            **kwargs
-        )
+
+        # Here we should avoid using da.map_overlap to improve the performance.
+        args = [
+            overlap(x, depth=d, boundary=b, allow_rechunk=False)
+            for x, d, b in zip(args, depth, boundary)
+        ]
+        return da.map_blocks(_func, self.value, *args, dtype=dtype, **kwargs)
 
     def _apply_dask_filter(
         self,
@@ -588,6 +583,37 @@ class LazyImgArray(AxesMixin):
         for sl, img in self.iter(c_axes, israw=False):
             out[sl] = func(img, *args, **kwargs)
         return out
+
+    @_docs.copy_docs(ImgArray.rotate)
+    @dims_to_spatial_axes
+    @check_input_and_output_lazy
+    def rotate(
+        self,
+        degree: float,
+        center: Sequence[float] | Literal["center"] = "center",
+        *,
+        order: int = 3,
+        mode: PaddingMode = "constant",
+        cval: float = 0,
+        dims: Dims = 2,
+        update: bool = False
+    ) -> LazyImgArray:
+        if center == "center":
+            center = np.array(self.sizesof(dims))/2. - 0.5
+        else:
+            center = np.asarray(center)
+
+        translation_0 = _transform.compose_affine_matrix(translation=center)
+        rotation = _transform.compose_affine_matrix(rotation=np.deg2rad(degree))
+        translation_1 = _transform.compose_affine_matrix(translation=-center)
+
+        mx = translation_0 @ rotation @ translation_1
+        mx[-1, :] = [0] * len(dims) + [1]
+        return self._apply_map_blocks(
+            _transform.warp,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(matrix=mx, order=order, mode=mode, cval=cval),
+        )
 
     # TODO: This should wait for dask-image implement map_coordinates
     # @_docs.copy_docs(LabeledArray.rotated_crop)
@@ -702,6 +728,28 @@ class LazyImgArray(AxesMixin):
             kwargs=dict(footprint=disk)
         )
 
+
+    @_docs.copy_docs(ImgArray.tophat)
+    @dims_to_spatial_axes
+    @check_input_and_output_lazy
+    def tophat(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        disk = _structures.ball_like(radius, len(dims))
+        return self._apply_map_overlap(
+            _filters.white_tophat,
+            c_axes=complement_axes(dims, self.axes),
+            dtype=self.dtype,
+            kwargs=dict(footprint=disk, mode=mode, cval=cval)
+        )
+
+
     @_docs.copy_docs(ImgArray.gaussian_filter)
     @dims_to_spatial_axes
     @same_dtype(asfloat=True)
@@ -717,6 +765,64 @@ class LazyImgArray(AxesMixin):
         depth = _ceilint(sigma*4)
         return self._apply_map_overlap(
             xp.ndi.gaussian_filter,
+            c_axes=c_axes,
+            depth=depth,
+            kwargs=dict(sigma=sigma),
+        )
+
+    @_docs.copy_docs(ImgArray.dog_filter)
+    @dims_to_spatial_axes
+    @check_input_and_output_lazy
+    def dog_filter(
+        self,
+        low_sigma: nDFloat = 1.0,
+        high_sigma: nDFloat = 2.0,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        c_axes = complement_axes(dims, self.axes)
+        depth = _ceilint(high_sigma*4)
+        return self._apply_map_overlap(
+            _filters.dog_filter,
+            c_axes=c_axes,
+            depth=depth,
+            kwargs=dict(low_sigma=low_sigma, high_sigma=high_sigma),
+        )
+
+    @_docs.copy_docs(ImgArray.doh_filter)
+    @dims_to_spatial_axes
+    @check_input_and_output_lazy
+    def doh_filter(
+        self,
+        sigma: nDFloat = 1.0,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        c_axes = complement_axes(dims, self.axes)
+        depth = _ceilint(sigma*4)
+        return self._apply_map_overlap(
+            _filters.doh_filter,
+            c_axes=c_axes,
+            depth=depth,
+            kwargs=dict(sigma=sigma),
+        )
+
+    @_docs.copy_docs(ImgArray.log_filter)
+    @dims_to_spatial_axes
+    @check_input_and_output_lazy
+    def log_filter(
+        self,
+        sigma: nDFloat = 1.0,
+        *,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        c_axes = complement_axes(dims, self.axes)
+        depth = _ceilint(sigma*4)
+        return -self._apply_map_overlap(
+            _filters.gaussian_laplace,
             c_axes=c_axes,
             depth=depth,
             kwargs=dict(sigma=sigma),
@@ -754,6 +860,8 @@ class LazyImgArray(AxesMixin):
         self,
         radius: float = 1,
         *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0,
         dims: Dims = None,
         update: bool = False
     ) -> LazyImgArray:
@@ -762,8 +870,51 @@ class LazyImgArray(AxesMixin):
             xp.ndi.median_filter,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
-            kwargs=dict(footprint=disk)
-            )
+            kwargs=dict(footprint=disk, mode=mode, cval=cval),
+        )
+
+
+    @_docs.copy_docs(ImgArray.std_filter)
+    @dims_to_spatial_axes
+    @same_dtype
+    @check_input_and_output_lazy
+    def std_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        disk = _structures.ball_like(radius, len(dims))
+        return self._apply_map_overlap(
+            _filters.std_filter,
+            depth=_ceilint(radius),
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(selem=disk, mode=mode, cval=cval),
+        )
+
+    @_docs.copy_docs(ImgArray.coef_filter)
+    @dims_to_spatial_axes
+    @same_dtype
+    @check_input_and_output_lazy
+    def coef_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        disk = _structures.ball_like(radius, len(dims))
+        return self._apply_map_overlap(
+            _filters.coef_filter,
+            depth=_ceilint(radius),
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(selem=disk, mode=mode, cval=cval),
+        )
 
     @_docs.copy_docs(ImgArray.mean_filter)
     @same_dtype(asfloat=True)
@@ -773,17 +924,19 @@ class LazyImgArray(AxesMixin):
         self,
         radius: float = 1,
         *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0,
         dims: Dims = None,
         update: bool = False
     ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
-        kernel = (disk/np.sum(disk)).astype(np.float32)
+        kernel = (disk / np.sum(disk)).astype(np.float32)
         return self._apply_map_overlap(
             xp.ndi.convolve,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
-            kwargs=dict(weights=kernel),
-            )
+            kwargs=dict(weights=kernel, mode=mode, cval=cval),
+        )
 
     @_docs.copy_docs(ImgArray.convolve)
     @dims_to_spatial_axes
@@ -793,7 +946,7 @@ class LazyImgArray(AxesMixin):
         self,
         kernel,
         *,
-        mode: str = "reflect",
+        mode: PaddingMode = "reflect",
         cval: float = 0,
         dims: Dims = None,
         update: bool = False
@@ -915,7 +1068,7 @@ class LazyImgArray(AxesMixin):
         thr: float | str,
         *,
         along: AxisLike | None = None,
-    ) -> ImgArray:
+    ) -> LazyImgArray:
         if self.dtype == bool:
             return self
 
@@ -1572,3 +1725,19 @@ def _get_ifft_func(resource) -> Callable[[DaskArray], DaskArray]:
     from dask import array as da
 
     return da.fft.fft_wrap(scipy_fft.ifftn)
+
+def _make_map_blocks_func(func, dtype, c_axes, all_axes):
+    def _func(input: np.ndarray, *args, **kwargs):
+        out = xp.empty(input.shape, dtype)
+        for sl in iter_slice(input.shape, c_axes, all_axes):
+            out[sl] = func(input[sl], *args, **kwargs)
+        return out
+    return _func
+
+def _make_map_overlap_func(func, dtype, c_axes, all_axes):
+    def _func(input: np.ndarray, *args, **kwargs):
+        out = xp.empty(input.shape, dtype=dtype)
+        for sl in iter_slice(input.shape, c_axes, all_axes):
+            out[sl] = func(input[sl], *args, **kwargs).astype(dtype, copy=False)
+        return out
+    return _func

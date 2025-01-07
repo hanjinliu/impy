@@ -764,18 +764,18 @@ def _imread_stack(
 def imread_collection(
     path: str | list[str],
     filt: Callable[[np.ndarray], bool] | None = None,
-) -> DataList:
+) -> DataList[ImgArray]:
     """
     Open images as ImgArray and store them in DataList.
 
     Parameters
     ----------
     path : str or list of str
-        Path than can be passed to ``glob.glob``. If a list of path is given, all the matched
-        images will be read and concatenated into a DataList.
+        Path than can be passed to ``glob.glob``. If a list of path is given, all the
+        matched images will be read and concatenated into a DataList.
     filt : callable, optional
-        If specified, only images that satisfies filt(img)==True will be stored in the returned
-        DataList.
+        If specified, only images that satisfies filt(img)==True will be stored in the
+        returned DataList.
 
     Returns
     -------
