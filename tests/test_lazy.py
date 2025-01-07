@@ -6,8 +6,17 @@ from numpy.testing import assert_allclose
 import pytest
 import operator
 
-filters = ["median_filter", "mean_filter", "erosion", "dilation", "opening", "closing",
-           "kalman_filter", "gaussian_filter", "edge_filter"]
+filters = [
+    "median_filter",
+    "mean_filter",
+    "erosion",
+    "dilation",
+    "opening",
+    "closing",
+    "kalman_filter",
+    "gaussian_filter",
+    "edge_filter",
+]
 
 
 def test_functions_and_slicing(resource):

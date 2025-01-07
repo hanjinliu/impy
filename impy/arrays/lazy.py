@@ -547,7 +547,6 @@ class LazyImgArray(AxesMixin):
         kwargs: dict[str, Any] | None = None
     ) -> DaskArray:
         from dask import array as da
-        from dask.array.overlap import overlap
 
         if args is None:
             args = ()
@@ -557,14 +556,8 @@ class LazyImgArray(AxesMixin):
             dtype = self.dtype
         all_axes = str(self.axes)
         _func = _make_map_overlap_func(func, dtype, c_axes, all_axes)
-        depth = switch_slice(c_axes, self.axes, 0, depth)
-
-        # Here we should avoid using da.map_overlap to improve the performance.
-        args = [
-            overlap(x, depth=d, boundary=b, allow_rechunk=False)
-            for x, d, b in zip(args, depth, boundary)
-        ]
-        return da.map_blocks(_func, self.value, *args, dtype=dtype, **kwargs)
+        depths = switch_slice(c_axes, self.axes, 0, depth)
+        return da.map_overlap(_func, self.value, *args, depth=depths, dtype=dtype, **kwargs, boundary=boundary, align_arrays=False)
 
     def _apply_dask_filter(
         self,
