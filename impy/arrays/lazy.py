@@ -577,6 +577,30 @@ class LazyImgArray(AxesMixin):
             out[sl] = func(img, *args, **kwargs)
         return out
 
+    @_docs.copy_docs(ImgArray.shift)
+    @dims_to_spatial_axes
+    @check_input_and_output_lazy
+    def shift(
+        self,
+        translation: Coords,
+        *,
+        order: int = 3,
+        mode: PaddingMode = "constant",
+        cval: float = 0,
+        prefilter: bool | None = None,
+        dims: Dims = 2,
+        update: bool = False
+    ) -> LazyImgArray:
+
+        prefilter = prefilter or order > 1
+
+        return self._apply_map_blocks(
+            _transform.shift,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(shift=translation, order=order, mode=mode, cval=cval,
+                        prefilter=prefilter)
+        )
+
     @_docs.copy_docs(ImgArray.rotate)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
@@ -1089,7 +1113,7 @@ class LazyImgArray(AxesMixin):
     @dims_to_spatial_axes
     @check_input_and_output_lazy
     def fft(self, *, shape: int | Iterable[int] | str = "same", shift: bool = True,
-            dims: Dims = None) -> LazyImgArray:
+            double_precision: bool = False, dims: Dims = None) -> LazyImgArray:
         from dask import array as da
 
         axes = [self.axisof(a) for a in dims]
@@ -1101,7 +1125,8 @@ class LazyImgArray(AxesMixin):
         else:
             shape = check_nd(shape, len(dims))
         fft = _get_fft_func(Const["RESOURCE"])
-        freq = fft(self.value.astype(np.float32), s=shape, axes=axes)
+        dtype = np.float64 if double_precision else np.float32
+        freq = fft(self.value.astype(dtype), s=shape, axes=axes)
         if shift:
             freq[:] = da.fft.fftshift(freq, axes=axes)
         return freq
@@ -1109,16 +1134,24 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.ifft)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
-    def ifft(self, real: bool = True, *, shift: bool = True, dims: Dims = None) -> LazyImgArray:
+    def ifft(
+        self,
+        real: bool = True,
+        *,
+        shift: bool = True,
+        double_precision: bool = False,
+        dims: Dims = None,
+    ) -> LazyImgArray:
         from dask import array as da
 
+        dtype = np.complex128 if double_precision else np.complex64
         axes = [self.axisof(a) for a in dims]
         if shift:
             freq = da.fft.ifftshift(self.value, axes=axes)
         else:
             freq = self.value
         ifft = _get_ifft_func(Const["RESOURCE"])
-        out = ifft(freq, axes=axes)
+        out = ifft(freq.astype(dtype), axes=axes)
 
         if real:
             out = da.real(out)
@@ -1128,9 +1161,16 @@ class LazyImgArray(AxesMixin):
     @_docs.copy_docs(ImgArray.power_spectra)
     @dims_to_spatial_axes
     @check_input_and_output_lazy
-    def power_spectra(self, shape = "same", norm: bool = False, zero_norm: bool = False, *,
-                      dims: Dims = None) -> LazyImgArray:
-        freq = self.fft(dims=dims, shape=shape)
+    def power_spectra(
+        self,
+        shape = "same",
+        norm: bool = False,
+        zero_norm: bool = False,
+        *,
+        double_precision: bool = False,
+        dims: Dims = None,
+    ) -> LazyImgArray:
+        freq = self.fft(dims=dims, shape=shape, double_precision=double_precision)
         pw = freq.value.real ** 2 + freq.value.imag ** 2
         if norm:
             pw /= pw.max()

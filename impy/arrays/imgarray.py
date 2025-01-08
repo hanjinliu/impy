@@ -247,12 +247,11 @@ class ImgArray(LabeledArray):
             cval = cval(self.value)
 
         prefilter = prefilter or order > 1
-        mtx = _transform.compose_affine_matrix(translation=translation)
 
         return self._apply_dask(
-            _transform.warp,
+            _transform.shift,
             c_axes=complement_axes(dims, self.axes),
-            kwargs=dict(matrix=mtx, order=order, mode=mode, cval=cval,
+            kwargs=dict(shift=translation, order=order, mode=mode, cval=cval,
                         prefilter=prefilter)
         )
 
