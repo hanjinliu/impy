@@ -21,20 +21,20 @@ class RangeLabels(LabelBase[_T]):
         self._start = start
         self._stop = stop
         self._step = step
-    
+
     def __getitem__(self, key):
         val = self._start + key * self._step
         if val > self._stop:
             raise IndexError("Index out of range.")
         return val
-    
+
     def __len__(self) -> int:
         return (self._stop - self._start) // self._step
 
 
 class Labels(LabelBase):
     """A tuple-like object storing label specifiers."""
-    
+
     def __init__(self, seq: Iterable[_T]):
         self._labels = tuple(seq)
         self._hash_map: dict[_T, int] = {}
@@ -44,29 +44,29 @@ class Labels(LabelBase):
     def __repr__(self) -> str:
         clsname = type(self).__name__
         return f"{clsname}{self._labels!r}"
-    
+
     def __len__(self) -> int:
         """Length of labels"""
         return len(self._labels)
-    
+
     def __getitem__(self, key):
         out = self._labels[key]
         if isinstance(key, slice):
             return Labels(out)
         return out
-    
+
     def __eq__(self, other: Sequence[_T]) -> bool:
         return self._labels == other
-    
+
     @property
     def has_duplicate(self) -> bool:
         """True if self has duplicated labels."""
         return len(self._labels) != len(self._hash_map)
-        
+
     def get_item(self, key: _T | slice):
         idx = self.get_slice(key)
         return self._labels[idx]
-    
+
     def get_slice(self, key: _T | slice) -> int | slice:
         if self.has_duplicate:
             raise ValueError("Labels have duplicate.")
@@ -95,67 +95,67 @@ class Labels(LabelBase):
 class Axis:
     """
     An axis object.
-    
+
     This object behaves like a length-1 string as much as possible.
-    
-    Parameters 
+
+    Parameters
     ----------
     name : str
         Name of axis.
     """
-    
+
     def __init__(self, name: str, metadata: dict[str, Any] | None = None):
         self._name = str(name)
         self._metadata = metadata or {}
-    
+
     def __str__(self) -> str:
         """String representation of the axis."""
         return self._name
-    
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}[{self._name!r}]"
-    
+
     def __hash__(self) -> int:
         """Hash as a string."""
         return hash(str(self))
-    
+
     def __eq__(self, other) -> bool:
         """Check equality as a string."""
         return str(self) == other
-    
+
     def __add__(self, other: str) -> str:
         """Add as a string ans returns a string."""
         return self._name + other
-    
+
     def __radd__(self, other: str) -> str:
         """Add as a string ans returns a string."""
         return other + self._name
-    
+
     def __lt__(self, other) -> bool:
         """To support alphabetic ordering."""
         return str(self) < str(other)
-    
+
     def __len__(self) -> int:
         """Length of the string representation."""
         return len(str(self))
-    
+
     def __iter__(self) -> Iterable[str]:
         """Iterate as a string."""
         return iter(str(self))
-    
+
     def __copy__(self) -> Self:
         return self.__class__(self._name, self._metadata.copy())
-    
+
     @property
     def metadata(self) -> dict[str, Any]:
         """Metadata dictionary."""
         return self._metadata
-    
+
     @property
     def scale(self) -> float:
         """Physical scale of axis."""
         return self.metadata.get(_SCALE, 1.0)
-    
+
     @scale.setter
     def scale(self, value: float) -> None:
         """Set physical scale to the axis."""
@@ -163,37 +163,37 @@ class Axis:
         if value <= 0:
             raise ValueError(f"Cannot set negative scale: {value!r}.")
         self.metadata[_SCALE] = value
-    
+
     @property
     def unit(self) -> str:
         """Physical scale unit of axis."""
-        return self.metadata.get(_UNIT, "px")
-    
+        return self.metadata.get(_UNIT, "")
+
     @unit.setter
     def unit(self, value: str | None):
         """Set physical unit to the axis."""
         if value is None:
-            value = "px"
+            value = ""
         elif value.startswith("\\u00B5") or value.startswith("\\u03BC"):
             value = "μ" + value[6:]
-        
+
         self.metadata[_UNIT] = value
-    
+
     @property
     def labels(self) -> Labels | None:
         """Axis labels."""
         return self.metadata.get(_LABELS, None)
-    
+
     @labels.setter
     def labels(self, value: Iterable[Hashable]) -> None:
         """Set axis labels."""
         self.metadata[_LABELS] = Labels(value)
-    
+
     @labels.deleter
     def labels(self) -> None:
         """Set axis labels."""
         del self.metadata[_LABELS]
-    
+
     def isin(self, values: Iterable[Hashable]) -> np.ndarray:
         """Check if labels are in values."""
         if self.labels is None:
@@ -223,23 +223,23 @@ class Axis:
                 metadata.update(labels=Labels([labels[i] for i in sl]))
         return self.__class__(self._name, metadata=metadata)
 
-    
+
 
 AxisLike = Union[str, Axis]
 
 
 class UndefAxis(Axis):
     """Undefined axis object."""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__("#")
-    
+
     def __repr__(self) -> str:
         return "#undef"
-    
+
     def __hash__(self) -> str:
         return id(self)
-    
+
     def __eq__(self, other) -> bool:
         return isinstance(other, str) and other == "#"
 

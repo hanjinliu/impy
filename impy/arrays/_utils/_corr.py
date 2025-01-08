@@ -34,7 +34,7 @@ def subpixel_pcc(
     f0: np.ndarray,
     f1: np.ndarray,
     upsample_factor: int,
-    max_shifts: tuple[float, ...] | None = None,
+    max_shifts: float | tuple[float, ...] | None = None,
 ):
     power, product = _pcc_and_power_spec(f0, f1, max_shifts)
     maxima = xp.unravel_index(xp.argmax(power), power.shape)
@@ -60,6 +60,8 @@ def subpixel_pcc(
         power = abs2(cross_correlation)
 
         if max_shifts is not None:
+            if np.isscalar(max_shifts):
+                max_shifts = (max_shifts,) * f0.ndim
             max_shifts = xp.asarray(max_shifts)
             _upsampled_left_shifts = (shifts + max_shifts) * upsample_factor
             _upsampled_right_shifts = (max_shifts - shifts) * upsample_factor

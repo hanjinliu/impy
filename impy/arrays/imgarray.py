@@ -247,12 +247,11 @@ class ImgArray(LabeledArray):
             cval = cval(self.value)
 
         prefilter = prefilter or order > 1
-        mtx = _transform.compose_affine_matrix(translation=translation)
 
         return self._apply_dask(
-            _transform.warp,
+            _transform.shift,
             c_axes=complement_axes(dims, self.axes),
-            kwargs=dict(matrix=mtx, order=order, mode=mode, cval=cval,
+            kwargs=dict(shift=translation, order=order, mode=mode, cval=cval,
                         prefilter=prefilter)
         )
 
@@ -3986,6 +3985,7 @@ class ImgArray(LabeledArray):
         along: AxisLike | None = None,
         show_drift: bool = False,
         upsample_factor: int = 10,
+        max_shift: nDFloat | None = None,
     ) -> MarkerFrame:
         """
         Calculate yx-directional drift using the method equivalent to
@@ -3999,6 +3999,8 @@ class ImgArray(LabeledArray):
             If True, plot the result.
         upsample_factor : int, default is 10
             Up-sampling factor when calculating phase cross correlation.
+        max_shift : tuple of float, optional
+            Maximum shift in spatial directions.
 
         Returns
         -------
@@ -4013,7 +4015,9 @@ class ImgArray(LabeledArray):
             raise ValueError("`along` must be single character.")
         if not isinstance(upsample_factor, int):
             raise TypeError(f"upsample-factor must be integer but got {type(upsample_factor)}")
-
+        if max_shift is not None:
+            if np.isscalar(max_shift):
+                max_shift = np.full(self.ndim - 1, max_shift)
         result = np.zeros((self.sizeof(along), self.ndim-1), dtype=np.float32)
         c_axes = complement_axes(along, self.axes)
         last_img = None
@@ -4022,7 +4026,12 @@ class ImgArray(LabeledArray):
             img = xp.asarray(img)
             if last_img is not None:
                 result[i] = xp.asnumpy(
-                    _corr.subpixel_pcc(last_img, img, upsample_factor=upsample_factor)[0]
+                    _corr.subpixel_pcc(
+                        last_img,
+                        img,
+                        max_shifts=max_shift,
+                        upsample_factor=upsample_factor,
+                    )[0]
                 )
                 last_img = img
             else:
@@ -4047,6 +4056,7 @@ class ImgArray(LabeledArray):
         *,
         zero_ave: bool = True,
         along: AxisLike | None = None,
+        max_shift: nDFloat | None = None,
         order: int = 1,
         mode: str = "constant",
         cval: float = 0,
@@ -4109,7 +4119,7 @@ class ImgArray(LabeledArray):
                     )
                 return out
 
-            shift = ref.track_drift(along=along).values
+            shift = ref.track_drift(along=along, max_shift=max_shift).values
 
         else:
             shift = np.asarray(shift, dtype=np.float32)
