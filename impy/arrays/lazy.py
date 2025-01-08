@@ -539,9 +539,9 @@ class LazyImgArray(AxesMixin):
     def _apply_map_overlap(
         self,
         func: Callable,
-        c_axes: str = None,
+        c_axes: str | None = None,
         depth: int = 16,
-        boundary="reflect",
+        boundary="none",
         dtype: DTypeLike = None,
         args: tuple | None = None,
         kwargs: dict[str, Any] | None = None
