@@ -632,7 +632,8 @@ class LabeledArray(MetaArray):
                         axes=c_axes+[new_axis], propname="reslice")
 
         out.set_scale(self)
-        out.set_scale({new_axis: self.scale[dims[-1]] * seg.interv})
+        axis = self.axes[dims[-1]]
+        out.set_scale({new_axis: axis.scale * seg.interv}, unit=axis.unit)
         return out
 
     @_docs.write_docs
