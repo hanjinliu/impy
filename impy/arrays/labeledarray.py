@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import itertools
 from functools import partial
-from typing import TYPE_CHECKING, Any, Sequence, MutableMapping, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Sequence, MutableMapping, Protocol
 from warnings import warn
 from scipy import ndimage as ndi
 
@@ -23,7 +23,7 @@ from impy.array_api import xp
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from numpy.typing import ArrayLike, DTypeLike
+    from numpy.typing import ArrayLike, DTypeLike, NDArray
     from impy.frame import PathFrame
     from impy.roi import RoiList
 
@@ -576,6 +576,7 @@ class LabeledArray(MetaArray):
         *,
         order: int = 3,
         prefilter: bool | None = None,
+        how: Literal["pack", "equal"] = "pack",
     ) -> PropArray:
         """
         Measure line profile (kymograph) iteratively for every slice of image. This
@@ -590,7 +591,12 @@ class LabeledArray(MetaArray):
             `a = [[y0, x0], [y1, x1], ..., [yn, xn]]`
         b : array-like, optional
             Destination coordinate. If specified, `a` must be the source coordinate.
-        {order}
+        {order}{prefilter}
+        how : "pack" or "equal", default "pack"
+            How to sample points on the line. "pack" means that the points are sampled
+            at 1-px interval from the start point. "equal" means that the points are
+            sampled equally at the interval larger but neareset to 1-px so that the
+            points covers the entire line.
 
         Returns
         -------
@@ -616,7 +622,12 @@ class LabeledArray(MetaArray):
         a = np.asarray(a, dtype=np.float32)
         _, ndim = a.shape
         seg = SegmentedLine(a)
-        coords = seg.sample_points().T
+        if how == "pack":
+            coords = np.stack(seg.arange(), axis=0)
+        elif how == "equal":
+            coords = np.stack(seg.linspace(int(seg.length())), axis=0)
+        else:
+            raise ValueError(f"No option matches how={how}")
 
         if ndim == self.ndim:
             dims = self.axes
@@ -633,7 +644,10 @@ class LabeledArray(MetaArray):
 
         out.set_scale(self)
         axis = self.axes[dims[-1]]
-        out.set_scale({new_axis: axis.scale * seg.interv}, unit=axis.unit)
+        if how == "equal":
+            out.set_scale({new_axis: axis.scale * seg.interv}, unit=axis.unit)
+        else:
+            out.set_scale({new_axis: axis.scale}, unit=axis.unit)
         return out
 
     @_docs.write_docs
@@ -1577,30 +1591,64 @@ class SegmentedLine:
         dist = np.sqrt(np.sum(vec**2, axis=1))
         dist_sum = np.sum(dist)
         npoints = int(dist_sum)
-        interv = dist_sum / npoints
+        self.interv = dist_sum / npoints
 
-        self.length = dist_sum
         self.vec = vec
         self.dist = dist
         self.nodes = nodes
-        self.interv = interv
 
     def sample_points(self) -> np.ndarray:
         res = 0
         out = [self.nodes[0:1]]
         npoints = 1
+        interv = self.length() / int(self.length())
         for v, d, p in zip(self.vec, self.dist, self.nodes[:-1]):
             res0 = res
-            d_int, res = divmod(d + res, self.interv)
-            idx = self.interv*(np.arange(d_int) + 1) - res0
+            d_int, res = divmod(d + res, interv)
+            idx = interv * (np.arange(d_int) + 1) - res0
             xs = idx[:, np.newaxis] * v[np.newaxis]/d + p
             out.append(xs)
             npoints += xs.shape[0]
 
-        if npoints <= int(self.length):
+        if npoints <= int(self.length()):
             out.append(self.nodes[-1:])
 
         return np.concatenate(out, axis=0)
+
+    def length(self) -> np.float64:
+        return np.sum(self.lengths())
+
+    def lengths(self) -> NDArray[np.float64]:
+        xs = self.nodes[:, 1]
+        ys = self.nodes[:, 0]
+        return np.hypot(np.diff(xs), np.diff(ys))
+
+    def linspace(self, num: int) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Return a tuple of x and y coordinates of np.linspace along the line."""
+        tnots = np.cumsum(
+            np.concatenate([[0], self.lengths()], dtype=np.float64)
+        )
+        teval = np.linspace(0, tnots[-1], num)
+        xs = self.nodes[:, 1]
+        ys = self.nodes[:, 0]
+        xi = np.interp(teval, tnots, xs)
+        yi = np.interp(teval, tnots, ys)
+        return yi, xi
+
+    def arange(
+        self, step: float = 1.0
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        tnots = np.cumsum(
+            np.concatenate([[0], self.lengths()], dtype=np.float64)
+        )
+        length = tnots[-1]
+        num, rem = divmod(length, step)
+        teval = np.linspace(0, length - rem, int(round(num)))
+        xs = self.nodes[:, 1]
+        ys = self.nodes[:, 0]
+        xi = np.interp(teval, tnots, xs)
+        yi = np.interp(teval, tnots, ys)
+        return yi, xi
 
 def _count_list_depth(x) -> int:
     n = 0
