@@ -14,7 +14,7 @@ from impy.utils.axesop import complement_axes
 if TYPE_CHECKING:
     from tifffile import TiffFile
 
-@IO.mark_reader(".tif", ".tiff")
+@IO.mark_reader(".tif", ".tiff", ".lsm")
 def _(path: str, memmap: bool = False) -> ImageData:
     """The tif file reader."""
     from tifffile import TiffFile
@@ -28,7 +28,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
 
     return ImageData.from_metadata(image, meta)
 
-@IO.mark_header_reader(".tif", ".tiff")
+@IO.mark_header_reader(".tif", ".tiff", ".lsm")
 def _(path: str) -> ImageMetadata:
     """The tif header reader."""
     from tifffile import TiffFile
@@ -39,7 +39,7 @@ def _(path: str) -> ImageMetadata:
     return meta
 
 
-@IO.mark_writer(".tif", ".tiff")
+@IO.mark_writer(".tif", ".tiff", ".lsm")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The TIFF writer."""
     from tifffile import imwrite, memmap
@@ -103,7 +103,7 @@ def _parse_tifffile(tif: TiffFile) -> ImageMetadata:
     tags = {v.name: v.value for v in pagetag.values()}
 
     labels = ijmeta.get("Labels")
-    scale = dict()
+    scale: dict[str, float] = {}
     dz = ijmeta.get("spacing", 1.0)
     scale_unit: dict[str, float] = {}
     try:
@@ -133,9 +133,9 @@ def _parse_tifffile(tif: TiffFile) -> ImageMetadata:
     _unit = ijmeta.pop("unit", None)
     for k in scale.keys():
         scale_unit[k] = _unit
-    if tif.is_ome:
+    if ome_meta := tif.ome_metadata:
         try:
-            xml = xml2dict(tif.ome_metadata)
+            xml = xml2dict(ome_meta)
             meta_data: dict[str, Any] = xml["OME"]["Image"]
             if isinstance(meta_data, list):
                 meta_data = meta_data[0]
@@ -156,6 +156,14 @@ def _parse_tifffile(tif: TiffFile) -> ImageMetadata:
 
         except Exception:
             pass
+    if lsm_meta := tif.lsm_metadata:
+        scale_unit = "μm"
+        if voxel_size_x := lsm_meta.get("VoxelSizeX"):
+            scale["x"] = voxel_size_x * 1e6
+        if voxel_size_y := lsm_meta.get("VoxelSizeY"):
+            scale["y"] = voxel_size_y * 1e6
+        if voxel_size_z := lsm_meta.get("VoxelSizeZ"):
+            scale["z"] = voxel_size_z * 1e6
 
     return ImageMetadata(
         axes=axes,
@@ -188,7 +196,7 @@ def _get_ijmeta_from_img(img: ImpyArray, update_lut=True):
         info = {}
     metadata["Info"] = str(info)
     scale_unit = img.scale_unit
-    if scale_unit[0] in ("μ", "\xb5", "\xc2"):
+    if scale_unit and scale_unit[0] in ("μ", "\xb5", "\xc2"):
         scale_unit = "\\u00B5" + scale_unit[1:]
     metadata["unit"] = scale_unit
 
