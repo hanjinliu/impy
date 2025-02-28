@@ -1643,7 +1643,7 @@ class SegmentedLine:
         )
         length = tnots[-1]
         num, rem = divmod(length, step)
-        teval = np.linspace(0, length - rem, int(round(num)))
+        teval = np.linspace(0, length - rem, int(num + 1))
         xs = self.nodes[:, 1]
         ys = self.nodes[:, 0]
         xi = np.interp(teval, tnots, xs)
