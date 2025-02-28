@@ -58,6 +58,7 @@ img_prj.imsave("image_max.tif")        # Save in the same place. Don't spend tim
 `impy` automatically chooses the proper reader/writer according to the extension.
 
 - Tiff file (".tif", ".tiff")
+- LSM file (".lsm")
 - MRC file (".mrc", ".rec", ".st", ".map", ".map.gz")
 - Zarr file (".zarr")
 - ND2 file (".nd2")
