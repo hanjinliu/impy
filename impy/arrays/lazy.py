@@ -1621,7 +1621,9 @@ class LazyImgArray(AxesMixin):
             dtype = np.float64
         else:
             raise ValueError(f"depth must be 16, 32, or 64, but got {depth}")
-        out = self.value.astype(np.float32)
+        if self.dtype == dtype:
+            return self
+        out = self.value.astype(dtype)
         out = self.__class__(out)
         out._set_info(self)
         return out

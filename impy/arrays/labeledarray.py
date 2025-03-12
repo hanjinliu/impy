@@ -410,9 +410,9 @@ class LabeledArray(MetaArray):
             dtype = np.float64
         else:
             raise ValueError(f"depth must be 16, 32, or 64, but got {depth}")
-        if self.dtype == depth:
+        if self.dtype == dtype:
             return self
-        out = self.value.astype(depth).view(self.__class__)
+        out = self.value.astype(dtype).view(self.__class__)
         out._set_info(self)
         return out
 
