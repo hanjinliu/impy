@@ -401,10 +401,18 @@ class LabeledArray(MetaArray):
         out._set_info(self)
         return out
 
-    def as_float(self) -> Self:
-        if self.dtype == np.float32:
+    def as_float(self, *, depth: int = 32) -> Self:
+        if depth == 16:
+            dtype = np.float16
+        elif depth == 32:
+            dtype = np.float32
+        elif depth == 64:
+            dtype = np.float64
+        else:
+            raise ValueError(f"depth must be 16, 32, or 64, but got {depth}")
+        if self.dtype == depth:
             return self
-        out = self.value.astype(np.float32).view(self.__class__)
+        out = self.value.astype(depth).view(self.__class__)
         out._set_info(self)
         return out
 
@@ -417,8 +425,12 @@ class LabeledArray(MetaArray):
             return self.as_uint16()
         elif dtype == "uint8":
             return self.as_uint8()
+        elif dtype == "float16":
+            return self.as_float(depth=16)
         elif dtype == "float32":
-            return self.as_float()
+            return self.as_float(depth=32)
+        elif dtype == "float64":
+            return self.as_float(depth=64)
         elif dtype == "bool":
             return self.astype("bool")
         elif dtype == "float64":
