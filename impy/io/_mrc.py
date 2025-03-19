@@ -60,7 +60,13 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
 
     if img.dtype == "bool":
         img = img.astype(np.int8)
-
+    elif img.dtype == "float64":
+        warnings.warn(
+            "MRC format does not support float64. Converting to float32.",
+            UserWarning,
+            stacklevel=2,
+        )
+        img = img.astype(np.float32)
     if lazy:
         from dask import array as da
 
