@@ -75,8 +75,9 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     # get voxel_size
     if img.axes not in ("zyx", "yx"):
         raise ImageAxesError(
-            f"Can only save zyx- or yx- image as a mrc file, but image has {img.axes} axes."
-            )
+            f"Can only save zyx- or yx- image as a mrc file, but image has {img.axes} "
+            "axes."
+        )
     if os.path.exists(path):
         with mrcfile.open(path, mode="r+") as mrc:
             mrc.set_data(img.value)

@@ -19,7 +19,10 @@ def diagonal_gaussian(r, *params):
     ndim = len(params[:-2])//2
     mu = params[:ndim]
     sg = params[ndim:-2]
-    z_value = np.array([(x0 - mu0)/sg0 for x0, mu0, sg0 in zip(r, mu, sg)])
+    z_value = np.array(
+        [(x0 - mu0) / sg0 for x0, mu0, sg0 in zip(r, mu, sg)],
+        dtype=np.float32
+    )
     return a * np.exp(-np.sum(z_value**2, axis=0) / 2) + b
 
 class Gaussian:

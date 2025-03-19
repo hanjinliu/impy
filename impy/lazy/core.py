@@ -108,8 +108,7 @@ def array(
     axes: str = None,
     like: MetaArray | None = None,
 ) -> LazyImgArray:
-    """
-    make an LazyImgArray object, like ``np.array(x)``
+    """Make an LazyImgArray object, like ``np.array(x)``
 
     Parameters
     ----------
@@ -144,12 +143,7 @@ def array(
         arr = da.asarray(arr)
 
     if isinstance(arr, np.ndarray) and dtype is None:
-        if arr.dtype in (np.uint8, np.uint16, np.float32):
-            dtype = arr.dtype
-        elif arr.dtype.kind == "f":
-            dtype = np.float32
-        else:
-            dtype = arr.dtype
+        dtype = arr.dtype
 
     axes, name = _normalize_params(axes, name, like)
 
@@ -172,8 +166,7 @@ def asarray(
     like: MetaArray | None = None,
     chunks="auto",
 ) -> LazyImgArray:
-    """
-    make an LazyImgArray object, like ``np.asarray(x)``
+    """Make an LazyImgArray object, like ``np.asarray(x)``
 
     Parameters
     ----------

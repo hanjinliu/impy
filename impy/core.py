@@ -99,8 +99,7 @@ def array(
     axes: str = None,
     like: MetaArray | None = None,
 ) -> ImgArray:
-    """
-    make an ImgArray object, like ``np.array(x)``
+    """Make an ImgArray object, like ``np.array(x)``
 
     Parameters
     ----------
@@ -116,12 +115,7 @@ def array(
 
     """
     if isinstance(arr, np.ndarray) and dtype is None:
-        if arr.dtype in (np.uint8, np.uint16, np.float32):
-            dtype = arr.dtype
-        elif arr.dtype.kind == "f":
-            dtype = np.float32
-        else:
-            dtype = arr.dtype
+        dtype = arr.dtype
 
     axes, name = _normalize_params(axes, name, like)
 
@@ -150,8 +144,7 @@ def asarray(
     axes: str | None = None,
     like: MetaArray | None = None,
 ) -> ImgArray:
-    """
-    make an ImgArray object, like ``np.asarray(x)``
+    """Make an ImgArray object, like ``np.asarray(x)``
 
     Parameters
     ----------
@@ -296,9 +289,8 @@ def _inject_numpy_function(func: Callable[_P, Any | None]) -> Callable[_P, ImgAr
         return asarray(npfunc(*args, **kwargs), name=name, axes=axes, like=like)
 
     _func.__doc__ = (
-        f"""
-        impy version of numpy.{func.__name__}. This function has additional parameters ``axes``
-        and ``name``. Original docstring follows.
+        f"""impy version of numpy.{func.__name__}. This function has additional
+        parameters ``axes`` and ``name``. Original docstring follows.
 
         Additional Parameters
         ---------------------
@@ -396,7 +388,7 @@ def gaussian_kernel(
     """
     if np.isscalar(sigma):
         sigma = (sigma,)*len(shape)
-    g = gauss.GaussianParticle([(np.array(shape)-1)/2, sigma, peak, 0])
+    g = gauss.GaussianParticle([(np.array(shape) - 1) / 2, sigma, peak, 0])
     ker = g.generate(shape)
     ker = array(ker, name=name or "Gaussian-Kernel", axes=axes)
     if axes is None and ker.ndim == 3:

@@ -1612,10 +1612,18 @@ class LazyImgArray(AxesMixin):
         out._set_info(self)
         return out
 
-    def as_float(self) -> LazyImgArray:
-        if self.dtype == np.float32:
+    def as_float(self,  *, depth: int = 32) -> LazyImgArray:
+        if depth == 16:
+            dtype = np.float16
+        elif depth == 32:
+            dtype = np.float32
+        elif depth == 64:
+            dtype = np.float64
+        else:
+            raise ValueError(f"depth must be 16, 32, or 64, but got {depth}")
+        if self.dtype == dtype:
             return self
-        out = self.value.astype(np.float32)
+        out = self.value.astype(dtype)
         out = self.__class__(out)
         out._set_info(self)
         return out
@@ -1628,12 +1636,12 @@ class LazyImgArray(AxesMixin):
             return self.as_uint16()
         elif dtype == "uint8":
             return self.as_uint8()
+        elif dtype == "float16":
+            return self.as_float(depth=16)
         elif dtype == "float32":
-            return self.as_float()
+            return self.as_float(depth=32)
         elif dtype == "float64":
-            warn("Data type float64 is not valid for images. It was converted to float32 instead",
-                 UserWarning)
-            return self.as_float()
+            return self.as_float(depth=64)
         elif dtype == "complex64":
             out = self.value.astype(np.complex64)
             out = self.__class__(out)
