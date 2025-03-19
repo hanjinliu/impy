@@ -76,8 +76,10 @@ def test_lazy_imsave(ext: str, dtype):
         img = rng.random_uint16((4, 8, 80), axes="zyx")
     else:
         img = rng.random((4, 8, 80), axes="zyx")
+    assert img.dtype == dtype
     img_lazy = ip.lazy.asarray(img, chunks=(1, 2, 80))
     img_lazy.scale_unit = "nm"
+    assert img_lazy.dtype == dtype
     with tempfile.TemporaryDirectory() as path:
         fp = Path(path) / f"test{ext}"
         img_lazy.imsave(fp)

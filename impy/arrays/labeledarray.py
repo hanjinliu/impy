@@ -1631,21 +1631,18 @@ class SegmentedLine:
         return np.sum(self.lengths())
 
     def lengths(self) -> NDArray[np.float64]:
-        xs = self.nodes[:, 1]
-        ys = self.nodes[:, 0]
-        return np.hypot(np.diff(xs), np.diff(ys))
+        return np.sqrt(np.sum(np.diff(self.nodes, axis=0) ** 2, axis=1))
 
-    def linspace(self, num: int) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    def linspace(self, num: int) -> tuple[NDArray[np.float64], ...]:
         """Return a tuple of x and y coordinates of np.linspace along the line."""
         tnots = np.cumsum(
             np.concatenate([[0], self.lengths()], dtype=np.float64)
         )
         teval = np.linspace(0, tnots[-1], num)
-        xs = self.nodes[:, 1]
-        ys = self.nodes[:, 0]
-        xi = np.interp(teval, tnots, xs)
-        yi = np.interp(teval, tnots, ys)
-        return yi, xi
+        return tuple(
+            np.interp(teval, tnots, self.nodes[:, i])
+            for i in range(self.nodes.shape[1])
+        )
 
     def arange(
         self, step: float = 1.0
@@ -1656,11 +1653,10 @@ class SegmentedLine:
         length = tnots[-1]
         num, rem = divmod(length, step)
         teval = np.linspace(0, length - rem, int(num + 1))
-        xs = self.nodes[:, 1]
-        ys = self.nodes[:, 0]
-        xi = np.interp(teval, tnots, xs)
-        yi = np.interp(teval, tnots, ys)
-        return yi, xi
+        return tuple(
+            np.interp(teval, tnots, self.nodes[:, i])
+            for i in range(self.nodes.shape[1])
+        )
 
 def _count_list_depth(x) -> int:
     n = 0

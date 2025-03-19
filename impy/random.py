@@ -127,7 +127,7 @@ class ImageGenerator:
     def standard_normal(
         self,
         size: int | tuple[int, ...] | None = None,
-        dtype = None,
+        dtype=np.float32,
         *,
         axes: AxesLike | None = None,
         name: str | None = None,
@@ -142,7 +142,7 @@ class ImageGenerator:
     def standard_exponential(
         self,
         size: int | tuple[int, ...] | None = None,
-        dtype = None,
+        dtype=np.float32,
         method: Literal["zig", "inv"] = None,
         *,
         axes: AxesLike | None = None,
@@ -159,7 +159,7 @@ class ImageGenerator:
     def random(
         self,
         size: int | tuple[int, ...] | None = None,
-        dtype = None,
+        dtype=np.float32,
         *,
         axes: AxesLike | None = None,
         name: str | None = None,
