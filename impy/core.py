@@ -543,12 +543,12 @@ def imread(
         return _imread_stack(path, dtype=dtype, key=key, squeeze=squeeze)
     elif "*" in path:
         return _imread_glob(path, dtype=dtype, key=key, squeeze=squeeze)
-    elif not os.path.exists(path):
+    elif not Path(path).exists():
         raise FileNotFoundError(f"No such file or directory: {path}")
 
     # read tif metadata
     if not is_memmap:
-        size = os.path.getsize(path) / 2**30
+        size = Path(path).stat().st_size / 2**30
         if size > Const["MAX_GB"]:
             raise MemoryError(f"Too large {size:.2f} GB")
 
