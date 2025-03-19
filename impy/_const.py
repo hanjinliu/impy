@@ -8,13 +8,13 @@ MAX_GB_LIMIT = memory.total / 2 * 1e-9
 
 class GlobalConstant(MutableMapping[str, Any]):
     _const: dict[str, Any]
-    
+
     def __init__(self, **kwargs):
         object.__setattr__(self, "_const", dict(**kwargs))
-    
+
     def __len__(self) -> int:
         return len(self._const)
-    
+
     def __iter__(self):
         raise StopIteration
 
@@ -47,15 +47,15 @@ class GlobalConstant(MutableMapping[str, Any]):
                 dask.config.set(scheduler=v)
         else:
             raise RuntimeError("Cannot set new keys.")
-        
+
         self._const[k] = v
-    
+
     __getattr__ = __getitem__
     __setattr__ = __setitem__
 
     def __delitem__(self, v):
         raise RuntimeError("Cannot delete any items.")
-    
+
     def __repr__(self):
         return (
             f"""
@@ -65,12 +65,12 @@ class GlobalConstant(MutableMapping[str, Any]):
                 SCHEDULER   : {self['SCHEDULER']}
             """
         )
-    
+
     def asdict(self) -> dict[str, Any]:
         return self._const.copy()
 
 Const = GlobalConstant(
-    MAX_GB = MAX_GB_LIMIT/2,
+    MAX_GB = MAX_GB_LIMIT * 0.8,
     ID_AXIS = "N",
     RESOURCE = "numpy",
     SCHEDULER = "threads",
@@ -80,12 +80,12 @@ class SetConst:
     n_ongoing = 0
     _locked_keys: set[str] = set()
     _old_dict: dict[str, Any] = dict()
-    
+
     def __init__(self, dict_: dict[str, Any] | None =None, **kwargs):
         dict_ = dict_ or {}
         dict_.update(kwargs)
         self._kwargs = dict_
-    
+
     def __enter__(self):
         self.__class__.n_ongoing += 1
         if self.__class__.n_ongoing == 1:

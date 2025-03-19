@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 import warnings
 import os
@@ -78,7 +79,7 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
             f"Can only save zyx- or yx- image as a mrc file, but image has {img.axes} "
             "axes."
         )
-    if os.path.exists(path):
+    if Path(path).exists():
         with mrcfile.open(path, mode="r+") as mrc:
             mrc.set_data(img.value)
             mrc.voxel_size = voxel_size
@@ -99,13 +100,12 @@ _MRC_MODE = {
 }
 
 def _parse_mrcfile(mrc: MrcObject) -> ImageMetadata:
-    ndim = len(mrc.voxel_size.item())
-    if ndim == 3:
-        axes = "zyx"
-    elif ndim == 2:
+    if mrc.is_single_image():
         axes = "yx"
+    elif mrc.is_volume_stack():
+        axes = "tzyx"
     else:
-        raise RuntimeError(f"ndim = {ndim} not supported")
+        axes = "zyx"
 
     scale = dict.fromkeys(axes, 1.0)
     for a in axes:
