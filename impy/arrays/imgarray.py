@@ -1,10 +1,12 @@
 from __future__ import annotations
 import warnings
+from functools import partial
+from itertools import product
+from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable, overload, Any
+
 import numpy as np
 from numpy.typing import DTypeLike
-from functools import partial
 from scipy import ndimage as ndi
-from typing import TYPE_CHECKING, Literal, Sequence, Iterable, Callable, overload, Any
 
 from impy.arrays.labeledarray import LabeledArray
 from impy.arrays.label import Label
@@ -3987,8 +3989,7 @@ class ImgArray(LabeledArray):
         upsample_factor: int = 10,
         max_shift: nDFloat | None = None,
     ) -> MarkerFrame:
-        """
-        Calculate yx-directional drift using the method equivalent to
+        """Calculate yx-directional drift using the method equivalent to
         ``skimage.registration.phase_cross_correlation``.
 
         Parameters
@@ -4063,9 +4064,10 @@ class ImgArray(LabeledArray):
         dims: Dims = 2,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Drift correction using iterative Affine translation. If translation vectors ``shift``
-        is not given, then it will be determined using ``track_drift`` method of ImgArray.
+        """Drift correction using iterative Affine translation.
+
+        If translation vectors  ``shift`` is not given, then it will be determined using
+        ``track_drift`` method of ImgArray.
 
         Parameters
         ----------
@@ -4092,7 +4094,7 @@ class ImgArray(LabeledArray):
         Examples
         --------
         Drift correction of multichannel image using the first channel as the reference.
-            >>> img.drift_correction(ref=img["c=0"])
+        >>> img.drift_correction(ref=img["c=0"])
         """
 
         if along is None:
@@ -4107,7 +4109,6 @@ class ImgArray(LabeledArray):
             elif not isinstance(ref, ImgArray):
                 ref = self[ref]
             if ref.axes != [along] + dims:
-                from itertools import product
                 _c_axes = complement_axes([along] + dims, str(ref.axes))
                 fmt = slicer.get_formatter(_c_axes)
                 out = np.empty_like(self)
