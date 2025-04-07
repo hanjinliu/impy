@@ -9,9 +9,10 @@ rng = ip.random.default_rng(120)
 np_rng = np.random.default_rng(120)
 
 @pytest.mark.parametrize("size", sizes)
-def test_random(size):
-    assert_allclose(rng.random(size), np_rng.random(size))
-    
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_random(size, dtype):
+    assert_allclose(rng.random(size, dtype=dtype), np_rng.random(size, dtype=dtype))
+
 @pytest.mark.parametrize("size", sizes)
 def test_normal(size):
     assert_allclose(rng.normal(size=size), np_rng.normal(size=size))

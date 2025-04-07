@@ -52,6 +52,8 @@ binary_closing = get_func("binary_closing")
 closing = get_func("grey_closing")
 gaussian_filter = get_func("gaussian_filter")
 median_filter = get_func("median_filter")
+min_filter = get_func("minimum_filter")
+max_filter = get_func("maximum_filter")
 spline_filter = get_func("spline_filter")
 convolve = get_func("convolve")
 white_tophat = get_func("white_tophat")
@@ -69,6 +71,8 @@ if TYPE_CHECKING:
     closing = scipy_ndi.grey_closing
     gaussian_filter = scipy_ndi.gaussian_filter
     median_filter = scipy_ndi.median_filter
+    min_filter = scipy_ndi.minimum_filter
+    max_filter = scipy_ndi.maximum_filter
     spline_filter = scipy_ndi.spline_filter
     convolve = scipy_ndi.convolve
     white_tophat = scipy_ndi.white_tophat

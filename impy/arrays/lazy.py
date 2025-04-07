@@ -890,6 +890,47 @@ class LazyImgArray(AxesMixin):
             kwargs=dict(footprint=disk, mode=mode, cval=cval),
         )
 
+    @_docs.copy_docs(ImgArray.min_filter)
+    @dims_to_spatial_axes
+    @same_dtype
+    @check_input_and_output_lazy
+    def min_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        disk = _structures.ball_like(radius, len(dims))
+        return self._apply_map_overlap(
+            _filters.min_filter,
+            depth=_ceilint(radius),
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(footprint=disk, mode=mode, cval=cval),
+        )
+
+    @_docs.copy_docs(ImgArray.max_filter)
+    @dims_to_spatial_axes
+    @same_dtype
+    @check_input_and_output_lazy
+    def max_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0,
+        dims: Dims = None,
+        update: bool = False
+    ) -> LazyImgArray:
+        disk = _structures.ball_like(radius, len(dims))
+        return self._apply_map_overlap(
+            _filters.max_filter,
+            depth=_ceilint(radius),
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(footprint=disk, mode=mode, cval=cval),
+        )
 
     @_docs.copy_docs(ImgArray.std_filter)
     @dims_to_spatial_axes

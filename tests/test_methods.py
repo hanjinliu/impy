@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 
 filters = [
-    "median_filter", 
-    "gaussian_filter", 
-    "lowpass_filter", 
+    "median_filter",
+    "gaussian_filter",
+    "lowpass_filter",
     "lowpass_conv_filter",
     "highpass_filter",
     "erosion",
@@ -16,6 +16,8 @@ filters = [
     "closing",
     "tophat",
     "mean_filter",
+    "min_filter",
+    "max_filter",
     "std_filter",
     "coef_filter",
     "diameter_opening",
@@ -84,24 +86,24 @@ def test_sm(method):
 
 def test_binning():
     rng = ip.random.default_rng(1111)
-    
+
     img = rng.normal(size=(120, 120, 120), axes="zyx")
     assert img.binning(4).shape == (30, 30, 30)
     assert img.binning(4, dims="yx").shape == (120, 30, 30)
-    
+
     img = rng.normal(size=(120, 122, 123), axes="zyx")
     with pytest.raises(ValueError):
         img.binning(4)
     imgb = img.binning(4, check_edges=False)
     assert imgb.shape == (30, 30, 30)
     assert_allclose(imgb, img[:120, :120, :120].binning(4))
-    
+
     np.random.seed()
 
 def test_tiled(resource):
     with ip.SetConst(RESOURCE=resource):
         rng = ip.random.default_rng(1111)
-        
+
         img = rng.random(size=(120, 120, 120), axes="zyx")
         img.tiled(chunks=(40, 50, 50)).lowpass_filter()
         img.tiled(chunks=(40, 50, 50)).gaussian_filter(sigma=1.0)
@@ -113,7 +115,7 @@ def test_tiled(resource):
 def test_lazy_tiled(resource):
     with ip.SetConst(RESOURCE=resource):
         rng = ip.lazy.random.default_rng(1111)
-        
+
         img = rng.random(size=(120, 120, 120), axes="zyx")
         img.tiled(chunks=(40, 50, 50)).lowpass_filter()
         img.tiled(chunks=(40, 50, 50)).gaussian_filter(sigma=1.0)
@@ -126,17 +128,17 @@ def test_lazy_tiled(resource):
 def test_tiled_dtype(resource, dtype):
     with ip.SetConst(RESOURCE=resource):
         rng = ip.random.default_rng(1111)
-        
+
         img = rng.random(size=(120, 120, 120), axes="zyx").astype(dtype)
         out = img.tiled(chunks=(40, 50, 50)).lowpass_filter()
         assert out.dtype == dtype
-        
+
         rng = ip.lazy.random.default_rng(1111)
-        
+
         img = rng.random(size=(120, 120, 120), axes="zyx").astype(dtype)
         out = img.tiled(chunks=(40, 50, 50)).lowpass_filter()
         assert out.dtype == dtype
-        
+
 
 @pytest.mark.parametrize("order", [1, 3])
 def test_drift_correction(order: int):
@@ -166,12 +168,12 @@ def test_labeling():
     img[20:25, 18:28] = 1
     img[4:12, 8:16] = 1
     img[10:22, 14:26] = 2
-    
+
     img0 = img.copy()
     img0.label()
     assert img0.labels is not None
     assert img0.labels.max() == 3
-    
+
     img0 = img.copy()
     lbl = img0 > 0.5
     img0.label(lbl)
