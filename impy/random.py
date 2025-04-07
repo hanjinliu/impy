@@ -184,10 +184,10 @@ class ImageGenerator:
     ) -> ImgArray:
         size, name, axes = _normalize_like(size, name, axes, like)
 
-        arr = self._rng.normal(loc=loc, scale=scale, size=size).astype(np.float32)
+        arr = self._rng.normal(loc=loc, scale=scale, size=size)
         if np.isscalar(arr):
             return arr
-        return asarray(xp.asnumpy(arr), axes=axes, name=name)
+        return asarray(xp.asnumpy(arr), axes=axes, name=name).astype(np.float32)
 
     def poisson(
         self,

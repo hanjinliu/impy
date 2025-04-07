@@ -708,8 +708,7 @@ class ImgArray(LabeledArray):
     @dims_to_spatial_axes
     @check_input_and_output
     def structure_tensor_eig(self, sigma: nDFloat = 1, *, dims: Dims = None)-> tuple[ImgArray, ImgArray]:
-        """
-        Calculate structure tensor's eigenvalues and eigenvectors.
+        """Calculate structure tensor's eigenvalues and eigenvectors.
 
         Parameters
         ----------
@@ -749,8 +748,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
-        """
-        Sobel filter. This filter is useful for edge detection.
+        """Edge detection such as Sobel filter.
 
         Parameters
         ----------
@@ -785,8 +783,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Butterworth low-pass filter.
+        """Butterworth low-pass filter.
 
         Parameters
         ----------
@@ -831,9 +828,10 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
-        """
-        Butterworth low-pass filter in real space. Butterworth kernel is created first using inverse
-        Fourier transform of weight function.
+        """Butterworth low-pass filter in real space.
+
+        Butterworth kernel is created first using inverse Fourier transform of weight
+        function.
 
         Parameters
         ----------
@@ -876,8 +874,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False
     ) -> ImgArray:
-        """
-        Butterworth high-pass filter.
+        """Butterworth high-pass filter.
 
         Parameters
         ----------
@@ -918,8 +915,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False
     ):
-        """
-        Butterworth band-pass filter.
+        """Butterworth band-pass filter.
 
         Parameters
         ----------
@@ -963,8 +959,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        General linear convolution by running kernel filtering.
+        """General linear convolution by running kernel filtering.
 
         Parameters
         ----------
@@ -998,8 +993,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Morphological erosion.
+        """Morphological erosion.
 
         If input is binary image, the running function will automatically switched to
         ``binary_erosion`` to speed up calculation.
@@ -1039,8 +1033,9 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Morphological dilation. If input is binary image, the running function will automatically switched to
+        """Morphological dilation.
+
+        If input is binary image, the running function will automatically switched to
         ``binary_dilation`` to speed up calculation.
 
         Parameters
@@ -1078,8 +1073,9 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Morphological opening. If input is binary image, the running function will automatically switched to
+        """Morphological opening.
+
+        If input is binary image, the running function will automatically switched to
         ``binary_opening`` to speed up calculation.
 
         Parameters
@@ -1117,8 +1113,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Morphological closing.
+        """Morphological closing.
 
         If input is binary image, the running function will automatically switched to
         ``binary_closing`` to speed up calculation.
@@ -1158,8 +1153,7 @@ class ImgArray(LabeledArray):
         dims: Dims = None,
         update: bool = False,
     ) -> ImgArray:
-        """
-        Tophat morphological image processing. This is useful for background subtraction.
+        """Tophat morphological image processing. This is useful for background subtraction.
 
         Parameters
         ----------
@@ -1190,8 +1184,7 @@ class ImgArray(LabeledArray):
         *,
         dims: Dims = None
     ) -> ImgArray:
-        """
-        Smoothen binary mask image at its edges. This is useful to make a "soft mask".
+        """Smoothen binary mask image at its edges. This is useful to make a "soft mask".
 
         This method applies erosion/dilation to a binary image and then smooth its edges by Gaussian.
         The total value is always larger after Gaussian smoothing.
@@ -1243,8 +1236,7 @@ class ImgArray(LabeledArray):
         cval: float = 0.0,
         dims: Dims = None,
         update: bool = False) -> ImgArray:
-        """
-        Mean filter. Kernel is filled with same values.
+        """Mean filter. Kernel is filled with same values.
 
         Parameters
         ----------
@@ -1262,6 +1254,65 @@ class ImgArray(LabeledArray):
             dtype=self.dtype,
             args=(disk,),
             kwargs=dict(mode=mode, cval=cval),
+        )
+
+
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @check_input_and_output
+    def min_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+    ) -> ImgArray:
+        """Minimum filter.
+
+        Parameters
+        ----------
+        {radius}{mode}{cval}{dims}
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """
+        disk = _structures.ball_like(radius, len(dims))
+        return self.as_float()._apply_dask(
+            _filters.min_filter,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(footprint=disk, mode=mode, cval=cval),
+        )
+
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @check_input_and_output
+    def max_filter(
+        self,
+        radius: float = 1,
+        *,
+        mode: PaddingMode = "reflect",
+        cval: float = 0.0,
+        dims: Dims = None,
+    ) -> ImgArray:
+        """Maximum filter.
+
+        Parameters
+        ----------
+        {radius}{mode}{cval}{dims}
+
+        Returns
+        -------
+        ImgArray
+            Filtered image
+        """
+        disk = _structures.ball_like(radius, len(dims))
+        return self.as_float()._apply_dask(
+            _filters.max_filter,
+            c_axes=complement_axes(dims, self.axes),
+            kwargs=dict(footprint=disk, mode=mode, cval=cval),
         )
 
     @_docs.write_docs
