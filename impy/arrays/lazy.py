@@ -905,7 +905,7 @@ class LazyImgArray(AxesMixin):
     ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         return self._apply_map_overlap(
-            _filters.min_filter,
+            xp.ndi.minimum_filter,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(footprint=disk, mode=mode, cval=cval),
@@ -926,7 +926,7 @@ class LazyImgArray(AxesMixin):
     ) -> LazyImgArray:
         disk = _structures.ball_like(radius, len(dims))
         return self._apply_map_overlap(
-            _filters.max_filter,
+            xp.ndi.maximum_filter,
             depth=_ceilint(radius),
             c_axes=complement_axes(dims, self.axes),
             kwargs=dict(footprint=disk, mode=mode, cval=cval),
