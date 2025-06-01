@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 import warnings
-import os
 import numpy as np
 from impy.io._registry import IO
 from impy.io._utils import rechunk_to_ones, MemmapArrayWriter, ImpyArray, ImageData, ImageMetadata

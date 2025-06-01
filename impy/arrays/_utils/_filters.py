@@ -155,7 +155,8 @@ def gabor_filter(img: np.ndarray, ker: np.ndarray, mode="reflect", cval=0.0):
 
 def skeletonize(img, selem):
     from skimage import morphology
-    skl = morphology.skeletonize_3d(img)
+
+    skl = morphology.skeletonize(img)
     if selem is not None:
         skl = morphology.binary_dilation(skl, selem)
     return skl
