@@ -40,7 +40,7 @@ class MemmapArrayWriter:
         chunksize: tuple[int, ...],
     ):
         self._path = path
-        self._offset = offset
+        self._offset = int(offset)
         self._shape = shape  # original shape
         self._chunksize = chunksize  # chunk size
         # shape = (33, 160, 1000, 1000)
@@ -56,7 +56,9 @@ class MemmapArrayWriter:
         # efficient: shape = (10, 100, 150) and sl = (3:5, 0:100, 0:150)
         # sl = (0:1, 16:32, 0:1000, 0:1000)
 
-        offset = np.sum([sl[i].start * arr.strides[i] for i in range(self._border + 1)])
+        # if input array is e.g. flipped, we need to make it contiguous
+        arr = np.ascontiguousarray(arr)
+        offset = sum(int(sl[i].start * arr.strides[i]) for i in range(self._border + 1))
         arr_ravel = arr.ravel()
         mmap = np.memmap(
             self._path,
