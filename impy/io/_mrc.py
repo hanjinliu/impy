@@ -112,14 +112,23 @@ def _parse_mrcfile(mrc: MrcObject) -> ImageMetadata:
     else:
         axes = "zyx"
 
+    metadata = {}
     scale = dict.fromkeys(axes, 1.0)
     for a in axes:
         scale[a] = mrc.voxel_size[a] / 10
+    try:
+        orig_x, orig_y, orig_z = mrc.header["origin"].item()
+    except Exception:
+        pass
+    else:
+        metadata["origin_nm"] = np.array([orig_z, orig_y, orig_x], dtype=np.float32) / 10
+
+    metadata["labels"] = mrc.get_labels()
 
     return ImageMetadata(
         axes=axes,
         scale=scale,
         unit={a: "nm" for a in axes},
-        metadata={},
+        metadata=metadata,
         labels=None,
     )
