@@ -12,7 +12,7 @@ from impy.axes import ImageAxesError
 if TYPE_CHECKING:
     from mrcfile.mrcobject import MrcObject
 
-@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".mrc.gz", ".map.gz")
+@IO.mark_reader(".mrc", ".rec", ".st", ".map", ".mrc.gz", ".map.gz", ".mrcs")
 def _(path: str, memmap: bool = False) -> ImageData:
     """The MRC format reader"""
     import mrcfile
@@ -29,7 +29,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
     return ImageData.from_metadata(image, meta)
 
 
-@IO.mark_header_reader(".mrc", ".rec", ".st", ".map", ".mrc.gz", ".map.gz")
+@IO.mark_header_reader(".mrc", ".rec", ".st", ".map", ".mrc.gz", ".map.gz", ".mrcs")
 def _(path: str) -> ImageData:
     """The MRC header reader"""
     import mrcfile
@@ -39,11 +39,13 @@ def _(path: str) -> ImageData:
 
     return meta
 
-@IO.mark_writer(".mrc", ".rec", ".st", ".map")
+@IO.mark_writer(".mrc", ".rec", ".st", ".map", ".mrcs")
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The MRC writer."""
 
     import mrcfile
+
+    input_axes = [str(a) for a in img.axes]
 
     if img.scale_unit == "nm":
         voxel_size = tuple(np.array(img.scale)[::-1] * 10)
@@ -56,6 +58,8 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         voxel_size = (1.0, 1.0, 1.0)
     if len(voxel_size) == 2:
         voxel_size = (1.0,) + voxel_size
+    elif len(voxel_size) > 3:
+        voxel_size = voxel_size[:3]
 
     if img.dtype == "bool":
         img = img.astype(np.int8)
@@ -79,20 +83,16 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
         return None
 
     # get voxel_size
-    if img.axes not in ("zyx", "yx"):
-        raise ImageAxesError(
-            f"Can only save zyx- or yx- image as a mrc file, but image has {img.axes} "
-            "axes."
-        )
     if Path(path).exists():
-        with mrcfile.open(path, mode="r+") as mrc:
-            mrc.set_data(img.value)
-            mrc.voxel_size = voxel_size
-
+        ctx_mgr = mrcfile.open(path, mode="r+")
     else:
-        with mrcfile.new(path) as mrc:
-            mrc.set_data(img.value)
-            mrc.voxel_size = voxel_size
+        ctx_mgr = mrcfile.new(path)
+    with ctx_mgr as mrc:
+        mrc.set_data(img.value)
+        mrc.voxel_size = voxel_size
+        if input_axes == ["t", "y", "x"]:
+            mrc.set_image_stack()
+
     return None
 
 _MRC_MODE = {
@@ -107,6 +107,8 @@ _MRC_MODE = {
 def _parse_mrcfile(mrc: MrcObject) -> ImageMetadata:
     if mrc.is_single_image():
         axes = "yx"
+    elif mrc.is_image_stack():
+        axes = "tyx"
     elif mrc.is_volume_stack():
         axes = "tzyx"
     else:
@@ -115,7 +117,11 @@ def _parse_mrcfile(mrc: MrcObject) -> ImageMetadata:
     metadata = {}
     scale = dict.fromkeys(axes, 1.0)
     for a in axes:
-        scale[a] = mrc.voxel_size[a] / 10
+        if a in "zyx":
+            this_scale = mrc.voxel_size[a] / 10
+            if this_scale == 0:
+                this_scale = 1.0
+            scale[a] = this_scale
     try:
         orig_x, orig_y, orig_z = mrc.header["origin"].item()
     except Exception:
