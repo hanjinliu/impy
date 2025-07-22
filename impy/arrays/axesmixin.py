@@ -24,28 +24,28 @@ if TYPE_CHECKING:
 
 class AxesMixin:
     """Abstract class with shape, ndim and axes are defined."""
-    
+
     _INHERIT = object()
     _axes: Axes
     ndim: int
     shape: tuple[int, ...]
     dtype: np.dtype
     value: Any
-    
+
     @property
     def shape_info(self) -> str:
         shape_info = ", ".join([f"{s}({o})" for s, o in zip(self.shape, self.axes)])
         return shape_info
-    
+
     @property
     def spatial_shape(self) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in "zyx" if a in self.axes)
-    
+
     @property
     def axes(self) -> Axes:
         """Axes of the array."""
         return self._axes
-    
+
     @axes.setter
     def axes(self, value: Iterable[AxisLike] | None):
         if value is None:
@@ -58,7 +58,7 @@ class AxesMixin:
                     f"array (ndim={self.ndim}) and axes ({value})"
                 )
             self._axes = axes
-    
+
     @property
     def metadata(self) -> dict[str, Any]:
         raise NotImplementedError()
@@ -66,16 +66,16 @@ class AxesMixin:
     @property
     def scale(self) -> ScaleView:
         return self.axes.scale
-    
+
     @scale.setter
     def scale(self, value: dict):
         if not isinstance(value, dict):
             raise TypeError(f"Cannot set scale using {type(value)}.")
         return self.set_scale(value)
-    
+
     @property
     def scale_unit(self) -> str:
-        units = set(a.unit for a in self.axes if str(a) in "zyx")
+        units = {a.unit for a in self.axes if str(a) in "zyx"}
         if len(units) == 0:
             return self.axes[-1].unit
         elif len(units) == 1:
@@ -83,21 +83,21 @@ class AxesMixin:
         else:
             warn(f"Inconsistent spatial unit: {units}.")
             return list(units)[-1]
-    
+
     @scale_unit.setter
     def scale_unit(self, unit) -> None:
         unit = str(unit)
         for a in self.axes:
             if str(a) in ["z", "y", "x"]:
                 a.unit = unit
-    
+
     def _repr_dict_(self) -> dict[str, Any]:
         raise NotImplementedError()
-        
+
     def __repr__(self) -> str:
         info = "\n".join(f"{k:^16}: {v}" for k, v in self._repr_dict_().items())
         return f"{self.__class__.__name__} of\n{info}\n"
-    
+
     def _repr_html_(self) -> str:
         strs = []
         for k, v in self._repr_dict_().items():
@@ -128,23 +128,22 @@ class AxesMixin:
             return symbol
         else:
             return self.axes.find(symbol)
-    
-    
+
+
     def sizeof(self, axis: AxisLike) -> int:
         return getattr(self.shape, str(axis))
-    
+
     def sizesof(self, axes: str) -> tuple[int, ...]:
         return tuple(self.sizeof(a) for a in axes)
-    
+
     def set_axes(self, axes) -> Self:
-        """
-        Set axes of the array and return the updated one.
+        """Set axes of the array and return the updated one.
 
         Parameters
         ----------
         axes : AxesLike
             New axes.
-        
+
         Returns
         -------
         Self
@@ -164,10 +163,10 @@ class AxesMixin:
             scales of common axes are copied.
         unit : str, optional
             Scale unit if needs update.
-        kwargs : 
+        kwargs :
             This enables function call like set_scale(x=0.1, y=0.1).
-        """        
-        
+        """
+
         if isinstance(other, MutableMapping):
             # voxel-scale can be set with one keyword.
             if "zyx" in other:
@@ -186,21 +185,23 @@ class AxesMixin:
             # check if all the keys are contained in axes.
             for a, val in other.items():
                 if a not in self.axes:
-                    raise ImageAxesError(f"Image does not have axis {a}.")    
+                    raise ImageAxesError(f"Image does not have axis {a}.")
                 elif not np.isscalar(val):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
 
             for k, v in other.items():
                 self.axes[k].scale = v
-            
+
         elif kwargs:
             self.set_scale(dict(kwargs))
-        
+
         elif hasattr(other, "scale"):
             self.set_scale(
                 {a: s for a, s in other.scale.items() if a in self.axes}  # type: ignore
             )
-        
+            if unit is None and hasattr(other, "scale_unit"):
+                unit = other.scale_unit
+
         elif isinstance(other, (list, tuple)):
             for a, s in zip(self.axes, other):
                 a.scale = s
@@ -208,27 +209,26 @@ class AxesMixin:
             raise TypeError(
                 f"'other' must be str or axes supported object, but got {type(other)}"
             )
-        
+
         if unit is not None:
             self.scale_unit = unit
-        
+
         return self
-    
+
     def set_axis_label(
         self,
         _dict: MutableMapping[str, Iterable[Any]] = None,
         /,
         **kwargs
     ) -> Self:
-        """
-        Set labels to an axis (axes).
+        """Set labels to an axis (axes).
 
         Parameters
         ----------
         _dict : mapping, optional
             Mapping from axis to its labels. Labels must have the same length as its
             dimensionality.
-            
+
         Examples
         --------
         >>> img.set_axis_label(c=["Blue", "Green", "Red"])
@@ -242,31 +242,32 @@ class AxesMixin:
         for k, v in _dict.items():
             self.axes[self.axes.find(k)].labels = v
         return self
-    
+
     @overload
     def iter(
         self,
         axes: AxesLike,
-        israw: Literal[False] = False, 
+        israw: Literal[False] = False,
         exclude: Dims = "",
     ) -> Iterator[tuple[Slices, np.ndarray]]:
         ...
-    
+
     @overload
     def iter(
         self,
         axes: AxesLike,
-        israw: Literal[True] = False, 
+        israw: Literal[True] = False,
         exclude: Dims = "",
     ) -> Iterator[tuple[Slices, Self]]:
         ...
-    
+
     def iter(self, axes, israw = False, exclude = ""):
-        """
-        Iteration along axes. If axes="tzc", then equivalent to following pseudo code:
-        
+        """Iteration along axes.
+
+        If axes="tzc", then equivalent to following pseudo code:
+
             .. code-block::
-            
+
                 for t in all_t:
                     for z in all_z:
                         for c in all_c:
@@ -279,19 +280,19 @@ class AxesMixin:
         israw : bool, default is False
             If True, MetaArray will be returned. If False, np.ndarray will be returned.
         exclude : str, optional
-            Which axes will be excluded in output. For example, self.axes="tcyx" and 
-            exclude="c" then the axes of output will be "tyx" and slice is also correctly 
+            Which axes will be excluded in output. For example, self.axes="tcyx" and
+            exclude="c" then the axes of output will be "tyx" and slice is also correctly
             arranged.
-            
+
         Yields
         -------
         slice and (np.ndarray or AxesMixin)
             slice and a subimage=self[sl]
-        """     
+        """
         iterlist = switch_slice(
-            axes=axes, 
+            axes=axes,
             all_axes=self.axes,
-            ifin=[range(s) for s in self.shape], 
+            ifin=[range(s) for s in self.shape],
             ifnot=[(slice(None),)] * self.ndim
         )
         exclude = list(exclude)
@@ -302,11 +303,11 @@ class AxesMixin:
             if len(exclude) == 0:
                 outsl = sl
             else:
-                outsl = tuple(s for i, s in enumerate(sl) 
+                outsl = tuple(s for i, s in enumerate(sl)
                               if self.axes[i] not in exclude)
             yield outsl, selfview[sl]
             c += 1
-            
+
         # if iterlist = []
         if c == 0:
             outsl = (slice(None),) * (self.ndim - len(exclude))
