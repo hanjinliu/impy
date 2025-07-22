@@ -501,9 +501,8 @@ def imread(
     name: str | None = None,
     squeeze: bool = False,
 ) -> ImgArray:
-    """
-    Load image(s) from a path. You can read list of images from directories with
-    wildcards or ``"$"`` in ``path``.
+    """Load image(s) from a path.
+    You can read list of images from directories with wildcards or ``"$"`` in ``path``.
 
     Parameters
     ----------
@@ -537,6 +536,8 @@ def imread(
 
     """
     path = str(path)
+    if path.startswith("~"):
+        path = os.path.expanduser(path)
     is_memmap = (key is not None)
 
     if "$" in path:
@@ -596,8 +597,7 @@ def imread(
     return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
 
 def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
-    """
-    Read images recursively from a directory, and stack them into one ImgArray.
+    """Read images recursively from a directory, and stack them into one ImgArray.
 
     Parameters
     ----------
