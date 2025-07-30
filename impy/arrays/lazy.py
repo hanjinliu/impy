@@ -339,7 +339,7 @@ class LazyImgArray(AxesMixin):
 
     @_docs.copy_docs(LabeledArray.imsave)
     def imsave(self, save_path: str | Path, *, dtype = None, overwrite: bool = True):
-        save_path = Path(save_path)
+        save_path = Path(save_path).expanduser()
         if self.ndim < 2:
             raise ValueError("Cannot save <2D array as an image.")
 

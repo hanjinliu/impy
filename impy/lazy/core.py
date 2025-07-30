@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import re
 import glob
 from typing import TYPE_CHECKING, Any, Callable, Sequence
@@ -244,7 +245,7 @@ def imread(
     -------
     LazyImgArray
     """
-    path = str(path)
+    path = str(Path(path).expanduser())
     if "*" in path:
         return _imread_glob(path, chunks=chunks, squeeze=squeeze)
     if not os.path.exists(path):
