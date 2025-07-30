@@ -273,8 +273,7 @@ class LabeledArray(MetaArray):
         dtype: DTypeLike = None,
         overwrite: bool = True,
     ) -> None:
-        """
-        Save image at the same directory as the original image by default.
+        """Save image at the same directory as the original image by default.
 
         For tif file format, if the image contains wrong axes for ImageJ (= except for tzcyx),
         then it will converted automatically if possible. For mrc file format, only zyx and yx is
@@ -290,7 +289,7 @@ class LabeledArray(MetaArray):
             Whether to overwrite the file if it already exists.
 
         """
-        save_path = Path(save_path)
+        save_path = Path(save_path).expanduser()
         if self.ndim < 2:
             raise ValueError("Cannot save <2D array as an image.")
 
@@ -310,7 +309,7 @@ class LabeledArray(MetaArray):
                     " >>> img.source = \"...\"\n"
                     "or specify absolute path like\n"
                     " >>> img.imsave(\"/path/to/XXX.tif\")"
-                    )
+                )
             save_path = self.source.parent / save_path
 
         if not overwrite and save_path.exists():

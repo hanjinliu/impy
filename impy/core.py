@@ -535,9 +535,7 @@ def imread(
         Wall time: 3.01 ms
 
     """
-    path = str(path)
-    if path.startswith("~"):
-        path = os.path.expanduser(path)
+    path = str(Path(path).expanduser())
     is_memmap = (key is not None)
 
     if "$" in path:
