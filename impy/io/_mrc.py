@@ -7,8 +7,6 @@ import numpy as np
 from impy.io._registry import IO
 from impy.io._utils import rechunk_to_ones, MemmapArrayWriter, ImpyArray, ImageData, ImageMetadata
 
-from impy.axes import ImageAxesError
-
 if TYPE_CHECKING:
     from mrcfile.mrcobject import MrcObject
 
@@ -107,8 +105,6 @@ _MRC_MODE = {
 def _parse_mrcfile(mrc: MrcObject) -> ImageMetadata:
     if mrc.is_single_image():
         axes = "yx"
-    elif mrc.is_image_stack():
-        axes = "tyx"
     elif mrc.is_volume_stack():
         axes = "tzyx"
     else:
