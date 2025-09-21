@@ -170,8 +170,7 @@ class MetaArray(AxesMixin, np.ndarray):
         return self[tuple(slices)]
 
     def isel(self, indexer=None, /, **kwargs: dict[str, Any]) -> Self:
-        """
-        A index based indexing method, mimicking ``xarray.isel``.
+        """A index based indexing method, mimicking ``xarray.isel``.
 
         Example
         -------
@@ -259,9 +258,7 @@ class MetaArray(AxesMixin, np.ndarray):
 
     @classmethod
     def implements(cls, numpy_function):
-        """
-        Add functions to NP_DISPATCH so that numpy functions can be overloaded.
-        """
+        """Add functions to NP_DISPATCH so that numpy functions can be overloaded."""
         def decorator(func):
             cls.NP_DISPATCH[numpy_function] = func
             func.__name__ = numpy_function.__name__

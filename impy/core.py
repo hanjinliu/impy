@@ -592,7 +592,7 @@ def imread(
                 if k in "zyx":
                     self.axes[k].unit = scale_unit[k]
 
-    return self.sort_axes().as_img_type(dtype) # arrange in tzcyx-order
+    return self.as_img_type(dtype) # arrange in tzcyx-order
 
 def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     """Read images recursively from a directory, and stack them into one ImgArray.

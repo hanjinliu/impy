@@ -340,7 +340,7 @@ class ImgArray(LabeledArray):
     def binning(
         self,
         binsize: int = 2,
-        method = "mean",
+        method: str | Callable[[np.ndarray], Any] = "mean",
         *,
         check_edges: bool = True,
         dims: Dims = None
@@ -389,6 +389,54 @@ class ImgArray(LabeledArray):
             {a: self.scale[a]/scale for a, scale in zip(self.axes, scale_)}
         )
         return out
+
+    @_docs.write_docs
+    @dims_to_spatial_axes
+    @same_dtype
+    def fourier_crop(
+        self,
+        binsize: float = 2,
+        dims: Dims = None,
+    ) -> ImgArray:
+        """Crop image in Fourier space.
+
+        Parameters
+        ----------
+        binsize : float, default is 2
+            Crop factor. If 2, the output image will have half the shape of the input
+            image.
+        {dims}
+
+        Returns
+        -------
+        ImgArray
+            Cropped image.
+        """
+        if binsize == 1:
+            return self
+        if binsize < 1:
+            raise ValueError("`binsize` must be 1 or larger.")
+        new_shape = list(self.shape)
+        new_scale = dict(self.scale)
+        for i, a in enumerate(self.axes):
+            if a in dims:
+                new_shape[i] = int(self.shape[i] / binsize)
+                new_scale[a] = self.scale[a] * binsize
+        spatial_axes = [self.axisof(a) for a in dims]
+        input = xp.asarray(self.value)
+
+        out = xp.fft.irfftn(
+            _misc.fft_crop(xp.fft.rfftn(input, axes=spatial_axes), new_shape),
+            s=new_shape,
+            axes=spatial_axes,
+        )
+        out = xp.asnumpy(out)
+
+        out_img = out.view(self.__class__)
+        out_img._set_info(self)
+        out_img.axes = self.axes.copy()  # _set_info does not pass copy so new axes must be defined here.
+        out_img.set_scale(new_scale)
+        return out_img
 
     @_docs.write_docs
     @dims_to_spatial_axes
