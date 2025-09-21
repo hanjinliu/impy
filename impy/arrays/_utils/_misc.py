@@ -93,3 +93,17 @@ def inpaint_mean(img: np.ndarray, mask: np.ndarray):
         border = expanded_i ^ mask_i
         out[mask_i] = xp.mean(img[border])
     return out
+
+
+def fft_crop(freq: np.ndarray, new_shape: tuple[int, ...]) -> np.ndarray:
+    """Crop the Fourier transformed array to the new_shape."""
+    cur_freq = freq
+    for i, (n, s) in enumerate(zip(new_shape, freq.shape)):
+        if i != len(new_shape) - 1:
+            # rfftn non last axis
+            left = n // 2
+            right = s - left
+            cur_freq = np.concatenate([cur_freq[:left], cur_freq[right:]], axis=i)
+        else:
+            cur_freq = cur_freq[..., :n]
+    return cur_freq
