@@ -776,12 +776,13 @@ class LazyImgArray(AxesMixin):
         sigma: nDFloat = 1.0,
         *,
         dims: Dims = None,
+        fourier: bool = False,
         update: bool = False
     ) -> LazyImgArray:
         c_axes = complement_axes(dims, self.axes)
         depth = _ceilint(sigma*4)
         return self._apply_map_overlap(
-            xp.ndi.gaussian_filter,
+            _filters.gaussian_filter_fourier if fourier else _filters.gaussian_filter,
             c_axes=c_axes,
             depth=depth,
             kwargs=dict(sigma=sigma),
@@ -795,13 +796,14 @@ class LazyImgArray(AxesMixin):
         low_sigma: nDFloat = 1.0,
         high_sigma: nDFloat = 2.0,
         *,
+        fourier: bool = False,
         dims: Dims = None,
         update: bool = False
     ) -> LazyImgArray:
         c_axes = complement_axes(dims, self.axes)
         depth = _ceilint(high_sigma*4)
         return self._apply_map_overlap(
-            _filters.dog_filter,
+            _filters.dog_filter_fourier if fourier else _filters.dog_filter,
             c_axes=c_axes,
             depth=depth,
             kwargs=dict(low_sigma=low_sigma, high_sigma=high_sigma),
@@ -1317,8 +1319,6 @@ class LazyImgArray(AxesMixin):
     def track_drift(self, along: str = None, upsample_factor: int = 10) -> DaskArray:
         if along is None:
             along = find_first_appeared("tpzc<i", include=self.axes)
-        elif len(along) != 1:
-            raise ValueError("`along` must be single character.")
 
         dims = complement_axes(along, self.axes)
         chunks = switch_slice(dims, self.axes, ifin=self.shape, ifnot=1)
@@ -1370,8 +1370,6 @@ class LazyImgArray(AxesMixin):
     ) -> LazyImgArray:
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
-        elif len(along) != 1:
-            raise ValueError("`along` must be single character.")
 
         from impy.frame import MarkerFrame
 
@@ -1387,7 +1385,7 @@ class LazyImgArray(AxesMixin):
                     dims = _dims
             elif not isinstance(ref, self.__class__):
                 ref = self[ref]
-            if ref.axes != along + dims:
+            if ref.axes != [along] + dims:
                 raise ValueError(f"Arguments `along`({along}) + `dims`({dims}) do not match "
                                  f"axes of `ref`({ref.axes})")
 

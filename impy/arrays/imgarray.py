@@ -4111,8 +4111,6 @@ class ImgArray(LabeledArray):
 
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes)
-        elif len(along) != 1:
-            raise ValueError("`along` must be single character.")
         if not isinstance(upsample_factor, int):
             raise TypeError(f"upsample-factor must be integer but got {type(upsample_factor)}")
         if max_shift is not None:
@@ -4122,7 +4120,7 @@ class ImgArray(LabeledArray):
         c_axes = complement_axes(along, self.axes)
         last_img = None
         img_fft = self.fft(shift=False, dims=c_axes)
-        for i, (_, img) in enumerate(img_fft.iter(along)):
+        for i, (_, img) in enumerate(img_fft.iter([along])):
             img = xp.asarray(img)
             if last_img is not None:
                 result[i] = xp.asnumpy(
@@ -4198,8 +4196,6 @@ class ImgArray(LabeledArray):
 
         if along is None:
             along = find_first_appeared("tpzcia", include=self.axes, exclude=dims)
-        elif len(along) != 1:
-            raise ValueError("`along` must be single character.")
 
         if shift is None:
             # determine 'ref'
