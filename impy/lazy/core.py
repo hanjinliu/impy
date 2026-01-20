@@ -278,7 +278,7 @@ def imread(
             if k in "zyx":
                 self.axes[k].unit = spatial_scale_unit.get(k)
 
-    return self.sort_axes()
+    return self
 
 
 def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> LazyImgArray:
