@@ -3801,7 +3801,7 @@ class ImgArray(LabeledArray):
 
     def regionprops(
         self,
-        properties: Iterable[str] | str = ("mean_intensity",),
+        properties: Iterable[str] | str = ("intensity_mean",),
         *,
         extra_properties: Iterable[Callable] | None = None,
     ) -> DataDict[str, PropArray]:

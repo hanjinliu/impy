@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose, assert_equal
 import pytest
 
 @pytest.mark.parametrize(
-    ["ext", "unit"], 
+    ["ext", "unit"],
     [(".tif", "μm"), (".mrc", "nm"), (".zarr", "μm"), (".npz", "µm")]
 )
 def test_imread_and_imsave(ext, unit):
@@ -54,3 +54,14 @@ def test_imsave_safety():
         img.imsave("test")
         with pytest.raises(Exception):
             img.imsave("test.tif", overwrite=False)
+
+def test_wildcard(tmpdir):
+    for i in range(5):
+        img = ip.random.random_uint16((100, 100), axes="yx")
+        img.imsave(tmpdir / f"test_{i}.tif")
+    img0 = ip.imread(tmpdir / "test_*.tif")
+    img1 = ip.imread(tmpdir / "test_?.tif")
+    assert img0.shape == (5, 100, 100)
+    assert img0.dtype == "uint16"
+    assert img1.shape == (5, 100, 100)
+    assert img1.dtype == "uint16"

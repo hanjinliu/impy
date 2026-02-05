@@ -489,9 +489,9 @@ def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
     out = [a.broadcast_to(shape, axes) for a in arrays]
     return out
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Imread functions
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def imread(
     path: str,
@@ -502,6 +502,7 @@ def imread(
     squeeze: bool = False,
 ) -> ImgArray:
     """Load image(s) from a path.
+
     You can read list of images from directories with wildcards or ``"$"`` in ``path``.
 
     Parameters
@@ -540,7 +541,7 @@ def imread(
 
     if "$" in path:
         return _imread_stack(path, dtype=dtype, key=key, squeeze=squeeze)
-    elif "*" in path:
+    elif "*" in path or "?" in path or "[" in path:
         return _imread_glob(path, dtype=dtype, key=key, squeeze=squeeze)
     elif not Path(path).exists():
         raise FileNotFoundError(f"No such file or directory: {path}")
@@ -619,8 +620,9 @@ def _imread_glob(path: str, squeeze: bool = False, **kwargs) -> ImgArray:
     out: ImgArray = np.stack(imgs, axis="p")
     if squeeze:
         out = np.squeeze(out)
+    sep = "*" if "*" in path else "?"
     try:
-        base = os.path.split(path.split("*")[0])[0]
+        base = os.path.split(path.split(sep)[0])[0]
         out.source = base
     except Exception:
         pass
