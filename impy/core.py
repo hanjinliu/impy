@@ -1,4 +1,5 @@
 from __future__ import annotations
+from contextlib import suppress
 import os
 from pathlib import Path
 import re
@@ -576,7 +577,8 @@ def imread(
             # In case the image is in yxc-order. This sometimes happens.
             self: ImgArray = np.moveaxis(self, -1, -3)
         if labels is not None:
-            self.set_axis_label(c=labels)
+            with suppress(ValueError):
+                self.set_axis_label(c=labels)
 
     if dtype is None:
         dtype = self.dtype
