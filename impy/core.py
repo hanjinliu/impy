@@ -495,7 +495,7 @@ def broadcast_arrays(*arrays: MetaArray) -> list[MetaArray]:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def imread(
-    path: str,
+    path: str | Path,
     dtype: DTypeLike = None,
     key: AxesTargetedSlicer | None = None,
     *,
@@ -537,7 +537,25 @@ def imread(
         Wall time: 3.01 ms
 
     """
-    path = str(Path(path).expanduser())
+    if str(path).startswith("~"):
+        path = str(Path(path).expanduser())
+    else:
+        path = str(path)
+
+    # if a directory of a ome.tiff is given, read the first image (which will eventually
+    # read all the positions) and use the directory name as source/name.
+    if (_fp := Path(path)).is_dir():
+        _first_tif = next(_fp.glob("*.ome.tif"), None)
+        if _first_tif is None:
+            raise ValueError(
+                "If a directory is given to imread, only directory of ome.tif is "
+                "supported. Please use wildcard like `path/to/dir/*.tif` to read "
+                "images in a directory."
+            )
+        out = imread(_first_tif, dtype=dtype, key=key, name=_fp.name, squeeze=squeeze)
+        out.source = _fp
+        return out
+
     is_memmap = (key is not None)
 
     if "$" in path:
