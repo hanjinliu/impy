@@ -302,16 +302,6 @@ class LabeledArray(MetaArray):
                 ext = ".tif"
             save_path = save_path.parent / (save_path.name + ext)
 
-        if not Path(save_path).is_absolute():
-            if self.source is None:
-                raise ValueError(
-                    "Image directory path is unknown. Set by \n"
-                    " >>> img.source = \"...\"\n"
-                    "or specify absolute path like\n"
-                    " >>> img.imsave(\"/path/to/XXX.tif\")"
-                )
-            save_path = self.source.parent / save_path
-
         if not overwrite and save_path.exists():
             raise FileExistsError(f"File {save_path!r} already exists.")
         if self.metadata is None:
