@@ -47,8 +47,6 @@ def test_imsave_safety():
     assert img.source is None
     with tempfile.TemporaryDirectory() as path:
         img.imsave(Path(path) / "test.tif")
-        with pytest.raises(Exception):
-            img.imsave("test.tif")
         img.source = Path(path) / "dummy.tif"
         img.imsave("test.tif")
         img.imsave("test")

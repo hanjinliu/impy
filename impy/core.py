@@ -544,7 +544,7 @@ def imread(
 
     # if a directory of a ome.tiff is given, read the first image (which will eventually
     # read all the positions) and use the directory name as source/name.
-    if (_fp := Path(path)).is_dir():
+    if (_fp := Path(path)).is_dir() and _fp.suffix != ".zarr":
         _first_tif = next(_fp.glob("*.ome.tif"), None)
         if _first_tif is None:
             raise ValueError(

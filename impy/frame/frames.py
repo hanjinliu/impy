@@ -18,11 +18,11 @@ else:
 
 class AxesFrame(pd.DataFrame):
     _metadata = ["_axes"]
-    
+
     @property
     def _constructor(self):
         return AxesFrame
-    
+
     def __init__(self, data=None, columns=None, **kwargs):
         if isinstance(columns, (str, Axes)):
             kwargs["columns"] = [a for a in columns]
@@ -32,17 +32,17 @@ class AxesFrame(pd.DataFrame):
                 columns = str(data._axes)
         else:
             kwargs["columns"] = columns
-        
+
         super().__init__(data, **kwargs)
         self._axes = Axes(self.columns)
-    
+
     def _get_coords_cols(self):
         return [a for a in self.columns if len(a) == 1]
-    
+
     def get_coords(self):
         return self[self.columns[self.columns.isin([a for a in self.columns if len(a) == 1])]]
-    
-    
+
+
     def __getitem__(self, k):
         # sl_tuple = solve_slicer(key, self.axes)
         # drops: list[int] = []
@@ -56,7 +56,7 @@ class AxesFrame(pd.DataFrame):
         #             binary = np.logical_and(binary, (arr - s0) % step == 0)
         #         elif step < 0:
         #             raise NotImplementedError
-                
+
         #     else:
         #         binary = arr == sl
         #         drops.append(i)
@@ -72,9 +72,9 @@ class AxesFrame(pd.DataFrame):
                 for each in k.split(";"):
                     self = self.__getitem__(each.strip())
                 return self
-            
+
             elif "=" in k:
-                axis, sl = [a.strip() for a in k.split("=")]
+                axis, sl = (a.strip() for a in k.split("="))
                 sl = str_to_slice(sl)
                 if isinstance(sl, int):
                     out = self[self[axis]==sl]
@@ -87,19 +87,19 @@ class AxesFrame(pd.DataFrame):
             elif "" == k:
                 return self
             else:
-                out = super().__getitem__(k)                
+                out = super().__getitem__(k)
         else:
             out = super().__getitem__(k)
-            
+
         if isinstance(out, AxesFrame):
             out._axes = Axes(out._get_coords_cols())
             out.set_scale(self)
         return out
-    
+
     @property
     def col_axes(self):
         return self._axes
-    
+
     @col_axes.setter
     def col_axes(self, value):
         naxes = self.shape[1]
@@ -113,11 +113,11 @@ class AxesFrame(pd.DataFrame):
                     f"array (ndim={naxes}) and axes ({value})"
                 )
             self._axes = axes
-    
+
     @property
     def scale(self):
         return self._axes.scale
-    
+
     def set_scale(self, other=None, **kwargs) -> None:
         """
         Set scales of each axis.
@@ -127,7 +127,7 @@ class AxesFrame(pd.DataFrame):
         other : dict, AxesFrame or MetaArray, optional
             New scales. If dict, it should be like {"x": 0.1, "y": 0.1}. If MetaArray, only
             scales of common axes are copied.
-        kwargs : 
+        kwargs :
             This enables function call like set_scale(x=0.1, y=0.1).
 
         """
@@ -142,40 +142,29 @@ class AxesFrame(pd.DataFrame):
             # check if all the keys are contained in axes.
             for a, val in other.items():
                 if a not in self._axes:
-                    raise ImageAxesError(f"Image does not have axis {a}.")    
+                    raise ImageAxesError(f"Image does not have axis {a}.")
                 elif not np.isscalar(val):
                     raise TypeError(f"Cannot set non-numeric value as scales.")
-            
+
             for k, v in other.items():
                 self.col_axes[k].scale = v
-            
+
         elif hasattr(other, "scale"):
             self.set_scale({a: s for a, s in other.scale.items() if a in self._axes})
-            
+
         elif kwargs:
             self.set_scale(dict(kwargs))
-            
+
         else:
             raise TypeError(f"'other' must be str or MetaArray, but got {type(other)}")
-        
+
         return None
-    
-    def as_standard_type(self) -> AxesFrame:
-        """
-        t or c -> uint16
-        p -> uint32
-        z, y, x -> float32
-        """
-        dtype = lambda a: np.uint16 if a in ["t", "c"] else (np.uint32 if a == Const["ID_AXIS"] else np.float32)
-        out = self.__class__(self.astype({a: dtype(a) for a in self.col_axes}))
-        out._axes = self._axes
-        return out
-        
-    
+
+
     def split(self, axis="c") -> list[AxesFrame]:
         """
         Split DataFrame according to its indices. For example, if self is an DataFrame with columns
-        "t", "c", "y", "x" and it is split along "c" axis, then output is a list of DataFrame with 
+        "t", "c", "y", "x" and it is split along "c" axis, then output is a list of DataFrame with
         columns "t", "y", "x".
 
         Parameters
@@ -204,7 +193,7 @@ class AxesFrame(pd.DataFrame):
         ----------
         axes : str
             Along which axes to iterate.
-            
+
         Yields
         -------
         tuple and AxesFrame
@@ -214,10 +203,10 @@ class AxesFrame(pd.DataFrame):
         outsl = [slice(None)] * len(self.col_axes)
         cols = [a for a in self.col_axes if a not in axes]
         groupkeys = [a for a in axes]
-        
+
         if len(groupkeys) == 0:
             yield (slice(None),), self
-        
+
         else:
             if len(groupkeys) == 1:
                 groupkeys = groupkeys[0]
@@ -227,21 +216,21 @@ class AxesFrame(pd.DataFrame):
                     sl = (sl,)
                 [outsl.__setitem__(i, s) for i, s in zip(indices, sl)]
                 yield tuple(outsl), af
-    
+
     def sort(self):
         ids = self._axes.argsort()
         return self[[self._axes[i] for i in ids]]
-    
+
     def proj(self, axis=None):
         if axis is None:
             axis = complement_axes("yx", self._axes)
         cols = [a for a in self.col_axes if a not in axis]
         return self[cols]
-        
+
 def tp_no_verbose(func):
     """
     Temporary suppress logging in trackpy.
-    """    
+    """
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         tp.quiet(suppress=True)
@@ -277,19 +266,19 @@ class MarkerFrame(AxesFrame):
         -------
         TrackFrame
             Result of particle tracking.
-        """        
-            
+        """
+
         linked = tp.link(pd.DataFrame(self), search_range=search_range, t_column="t", memory=memory, **kwargs)
-        
+
         linked.rename(columns = {"particle":Const["ID_AXIS"]}, inplace=True)
         linked = linked.reindex(columns=[a for a in Const["ID_AXIS"]+str(self.col_axes)])
-        
+
         track = TrackFrame(linked, columns="".join(linked.columns.tolist()))
         track.set_scale(self)
         if min_dwell > 0:
             out = track.filter_stubs(min_dwell)
         else:
-            out = track.as_standard_type()
+            out = track
         out.index = np.arange(len(out))
         return out
 
@@ -298,7 +287,7 @@ class TrackFrame(AxesFrame):
         df = pd.DataFrame(self, copy=True, dtype=np.float32)
         df.rename(columns = {"t":"frame", Const["ID_AXIS"]:"particle"}, inplace=True)
         return df
-        
+
     @tp_no_verbose
     def track_drift(self, smoothing=0):
         df = self._renamed_df()
@@ -307,25 +296,25 @@ class TrackFrame(AxesFrame):
         ori = pd.DataFrame({"y":[0.], "x":[0.]}, dtype=np.float32)
         shift = pd.concat([ori, shift], axis=0)
         return MarkerFrame(shift)
-    
+
     @tp_no_verbose
     def msd(self, max_lagt:int=100, detail:bool=False):
         df = self._renamed_df()
-        return tp.motion.msd(df, self.scale["x"], self.scale["t"], 
+        return tp.motion.msd(df, self.scale["x"], self.scale["t"],
                              max_lagtime=max_lagt, detail=detail)
-    
+
     @tp_no_verbose
     def imsd(self, max_lagt=100):
         df = self._renamed_df()
-        return tp.motion.imsd(df, self.scale["x"], self.scale["t"], 
+        return tp.motion.imsd(df, self.scale["x"], self.scale["t"],
                              max_lagtime=max_lagt)
-    
+
     @tp_no_verbose
     def emsd(self, max_lagt=100, detail=False):
         df = self._renamed_df()
-        return tp.motion.emsd(df, self.scale["x"], self.scale["t"], 
+        return tp.motion.emsd(df, self.scale["x"], self.scale["t"],
                              max_lagtime=max_lagt, detail=detail)
-    
+
     @tp_no_verbose
     def filter_stubs(self, min_dwell=3):
         df = self._renamed_df()
@@ -334,8 +323,8 @@ class TrackFrame(AxesFrame):
         df = df.astype({"t":np.uint16, Const["ID_AXIS"]:np.uint32})
         out = TrackFrame(df, columns=self.col_axes)
         out.set_scale(self)
-        return out.as_standard_type()
-    
+        return out
+
     def as_path(self):
         df = self[[a for a in self._axes if a != "t"]]
         return PathFrame(df, columns=df._axes)

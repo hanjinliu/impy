@@ -2675,7 +2675,7 @@ class ImgArray(LabeledArray):
         out = pd.concat(out, axis=0)
 
         out = MarkerFrame(out.reindex(columns=list(coords._axes)),
-                            columns=str(coords._axes), dtype=np.float32).as_standard_type()
+                            columns=str(coords._axes), dtype=np.float32)
         out.set_scale(coords.scale)
 
         return out
