@@ -38,7 +38,7 @@ def subpixel_pcc(
 ):
     power, product = _pcc_and_power_spec(f0, f1, max_shifts)
     maxima = xp.unravel_index(xp.argmax(power), power.shape)
-    midpoints = xp.array([np.fix(axis_size / 2) for axis_size in power.shape])
+    midpoints = xp.array([np.trunc(axis_size / 2) for axis_size in power.shape])
 
     shifts = xp.asarray(maxima, dtype=np.float32)
     shifts[shifts > midpoints] -= xp.array(power.shape)[shifts > midpoints]
