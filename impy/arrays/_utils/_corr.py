@@ -38,16 +38,16 @@ def subpixel_pcc(
 ):
     power, product = _pcc_and_power_spec(f0, f1, max_shifts)
     maxima = xp.unravel_index(xp.argmax(power), power.shape)
-    midpoints = xp.array([np.fix(axis_size / 2) for axis_size in power.shape])
+    midpoints = xp.array([np.trunc(axis_size / 2) for axis_size in power.shape])
 
     shifts = xp.asarray(maxima, dtype=np.float32)
     shifts[shifts > midpoints] -= xp.array(power.shape)[shifts > midpoints]
     # Initial shift estimate in upsampled grid
-    shifts = xp.fix(shifts * upsample_factor) / upsample_factor
+    shifts = xp.trunc(shifts * upsample_factor) / upsample_factor
     if upsample_factor > 1:
         upsampled_region_size = np.ceil(upsample_factor * 1.5)
         # Center of output array at dftshift + 1
-        dftshift = xp.fix(upsampled_region_size / 2.0)
+        dftshift = xp.trunc(upsampled_region_size / 2.0)
         upsample_factor = xp.array(upsample_factor, dtype=np.float32)
         # Matrix multiply DFT around the current shift estimate
         sample_region_offset = dftshift - shifts*upsample_factor

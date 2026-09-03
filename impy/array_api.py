@@ -97,7 +97,7 @@ class XP:
         self.angle = np.angle
         self.abs = np.abs
         self.mod = np.mod
-        self.fix = np.fix
+        self.trunc = np.trunc
         self.round = np.round
         self.gradient = np.gradient
         self.tensordot = np.tensordot
@@ -165,7 +165,7 @@ class XP:
         self.angle = cp.angle
         self.abs = cp.abs
         self.mod = cp.mod
-        self.fix = cp.fix
+        self.trunc = cp.trunc
         self.round = cp.round
         try:
             self.gradient = cp.gradient
