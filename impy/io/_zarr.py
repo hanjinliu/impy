@@ -5,8 +5,6 @@ import numpy as np
 from impy.io._registry import IO
 from impy.io._utils import get_channel_labels, ImpyArray, ImageData
 
-from impy.axes import ImageAxesError
-
 
 @IO.mark_reader(".zarr")
 def _(path: str, memmap: bool = False) -> ImageData:
@@ -32,6 +30,7 @@ def _(path: str, memmap: bool = False) -> ImageData:
 def _(path: str, img: ImpyArray, lazy: bool = False):
     """The zarr writer."""
     import zarr
+    from dask import array as da
 
     f = zarr.open(path, mode="w")
     metadata = img.metadata.copy()
@@ -44,6 +43,5 @@ def _(path: str, img: ImpyArray, lazy: bool = False):
     if lazy:
         img.value.to_zarr(url=os.path.join(path, "data"))
     else:
-        z = img.value
-        f.array("data", z)
+        da.from_array(img.value).to_zarr(url=os.path.join(path, "data"))
     return None
