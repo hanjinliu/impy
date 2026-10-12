@@ -127,18 +127,9 @@ def add_labeledarray(viewer: napari.Viewer, img: LabeledArray, **kwargs):
         channel_axis=chn_ax,
         scale=scale,
         name=name if len(name) > 1 else name[0],
+        units=[a.unit for a in img.axes],
         **kwargs
     )
-
-    if viewer.scale_bar.unit:
-        if viewer.scale_bar.unit != img.scale_unit:
-            msg = (
-                f"Incompatible scales. Viewer is {viewer.scale_bar.unit} while "
-                f"image is {img.scale_unit}."
-            )
-            warnings.warn(msg)
-    else:
-        viewer.scale_bar.unit = img.scale_unit
 
     new_axes = [str(a) for a in img.axes if a != "c"]
     # add axis labels to slide bars and image orientation.
@@ -173,7 +164,7 @@ def add_labels(
 
     out_layers = []
     for lbl, name in zip(lbls, names):
-        layer = viewer.add_labels(lbl.value, name=name, **kw)
+        layer = viewer.add_labels(lbl.value, name=name, units=[a.unit for a in lbl.axes], **kw)
         out_layers.append(layer)
     return out_layers
 
@@ -188,17 +179,23 @@ def add_dask(viewer: napari.Viewer, img: LazyImgArray, **kwargs):
     else:
         name = ["[Lazy]" + name]
 
-    layer = viewer.add_image(img, channel_axis=chn_ax, scale=scale,
-                             name=name if len(name)>1 else name[0], **kwargs)
-    viewer.scale_bar.unit = img.scale_unit
+    layer = viewer.add_image(
+        img,
+        channel_axis=chn_ax,
+        scale=scale,
+        name=name if len(name)>1 else name[0],
+        units=[a.unit for a in img.axes],
+        **kwargs
+    )
     new_axes = [str(a) for a in img.axes if a != "c"]
     # add axis labels to slide bars and image orientation.
     if len(new_axes) >= len(viewer.dims.axis_labels):
         viewer.dims.axis_labels = new_axes
     return layer
 
-def add_points(viewer:napari.Viewer, points: AxesFrame, **kwargs):
+def add_points(viewer: napari.Viewer, points: AxesFrame, **kwargs):
     from ..frame import MarkerFrame
+
     if isinstance(points, MarkerFrame):
         scale = make_world_scale(points)
         points = points.get_coords()
